@@ -1,0 +1,97 @@
+.search-panel {
+  display: grid;
+  gap: 12px;
+  border-radius: 34px 48px 32px 44px;
+  padding: 17px;
+}
+
+.search-panel h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.search-panel p {
+  color: var(--muted);
+  line-height: 1.45;
+  margin-bottom: 0;
+}
+
+.search-panel input {
+  width: 100%;
+  border: 1px solid rgba(255, 119, 231, 0.28);
+  border-radius: 999px;
+  padding: 12px 14px;
+  background: rgba(22, 5, 31, 0.64);
+  color: var(--cream);
+  outline: none;
+  box-shadow: inset 0 0 18px rgba(255, 79, 216, 0.08);
+}
+
+.search-panel input:focus {
+  border-color: rgba(94, 231, 255, 0.58);
+  box-shadow: 0 0 0 3px rgba(94, 231, 255, 0.12), inset 0 0 18px rgba(255, 79, 216, 0.1);
+}
+
+.record-list {
+  display: grid;
+  gap: 10px;
+}
+
+.record-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border-radius: 28px 38px 26px 34px;
+  padding: 14px;
+}
+
+.record-card h4 {
+  margin: 8px 0 7px;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.record-card p,
+.record-card small {
+  color: var(--muted);
+  line-height: 1.45;
+  margin-bottom: 0;
+}
+
+.record-card small {
+  display: block;
+  margin-top: 4px;
+}
+
+.record-actions {
+  display: grid;
+  gap: 6px;
+}
+
+.record-actions button {
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--cream);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.record-actions button:hover,
+.search-panel input:hover {
+  border-color: rgba(255, 79, 216, 0.48);
+}
+
+@media (max-width: 520px) {
+  .record-card {
+    grid-template-columns: 1fr;
+  }
+
+  .record-actions {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
