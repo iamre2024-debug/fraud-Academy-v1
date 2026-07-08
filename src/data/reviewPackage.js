@@ -36,7 +36,7 @@ export function getReviewPackageStatus({ completedTools = [], tray = [], notes =
   };
 }
 
-export function buildReviewPackage({ caseId, agentId, draft }) {
+export function buildReviewPackage({ caseId, agentId, draft, completedTools = [], tray = [], notes = [], packageStatus }) {
   return {
     id: `${caseId}-${Date.now()}`,
     caseId,
@@ -44,6 +44,12 @@ export function buildReviewPackage({ caseId, agentId, draft }) {
     choice: draft.choice,
     confidence: draft.confidence || 'Medium',
     reason: draft.reason,
+    completedTools: [...completedTools],
+    pinnedEvidence: [...tray],
+    noteSnapshot: notes.slice(0, 8),
+    reviewedRequired: packageStatus?.reviewedRequired ?? 0,
+    totalRequired: packageStatus?.totalRequired ?? requiredReviewTools.length,
+    missingTools: packageStatus?.missingTools ?? [],
     savedAt: new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
   };
 }
