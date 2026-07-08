@@ -51,6 +51,7 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Evidence tool records in `src/data/evidenceRecords.js`
 - Neutral review package model in `src/data/reviewPackage.js`
 - Post-submission Luna debrief scoring model in `src/data/lunaDebrief.js`
+- Academy Progress layer in `src/AcademyProgress.jsx`
 - Case Queue with Account Takeover, Chargeback Claim, and Credit Risk Review cases
 - Case switching inside one workspace
 - Case Briefing with neutral investigation questions
@@ -90,12 +91,14 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Learner review package drafts persist by case in localStorage
 - Saved review packages persist by case in localStorage, snapshot reviewed tools/pinned evidence/notes, and unlock Luna debrief only after submission
 - Luna debrief displays post-submission decision-quality scoring, breakdown, package strengths, and next coaching focus without exposing any pre-submission hinting
-- New styling for timeline/report records, the agent notepad archive, and Luna debrief cards
+- Academy Progress rolls saved post-submission Luna scores into completed case count, saved package count, average score, skill meters, and case completion rows
+- Academy Progress stays locked for cases without saved learner packages and does not show scoring or coaching before submission
+- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, and Academy Progress
 - Evidence First search sweep completed for answer-leaking wording
 
 ## Latest handoff
 
-The next step is to add an Academy Progress layer that rolls post-submission Luna scores into a learner progress ledger, case completion history, and skill-growth view. Keep all scoring and coaching locked behind saved learner review packages.
+The next step is to start the Scenario Engine foundation: define scenario templates, case-generation inputs, and fictional evidence packets while keeping Case Queue, tools, Luna, and Academy Progress Evidence First. Generated cases must not include answer labels or scoring until after learner submission.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
