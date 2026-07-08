@@ -11,11 +11,37 @@ export const trainingCases = [
     allegation:
       'Customer contacted the bank stating they did not authorize a card purchase. The customer advised they were home at the time and did not recognize the device activity tied to the transaction.',
     queueReason: 'Customer dispute with recent login and device activity available for review.',
+    briefingQuestions: [
+      'What did the customer say happened?',
+      'Which access records need to be compared against the story?',
+      'What evidence should be pinned before a decision is drafted?',
+    ],
     intake: {
       channel: 'Secure message + phone follow-up',
       contactTime: '10:58 AM',
       customerLocation: 'Dallas, TX',
       statedDevice: 'Personal iPhone',
+    },
+    customer: {
+      relationshipSince: '2018',
+      segment: 'Consumer checking + card',
+      contact: {
+        phone: '(214) 555-0184',
+        email: 'maya.training@example.test',
+        address: 'Dallas, TX training address',
+        preferredChannel: 'Secure message',
+      },
+      relationship: [
+        { label: 'Open products', value: 'Checking · Debit card · Savings' },
+        { label: 'Last statement', value: 'Jun 28, 2026' },
+        { label: 'Normal login area', value: 'Dallas / Fort Worth' },
+        { label: 'Payment profile', value: 'Card + one external destination' },
+      ],
+      profileChanges: [
+        { id: 'PCH-1001', date: 'Jul 8, 2026', item: 'Email viewed', detail: 'Profile email visible in session activity', source: 'Session event' },
+        { id: 'PCH-1002', date: 'Jul 8, 2026', item: 'Card controls viewed', detail: 'Card details accessed after successful login', source: 'Digital activity' },
+        { id: 'PCH-1003', date: 'Jun 29, 2026', item: 'Phone number unchanged', detail: 'No phone update recorded in recent profile history', source: 'Customer profile' },
+      ],
     },
     facts: ['Customer statement received', 'Transaction posted', 'Recent login activity available', 'No final outcome shown'],
     progress: ['Case Summary', 'Customer 360'],
@@ -43,11 +69,37 @@ export const trainingCases = [
     allegation:
       'Customer states a subscription merchant continued billing after cancellation. The case needs merchant history, prior customer contact, and billing pattern review.',
     queueReason: 'Billing dispute requiring transaction history and evidence review.',
+    briefingQuestions: [
+      'What cancellation evidence is available or missing?',
+      'Does the transaction history show a recurring merchant pattern?',
+      'Which document should be requested before final documentation?',
+    ],
     intake: {
       channel: 'Mobile app dispute form',
       contactTime: '9:21 AM',
       customerLocation: 'Fort Worth, TX',
       statedDevice: 'Android phone',
+    },
+    customer: {
+      relationshipSince: '2021',
+      segment: 'Consumer cardholder',
+      contact: {
+        phone: '(817) 555-0149',
+        email: 'jordan.training@example.test',
+        address: 'Fort Worth, TX training address',
+        preferredChannel: 'Mobile app',
+      },
+      relationship: [
+        { label: 'Open products', value: 'Credit card' },
+        { label: 'Last statement', value: 'Jul 1, 2026' },
+        { label: 'Normal login area', value: 'Fort Worth, TX' },
+        { label: 'Payment profile', value: 'Autopay on file' },
+      ],
+      profileChanges: [
+        { id: 'PCH-2201', date: 'Jul 8, 2026', item: 'Dispute form submitted', detail: 'Customer selected recurring billing issue', source: 'Mobile app' },
+        { id: 'PCH-2202', date: 'Jul 2, 2026', item: 'Statement viewed', detail: 'Customer viewed billing statement before dispute', source: 'Session event' },
+        { id: 'PCH-2203', date: 'Jun 21, 2026', item: 'Contact details unchanged', detail: 'No email or phone updates in recent profile history', source: 'Customer profile' },
+      ],
     },
     facts: ['Dispute form received', 'Merchant billing history available', 'Cancellation proof not uploaded', 'No final outcome shown'],
     progress: ['Case Summary'],
@@ -74,11 +126,37 @@ export const trainingCases = [
     allegation:
       'System alert opened a credit risk review after a new account requested rapid limit usage. The case requires identity, payment, and account behavior review.',
     queueReason: 'System alert tied to new account activity and payment verification needs.',
+    briefingQuestions: [
+      'What triggered the system review?',
+      'Which identity and payment records should be opened first?',
+      'What should be documented before the decision remains locked?',
+    ],
     intake: {
       channel: 'System alert',
       contactTime: '7:45 AM',
       customerLocation: 'Arlington, TX',
       statedDevice: 'Not customer-reported',
+    },
+    customer: {
+      relationshipSince: '2026',
+      segment: 'New credit account',
+      contact: {
+        phone: '(682) 555-0167',
+        email: 'avery.training@example.test',
+        address: 'Arlington, TX training address',
+        preferredChannel: 'Email',
+      },
+      relationship: [
+        { label: 'Open products', value: 'Credit line' },
+        { label: 'Last statement', value: 'Not generated yet' },
+        { label: 'Normal login area', value: 'Early history only' },
+        { label: 'Payment profile', value: 'New external destination' },
+      ],
+      profileChanges: [
+        { id: 'PCH-3301', date: 'Jul 8, 2026', item: 'Payment method added', detail: 'Bank Code and Destination ID tokenized for training', source: 'Payment Verification' },
+        { id: 'PCH-3302', date: 'Jul 8, 2026', item: 'Limit usage request submitted', detail: 'Request recorded after new account setup', source: 'Account event' },
+        { id: 'PCH-3303', date: 'Jul 7, 2026', item: 'Profile created', detail: 'New customer profile opened for training review', source: 'Customer profile' },
+      ],
     },
     facts: ['System alert received', 'Payment verification available', 'New account activity present', 'No final outcome shown'],
     progress: ['Case Summary'],
