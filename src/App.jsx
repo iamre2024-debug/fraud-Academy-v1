@@ -69,7 +69,10 @@ function Panel({ activeCase, activeTool, pinEvidence, addFinding, markReviewed, 
   if (activeTool === 'Customer 360') return <div className="panel-stack"><CustomerProfile activeCase={activeCase} pinEvidence={pinEvidence} addFinding={addFinding} /><ReviewAction completed={completed} onClick={() => markReviewed()} /></div>;
   if (activeTool === 'Identity Intelligence') return <IdentityIntelligence activeCase={activeCase} pinEvidence={pinEvidence} addFinding={addFinding} markReviewed={markReviewed} completed={completed} />;
   if (activeTool === 'Login History') return <LoginHistory activeCase={activeCase} pinEvidence={pinEvidence} addFinding={addFinding} markReviewed={markReviewed} completed={completed} />;
-  if (['Session History', 'Device Intelligence', 'IP Intelligence', 'Transaction History'].includes(activeTool)) return <EventLog activeCase={activeCase} activeTool={activeTool} pinEvidence={pinEvidence} addFinding={addFinding} markReviewed={markReviewed} completed={completed} />;
+  if (activeTool === 'Session History') return <SessionHistory activeCase={activeCase} pinEvidence={pinEvidence} addFinding={addFinding} markReviewed={markReviewed} completed={completed} />;
+  if (activeTool === 'Device Intelligence') return <DeviceIntelligence activeCase={activeCase} pinEvidence={pinEvidence} addFinding={addFinding} markReviewed={markReviewed} completed={completed} />;
+  if (activeTool === 'IP Intelligence') return <IPIntelligence activeCase={activeCase} pinEvidence={pinEvidence} addFinding={addFinding} markReviewed={markReviewed} completed={completed} />;
+  if (activeTool === 'Transaction History') return <EventLog activeCase={activeCase} activeTool={activeTool} pinEvidence={pinEvidence} addFinding={addFinding} markReviewed={markReviewed} completed={completed} />;
   if (activeTool === 'Evidence Center') return <div className="panel-stack">{activeCase.documents.map((document) => <EvidenceItem key={document.id} {...document} pinEvidence={pinEvidence} />)}<ReviewAction completed={completed} onClick={() => markReviewed()} /></div>;
   if (activeTool === 'Document Viewer') return <div className="panel-stack"><div className="document-shell"><p className="eyebrow">Document Viewer</p><h4>Training document preview</h4><p>Case documents will be selected from Evidence Center and reviewed here without exposing the final case outcome.</p></div><ReviewAction completed={completed} onClick={() => markReviewed()} /></div>;
   if (activeTool === 'Link Analysis') return <div className="panel-stack"><div className="connection-summary"><InfoBubble label="Connected objects" value={String(activeCase.links.length)} /><InfoBubble label="Shared identifiers" value="2" /><InfoBubble label="First seen" value={activeCase.opened.replace('2026', '').trim()} /></div><div className="link-web">{activeCase.links.map((link) => <span key={link}>{link}</span>)}</div><WorkflowStrip /><ReviewAction completed={completed} onClick={() => markReviewed()} /></div>;
@@ -94,11 +97,58 @@ function LoginHistory({ activeCase, pinEvidence, addFinding, markReviewed, compl
   return <SearchableRecords title="Login History" subtitle="Search access records by device, IP, location, method, or session." records={activeCase.loginHistory} fields={["time", "method", "device", "location", "ip", "session", "result"]} renderRecord={(record) => <article key={record.id} className="record-card"><div><span className="case-pill soft">{record.result}</span><h4>{record.time} · {record.method}</h4><p>{record.device} · {record.location}</p><small>IP {record.ip} · Session {record.session}</small></div><RecordActions id={record.id} value={record.ip} pinEvidence={pinEvidence} addFinding={addFinding} context="Login History" /></article>} footer={<ReviewAction completed={completed} onClick={() => markReviewed()} />} />;
 }
 
-function SearchableRecords({ title, subtitle, records, fields, renderRecord, footer }) {
+function SessionHistory({ activeCase, pinEvidence, addFinding, markReviewed, completed }) {
+  const records = buildSessionRecords(activeCase);
+  return <SearchableRecords title="Session History" subtitle="Search session records by login, activity, device, IP, location, or connected object." records={records} fields={["start", "duration", "login", "device", "location", "ip", "activity", "objects"]} renderRecord={(record) => <article key={record.id} className="record-card"><div><span className="case-pill soft">{record.duration}</span><h4>{record.id} · {record.start}</h4><p>{record.activity}</p><small>{record.device} · IP {record.ip} · {record.location} · Objects {record.objects}</small></div><RecordActions id={record.id} value={record.login} pinEvidence={pinEvidence} addFinding={addFinding} context="Session History" /></article>} footer={<ReviewAction completed={completed} onClick={() => markReviewed()} />} />;
+}
+
+function DeviceIntelligence({ activeCase, pinEvidence, addFinding, markReviewed, completed }) {
+  const records = buildDeviceRecords(activeCase);
+  return <SearchableRecords title="Device Intelligence" subtitle="Search device records by platform, first seen date, last seen date, session, and linked activity." records={records} fields={["device", "platform", "firstSeen", "lastSeen", "sessions", "history"]} renderRecord={(record) => <article key={record.id} className="record-card"><div><span className="case-pill soft">{record.platform}</span><h4>{record.device}</h4><p>First seen: {record.firstSeen} · Last seen: {record.lastSeen}</p><small>Sessions {record.sessions} · {record.history}</small></div><RecordActions id={record.id} value={record.device} pinEvidence={pinEvidence} addFinding={addFinding} context="Device Intelligence" /></article>} footer={<ReviewAction completed={completed} onClick={() => markReviewed()} />} />;
+}
+
+function IPIntelligence({ activeCase, pinEvidence, addFinding, markReviewed, completed }) {
+  const records = buildIpRecords(activeCase);
+  return <SearchableRecords title="IP Intelligence" subtitle="Search IP records by location, login, session, device, and activity history." records={records} fields={["ip", "location", "logins", "sessions", "devices", "history"]} renderRecord={(record) => <article key={record.id} className="record-card"><div><span className="case-pill soft">{record.location}</span><h4>IP {record.ip}</h4><p>Logins {record.logins} · Sessions {record.sessions}</p><small>Devices {record.devices} · {record.history}</small></div><RecordActions id={record.id} value={record.ip} pinEvidence={pinEvidence} addFinding={addFinding} context="IP Intelligence" /></article>} footer={<ReviewAction completed={completed} onClick={() => markReviewed()} />} />;
+}
+
+function SearchableRecords({ title, subtitle, records = [], fields, renderRecord, footer }) {
   const [query, setQuery] = useState('');
   const normalized = query.trim().toLowerCase();
   const filtered = normalized ? records.filter((record) => fields.some((field) => String(record[field] ?? '').toLowerCase().includes(normalized))) : records;
-  return <div className="panel-stack"><div className="search-panel"><p className="eyebrow">Searchable records</p><h4>{title}</h4><p>{subtitle}</p><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search records, history, IP, device, phone, email..." /><div className="summary-strip"><span>Record</span><strong>{filtered.length} of {records.length} shown</strong><span>History available</span></div></div><div className="record-list">{filtered.map(renderRecord)}</div><WorkflowStrip />{footer}</div>;
+  return <div className="panel-stack"><div className="search-panel"><p className="eyebrow">Searchable records</p><h4>{title}</h4><p>{subtitle}</p><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search records, history, IP, device, phone, email..." /><div className="summary-strip"><span>Record</span><strong>{filtered.length} of {records.length} shown</strong><span>History available</span></div></div><div className="record-list">{filtered.length ? filtered.map(renderRecord) : <p className="empty-state">No matching records. Clear the search or try another identifier.</p>}</div><WorkflowStrip />{footer}</div>;
+}
+
+function buildSessionRecords(activeCase) {
+  return activeCase.loginHistory.map((login, index) => {
+    const event = activeCase.events[index] ?? activeCase.events[0];
+    return { id: login.session, start: login.time, duration: `${5 + index * 4} min`, login: login.id, device: login.device, ip: login.ip, location: login.location, activity: event ? `${event.label} · ${event.detail}` : `${login.method} access record reviewed`, objects: event ? `${event.id} · ${event.object}` : login.id };
+  });
+}
+
+function buildDeviceRecords(activeCase) {
+  const devices = new Map();
+  activeCase.loginHistory.forEach((login) => {
+    const current = devices.get(login.device) ?? { id: `DEV-${devices.size + 1}-${activeCase.id}`, device: login.device, platform: login.device.includes('iPhone') || login.device.includes('Android') || login.device.includes('Safari') ? 'Mobile access' : 'Browser access', firstSeen: login.time, lastSeen: login.time, sessions: [], history: [] };
+    current.lastSeen = login.time;
+    current.sessions.push(login.session);
+    current.history.push(`${login.method} from ${login.location}`);
+    devices.set(login.device, current);
+  });
+  return [...devices.values()].map((record) => ({ ...record, sessions: record.sessions.join(' · '), history: record.history.join(' · ') }));
+}
+
+function buildIpRecords(activeCase) {
+  const ips = new Map();
+  activeCase.loginHistory.forEach((login) => {
+    const current = ips.get(login.ip) ?? { id: `IPR-${ips.size + 1}-${activeCase.id}`, ip: login.ip, location: login.location, logins: [], sessions: [], devices: [], history: [] };
+    current.logins.push(login.id);
+    current.sessions.push(login.session);
+    current.devices.push(login.device);
+    current.history.push(`${login.method} access at ${login.time}`);
+    ips.set(login.ip, current);
+  });
+  return [...ips.values()].map((record) => ({ ...record, logins: [...new Set(record.logins)].join(' · '), sessions: [...new Set(record.sessions)].join(' · '), devices: [...new Set(record.devices)].join(' · '), history: record.history.join(' · ') }));
 }
 
 function RecordActions({ id, value, pinEvidence, addFinding, context }) { return <div className="record-actions"><button onClick={() => pinEvidence(id)}>📌 Record</button><button onClick={() => pinEvidence(value)}>🔗 Object</button><button onClick={() => addFinding(`${context}: ${id} reviewed.`)}>📝 Note</button></div>; }
