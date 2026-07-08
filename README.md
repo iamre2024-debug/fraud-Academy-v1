@@ -46,16 +46,19 @@ Wave 1 established the app shell and Case Workspace foundation:
 Wave 2 has started and currently adds core Case Workspace behavior:
 
 - Fictional training case data model in `src/data/cases.js`
+- Financial tool records in `src/data/financialRecords.js`
 - Case Queue with Account Takeover, Chargeback Claim, and Credit Risk Review cases
 - Case switching inside one workspace
-- Case-specific allegations, intake details, facts, events, documents, and neutral link objects
 - Case Briefing with neutral investigation questions
 - Customer 360 with contact records, relationship snapshot, and profile-change history
 - Identity Intelligence with searchable identity records
 - Login History with searchable access records
-- Session History with searchable session records derived from login and event activity
-- Device Intelligence with searchable device records derived from login activity
-- IP Intelligence with searchable IP records derived from login activity
+- Session History with searchable session records
+- Device Intelligence with searchable device records
+- IP Intelligence with searchable IP records
+- Transaction History with searchable records
+- Financial Intelligence with searchable context records
+- Payment Verification with searchable training-safe records
 - Search panels with record, object, and note actions
 - Search empty state for no-match results
 - Investigation progress tracking by reviewed tool
@@ -66,7 +69,7 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 
 ## Latest handoff
 
-The next step is to continue Wave 2 by upgrading Transaction History, Financial Intelligence, and Payment Verification into dedicated investigation tools. Keep the same pattern used for the digital tools:
+The next step is to continue Wave 2 by upgrading Business 360, Business Intelligence, Employee Profile, and Payroll History into dedicated searchable tools. Keep the same pattern used for the digital and financial tools:
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
