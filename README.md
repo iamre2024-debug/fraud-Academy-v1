@@ -49,11 +49,24 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Case Queue with Account Takeover, Chargeback Claim, and Credit Risk Review cases
 - Case switching inside one workspace
 - Case-specific allegations, intake details, facts, events, documents, and neutral link objects
+- Case Briefing with neutral investigation questions
+- Customer 360 with contact records, relationship snapshot, and profile-change history
+- Identity Intelligence with searchable identity records
+- Login History with searchable access records
+- Search panels with record, object, and note actions
 - Investigation progress tracking by reviewed tool
 - Reviewed counts on investigation family cards
 - Mark-reviewed actions for workspace tools
 - Pinned evidence and notebook reset per opened case
 - Evidence First search sweep completed for answer-leaking wording
+
+## Latest handoff
+
+The next step is to continue Wave 2 by upgrading Session History, Device Intelligence, and IP Intelligence into dedicated searchable tools. Keep the same pattern used for Identity Intelligence and Login History:
+
+Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
+
+Keep all wording neutral before submission.
 
 ## Local development
 
