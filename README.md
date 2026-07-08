@@ -80,11 +80,16 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Each submitted or tool-generated note saves in two places: the active case notebook and an agent notepad keyed by Agent ID
 - Agent notepad entries preserve case ID, note type, note text, and timestamp so the agent can find notes even after leaving the case
 - Tool action notes also save into the active case notebook and agent notepad
+- Link Analysis upgraded into a searchable neutral connection panel across case objects, identity records, logins, sessions, and events
+- Timeline upgraded into a searchable event/story panel covering case opening, intake, profile history, access history, case events, and evidence items
+- Case Report upgraded into a neutral draft package using case reason, customer snapshot, evidence inventory, pinned records, notebook notes, and tool progress
+- Submit Decision upgraded into a locked pre-submission checklist that checks documentation state without revealing the answer
+- New styling for timeline/report records and the agent notepad archive
 - Evidence First search sweep completed for answer-leaking wording
 
 ## Latest handoff
 
-The next step is to continue Wave 2 by upgrading Link Analysis, Timeline, Case Report, and Submit Decision into richer investigation tools. Keep all wording neutral before submission.
+The next step is to run a connected local build, then deepen the generated Case Report and Submit Decision flow with learner-selected final decision capture, post-submission debrief gating, and Luna scoring only after submission.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
