@@ -49,6 +49,7 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Financial tool records in `src/data/financialRecords.js`
 - Business tool records in `src/data/businessRecords.js`
 - Evidence tool records in `src/data/evidenceRecords.js`
+- Neutral review package model in `src/data/reviewPackage.js`
 - Case Queue with Account Takeover, Chargeback Claim, and Credit Risk Review cases
 - Case switching inside one workspace
 - Case Briefing with neutral investigation questions
@@ -89,7 +90,7 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 
 ## Latest handoff
 
-The next step is to run a connected local build, then deepen the generated Case Report and Submit Decision flow with learner-selected final decision capture, post-submission debrief gating, and Luna scoring only after submission.
+The next step is to wire `src/data/reviewPackage.js` into the Submit Decision panel after a connected build pass. Keep the UI wording neutral before submission and keep Luna scoring/debriefing gated until after the learner submits.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
