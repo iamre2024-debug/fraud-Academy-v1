@@ -86,6 +86,68 @@
   overflow-wrap: anywhere;
 }
 
+.timeline-record-card,
+.report-section-card {
+  background:
+    linear-gradient(150deg, rgba(255, 79, 216, 0.12), rgba(94, 231, 255, 0.06)),
+    rgba(48, 13, 68, 0.72);
+}
+
+.notepad-caption {
+  margin: 4px 0 10px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+.agent-notepad {
+  margin-top: 12px;
+  border-radius: 22px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.agent-notepad summary {
+  cursor: pointer;
+  color: var(--cream);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.agent-notepad ul {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.agent-notepad li {
+  border-radius: 16px;
+  padding: 9px 10px;
+  background: rgba(22, 5, 31, 0.42);
+}
+
+.agent-notepad strong,
+.agent-notepad span,
+.agent-notepad p {
+  display: block;
+}
+
+.agent-notepad strong {
+  color: var(--cream);
+  font-size: 0.76rem;
+}
+
+.agent-notepad span,
+.agent-notepad p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
 .record-actions {
   display: grid;
   gap: 6px;
