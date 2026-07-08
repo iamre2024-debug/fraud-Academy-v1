@@ -1,87 +1,22 @@
 import { useMemo, useState } from 'react';
-
-const caseRecord = {
-  id: 'FA-ATO-24018',
-  type: 'Account Takeover',
-  priority: 'High',
-  status: 'Reviewing',
-  person: 'Maya Sterling',
-  trainingId: 'TRN-8842-19',
-  amount: '$742.18',
-  opened: 'Jul 8, 2026',
-  story:
-    'Customer contacted the bank stating they did not authorize a card purchase. The customer advised they were home at the time and did not recognize the device activity tied to the transaction.',
-  knownFacts: ['Customer statement received', 'Transaction posted', 'Recent login activity available', 'No final outcome shown'],
-};
+import { trainingCases } from './data/cases.js';
 
 const families = [
-  {
-    key: 'summary',
-    title: 'Case Summary',
-    icon: '📋',
-    question: 'Why am I investigating this case?',
-    tools: ['Case Summary'],
-  },
-  {
-    key: 'identity',
-    title: 'Identity',
-    icon: '👤',
-    question: 'Who am I investigating?',
-    tools: ['Customer 360', 'Identity Intelligence'],
-  },
-  {
-    key: 'digital',
-    title: 'Digital Activity',
-    icon: '💻',
-    question: 'Can I verify or challenge the story?',
-    tools: ['Login History', 'Session History', 'Device Intelligence', 'IP Intelligence'],
-  },
-  {
-    key: 'financial',
-    title: 'Financial',
-    icon: '💳',
-    question: 'Does the money movement make sense?',
-    tools: ['Transaction History', 'Financial Intelligence', 'Payment Verification'],
-  },
-  {
-    key: 'business',
-    title: 'Business',
-    icon: '🏢',
-    question: 'Is the business relationship real?',
-    tools: ['Business 360', 'Business Intelligence', 'Employee Profile', 'Payroll History'],
-  },
-  {
-    key: 'evidence',
-    title: 'Evidence',
-    icon: '📂',
-    question: 'What evidence do I have?',
-    tools: ['Evidence Center', 'Document Viewer'],
-  },
-  {
-    key: 'connections',
-    title: 'Connections',
-    icon: '🔗',
-    question: 'How does everything connect?',
-    tools: ['Link Analysis'],
-  },
-  {
-    key: 'investigation',
-    title: 'Investigation',
-    icon: '🕵️',
-    question: 'What have I completed?',
-    tools: ['Timeline', 'Case Report', 'Submit Decision'],
-  },
-];
-
-const eventRows = [
-  { id: 'EVT-1008', time: '10:42 AM', label: 'Successful login', detail: 'Face ID / Dallas, TX / iPhone 16', chip: 'Login' },
-  { id: 'EVT-1011', time: '10:47 AM', label: 'Profile viewed', detail: 'Same session / Balance + card details viewed', chip: 'Session' },
-  { id: 'EVT-1014', time: '10:52 AM', label: 'Card purchase posted', detail: '$742.18 / CNP merchant / Pending then posted', chip: 'Transaction' },
+  { key: 'summary', title: 'Case Summary', icon: '📋', question: 'Why am I investigating this case?', tools: ['Case Summary'] },
+  { key: 'identity', title: 'Identity', icon: '👤', question: 'Who am I investigating?', tools: ['Customer 360', 'Identity Intelligence'] },
+  { key: 'digital', title: 'Digital Activity', icon: '💻', question: 'Can I verify or challenge the story?', tools: ['Login History', 'Session History', 'Device Intelligence', 'IP Intelligence'] },
+  { key: 'financial', title: 'Financial', icon: '💳', question: 'Does the money movement make sense?', tools: ['Transaction History', 'Financial Intelligence', 'Payment Verification'] },
+  { key: 'business', title: 'Business', icon: '🏢', question: 'Is the business relationship real?', tools: ['Business 360', 'Business Intelligence', 'Employee Profile', 'Payroll History'] },
+  { key: 'evidence', title: 'Evidence', icon: '📂', question: 'What evidence do I have?', tools: ['Evidence Center', 'Document Viewer'] },
+  { key: 'connections', title: 'Connections', icon: '🔗', question: 'How does everything connect?', tools: ['Link Analysis'] },
+  { key: 'investigation', title: 'Investigation', icon: '🕵️', question: 'What have I completed?', tools: ['Timeline', 'Case Report', 'Submit Decision'] },
 ];
 
 const workflowSteps = ['Record', 'Expand', 'Search', 'History', 'Link Analysis', 'Generate Report', 'Timeline', 'Case Report'];
+const allTools = families.flatMap((item) => item.tools);
 
 function App() {
+  const [activeCaseId, setActiveCaseId] = useState(trainingCases[0].id);
   const [activeFamily, setActiveFamily] = useState('summary');
   const [activeTool, setActiveTool] = useState('Case Summary');
   const [tray, setTray] = useState(['TRN-8842-19', 'EVT-1008']);
@@ -89,12 +24,32 @@ function App() {
     'Customer states they did not authorize the purchase.',
     'Need to compare login/device activity before decision.',
   ]);
+  const [completedTools, setCompletedTools] = useState({
+    'FA-ATO-24018': ['Case Summary', 'Customer 360'],
+    'FA-CB-24007': ['Case Summary'],
+    'FA-CR-24003': ['Case Summary'],
+  });
 
+  const activeCase = useMemo(
+    () => trainingCases.find((item) => item.id === activeCaseId) ?? trainingCases[0],
+    [activeCaseId]
+  );
   const family = useMemo(() => families.find((item) => item.key === activeFamily), [activeFamily]);
+  const currentCompleted = completedTools[activeCase.id] ?? [];
+  const progressPercent = Math.round((currentCompleted.length / allTools.length) * 100);
 
   function openFamily(item) {
     setActiveFamily(item.key);
     setActiveTool(item.tools[0]);
+  }
+
+  function openCase(caseId) {
+    const nextCase = trainingCases.find((item) => item.id === caseId) ?? trainingCases[0];
+    setActiveCaseId(caseId);
+    setActiveFamily('summary');
+    setActiveTool('Case Summary');
+    setTray([nextCase.trainingId]);
+    setNotes([`Opened ${caseId} workspace. Review the allegation before deciding next steps.`]);
   }
 
   function pinEvidence(item) {
@@ -103,6 +58,15 @@ function App() {
 
   function addFinding(text) {
     setNotes((current) => [text, ...current]);
+  }
+
+  function markReviewed(tool = activeTool) {
+    setCompletedTools((current) => {
+      const caseTools = current[activeCase.id] ?? [];
+      if (caseTools.includes(tool)) return current;
+      return { ...current, [activeCase.id]: [...caseTools, tool] };
+    });
+    addFinding(`${tool}: reviewed and documented.`);
   }
 
   return (
@@ -119,27 +83,54 @@ function App() {
           <button className="round-button" aria-label="Open Luna">🌙</button>
         </header>
 
+        <section className="case-queue" aria-label="Active case queue">
+          <div className="section-heading compact-heading">
+            <div>
+              <p className="eyebrow">Case Queue</p>
+              <h3>Choose an investigation</h3>
+            </div>
+            <span>{trainingCases.length} active</span>
+          </div>
+          <div className="queue-list">
+            {trainingCases.map((item) => (
+              <button
+                key={item.id}
+                className={`queue-card ${item.id === activeCase.id ? 'active' : ''}`}
+                onClick={() => openCase(item.id)}
+              >
+                <span className="case-pill soft">{item.type}</span>
+                <strong>{item.person}</strong>
+                <small>{item.id} · {item.priority}</small>
+              </button>
+            ))}
+          </div>
+        </section>
+
         <section className="hero-bubble">
           <div className="hero-copy">
-            <span className="case-pill">{caseRecord.type}</span>
-            <h2>{caseRecord.person}</h2>
-            <p>{caseRecord.id} · {caseRecord.priority} Priority</p>
+            <span className="case-pill">{activeCase.type}</span>
+            <h2>{activeCase.person}</h2>
+            <p>{activeCase.id} · {activeCase.priority} Priority · {activeCase.status}</p>
           </div>
           <div className="cat-orb" aria-hidden="true">🐈‍⬛</div>
         </section>
 
         <nav className="family-grid" aria-label="Investigation categories">
-          {families.map((item) => (
-            <button
-              key={item.key}
-              className={`family-bubble ${activeFamily === item.key ? 'active' : ''}`}
-              onClick={() => openFamily(item)}
-            >
-              <span>{item.icon}</span>
-              <strong>{item.title}</strong>
-              <small>{item.question}</small>
-            </button>
-          ))}
+          {families.map((item) => {
+            const familyCompleted = item.tools.filter((tool) => currentCompleted.includes(tool)).length;
+            return (
+              <button
+                key={item.key}
+                className={`family-bubble ${activeFamily === item.key ? 'active' : ''}`}
+                onClick={() => openFamily(item)}
+              >
+                <span>{item.icon}</span>
+                <strong>{item.title}</strong>
+                <small>{item.question}</small>
+                <em>{familyCompleted}/{item.tools.length} reviewed</em>
+              </button>
+            );
+          })}
         </nav>
 
         <section className="workspace-card">
@@ -151,6 +142,8 @@ function App() {
             <span className="sparkle">✦</span>
           </div>
 
+          <ProgressRail percent={progressPercent} completed={currentCompleted.length} />
+
           <div className="tool-tabs">
             {family.tools.map((tool) => (
               <button
@@ -158,13 +151,20 @@ function App() {
                 className={tool === activeTool ? 'selected' : ''}
                 onClick={() => setActiveTool(tool)}
               >
-                {tool}
+                {currentCompleted.includes(tool) ? '✓ ' : ''}{tool}
               </button>
             ))}
           </div>
 
           <EvidenceFirstBanner />
-          <Panel activeTool={activeTool} pinEvidence={pinEvidence} addFinding={addFinding} />
+          <Panel
+            activeCase={activeCase}
+            activeTool={activeTool}
+            pinEvidence={pinEvidence}
+            addFinding={addFinding}
+            markReviewed={markReviewed}
+            completed={currentCompleted.includes(activeTool)}
+          />
         </section>
 
         <aside className="desktop-side-panel">
@@ -194,6 +194,18 @@ function App() {
   );
 }
 
+function ProgressRail({ percent, completed }) {
+  return (
+    <div className="progress-rail" aria-label="Investigation progress">
+      <div>
+        <strong>{percent}% reviewed</strong>
+        <span>{completed} workspace tools documented</span>
+      </div>
+      <div className="progress-track"><span style={{ width: `${percent}%` }} /></div>
+    </div>
+  );
+}
+
 function EvidenceFirstBanner() {
   return (
     <div className="evidence-first-banner">
@@ -203,23 +215,25 @@ function EvidenceFirstBanner() {
   );
 }
 
-function Panel({ activeTool, pinEvidence, addFinding }) {
+function Panel({ activeCase, activeTool, pinEvidence, addFinding, markReviewed, completed }) {
   if (activeTool === 'Case Summary') {
     return (
       <div className="panel-stack">
         <div className="story-card bubble-card large-pop">
           <p className="eyebrow">Why am I here?</p>
           <h4>Customer story / system reason</h4>
-          <p>{caseRecord.story}</p>
+          <p>{activeCase.allegation}</p>
         </div>
         <div className="mini-grid">
-          <InfoBubble label="Claim amount" value={caseRecord.amount} />
-          <InfoBubble label="Status" value={caseRecord.status} />
-          <InfoBubble label="Opened" value={caseRecord.opened} />
+          <InfoBubble label="Claim amount" value={activeCase.amount} />
+          <InfoBubble label="Status" value={activeCase.status} />
+          <InfoBubble label="Opened" value={activeCase.opened} />
         </div>
+        <IntakeCard intake={activeCase.intake} />
         <ul className="fact-list">
-          {caseRecord.knownFacts.map((fact) => <li key={fact}>{fact}</li>)}
+          {activeCase.facts.map((fact) => <li key={fact}>{fact}</li>)}
         </ul>
+        <ReviewAction completed={completed} onClick={() => markReviewed()} />
       </div>
     );
   }
@@ -229,9 +243,9 @@ function Panel({ activeTool, pinEvidence, addFinding }) {
       <div className="panel-stack">
         <div className="bubble-card profile-pop">
           <p className="eyebrow">Who am I investigating?</p>
-          <h4>{caseRecord.person}</h4>
-          <p>Training ID: {caseRecord.trainingId}</p>
-          <button onClick={() => pinEvidence(caseRecord.trainingId)}>📌 Pin Training ID</button>
+          <h4>{activeCase.person}</h4>
+          <p>Training ID: {activeCase.trainingId}</p>
+          <button onClick={() => pinEvidence(activeCase.trainingId)}>📌 Pin Training ID</button>
         </div>
         <div className="mini-grid two">
           <InfoBubble label="Customer since" value="2018" />
@@ -242,20 +256,22 @@ function Panel({ activeTool, pinEvidence, addFinding }) {
           <h4>Recent customer record activity</h4>
           <p>Email, phone, address, device trust, and delivery preferences will live here as neutral event rows.</p>
         </div>
+        <ReviewAction completed={completed} onClick={() => markReviewed()} />
       </div>
     );
   }
 
   if (['Login History', 'Session History', 'Device Intelligence', 'IP Intelligence', 'Transaction History'].includes(activeTool)) {
-    return <EventLog activeTool={activeTool} pinEvidence={pinEvidence} addFinding={addFinding} />;
+    return <EventLog activeCase={activeCase} activeTool={activeTool} pinEvidence={pinEvidence} addFinding={addFinding} markReviewed={markReviewed} completed={completed} />;
   }
 
   if (activeTool === 'Evidence Center') {
     return (
       <div className="panel-stack">
-        <EvidenceItem status="Received" name="Customer statement" detail="Submitted at case creation" />
-        <EvidenceItem status="Requested" name="Affidavit" detail="Waiting for customer response" />
-        <EvidenceItem status="Missing" name="Police report" detail="Not required yet, but can be requested" />
+        {activeCase.documents.map((document) => (
+          <EvidenceItem key={document.id} {...document} pinEvidence={pinEvidence} />
+        ))}
+        <ReviewAction completed={completed} onClick={() => markReviewed()} />
       </div>
     );
   }
@@ -268,6 +284,7 @@ function Panel({ activeTool, pinEvidence, addFinding }) {
           <h4>Training document preview</h4>
           <p>Case documents will be selected from Evidence Center and reviewed here without exposing the final case outcome.</p>
         </div>
+        <ReviewAction completed={completed} onClick={() => markReviewed()} />
       </div>
     );
   }
@@ -276,26 +293,41 @@ function Panel({ activeTool, pinEvidence, addFinding }) {
     return (
       <div className="panel-stack">
         <div className="connection-summary">
-          <InfoBubble label="Connected objects" value="7" />
+          <InfoBubble label="Connected objects" value={String(activeCase.links.length)} />
           <InfoBubble label="Shared identifiers" value="2" />
-          <InfoBubble label="First seen" value="Jul 8" />
+          <InfoBubble label="First seen" value={activeCase.opened.replace('2026', '').trim()} />
         </div>
         <div className="link-web">
-          <span>Customer</span><span>Device</span><span>IP</span><span>Transaction</span>
+          {activeCase.links.map((link) => <span key={link}>{link}</span>)}
         </div>
         <WorkflowStrip />
+        <ReviewAction completed={completed} onClick={() => markReviewed()} />
       </div>
     );
   }
 
   if (['Timeline', 'Case Report', 'Submit Decision'].includes(activeTool)) {
-    return <InvestigationPanel activeTool={activeTool} addFinding={addFinding} />;
+    return <InvestigationPanel activeCase={activeCase} activeTool={activeTool} markReviewed={markReviewed} completed={completed} />;
   }
 
-  return <PlaceholderTool activeTool={activeTool} />;
+  return <PlaceholderTool activeTool={activeTool} completed={completed} markReviewed={markReviewed} />;
 }
 
-function EventLog({ activeTool, pinEvidence, addFinding }) {
+function IntakeCard({ intake }) {
+  return (
+    <div className="intake-card">
+      <p className="eyebrow">Customer intake</p>
+      <div className="intake-grid">
+        <InfoBubble label="Channel" value={intake.channel} />
+        <InfoBubble label="Contact time" value={intake.contactTime} />
+        <InfoBubble label="Location" value={intake.customerLocation} />
+        <InfoBubble label="Stated device" value={intake.statedDevice} />
+      </div>
+    </div>
+  );
+}
+
+function EventLog({ activeCase, activeTool, pinEvidence, addFinding, markReviewed, completed }) {
   return (
     <div className="panel-stack">
       <div className="filter-row">
@@ -303,11 +335,11 @@ function EventLog({ activeTool, pinEvidence, addFinding }) {
       </div>
       <div className="summary-strip">
         <span>Summary assists</span>
-        <strong>3 events shown</strong>
+        <strong>{activeCase.events.length} events shown</strong>
         <span>Event log verifies</span>
       </div>
       <div className="event-list">
-        {eventRows.map((event) => (
+        {activeCase.events.map((event) => (
           <article key={event.id} className="event-card">
             <div>
               <span className="case-pill soft">{event.chip}</span>
@@ -317,44 +349,54 @@ function EventLog({ activeTool, pinEvidence, addFinding }) {
             <div className="event-actions">
               <button onClick={() => pinEvidence(event.id)} aria-label={`Pin ${event.id}`}>📌</button>
               <button onClick={() => addFinding(`${activeTool}: ${event.label} reviewed.`)} aria-label="Add note">📝</button>
-              <button aria-label="Open link analysis">🔗</button>
+              <button onClick={() => pinEvidence(event.object)} aria-label="Pin connected object">🔗</button>
             </div>
           </article>
         ))}
       </div>
       <WorkflowStrip />
+      <ReviewAction completed={completed} onClick={() => markReviewed()} />
     </div>
   );
 }
 
-function PlaceholderTool({ activeTool }) {
+function PlaceholderTool({ activeTool, completed, markReviewed }) {
   return (
     <div className="panel-stack">
       <div className="bubble-card">
         <p className="eyebrow">{activeTool}</p>
-        <h4>Wave 1 foundation panel</h4>
-        <p>This tool is wired into the Case Workspace. Wave 2 and later will add searchable records, history, link analysis, reports, timelines, and final case documentation.</p>
+        <h4>Wave 2 foundation panel</h4>
+        <p>This tool is wired into the Case Workspace. Upcoming waves will add searchable records, detailed history, link analysis, generated reports, timelines, and final case documentation.</p>
       </div>
       <WorkflowStrip />
+      <ReviewAction completed={completed} onClick={() => markReviewed()} />
     </div>
   );
 }
 
-function InvestigationPanel({ activeTool, addFinding }) {
+function InvestigationPanel({ activeCase, activeTool, markReviewed, completed }) {
   return (
     <div className="panel-stack">
       <div className="bubble-card large-pop">
         <p className="eyebrow">Investigation flow</p>
         <h4>{activeTool}</h4>
-        <p>This area will track completed review steps, organize the learner’s evidence, and prepare the final decision package.</p>
-        <button onClick={() => addFinding(`${activeTool}: workspace reviewed.`)}>📝 Add workspace note</button>
+        <p>This area will track completed review steps, organize the learner’s evidence, and prepare the final decision package for {activeCase.id}.</p>
       </div>
       <div className="completion-grid">
         <InfoBubble label="Pinned items" value="Tray" />
         <InfoBubble label="Notes" value="Notebook" />
         <InfoBubble label="Decision" value="Locked" />
       </div>
+      <ReviewAction completed={completed} onClick={() => markReviewed()} />
     </div>
+  );
+}
+
+function ReviewAction({ completed, onClick }) {
+  return (
+    <button className={`review-action ${completed ? 'done' : ''}`} onClick={onClick}>
+      {completed ? '✓ Reviewed in this workspace' : 'Mark this tool reviewed'}
+    </button>
   );
 }
 
@@ -375,7 +417,7 @@ function InfoBubble({ label, value }) {
   );
 }
 
-function EvidenceItem({ status, name, detail }) {
+function EvidenceItem({ status, name, detail, id, pinEvidence }) {
   return (
     <article className="event-card evidence-card">
       <div>
@@ -383,7 +425,7 @@ function EvidenceItem({ status, name, detail }) {
         <h4>{name}</h4>
         <p>{detail}</p>
       </div>
-      <button>View</button>
+      <button onClick={() => pinEvidence(id)}>Pin</button>
     </article>
   );
 }
