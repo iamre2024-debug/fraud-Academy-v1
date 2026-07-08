@@ -1,0 +1,35 @@
+.story-card {
+  order: 1;
+}
+
+.mini-grid {
+  order: 2;
+}
+
+.intake-card {
+  order: 3;
+}
+
+.fact-list {
+  order: 4;
+}
+
+.briefing-card {
+  order: 9;
+  background: linear-gradient(145deg, rgba(94, 231, 255, 0.06), rgba(255, 79, 216, 0.08)), rgba(48, 13, 68, 0.54);
+}
+
+.briefing-card .eyebrow::after {
+  content: ' · optional prompt drawer';
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.briefing-card h4 {
+  font-size: 0.92rem;
+}
+
+.briefing-card .question-list li {
+  background: rgba(255, 255, 255, 0.045);
+}
