@@ -54,6 +54,7 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Academy Progress layer in `src/AcademyProgress.jsx`
 - Scenario Engine foundation in `src/data/scenarioEngine.js`
 - Scenario Engine template panel in `src/ScenarioEnginePanel.jsx`
+- Desktop command-center styling pass in `src/desktopCommand.css`
 - Case Queue with Account Takeover, Chargeback Claim, and Credit Risk Review cases
 - Case switching inside one workspace
 - Case Briefing with neutral investigation questions
@@ -97,7 +98,8 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Academy Progress stays locked for cases without saved learner packages and does not show scoring or coaching before submission
 - Scenario Engine defines neutral templates, generator inputs, fictional evidence packet structures, and safety rules without answer labels or pre-submission scoring
 - Scenario Engine preview panel shows packet structure and generator inputs while keeping outcomes and Luna decision coaching locked
-- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, and Scenario Engine
+- Desktop command-center pass places Scenario Engine, Case Workspace, and Academy Progress into a three-column neon workstation instead of stuck floating cards
+- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, and desktop command center
 - Evidence First search sweep completed for answer-leaking wording
 
 ## Latest handoff
