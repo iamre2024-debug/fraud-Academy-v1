@@ -10,6 +10,7 @@ import './lunaDebrief.css';
 import './academyProgress.css';
 import './scenarioEngine.css';
 import './desktopCommand.css';
+import './mobilePanelGuard.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
