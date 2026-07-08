@@ -50,6 +50,7 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Business tool records in `src/data/businessRecords.js`
 - Evidence tool records in `src/data/evidenceRecords.js`
 - Neutral review package model in `src/data/reviewPackage.js`
+- Post-submission Luna debrief scoring model in `src/data/lunaDebrief.js`
 - Case Queue with Account Takeover, Chargeback Claim, and Credit Risk Review cases
 - Case switching inside one workspace
 - Case Briefing with neutral investigation questions
@@ -87,13 +88,14 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Submit Decision upgraded into a locked pre-submission checklist that checks documentation state without revealing the answer
 - Submit Decision now uses the neutral `reviewPackage` model for required tool coverage, pinned evidence, notebook notes, learner choice, confidence, and rationale
 - Learner review package drafts persist by case in localStorage
-- Saved review packages persist by case in localStorage and remain neutral, with Luna debrief and outcome still gated until after submission
-- New styling for timeline/report records and the agent notepad archive
+- Saved review packages persist by case in localStorage, snapshot reviewed tools/pinned evidence/notes, and unlock Luna debrief only after submission
+- Luna debrief displays post-submission decision-quality scoring, breakdown, package strengths, and next coaching focus without exposing any pre-submission hinting
+- New styling for timeline/report records, the agent notepad archive, and Luna debrief cards
 - Evidence First search sweep completed for answer-leaking wording
 
 ## Latest handoff
 
-The next step is to add the post-submission Luna debrief and scoring layer using the saved neutral review packages. Keep the debrief fully gated after learner package submission and keep all pre-submission wording neutral.
+The next step is to add an Academy Progress layer that rolls post-submission Luna scores into a learner progress ledger, case completion history, and skill-growth view. Keep all scoring and coaching locked behind saved learner review packages.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
