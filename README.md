@@ -85,12 +85,15 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Timeline upgraded into a searchable event/story panel covering case opening, intake, profile history, access history, case events, and evidence items
 - Case Report upgraded into a neutral draft package using case reason, customer snapshot, evidence inventory, pinned records, notebook notes, and tool progress
 - Submit Decision upgraded into a locked pre-submission checklist that checks documentation state without revealing the answer
+- Submit Decision now uses the neutral `reviewPackage` model for required tool coverage, pinned evidence, notebook notes, learner choice, confidence, and rationale
+- Learner review package drafts persist by case in localStorage
+- Saved review packages persist by case in localStorage and remain neutral, with Luna debrief and outcome still gated until after submission
 - New styling for timeline/report records and the agent notepad archive
 - Evidence First search sweep completed for answer-leaking wording
 
 ## Latest handoff
 
-The next step is to wire `src/data/reviewPackage.js` into the Submit Decision panel after a connected build pass. Keep the UI wording neutral before submission and keep Luna scoring/debriefing gated until after the learner submits.
+The next step is to add the post-submission Luna debrief and scoring layer using the saved neutral review packages. Keep the debrief fully gated after learner package submission and keep all pre-submission wording neutral.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
