@@ -72,7 +72,9 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Investigation progress tracking by reviewed tool
 - Reviewed counts on investigation family cards
 - Mark-reviewed actions for workspace tools
-- Pinned evidence and notebook reset per opened case
+- Pinned evidence resets per opened case
+- Notebook notes are saved by active case ID
+- Notebook has a Submit note composer
 - Evidence First search sweep completed for answer-leaking wording
 
 ## Latest handoff
