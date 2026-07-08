@@ -15,7 +15,6 @@
   color: var(--cream);
   background: var(--bg);
 }
-
 * { box-sizing: border-box; }
 body { margin: 0; min-height: 100vh; background: radial-gradient(circle at top left, rgba(255, 79, 216, 0.28), transparent 28rem), radial-gradient(circle at bottom right, rgba(94, 231, 255, 0.16), transparent 24rem), linear-gradient(140deg, #100318 0%, #240637 55%, #120218 100%); }
 button { border: 0; color: inherit; cursor: pointer; font: inherit; }
@@ -91,12 +90,19 @@ h1 { margin-bottom: 0; font-size: clamp(1.45rem, 5vw, 2.4rem); line-height: 1; t
 .profile-change-card > span { color: var(--cyan); font-size: 0.75rem; font-weight: 900; }
 .profile-change-card strong { display: block; margin-bottom: 3px; }
 .profile-change-card small { display: inline-block; margin-top: 5px; color: var(--hot); font-weight: 800; }
-.note-composer { display: grid; gap: 8px; margin-bottom: 12px; }
-.note-composer label { color: var(--muted); font-size: 0.76rem; font-weight: 900; }
+.note-composer { display: grid; gap: 8px; margin-bottom: 10px; }
+.note-composer label, .notepad-caption { color: var(--muted); font-size: 0.76rem; font-weight: 900; }
 .note-composer select, .note-composer textarea { width: 100%; border-radius: 18px; padding: 11px 12px; border: 1px solid rgba(255,119,231,0.28); background: rgba(22,5,31,0.64); color: var(--cream); outline: none; font: inherit; }
 .note-composer textarea { resize: vertical; }
 .note-composer select:focus, .note-composer textarea:focus { border-color: rgba(94,231,255,0.58); box-shadow: 0 0 0 3px rgba(94,231,255,0.12); }
 .note-composer button { width: fit-content; }
+.agent-notepad { margin-top: 12px; border-radius: 20px; padding: 10px; background: rgba(94,231,255,0.08); border: 1px solid rgba(94,231,255,0.18); }
+.agent-notepad summary { cursor: pointer; font-weight: 900; color: var(--cream); }
+.agent-notepad ul { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.agent-notepad li { border-radius: 16px; padding: 9px 10px; background: rgba(255,255,255,0.07); }
+.agent-notepad strong, .agent-notepad span, .agent-notepad p { display: block; margin: 0; }
+.agent-notepad span { color: var(--hot); font-size: 0.72rem; font-weight: 800; margin-top: 3px; }
+.agent-notepad p { color: var(--muted); font-size: 0.8rem; margin-top: 5px; line-height: 1.35; }
 .summary-strip { display: flex; justify-content: space-between; align-items: center; gap: 10px; border-radius: 24px; padding: 13px; background: rgba(94,231,255,0.08); border: 1px solid rgba(94,231,255,0.18); color: var(--muted); font-size: 0.78rem; }
 .summary-strip strong { color: var(--cream); }
 .event-list { display: grid; gap: 10px; }
