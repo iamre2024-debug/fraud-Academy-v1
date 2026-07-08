@@ -93,11 +93,7 @@ function App() {
           </div>
           <div className="queue-list">
             {trainingCases.map((item) => (
-              <button
-                key={item.id}
-                className={`queue-card ${item.id === activeCase.id ? 'active' : ''}`}
-                onClick={() => openCase(item.id)}
-              >
+              <button key={item.id} className={`queue-card ${item.id === activeCase.id ? 'active' : ''}`} onClick={() => openCase(item.id)}>
                 <span className="case-pill soft">{item.type}</span>
                 <strong>{item.person}</strong>
                 <small>{item.id} · {item.priority}</small>
@@ -119,11 +115,7 @@ function App() {
           {families.map((item) => {
             const familyCompleted = item.tools.filter((tool) => currentCompleted.includes(tool)).length;
             return (
-              <button
-                key={item.key}
-                className={`family-bubble ${activeFamily === item.key ? 'active' : ''}`}
-                onClick={() => openFamily(item)}
-              >
+              <button key={item.key} className={`family-bubble ${activeFamily === item.key ? 'active' : ''}`} onClick={() => openFamily(item)}>
                 <span>{item.icon}</span>
                 <strong>{item.title}</strong>
                 <small>{item.question}</small>
@@ -146,25 +138,14 @@ function App() {
 
           <div className="tool-tabs">
             {family.tools.map((tool) => (
-              <button
-                key={tool}
-                className={tool === activeTool ? 'selected' : ''}
-                onClick={() => setActiveTool(tool)}
-              >
+              <button key={tool} className={tool === activeTool ? 'selected' : ''} onClick={() => setActiveTool(tool)}>
                 {currentCompleted.includes(tool) ? '✓ ' : ''}{tool}
               </button>
             ))}
           </div>
 
           <EvidenceFirstBanner />
-          <Panel
-            activeCase={activeCase}
-            activeTool={activeTool}
-            pinEvidence={pinEvidence}
-            addFinding={addFinding}
-            markReviewed={markReviewed}
-            completed={currentCompleted.includes(activeTool)}
-          />
+          <Panel activeCase={activeCase} activeTool={activeTool} pinEvidence={pinEvidence} addFinding={addFinding} markReviewed={markReviewed} completed={currentCompleted.includes(activeTool)} />
         </section>
 
         <aside className="desktop-side-panel">
@@ -173,14 +154,8 @@ function App() {
         </aside>
 
         <section className="mobile-drawers">
-          <details>
-            <summary>🧰 Investigation Tray</summary>
-            <Tray tray={tray} compact />
-          </details>
-          <details>
-            <summary>📝 Notebook</summary>
-            <Notebook notes={notes} compact />
-          </details>
+          <details><summary>🧰 Investigation Tray</summary><Tray tray={tray} compact /></details>
+          <details><summary>📝 Notebook</summary><Notebook notes={notes} compact /></details>
         </section>
 
         <nav className="bottom-nav" aria-label="Main navigation">
@@ -197,68 +172,23 @@ function App() {
 function ProgressRail({ percent, completed }) {
   return (
     <div className="progress-rail" aria-label="Investigation progress">
-      <div>
-        <strong>{percent}% reviewed</strong>
-        <span>{completed} workspace tools documented</span>
-      </div>
+      <div><strong>{percent}% reviewed</strong><span>{completed} workspace tools documented</span></div>
       <div className="progress-track"><span style={{ width: `${percent}%` }} /></div>
     </div>
   );
 }
 
 function EvidenceFirstBanner() {
-  return (
-    <div className="evidence-first-banner">
-      <strong>Evidence First</strong>
-      <span>No final outcome, score, red/green labels, or Luna answer until submission.</span>
-    </div>
-  );
+  return <div className="evidence-first-banner"><strong>Evidence First</strong><span>No final outcome, score, red/green labels, or Luna answer until submission.</span></div>;
 }
 
 function Panel({ activeCase, activeTool, pinEvidence, addFinding, markReviewed, completed }) {
   if (activeTool === 'Case Summary') {
-    return (
-      <div className="panel-stack">
-        <div className="story-card bubble-card large-pop">
-          <p className="eyebrow">Why am I here?</p>
-          <h4>Customer story / system reason</h4>
-          <p>{activeCase.allegation}</p>
-        </div>
-        <div className="mini-grid">
-          <InfoBubble label="Claim amount" value={activeCase.amount} />
-          <InfoBubble label="Status" value={activeCase.status} />
-          <InfoBubble label="Opened" value={activeCase.opened} />
-        </div>
-        <IntakeCard intake={activeCase.intake} />
-        <ul className="fact-list">
-          {activeCase.facts.map((fact) => <li key={fact}>{fact}</li>)}
-        </ul>
-        <ReviewAction completed={completed} onClick={() => markReviewed()} />
-      </div>
-    );
+    return <div className="panel-stack"><CaseBriefing activeCase={activeCase} pinEvidence={pinEvidence} addFinding={addFinding} /><ReviewAction completed={completed} onClick={() => markReviewed()} /></div>;
   }
 
   if (activeTool === 'Customer 360') {
-    return (
-      <div className="panel-stack">
-        <div className="bubble-card profile-pop">
-          <p className="eyebrow">Who am I investigating?</p>
-          <h4>{activeCase.person}</h4>
-          <p>Training ID: {activeCase.trainingId}</p>
-          <button onClick={() => pinEvidence(activeCase.trainingId)}>📌 Pin Training ID</button>
-        </div>
-        <div className="mini-grid two">
-          <InfoBubble label="Customer since" value="2018" />
-          <InfoBubble label="Accounts" value="Checking · Card" />
-        </div>
-        <div className="bubble-card">
-          <p className="eyebrow">Profile change history</p>
-          <h4>Recent customer record activity</h4>
-          <p>Email, phone, address, device trust, and delivery preferences will live here as neutral event rows.</p>
-        </div>
-        <ReviewAction completed={completed} onClick={() => markReviewed()} />
-      </div>
-    );
+    return <div className="panel-stack"><CustomerProfile activeCase={activeCase} pinEvidence={pinEvidence} addFinding={addFinding} /><ReviewAction completed={completed} onClick={() => markReviewed()} /></div>;
   }
 
   if (['Login History', 'Session History', 'Device Intelligence', 'IP Intelligence', 'Transaction History'].includes(activeTool)) {
@@ -266,40 +196,18 @@ function Panel({ activeCase, activeTool, pinEvidence, addFinding, markReviewed, 
   }
 
   if (activeTool === 'Evidence Center') {
-    return (
-      <div className="panel-stack">
-        {activeCase.documents.map((document) => (
-          <EvidenceItem key={document.id} {...document} pinEvidence={pinEvidence} />
-        ))}
-        <ReviewAction completed={completed} onClick={() => markReviewed()} />
-      </div>
-    );
+    return <div className="panel-stack">{activeCase.documents.map((document) => <EvidenceItem key={document.id} {...document} pinEvidence={pinEvidence} />)}<ReviewAction completed={completed} onClick={() => markReviewed()} /></div>;
   }
 
   if (activeTool === 'Document Viewer') {
-    return (
-      <div className="panel-stack">
-        <div className="document-shell">
-          <p className="eyebrow">Document Viewer</p>
-          <h4>Training document preview</h4>
-          <p>Case documents will be selected from Evidence Center and reviewed here without exposing the final case outcome.</p>
-        </div>
-        <ReviewAction completed={completed} onClick={() => markReviewed()} />
-      </div>
-    );
+    return <div className="panel-stack"><div className="document-shell"><p className="eyebrow">Document Viewer</p><h4>Training document preview</h4><p>Case documents will be selected from Evidence Center and reviewed here without exposing the final case outcome.</p></div><ReviewAction completed={completed} onClick={() => markReviewed()} /></div>;
   }
 
   if (activeTool === 'Link Analysis') {
     return (
       <div className="panel-stack">
-        <div className="connection-summary">
-          <InfoBubble label="Connected objects" value={String(activeCase.links.length)} />
-          <InfoBubble label="Shared identifiers" value="2" />
-          <InfoBubble label="First seen" value={activeCase.opened.replace('2026', '').trim()} />
-        </div>
-        <div className="link-web">
-          {activeCase.links.map((link) => <span key={link}>{link}</span>)}
-        </div>
+        <div className="connection-summary"><InfoBubble label="Connected objects" value={String(activeCase.links.length)} /><InfoBubble label="Shared identifiers" value="2" /><InfoBubble label="First seen" value={activeCase.opened.replace('2026', '').trim()} /></div>
+        <div className="link-web">{activeCase.links.map((link) => <span key={link}>{link}</span>)}</div>
         <WorkflowStrip />
         <ReviewAction completed={completed} onClick={() => markReviewed()} />
       </div>
@@ -313,47 +221,50 @@ function Panel({ activeCase, activeTool, pinEvidence, addFinding, markReviewed, 
   return <PlaceholderTool activeTool={activeTool} completed={completed} markReviewed={markReviewed} />;
 }
 
-function IntakeCard({ intake }) {
+function CaseBriefing({ activeCase, pinEvidence, addFinding }) {
   return (
-    <div className="intake-card">
-      <p className="eyebrow">Customer intake</p>
-      <div className="intake-grid">
-        <InfoBubble label="Channel" value={intake.channel} />
-        <InfoBubble label="Contact time" value={intake.contactTime} />
-        <InfoBubble label="Location" value={intake.customerLocation} />
-        <InfoBubble label="Stated device" value={intake.statedDevice} />
+    <>
+      <div className="story-card bubble-card large-pop"><p className="eyebrow">Why am I here?</p><h4>Customer story / system reason</h4><p>{activeCase.allegation}</p><button onClick={() => pinEvidence(activeCase.id)}>📌 Pin case ID</button></div>
+      <div className="mini-grid"><InfoBubble label="Claim amount" value={activeCase.amount} /><InfoBubble label="Status" value={activeCase.status} /><InfoBubble label="Opened" value={activeCase.opened} /></div>
+      <div className="briefing-card">
+        <p className="eyebrow">Briefing questions</p><h4>What should I answer before deciding?</h4>
+        <ul className="question-list">{activeCase.briefingQuestions.map((question) => <li key={question}><span>?</span><p>{question}</p><button onClick={() => addFinding(`Briefing question noted: ${question}`)}>Add note</button></li>)}</ul>
       </div>
-    </div>
+      <IntakeCard intake={activeCase.intake} />
+      <ul className="fact-list">{activeCase.facts.map((fact) => <li key={fact}>{fact}</li>)}</ul>
+    </>
   );
+}
+
+function CustomerProfile({ activeCase, pinEvidence, addFinding }) {
+  const { customer } = activeCase;
+  return (
+    <>
+      <div className="bubble-card profile-pop"><p className="eyebrow">Who am I investigating?</p><h4>{activeCase.person}</h4><p>Training ID: {activeCase.trainingId}</p><button onClick={() => pinEvidence(activeCase.trainingId)}>📌 Pin Training ID</button></div>
+      <div className="mini-grid two"><InfoBubble label="Customer since" value={customer.relationshipSince} /><InfoBubble label="Segment" value={customer.segment} /></div>
+      <ContactCard contact={customer.contact} pinEvidence={pinEvidence} />
+      <div className="relationship-grid">{customer.relationship.map((item) => <InfoBubble key={item.label} label={item.label} value={item.value} />)}</div>
+      <div className="timeline-card"><p className="eyebrow">Profile change history</p><h4>Neutral customer record activity</h4><div className="profile-change-list">{customer.profileChanges.map((change) => <article key={change.id} className="profile-change-card"><span>{change.date}</span><div><strong>{change.item}</strong><p>{change.detail}</p><small>{change.source}</small></div><button onClick={() => addFinding(`Customer 360: ${change.item} reviewed.`)}>📝</button></article>)}</div></div>
+    </>
+  );
+}
+
+function ContactCard({ contact, pinEvidence }) {
+  return (
+    <div className="contact-card"><p className="eyebrow">Contact record</p><div className="contact-grid"><InfoBubble label="Phone" value={contact.phone} /><InfoBubble label="Email" value={contact.email} /><InfoBubble label="Address" value={contact.address} /><InfoBubble label="Preferred" value={contact.preferredChannel} /></div><div className="contact-actions"><button onClick={() => pinEvidence(contact.phone)}>Pin phone</button><button onClick={() => pinEvidence(contact.email)}>Pin email</button><button onClick={() => pinEvidence(contact.address)}>Pin address</button></div></div>
+  );
+}
+
+function IntakeCard({ intake }) {
+  return <div className="intake-card"><p className="eyebrow">Customer intake</p><div className="intake-grid"><InfoBubble label="Channel" value={intake.channel} /><InfoBubble label="Contact time" value={intake.contactTime} /><InfoBubble label="Location" value={intake.customerLocation} /><InfoBubble label="Stated device" value={intake.statedDevice} /></div></div>;
 }
 
 function EventLog({ activeCase, activeTool, pinEvidence, addFinding, markReviewed, completed }) {
   return (
     <div className="panel-stack">
-      <div className="filter-row">
-        <button>All</button><button>Date</button><button>Device</button><button>IP</button><button>Location</button>
-      </div>
-      <div className="summary-strip">
-        <span>Summary assists</span>
-        <strong>{activeCase.events.length} events shown</strong>
-        <span>Event log verifies</span>
-      </div>
-      <div className="event-list">
-        {activeCase.events.map((event) => (
-          <article key={event.id} className="event-card">
-            <div>
-              <span className="case-pill soft">{event.chip}</span>
-              <h4>{event.label}</h4>
-              <p>{event.time} · {event.detail}</p>
-            </div>
-            <div className="event-actions">
-              <button onClick={() => pinEvidence(event.id)} aria-label={`Pin ${event.id}`}>📌</button>
-              <button onClick={() => addFinding(`${activeTool}: ${event.label} reviewed.`)} aria-label="Add note">📝</button>
-              <button onClick={() => pinEvidence(event.object)} aria-label="Pin connected object">🔗</button>
-            </div>
-          </article>
-        ))}
-      </div>
+      <div className="filter-row"><button>All</button><button>Date</button><button>Device</button><button>IP</button><button>Location</button></div>
+      <div className="summary-strip"><span>Summary assists</span><strong>{activeCase.events.length} events shown</strong><span>Event log verifies</span></div>
+      <div className="event-list">{activeCase.events.map((event) => <article key={event.id} className="event-card"><div><span className="case-pill soft">{event.chip}</span><h4>{event.label}</h4><p>{event.time} · {event.detail}</p></div><div className="event-actions"><button onClick={() => pinEvidence(event.id)} aria-label={`Pin ${event.id}`}>📌</button><button onClick={() => addFinding(`${activeTool}: ${event.label} reviewed.`)} aria-label="Add note">📝</button><button onClick={() => pinEvidence(event.object)} aria-label="Pin connected object">🔗</button></div></article>)}</div>
       <WorkflowStrip />
       <ReviewAction completed={completed} onClick={() => markReviewed()} />
     </div>
@@ -361,97 +272,35 @@ function EventLog({ activeCase, activeTool, pinEvidence, addFinding, markReviewe
 }
 
 function PlaceholderTool({ activeTool, completed, markReviewed }) {
-  return (
-    <div className="panel-stack">
-      <div className="bubble-card">
-        <p className="eyebrow">{activeTool}</p>
-        <h4>Wave 2 foundation panel</h4>
-        <p>This tool is wired into the Case Workspace. Upcoming waves will add searchable records, detailed history, link analysis, generated reports, timelines, and final case documentation.</p>
-      </div>
-      <WorkflowStrip />
-      <ReviewAction completed={completed} onClick={() => markReviewed()} />
-    </div>
-  );
+  return <div className="panel-stack"><div className="bubble-card"><p className="eyebrow">{activeTool}</p><h4>Wave 2 foundation panel</h4><p>This tool is wired into the Case Workspace. Upcoming waves will add searchable records, detailed history, link analysis, generated reports, timelines, and final case documentation.</p></div><WorkflowStrip /><ReviewAction completed={completed} onClick={() => markReviewed()} /></div>;
 }
 
 function InvestigationPanel({ activeCase, activeTool, markReviewed, completed }) {
-  return (
-    <div className="panel-stack">
-      <div className="bubble-card large-pop">
-        <p className="eyebrow">Investigation flow</p>
-        <h4>{activeTool}</h4>
-        <p>This area will track completed review steps, organize the learner’s evidence, and prepare the final decision package for {activeCase.id}.</p>
-      </div>
-      <div className="completion-grid">
-        <InfoBubble label="Pinned items" value="Tray" />
-        <InfoBubble label="Notes" value="Notebook" />
-        <InfoBubble label="Decision" value="Locked" />
-      </div>
-      <ReviewAction completed={completed} onClick={() => markReviewed()} />
-    </div>
-  );
+  return <div className="panel-stack"><div className="bubble-card large-pop"><p className="eyebrow">Investigation flow</p><h4>{activeTool}</h4><p>This area will track completed review steps, organize the learner’s evidence, and prepare the final decision package for {activeCase.id}.</p></div><div className="completion-grid"><InfoBubble label="Pinned items" value="Tray" /><InfoBubble label="Notes" value="Notebook" /><InfoBubble label="Decision" value="Locked" /></div><ReviewAction completed={completed} onClick={() => markReviewed()} /></div>;
 }
 
 function ReviewAction({ completed, onClick }) {
-  return (
-    <button className={`review-action ${completed ? 'done' : ''}`} onClick={onClick}>
-      {completed ? '✓ Reviewed in this workspace' : 'Mark this tool reviewed'}
-    </button>
-  );
+  return <button className={`review-action ${completed ? 'done' : ''}`} onClick={onClick}>{completed ? '✓ Reviewed in this workspace' : 'Mark this tool reviewed'}</button>;
 }
 
 function WorkflowStrip() {
-  return (
-    <div className="workflow-strip" aria-label="Searchable object workflow">
-      {workflowSteps.map((step) => <span key={step}>{step}</span>)}
-    </div>
-  );
+  return <div className="workflow-strip" aria-label="Searchable object workflow">{workflowSteps.map((step) => <span key={step}>{step}</span>)}</div>;
 }
 
 function InfoBubble({ label, value }) {
-  return (
-    <div className="info-bubble">
-      <small>{label}</small>
-      <strong>{value}</strong>
-    </div>
-  );
+  return <div className="info-bubble"><small>{label}</small><strong>{value}</strong></div>;
 }
 
 function EvidenceItem({ status, name, detail, id, pinEvidence }) {
-  return (
-    <article className="event-card evidence-card">
-      <div>
-        <span className={`status ${status.toLowerCase()}`}>{status}</span>
-        <h4>{name}</h4>
-        <p>{detail}</p>
-      </div>
-      <button onClick={() => pinEvidence(id)}>Pin</button>
-    </article>
-  );
+  return <article className="event-card evidence-card"><div><span className={`status ${status.toLowerCase()}`}>{status}</span><h4>{name}</h4><p>{detail}</p></div><button onClick={() => pinEvidence(id)}>Pin</button></article>;
 }
 
 function Tray({ tray, compact }) {
-  return (
-    <div className={`side-widget ${compact ? 'compact' : ''}`}>
-      <p className="eyebrow">Pinned evidence</p>
-      <h3>Investigation Tray</h3>
-      <div className="pin-list">
-        {tray.map((item) => <span key={item}>📌 {item}</span>)}
-      </div>
-    </div>
-  );
+  return <div className={`side-widget ${compact ? 'compact' : ''}`}><p className="eyebrow">Pinned evidence</p><h3>Investigation Tray</h3><div className="pin-list">{tray.map((item) => <span key={item}>📌 {item}</span>)}</div></div>;
 }
 
 function Notebook({ notes, compact }) {
-  return (
-    <div className={`side-widget ${compact ? 'compact' : ''}`}>
-      <p className="eyebrow">Approved findings</p>
-      <h3>Notebook</h3>
-      <ul className="note-list">
-        {notes.map((note, index) => <li key={`${note}-${index}`}>{note}</li>)}
-      </ul>
-    </div>
-  );
+  return <div className={`side-widget ${compact ? 'compact' : ''}`}><p className="eyebrow">Approved findings</p><h3>Notebook</h3><ul className="note-list">{notes.map((note, index) => <li key={`${note}-${index}`}>{note}</li>)}</ul></div>;
 }
 
 export default App;
