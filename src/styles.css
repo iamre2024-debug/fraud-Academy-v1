@@ -119,7 +119,10 @@ h1 {
 .side-widget,
 .info-bubble,
 .event-card,
-.mobile-drawers details {
+.mobile-drawers details,
+.evidence-first-banner,
+.workflow-strip,
+.document-shell {
   border: 1px solid var(--line);
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
@@ -254,7 +257,8 @@ h1 {
 .tool-tabs button,
 .filter-row button,
 .profile-pop button,
-.evidence-card button {
+.evidence-card button,
+.bubble-card button {
   flex: 0 0 auto;
   border-radius: 999px;
   padding: 9px 12px;
@@ -271,26 +275,43 @@ h1 {
   border-color: rgba(255, 255, 255, 0.28);
 }
 
+.evidence-first-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  border-radius: 24px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(94, 231, 255, 0.1), rgba(255, 79, 216, 0.12));
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.evidence-first-banner strong { color: var(--cream); }
+
 .panel-stack {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.bubble-card {
+.bubble-card,
+.document-shell {
   padding: 17px;
   border-radius: 34px 48px 32px 44px;
 }
 
 .bubble-card h4,
-.event-card h4 {
+.event-card h4,
+.document-shell h4 {
   margin: 0 0 7px;
   font-size: 1rem;
 }
 
 .bubble-card p,
 .event-card p,
-.info-bubble small {
+.info-bubble small,
+.document-shell p {
   color: var(--muted);
   line-height: 1.45;
   margin-bottom: 0;
@@ -301,12 +322,11 @@ h1 {
   background: linear-gradient(135deg, rgba(255, 79, 216, 0.22), rgba(94, 231, 255, 0.08)), var(--panel-strong);
 }
 
-.profile-pop {
-  border-radius: 58px 38px 48px 34px;
-}
+.profile-pop { border-radius: 58px 38px 48px 34px; }
 
 .mini-grid,
-.connection-summary {
+.connection-summary,
+.completion-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
@@ -358,7 +378,6 @@ h1 {
 }
 
 .summary-strip strong { color: var(--cream); }
-
 .event-list { display: grid; gap: 10px; }
 
 .event-card {
@@ -379,8 +398,10 @@ h1 {
 .event-actions button {
   width: 34px;
   height: 34px;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
-  background: rgba(255, 79, 216, 0.18);
+  background: rgba(255, 79, 216, 0.14);
   border: 1px solid rgba(255, 79, 216, 0.26);
 }
 
@@ -410,11 +431,45 @@ h1 {
   border: 1px dashed rgba(255, 79, 216, 0.34);
 }
 
+.link-web::before {
+  content: "";
+  position: absolute;
+  inset: 32px;
+  border: 1px solid rgba(94, 231, 255, 0.18);
+  border-radius: 999px;
+}
+
 .link-web span {
+  position: relative;
   border-radius: 999px;
   padding: 10px 14px;
   background: rgba(22, 5, 31, 0.78);
   border: 1px solid var(--line);
+}
+
+.workflow-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  border-radius: 24px;
+  padding: 10px;
+}
+
+.workflow-strip span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.document-shell {
+  min-height: 240px;
+  background:
+    linear-gradient(180deg, rgba(255, 234, 253, 0.1), rgba(255, 255, 255, 0.03)),
+    var(--panel);
 }
 
 .desktop-side-panel { display: none; }
@@ -441,7 +496,6 @@ h1 {
 }
 
 .side-widget h3 { margin: 0 0 10px; }
-
 .pin-list { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .bottom-nav {
@@ -476,6 +530,14 @@ h1 {
 .bottom-nav button.active {
   background: rgba(255, 79, 216, 0.2);
   color: var(--cream);
+}
+
+@media (max-width: 420px) {
+  .app-shell { padding: 12px; }
+  .hero-copy h2 { font-size: 1.55rem; }
+  .family-grid { gap: 10px; }
+  .family-bubble { padding: 13px; min-height: 118px; }
+  .mini-grid, .connection-summary, .completion-grid { grid-template-columns: 1fr; }
 }
 
 @media (min-width: 980px) {
