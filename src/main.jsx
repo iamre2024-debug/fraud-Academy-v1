@@ -9,6 +9,7 @@ import './case-summary.css';
 import './lunaDebrief.css';
 import './academyProgress.css';
 import './scenarioEngine.css';
+import './desktopCommand.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
