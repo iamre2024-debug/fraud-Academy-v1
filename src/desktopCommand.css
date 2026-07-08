@@ -1,0 +1,293 @@
+@media (min-width: 1180px) {
+  body {
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 9% 8%, rgba(255, 79, 216, 0.28), transparent 24rem),
+      radial-gradient(circle at 86% 18%, rgba(94, 231, 255, 0.16), transparent 24rem),
+      radial-gradient(circle at 45% 90%, rgba(168, 85, 247, 0.18), transparent 28rem),
+      linear-gradient(135deg, #090315 0%, #180627 42%, #0d061b 100%);
+  }
+
+  #root {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: minmax(260px, 0.78fr) minmax(720px, 2.2fr) minmax(300px, 0.9fr);
+    grid-template-areas: "scenario workspace progress";
+    gap: 18px;
+    padding: 18px;
+  }
+
+  .app-shell {
+    grid-area: workspace;
+    min-height: 0;
+    height: calc(100vh - 36px);
+    padding: 0;
+    overflow: hidden;
+    border-radius: 34px;
+    border: 1px solid rgba(255, 119, 231, 0.22);
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
+      rgba(11, 4, 28, 0.64);
+    box-shadow: 0 26px 90px rgba(0, 0, 0, 0.42), 0 0 38px rgba(255, 79, 216, 0.12);
+  }
+
+  .app-shell::before {
+    content: "";
+    position: absolute;
+    inset: 16px;
+    border-radius: 28px;
+    border: 1px solid rgba(94, 231, 255, 0.08);
+    pointer-events: none;
+  }
+
+  .phone-frame {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 254px minmax(0, 1fr) 292px;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "top top top"
+      "leftnav workspace side";
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .top-bar {
+    grid-area: top;
+    min-height: 76px;
+    padding: 14px 18px;
+    border: 1px solid rgba(255, 119, 231, 0.2);
+    border-radius: 28px;
+    background:
+      linear-gradient(135deg, rgba(255, 79, 216, 0.16), rgba(94, 231, 255, 0.07)),
+      rgba(255, 255, 255, 0.055);
+    box-shadow: 0 18px 52px rgba(0, 0, 0, 0.22), inset 0 0 34px rgba(255, 255, 255, 0.025);
+  }
+
+  .top-bar h1 {
+    font-size: clamp(1.65rem, 2.1vw, 2.5rem);
+    letter-spacing: -0.03em;
+  }
+
+  .top-bar::after {
+    content: "Evidence First · One Case · One Workspace";
+    margin-left: auto;
+    padding: 9px 14px;
+    border-radius: 999px;
+    color: rgba(255, 248, 255, 0.78);
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.74rem;
+    font-weight: 850;
+  }
+
+  .round-button {
+    border-radius: 18px;
+  }
+
+  .case-queue,
+  .hero-bubble,
+  .family-grid {
+    grid-area: leftnav;
+  }
+
+  .case-queue {
+    align-self: start;
+    border-radius: 30px 48px 28px 40px;
+    padding: 15px;
+    max-height: 235px;
+    overflow: hidden;
+  }
+
+  .queue-list {
+    flex-direction: column;
+    overflow: auto;
+    max-height: 162px;
+  }
+
+  .queue-card {
+    min-width: 0;
+    width: 100%;
+    border-radius: 20px 28px 18px 26px;
+    padding: 11px;
+  }
+
+  .hero-bubble {
+    align-self: center;
+    margin-top: 252px;
+    min-height: 158px;
+    border-radius: 42px 30px 54px 34px;
+    padding: 18px;
+  }
+
+  .hero-copy h2 {
+    font-size: 1.55rem;
+  }
+
+  .cat-orb {
+    width: 62px;
+    height: 62px;
+    font-size: 1.75rem;
+  }
+
+  .family-grid {
+    align-self: end;
+    margin-top: 430px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 9px;
+    overflow: auto;
+    max-height: calc(100vh - 560px);
+    padding-right: 2px;
+  }
+
+  .family-bubble {
+    min-height: 88px;
+    padding: 12px;
+    border-radius: 24px 34px 22px 30px;
+    gap: 4px;
+  }
+
+  .family-bubble span {
+    font-size: 1rem;
+  }
+
+  .family-bubble small {
+    display: none;
+  }
+
+  .workspace-card {
+    grid-area: workspace;
+    min-height: 0;
+    height: 100%;
+    overflow: auto;
+    border-radius: 32px 42px 30px 44px;
+    padding: 18px;
+    background:
+      radial-gradient(circle at 10% 0%, rgba(255, 79, 216, 0.13), transparent 24rem),
+      linear-gradient(145deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.02)),
+      rgba(33, 11, 55, 0.78);
+  }
+
+  .workspace-card > .section-heading {
+    position: sticky;
+    top: -18px;
+    z-index: 3;
+    margin: -18px -18px 0;
+    padding: 18px;
+    border-radius: 32px 42px 22px 22px;
+    background: rgba(18, 7, 39, 0.88);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 119, 231, 0.18);
+  }
+
+  .tool-tabs {
+    position: sticky;
+    top: 63px;
+    z-index: 3;
+    padding: 8px 0 10px;
+    background: rgba(26, 9, 48, 0.72);
+    backdrop-filter: blur(16px);
+  }
+
+  .desktop-side-panel {
+    grid-area: side;
+    display: grid;
+    grid-template-rows: minmax(130px, auto) minmax(0, 1fr);
+    gap: 14px;
+    min-height: 0;
+  }
+
+  .desktop-side-panel .side-widget {
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .desktop-side-panel .side-widget:first-child {
+    max-height: 230px;
+  }
+
+  .mobile-drawers,
+  .bottom-nav {
+    display: none;
+  }
+
+  .scenario-engine-shell,
+  .academy-progress-shell {
+    position: static;
+    width: 100%;
+    height: calc(100vh - 36px);
+    margin: 0;
+    pointer-events: auto;
+  }
+
+  .scenario-engine-shell {
+    grid-area: scenario;
+  }
+
+  .academy-progress-shell {
+    grid-area: progress;
+  }
+
+  .scenario-engine-card,
+  .academy-progress-card {
+    height: 100%;
+    overflow: auto;
+    border-radius: 34px 46px 32px 44px;
+  }
+
+  .scenario-engine-card {
+    background:
+      radial-gradient(circle at 10% 8%, rgba(142, 248, 255, 0.15), transparent 16rem),
+      radial-gradient(circle at 75% 2%, rgba(255, 120, 216, 0.14), transparent 16rem),
+      linear-gradient(150deg, rgba(31, 14, 67, 0.95), rgba(12, 5, 29, 0.96));
+  }
+
+  .academy-progress-card {
+    background:
+      radial-gradient(circle at 18% 6%, rgba(255, 120, 216, 0.18), transparent 17rem),
+      radial-gradient(circle at 82% 12%, rgba(142, 248, 255, 0.12), transparent 14rem),
+      linear-gradient(150deg, rgba(37, 18, 66, 0.95), rgba(14, 6, 31, 0.96));
+  }
+
+  .scenario-template-tabs,
+  .tool-tabs,
+  .queue-list,
+  .workspace-card,
+  .side-widget,
+  .academy-case-list,
+  .scenario-packet-list,
+  .family-grid {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 120, 216, 0.55) rgba(255, 255, 255, 0.06);
+  }
+}
+
+@media (min-width: 1180px) and (max-width: 1380px) {
+  #root {
+    grid-template-columns: 250px minmax(680px, 1fr) 286px;
+    gap: 14px;
+    padding: 14px;
+  }
+
+  .app-shell,
+  .scenario-engine-shell,
+  .academy-progress-shell {
+    height: calc(100vh - 28px);
+  }
+
+  .phone-frame {
+    grid-template-columns: 224px minmax(0, 1fr) 264px;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .family-bubble em,
+  .compact-heading > span,
+  .scenario-engine-header p:not(.eyebrow),
+  .academy-progress-header p:not(.eyebrow) {
+    display: none;
+  }
+}
