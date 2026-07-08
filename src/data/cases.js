@@ -8,29 +8,14 @@ export const trainingCases = [
     trainingId: 'TRN-8842-19',
     amount: '$742.18',
     opened: 'Jul 8, 2026',
-    allegation:
-      'Customer contacted the bank stating they did not authorize a card purchase. The customer advised they were home at the time and did not recognize the device activity tied to the transaction.',
+    allegation: 'Customer contacted the bank stating they did not authorize a card purchase. The customer advised they were home at the time and did not recognize the device activity tied to the transaction.',
     queueReason: 'Customer dispute with recent login and device activity available for review.',
-    briefingQuestions: [
-      'What did the customer say happened?',
-      'Which access records need to be compared against the story?',
-      'What evidence should be pinned before a decision is drafted?',
-    ],
-    intake: {
-      channel: 'Secure message + phone follow-up',
-      contactTime: '10:58 AM',
-      customerLocation: 'Dallas, TX',
-      statedDevice: 'Personal iPhone',
-    },
+    briefingQuestions: ['What did the customer say happened?', 'Which access records need to be compared against the story?', 'What evidence should be pinned before a decision is drafted?'],
+    intake: { channel: 'Secure message + phone follow-up', contactTime: '10:58 AM', customerLocation: 'Dallas, TX', statedDevice: 'Personal iPhone' },
     customer: {
       relationshipSince: '2018',
       segment: 'Consumer checking + card',
-      contact: {
-        phone: '(214) 555-0184',
-        email: 'maya.training@example.test',
-        address: 'Dallas, TX training address',
-        preferredChannel: 'Secure message',
-      },
+      contact: { phone: '(214) 555-0184', email: 'maya.training@example.test', address: 'Dallas, TX training address', preferredChannel: 'Secure message' },
       relationship: [
         { label: 'Open products', value: 'Checking · Debit card · Savings' },
         { label: 'Last statement', value: 'Jun 28, 2026' },
@@ -43,6 +28,17 @@ export const trainingCases = [
         { id: 'PCH-1003', date: 'Jun 29, 2026', item: 'Phone number unchanged', detail: 'No phone update recorded in recent profile history', source: 'Customer profile' },
       ],
     },
+    identityRecords: [
+      { id: 'IDR-1001', type: 'Training ID', value: 'TRN-8842-19', lastSeen: 'Jul 8, 2026', history: 'Linked to one active profile and current case workspace.' },
+      { id: 'IDR-1002', type: 'Phone', value: '(214) 555-0184', lastSeen: 'Jun 29, 2026', history: 'No recent phone update recorded in the customer profile.' },
+      { id: 'IDR-1003', type: 'Email', value: 'maya.training@example.test', lastSeen: 'Jul 8, 2026', history: 'Email visible during profile-view session activity.' },
+      { id: 'IDR-1004', type: 'Address', value: 'Dallas, TX training address', lastSeen: 'Jun 28, 2026', history: 'Address appears in customer relationship snapshot.' },
+    ],
+    loginHistory: [
+      { id: 'LOG-1008', time: '10:42 AM', method: 'Face ID', device: 'iPhone 16', location: 'Dallas, TX', ip: '198.51.100.42', session: 'SES-7781', result: 'Successful' },
+      { id: 'LOG-1005', time: '8:13 AM', method: 'Password', device: 'Chrome Mobile', location: 'Dallas, TX', ip: '198.51.100.11', session: 'SES-7760', result: 'Successful' },
+      { id: 'LOG-0998', time: 'Jun 30, 6:51 PM', method: 'Face ID', device: 'iPhone 16', location: 'Irving, TX', ip: '198.51.100.77', session: 'SES-7604', result: 'Successful' },
+    ],
     facts: ['Customer statement received', 'Transaction posted', 'Recent login activity available', 'No final outcome shown'],
     progress: ['Case Summary', 'Customer 360'],
     events: [
@@ -66,29 +62,14 @@ export const trainingCases = [
     trainingId: 'TRN-5510-06',
     amount: '$189.44',
     opened: 'Jul 8, 2026',
-    allegation:
-      'Customer states a subscription merchant continued billing after cancellation. The case needs merchant history, prior customer contact, and billing pattern review.',
+    allegation: 'Customer states a subscription merchant continued billing after cancellation. The case needs merchant history, prior customer contact, and billing pattern review.',
     queueReason: 'Billing dispute requiring transaction history and evidence review.',
-    briefingQuestions: [
-      'What cancellation evidence is available or missing?',
-      'Does the transaction history show a recurring merchant pattern?',
-      'Which document should be requested before final documentation?',
-    ],
-    intake: {
-      channel: 'Mobile app dispute form',
-      contactTime: '9:21 AM',
-      customerLocation: 'Fort Worth, TX',
-      statedDevice: 'Android phone',
-    },
+    briefingQuestions: ['What cancellation evidence is available or missing?', 'Does the transaction history show a recurring merchant pattern?', 'Which document should be requested before final documentation?'],
+    intake: { channel: 'Mobile app dispute form', contactTime: '9:21 AM', customerLocation: 'Fort Worth, TX', statedDevice: 'Android phone' },
     customer: {
       relationshipSince: '2021',
       segment: 'Consumer cardholder',
-      contact: {
-        phone: '(817) 555-0149',
-        email: 'jordan.training@example.test',
-        address: 'Fort Worth, TX training address',
-        preferredChannel: 'Mobile app',
-      },
+      contact: { phone: '(817) 555-0149', email: 'jordan.training@example.test', address: 'Fort Worth, TX training address', preferredChannel: 'Mobile app' },
       relationship: [
         { label: 'Open products', value: 'Credit card' },
         { label: 'Last statement', value: 'Jul 1, 2026' },
@@ -101,6 +82,17 @@ export const trainingCases = [
         { id: 'PCH-2203', date: 'Jun 21, 2026', item: 'Contact details unchanged', detail: 'No email or phone updates in recent profile history', source: 'Customer profile' },
       ],
     },
+    identityRecords: [
+      { id: 'IDR-2201', type: 'Training ID', value: 'TRN-5510-06', lastSeen: 'Jul 8, 2026', history: 'Linked to active cardholder profile and billing dispute.' },
+      { id: 'IDR-2202', type: 'Phone', value: '(817) 555-0149', lastSeen: 'Jun 21, 2026', history: 'Contact details unchanged in recent history.' },
+      { id: 'IDR-2203', type: 'Email', value: 'jordan.training@example.test', lastSeen: 'Jul 8, 2026', history: 'Used for dispute notification routing.' },
+      { id: 'IDR-2204', type: 'Merchant link', value: 'Subscription merchant', lastSeen: 'Jul 8, 2026', history: 'Merchant appears in current and previous billing cycle records.' },
+    ],
+    loginHistory: [
+      { id: 'LOG-2204', time: '8:19 AM', method: 'Password', device: 'Android phone', location: 'Fort Worth, TX', ip: '203.0.113.24', session: 'SES-4412', result: 'Successful' },
+      { id: 'LOG-2200', time: 'Jul 2, 4:02 PM', method: 'Biometric', device: 'Android phone', location: 'Fort Worth, TX', ip: '203.0.113.18', session: 'SES-4310', result: 'Successful' },
+      { id: 'LOG-2191', time: 'Jun 21, 11:10 AM', method: 'Password', device: 'Desktop Chrome', location: 'Fort Worth, TX', ip: '203.0.113.10', session: 'SES-4201', result: 'Successful' },
+    ],
     facts: ['Dispute form received', 'Merchant billing history available', 'Cancellation proof not uploaded', 'No final outcome shown'],
     progress: ['Case Summary'],
     events: [
@@ -123,29 +115,14 @@ export const trainingCases = [
     trainingId: 'TRN-2044-77',
     amount: '$2,400.00',
     opened: 'Jul 8, 2026',
-    allegation:
-      'System alert opened a credit risk review after a new account requested rapid limit usage. The case requires identity, payment, and account behavior review.',
+    allegation: 'System alert opened a credit risk review after a new account requested rapid limit usage. The case requires identity, payment, and account behavior review.',
     queueReason: 'System alert tied to new account activity and payment verification needs.',
-    briefingQuestions: [
-      'What triggered the system review?',
-      'Which identity and payment records should be opened first?',
-      'What should be documented before the decision remains locked?',
-    ],
-    intake: {
-      channel: 'System alert',
-      contactTime: '7:45 AM',
-      customerLocation: 'Arlington, TX',
-      statedDevice: 'Not customer-reported',
-    },
+    briefingQuestions: ['What triggered the system review?', 'Which identity and payment records should be opened first?', 'What should be documented before the decision remains locked?'],
+    intake: { channel: 'System alert', contactTime: '7:45 AM', customerLocation: 'Arlington, TX', statedDevice: 'Not customer-reported' },
     customer: {
       relationshipSince: '2026',
       segment: 'New credit account',
-      contact: {
-        phone: '(682) 555-0167',
-        email: 'avery.training@example.test',
-        address: 'Arlington, TX training address',
-        preferredChannel: 'Email',
-      },
+      contact: { phone: '(682) 555-0167', email: 'avery.training@example.test', address: 'Arlington, TX training address', preferredChannel: 'Email' },
       relationship: [
         { label: 'Open products', value: 'Credit line' },
         { label: 'Last statement', value: 'Not generated yet' },
@@ -158,6 +135,17 @@ export const trainingCases = [
         { id: 'PCH-3303', date: 'Jul 7, 2026', item: 'Profile created', detail: 'New customer profile opened for training review', source: 'Customer profile' },
       ],
     },
+    identityRecords: [
+      { id: 'IDR-3301', type: 'Training ID', value: 'TRN-2044-77', lastSeen: 'Jul 8, 2026', history: 'New credit profile associated with system review.' },
+      { id: 'IDR-3302', type: 'Phone', value: '(682) 555-0167', lastSeen: 'Jul 7, 2026', history: 'Phone captured during profile creation.' },
+      { id: 'IDR-3303', type: 'Email', value: 'avery.training@example.test', lastSeen: 'Jul 8, 2026', history: 'Email associated with new account notification routing.' },
+      { id: 'IDR-3304', type: 'Payment object', value: 'Bank Code + Destination ID token', lastSeen: 'Jul 8, 2026', history: 'Token appears in payment verification records.' },
+    ],
+    loginHistory: [
+      { id: 'LOG-3314', time: '7:43 AM', method: 'Password', device: 'Mobile Safari', location: 'Arlington, TX', ip: '192.0.2.44', session: 'SES-9302', result: 'Successful' },
+      { id: 'LOG-3309', time: '7:36 AM', method: 'Password', device: 'Mobile Safari', location: 'Arlington, TX', ip: '192.0.2.44', session: 'SES-9299', result: 'Successful' },
+      { id: 'LOG-3301', time: 'Jul 7, 5:18 PM', method: 'Email code', device: 'Mobile Safari', location: 'Arlington, TX', ip: '192.0.2.21', session: 'SES-9100', result: 'Successful' },
+    ],
     facts: ['System alert received', 'Payment verification available', 'New account activity present', 'No final outcome shown'],
     progress: ['Case Summary'],
     events: [
