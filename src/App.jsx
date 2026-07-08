@@ -33,14 +33,14 @@ const families = [
     key: 'digital',
     title: 'Digital Activity',
     icon: '💻',
-    question: 'Can I prove or disprove the story?',
+    question: 'Can I verify or challenge the story?',
     tools: ['Login History', 'Session History', 'Device Intelligence', 'IP Intelligence'],
   },
   {
     key: 'financial',
     title: 'Financial',
     icon: '💳',
-    question: 'Does the behavior make sense?',
+    question: 'Does the money movement make sense?',
     tools: ['Transaction History', 'Financial Intelligence', 'Payment Verification'],
   },
   {
@@ -55,7 +55,7 @@ const families = [
     title: 'Evidence',
     icon: '📂',
     question: 'What evidence do I have?',
-    tools: ['Evidence Center'],
+    tools: ['Evidence Center', 'Document Viewer'],
   },
   {
     key: 'connections',
@@ -64,6 +64,13 @@ const families = [
     question: 'How does everything connect?',
     tools: ['Link Analysis'],
   },
+  {
+    key: 'investigation',
+    title: 'Investigation',
+    icon: '🕵️',
+    question: 'What have I completed?',
+    tools: ['Timeline', 'Case Report', 'Submit Decision'],
+  },
 ];
 
 const eventRows = [
@@ -71,6 +78,8 @@ const eventRows = [
   { id: 'EVT-1011', time: '10:47 AM', label: 'Profile viewed', detail: 'Same session / Balance + card details viewed', chip: 'Session' },
   { id: 'EVT-1014', time: '10:52 AM', label: 'Card purchase posted', detail: '$742.18 / CNP merchant / Pending then posted', chip: 'Transaction' },
 ];
+
+const workflowSteps = ['Record', 'Expand', 'Search', 'History', 'Link Analysis', 'Generate Report', 'Timeline', 'Case Report'];
 
 function App() {
   const [activeFamily, setActiveFamily] = useState('summary');
@@ -154,6 +163,7 @@ function App() {
             ))}
           </div>
 
+          <EvidenceFirstBanner />
           <Panel activeTool={activeTool} pinEvidence={pinEvidence} addFinding={addFinding} />
         </section>
 
@@ -181,6 +191,15 @@ function App() {
         </nav>
       </section>
     </main>
+  );
+}
+
+function EvidenceFirstBanner() {
+  return (
+    <div className="evidence-first-banner">
+      <strong>Evidence First</strong>
+      <span>No final outcome, score, red/green labels, or Luna answer until submission.</span>
+    </div>
   );
 }
 
@@ -218,6 +237,11 @@ function Panel({ activeTool, pinEvidence, addFinding }) {
           <InfoBubble label="Customer since" value="2018" />
           <InfoBubble label="Accounts" value="Checking · Card" />
         </div>
+        <div className="bubble-card">
+          <p className="eyebrow">Profile change history</p>
+          <h4>Recent customer record activity</h4>
+          <p>Email, phone, address, device trust, and delivery preferences will live here as neutral event rows.</p>
+        </div>
       </div>
     );
   }
@@ -236,30 +260,39 @@ function Panel({ activeTool, pinEvidence, addFinding }) {
     );
   }
 
-  if (activeTool === 'Link Analysis') {
+  if (activeTool === 'Document Viewer') {
     return (
       <div className="panel-stack">
-        <div className="connection-summary">
-          <InfoBubble label="Connections" value="7" />
-          <InfoBubble label="Higher-risk" value="2" />
-          <InfoBubble label="First seen" value="Jul 8" />
-        </div>
-        <div className="link-web">
-          <span>Customer</span><span>Device</span><span>IP</span><span>Transaction</span>
+        <div className="document-shell">
+          <p className="eyebrow">Document Viewer</p>
+          <h4>Training document preview</h4>
+          <p>Case documents will be selected from Evidence Center and reviewed here without exposing the final case outcome.</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="panel-stack">
-      <div className="bubble-card">
-        <p className="eyebrow">{activeTool}</p>
-        <h4>Wave 1 placeholder</h4>
-        <p>This panel is plugged into the Case Workspace and ready for the full tool build.</p>
+  if (activeTool === 'Link Analysis') {
+    return (
+      <div className="panel-stack">
+        <div className="connection-summary">
+          <InfoBubble label="Connected objects" value="7" />
+          <InfoBubble label="Shared identifiers" value="2" />
+          <InfoBubble label="First seen" value="Jul 8" />
+        </div>
+        <div className="link-web">
+          <span>Customer</span><span>Device</span><span>IP</span><span>Transaction</span>
+        </div>
+        <WorkflowStrip />
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (['Timeline', 'Case Report', 'Submit Decision'].includes(activeTool)) {
+    return <InvestigationPanel activeTool={activeTool} addFinding={addFinding} />;
+  }
+
+  return <PlaceholderTool activeTool={activeTool} />;
 }
 
 function EventLog({ activeTool, pinEvidence, addFinding }) {
@@ -282,13 +315,53 @@ function EventLog({ activeTool, pinEvidence, addFinding }) {
               <p>{event.time} · {event.detail}</p>
             </div>
             <div className="event-actions">
-              <button onClick={() => pinEvidence(event.id)}>📌</button>
-              <button onClick={() => addFinding(`${activeTool}: ${event.label} reviewed.`)}>📝</button>
-              <button>🔗</button>
+              <button onClick={() => pinEvidence(event.id)} aria-label={`Pin ${event.id}`}>📌</button>
+              <button onClick={() => addFinding(`${activeTool}: ${event.label} reviewed.`)} aria-label="Add note">📝</button>
+              <button aria-label="Open link analysis">🔗</button>
             </div>
           </article>
         ))}
       </div>
+      <WorkflowStrip />
+    </div>
+  );
+}
+
+function PlaceholderTool({ activeTool }) {
+  return (
+    <div className="panel-stack">
+      <div className="bubble-card">
+        <p className="eyebrow">{activeTool}</p>
+        <h4>Wave 1 foundation panel</h4>
+        <p>This tool is wired into the Case Workspace. Wave 2 and later will add searchable records, history, link analysis, reports, timelines, and final case documentation.</p>
+      </div>
+      <WorkflowStrip />
+    </div>
+  );
+}
+
+function InvestigationPanel({ activeTool, addFinding }) {
+  return (
+    <div className="panel-stack">
+      <div className="bubble-card large-pop">
+        <p className="eyebrow">Investigation flow</p>
+        <h4>{activeTool}</h4>
+        <p>This area will track completed review steps, organize the learner’s evidence, and prepare the final decision package.</p>
+        <button onClick={() => addFinding(`${activeTool}: workspace reviewed.`)}>📝 Add workspace note</button>
+      </div>
+      <div className="completion-grid">
+        <InfoBubble label="Pinned items" value="Tray" />
+        <InfoBubble label="Notes" value="Notebook" />
+        <InfoBubble label="Decision" value="Locked" />
+      </div>
+    </div>
+  );
+}
+
+function WorkflowStrip() {
+  return (
+    <div className="workflow-strip" aria-label="Searchable object workflow">
+      {workflowSteps.map((step) => <span key={step}>{step}</span>)}
     </div>
   );
 }
