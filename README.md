@@ -48,6 +48,7 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Fictional training case data model in `src/data/cases.js`
 - Financial tool records in `src/data/financialRecords.js`
 - Business tool records in `src/data/businessRecords.js`
+- Evidence tool records in `src/data/evidenceRecords.js`
 - Case Queue with Account Takeover, Chargeback Claim, and Credit Risk Review cases
 - Case switching inside one workspace
 - Case Briefing with neutral investigation questions
@@ -64,6 +65,8 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Business Intelligence with searchable business context records
 - Employee Profile with searchable role and employer records
 - Payroll History with searchable payroll records
+- Evidence Center with searchable evidence inventory
+- Document Viewer with searchable document previews
 - Search panels with record, object, and note actions
 - Search empty state for no-match results
 - Investigation progress tracking by reviewed tool
@@ -74,11 +77,9 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 
 ## Latest handoff
 
-The next step is to continue Wave 2 by upgrading Evidence Center and Document Viewer into richer evidence tools. Keep the same investigation pattern used for the digital, financial, and business tools:
+The next step is to continue Wave 2 by upgrading Link Analysis, Timeline, Case Report, and Submit Decision into richer investigation tools. Keep all wording neutral before submission.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
-
-Keep all wording neutral before submission.
 
 ## Local development
 
