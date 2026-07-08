@@ -25,7 +25,7 @@ Use that file before making architecture, UI, tool, scenario, or Evidence First 
 
 ## Wave 1 build
 
-This repo currently contains the app shell and Case Workspace foundation:
+Wave 1 established the app shell and Case Workspace foundation:
 
 - React + Vite app
 - PWA manifest
@@ -40,6 +40,20 @@ This repo currently contains the app shell and Case Workspace foundation:
 - Neutral Link Analysis foundation
 - Timeline, Case Report, Submit Decision foundation panels
 - Placeholder tool panels for the locked architecture
+
+## Wave 2 progress
+
+Wave 2 has started and currently adds core Case Workspace behavior:
+
+- Fictional training case data model in `src/data/cases.js`
+- Case Queue with Account Takeover, Chargeback Claim, and Credit Risk Review cases
+- Case switching inside one workspace
+- Case-specific allegations, intake details, facts, events, documents, and neutral link objects
+- Investigation progress tracking by reviewed tool
+- Reviewed counts on investigation family cards
+- Mark-reviewed actions for workspace tools
+- Pinned evidence and notebook reset per opened case
+- Evidence First search sweep completed for answer-leaking wording
 
 ## Local development
 
@@ -63,6 +77,6 @@ npm run build
 5. Scenario Engine
 6. Luna debrief, scoring, and academy progress
 
-## Wave 1 test status
+## Test status
 
 The repo has been updated through the GitHub connector. Local build testing still needs to be run in a connected development environment because this execution runtime could not resolve github.com for cloning.
