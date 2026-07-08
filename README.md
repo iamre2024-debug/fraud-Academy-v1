@@ -76,8 +76,10 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Notebook notes are saved by active case ID
 - Notebook has a Submit note composer
 - Notebook supports note types including Case rationale, Investigation note, Evidence note, and Follow-up needed
-- Notebook notes persist in localStorage so the investigator can return and explain why they worked the case that way
-- Tool action notes also save into the active case notebook
+- Notebook notes persist in localStorage
+- Each submitted or tool-generated note saves in two places: the active case notebook and an agent notepad keyed by Agent ID
+- Agent notepad entries preserve case ID, note type, note text, and timestamp so the agent can find notes even after leaving the case
+- Tool action notes also save into the active case notebook and agent notepad
 - Evidence First search sweep completed for answer-leaking wording
 
 ## Latest handoff
