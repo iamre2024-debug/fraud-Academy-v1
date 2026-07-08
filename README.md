@@ -75,6 +75,9 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Pinned evidence resets per opened case
 - Notebook notes are saved by active case ID
 - Notebook has a Submit note composer
+- Notebook supports note types including Case rationale, Investigation note, Evidence note, and Follow-up needed
+- Notebook notes persist in localStorage so the investigator can return and explain why they worked the case that way
+- Tool action notes also save into the active case notebook
 - Evidence First search sweep completed for answer-leaking wording
 
 ## Latest handoff
