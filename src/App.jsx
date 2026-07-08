@@ -3,6 +3,7 @@ import { trainingCases } from './data/cases.js';
 import { financialRecordsByCase } from './data/financialRecords.js';
 import { businessRecordsByCase } from './data/businessRecords.js';
 import { evidenceRecordsByCase } from './data/evidenceRecords.js';
+import { buildLunaDebrief } from './data/lunaDebrief.js';
 import { buildReviewPackage, getReviewPackageStatus, reviewChoices } from './data/reviewPackage.js';
 
 const AGENT_ID = 'AGT-TRAIN-001';
@@ -151,9 +152,17 @@ function App() {
       return;
     }
 
-    const reviewPackage = buildReviewPackage({ caseId: activeCase.id, agentId: AGENT_ID, draft });
+    const reviewPackage = buildReviewPackage({
+      caseId: activeCase.id,
+      agentId: AGENT_ID,
+      draft,
+      completedTools: currentCompleted,
+      tray,
+      notes,
+      packageStatus,
+    });
     setReviewPackagesByCase((current) => ({ ...current, [activeCase.id]: [reviewPackage, ...(current[activeCase.id] ?? [])] }));
-    addFinding('Submit Decision: learner review package saved without revealing Luna debrief or outcome.');
+    addFinding('Submit Decision: learner review package saved and post-submission Luna debrief unlocked.');
     markReviewed('Submit Decision');
   }
 
@@ -297,9 +306,7 @@ function Panel(props) {
   if (activeTool === 'Evidence Center') return <EvidenceCenter records={evidenceRecords.evidence} pinEvidence={pinEvidence} addFinding={addFinding} markReviewed={markReviewed} completed={completed} />;
   if (activeTool === 'Document Viewer') return <DocumentViewer records={evidenceRecords.documents} pinEvidence={pinEvidence} addFinding={addFinding} markReviewed={markReviewed} completed={completed} />;
   if (activeTool === 'Link Analysis') return <LinkAnalysisPanel activeCase={activeCase} pinEvidence={pinEvidence} addFinding={addFinding} markReviewed={markReviewed} completed={completed} />;
-  if (['Timeline', 'Case Report', 'Submit Decision'].includes(activeTool)) {
-    return <InvestigationPanel activeCase={activeCase} activeTool={activeTool} markReviewed={markReviewed} completed={completed} completedTools={completedTools} tray={tray} notes={notes} pinEvidence={pinEvidence} addFinding={addFinding} decisionDraft={decisionDraft} reviewPackages={reviewPackages} updateDecisionDraft={updateDecisionDraft} submitReviewPackage={submitReviewPackage} />;
-  }
+  if (['Timeline', 'Case Report', 'Submit Decision'].includes(activeTool)) return <InvestigationPanel activeCase={activeCase} activeTool={activeTool} markReviewed={markReviewed} completed={completed} completedTools={completedTools} tray={tray} notes={notes} pinEvidence={pinEvidence} addFinding={addFinding} decisionDraft={decisionDraft} reviewPackages={reviewPackages} updateDecisionDraft={updateDecisionDraft} submitReviewPackage={submitReviewPackage} />;
   return <PlaceholderTool activeTool={activeTool} completed={completed} markReviewed={markReviewed} />;
 }
 
@@ -339,9 +346,7 @@ function InvestigationPanel({ activeCase, activeTool, markReviewed, completed, c
     return <SearchableRecords title="Timeline" subtitle="Search the ordered investigation story by event, source, object, record ID, or documentation status." records={records} fields={["phase", "time", "source", "summary", "detail", "object"]} renderRecord={(record) => <TimelineRecord key={record.id} record={record} pinEvidence={pinEvidence} addFinding={addFinding} />} footer={<ReviewAction completed={completed} onClick={() => markReviewed()} />} />;
   }
 
-  if (activeTool === 'Case Report') {
-    return <CaseReportPanel activeCase={activeCase} completed={completed} completedTools={completedTools} tray={tray} notes={notes} pinEvidence={pinEvidence} addFinding={addFinding} markReviewed={markReviewed} />;
-  }
+  if (activeTool === 'Case Report') return <CaseReportPanel activeCase={activeCase} completed={completed} completedTools={completedTools} tray={tray} notes={notes} pinEvidence={pinEvidence} addFinding={addFinding} markReviewed={markReviewed} />;
 
   return <SubmitDecisionPanel activeCase={activeCase} completed={completed} completedTools={completedTools} tray={tray} notes={notes} decisionDraft={decisionDraft} reviewPackages={reviewPackages} updateDecisionDraft={updateDecisionDraft} submitReviewPackage={submitReviewPackage} addFinding={addFinding} markReviewed={markReviewed} />;
 }
@@ -356,8 +361,10 @@ function CaseReportPanel({ activeCase, completed, completedTools, tray, notes, p
 }
 
 function SubmitDecisionPanel({ activeCase, completed, completedTools, tray, notes, decisionDraft, reviewPackages, updateDecisionDraft, submitReviewPackage, addFinding, markReviewed }) {
-  const readiness = buildDecisionReadiness(activeCase, completedTools, tray, notes, decisionDraft);
+  const readiness = buildDecisionReadiness(activeCase, completedTools, tray, notes, decisionDraft, reviewPackages.length > 0);
   const packageStatus = getReviewPackageStatus({ completedTools, tray, notes, draft: decisionDraft });
+  const latestPackage = reviewPackages[0];
+  const lunaDebrief = buildLunaDebrief({ activeCase, reviewPackage: latestPackage, completedTools, tray, notes });
 
   return (
     <div className="panel-stack">
@@ -401,15 +408,52 @@ function SubmitDecisionPanel({ activeCase, completed, completedTools, tray, note
         {readiness.slice(3).map((item) => <li key={item.label}><strong>{item.label}: </strong>{item.value}</li>)}
       </ul>
 
+      {lunaDebrief && <LunaDebriefPanel debrief={lunaDebrief} reviewPackage={latestPackage} />}
+
       {reviewPackages.length > 0 && (
         <div className="record-list">
-          {reviewPackages.map((item) => <article key={item.id} className="record-card report-section-card"><div><span className="case-pill soft">Saved package</span><h4>{item.caseId} · {item.choice}</h4><p>{item.savedAt} · Confidence {item.confidence}</p><small>{item.reason}</small></div></article>)}
+          {reviewPackages.map((item) => <article key={item.id} className="record-card report-section-card"><div><span className="case-pill soft">Saved package</span><h4>{item.caseId} · {item.choice}</h4><p>{item.savedAt} · Confidence {item.confidence}</p><small>{item.reason}</small><small>{item.pinnedEvidence?.length ?? 0} pinned · {item.noteSnapshot?.length ?? 0} note snapshot · {item.reviewedRequired}/{item.totalRequired} required tools</small></div></article>)}
         </div>
       )}
 
       <WorkflowStrip />
       <ReviewAction completed={completed} onClick={() => markReviewed()} />
     </div>
+  );
+}
+
+function LunaDebriefPanel({ debrief, reviewPackage }) {
+  return (
+    <section className="luna-debrief-card" aria-label="Post-submission Luna debrief">
+      <div className="luna-debrief-top">
+        <div>
+          <p className="eyebrow">Luna debrief unlocked</p>
+          <h4>{debrief.theme}</h4>
+          <p>{debrief.coachIntro}</p>
+          <small>Unlocked from saved package {reviewPackage.id}.</small>
+        </div>
+        <div className="score-orb"><strong>{debrief.score}</strong><span>{debrief.scoreLabel}</span></div>
+      </div>
+
+      <div className="score-meter" aria-label={`Decision quality score ${debrief.score} out of 100`}>
+        <span style={{ width: `${debrief.score}%` }} />
+      </div>
+
+      <div className="debrief-grid">
+        {debrief.breakdown.map((item) => <InfoBubble key={item.label} label={item.label} value={`${item.value} · ${item.points} pts`} />)}
+      </div>
+
+      <div className="debrief-columns">
+        <div>
+          <h5>What the package supports</h5>
+          <ul>{debrief.strengths.map((item) => <li key={item}>{item}</li>)}</ul>
+        </div>
+        <div>
+          <h5>Next coaching focus</h5>
+          <ul>{debrief.followUps.map((item) => <li key={item}>{item}</li>)}</ul>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -427,17 +471,7 @@ function RecordCard({ chip, title, line, detail, record, value, pinEvidence, add
 function buildSessionRecords(activeCase) {
   return activeCase.loginHistory.map((login, index) => {
     const event = activeCase.events[index] ?? activeCase.events[0];
-    return {
-      id: login.session,
-      start: login.time,
-      duration: `${5 + index * 4} min`,
-      login: login.id,
-      device: login.device,
-      ip: login.ip,
-      location: login.location,
-      activity: event ? `${event.label} · ${event.detail}` : `${login.method} access record reviewed`,
-      objects: event ? `${event.id} · ${event.object}` : login.id,
-    };
+    return { id: login.session, start: login.time, duration: `${5 + index * 4} min`, login: login.id, device: login.device, ip: login.ip, location: login.location, activity: event ? `${event.label} · ${event.detail}` : `${login.method} access record reviewed`, objects: event ? `${event.id} · ${event.object}` : login.id };
   });
 }
 
@@ -502,7 +536,7 @@ function buildCaseReportSections(activeCase, completedTools, tray, notes) {
   ];
 }
 
-function buildDecisionReadiness(activeCase, completedTools, tray, notes, draft) {
+function buildDecisionReadiness(activeCase, completedTools, tray, notes, draft, hasReviewPackage = false) {
   const packageStatus = getReviewPackageStatus({ completedTools, tray, notes, draft });
   const requestedDocs = (activeCase.documents ?? []).filter((doc) => doc.status === 'Requested').length;
   return [
@@ -514,7 +548,7 @@ function buildDecisionReadiness(activeCase, completedTools, tray, notes, draft) 
     { label: 'Learner choice', value: draft.choice || 'Not selected yet' },
     { label: 'Rationale', value: draft.reason?.trim() ? 'Drafted' : 'Not drafted yet' },
     { label: 'Package state', value: packageStatus.ready ? 'Ready to save' : 'Needs more documentation' },
-    { label: 'Luna debrief', value: 'Reserved for after learner package submission only' },
+    { label: 'Luna debrief', value: hasReviewPackage ? 'Unlocked for the latest saved package' : 'Reserved for after learner package submission only' },
   ];
 }
 
