@@ -53,7 +53,11 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Customer 360 with contact records, relationship snapshot, and profile-change history
 - Identity Intelligence with searchable identity records
 - Login History with searchable access records
+- Session History with searchable session records derived from login and event activity
+- Device Intelligence with searchable device records derived from login activity
+- IP Intelligence with searchable IP records derived from login activity
 - Search panels with record, object, and note actions
+- Search empty state for no-match results
 - Investigation progress tracking by reviewed tool
 - Reviewed counts on investigation family cards
 - Mark-reviewed actions for workspace tools
@@ -62,7 +66,7 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 
 ## Latest handoff
 
-The next step is to continue Wave 2 by upgrading Session History, Device Intelligence, and IP Intelligence into dedicated searchable tools. Keep the same pattern used for Identity Intelligence and Login History:
+The next step is to continue Wave 2 by upgrading Transaction History, Financial Intelligence, and Payment Verification into dedicated investigation tools. Keep the same pattern used for the digital tools:
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
