@@ -41,6 +41,14 @@
   border-color: rgba(255, 155, 233, 0.7) !important;
 }
 
+.submit-decision-panel.submit-focus-ring {
+  border-color: rgba(255, 155, 233, 0.88) !important;
+  box-shadow:
+    0 0 0 3px rgba(255, 92, 218, 0.14),
+    0 0 28px rgba(255, 92, 218, 0.55),
+    inset 0 0 28px rgba(255, 92, 218, 0.12) !important;
+}
+
 .device-id-context-note {
   border: 1px solid rgba(255, 92, 218, 0.2);
   border-radius: 14px;
