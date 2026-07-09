@@ -106,12 +106,15 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Visual rebuild pass now makes the app entry open into an ornate gothic neon dashboard matching the uploaded reference direction before reconnecting deeper tool behavior
 - Visual workspace now reconnects live case data, case switching, category switching, searchable tool rows, pin-to-tray actions, and evidence-based notebook updates inside the screenshot-driven shell
 - Visual workspace now persists the investigation tray by case, reuses persisted notes/completed tools/decision drafts/review packages, shows reviewed progress counters on ornate category tiles, and contains the locked Submit Decision review package flow
+- Visual workspace now writes note activity to both the active case notebook and the Agent ID notepad archive, then surfaces a compact archive inside the ornate notebook card
+- Visual workspace now renders post-submission Luna debrief inside the ornate shell and keeps it locked until a review package exists
+- Academy Progress is now rendered inside the screenshot-driven shell with locked states until saved packages unlock case-level scores
 - New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, and Submit Decision panel
 - Evidence First search sweep completed for answer-leaking wording
 
 ## Latest handoff
 
-The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, and the locked Submit Decision package flow. Next step: reconnect post-submission Luna debrief display and Academy Progress into the ornate shell after a review package is saved, without changing Evidence First or the visual design.
+The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, the locked Submit Decision package flow, Agent ID note archiving, post-submission Luna debrief, and Academy Progress connected without changing the visual direction. Next step: reconnect the category tool dropdown into real sub-tools for Session History, Device Intelligence, IP Intelligence, Financial Intelligence, Payment Verification, Document Viewer, Timeline, and Case Report so the ornate shell exposes the full Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report workflow.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
