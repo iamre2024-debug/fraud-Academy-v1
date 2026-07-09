@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "evidence-first-check": "node scripts/evidence-first-check.mjs",
+    "verify": "npm run evidence-first-check && npm run build"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
