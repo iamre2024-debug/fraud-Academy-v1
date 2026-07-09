@@ -1,7 +1,5 @@
-function clickBottomNav(label) {
-  const button = [...document.querySelectorAll('.visual-bottom-nav button')]
-    .find((item) => item.textContent.toLowerCase().includes(label.toLowerCase()));
-  button?.click();
+function navigate(tab) {
+  window.dispatchEvent(new CustomEvent('fraud-academy:navigate', { detail: { tab } }));
 }
 
 function clickCategory(label) {
@@ -18,7 +16,7 @@ function wireViewAllButton() {
   button.dataset.qaWired = 'true';
   button.textContent = 'Tool Map ›';
   button.setAttribute('aria-label', 'Open Academy tool map');
-  button.addEventListener('click', () => clickBottomNav('Academy'));
+  button.addEventListener('click', () => navigate('academy'));
 }
 
 function wireTrayEvidenceButton() {
@@ -30,7 +28,7 @@ function wireTrayEvidenceButton() {
   button.textContent = '✦ Open Evidence Center ›';
   button.setAttribute('aria-label', 'Open Evidence Center category');
   button.addEventListener('click', () => {
-    clickBottomNav('Workspace');
+    navigate('workspace');
     window.setTimeout(() => {
       clickCategory('Evidence');
       document.querySelector('.activity-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
