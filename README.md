@@ -32,7 +32,9 @@ Use that file before making architecture, UI, tool, scenario, or Evidence First 
 - Case Summary now shows name, claim ID, total claim amount, transaction/payee info, and short neutral summary.
 - Device Intelligence now shows Device ID as the first column and uses enriched stable fictional device IDs where available.
 - Identity Intelligence, Case Report, Submit Decision, Evidence Center, Tool Map, and bottom navigation have direct visible routes in the stable shell.
-- The Submit Decision route now forces the workspace tab active before scrolling to the decision panel.
+- The duplicate Case Summary quick buttons were caused by the retired `visualInvestigationRepair.js` helper still being imported. That script import is now removed from `src/main.jsx`.
+- Submit Decision now includes visible learner decision choices inside the React component instead of only a placeholder option.
+- The Submit Decision route forces the workspace tab active before scrolling to the decision panel.
 - Broad MutationObserver helper scripts remain removed from the app entrypoint to avoid browser unresponsive loops.
 
 ## Functional focus
@@ -45,13 +47,13 @@ The current working priority is stability plus three-case completeness:
 4. Confirm Device Intelligence shows Device ID and repeated devices reuse the same Device ID.
 5. Confirm Case Summary has full intake metadata.
 6. Confirm Case Report opens.
-7. Confirm Submit Decision is visible and reachable.
-8. Confirm no visible control is only decorative.
+7. Confirm Submit Decision is visible, reachable, and shows all learner choice options.
+8. Confirm no visible control is only decorative or duplicated.
 9. After the stable shell is confirmed, split the workspace into smaller React modules and restore richer saved notes/review package/Luna behavior cleanly.
 
 ## Latest handoff
 
-A three-case audit recovery pass restored `VisualWorkspace.jsx` into a stable compact React shell and connected it to `caseEnrichment.js`. The app should now prioritize loading successfully, showing enriched case summaries, showing Device IDs, and making Submit Decision visible. Next step: run `npm run verify` locally, browser-test all three built-in cases, then rebuild the richer note/review-package/Luna behaviors into smaller React modules instead of one oversized file.
+A three-case audit recovery pass restored `VisualWorkspace.jsx` into a stable readable React shell and connected it to `caseEnrichment.js`. The duplicate Case Summary action buttons were fixed by removing the old `visualInvestigationRepair.js` import from `src/main.jsx`. Submit Decision now renders real learner choice options in the React form. Next step: run `npm run verify` locally, browser-test all three built-in cases, then rebuild saved notes/review-package/Luna behaviors into smaller React modules instead of one oversized file.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
