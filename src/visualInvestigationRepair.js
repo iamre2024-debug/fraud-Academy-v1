@@ -94,6 +94,27 @@ function openTool(categoryLabel, toolName) {
   }, 120);
 }
 
+function navigateTab(tab) {
+  window.dispatchEvent(new CustomEvent('fraud-academy:navigate', { detail: { tab } }));
+}
+
+function ensureToolMapRoute() {
+  const button = document.querySelector('.visual-section-heading button');
+  if (!button || button.dataset.toolMapRoute === 'true') return;
+  button.dataset.toolMapRoute = 'true';
+  button.textContent = 'Tool Map ›';
+  button.addEventListener('click', () => navigateTab('academy'));
+}
+
+function ensureEvidenceCenterRoute() {
+  const button = document.querySelector('.tray-card .add-evidence');
+  if (!button || button.dataset.evidenceCenterRoute === 'true') return;
+  button.dataset.evidenceCenterRoute = 'true';
+  button.textContent = '✦ Open Evidence Center ›';
+  button.setAttribute('aria-label', 'Open Evidence Center workspace');
+  button.addEventListener('click', () => openTool('Evidence', 'Evidence Center'));
+}
+
 function ensureSummaryActionButtons() {
   const actions = document.querySelector('.case-summary-visual .summary-actions');
   if (!actions || actions.dataset.investigationRepair === 'true') return;
@@ -168,6 +189,8 @@ function ensureDecisionRouteInToolPanel() {
 
 function runInvestigationRepairs() {
   ensureCaseSummaryMeta();
+  ensureToolMapRoute();
+  ensureEvidenceCenterRoute();
   ensureSummaryActionButtons();
   repairDeviceIntelligenceTable();
   ensureDecisionRouteInToolPanel();
