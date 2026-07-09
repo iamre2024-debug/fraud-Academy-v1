@@ -9,16 +9,38 @@ import { buildReviewPackage, getReviewPackageStatus, reviewChoices } from './dat
 
 const AGENT_ID = 'AGT-TRAIN-001';
 const defaultDecisionDraft = { choice: '', confidence: 'Medium', reason: '' };
+const workflowSteps = ['Record', 'Expand', 'Search', 'History', 'Link Analysis', 'Generate Report', 'Timeline', 'Case Report'];
 
 const categories = [
-  { key: 'identity', label: 'Identity', icon: '▣', tool: 'Customer 360', reviewTools: ['Customer 360', 'Identity Intelligence'] },
-  { key: 'digital', label: 'Digital Activity', icon: '⌁', tool: 'Login History', reviewTools: ['Login History'] },
-  { key: 'financial', label: 'Financial', icon: '$', tool: 'Transaction History', reviewTools: ['Transaction History'] },
-  { key: 'business', label: 'Business', icon: '⌂', tool: 'Business 360', reviewTools: ['Business 360'] },
-  { key: 'evidence', label: 'Evidence', icon: '▰', tool: 'Evidence Center', reviewTools: ['Evidence Center'] },
-  { key: 'connections', label: 'Connections', icon: '⌘', tool: 'Link Analysis', reviewTools: ['Link Analysis'] },
-  { key: 'investigation', label: 'Investigation', icon: '⌕', tool: 'Case Report', reviewTools: ['Case Report'] },
+  { key: 'identity', label: 'Identity', icon: '▣', tools: ['Customer 360', 'Identity Intelligence'] },
+  { key: 'digital', label: 'Digital Activity', icon: '⌁', tools: ['Login History', 'Session History', 'Device Intelligence', 'IP Intelligence'] },
+  { key: 'financial', label: 'Financial', icon: '$', tools: ['Transaction History', 'Financial Intelligence', 'Payment Verification'] },
+  { key: 'business', label: 'Business', icon: '⌂', tools: ['Business 360', 'Business Intelligence', 'Employee Profile', 'Payroll History'] },
+  { key: 'evidence', label: 'Evidence', icon: '▰', tools: ['Evidence Center', 'Document Viewer'] },
+  { key: 'connections', label: 'Connections', icon: '⌘', tools: ['Link Analysis'] },
+  { key: 'investigation', label: 'Investigation', icon: '⌕', tools: ['Timeline', 'Case Report'] },
 ];
+
+const toolQuestions = {
+  'Customer 360': 'Who is the customer and what does the relationship snapshot show?',
+  'Identity Intelligence': 'Which identity objects belong to this profile and case workspace?',
+  'Login History': 'Which access records need to be compared with the case story?',
+  'Session History': 'What happened inside the sessions connected to the case?',
+  'Device Intelligence': 'Which devices appear in the access history and how are they connected?',
+  'IP Intelligence': 'Which IP records and locations are tied to the case activity?',
+  'Transaction History': 'What money movement or billing records are available for review?',
+  'Financial Intelligence': 'What account, balance, merchant, or usage context supports documentation?',
+  'Payment Verification': 'Which training-safe payment objects need review?',
+  'Business 360': 'Which merchant, employer, or business relationship is in scope?',
+  'Business Intelligence': 'What business context is available for the selected case?',
+  'Employee Profile': 'Which employee or employer profile records are relevant to the case scope?',
+  'Payroll History': 'What payroll records are available for relationship review?',
+  'Evidence Center': 'What evidence exists, what was requested, and what can be pinned?',
+  'Document Viewer': 'Which documents or packets can be previewed for final documentation?',
+  'Link Analysis': 'How do the case objects connect without assigning an outcome?',
+  Timeline: 'What sequence of case events has been documented?',
+  'Case Report': 'What has been documented before the final learner decision?',
+};
 
 const defaultNotesByCase = {
   'FA-ATO-24018': ['Case rationale · Customer states they did not authorize the purchase.', 'Investigation note · Need to compare login/device activity before decision.'],
@@ -54,9 +76,14 @@ function defaultTrayFor(caseId) {
   return [trainingCase.trainingId];
 }
 
+function getCategoryByKey(key) {
+  return categories.find((item) => item.key === key) ?? categories[1];
+}
+
 export default function VisualWorkspace() {
   const [activeCaseId, setActiveCaseId] = useState(trainingCases[0].id);
   const [activeCategory, setActiveCategory] = useState('digital');
+  const [activeTool, setActiveTool] = useState('Login History');
   const [query, setQuery] = useState('');
   const [noteDraft, setNoteDraft] = useState('');
   const [trayByCase, setTrayByCase] = useState(() => readStorage('fraud-academy-visual-tray-v1', {}));
@@ -67,7 +94,7 @@ export default function VisualWorkspace() {
   const [reviewPackagesByCase, setReviewPackagesByCase] = useState(() => readStorage('fraud-academy-review-packages-v1', {}));
 
   const activeCase = useMemo(() => trainingCases.find((item) => item.id === activeCaseId) ?? trainingCases[0], [activeCaseId]);
-  const activeCategoryConfig = useMemo(() => categories.find((item) => item.key === activeCategory) ?? categories[1], [activeCategory]);
+  const activeCategoryConfig = useMemo(() => getCategoryByKey(activeCategory), [activeCategory]);
   const tray = trayByCase[activeCase.id] ?? defaultTrayFor(activeCase.id);
   const notes = notesByCase[activeCase.id] ?? defaultNotesByCase[activeCase.id] ?? [`Investigation note · Opened ${activeCase.id} workspace.`];
   const agentNotes = agentNotepadById[AGENT_ID] ?? [];
@@ -77,7 +104,7 @@ export default function VisualWorkspace() {
   const latestReviewPackage = reviewPackages[0] ?? null;
   const packageStatus = useMemo(() => getReviewPackageStatus({ completedTools: currentCompleted, tray, notes, draft: decisionDraft }), [currentCompleted, tray, notes, decisionDraft]);
   const lunaDebrief = useMemo(() => buildLunaDebrief({ activeCase, reviewPackage: latestReviewPackage, completedTools: currentCompleted, tray, notes }), [activeCase, latestReviewPackage, currentCompleted, tray, notes]);
-  const records = useMemo(() => buildToolRows(activeCategory, activeCase), [activeCategory, activeCase]);
+  const records = useMemo(() => buildToolRows(activeTool, activeCase), [activeTool, activeCase]);
   const filteredRows = useMemo(() => {
     const clean = query.trim().toLowerCase();
     if (!clean) return records.rows;
@@ -91,9 +118,22 @@ export default function VisualWorkspace() {
   useEffect(() => writeStorage('fraud-academy-decision-drafts-v1', decisionDraftsByCase), [decisionDraftsByCase]);
   useEffect(() => writeStorage('fraud-academy-review-packages-v1', reviewPackagesByCase), [reviewPackagesByCase]);
 
+  function selectCategory(categoryKey) {
+    const nextCategory = getCategoryByKey(categoryKey);
+    setActiveCategory(nextCategory.key);
+    setActiveTool(nextCategory.tools[0]);
+    setQuery('');
+  }
+
+  function selectTool(toolName) {
+    setActiveTool(toolName);
+    setQuery('');
+  }
+
   function openCase(caseId) {
     setActiveCaseId(caseId);
     setActiveCategory('digital');
+    setActiveTool('Login History');
     setQuery('');
     setNoteDraft('');
     setTrayByCase((current) => current[caseId] ? current : { ...current, [caseId]: defaultTrayFor(caseId) });
@@ -120,13 +160,12 @@ export default function VisualWorkspace() {
     saveNote(`${label} pinned: ${value}`, 'Evidence note');
   }
 
-  function markReviewed(categoryConfig = activeCategoryConfig) {
+  function markReviewed(toolName = activeTool) {
     setCompletedToolsByCase((current) => {
       const caseTools = current[activeCase.id] ?? ['Case Summary'];
-      const nextTools = [...new Set([...caseTools, ...categoryConfig.reviewTools])];
-      return { ...current, [activeCase.id]: nextTools };
+      return { ...current, [activeCase.id]: [...new Set([...caseTools, toolName])] };
     });
-    saveNote(`${categoryConfig.tool}: reviewed and neutral report generated.`, 'Tool review');
+    saveNote(`${toolName}: reviewed and neutral report generated.`, 'Tool review');
   }
 
   function updateDecisionDraft(field, value) {
@@ -175,16 +214,19 @@ export default function VisualWorkspace() {
       <section className="visual-os-frame">
         <VisualHero />
         <CaseInfoBar activeCase={activeCase} activeCaseId={activeCaseId} openCase={openCase} />
-        <CaseSummaryCard activeCase={activeCase} pinEvidence={pinEvidence} setActiveCategory={setActiveCategory} />
-        <InvestigationCategories activeCategory={activeCategory} setActiveCategory={setActiveCategory} completedTools={currentCompleted} />
+        <CaseSummaryCard activeCase={activeCase} pinEvidence={pinEvidence} selectCategory={selectCategory} />
+        <InvestigationCategories activeCategory={activeCategory} selectCategory={selectCategory} completedTools={currentCompleted} />
         <EvidencePanel
           activeCategoryConfig={activeCategoryConfig}
+          activeTool={activeTool}
+          selectTool={selectTool}
           records={records}
           rows={filteredRows}
           query={query}
           setQuery={setQuery}
           pinEvidence={pinEvidence}
           markReviewed={markReviewed}
+          isReviewed={currentCompleted.includes(activeTool)}
         />
         <SubmitDecisionPanel
           activeCase={activeCase}
@@ -237,7 +279,7 @@ function CaseInfoBar({ activeCase, activeCaseId, openCase }) {
   );
 }
 
-function CaseSummaryCard({ activeCase, pinEvidence, setActiveCategory }) {
+function CaseSummaryCard({ activeCase, pinEvidence, selectCategory }) {
   return (
     <section className="ornate-card case-summary-visual">
       <div className="moon-medallion">☾</div>
@@ -249,26 +291,26 @@ function CaseSummaryCard({ activeCase, pinEvidence, setActiveCategory }) {
       <div className="butterfly-accent">🦋</div>
       <div className="summary-actions">
         <button onClick={() => pinEvidence(activeCase.id, 'Case ID')}>📌 Pin Case</button>
-        <button onClick={() => setActiveCategory('investigation')}>▣ Notebook</button>
-        <button className="primary-action" onClick={() => setActiveCategory('digital')}>🪄 Open First Tool ›</button>
+        <button onClick={() => selectCategory('investigation')}>▣ Notebook</button>
+        <button className="primary-action" onClick={() => selectCategory('digital')}>🪄 Open First Tool ›</button>
       </div>
     </section>
   );
 }
 
-function InvestigationCategories({ activeCategory, setActiveCategory, completedTools }) {
+function InvestigationCategories({ activeCategory, selectCategory, completedTools }) {
   return (
     <section className="visual-categories" aria-label="Investigation categories">
       <div className="visual-section-heading"><h2>✦ Investigation Categories</h2><button>View All ›</button></div>
       <div className="visual-category-row">
         {categories.map((item) => {
-          const reviewedCount = item.reviewTools.filter((tool) => completedTools.includes(tool)).length;
-          const isReviewed = reviewedCount === item.reviewTools.length;
+          const reviewedCount = item.tools.filter((tool) => completedTools.includes(tool)).length;
+          const isReviewed = reviewedCount === item.tools.length;
           return (
-            <button key={item.key} className={`${activeCategory === item.key ? 'active' : ''} ${isReviewed ? 'reviewed' : ''}`} onClick={() => setActiveCategory(item.key)}>
+            <button key={item.key} className={`${activeCategory === item.key ? 'active' : ''} ${isReviewed ? 'reviewed' : ''}`} onClick={() => selectCategory(item.key)}>
               <span>{item.icon}</span>
               <strong>{item.label}</strong>
-              <em>{reviewedCount}/{item.reviewTools.length}</em>
+              <em>{reviewedCount}/{item.tools.length}</em>
               {activeCategory === item.key && <i>♥</i>}
             </button>
           );
@@ -278,25 +320,34 @@ function InvestigationCategories({ activeCategory, setActiveCategory, completedT
   );
 }
 
-function EvidencePanel({ activeCategoryConfig, records, rows, query, setQuery, pinEvidence, markReviewed }) {
+function EvidencePanel({ activeCategoryConfig, activeTool, selectTool, records, rows, query, setQuery, pinEvidence, markReviewed, isReviewed }) {
   return (
     <section className="ornate-card activity-panel">
       <div className="activity-heading">
         <h2>▣ {activeCategoryConfig.label}</h2>
-        <button>{activeCategoryConfig.tool}⌄</button>
+        <select className="tool-select" value={activeTool} onChange={(event) => selectTool(event.target.value)} aria-label="Select investigation tool">
+          {activeCategoryConfig.tools.map((tool) => <option key={tool} value={tool}>{tool}</option>)}
+        </select>
         <span className="panel-cat">🐈‍⬛</span>
+      </div>
+      <div className="tool-purpose-card">
+        <strong>{activeTool}</strong>
+        <p>{toolQuestions[activeTool] ?? 'Review available case records while keeping the final decision locked.'}</p>
+        <div className="tool-flow-chips" aria-label="Evidence workflow steps">
+          {workflowSteps.map((step) => <span key={step}>{step}</span>)}
+        </div>
       </div>
       <div className="workspace-search-row">
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search records, history, device, IP, merchant, document..." />
         <span>{rows.length} of {records.rows.length} shown</span>
       </div>
-      <div className="activity-table" role="table" aria-label={`${activeCategoryConfig.label} records`}>
+      <div className="activity-table" role="table" aria-label={`${activeTool} records`}>
         <div className="activity-row table-head" role="row">
           {records.columns.map((column) => <span key={column}>{column}</span>)}
         </div>
         {rows.map((row) => <ActivityRow key={row.id} row={row} pinEvidence={pinEvidence} />)}
       </div>
-      <button className="view-full-button" onClick={() => markReviewed(activeCategoryConfig)}>✦ Generate Neutral Tool Report ›</button>
+      <button className="view-full-button" onClick={() => markReviewed(activeTool)}>{isReviewed ? '✓ Reviewed · Generate Another Neutral Tool Report' : '✦ Generate Neutral Tool Report ›'}</button>
     </section>
   );
 }
@@ -405,7 +456,7 @@ function PostSubmissionInsightPanel({ lunaDebrief, latestReviewPackage }) {
 }
 
 function formatLines(value) {
-  return String(value).split('\n').map((line) => <small key={line}>{line}</small>);
+  return String(value).split('\n').map((line, index) => <small key={`${line}-${index}`}>{line}</small>);
 }
 
 function BottomInvestigationGrid({ tray, notes, agentNotes, noteDraft, setNoteDraft, submitManualNote, pinEvidence }) {
@@ -447,62 +498,111 @@ function VisualBottomNav() {
   );
 }
 
-function buildToolRows(category, activeCase) {
+function buildToolRows(toolName, activeCase) {
   const financial = financialRecordsByCase[activeCase.id] ?? { transactions: [], financialIntel: [], paymentVerification: [] };
   const business = businessRecordsByCase[activeCase.id] ?? { business360: [], businessIntel: [], employeeProfile: [], payrollHistory: [] };
   const evidence = evidenceRecordsByCase[activeCase.id] ?? { evidence: activeCase.documents ?? [], documents: activeCase.documents ?? [] };
 
-  if (category === 'identity') {
+  if (toolName === 'Customer 360') return buildCustomer360Rows(activeCase);
+
+  if (toolName === 'Identity Intelligence') {
     return {
       columns: ['Record ID', 'Type', 'Value', 'Last Seen', 'History', 'Case Object', 'Action'],
       rows: activeCase.identityRecords.map((record) => makeRow(record.id, [record.id, record.type, record.value, record.lastSeen, record.history, activeCase.trainingId, 'Pin'], record.value, record.type)),
     };
   }
 
-  if (category === 'financial') {
+  if (toolName === 'Session History') {
+    const sessionRows = [
+      ...activeCase.loginHistory.map((record) => makeRow(record.session, [record.session, record.time, record.result, record.device, record.ip, record.location, record.method], record.session, 'Session')),
+      ...activeCase.events.map((event) => makeRow(event.id, [event.id, event.time, event.label, event.object, event.chip, activeCase.id, event.detail], event.id, 'Session event')),
+    ];
+    return {
+      columns: ['Session / Event', 'Time', 'Activity', 'Object', 'Group', 'Case', 'Detail'],
+      rows: sessionRows,
+    };
+  }
+
+  if (toolName === 'Device Intelligence') {
+    return {
+      columns: ['Record ID', 'Device', 'Session', 'Method', 'Location', 'IP Address', 'Context'],
+      rows: activeCase.loginHistory.map((record) => makeRow(`DEV-${record.id}`, [`DEV-${record.id}`, record.device, record.session, record.method, record.location, record.ip, `Observed in ${activeCase.id} access history`], record.device, 'Device')),
+    };
+  }
+
+  if (toolName === 'IP Intelligence') {
+    return {
+      columns: ['Record ID', 'IP Address', 'Location', 'Session', 'Method', 'Time', 'Context'],
+      rows: activeCase.loginHistory.map((record) => makeRow(`IP-${record.id}`, [`IP-${record.id}`, record.ip, record.location, record.session, record.method, record.time, `IP record tied to ${record.device}`], record.ip, 'IP address')),
+    };
+  }
+
+  if (toolName === 'Transaction History') {
     return {
       columns: ['Record ID', 'Date / Time', 'Merchant', 'Amount', 'Channel', 'Instrument', 'Status'],
       rows: financial.transactions.map((record) => makeRow(record.id, [record.id, `${record.posted}\n${record.time}`, record.merchant, record.amount, record.channel, record.instrument, record.status], record.id, 'Transaction')),
     };
   }
 
-  if (category === 'business') {
+  if (toolName === 'Financial Intelligence') {
+    return {
+      columns: ['Record ID', 'Type', 'Value', 'Observed', 'Context', 'Case', 'Action'],
+      rows: financial.financialIntel.map((record) => makeRow(record.id, [record.id, record.type, record.value, record.observed, record.context, activeCase.id, 'Pin'], record.id, 'Financial intelligence')),
+    };
+  }
+
+  if (toolName === 'Payment Verification') {
+    return {
+      columns: ['Record ID', 'Type', 'Object', 'Status', 'Last Seen', 'Context', 'Action'],
+      rows: financial.paymentVerification.map((record) => makeRow(record.id, [record.id, record.type, record.object, record.status, record.lastSeen, record.context, 'Pin'], record.object, 'Payment verification')),
+    };
+  }
+
+  if (toolName === 'Business 360') {
     return {
       columns: ['Record ID', 'Entity', 'Relationship', 'Status', 'Observed', 'Context', 'Action'],
       rows: business.business360.map((record) => makeRow(record.id, [record.id, record.entity, record.relationship, record.status, record.observed, record.context, 'Pin'], record.entity, 'Business record')),
     };
   }
 
-  if (category === 'evidence') {
+  if (toolName === 'Business Intelligence') {
     return {
-      columns: ['Record ID', 'Status', 'Document', 'Detail', 'Case', 'Object', 'Action'],
-      rows: evidence.evidence.map((record) => makeRow(record.id, [record.id, record.status, record.name, record.detail ?? record.summary ?? record.preview ?? 'Evidence detail available', activeCase.id, record.linkedObject ?? 'Evidence packet', 'Pin'], record.id, 'Evidence')),
+      columns: ['Record ID', 'Type', 'Value', 'Observed', 'Context', 'Case', 'Action'],
+      rows: business.businessIntel.map((record) => makeRow(record.id, [record.id, record.type, record.value, record.observed, record.context, activeCase.id, 'Pin'], record.id, 'Business intelligence')),
     };
   }
 
-  if (category === 'connections') {
-    const connectionRows = [
-      ...activeCase.links.map((link, index) => ({ id: `LNK-${index + 1}`, object: link, source: activeCase.id, linkedTo: activeCase.person, detail: `${link} appears in the active case relationship map.` })),
-      ...activeCase.events.map((event) => ({ id: `LNK-${event.id}`, object: event.object, source: event.id, linkedTo: event.chip, detail: event.detail })),
-    ];
+  if (toolName === 'Employee Profile') {
     return {
-      columns: ['Link ID', 'Object', 'Source', 'Linked To', 'Detail', 'Case', 'Action'],
-      rows: connectionRows.map((record) => makeRow(record.id, [record.id, record.object, record.source, record.linkedTo, record.detail, activeCase.id, 'Pin'], record.source, 'Connection')),
+      columns: ['Record ID', 'Name', 'Role', 'Employer', 'Status', 'Last Seen', 'Context'],
+      rows: business.employeeProfile.map((record) => makeRow(record.id, [record.id, record.name, record.role, record.employer, record.status, record.lastSeen, record.context], record.name, 'Employee profile')),
     };
   }
 
-  if (category === 'investigation') {
-    const reportRows = [
-      { id: 'REP-CASE', type: 'Case reason', value: activeCase.allegation, status: 'Draft available' },
-      { id: 'REP-CUSTOMER', type: 'Customer', value: `${activeCase.person} · ${activeCase.trainingId}`, status: 'Snapshot available' },
-      { id: 'REP-EVIDENCE', type: 'Evidence inventory', value: `${activeCase.documents.length} document records`, status: 'Review available' },
-      { id: 'REP-LOCK', type: 'Submit Decision', value: 'Luna debrief and scoring stay locked until learner package submission.', status: 'Locked' },
-    ];
+  if (toolName === 'Payroll History') {
     return {
-      columns: ['Report ID', 'Section', 'Value', 'State', 'Case', 'Question', 'Action'],
-      rows: reportRows.map((record) => makeRow(record.id, [record.id, record.type, record.value, record.status, activeCase.id, 'What is documented?', 'Pin'], record.id, 'Report section')),
+      columns: ['Record ID', 'Period', 'Employer', 'Amount', 'Channel', 'Status', 'Context'],
+      rows: business.payrollHistory.map((record) => makeRow(record.id, [record.id, record.period, record.employer, record.amount, record.channel, record.status, record.context], record.id, 'Payroll record')),
     };
   }
+
+  if (toolName === 'Evidence Center') {
+    return {
+      columns: ['Record ID', 'Status', 'Evidence', 'Source', 'Received', 'Linked Object', 'Summary'],
+      rows: evidence.evidence.map((record) => makeRow(record.id, [record.id, record.status, record.name, record.source, record.received, record.linkedObject, record.summary], record.id, 'Evidence')),
+    };
+  }
+
+  if (toolName === 'Document Viewer') {
+    return {
+      columns: ['Document ID', 'Status', 'Title', 'Category', 'Updated', 'Fields', 'Preview'],
+      rows: evidence.documents.map((record) => makeRow(record.id, [record.id, record.status, record.title, record.category, record.updated, record.fields, record.preview], record.id, 'Document')),
+    };
+  }
+
+  if (toolName === 'Link Analysis') return buildLinkRows(activeCase, financial, business, evidence);
+  if (toolName === 'Timeline') return buildTimelineRows(activeCase, financial, evidence);
+  if (toolName === 'Case Report') return buildCaseReportRows(activeCase, financial, business, evidence);
 
   return {
     columns: ['Event ID', 'Date / Time', 'Result', 'Device', 'IP Address', 'Location', 'Auth Method'],
@@ -510,13 +610,82 @@ function buildToolRows(category, activeCase) {
   };
 }
 
+function buildCustomer360Rows(activeCase) {
+  const contact = activeCase.customer?.contact ?? {};
+  const relationship = activeCase.customer?.relationship ?? [];
+  const profileChanges = activeCase.customer?.profileChanges ?? [];
+  const rows = [
+    makeRow('C360-REL', ['C360-REL', 'Relationship since', activeCase.customer?.relationshipSince, activeCase.opened, 'Customer relationship snapshot', activeCase.trainingId, 'Pin'], activeCase.trainingId, 'Customer profile'),
+    makeRow('C360-SEG', ['C360-SEG', 'Segment', activeCase.customer?.segment, activeCase.opened, 'Product relationship context', activeCase.id, 'Pin'], activeCase.customer?.segment, 'Customer segment'),
+    makeRow('C360-PHONE', ['C360-PHONE', 'Phone', contact.phone, activeCase.opened, 'Current profile contact record', activeCase.trainingId, 'Pin'], contact.phone, 'Phone'),
+    makeRow('C360-EMAIL', ['C360-EMAIL', 'Email', contact.email, activeCase.opened, 'Current profile contact record', activeCase.trainingId, 'Pin'], contact.email, 'Email'),
+    makeRow('C360-ADDRESS', ['C360-ADDRESS', 'Address', contact.address, activeCase.opened, 'Current profile address record', activeCase.trainingId, 'Pin'], contact.address, 'Address'),
+    ...relationship.map((item, index) => makeRow(`C360-REL-${index + 1}`, [`C360-REL-${index + 1}`, item.label, item.value, activeCase.opened, 'Relationship detail', activeCase.id, 'Pin'], item.value, item.label)),
+    ...profileChanges.map((item) => makeRow(item.id, [item.id, item.item, item.detail, item.date, item.source, activeCase.id, 'Pin'], item.id, 'Profile change')),
+  ];
+
+  return {
+    columns: ['Record ID', 'Type', 'Value', 'Observed', 'History', 'Case Object', 'Action'],
+    rows,
+  };
+}
+
+function buildLinkRows(activeCase, financial, business, evidence) {
+  const identityLinks = activeCase.identityRecords.map((record) => ({ id: `LNK-${record.id}`, object: record.value, source: record.id, linkedTo: activeCase.person, detail: `${record.type} appears in the active identity record set.` }));
+  const loginLinks = activeCase.loginHistory.map((record) => ({ id: `LNK-${record.id}`, object: record.ip, source: record.session, linkedTo: record.device, detail: `${record.location} access record connected to login history.` }));
+  const transactionLinks = financial.transactions.map((record) => ({ id: `LNK-${record.id}`, object: record.merchant, source: record.id, linkedTo: record.instrument, detail: record.context }));
+  const businessLinks = business.business360.map((record) => ({ id: `LNK-${record.id}`, object: record.entity, source: record.id, linkedTo: record.relationship, detail: record.context }));
+  const evidenceLinks = evidence.evidence.map((record) => ({ id: `LNK-${record.id}`, object: record.name, source: record.id, linkedTo: record.linkedObject, detail: record.summary }));
+  const rows = [...identityLinks, ...loginLinks, ...transactionLinks, ...businessLinks, ...evidenceLinks];
+
+  return {
+    columns: ['Link ID', 'Object', 'Source', 'Linked To', 'Detail', 'Case', 'Action'],
+    rows: rows.map((record) => makeRow(record.id, [record.id, record.object, record.source, record.linkedTo, record.detail, activeCase.id, 'Pin'], record.source, 'Connection')),
+  };
+}
+
+function buildTimelineRows(activeCase, financial, evidence) {
+  const timelineRows = [
+    makeRow('TML-OPEN', ['TML-OPEN', activeCase.opened, 'Case opened', activeCase.queueReason, activeCase.id, 'Case Summary', 'Pin'], activeCase.id, 'Timeline event'),
+    ...(activeCase.customer?.profileChanges ?? []).map((item) => makeRow(`TML-${item.id}`, [`TML-${item.id}`, item.date, item.item, item.detail, activeCase.id, item.source, 'Pin'], item.id, 'Profile timeline')),
+    ...activeCase.loginHistory.map((item) => makeRow(`TML-${item.id}`, [`TML-${item.id}`, item.time, item.result, `${item.device} · ${item.ip}`, activeCase.id, 'Login History', 'Pin'], item.session, 'Login timeline')),
+    ...activeCase.events.map((item) => makeRow(`TML-${item.id}`, [`TML-${item.id}`, item.time, item.label, item.detail, activeCase.id, item.chip, 'Pin'], item.id, 'Case event')),
+    ...financial.transactions.map((item) => makeRow(`TML-${item.id}`, [`TML-${item.id}`, `${item.posted} ${item.time}`, item.merchant, `${item.amount} · ${item.channel}`, activeCase.id, 'Transaction History', 'Pin'], item.id, 'Transaction timeline')),
+    ...evidence.evidence.map((item) => makeRow(`TML-${item.id}`, [`TML-${item.id}`, item.received, item.name, item.summary, activeCase.id, 'Evidence Center', 'Pin'], item.id, 'Evidence timeline')),
+  ];
+
+  return {
+    columns: ['Timeline ID', 'Time', 'Event', 'Detail', 'Case', 'Source', 'Action'],
+    rows: timelineRows,
+  };
+}
+
+function buildCaseReportRows(activeCase, financial, business, evidence) {
+  const reportRows = [
+    { id: 'REP-CASE', section: 'Case reason', value: activeCase.allegation, state: 'Draft available', source: 'Case Summary' },
+    { id: 'REP-CUSTOMER', section: 'Customer', value: `${activeCase.person} · ${activeCase.trainingId}`, state: 'Snapshot available', source: 'Customer 360' },
+    { id: 'REP-IDENTITY', section: 'Identity records', value: `${activeCase.identityRecords.length} identity objects available`, state: 'Review available', source: 'Identity Intelligence' },
+    { id: 'REP-DIGITAL', section: 'Digital activity', value: `${activeCase.loginHistory.length} login records and ${activeCase.events.length} case events`, state: 'Review available', source: 'Digital Activity' },
+    { id: 'REP-FINANCIAL', section: 'Financial records', value: `${financial.transactions.length} transaction records and ${financial.paymentVerification.length} payment records`, state: 'Review available', source: 'Financial' },
+    { id: 'REP-BUSINESS', section: 'Business context', value: `${business.business360.length} relationship records available`, state: 'Review available', source: 'Business' },
+    { id: 'REP-EVIDENCE', section: 'Evidence inventory', value: `${evidence.evidence.length} evidence records and ${evidence.documents.length} documents`, state: 'Review available', source: 'Evidence Center' },
+    { id: 'REP-LOCK', section: 'Submit Decision', value: 'Luna debrief and scoring stay locked until learner package submission.', state: 'Locked', source: 'Submit Decision' },
+  ];
+
+  return {
+    columns: ['Report ID', 'Section', 'Value', 'State', 'Case', 'Source', 'Action'],
+    rows: reportRows.map((record) => makeRow(record.id, [record.id, record.section, record.value, record.state, activeCase.id, record.source, 'Pin'], record.id, 'Report section')),
+  };
+}
+
 function makeRow(id, values, pinValue, pinLabel, tone = 'review') {
+  const normalizedValues = values.map((value) => value ?? 'Not recorded');
   return {
     id,
-    values,
-    pinValue,
+    values: normalizedValues,
+    pinValue: pinValue ?? id,
     pinLabel,
     tone,
-    detail: values.join(' '),
+    detail: normalizedValues.join(' '),
   };
 }
