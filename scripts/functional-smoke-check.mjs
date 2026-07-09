@@ -41,6 +41,25 @@ const checks = [
     ],
   },
   {
+    file: 'scripts/review-package-smoke-check.mjs',
+    label: 'review package behavior smoke test',
+    mustContain: [
+      'missingToolStatus',
+      'shortRationaleStatus',
+      'noPacketStatus',
+      'buildReviewPackage({',
+      'caseReportPacketFeed',
+    ],
+  },
+  {
+    file: 'package.json',
+    label: 'verify command wiring',
+    mustContain: [
+      '"review-package-smoke-check": "node scripts/review-package-smoke-check.mjs"',
+      'npm run review-package-smoke-check',
+    ],
+  },
+  {
     file: 'src/main.jsx',
     label: 'React + Vite visual shell entrypoint',
     mustContain: [
@@ -75,4 +94,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Functional smoke check passed. Visual shell anchors, case-scoped persistence, progress indicators, and locked review package flow are present.');
+console.log('Functional smoke check passed. Visual shell anchors, case-scoped persistence, progress indicators, locked review package flow, and review package smoke wiring are present.');
