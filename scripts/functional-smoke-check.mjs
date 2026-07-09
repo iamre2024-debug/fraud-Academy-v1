@@ -16,6 +16,21 @@ const checks = [
     ],
   },
   {
+    file: 'src/VisualApp.jsx',
+    label: 'React visual app coordinator',
+    mustContain: [
+      '<VisualWorkspace',
+      '<VisualNavigation',
+      '<VisualTextCollapse',
+      "const [activeTab, setActiveTab] = useState('workspace')",
+      'function openCase(caseId)',
+    ],
+    mustNotContain: [
+      "window.dispatchEvent(new CustomEvent('fraud-academy:navigate'",
+      "document.querySelector('.visual-case-switcher select')",
+    ],
+  },
+  {
     file: 'src/VisualWorkspace.jsx',
     label: 'visual shell case-scoped state and review flow',
     mustContain: [
@@ -23,37 +38,42 @@ const checks = [
       "notes: 'fraud-academy-notes-v1'",
       "reportPackets: 'fraud-academy-case-report-packets-v1'",
       'category-progress-track',
-      'getReviewPackageStatus({ completedTools: currentCompleted, tray, notes, draft: decisionDraft, reportPackets: caseReportPackets })',
+      'getReviewPackageStatus({ completedTools: currentCompleted, tray, notes, draft: decisionDraft, reportPackets })',
       'buildReviewPackage({',
-      'PostSubmissionInsightPanel',
-      'BottomInvestigationGrid',
+      "onNavigate('academy')",
+      "openTool('Evidence Center')",
+      'decision-route-mini',
+      'Device IDs help separate repeated known devices from new devices',
+    ],
+    mustNotContain: [
+      "window.dispatchEvent(new CustomEvent('fraud-academy:navigate'",
+      'ensureCaseSummaryMeta',
+      'repairDeviceIntelligenceTable',
     ],
   },
   {
     file: 'src/VisualNavigation.jsx',
-    label: 'React-managed screenshot navigation with lightweight route bridge',
+    label: 'React-managed screenshot navigation with direct callbacks',
     mustContain: [
-      "useState('workspace')",
       'createPortal',
-      "window.addEventListener('fraud-academy:navigate'",
       'data-react-navigation="true"',
       'trainingCases.map',
-      "setActiveTab('workspace')",
+      'onNavigate',
+      'onOpenCase',
+    ],
+    mustNotContain: [
+      "window.addEventListener('fraud-academy:navigate'",
+      'setNativeSelectValue',
+      "document.querySelector('.visual-case-switcher select')",
     ],
   },
   {
-    file: 'src/visualInvestigationRepair.js',
-    label: 'lightweight investigation repair layer',
+    file: 'src/VisualTextCollapse.jsx',
+    label: 'React compact text controls',
     mustContain: [
-      'ensureCaseSummaryMeta',
-      'repairDeviceIntelligenceTable',
-      'ensureDecisionRouteInToolPanel',
-      'ensureToolMapRoute',
-      'ensureEvidenceCenterRoute',
-      "window.addEventListener('fraud-academy:repair-needed'",
-    ],
-    mustNotContain: [
-      'new MutationObserver',
+      'data-react-text-collapse="true"',
+      'aria-expanded',
+      'text-more-button',
     ],
   },
   {
@@ -90,16 +110,14 @@ const checks = [
     file: 'src/main.jsx',
     label: 'React + Vite visual shell entrypoint',
     mustContain: [
-      "import VisualWorkspace from './VisualWorkspace.jsx'",
-      "import VisualNavigation from './VisualNavigation.jsx'",
-      "import './visualInvestigationRepair.js'",
-      '<VisualWorkspace />',
-      '<VisualNavigation />',
+      "import VisualApp from './VisualApp.jsx'",
+      '<VisualApp />',
       "import './visualWorkspace.css'",
     ],
     mustNotContain: [
-      "import VisualTextCollapse from './VisualTextCollapse.jsx'",
-      '<VisualTextCollapse />',
+      "import VisualWorkspace from './VisualWorkspace.jsx'",
+      "import VisualNavigation from './VisualNavigation.jsx'",
+      "import './visualInvestigationRepair.js'",
       "import './visualNavPatch.js'",
       "import './visualTextCollapse.js'",
       "import './visualQaPatch.js'",
@@ -110,6 +128,7 @@ const checks = [
 const retiredFiles = [
   'src/visualNavPatch.js',
   'src/visualTextCollapse.js',
+  'src/visualInvestigationRepair.js',
 ];
 
 const failures = [];
@@ -148,4 +167,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Functional smoke check passed. Visual shell anchors, React navigation bridge, lightweight no-observer investigation repair routes, case-scoped persistence, progress indicators, locked review package flow, and review package smoke wiring are present.');
+console.log('Functional smoke check passed. Visual shell anchors, direct React route callbacks, compact text controls, case-scoped persistence, progress indicators, locked review package flow, and review package smoke wiring are present.');
