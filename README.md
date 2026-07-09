@@ -59,6 +59,7 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Screenshot-driven gothic neon styling in `src/visualWorkspace.css`
 - Mobile viewport fix in `src/mobileViewportFix.css`
 - Visual tool reconnection styling in `src/visualFunctional.css`
+- Desktop visual command-center layout styling in `src/visualDesktopCommand.css`
 - Case Queue with Account Takeover, Chargeback Claim, and Credit Risk Review cases
 - Case switching inside one workspace
 - Case Briefing with neutral investigation questions
@@ -112,12 +113,13 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Visual workspace now reconnects the ornate tool dropdown into real sub-tools for Customer 360, Identity Intelligence, Login History, Session History, Device Intelligence, IP Intelligence, Transaction History, Financial Intelligence, Payment Verification, Business 360, Business Intelligence, Employee Profile, Payroll History, Evidence Center, Document Viewer, Link Analysis, Timeline, and Case Report
 - Tool panels now display the investigator question for the selected sub-tool plus the neutral Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report workflow chips
 - Category progress counters now count all real sub-tools in the ornate category tiles instead of only one placeholder tool per family
-- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, and visual sub-tool controls
+- Desktop visual shell now uses a denser command-center arrangement on wide screens: active tool panel on the left, Investigation Tray/Notebook and Submit Decision on the right, then Luna Debrief and Academy Progress below while keeping the ornate mobile stack intact
+- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, visual sub-tool controls, and desktop visual command-center layout
 - Evidence First search sweep completed for answer-leaking wording
 
 ## Latest handoff
 
-The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, the locked Submit Decision package flow, Agent ID note archiving, post-submission Luna debrief, Academy Progress, and live category sub-tool switching connected without changing the visual direction. Next step: run a local build, then tighten desktop density by placing the active tool panel, Investigation Tray, Notebook, Submit Decision, Luna Debrief, and Academy Progress into a more command-center-style desktop arrangement while keeping the same ornate mobile design.
+The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, the locked Submit Decision package flow, Agent ID note archiving, post-submission Luna debrief, Academy Progress, live category sub-tool switching, and a desktop command-center density pass connected without changing the visual direction. Next step: run a local build and browser QA, then tighten the remaining tool details by adding richer Expand/History/Generated Report states inside each sub-tool while keeping Evidence First locked.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
