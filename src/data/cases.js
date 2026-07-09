@@ -23,9 +23,9 @@ export const trainingCases = [
         { label: 'Payment profile', value: 'Card + one external destination' },
       ],
       profileChanges: [
-        { id: 'PCH-1001', date: 'Jul 8, 2026', item: 'Email viewed', detail: 'Profile email visible in session activity', source: 'Session event' },
-        { id: 'PCH-1002', date: 'Jul 8, 2026', item: 'Card controls viewed', detail: 'Card details accessed after successful login', source: 'Digital activity' },
-        { id: 'PCH-1003', date: 'Jun 29, 2026', item: 'Phone number unchanged', detail: 'No phone update recorded in recent profile history', source: 'Customer profile' },
+        { id: 'PCH-1001', date: 'Jul 8, 2026', item: 'Email viewed', detail: 'Profile email was visible during session activity; document the session ID, source screen, and linked case object before final drafting.', source: 'Session event' },
+        { id: 'PCH-1002', date: 'Jul 8, 2026', item: 'Card controls viewed', detail: 'Card details were accessed after a successful login; compare this profile-history entry with device, IP, and transaction records.', source: 'Digital activity' },
+        { id: 'PCH-1003', date: 'Jun 29, 2026', item: 'Phone number unchanged', detail: 'No phone update appears in the recent profile-history packet; preserve this as neutral customer-profile context.', source: 'Customer profile' },
       ],
     },
     identityRecords: [
@@ -77,9 +77,9 @@ export const trainingCases = [
         { label: 'Payment profile', value: 'Autopay on file' },
       ],
       profileChanges: [
-        { id: 'PCH-2201', date: 'Jul 8, 2026', item: 'Dispute form submitted', detail: 'Customer selected recurring billing issue', source: 'Mobile app' },
-        { id: 'PCH-2202', date: 'Jul 2, 2026', item: 'Statement viewed', detail: 'Customer viewed billing statement before dispute', source: 'Session event' },
-        { id: 'PCH-2203', date: 'Jun 21, 2026', item: 'Contact details unchanged', detail: 'No email or phone updates in recent profile history', source: 'Customer profile' },
+        { id: 'PCH-2201', date: 'Jul 8, 2026', item: 'Dispute form submitted', detail: 'Customer selected recurring billing issue in the profile-history packet; preserve claim wording and requested cancellation evidence status.', source: 'Mobile app' },
+        { id: 'PCH-2202', date: 'Jul 2, 2026', item: 'Statement viewed', detail: 'Customer viewed the billing statement before the dispute; compare this event with merchant billing records and document packet status.', source: 'Session event' },
+        { id: 'PCH-2203', date: 'Jun 21, 2026', item: 'Contact details unchanged', detail: 'Recent profile history does not show email or phone updates; document only as neutral context for communication routing.', source: 'Customer profile' },
       ],
     },
     identityRecords: [
@@ -130,9 +130,9 @@ export const trainingCases = [
         { label: 'Payment profile', value: 'New external destination' },
       ],
       profileChanges: [
-        { id: 'PCH-3301', date: 'Jul 8, 2026', item: 'Payment method added', detail: 'Bank Code and Destination ID tokenized for training', source: 'Payment Verification' },
-        { id: 'PCH-3302', date: 'Jul 8, 2026', item: 'Limit usage request submitted', detail: 'Request recorded after new account setup', source: 'Account event' },
-        { id: 'PCH-3303', date: 'Jul 7, 2026', item: 'Profile created', detail: 'New customer profile opened for training review', source: 'Customer profile' },
+        { id: 'PCH-3301', date: 'Jul 8, 2026', item: 'Payment method added', detail: 'Bank Code and Destination ID were tokenized for training; compare this profile-history entry with Payment Verification packet objects.', source: 'Payment Verification' },
+        { id: 'PCH-3302', date: 'Jul 8, 2026', item: 'Limit usage request submitted', detail: 'Usage request was recorded after new account setup; document the sequence against financial records and account events.', source: 'Account event' },
+        { id: 'PCH-3303', date: 'Jul 7, 2026', item: 'Profile created', detail: 'New customer profile was opened for training review; compare initial session, identity records, and case queue reason.', source: 'Customer profile' },
       ],
     },
     identityRecords: [
