@@ -1,0 +1,224 @@
+body:not([data-visual-tab="workspace"]) .activity-panel,
+body:not([data-visual-tab="workspace"]) .submit-decision-panel,
+body:not([data-visual-tab="workspace"]) .luna-visual-panel,
+body:not([data-visual-tab="workspace"]) .academy-progress-shell,
+body:not([data-visual-tab="workspace"]) .bottom-investigation-grid {
+  display: none !important;
+}
+
+body[data-visual-tab="workspace"] .visual-nav-panel:empty {
+  display: none;
+}
+
+.visual-nav-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.visual-nav-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+}
+
+.visual-nav-heading p {
+  margin: 0 0 5px;
+  color: #ff9be9;
+  font-family: Cinzel, Georgia, serif;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.visual-nav-heading h2 {
+  margin: 0;
+  color: #fff1fb;
+  font-family: Cinzel, Georgia, serif;
+  text-shadow: 0 0 16px rgba(255, 92, 218, 0.62);
+}
+
+.visual-nav-heading span {
+  display: block;
+  margin-top: 8px;
+  color: rgba(255, 241, 251, 0.76);
+  line-height: 1.45;
+}
+
+.visual-nav-heading > div:last-child {
+  display: grid;
+  place-items: center;
+  min-width: 74px;
+  height: 74px;
+  border: 1px solid rgba(255, 92, 218, 0.32);
+  border-radius: 24px;
+  background: rgba(255, 92, 218, 0.08);
+  color: #ff9be9;
+  font-size: 2rem;
+  box-shadow: inset 0 0 18px rgba(255, 92, 218, 0.08), 0 0 18px rgba(255, 92, 218, 0.22);
+}
+
+.nav-stat-grid,
+.nav-case-grid,
+.nav-learning-grid,
+.nav-progress-list {
+  display: grid;
+  gap: 12px;
+}
+
+.nav-stat-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.nav-stat-grid article,
+.nav-learning-grid article,
+.nav-progress-list article,
+.nav-case-card {
+  border: 1px solid rgba(255, 92, 218, 0.22);
+  border-radius: 18px;
+  background: rgba(6, 4, 14, 0.56);
+  color: #fff1fb;
+  padding: 16px;
+  box-shadow: inset 0 0 18px rgba(255, 92, 218, 0.04);
+}
+
+.nav-stat-grid strong {
+  display: block;
+  color: #ff9be9;
+  font-family: Cinzel, Georgia, serif;
+  font-size: 1.8rem;
+  text-shadow: 0 0 14px rgba(255, 92, 218, 0.62);
+}
+
+.nav-stat-grid span,
+.nav-case-card span,
+.nav-learning-grid span,
+.nav-progress-list span,
+.nav-progress-list p,
+.nav-microcopy {
+  color: rgba(255, 241, 251, 0.72);
+}
+
+.nav-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.nav-action-row button,
+.nav-case-card {
+  cursor: pointer;
+}
+
+.nav-action-row button {
+  border: 1px solid rgba(255, 92, 218, 0.34);
+  border-radius: 999px;
+  background: rgba(255, 92, 218, 0.1);
+  color: #ffcff5;
+  padding: 10px 14px;
+  font-family: Cinzel, Georgia, serif;
+  font-weight: 800;
+}
+
+.nav-case-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.nav-case-card {
+  text-align: left;
+}
+
+.nav-case-card strong,
+.nav-learning-grid strong,
+.nav-progress-list strong {
+  display: block;
+  margin: 8px 0 4px;
+  color: #fff1fb;
+  font-family: Cinzel, Georgia, serif;
+}
+
+.nav-case-card:hover,
+.nav-case-card:focus-visible,
+.nav-action-row button:hover,
+.nav-action-row button:focus-visible {
+  border-color: rgba(255, 155, 233, 0.72);
+  box-shadow: 0 0 18px rgba(255, 92, 218, 0.38), inset 0 0 18px rgba(255, 92, 218, 0.08);
+}
+
+.nav-learning-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.nav-learning-grid article span {
+  color: #ff9be9;
+  font-family: Cinzel, Georgia, serif;
+  font-weight: 900;
+}
+
+.nav-learning-grid article p {
+  margin: 0;
+  color: rgba(255, 241, 251, 0.7);
+  line-height: 1.35;
+}
+
+.nav-progress-list article {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+}
+
+.nav-progress-list article.locked {
+  opacity: 0.78;
+}
+
+.nav-progress-list em {
+  border: 1px solid rgba(255, 92, 218, 0.28);
+  border-radius: 999px;
+  color: #ff9be9;
+  font-style: normal;
+  font-weight: 900;
+  padding: 6px 10px;
+}
+
+.nav-microcopy {
+  margin: 0;
+}
+
+@media (min-width: 1181px) {
+  .visual-os-frame > .visual-nav-panel {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 900px) {
+  .nav-stat-grid,
+  .nav-case-grid,
+  .nav-learning-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .visual-nav-heading {
+    align-items: flex-start;
+  }
+
+  .visual-nav-heading > div:last-child {
+    min-width: 54px;
+    height: 54px;
+    font-size: 1.35rem;
+  }
+
+  .nav-stat-grid,
+  .nav-case-grid,
+  .nav-learning-grid,
+  .nav-progress-list article {
+    grid-template-columns: 1fr;
+  }
+
+  .nav-progress-list article {
+    display: grid;
+  }
+}
