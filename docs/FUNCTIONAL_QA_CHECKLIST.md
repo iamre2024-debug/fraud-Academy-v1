@@ -10,7 +10,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 - Every visible control must either perform an action, open a relevant view, save data, filter data, expand/collapse data, or clearly display real state.
 - Decorative visual accents are allowed only when they do not look clickable.
 - Long explanatory text should stay compact by default and expand only with a More / Less control.
-- Automated smoke checks should protect the current visual-shell anchors, but they do not replace manual browser QA.
+- Automated smoke checks should protect the current visual-shell anchors and the Submit Decision package model, but they do not replace manual browser QA.
 
 ## Current functional map
 
@@ -41,6 +41,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Submit Decision | Checklist | Show neutral blockers only | Working | Keep Evidence First lock |
 | Submit Decision | Choice / confidence / rationale | Save learner draft inputs | Working | Keep |
 | Submit Decision | Save / Check Review Package | Save package only when checklist passes | Working | Keep |
+| Submit Decision | Package input preview | Show reviewed tools, pinned objects, notes, and Case Report packet feed neutrally | Working | Keep |
 | Submit Decision | Long checklist copy | Compact display with More / Less expansion | Working after compact text pass | Keep |
 | Luna Debrief | Locked state | Stay locked until package exists | Working | Keep |
 | Luna Debrief | Score / strengths / focus | Show only after package exists | Working | Retest after saving package |
@@ -58,13 +59,14 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Bottom nav | Workspace | Return to main workspace | Working after nav patch | Retest |
 | Bottom nav | Academy | Open learning path panel | Working after nav patch | Retest |
 | Bottom nav | Progress | Open progress panel | Working after nav patch | Retest |
-| Verify scripts | `npm run functional-smoke-check` | Confirm source-of-truth, visual-shell, persistence, category-progress, and Submit Decision anchors exist | Automated guard added | Keep inside `npm run verify` |
+| Verify scripts | `npm run functional-smoke-check` | Confirm source-of-truth, visual-shell, persistence, category-progress, and Submit Decision anchors exist | Automated guard active | Keep inside `npm run verify` |
+| Verify scripts | `npm run review-package-smoke-check` | Confirm Submit Decision locks for missing tools and short rationale, preserves optional packet feed, and snapshots saved packages | Automated guard active | Keep inside `npm run verify` |
 
 ## Immediate repair list
 
 1. Move bottom navigation behavior into React state instead of the current DOM patch once the major UI settles.
 2. Move More / Less text expansion into React components instead of the current DOM patch once the content structure stabilizes.
-3. Keep the automated smoke guard current when changing:
+3. Keep the automated smoke guards current when changing:
    - case switching
    - category switching
    - sub-tool switching
@@ -72,6 +74,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
    - expand/pin/save note/save packet
    - More / Less text expansion
    - review package lock and unlock
+   - review package rationale minimums and Case Report packet feed
    - dashboard/cases/workspace/academy/progress navigation
 4. Confirm no clickable-looking decorative element exists without an action.
 5. Run the full browser smoke path after each significant visual-shell change.
@@ -90,9 +93,10 @@ Use this path after every major UI update:
 8. Confirm the tray, notebook, packet panel, and agent archive update.
 9. Generate neutral reports until required tools are reviewed.
 10. Try Submit Decision while locked and confirm it only gives neutral checklist blockers.
-11. Fill choice, confidence, and rationale, then save a package.
-12. Confirm Luna Debrief and Academy Progress unlock only after package save.
+11. Try a short rationale and confirm Submit Decision remains locked.
+12. Fill choice, confidence, and a complete rationale, then save a package.
+13. Confirm Luna Debrief and Academy Progress unlock only after package save.
 
 ## Latest QA status
 
-Functional QA now has an automated smoke guard in `scripts/functional-smoke-check.mjs`. `npm run verify` runs the Evidence First wording check, the functional smoke guard, and the production build so the repo catches missing visual-shell anchors before browser QA.
+Functional QA now has automated guards in `scripts/functional-smoke-check.mjs` and `scripts/review-package-smoke-check.mjs`. `npm run verify` runs the Evidence First wording check, visual-shell anchor check, Submit Decision package behavior check, and production build so the repo catches missing anchors and broken package logic before browser QA.
