@@ -57,6 +57,8 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Desktop command-center styling pass in `src/desktopCommand.css`
 - Screenshot-driven visual workspace shell in `src/VisualWorkspace.jsx`
 - Screenshot-driven gothic neon styling in `src/visualWorkspace.css`
+- Mobile viewport fix in `src/mobileViewportFix.css`
+- Visual tool reconnection styling in `src/visualFunctional.css`
 - Case Queue with Account Takeover, Chargeback Claim, and Credit Risk Review cases
 - Case switching inside one workspace
 - Case Briefing with neutral investigation questions
@@ -102,12 +104,13 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Scenario Engine preview panel shows packet structure and generator inputs while keeping outcomes and Luna decision coaching locked
 - Desktop command-center pass places Scenario Engine, Case Workspace, and Academy Progress into a three-column neon workstation instead of stuck floating cards
 - Visual rebuild pass now makes the app entry open into an ornate gothic neon dashboard matching the uploaded reference direction before reconnecting deeper tool behavior
-- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, and visual workspace shell
+- Visual workspace now reconnects live case data, case switching, category switching, searchable tool rows, pin-to-tray actions, and evidence-based notebook updates inside the screenshot-driven shell
+- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, and visual tool controls
 - Evidence First search sweep completed for answer-leaking wording
 
 ## Latest handoff
 
-The current priority is visual reconstruction: make the screenshot-driven workspace shell match the uploaded gothic neon Fraud Academy OS reference as closely as possible, then reconnect the existing investigation tools into that design system without breaking Evidence First.
+The current priority is reconnecting the existing investigation behavior inside the screenshot-driven visual shell. Next step: persist visual-shell notes/tray by case, add reviewed-tool progress indicators back into the ornate category tiles, and then reconnect the locked Submit Decision package flow without changing the design.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
