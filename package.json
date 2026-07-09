@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "evidence-first-check": "node scripts/evidence-first-check.mjs",
-    "verify": "npm run evidence-first-check && npm run build"
+    "functional-smoke-check": "node scripts/functional-smoke-check.mjs",
+    "verify": "npm run evidence-first-check && npm run functional-smoke-check && npm run build"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
