@@ -1,0 +1,164 @@
+@media (min-width: 1181px) {
+  .visual-os-shell {
+    padding: 24px 24px 132px;
+  }
+
+  .visual-os-frame {
+    width: min(100%, 1500px);
+    grid-template-columns: minmax(0, 1.72fr) minmax(360px, 0.9fr);
+    align-items: start;
+    gap: 18px;
+  }
+
+  .visual-os-frame > .visual-hero,
+  .visual-os-frame > .case-info-bar,
+  .visual-os-frame > .case-summary-visual,
+  .visual-os-frame > .visual-categories,
+  .visual-os-frame > .visual-bottom-nav {
+    grid-column: 1 / -1;
+  }
+
+  .visual-os-frame > .activity-panel {
+    grid-column: 1;
+    grid-row: 5 / span 2;
+    min-height: 100%;
+  }
+
+  .visual-os-frame > .bottom-investigation-grid {
+    grid-column: 2;
+    grid-row: 5;
+  }
+
+  .visual-os-frame > .submit-decision-panel {
+    grid-column: 2;
+    grid-row: 6;
+  }
+
+  .visual-os-frame > .luna-visual-panel {
+    grid-column: 1;
+    grid-row: 7;
+  }
+
+  .visual-os-frame > .academy-progress-shell {
+    grid-column: 2;
+    grid-row: 7;
+  }
+
+  .visual-hero {
+    min-height: 210px;
+  }
+
+  .case-summary-visual {
+    min-height: 230px;
+    grid-template-columns: 190px minmax(0, 1fr) 190px;
+  }
+
+  .moon-medallion {
+    width: 155px;
+    height: 155px;
+    font-size: 5rem;
+  }
+
+  .butterfly-accent {
+    font-size: 4rem;
+  }
+
+  .visual-category-row button {
+    min-height: 96px;
+  }
+
+  .bottom-investigation-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .bottom-investigation-grid .ornate-card,
+  .submit-decision-panel,
+  .academy-progress-card {
+    padding: 18px;
+  }
+
+  .activity-panel {
+    position: relative;
+  }
+
+  .activity-table {
+    max-height: 610px;
+    overflow: auto;
+  }
+
+  .activity-row {
+    min-height: 56px;
+  }
+
+  .activity-row small {
+    font-size: 0.82rem;
+    line-height: 1.25;
+  }
+
+  .table-head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    backdrop-filter: blur(14px);
+  }
+
+  .tray-list,
+  .notebook-list,
+  .academy-case-list {
+    max-height: 280px;
+    overflow: auto;
+    padding-right: 4px;
+  }
+
+  .notebook-compose textarea {
+    min-height: 72px;
+  }
+
+  .decision-status-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .decision-status-grid div {
+    min-height: 68px;
+    padding: 8px 4px;
+  }
+
+  .decision-checklist {
+    max-height: 170px;
+    overflow: auto;
+    padding-right: 4px;
+  }
+
+  .luna-debrief-grid {
+    grid-template-columns: 0.72fr 1fr 1fr;
+  }
+
+  .academy-stat-row {
+    grid-template-columns: 1fr;
+  }
+
+  .skill-meter-list {
+    grid-template-columns: 1fr;
+  }
+
+  .visual-bottom-nav {
+    width: min(980px, calc(100% - 54px));
+  }
+}
+
+@media (min-width: 1440px) {
+  .visual-os-frame {
+    grid-template-columns: minmax(0, 1.9fr) minmax(390px, 0.82fr);
+  }
+
+  .activity-table {
+    max-height: 680px;
+  }
+
+  .tray-list,
+  .notebook-list,
+  .academy-case-list {
+    max-height: 320px;
+  }
+}
