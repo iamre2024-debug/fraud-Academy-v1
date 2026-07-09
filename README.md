@@ -66,6 +66,7 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Compact More / Less text controls in `src/visualTextCollapse.js`
 - Compact More / Less text styling in `src/visualTextCollapse.css`
 - Functional QA checklist in `docs/FUNCTIONAL_QA_CHECKLIST.md`
+- Functional smoke verification guard in `scripts/functional-smoke-check.mjs`
 - Evidence First wording check in `scripts/evidence-first-check.mjs`
 - GitHub Actions verify workflow in `.github/workflows/build.yml`
 - Case Queue with Account Takeover, Chargeback Claim, and Credit Risk Review cases
@@ -134,17 +135,18 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Submit Decision now surfaces a neutral package input preview showing reviewed tools, pinned objects, notes, and the specific Case Report packet feed that will snapshot into the learner review package
 - Functional QA pass now maps visible UI elements to expected behavior, identifies no-op/decorative controls, and wires the remaining button-shaped controls into Tool Map and Evidence Center navigation
 - Compact text pass now collapses long card copy by default and adds More / Less expansion controls for case summary, tool purpose, record detail, checklist, Luna, progress, notebook, tray, packet, and archive text
+- Functional smoke guard now verifies Source of Truth, visual-shell persistence anchors, category progress anchors, locked Submit Decision anchors, and the React + Vite entrypoint before production build
 - New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, visual sub-tool controls, desktop visual command-center layout, expandable record review states, Evidence First review status affordances, and compact text expansion controls
-- `npm run verify` now runs the Evidence First wording check and Vite production build locally
+- `npm run verify` now runs the Evidence First wording check, functional smoke guard, and Vite production build locally
 - The GitHub Actions workflow runs the same verify command on pushes and pull requests to `main`
 - Evidence First search sweep completed for answer-leaking wording
 - The Evidence First wording guard now distinguishes prohibited pre-submission answer leaks from allowed lock-state and post-submission Luna scoring language.
 
 ## Latest handoff
 
-A compact text pass is now active. Long explanatory copy is collapsed by default with More / Less controls so cards stay clean and do not feel like every box is carrying a full essay. The QA checklist now treats expand/collapse behavior as a real function and includes it in the manual smoke path.
+A functional smoke verification guard is now active. `npm run verify` runs the Evidence First wording check, confirms the screenshot-driven visual shell still contains the case-scoped tray/notes/report packet persistence anchors, ornate category progress anchors, locked Submit Decision package anchors, and React + Vite entrypoint anchors, then runs the production build.
 
-Next step: run the manual smoke path in `docs/FUNCTIONAL_QA_CHECKLIST.md`, run `npm run verify`, then replace the temporary DOM navigation and text-collapse patches with React-native state once the user confirms the behavior feels right.
+Next step: confirm the GitHub Actions verify result, run the manual browser smoke path in `docs/FUNCTIONAL_QA_CHECKLIST.md`, then replace the temporary DOM navigation and text-collapse patches with React-native state once the user confirms the behavior feels right.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
