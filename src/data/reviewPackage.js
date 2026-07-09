@@ -16,10 +16,11 @@ export const requiredReviewTools = [
   'Case Report',
 ];
 
-export function getReviewPackageStatus({ completedTools = [], tray = [], notes = [], draft = {} }) {
+export function getReviewPackageStatus({ completedTools = [], tray = [], notes = [], draft = {}, reportPackets = [] }) {
   const missingTools = requiredReviewTools.filter((tool) => !completedTools.includes(tool));
   const blockers = [];
   const messages = [];
+  const reportPacketCount = reportPackets.length;
 
   if (missingTools.length) blockers.push(`review required tools: ${missingTools.join(', ')}`);
   if (!tray.length) blockers.push('pin at least one object');
@@ -38,17 +39,20 @@ export function getReviewPackageStatus({ completedTools = [], tray = [], notes =
     messages.push('Review package checklist is complete. Evidence First unlocks Luna only after saving this package.');
   }
 
+  messages.push(reportPacketCount ? `${reportPacketCount} structured Case Report packet(s) saved into the draft.` : 'Structured Case Report packets are optional, but expanded records can now be saved into the draft.');
+
   return {
     reviewedRequired: requiredReviewTools.length - missingTools.length,
     totalRequired: requiredReviewTools.length,
     missingTools,
     blockers,
     messages,
+    reportPacketCount,
     ready: missingTools.length === 0 && tray.length > 0 && notes.length > 0 && Boolean(draft.choice) && Boolean(draft.reason?.trim()),
   };
 }
 
-export function buildReviewPackage({ caseId, agentId, draft, completedTools = [], tray = [], notes = [], packageStatus }) {
+export function buildReviewPackage({ caseId, agentId, draft, completedTools = [], tray = [], notes = [], reportPackets = [], packageStatus }) {
   return {
     id: `${caseId}-${Date.now()}`,
     caseId,
@@ -59,10 +63,12 @@ export function buildReviewPackage({ caseId, agentId, draft, completedTools = []
     completedTools: [...completedTools],
     pinnedEvidence: [...tray],
     noteSnapshot: notes.slice(0, 8),
+    caseReportPackets: reportPackets.slice(0, 12),
     reviewedRequired: packageStatus?.reviewedRequired ?? 0,
     totalRequired: packageStatus?.totalRequired ?? requiredReviewTools.length,
     missingTools: packageStatus?.missingTools ?? [],
     blockers: packageStatus?.blockers ?? [],
+    reportPacketCount: packageStatus?.reportPacketCount ?? reportPackets.length,
     savedAt: new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
   };
 }
