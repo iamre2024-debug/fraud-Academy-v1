@@ -6,11 +6,26 @@
   display: contents;
 }
 
-body:not([data-visual-tab="workspace"]) .activity-panel,
-body:not([data-visual-tab="workspace"]) .submit-decision-panel,
-body:not([data-visual-tab="workspace"]) .luna-visual-panel,
-body:not([data-visual-tab="workspace"]) .academy-progress-shell,
-body:not([data-visual-tab="workspace"]) .bottom-investigation-grid {
+body[data-visual-tab="dashboard"] .activity-panel,
+body[data-visual-tab="dashboard"] .submit-decision-panel,
+body[data-visual-tab="dashboard"] .luna-visual-panel,
+body[data-visual-tab="dashboard"] .academy-progress-shell,
+body[data-visual-tab="dashboard"] .bottom-investigation-grid,
+body[data-visual-tab="cases"] .activity-panel,
+body[data-visual-tab="cases"] .submit-decision-panel,
+body[data-visual-tab="cases"] .luna-visual-panel,
+body[data-visual-tab="cases"] .academy-progress-shell,
+body[data-visual-tab="cases"] .bottom-investigation-grid,
+body[data-visual-tab="academy"] .activity-panel,
+body[data-visual-tab="academy"] .submit-decision-panel,
+body[data-visual-tab="academy"] .luna-visual-panel,
+body[data-visual-tab="academy"] .academy-progress-shell,
+body[data-visual-tab="academy"] .bottom-investigation-grid,
+body[data-visual-tab="progress"] .activity-panel,
+body[data-visual-tab="progress"] .submit-decision-panel,
+body[data-visual-tab="progress"] .luna-visual-panel,
+body[data-visual-tab="progress"] .academy-progress-shell,
+body[data-visual-tab="progress"] .bottom-investigation-grid {
   display: none !important;
 }
 
@@ -195,8 +210,7 @@ body[data-visual-tab="workspace"] .visual-nav-panel:empty {
 }
 
 @media (min-width: 1181px) {
-  .visual-os-frame > .visual-nav-panel,
-  .visual-react-nav-host > .visual-nav-panel {
+  .visual-os-frame > .visual-nav-panel {
     grid-column: 1 / -1;
   }
 }
