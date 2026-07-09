@@ -26,34 +26,33 @@ Use that file before making architecture, UI, tool, scenario, or Evidence First 
 ## Current status
 
 - The screenshot-driven visual workspace is active.
-- The workspace was recovered after a connector clipping issue partially overwrote `src/VisualWorkspace.jsx`.
-- `src/VisualWorkspace.jsx` is now a smaller stable recovery shell so the app can load and all three built-in cases can be audited without the file being clipped again.
-- The three built-in cases are enriched through `src/data/caseEnrichment.js`.
-- Case Summary now shows name, claim ID, total claim amount, transaction/payee info, and short neutral summary.
-- Device Intelligence now shows Device ID as the first column and uses enriched stable fictional device IDs where available.
-- Identity Intelligence, Case Report, Submit Decision, Evidence Center, Tool Map, and bottom navigation have direct visible routes in the stable shell.
-- The duplicate Case Summary quick buttons were caused by the retired `visualInvestigationRepair.js` helper still being imported. That script import is now removed from `src/main.jsx`.
-- Submit Decision now includes visible learner decision choices inside the React component instead of only a placeholder option.
-- The Submit Decision route forces the workspace tab active before scrolling to the decision panel.
-- Broad MutationObserver helper scripts remain removed from the app entrypoint to avoid browser unresponsive loops.
+- `src/VisualApp.jsx` now coordinates the active case and active navigation tab through React state.
+- `src/VisualWorkspace.jsx` owns the investigation workspace behavior: case-scoped tray, notes, reviewed tools, decision drafts, review packages, and Case Report packets.
+- `src/VisualNavigation.jsx` receives direct React callbacks for Dashboard, Cases, Workspace, Academy, Progress, and case opening.
+- `src/VisualTextCollapse.jsx` continues managing compact More / Less controls through React.
+- The old `src/visualInvestigationRepair.js` DOM route patch is retired and deleted.
+- Case Summary metadata, Device ID rows, Tool Map, Open Evidence Center, and Submit Decision routing are rendered through React instead of repair scripts.
+- Submit Decision uses the locked review package model and remains Evidence First.
+- Ornate category tiles show neutral reviewed counts and progress tracks only.
+- Broad DOM repair scripts remain out of the app entrypoint to avoid browser unresponsive loops.
 
 ## Functional focus
 
 The current working priority is stability plus three-case completeness:
 
-1. Confirm all three built-in cases load.
-2. Confirm each category opens.
-3. Confirm each sub-tool opens.
-4. Confirm Device Intelligence shows Device ID and repeated devices reuse the same Device ID.
-5. Confirm Case Summary has full intake metadata.
-6. Confirm Case Report opens.
-7. Confirm Submit Decision is visible, reachable, and shows all learner choice options.
+1. Confirm all three built-in cases load from both the case dropdown and the Cases tab.
+2. Confirm each category opens and each sub-tool opens.
+3. Confirm Device Intelligence shows Device ID and repeated devices reuse the same Device ID.
+4. Confirm Case Summary has full intake metadata.
+5. Confirm Tool Map opens Academy and Open Evidence Center routes to Evidence Center.
+6. Confirm notes, tray objects, reviewed tools, decision drafts, saved packages, and Case Report packets persist by case.
+7. Confirm Submit Decision locks until required tools, pinned evidence, notes, choice, and rationale are present.
 8. Confirm no visible control is only decorative or duplicated.
-9. After the stable shell is confirmed, split the workspace into smaller React modules and restore richer saved notes/review package/Luna behavior cleanly.
+9. After the stable shell is confirmed, split the workspace into smaller React modules and replace selector-discovery compact text with direct reusable wrappers.
 
 ## Latest handoff
 
-A three-case audit recovery pass restored `VisualWorkspace.jsx` into a stable readable React shell and connected it to `caseEnrichment.js`. The duplicate Case Summary action buttons were fixed by removing the old `visualInvestigationRepair.js` import from `src/main.jsx`. Submit Decision now renders real learner choice options in the React form. Next step: run `npm run verify` locally, browser-test all three built-in cases, then rebuild saved notes/review-package/Luna behaviors into smaller React modules instead of one oversized file.
+The lightweight investigation repair behavior has been moved into true React state and callbacks. `VisualApp.jsx` now coordinates active case and active tab, `VisualWorkspace.jsx` handles Tool Map, Open Evidence Center, Submit Decision routing, Device IDs, Case Summary metadata, case-scoped persistence, category progress, and locked Submit Decision behavior, and `VisualNavigation.jsx` no longer uses the old navigation event bridge or DOM select manipulation. Next step: run `npm run verify`, browser-test all three built-in cases, then split `VisualWorkspace.jsx` into smaller modules.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -73,4 +72,4 @@ npm run build
 
 ## Test status
 
-The repo has been updated through the GitHub connector. Local build testing still needs to run in the user's connected development environment.
+The repo has been updated through the GitHub connector. Local build and browser testing still need to run in the user's connected development environment.
