@@ -5,6 +5,7 @@ import './visualWorkspace.css';
 import './visualPolish.css';
 import './mobileViewportFix.css';
 import './visualFunctional.css';
+import './visualDesktopCommand.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
