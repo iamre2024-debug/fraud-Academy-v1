@@ -11,6 +11,16 @@ const AGENT_ID = 'AGT-TRAIN-001';
 const defaultDecisionDraft = { choice: '', confidence: 'Medium', reason: '' };
 const workflowSteps = ['Record', 'Expand', 'Search', 'History', 'Link Analysis', 'Generate Report', 'Timeline', 'Case Report'];
 
+const storageKeys = {
+  tray: 'fraud-academy-visual-tray-v1',
+  notes: 'fraud-academy-notes-v1',
+  agentNotepad: 'fraud-academy-agent-notepad-v1',
+  completed: 'fraud-academy-completed-tools-v1',
+  decisions: 'fraud-academy-decision-drafts-v1',
+  packages: 'fraud-academy-review-packages-v1',
+  reportPackets: 'fraud-academy-case-report-packets-v1',
+};
+
 const categories = [
   { key: 'identity', label: 'Identity', icon: '▣', tools: ['Customer 360', 'Identity Intelligence'] },
   { key: 'digital', label: 'Digital Activity', icon: '⌁', tools: ['Login History', 'Session History', 'Device Intelligence', 'IP Intelligence'] },
@@ -20,6 +30,8 @@ const categories = [
   { key: 'connections', label: 'Connections', icon: '⌘', tools: ['Link Analysis'] },
   { key: 'investigation', label: 'Investigation', icon: '⌕', tools: ['Timeline', 'Case Report'] },
 ];
+
+const packetPrimaryTools = new Set(['Customer 360', 'Payment Verification', 'Document Viewer']);
 
 const toolQuestions = {
   'Customer 360': 'Who is the customer and what does the relationship snapshot show?',
@@ -87,12 +99,13 @@ export default function VisualWorkspace() {
   const [query, setQuery] = useState('');
   const [expandedRowId, setExpandedRowId] = useState('');
   const [noteDraft, setNoteDraft] = useState('');
-  const [trayByCase, setTrayByCase] = useState(() => readStorage('fraud-academy-visual-tray-v1', {}));
-  const [notesByCase, setNotesByCase] = useState(() => readStorage('fraud-academy-notes-v1', defaultNotesByCase));
-  const [agentNotepadById, setAgentNotepadById] = useState(() => readStorage('fraud-academy-agent-notepad-v1', defaultAgentNotepad));
-  const [completedToolsByCase, setCompletedToolsByCase] = useState(() => readStorage('fraud-academy-completed-tools-v1', defaultCompletedTools));
-  const [decisionDraftsByCase, setDecisionDraftsByCase] = useState(() => readStorage('fraud-academy-decision-drafts-v1', {}));
-  const [reviewPackagesByCase, setReviewPackagesByCase] = useState(() => readStorage('fraud-academy-review-packages-v1', {}));
+  const [trayByCase, setTrayByCase] = useState(() => readStorage(storageKeys.tray, {}));
+  const [notesByCase, setNotesByCase] = useState(() => readStorage(storageKeys.notes, defaultNotesByCase));
+  const [agentNotepadById, setAgentNotepadById] = useState(() => readStorage(storageKeys.agentNotepad, defaultAgentNotepad));
+  const [completedToolsByCase, setCompletedToolsByCase] = useState(() => readStorage(storageKeys.completed, defaultCompletedTools));
+  const [decisionDraftsByCase, setDecisionDraftsByCase] = useState(() => readStorage(storageKeys.decisions, {}));
+  const [reviewPackagesByCase, setReviewPackagesByCase] = useState(() => readStorage(storageKeys.packages, {}));
+  const [caseReportPacketsByCase, setCaseReportPacketsByCase] = useState(() => readStorage(storageKeys.reportPackets, {}));
 
   const activeCase = useMemo(() => trainingCases.find((item) => item.id === activeCaseId) ?? trainingCases[0], [activeCaseId]);
   const activeCategoryConfig = useMemo(() => getCategoryByKey(activeCategory), [activeCategory]);
@@ -102,10 +115,17 @@ export default function VisualWorkspace() {
   const currentCompleted = completedToolsByCase[activeCase.id] ?? ['Case Summary'];
   const decisionDraft = decisionDraftsByCase[activeCase.id] ?? defaultDecisionDraft;
   const reviewPackages = reviewPackagesByCase[activeCase.id] ?? [];
+  const caseReportPackets = caseReportPacketsByCase[activeCase.id] ?? [];
   const latestReviewPackage = reviewPackages[0] ?? null;
-  const packageStatus = useMemo(() => getReviewPackageStatus({ completedTools: currentCompleted, tray, notes, draft: decisionDraft }), [currentCompleted, tray, notes, decisionDraft]);
-  const lunaDebrief = useMemo(() => buildLunaDebrief({ activeCase, reviewPackage: latestReviewPackage, completedTools: currentCompleted, tray, notes }), [activeCase, latestReviewPackage, currentCompleted, tray, notes]);
-  const records = useMemo(() => buildToolRows(activeTool, activeCase), [activeTool, activeCase]);
+  const packageStatus = useMemo(
+    () => getReviewPackageStatus({ completedTools: currentCompleted, tray, notes, draft: decisionDraft, reportPackets: caseReportPackets }),
+    [currentCompleted, tray, notes, decisionDraft, caseReportPackets],
+  );
+  const lunaDebrief = useMemo(
+    () => buildLunaDebrief({ activeCase, reviewPackage: latestReviewPackage, completedTools: currentCompleted, tray, notes, reportPackets: caseReportPackets }),
+    [activeCase, latestReviewPackage, currentCompleted, tray, notes, caseReportPackets],
+  );
+  const records = useMemo(() => buildToolRows(activeTool, activeCase, caseReportPackets), [activeTool, activeCase, caseReportPackets]);
   const filteredRows = useMemo(() => {
     const clean = query.trim().toLowerCase();
     if (!clean) return records.rows;
@@ -113,12 +133,13 @@ export default function VisualWorkspace() {
   }, [records.rows, query]);
   const expandedRow = useMemo(() => filteredRows.find((row) => row.id === expandedRowId) ?? filteredRows[0] ?? null, [filteredRows, expandedRowId]);
 
-  useEffect(() => writeStorage('fraud-academy-visual-tray-v1', trayByCase), [trayByCase]);
-  useEffect(() => writeStorage('fraud-academy-notes-v1', notesByCase), [notesByCase]);
-  useEffect(() => writeStorage('fraud-academy-agent-notepad-v1', agentNotepadById), [agentNotepadById]);
-  useEffect(() => writeStorage('fraud-academy-completed-tools-v1', completedToolsByCase), [completedToolsByCase]);
-  useEffect(() => writeStorage('fraud-academy-decision-drafts-v1', decisionDraftsByCase), [decisionDraftsByCase]);
-  useEffect(() => writeStorage('fraud-academy-review-packages-v1', reviewPackagesByCase), [reviewPackagesByCase]);
+  useEffect(() => writeStorage(storageKeys.tray, trayByCase), [trayByCase]);
+  useEffect(() => writeStorage(storageKeys.notes, notesByCase), [notesByCase]);
+  useEffect(() => writeStorage(storageKeys.agentNotepad, agentNotepadById), [agentNotepadById]);
+  useEffect(() => writeStorage(storageKeys.completed, completedToolsByCase), [completedToolsByCase]);
+  useEffect(() => writeStorage(storageKeys.decisions, decisionDraftsByCase), [decisionDraftsByCase]);
+  useEffect(() => writeStorage(storageKeys.packages, reviewPackagesByCase), [reviewPackagesByCase]);
+  useEffect(() => writeStorage(storageKeys.reportPackets, caseReportPacketsByCase), [caseReportPacketsByCase]);
   useEffect(() => setExpandedRowId(''), [activeCaseId, activeTool]);
 
   function selectCategory(categoryKey) {
@@ -139,9 +160,10 @@ export default function VisualWorkspace() {
     setActiveTool('Login History');
     setQuery('');
     setNoteDraft('');
-    setTrayByCase((current) => current[caseId] ? current : { ...current, [caseId]: defaultTrayFor(caseId) });
-    setNotesByCase((current) => current[caseId] ? current : { ...current, [caseId]: [`Investigation note · Opened ${caseId} workspace. Review the allegation before deciding next steps.`] });
-    setCompletedToolsByCase((current) => current[caseId] ? current : { ...current, [caseId]: ['Case Summary'] });
+    setTrayByCase((current) => (current[caseId] ? current : { ...current, [caseId]: defaultTrayFor(caseId) }));
+    setNotesByCase((current) => (current[caseId] ? current : { ...current, [caseId]: [`Investigation note · Opened ${caseId} workspace. Review the allegation before deciding next steps.`] }));
+    setCompletedToolsByCase((current) => (current[caseId] ? current : { ...current, [caseId]: ['Case Summary'] }));
+    setCaseReportPacketsByCase((current) => (current[caseId] ? current : { ...current, [caseId]: [] }));
   }
 
   function saveNote(text, type = 'Investigation note') {
@@ -171,6 +193,17 @@ export default function VisualWorkspace() {
     saveNote(`${toolName}: reviewed and neutral report generated.`, 'Tool review');
   }
 
+  function saveCaseReportPacket(row, toolName = activeTool) {
+    if (!row) return;
+    const packet = buildCaseReportPacket({ row, toolName, activeCase });
+    setCaseReportPacketsByCase((current) => {
+      const casePackets = current[activeCase.id] ?? [];
+      const deduped = casePackets.filter((item) => item.key !== packet.key);
+      return { ...current, [activeCase.id]: [packet, ...deduped].slice(0, 30) };
+    });
+    saveNote(`Case Report packet saved from ${toolName}: ${row.id}.`, 'Case report packet');
+  }
+
   function updateDecisionDraft(field, value) {
     setDecisionDraftsByCase((current) => ({
       ...current,
@@ -187,7 +220,7 @@ export default function VisualWorkspace() {
   function submitReviewPackage(event) {
     event.preventDefault();
     const draft = decisionDraftsByCase[activeCase.id] ?? defaultDecisionDraft;
-    const status = getReviewPackageStatus({ completedTools: currentCompleted, tray, notes, draft });
+    const status = getReviewPackageStatus({ completedTools: currentCompleted, tray, notes, draft, reportPackets: caseReportPackets });
 
     if (!status.ready) {
       saveNote(`Submit Decision checklist checked. ${status.messages[0]}`, 'Decision checklist');
@@ -201,6 +234,7 @@ export default function VisualWorkspace() {
       completedTools: currentCompleted,
       tray,
       notes,
+      reportPackets: caseReportPackets,
       packageStatus: status,
     });
 
@@ -217,7 +251,7 @@ export default function VisualWorkspace() {
       <section className="visual-os-frame">
         <VisualHero />
         <CaseInfoBar activeCase={activeCase} activeCaseId={activeCaseId} openCase={openCase} />
-        <CaseSummaryCard activeCase={activeCase} pinEvidence={pinEvidence} selectCategory={selectCategory} />
+        <CaseSummaryCard activeCase={activeCase} pinEvidence={pinEvidence} selectCategory={selectCategory} packetCount={caseReportPackets.length} />
         <InvestigationCategories activeCategory={activeCategory} selectCategory={selectCategory} completedTools={currentCompleted} />
         <EvidencePanel
           activeCase={activeCase}
@@ -233,6 +267,7 @@ export default function VisualWorkspace() {
           setExpandedRowId={setExpandedRowId}
           pinEvidence={pinEvidence}
           saveNote={saveNote}
+          saveCaseReportPacket={saveCaseReportPacket}
           markReviewed={markReviewed}
           isReviewed={currentCompleted.includes(activeTool)}
         />
@@ -246,7 +281,7 @@ export default function VisualWorkspace() {
         />
         <PostSubmissionInsightPanel lunaDebrief={lunaDebrief} latestReviewPackage={latestReviewPackage} />
         <AcademyProgress />
-        <BottomInvestigationGrid tray={tray} notes={notes} agentNotes={agentNotes} noteDraft={noteDraft} setNoteDraft={setNoteDraft} submitManualNote={submitManualNote} pinEvidence={pinEvidence} />
+        <BottomInvestigationGrid tray={tray} notes={notes} agentNotes={agentNotes} noteDraft={noteDraft} setNoteDraft={setNoteDraft} submitManualNote={submitManualNote} pinEvidence={pinEvidence} reportPackets={caseReportPackets} />
         <VisualBottomNav />
       </section>
     </main>
@@ -287,7 +322,7 @@ function CaseInfoBar({ activeCase, activeCaseId, openCase }) {
   );
 }
 
-function CaseSummaryCard({ activeCase, pinEvidence, selectCategory }) {
+function CaseSummaryCard({ activeCase, pinEvidence, selectCategory, packetCount }) {
   return (
     <section className="ornate-card case-summary-visual">
       <div className="moon-medallion">☾</div>
@@ -295,12 +330,13 @@ function CaseSummaryCard({ activeCase, pinEvidence, selectCategory }) {
         <p className="visual-section-title">♥ Case Summary</p>
         <p>{activeCase.allegation}</p>
         <p>{activeCase.queueReason}</p>
+        <small className="case-report-packet-count">{packetCount} structured Case Report packet{packetCount === 1 ? '' : 's'} saved</small>
       </div>
       <div className="butterfly-accent">🦋</div>
       <div className="summary-actions">
-        <button onClick={() => pinEvidence(activeCase.id, 'Case ID')}>📌 Pin Case</button>
-        <button onClick={() => selectCategory('investigation')}>▣ Notebook</button>
-        <button className="primary-action" onClick={() => selectCategory('digital')}>🪄 Open First Tool ›</button>
+        <button type="button" onClick={() => pinEvidence(activeCase.id, 'Case ID')}>📌 Pin Case</button>
+        <button type="button" onClick={() => selectCategory('investigation')}>▣ Notebook</button>
+        <button type="button" className="primary-action" onClick={() => selectCategory('digital')}>🪄 Open First Tool ›</button>
       </div>
     </section>
   );
@@ -309,16 +345,26 @@ function CaseSummaryCard({ activeCase, pinEvidence, selectCategory }) {
 function InvestigationCategories({ activeCategory, selectCategory, completedTools }) {
   return (
     <section className="visual-categories" aria-label="Investigation categories">
-      <div className="visual-section-heading"><h2>✦ Investigation Categories</h2><button>View All ›</button></div>
+      <div className="visual-section-heading"><h2>✦ Investigation Categories</h2><button type="button">View All ›</button></div>
       <div className="visual-category-row">
         {categories.map((item) => {
           const reviewedCount = item.tools.filter((tool) => completedTools.includes(tool)).length;
+          const progressPercent = Math.round((reviewedCount / item.tools.length) * 100);
           const isReviewed = reviewedCount === item.tools.length;
+          const statusText = isReviewed ? 'Complete' : reviewedCount > 0 ? 'In progress' : 'Open';
           return (
-            <button key={item.key} className={`${activeCategory === item.key ? 'active' : ''} ${isReviewed ? 'reviewed' : ''}`} onClick={() => selectCategory(item.key)}>
+            <button
+              key={item.key}
+              type="button"
+              className={`${activeCategory === item.key ? 'active' : ''} ${isReviewed ? 'reviewed' : ''}`}
+              onClick={() => selectCategory(item.key)}
+              aria-label={`${item.label}: ${reviewedCount} of ${item.tools.length} tools reviewed`}
+            >
               <span>{item.icon}</span>
               <strong>{item.label}</strong>
               <em>{reviewedCount}/{item.tools.length}</em>
+              <small className="category-status-copy">{statusText}</small>
+              <div className="category-progress-track" aria-hidden="true"><b style={{ width: `${progressPercent}%` }} /></div>
               {activeCategory === item.key && <i>♥</i>}
             </button>
           );
@@ -328,7 +374,7 @@ function InvestigationCategories({ activeCategory, selectCategory, completedTool
   );
 }
 
-function EvidencePanel({ activeCase, activeCategoryConfig, activeTool, selectTool, records, rows, query, setQuery, expandedRow, expandedRowId, setExpandedRowId, pinEvidence, saveNote, markReviewed, isReviewed }) {
+function EvidencePanel({ activeCase, activeCategoryConfig, activeTool, selectTool, records, rows, query, setQuery, expandedRow, expandedRowId, setExpandedRowId, pinEvidence, saveNote, saveCaseReportPacket, markReviewed, isReviewed }) {
   return (
     <section className="ornate-card activity-panel">
       <div className="activity-heading">
@@ -368,10 +414,11 @@ function EvidencePanel({ activeCase, activeCategoryConfig, activeTool, selectToo
         activeTool={activeTool}
         activeCase={activeCase}
         saveNote={saveNote}
+        saveCaseReportPacket={saveCaseReportPacket}
         markReviewed={markReviewed}
         isReviewed={isReviewed}
       />
-      <button className="view-full-button" onClick={() => markReviewed(activeTool)}>{isReviewed ? '✓ Reviewed · Generate Another Neutral Tool Report' : '✦ Generate Neutral Tool Report ›'}</button>
+      <button type="button" className="view-full-button" onClick={() => markReviewed(activeTool)}>{isReviewed ? '✓ Reviewed · Generate Another Neutral Tool Report' : '✦ Generate Neutral Tool Report ›'}</button>
     </section>
   );
 }
@@ -383,14 +430,14 @@ function ActivityRow({ row, isExpanded, setExpandedRowId, pinEvidence }) {
         <span key={`${row.id}-${index}`} className={index === 0 ? 'event-id' : index === 2 ? `result ${row.tone}` : ''}>{formatLines(value)}</span>
       ))}
       <div className="row-action-group">
-        <button className="row-expand-button" onClick={() => setExpandedRowId(row.id)}>{isExpanded ? 'Open' : 'Expand'}</button>
-        <button className="row-pin-button" onClick={() => pinEvidence(row.pinValue, row.pinLabel)}>📌</button>
+        <button type="button" className="row-expand-button" onClick={() => setExpandedRowId(row.id)}>{isExpanded ? 'Open' : 'Expand'}</button>
+        <button type="button" className="row-pin-button" onClick={() => pinEvidence(row.pinValue, row.pinLabel)}>📌</button>
       </div>
     </div>
   );
 }
 
-function RecordDetailPanel({ row, activeTool, activeCase, saveNote, markReviewed, isReviewed }) {
+function RecordDetailPanel({ row, activeTool, activeCase, saveNote, saveCaseReportPacket, markReviewed, isReviewed }) {
   if (!row) {
     return (
       <section className="record-detail-panel empty">
@@ -401,6 +448,7 @@ function RecordDetailPanel({ row, activeTool, activeCase, saveNote, markReviewed
   }
 
   const detail = buildRecordDetail(row, activeTool, activeCase);
+  const packetLabel = packetPrimaryTools.has(activeTool) ? 'Save structured packet to Case Report' : 'Save neutral report packet';
 
   return (
     <section className="record-detail-panel" aria-label="Expanded neutral record review">
@@ -409,7 +457,7 @@ function RecordDetailPanel({ row, activeTool, activeCase, saveNote, markReviewed
           <span>Expanded Record</span>
           <h3>{row.id}</h3>
         </div>
-        <button onClick={() => saveNote(`Expanded ${activeTool} record ${row.id}: ${row.detail}`, 'Expanded record')}>Save expanded note</button>
+        <button type="button" onClick={() => saveNote(`Expanded ${activeTool} record ${row.id}: ${row.detail}`, 'Expanded record')}>Save expanded note</button>
       </div>
 
       <div className="record-detail-grid">
@@ -434,8 +482,9 @@ function RecordDetailPanel({ row, activeTool, activeCase, saveNote, markReviewed
           <h4>Generated Report</h4>
           {detail.report.map((item) => <p key={item}>✦ {item}</p>)}
           <div className="record-report-actions">
-            <button onClick={() => saveNote(detail.reportNote, 'Generated report')}>Save report note</button>
-            <button onClick={() => markReviewed(activeTool)}>{isReviewed ? 'Reviewed' : 'Mark reviewed'}</button>
+            <button type="button" onClick={() => saveNote(detail.reportNote, 'Generated report')}>Save report note</button>
+            <button type="button" className="packet-save-button" onClick={() => saveCaseReportPacket(row, activeTool)}>{packetLabel}</button>
+            <button type="button" onClick={() => markReviewed(activeTool)}>{isReviewed ? 'Reviewed' : 'Mark reviewed'}</button>
           </div>
         </article>
       </div>
@@ -482,6 +531,7 @@ function SubmitDecisionPanel({ activeCase, decisionDraft, updateDecisionDraft, p
       </div>
       <div className="decision-status-grid">
         <div><strong>{packageStatus.reviewedRequired}/{packageStatus.totalRequired}</strong><span>Required tools</span></div>
+        <div><strong>{packageStatus.reportPacketCount ?? 0}</strong><span>Case Report packets</span></div>
         <div><strong>{reviewPackages.length}</strong><span>Saved packages</span></div>
         <div><strong>{packageStatus.ready ? 'Ready' : 'Locked'}</strong><span>Package state</span></div>
       </div>
@@ -562,17 +612,13 @@ function PostSubmissionInsightPanel({ lunaDebrief, latestReviewPackage }) {
   );
 }
 
-function formatLines(value) {
-  return String(value).split('\n').map((line, index) => <small key={`${line}-${index}`}>{line}</small>);
-}
-
-function BottomInvestigationGrid({ tray, notes, agentNotes, noteDraft, setNoteDraft, submitManualNote, pinEvidence }) {
+function BottomInvestigationGrid({ tray, notes, agentNotes, noteDraft, setNoteDraft, submitManualNote, pinEvidence, reportPackets }) {
   return (
     <section className="bottom-investigation-grid">
       <div className="ornate-card tray-card">
         <div className="card-title-row"><div><h2>▰ Investigation Tray</h2><p>Pinned Evidence & Key Identifiers</p></div><span>🦋</span></div>
-        <div className="tray-list">{tray.map((value, index) => <div key={`${value}-${index}`}><span>▯</span><strong>Pinned</strong><em>{value}</em><button onClick={() => pinEvidence(value, 'Tray item')}>📌</button></div>)}</div>
-        <button className="add-evidence">✦ Evidence is saved by case</button>
+        <div className="tray-list">{tray.map((value, index) => <div key={`${value}-${index}`}><span>▯</span><strong>Pinned</strong><em>{value}</em><button type="button" onClick={() => pinEvidence(value, 'Tray item')}>📌</button></div>)}</div>
+        <button type="button" className="add-evidence">✦ Evidence is saved by case</button>
       </div>
       <div className="ornate-card notebook-card">
         <div className="card-title-row"><div><h2>📖 Investigation Notebook</h2><p>Saved notes stay with the active case and the agent archive</p></div><span>🐈‍⬛</span></div>
@@ -580,7 +626,14 @@ function BottomInvestigationGrid({ tray, notes, agentNotes, noteDraft, setNoteDr
           <textarea value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} placeholder="Type an investigation note..." />
           <button type="submit">Save Note</button>
         </form>
-        <div className="notebook-list">{notes.map((item, index) => <button key={`${item}-${index}`}><span>✎</span><p>{item}</p><em>›</em></button>)}</div>
+        <details className="case-report-packet-panel" open={reportPackets.length > 0}>
+          <summary>Case Report packets · {reportPackets.length} saved</summary>
+          <div>
+            {reportPackets.slice(0, 8).map((item) => <p key={item.id}><strong>{item.section}</strong> · {item.recordId} · {item.title}</p>)}
+            {!reportPackets.length && <p>No structured packets saved yet. Use an expanded record to save one.</p>}
+          </div>
+        </details>
+        <div className="notebook-list">{notes.map((item, index) => <button type="button" key={`${item}-${index}`}><span>✎</span><p>{item}</p><em>›</em></button>)}</div>
         <details className="agent-archive-panel">
           <summary>Agent Notepad Archive · {AGENT_ID} · {agentNotes.length} saved</summary>
           <div>
@@ -596,16 +649,16 @@ function BottomInvestigationGrid({ tray, notes, agentNotes, noteDraft, setNoteDr
 function VisualBottomNav() {
   return (
     <nav className="visual-bottom-nav" aria-label="Main navigation">
-      <button>⌂<span>Dashboard</span></button>
-      <button>▣<span>Cases</span></button>
-      <button className="active">🪄<span>Workspace</span></button>
-      <button>▱<span>Academy</span></button>
-      <button>▢<span>Progress</span></button>
+      <button type="button">⌂<span>Dashboard</span></button>
+      <button type="button">▣<span>Cases</span></button>
+      <button type="button" className="active">🪄<span>Workspace</span></button>
+      <button type="button">▱<span>Academy</span></button>
+      <button type="button">▢<span>Progress</span></button>
     </nav>
   );
 }
 
-function buildToolRows(toolName, activeCase) {
+function buildToolRows(toolName, activeCase, reportPackets = []) {
   const financial = financialRecordsByCase[activeCase.id] ?? { transactions: [], financialIntel: [], paymentVerification: [] };
   const business = businessRecordsByCase[activeCase.id] ?? { business360: [], businessIntel: [], employeeProfile: [], payrollHistory: [] };
   const evidence = evidenceRecordsByCase[activeCase.id] ?? { evidence: activeCase.documents ?? [], documents: activeCase.documents ?? [] };
@@ -709,7 +762,7 @@ function buildToolRows(toolName, activeCase) {
 
   if (toolName === 'Link Analysis') return buildLinkRows(activeCase, financial, business, evidence);
   if (toolName === 'Timeline') return buildTimelineRows(activeCase, financial, evidence);
-  if (toolName === 'Case Report') return buildCaseReportRows(activeCase, financial, business, evidence);
+  if (toolName === 'Case Report') return buildCaseReportRows(activeCase, financial, business, evidence, reportPackets);
 
   return {
     columns: ['Event ID', 'Date / Time', 'Result', 'Device', 'IP Address', 'Location', 'Auth Method'],
@@ -767,7 +820,7 @@ function buildTimelineRows(activeCase, financial, evidence) {
   };
 }
 
-function buildCaseReportRows(activeCase, financial, business, evidence) {
+function buildCaseReportRows(activeCase, financial, business, evidence, reportPackets = []) {
   const reportRows = [
     { id: 'REP-CASE', section: 'Case reason', value: activeCase.allegation, state: 'Draft available', source: 'Case Summary' },
     { id: 'REP-CUSTOMER', section: 'Customer', value: `${activeCase.person} · ${activeCase.trainingId}`, state: 'Snapshot available', source: 'Customer 360' },
@@ -776,12 +829,37 @@ function buildCaseReportRows(activeCase, financial, business, evidence) {
     { id: 'REP-FINANCIAL', section: 'Financial records', value: `${financial.transactions.length} transaction records and ${financial.paymentVerification.length} payment records`, state: 'Review available', source: 'Financial' },
     { id: 'REP-BUSINESS', section: 'Business context', value: `${business.business360.length} relationship records available`, state: 'Review available', source: 'Business' },
     { id: 'REP-EVIDENCE', section: 'Evidence inventory', value: `${evidence.evidence.length} evidence records and ${evidence.documents.length} documents`, state: 'Review available', source: 'Evidence Center' },
+    ...reportPackets.map((packet) => ({ id: packet.id, section: packet.section, value: `${packet.title} · ${packet.summary}`, state: packet.state, source: packet.sourceTool })),
     { id: 'REP-LOCK', section: 'Submit Decision', value: 'Luna debrief and scoring stay locked until learner package submission.', state: 'Locked', source: 'Submit Decision' },
   ];
 
   return {
     columns: ['Report ID', 'Section', 'Value', 'State', 'Case', 'Source', 'Action'],
     rows: reportRows.map((record) => makeRow(record.id, [record.id, record.section, record.value, record.state, activeCase.id, record.source, 'Pin'], record.id, 'Report section')),
+  };
+}
+
+function buildCaseReportPacket({ row, toolName, activeCase }) {
+  const sectionByTool = {
+    'Customer 360': 'Customer/profile packet',
+    'Payment Verification': 'Payment verification packet',
+    'Document Viewer': 'Document packet',
+  };
+  const title = String(row.values[2] ?? row.values[1] ?? row.id).replace(/\n/g, ' · ');
+  const summary = String(row.detail).replace(/\s+/g, ' ').trim();
+  const savedAt = new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  return {
+    id: `PKT-${Date.now()}`,
+    key: `${toolName}:${row.id}`,
+    caseId: activeCase.id,
+    recordId: row.id,
+    sourceTool: toolName,
+    section: sectionByTool[toolName] ?? `${toolName} packet`,
+    title,
+    summary,
+    state: 'Saved to Case Report draft',
+    savedAt,
   };
 }
 
@@ -795,4 +873,8 @@ function makeRow(id, values, pinValue, pinLabel, tone = 'review') {
     tone,
     detail: normalizedValues.join(' '),
   };
+}
+
+function formatLines(value) {
+  return String(value).split('\n').map((line, index) => <small key={`${line}-${index}`}>{line}</small>);
 }
