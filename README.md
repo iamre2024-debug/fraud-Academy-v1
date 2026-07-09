@@ -130,12 +130,13 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - `npm run verify` now runs the Evidence First wording check and Vite production build locally
 - The GitHub Actions workflow runs the same verify command on pushes and pull requests to `main`
 - Evidence First search sweep completed for answer-leaking wording
+- The Evidence First wording guard now distinguishes prohibited pre-submission answer leaks from allowed lock-state and post-submission Luna scoring language.
 
 ## Latest handoff
 
-The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, the locked Submit Decision package flow, Agent ID note archiving, post-submission Luna debrief, Academy Progress, live category sub-tool switching, desktop command-center density, richer Expand/History/Generated Report states, deeper neutral packet details, structured Case Report packet saving, and a verification layer for Evidence First wording plus production build checks.
+The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, the locked Submit Decision package flow, Agent ID note archiving, post-submission Luna debrief, Academy Progress, live category sub-tool switching, desktop command-center density, richer Expand/History/Generated Report states, deeper neutral packet details, structured Case Report packet saving, and a verification layer for Evidence First wording plus production build checks. The latest CI screenshot showed the combined verify step failing, so the Evidence First wording guard was refined to allow lock-state wording and post-submission scoring areas while still flagging protected pre-submission leak phrases.
 
-Next step: run full local and GitHub Actions build/browser QA, then continue improving record-specific packet depth and interaction polish inside Customer 360, Payment Verification, Document Viewer, Link Analysis, Timeline, and Case Report.
+Next step: re-run GitHub Actions verify, confirm the build result, then continue improving record-specific packet depth and interaction polish inside Customer 360, Payment Verification, Document Viewer, Link Analysis, Timeline, and Case Report.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
