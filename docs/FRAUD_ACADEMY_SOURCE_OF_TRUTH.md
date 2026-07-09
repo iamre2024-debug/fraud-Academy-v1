@@ -127,6 +127,14 @@ Investigator question: What have I completed, what still needs review, and how d
 
 Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision flow, and post-submission Luna debrief.
 
+## Current v1.0 implementation anchors
+
+- The screenshot-driven visual shell is the active app entrypoint. Keep the ornate desktop command-center layout and mobile bottom-navigation polish intact while reconnecting behavior.
+- Visual-shell Investigation Tray, case notes, agent notepad, reviewed tools, decision drafts, review packages, and Case Report packets persist in browser storage by case.
+- Ornate category tiles must show neutral progress only: open, in progress, complete, reviewed count, and progress track. They must not label evidence quality or case outcome.
+- Submit Decision remains locked until the required tool checklist, pinned evidence, case notes, learner choice, and evidence-based rationale are present.
+- Luna scoring, strengths, follow-up coaching, and decision-quality breakdown stay hidden until a review package is saved.
+
 ## Build waves
 
 1. App Shell + Case Workspace foundation.
