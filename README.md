@@ -61,6 +61,9 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Visual tool reconnection styling in `src/visualFunctional.css`
 - Evidence First review/status styling in `src/visualReviewFlow.css`
 - Desktop visual command-center layout styling in `src/visualDesktopCommand.css`
+- Bottom navigation behavior in `src/visualNavPatch.js`
+- Functional QA control wiring in `src/visualQaPatch.js`
+- Functional QA checklist in `docs/FUNCTIONAL_QA_CHECKLIST.md`
 - Evidence First wording check in `scripts/evidence-first-check.mjs`
 - GitHub Actions verify workflow in `.github/workflows/build.yml`
 - Case Queue with Account Takeover, Chargeback Claim, and Credit Risk Review cases
@@ -127,6 +130,7 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Expanded records now save structured Case Report packets for profile, payment, document, and other tool records while deduping repeat saves by tool and record
 - Saved Case Report packets persist by case, appear in the ornate notebook packet panel, flow into Case Report rows, snapshot into saved review packages, and count toward Luna post-submission documentation scoring
 - Submit Decision now surfaces a neutral package input preview showing reviewed tools, pinned objects, notes, and the specific Case Report packet feed that will snapshot into the learner review package
+- Functional QA pass now maps visible UI elements to expected behavior, identifies no-op/decorative controls, and wires the remaining button-shaped controls into Tool Map and Evidence Center navigation
 - New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, visual sub-tool controls, desktop visual command-center layout, expandable record review states, and Evidence First review status affordances
 - `npm run verify` now runs the Evidence First wording check and Vite production build locally
 - The GitHub Actions workflow runs the same verify command on pushes and pull requests to `main`
@@ -135,9 +139,9 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 
 ## Latest handoff
 
-The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, the locked Submit Decision package flow, Agent ID note archiving, post-submission Luna debrief, Academy Progress, live category sub-tool switching, desktop command-center density, richer Expand/History/Generated Report states, deeper neutral packet details, structured Case Report packet saving, and a verification layer for Evidence First wording plus production build checks. The latest pass connected Submit Decision more tightly to the Case Report packet flow by adding a neutral package input preview and packet-feed snapshot to the review package model without changing the ornate visual shell.
+A functional QA pass is now active. The repo includes `docs/FUNCTIONAL_QA_CHECKLIST.md`, which maps visible controls to expected investigator behavior and flags anything that is still only informational or temporary. The latest patch wires the category `View All` control into the Academy tool map and changes the tray status button into an Evidence Center route.
 
-Next step: re-run GitHub Actions verify, confirm the build result, then continue improving record-specific packet depth and interaction polish inside Customer 360, Payment Verification, Document Viewer, Link Analysis, Timeline, and Case Report.
+Next step: run the manual smoke path in `docs/FUNCTIONAL_QA_CHECKLIST.md`, run `npm run verify`, then replace the temporary DOM navigation patches with React-native state once the user confirms the behavior feels right.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -148,3 +152,22 @@ npm install
 npm run verify
 npm run dev
 ```
+
+## Build
+
+```bash
+npm run build
+```
+
+## Next waves
+
+1. App Shell + Case Workspace foundation
+2. Case Workspace core behavior
+3. Main consumer investigation tools
+4. Business, payroll, payment, and credit tools
+5. Scenario Engine
+6. Luna debrief, scoring, and academy progress
+
+## Test status
+
+The repo has been updated through the GitHub connector. Local build testing still needs to be run in a connected development environment because this execution runtime could not resolve github.com for cloning.
