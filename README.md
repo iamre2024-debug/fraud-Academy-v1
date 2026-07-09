@@ -126,6 +126,7 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Customer 360 profile-history records now include more documentable packet details for profile views, statement views, contact-history checks, payment-method additions, and account setup events
 - Expanded records now save structured Case Report packets for profile, payment, document, and other tool records while deduping repeat saves by tool and record
 - Saved Case Report packets persist by case, appear in the ornate notebook packet panel, flow into Case Report rows, snapshot into saved review packages, and count toward Luna post-submission documentation scoring
+- Submit Decision now surfaces a neutral package input preview showing reviewed tools, pinned objects, notes, and the specific Case Report packet feed that will snapshot into the learner review package
 - New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, visual sub-tool controls, desktop visual command-center layout, expandable record review states, and Evidence First review status affordances
 - `npm run verify` now runs the Evidence First wording check and Vite production build locally
 - The GitHub Actions workflow runs the same verify command on pushes and pull requests to `main`
@@ -134,7 +135,7 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 
 ## Latest handoff
 
-The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, the locked Submit Decision package flow, Agent ID note archiving, post-submission Luna debrief, Academy Progress, live category sub-tool switching, desktop command-center density, richer Expand/History/Generated Report states, deeper neutral packet details, structured Case Report packet saving, and a verification layer for Evidence First wording plus production build checks. The latest CI screenshot showed the combined verify step failing, so the Evidence First wording guard was refined to allow lock-state wording and post-submission scoring areas while still flagging protected pre-submission leak phrases.
+The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, the locked Submit Decision package flow, Agent ID note archiving, post-submission Luna debrief, Academy Progress, live category sub-tool switching, desktop command-center density, richer Expand/History/Generated Report states, deeper neutral packet details, structured Case Report packet saving, and a verification layer for Evidence First wording plus production build checks. The latest pass connected Submit Decision more tightly to the Case Report packet flow by adding a neutral package input preview and packet-feed snapshot to the review package model without changing the ornate visual shell.
 
 Next step: re-run GitHub Actions verify, confirm the build result, then continue improving record-specific packet depth and interaction polish inside Customer 360, Payment Verification, Document Viewer, Link Analysis, Timeline, and Case Report.
 
