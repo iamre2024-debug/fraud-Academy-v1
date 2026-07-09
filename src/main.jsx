@@ -5,6 +5,7 @@ import './visualWorkspace.css';
 import './visualPolish.css';
 import './mobileViewportFix.css';
 import './visualFunctional.css';
+import './visualReviewFlow.css';
 import './visualDesktopCommand.css';
 
 createRoot(document.getElementById('root')).render(
