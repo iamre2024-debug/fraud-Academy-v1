@@ -1,34 +1,74 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { trainingCases } from './data/cases.js';
 import { financialRecordsByCase } from './data/financialRecords.js';
 import { businessRecordsByCase } from './data/businessRecords.js';
 import { evidenceRecordsByCase } from './data/evidenceRecords.js';
+import { buildReviewPackage, getReviewPackageStatus, reviewChoices } from './data/reviewPackage.js';
+
+const AGENT_ID = 'AGT-TRAIN-001';
+const defaultDecisionDraft = { choice: '', confidence: 'Medium', reason: '' };
 
 const categories = [
-  { key: 'identity', label: 'Identity', icon: '▣', tool: 'Customer 360' },
-  { key: 'digital', label: 'Digital Activity', icon: '⌁', tool: 'Login History' },
-  { key: 'financial', label: 'Financial', icon: '$', tool: 'Transaction History' },
-  { key: 'business', label: 'Business', icon: '⌂', tool: 'Business 360' },
-  { key: 'evidence', label: 'Evidence', icon: '▰', tool: 'Evidence Center' },
-  { key: 'connections', label: 'Connections', icon: '⌘', tool: 'Link Analysis' },
-  { key: 'investigation', label: 'Investigation', icon: '⌕', tool: 'Case Report' },
+  { key: 'identity', label: 'Identity', icon: '▣', tool: 'Customer 360', reviewTools: ['Customer 360', 'Identity Intelligence'] },
+  { key: 'digital', label: 'Digital Activity', icon: '⌁', tool: 'Login History', reviewTools: ['Login History'] },
+  { key: 'financial', label: 'Financial', icon: '$', tool: 'Transaction History', reviewTools: ['Transaction History'] },
+  { key: 'business', label: 'Business', icon: '⌂', tool: 'Business 360', reviewTools: ['Business 360'] },
+  { key: 'evidence', label: 'Evidence', icon: '▰', tool: 'Evidence Center', reviewTools: ['Evidence Center'] },
+  { key: 'connections', label: 'Connections', icon: '⌘', tool: 'Link Analysis', reviewTools: ['Link Analysis'] },
+  { key: 'investigation', label: 'Investigation', icon: '⌕', tool: 'Case Report', reviewTools: ['Case Report'] },
 ];
 
-const defaultNotes = [
-  { icon: '▯', text: 'Open the relevant records, compare the story against evidence, and document what is still missing.' },
-  { icon: '◎', text: 'Pin identifiers that matter: Training ID, device, IP, transaction, document, or payment object.' },
-  { icon: '⚿', text: 'Keep the final decision locked until the learner submits a review package.' },
-];
+const defaultNotesByCase = {
+  'FA-ATO-24018': ['Case rationale · Customer states they did not authorize the purchase.', 'Investigation note · Need to compare login/device activity before decision.'],
+  'FA-CB-24007': ['Investigation note · Opened billing dispute workspace. Review customer allegation and merchant records.'],
+  'FA-CR-24003': ['Investigation note · Opened credit review workspace. Review system alert and payment verification records.'],
+};
+
+const defaultCompletedTools = {
+  'FA-ATO-24018': ['Case Summary', 'Customer 360'],
+  'FA-CB-24007': ['Case Summary'],
+  'FA-CR-24003': ['Case Summary'],
+};
+
+function readStorage(key, fallback) {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const saved = window.localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeStorage(key, value) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(key, JSON.stringify(value));
+}
+
+function defaultTrayFor(caseId) {
+  const trainingCase = trainingCases.find((item) => item.id === caseId) ?? trainingCases[0];
+  return [trainingCase.trainingId];
+}
 
 export default function VisualWorkspace() {
   const [activeCaseId, setActiveCaseId] = useState(trainingCases[0].id);
   const [activeCategory, setActiveCategory] = useState('digital');
   const [query, setQuery] = useState('');
-  const [tray, setTray] = useState([trainingCases[0].trainingId]);
-  const [notes, setNotes] = useState(defaultNotes);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [trayByCase, setTrayByCase] = useState(() => readStorage('fraud-academy-visual-tray-v1', {}));
+  const [notesByCase, setNotesByCase] = useState(() => readStorage('fraud-academy-notes-v1', defaultNotesByCase));
+  const [completedToolsByCase, setCompletedToolsByCase] = useState(() => readStorage('fraud-academy-completed-tools-v1', defaultCompletedTools));
+  const [decisionDraftsByCase, setDecisionDraftsByCase] = useState(() => readStorage('fraud-academy-decision-drafts-v1', {}));
+  const [reviewPackagesByCase, setReviewPackagesByCase] = useState(() => readStorage('fraud-academy-review-packages-v1', {}));
 
   const activeCase = useMemo(() => trainingCases.find((item) => item.id === activeCaseId) ?? trainingCases[0], [activeCaseId]);
   const activeCategoryConfig = useMemo(() => categories.find((item) => item.key === activeCategory) ?? categories[1], [activeCategory]);
+  const tray = trayByCase[activeCase.id] ?? defaultTrayFor(activeCase.id);
+  const notes = notesByCase[activeCase.id] ?? defaultNotesByCase[activeCase.id] ?? [`Investigation note · Opened ${activeCase.id} workspace.`];
+  const currentCompleted = completedToolsByCase[activeCase.id] ?? ['Case Summary'];
+  const decisionDraft = decisionDraftsByCase[activeCase.id] ?? defaultDecisionDraft;
+  const reviewPackages = reviewPackagesByCase[activeCase.id] ?? [];
+  const packageStatus = useMemo(() => getReviewPackageStatus({ completedTools: currentCompleted, tray, notes, draft: decisionDraft }), [currentCompleted, tray, notes, decisionDraft]);
   const records = useMemo(() => buildToolRows(activeCategory, activeCase), [activeCategory, activeCase]);
   const filteredRows = useMemo(() => {
     const clean = query.trim().toLowerCase();
@@ -36,19 +76,87 @@ export default function VisualWorkspace() {
     return records.rows.filter((row) => row.values.some((value) => String(value).toLowerCase().includes(clean)) || row.detail.toLowerCase().includes(clean));
   }, [records.rows, query]);
 
+  useEffect(() => writeStorage('fraud-academy-visual-tray-v1', trayByCase), [trayByCase]);
+  useEffect(() => writeStorage('fraud-academy-notes-v1', notesByCase), [notesByCase]);
+  useEffect(() => writeStorage('fraud-academy-completed-tools-v1', completedToolsByCase), [completedToolsByCase]);
+  useEffect(() => writeStorage('fraud-academy-decision-drafts-v1', decisionDraftsByCase), [decisionDraftsByCase]);
+  useEffect(() => writeStorage('fraud-academy-review-packages-v1', reviewPackagesByCase), [reviewPackagesByCase]);
+
   function openCase(caseId) {
-    const nextCase = trainingCases.find((item) => item.id === caseId) ?? trainingCases[0];
-    setActiveCaseId(nextCase.id);
+    setActiveCaseId(caseId);
     setActiveCategory('digital');
     setQuery('');
-    setTray([nextCase.trainingId]);
-    setNotes(defaultNotes);
+    setNoteDraft('');
+    setTrayByCase((current) => current[caseId] ? current : { ...current, [caseId]: defaultTrayFor(caseId) });
+    setNotesByCase((current) => current[caseId] ? current : { ...current, [caseId]: [`Investigation note · Opened ${caseId} workspace. Review the allegation before deciding next steps.`] });
+    setCompletedToolsByCase((current) => current[caseId] ? current : { ...current, [caseId]: ['Case Summary'] });
+  }
+
+  function saveNote(text, type = 'Investigation note') {
+    const clean = text.trim();
+    if (!clean) return;
+    const timestamp = new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const caseLine = `${timestamp} · ${type} · ${clean}`;
+    setNotesByCase((current) => ({ ...current, [activeCase.id]: [caseLine, ...(current[activeCase.id] ?? [])] }));
   }
 
   function pinEvidence(value, label = 'Pinned object') {
     if (!value) return;
-    setTray((current) => current.includes(value) ? current : [...current, value]);
-    setNotes((current) => [{ icon: '📌', text: `${label} pinned: ${value}` }, ...current]);
+    setTrayByCase((current) => {
+      const caseTray = current[activeCase.id] ?? defaultTrayFor(activeCase.id);
+      return caseTray.includes(value) ? current : { ...current, [activeCase.id]: [...caseTray, value] };
+    });
+    saveNote(`${label} pinned: ${value}`, 'Evidence note');
+  }
+
+  function markReviewed(categoryConfig = activeCategoryConfig) {
+    setCompletedToolsByCase((current) => {
+      const caseTools = current[activeCase.id] ?? ['Case Summary'];
+      const nextTools = [...new Set([...caseTools, ...categoryConfig.reviewTools])];
+      return { ...current, [activeCase.id]: nextTools };
+    });
+    saveNote(`${categoryConfig.tool}: reviewed and neutral report generated.`, 'Tool review');
+  }
+
+  function updateDecisionDraft(field, value) {
+    setDecisionDraftsByCase((current) => ({
+      ...current,
+      [activeCase.id]: { ...(current[activeCase.id] ?? defaultDecisionDraft), [field]: value },
+    }));
+  }
+
+  function submitManualNote(event) {
+    event.preventDefault();
+    saveNote(noteDraft, 'Investigation note');
+    setNoteDraft('');
+  }
+
+  function submitReviewPackage(event) {
+    event.preventDefault();
+    const draft = decisionDraftsByCase[activeCase.id] ?? defaultDecisionDraft;
+    const status = getReviewPackageStatus({ completedTools: currentCompleted, tray, notes, draft });
+
+    if (!status.ready) {
+      saveNote(`Submit Decision checklist checked. ${status.messages[0]}`, 'Decision checklist');
+      return;
+    }
+
+    const reviewPackage = buildReviewPackage({
+      caseId: activeCase.id,
+      agentId: AGENT_ID,
+      draft,
+      completedTools: currentCompleted,
+      tray,
+      notes,
+      packageStatus: status,
+    });
+
+    setReviewPackagesByCase((current) => ({ ...current, [activeCase.id]: [reviewPackage, ...(current[activeCase.id] ?? [])] }));
+    setCompletedToolsByCase((current) => {
+      const caseTools = current[activeCase.id] ?? ['Case Summary'];
+      return { ...current, [activeCase.id]: [...new Set([...caseTools, 'Submit Decision'])] };
+    });
+    saveNote('Submit Decision: learner review package saved. Post-submission debrief can unlock from saved package state.', 'Decision package');
   }
 
   return (
@@ -57,7 +165,7 @@ export default function VisualWorkspace() {
         <VisualHero />
         <CaseInfoBar activeCase={activeCase} activeCaseId={activeCaseId} openCase={openCase} />
         <CaseSummaryCard activeCase={activeCase} pinEvidence={pinEvidence} setActiveCategory={setActiveCategory} />
-        <InvestigationCategories activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
+        <InvestigationCategories activeCategory={activeCategory} setActiveCategory={setActiveCategory} completedTools={currentCompleted} />
         <EvidencePanel
           activeCategoryConfig={activeCategoryConfig}
           records={records}
@@ -65,8 +173,17 @@ export default function VisualWorkspace() {
           query={query}
           setQuery={setQuery}
           pinEvidence={pinEvidence}
+          markReviewed={markReviewed}
         />
-        <BottomInvestigationGrid tray={tray} notes={notes} pinEvidence={pinEvidence} />
+        <SubmitDecisionPanel
+          activeCase={activeCase}
+          decisionDraft={decisionDraft}
+          updateDecisionDraft={updateDecisionDraft}
+          packageStatus={packageStatus}
+          reviewPackages={reviewPackages}
+          submitReviewPackage={submitReviewPackage}
+        />
+        <BottomInvestigationGrid tray={tray} notes={notes} noteDraft={noteDraft} setNoteDraft={setNoteDraft} submitManualNote={submitManualNote} pinEvidence={pinEvidence} />
         <VisualBottomNav />
       </section>
     </main>
@@ -126,24 +243,29 @@ function CaseSummaryCard({ activeCase, pinEvidence, setActiveCategory }) {
   );
 }
 
-function InvestigationCategories({ activeCategory, setActiveCategory }) {
+function InvestigationCategories({ activeCategory, setActiveCategory, completedTools }) {
   return (
     <section className="visual-categories" aria-label="Investigation categories">
       <div className="visual-section-heading"><h2>✦ Investigation Categories</h2><button>View All ›</button></div>
       <div className="visual-category-row">
-        {categories.map((item) => (
-          <button key={item.key} className={activeCategory === item.key ? 'active' : ''} onClick={() => setActiveCategory(item.key)}>
-            <span>{item.icon}</span>
-            <strong>{item.label}</strong>
-            {activeCategory === item.key && <i>♥</i>}
-          </button>
-        ))}
+        {categories.map((item) => {
+          const reviewedCount = item.reviewTools.filter((tool) => completedTools.includes(tool)).length;
+          const isReviewed = reviewedCount === item.reviewTools.length;
+          return (
+            <button key={item.key} className={`${activeCategory === item.key ? 'active' : ''} ${isReviewed ? 'reviewed' : ''}`} onClick={() => setActiveCategory(item.key)}>
+              <span>{item.icon}</span>
+              <strong>{item.label}</strong>
+              <em>{reviewedCount}/{item.reviewTools.length}</em>
+              {activeCategory === item.key && <i>♥</i>}
+            </button>
+          );
+        })}
       </div>
     </section>
   );
 }
 
-function EvidencePanel({ activeCategoryConfig, records, rows, query, setQuery, pinEvidence }) {
+function EvidencePanel({ activeCategoryConfig, records, rows, query, setQuery, pinEvidence, markReviewed }) {
   return (
     <section className="ornate-card activity-panel">
       <div className="activity-heading">
@@ -161,7 +283,7 @@ function EvidencePanel({ activeCategoryConfig, records, rows, query, setQuery, p
         </div>
         {rows.map((row) => <ActivityRow key={row.id} row={row} pinEvidence={pinEvidence} />)}
       </div>
-      <button className="view-full-button">✦ Generate Neutral Tool Report ›</button>
+      <button className="view-full-button" onClick={() => markReviewed(activeCategoryConfig)}>✦ Generate Neutral Tool Report ›</button>
     </section>
   );
 }
@@ -177,22 +299,69 @@ function ActivityRow({ row, pinEvidence }) {
   );
 }
 
+function SubmitDecisionPanel({ activeCase, decisionDraft, updateDecisionDraft, packageStatus, reviewPackages, submitReviewPackage }) {
+  return (
+    <section className="ornate-card submit-decision-panel">
+      <div className="card-title-row">
+        <div>
+          <h2>🪄 Submit Decision</h2>
+          <p>Locked checklist. No Luna scoring or answer reveal until a learner package is saved.</p>
+        </div>
+        <span>☾</span>
+      </div>
+      <div className="decision-status-grid">
+        <div><strong>{packageStatus.reviewedRequired}/{packageStatus.totalRequired}</strong><span>Required tools</span></div>
+        <div><strong>{reviewPackages.length}</strong><span>Saved packages</span></div>
+        <div><strong>{packageStatus.ready ? 'Ready' : 'Locked'}</strong><span>Package state</span></div>
+      </div>
+      <div className="decision-checklist">
+        {packageStatus.messages.map((message) => <p key={message}>✦ {message}</p>)}
+      </div>
+      <form className="decision-form" onSubmit={submitReviewPackage}>
+        <label>
+          Learner choice
+          <select value={decisionDraft.choice} onChange={(event) => updateDecisionDraft('choice', event.target.value)}>
+            <option value="">Select neutral choice...</option>
+            {reviewChoices.map((choice) => <option key={choice} value={choice}>{choice}</option>)}
+          </select>
+        </label>
+        <label>
+          Confidence
+          <select value={decisionDraft.confidence} onChange={(event) => updateDecisionDraft('confidence', event.target.value)}>
+            <option>Low</option>
+            <option>Medium</option>
+            <option>High</option>
+          </select>
+        </label>
+        <label className="decision-rationale">
+          Learner rationale
+          <textarea value={decisionDraft.reason} onChange={(event) => updateDecisionDraft('reason', event.target.value)} placeholder={`Write the evidence-based rationale for ${activeCase.id}.`} />
+        </label>
+        <button className="primary-action" type="submit">Save / Check Review Package</button>
+      </form>
+    </section>
+  );
+}
+
 function formatLines(value) {
   return String(value).split('\n').map((line) => <small key={line}>{line}</small>);
 }
 
-function BottomInvestigationGrid({ tray, notes, pinEvidence }) {
+function BottomInvestigationGrid({ tray, notes, noteDraft, setNoteDraft, submitManualNote, pinEvidence }) {
   return (
     <section className="bottom-investigation-grid">
       <div className="ornate-card tray-card">
         <div className="card-title-row"><div><h2>▰ Investigation Tray</h2><p>Pinned Evidence & Key Identifiers</p></div><span>🦋</span></div>
         <div className="tray-list">{tray.map((value, index) => <div key={`${value}-${index}`}><span>▯</span><strong>Pinned</strong><em>{value}</em><button onClick={() => pinEvidence(value, 'Tray item')}>📌</button></div>)}</div>
-        <button className="add-evidence">✦ + Add Evidence</button>
+        <button className="add-evidence">✦ Evidence is saved by case</button>
       </div>
       <div className="ornate-card notebook-card">
-        <div className="card-title-row"><div><h2>📖 Investigation Notebook</h2><p>Suggested Findings, Evidence Based</p></div><span>🐈‍⬛</span></div>
-        <div className="notebook-list">{notes.map((item, index) => <button key={`${item.text}-${index}`}><span>{item.icon}</span><p>{item.text}</p><em>›</em></button>)}</div>
-        <button className="add-evidence">Open Notebook ›</button>
+        <div className="card-title-row"><div><h2>📖 Investigation Notebook</h2><p>Saved notes stay with the active case</p></div><span>🐈‍⬛</span></div>
+        <form className="notebook-compose" onSubmit={submitManualNote}>
+          <textarea value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} placeholder="Type an investigation note..." />
+          <button type="submit">Save Note</button>
+        </form>
+        <div className="notebook-list">{notes.map((item, index) => <button key={`${item}-${index}`}><span>✎</span><p>{item}</p><em>›</em></button>)}</div>
       </div>
     </section>
   );
@@ -239,7 +408,7 @@ function buildToolRows(category, activeCase) {
   if (category === 'evidence') {
     return {
       columns: ['Record ID', 'Status', 'Document', 'Detail', 'Case', 'Object', 'Action'],
-      rows: evidence.evidence.map((record) => makeRow(record.id, [record.id, record.status, record.name, record.detail, activeCase.id, 'Evidence packet', 'Pin'], record.id, 'Evidence')),
+      rows: evidence.evidence.map((record) => makeRow(record.id, [record.id, record.status, record.name, record.detail ?? record.summary ?? record.preview ?? 'Evidence detail available', activeCase.id, record.linkedObject ?? 'Evidence packet', 'Pin'], record.id, 'Evidence')),
     };
   }
 
