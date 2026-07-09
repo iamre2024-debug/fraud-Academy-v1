@@ -83,7 +83,12 @@
   }
 
   .activity-table {
-    max-height: 610px;
+    max-height: 430px;
+    overflow: auto;
+  }
+
+  .record-detail-panel {
+    max-height: 360px;
     overflow: auto;
   }
 
@@ -153,7 +158,11 @@
   }
 
   .activity-table {
-    max-height: 680px;
+    max-height: 500px;
+  }
+
+  .record-detail-panel {
+    max-height: 390px;
   }
 
   .tray-list,
