@@ -122,14 +122,19 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Document Viewer records now include richer packet previews and field inventories for customer, merchant, alert, payment, account setup, and requested-document packets
 - Payment Verification records now include deeper training-safe packet context for payment instruments, destination objects, authorization trails, dispute packets, Bank Codes, Destination IDs, and verification packets
 - Customer 360 profile-history records now include more documentable packet details for profile views, statement views, contact-history checks, payment-method additions, and account setup events
-- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, visual sub-tool controls, desktop visual command-center layout, expandable record review states, and Evidence First review status affordances
+- Expanded records can now save structured Case Report packets in addition to neutral notebook notes
+- Structured Case Report packets persist by case in localStorage, render in the notebook packet panel, and appear as rows inside the Case Report tool
+- Submit Decision snapshots structured Case Report packets in the saved learner review package
+- Luna's post-submission debrief now includes structured report packets in scoring and strengths after the review package is saved
+- Category tiles now include progress bars and status copy in addition to reviewed counts
+- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, visual sub-tool controls, desktop visual command-center layout, expandable record review states, structured packet save states, and Evidence First review status affordances
 - Evidence First search sweep completed for answer-leaking wording
 
 ## Latest handoff
 
-The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, the locked Submit Decision package flow, Agent ID note archiving, post-submission Luna debrief, Academy Progress, live category sub-tool switching, desktop command-center density, richer Expand/History/Generated Report states, deeper neutral packet details, and an additional review-status polish layer that makes active/reviewed category state and Evidence First locking easier to see without changing the visual direction.
+The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, the locked Submit Decision package flow, Agent ID note archiving, post-submission Luna debrief, Academy Progress, live category sub-tool switching, desktop command-center density, richer Expand/History/Generated Report states, deeper neutral packet details, and a structured Case Report packet flow. Expanded records can now save reusable report packets by case, surface them in the ornate notebook area, include them in Case Report rows, snapshot them into Submit Decision packages, and feed Luna's post-submission scoring without changing the pre-submission Evidence First lock.
 
-Next step: run full local build/browser QA, then wire record-specific packet actions so document/payment/profile packets can be saved as structured case report sections instead of only saved as neutral notes.
+Next step: run full local build/browser QA, then connect saved structured packets to editable Case Report sections with reorder/delete controls and clearer packet grouping.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -157,4 +162,4 @@ npm run build
 
 ## Test status
 
-The repo has been updated through the GitHub connector. This pass reviewed `docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md`, kept the React + Vite visual shell, added review-status styling, loaded that styling through `src/main.jsx`, and tightened the locked review package checklist in `src/data/reviewPackage.js`. Full local Vite build/browser testing still needs to be run in a connected development environment because this execution runtime cannot clone from github.com or install dependencies.
+The repo has been updated through the GitHub connector. This pass reviewed `docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md`, preserved Evidence First, kept the React + Vite visual shell, added structured Case Report packet persistence/actions, updated review package snapshots, fed saved packets into post-submission Luna scoring, and polished packet/progress styling. Full local Vite build/browser testing still needs to be run in a connected development environment because this execution runtime cannot clone from github.com or install dependencies.
