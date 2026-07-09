@@ -4,7 +4,7 @@ import path from 'node:path';
 const rootDir = process.cwd();
 const sourceDir = path.join(rootDir, 'src');
 
-const bannedPreSubmissionPatterns = [
+const protectedPhraseRules = [
   { label: 'fraud score', pattern: /fraud\s+score/i },
   { label: 'red flag wording', pattern: /red\s+flags?/i },
   { label: 'green flag wording', pattern: /green\s+flags?/i },
@@ -14,6 +14,12 @@ const bannedPreSubmissionPatterns = [
   { label: 'final answer wording', pattern: /final\s+answer/i },
   { label: 'decision hint wording', pattern: /decision\s+hints?/i },
 ];
+
+const allowedLockContext = /\b(no|never|not|without|locked|lock|until|after|post[-\s]?submission|before submission|before the learner submits|must not|do not reveal|stays locked|keeps? .* locked|preserving evidence first)\b/i;
+const allowedPostSubmissionFiles = new Set([
+  path.join('src', 'AcademyProgress.jsx'),
+  path.join('src', 'data', 'lunaDebrief.js'),
+]);
 
 function walkDirectory(directory) {
   if (!fs.existsSync(directory)) return [];
@@ -25,15 +31,28 @@ function walkDirectory(directory) {
   });
 }
 
+function normalizeRelative(file) {
+  return path.relative(rootDir, file).split(path.sep).join('/');
+}
+
+function isAllowedUse({ relativeFile, lineText }) {
+  if (allowedPostSubmissionFiles.has(relativeFile)) return true;
+  return allowedLockContext.test(lineText);
+}
+
 const violations = [];
 
 for (const file of walkDirectory(sourceDir)) {
-  const text = fs.readFileSync(file, 'utf8');
-  for (const rule of bannedPreSubmissionPatterns) {
-    if (rule.pattern.test(text)) {
-      violations.push(`${path.relative(rootDir, file)} contains ${rule.label}`);
+  const relativeFile = normalizeRelative(file);
+  const lines = fs.readFileSync(file, 'utf8').split('\n');
+
+  lines.forEach((lineText, index) => {
+    for (const rule of protectedPhraseRules) {
+      if (!rule.pattern.test(lineText)) continue;
+      if (isAllowedUse({ relativeFile, lineText })) continue;
+      violations.push(`${relativeFile}:${index + 1} contains ${rule.label}: ${lineText.trim()}`);
     }
-  }
+  });
 }
 
 if (violations.length) {
