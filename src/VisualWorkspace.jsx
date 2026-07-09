@@ -85,6 +85,7 @@ export default function VisualWorkspace() {
   const [activeCategory, setActiveCategory] = useState('digital');
   const [activeTool, setActiveTool] = useState('Login History');
   const [query, setQuery] = useState('');
+  const [expandedRowId, setExpandedRowId] = useState('');
   const [noteDraft, setNoteDraft] = useState('');
   const [trayByCase, setTrayByCase] = useState(() => readStorage('fraud-academy-visual-tray-v1', {}));
   const [notesByCase, setNotesByCase] = useState(() => readStorage('fraud-academy-notes-v1', defaultNotesByCase));
@@ -110,6 +111,7 @@ export default function VisualWorkspace() {
     if (!clean) return records.rows;
     return records.rows.filter((row) => row.values.some((value) => String(value).toLowerCase().includes(clean)) || row.detail.toLowerCase().includes(clean));
   }, [records.rows, query]);
+  const expandedRow = useMemo(() => filteredRows.find((row) => row.id === expandedRowId) ?? filteredRows[0] ?? null, [filteredRows, expandedRowId]);
 
   useEffect(() => writeStorage('fraud-academy-visual-tray-v1', trayByCase), [trayByCase]);
   useEffect(() => writeStorage('fraud-academy-notes-v1', notesByCase), [notesByCase]);
@@ -117,6 +119,7 @@ export default function VisualWorkspace() {
   useEffect(() => writeStorage('fraud-academy-completed-tools-v1', completedToolsByCase), [completedToolsByCase]);
   useEffect(() => writeStorage('fraud-academy-decision-drafts-v1', decisionDraftsByCase), [decisionDraftsByCase]);
   useEffect(() => writeStorage('fraud-academy-review-packages-v1', reviewPackagesByCase), [reviewPackagesByCase]);
+  useEffect(() => setExpandedRowId(''), [activeCaseId, activeTool]);
 
   function selectCategory(categoryKey) {
     const nextCategory = getCategoryByKey(categoryKey);
@@ -217,6 +220,7 @@ export default function VisualWorkspace() {
         <CaseSummaryCard activeCase={activeCase} pinEvidence={pinEvidence} selectCategory={selectCategory} />
         <InvestigationCategories activeCategory={activeCategory} selectCategory={selectCategory} completedTools={currentCompleted} />
         <EvidencePanel
+          activeCase={activeCase}
           activeCategoryConfig={activeCategoryConfig}
           activeTool={activeTool}
           selectTool={selectTool}
@@ -224,7 +228,11 @@ export default function VisualWorkspace() {
           rows={filteredRows}
           query={query}
           setQuery={setQuery}
+          expandedRow={expandedRow}
+          expandedRowId={expandedRowId}
+          setExpandedRowId={setExpandedRowId}
           pinEvidence={pinEvidence}
+          saveNote={saveNote}
           markReviewed={markReviewed}
           isReviewed={currentCompleted.includes(activeTool)}
         />
@@ -320,7 +328,7 @@ function InvestigationCategories({ activeCategory, selectCategory, completedTool
   );
 }
 
-function EvidencePanel({ activeCategoryConfig, activeTool, selectTool, records, rows, query, setQuery, pinEvidence, markReviewed, isReviewed }) {
+function EvidencePanel({ activeCase, activeCategoryConfig, activeTool, selectTool, records, rows, query, setQuery, expandedRow, expandedRowId, setExpandedRowId, pinEvidence, saveNote, markReviewed, isReviewed }) {
   return (
     <section className="ornate-card activity-panel">
       <div className="activity-heading">
@@ -345,22 +353,121 @@ function EvidencePanel({ activeCategoryConfig, activeTool, selectTool, records, 
         <div className="activity-row table-head" role="row">
           {records.columns.map((column) => <span key={column}>{column}</span>)}
         </div>
-        {rows.map((row) => <ActivityRow key={row.id} row={row} pinEvidence={pinEvidence} />)}
+        {rows.map((row) => (
+          <ActivityRow
+            key={row.id}
+            row={row}
+            isExpanded={(expandedRowId ? expandedRowId === row.id : expandedRow?.id === row.id)}
+            setExpandedRowId={setExpandedRowId}
+            pinEvidence={pinEvidence}
+          />
+        ))}
       </div>
+      <RecordDetailPanel
+        row={expandedRow}
+        activeTool={activeTool}
+        activeCase={activeCase}
+        saveNote={saveNote}
+        markReviewed={markReviewed}
+        isReviewed={isReviewed}
+      />
       <button className="view-full-button" onClick={() => markReviewed(activeTool)}>{isReviewed ? '✓ Reviewed · Generate Another Neutral Tool Report' : '✦ Generate Neutral Tool Report ›'}</button>
     </section>
   );
 }
 
-function ActivityRow({ row, pinEvidence }) {
+function ActivityRow({ row, isExpanded, setExpandedRowId, pinEvidence }) {
   return (
-    <div className="activity-row" role="row">
+    <div className={`activity-row ${isExpanded ? 'expanded' : ''}`} role="row">
       {row.values.map((value, index) => (
         <span key={`${row.id}-${index}`} className={index === 0 ? 'event-id' : index === 2 ? `result ${row.tone}` : ''}>{formatLines(value)}</span>
       ))}
-      <button className="row-pin-button" onClick={() => pinEvidence(row.pinValue, row.pinLabel)}>📌</button>
+      <div className="row-action-group">
+        <button className="row-expand-button" onClick={() => setExpandedRowId(row.id)}>{isExpanded ? 'Open' : 'Expand'}</button>
+        <button className="row-pin-button" onClick={() => pinEvidence(row.pinValue, row.pinLabel)}>📌</button>
+      </div>
     </div>
   );
+}
+
+function RecordDetailPanel({ row, activeTool, activeCase, saveNote, markReviewed, isReviewed }) {
+  if (!row) {
+    return (
+      <section className="record-detail-panel empty">
+        <strong>No matching records</strong>
+        <p>Adjust the search to reopen the record, history, link, report, timeline, and case report flow.</p>
+      </section>
+    );
+  }
+
+  const detail = buildRecordDetail(row, activeTool, activeCase);
+
+  return (
+    <section className="record-detail-panel" aria-label="Expanded neutral record review">
+      <div className="record-detail-heading">
+        <div>
+          <span>Expanded Record</span>
+          <h3>{row.id}</h3>
+        </div>
+        <button onClick={() => saveNote(`Expanded ${activeTool} record ${row.id}: ${row.detail}`, 'Expanded record')}>Save expanded note</button>
+      </div>
+
+      <div className="record-detail-grid">
+        {detail.fields.map((item) => (
+          <article key={item.label}>
+            <small>{item.label}</small>
+            <strong>{formatLines(item.value)}</strong>
+          </article>
+        ))}
+      </div>
+
+      <div className="record-review-lanes">
+        <article>
+          <h4>History</h4>
+          {detail.history.map((item) => <p key={item}>☾ {item}</p>)}
+        </article>
+        <article>
+          <h4>Link Analysis</h4>
+          {detail.links.map((item) => <p key={item}>⌘ {item}</p>)}
+        </article>
+        <article>
+          <h4>Generated Report</h4>
+          {detail.report.map((item) => <p key={item}>✦ {item}</p>)}
+          <div className="record-report-actions">
+            <button onClick={() => saveNote(detail.reportNote, 'Generated report')}>Save report note</button>
+            <button onClick={() => markReviewed(activeTool)}>{isReviewed ? 'Reviewed' : 'Mark reviewed'}</button>
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function buildRecordDetail(row, activeTool, activeCase) {
+  const fields = row.values.slice(0, 6).map((value, index) => ({ label: `Field ${index + 1}`, value }));
+  const searchTerms = row.values.slice(0, 4).filter(Boolean).map((value) => String(value).replace(/\n/g, ' · '));
+  const searchLine = searchTerms.length ? searchTerms.join(' · ') : row.id;
+
+  return {
+    fields,
+    history: [
+      `${row.id} is open inside ${activeTool} for ${activeCase.id}.`,
+      `Search terms staged: ${searchLine}.`,
+      'Record history can be compared with pinned evidence, timeline entries, and the case report draft.',
+    ],
+    links: [
+      `${row.pinLabel} object: ${row.pinValue}.`,
+      `Case object: ${activeCase.id} · ${activeCase.person}.`,
+      'Relationship view stays neutral and does not assign a final outcome before submission.',
+    ],
+    report: [
+      `Source tool: ${activeTool}.`,
+      `Case scope: ${activeCase.type} · ${activeCase.id}.`,
+      `Record summary: ${row.detail}.`,
+      'Decision state: Submit Decision remains locked until the learner package passes the checklist.',
+    ],
+    reportNote: `Neutral ${activeTool} report saved for ${row.id}. Record summary: ${row.detail}. Decision state remains locked until Submit Decision.`,
+  };
 }
 
 function SubmitDecisionPanel({ activeCase, decisionDraft, updateDecisionDraft, packageStatus, reviewPackages, submitReviewPackage }) {
