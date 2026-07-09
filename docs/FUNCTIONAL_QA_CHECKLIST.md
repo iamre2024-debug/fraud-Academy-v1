@@ -23,48 +23,48 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Case Summary | Pin Case | Add case ID to tray and notebook | Working | Keep |
 | Case Summary | Notebook | Open investigation/notebook-related workspace | Partially working | Should scroll or route more clearly |
 | Case Summary | Open First Tool | Return to Digital Activity / Login History | Working | Keep |
-| Case Summary | Long allegation / reason copy | Compact display with More / Less expansion | Working after compact text pass | Retest on mobile |
+| Case Summary | Long allegation / reason copy | Compact display with More / Less expansion | React-managed | Retest on mobile |
 | Category tiles | Identity / Digital / Financial / Business / Evidence / Connections / Investigation | Switch category and default sub-tool | Working | Keep |
 | Category tiles | Reviewed counters | Show completed sub-tool progress | Working | Keep |
 | Category tiles | Progress bars | Show progress toward category completion | Working | Keep |
 | Category heading | Tool Map | Opens Academy tool-map view | Working through React navigation event | Keep |
 | Tool panel | Sub-tool dropdown | Switch live sub-tools within category | Working | Keep |
 | Tool panel | Search bar | Filter visible records | Working | Keep |
-| Tool panel | Long purpose copy | Compact display with More / Less expansion | Working after compact text pass | Keep |
+| Tool panel | Long purpose copy | Compact display with More / Less expansion | React-managed | Keep |
 | Tool rows | Expand | Open/activate expanded record review | Working | Keep |
 | Tool rows | Pin | Add record object to tray and notebook | Working | Keep |
 | Record detail | Save expanded note | Save note into case notebook and agent archive | Working | Keep |
 | Record detail | Save report note | Save generated report note | Working | Keep |
 | Record detail | Save Case Report packet | Save structured packet by case | Working | Keep |
 | Record detail | Mark reviewed | Add selected tool to completed tools | Working | Keep |
-| Record detail | Long history/link/report copy | Compact display with More / Less expansion | Working after compact text pass | Keep |
+| Record detail | Long history/link/report copy | Compact display with More / Less expansion | React-managed | Keep |
 | Submit Decision | Checklist | Show neutral blockers only | Working | Keep Evidence First lock |
 | Submit Decision | Choice / confidence / rationale | Save learner draft inputs | Working | Keep |
 | Submit Decision | Save / Check Review Package | Save package only when checklist passes | Working | Keep |
 | Submit Decision | Package input preview | Show reviewed tools, pinned objects, notes, and Case Report packet feed neutrally | Working | Keep |
-| Submit Decision | Long checklist copy | Compact display with More / Less expansion | Working after compact text pass | Keep |
+| Submit Decision | Long checklist copy | Compact display with More / Less expansion | React-managed | Keep |
 | Luna Debrief | Locked state | Stay locked until package exists | Working | Keep |
 | Luna Debrief | Score / strengths / focus | Show only after package exists | Working | Retest after saving package |
-| Luna Debrief | Long debrief copy | Compact display with More / Less expansion | Working after compact text pass | Keep |
+| Luna Debrief | Long debrief copy | Compact display with More / Less expansion | React-managed | Keep |
 | Academy Progress | Progress cards | Read saved packages from localStorage | Working | Retest after saving package |
-| Academy Progress | Long progress copy | Compact display with More / Less expansion | Working after compact text pass | Keep |
+| Academy Progress | Long progress copy | Compact display with More / Less expansion | React-managed | Keep |
 | Investigation Tray | Pinned objects | Show current case pinned evidence | Working | Keep |
 | Investigation Tray | Open Evidence Center | Route user to Evidence Center workspace | Working through React navigation event | Keep |
 | Notebook | Textarea + Save Note | Save note to case and agent archive | Working | Keep |
 | Notebook | Case Report packets panel | Show saved packet feed | Working | Keep |
 | Notebook | Agent archive panel | Show agent notes by Agent ID | Working | Keep |
-| Notebook | Long note text | Compact display with More / Less expansion | Working after compact text pass | Keep |
+| Notebook | Long note text | Compact display with More / Less expansion | React-managed | Keep |
 | Bottom nav | Dashboard | Open dashboard panel | React-managed | Retest |
 | Bottom nav | Cases | Open case cards and switch case | React-managed | Retest case switch |
 | Bottom nav | Workspace | Return to main workspace | React-managed | Retest |
 | Bottom nav | Academy | Open learning path panel | React-managed | Retest |
 | Bottom nav | Progress | Open progress panel | React-managed | Retest saved-package state |
-| Verify scripts | `npm run functional-smoke-check` | Confirm source-of-truth, visual-shell, React navigation, persistence, category-progress, and Submit Decision anchors exist | Automated guard active | Keep inside `npm run verify` |
+| Verify scripts | `npm run functional-smoke-check` | Confirm source-of-truth, visual-shell, React navigation, React text controls, persistence, category-progress, and Submit Decision anchors exist | Automated guard active | Keep inside `npm run verify` |
 | Verify scripts | `npm run review-package-smoke-check` | Confirm Submit Decision locks for missing tools and short rationale, preserves optional packet feed, and snapshots saved packages | Automated guard active | Keep inside `npm run verify` |
 
 ## Immediate repair list
 
-1. Move More / Less text expansion into React components instead of the current DOM patch once the content structure stabilizes.
+1. Replace selector discovery inside `VisualTextCollapse.jsx` with direct reusable text wrappers when the visual workspace and navigation panels are split into smaller React modules.
 2. Move the remaining Tool Map and Open Evidence Center QA bridge actions into direct React callbacks when the visual workspace component is split into smaller modules.
 3. Keep the automated smoke guards current when changing:
    - case switching
@@ -99,4 +99,4 @@ Use this path after every major UI update:
 
 ## Latest QA status
 
-Bottom navigation and its Dashboard, Cases, Academy, and Progress panels now use React state in `src/VisualNavigation.jsx`. The retired `src/visualNavPatch.js` DOM navigation script is no longer imported and has been removed. The functional smoke guard now checks the React navigation entrypoint and rejects reintroduction of the retired script. The remaining DOM bridge work is limited to compact More / Less controls and two QA routing helpers.
+Bottom navigation and its Dashboard, Cases, Academy, and Progress panels use React state in `src/VisualNavigation.jsx`. Compact More / Less button state and rendering now run through `src/VisualTextCollapse.jsx`, and the retired `src/visualTextCollapse.js` patch is removed. The functional smoke guard verifies both React-managed layers and rejects reintroduction of the retired navigation or compact-text scripts. Selector discovery remains as a compatibility bridge until the large visual workspace is split into smaller direct-wrapper components.
