@@ -42,6 +42,19 @@ const checks = [
     ],
   },
   {
+    file: 'src/VisualTextCollapse.jsx',
+    label: 'React-managed compact text controls',
+    mustContain: [
+      'COLLAPSE_SELECTOR',
+      'MutationObserver',
+      'createPortal',
+      'CollapsibleTextControl',
+      'collapsible-text-target',
+      'text-more-button',
+      'data-react-text-collapse="true"',
+    ],
+  },
+  {
     file: 'src/data/reviewPackage.js',
     label: 'locked Submit Decision package model',
     mustContain: [
@@ -77,12 +90,22 @@ const checks = [
     mustContain: [
       "import VisualWorkspace from './VisualWorkspace.jsx'",
       "import VisualNavigation from './VisualNavigation.jsx'",
+      "import VisualTextCollapse from './VisualTextCollapse.jsx'",
       '<VisualWorkspace />',
       '<VisualNavigation />',
+      '<VisualTextCollapse />',
       "import './visualWorkspace.css'",
     ],
-    mustNotContain: ["import './visualNavPatch.js'"],
+    mustNotContain: [
+      "import './visualNavPatch.js'",
+      "import './visualTextCollapse.js'",
+    ],
   },
+];
+
+const retiredFiles = [
+  'src/visualNavPatch.js',
+  'src/visualTextCollapse.js',
 ];
 
 const failures = [];
@@ -109,10 +132,16 @@ for (const check of checks) {
   }
 }
 
+for (const retiredFile of retiredFiles) {
+  if (fs.existsSync(path.join(rootDir, retiredFile))) {
+    failures.push(`${retiredFile} is retired and must not be restored.`);
+  }
+}
+
 if (failures.length) {
   console.error('Functional smoke check failed. Repair these anchors before shipping:');
   for (const failure of failures) console.error(`- ${failure}`);
   process.exit(1);
 }
 
-console.log('Functional smoke check passed. Visual shell anchors, React-managed navigation, case-scoped persistence, progress indicators, locked review package flow, and review package smoke wiring are present.');
+console.log('Functional smoke check passed. Visual shell anchors, React-managed navigation and compact text controls, case-scoped persistence, progress indicators, locked review package flow, and review package smoke wiring are present.');
