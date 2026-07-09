@@ -109,12 +109,15 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Visual workspace now writes note activity to both the active case notebook and the Agent ID notepad archive, then surfaces a compact archive inside the ornate notebook card
 - Visual workspace now renders post-submission Luna debrief inside the ornate shell and keeps it locked until a review package exists
 - Academy Progress is now rendered inside the screenshot-driven shell with locked states until saved packages unlock case-level scores
-- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, and Submit Decision panel
+- Visual workspace now reconnects the ornate tool dropdown into real sub-tools for Customer 360, Identity Intelligence, Login History, Session History, Device Intelligence, IP Intelligence, Transaction History, Financial Intelligence, Payment Verification, Business 360, Business Intelligence, Employee Profile, Payroll History, Evidence Center, Document Viewer, Link Analysis, Timeline, and Case Report
+- Tool panels now display the investigator question for the selected sub-tool plus the neutral Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report workflow chips
+- Category progress counters now count all real sub-tools in the ornate category tiles instead of only one placeholder tool per family
+- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, and visual sub-tool controls
 - Evidence First search sweep completed for answer-leaking wording
 
 ## Latest handoff
 
-The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, the locked Submit Decision package flow, Agent ID note archiving, post-submission Luna debrief, and Academy Progress connected without changing the visual direction. Next step: reconnect the category tool dropdown into real sub-tools for Session History, Device Intelligence, IP Intelligence, Financial Intelligence, Payment Verification, Document Viewer, Timeline, and Case Report so the ornate shell exposes the full Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report workflow.
+The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, the locked Submit Decision package flow, Agent ID note archiving, post-submission Luna debrief, Academy Progress, and live category sub-tool switching connected without changing the visual direction. Next step: run a local build, then tighten desktop density by placing the active tool panel, Investigation Tray, Notebook, Submit Decision, Luna Debrief, and Academy Progress into a more command-center-style desktop arrangement while keeping the same ornate mobile design.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
