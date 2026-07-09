@@ -64,7 +64,7 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Desktop visual command-center layout styling in `src/visualDesktopCommand.css`
 - React navigation styling in `src/visualNavPatch.css`
 - Functional QA control routing in `src/visualQaPatch.js`
-- Compact More / Less text controls in `src/visualTextCollapse.js`
+- React-managed compact More / Less text controls in `src/VisualTextCollapse.jsx`
 - Compact More / Less text styling in `src/visualTextCollapse.css`
 - Functional QA checklist in `docs/FUNCTIONAL_QA_CHECKLIST.md`
 - Functional smoke verification guard in `scripts/functional-smoke-check.mjs`
@@ -137,8 +137,8 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Submit Decision now surfaces a neutral package input preview showing reviewed tools, pinned objects, notes, and the specific Case Report packet feed that will snapshot into the learner review package
 - Functional QA pass now maps visible UI elements to expected behavior, identifies no-op/decorative controls, and wires the remaining button-shaped controls into Tool Map and Evidence Center navigation
 - Bottom navigation plus Dashboard, Cases, Academy, and Progress panels now use React state; the retired DOM navigation patch has been removed
-- Compact text pass now collapses long card copy by default and adds More / Less expansion controls for case summary, tool purpose, record detail, checklist, Luna, progress, notebook, tray, packet, and archive text
-- Functional smoke guard now verifies Source of Truth, visual-shell persistence anchors, category progress anchors, React navigation anchors, locked Submit Decision anchors, review package smoke wiring, and the React + Vite entrypoint before production build
+- Compact text now uses React-managed More / Less state and buttons for case summary, tool purpose, record detail, checklist, Luna, progress, notebook, tray, packet, and archive text; the retired DOM text patch has been removed
+- Functional smoke guard now verifies Source of Truth, visual-shell persistence anchors, category progress anchors, React navigation anchors, React compact-text anchors, locked Submit Decision anchors, review package smoke wiring, and the React + Vite entrypoint before production build
 - Review package smoke guard now verifies locked blockers, rationale minimums, optional Case Report packet feed, and saved learner package snapshots
 - New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, visual sub-tool controls, desktop visual command-center layout, expandable record review states, Evidence First review status affordances, React navigation, and compact text expansion controls
 - `npm run verify` now runs the Evidence First wording check, functional smoke guard, review package behavior smoke check, and Vite production build locally
@@ -148,9 +148,9 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 
 ## Latest handoff
 
-Bottom navigation and its Dashboard, Cases, Academy, and Progress panels now run through React state in `src/VisualNavigation.jsx`. The app entrypoint renders the visual workspace and React navigation together, the legacy `src/visualNavPatch.js` mutation script has been removed, and Tool Map / Open Evidence Center route through a small navigation event bridge. The functional smoke guard now verifies the React navigation component and rejects reintroduction of the retired script.
+Bottom navigation and its Dashboard, Cases, Academy, and Progress panels run through React state in `src/VisualNavigation.jsx`. Compact More / Less state and buttons now run through `src/VisualTextCollapse.jsx`, while the retired `src/visualNavPatch.js` and `src/visualTextCollapse.js` mutation scripts are removed. Tool Map and Open Evidence Center still route through a small QA event bridge, and compact-text target discovery remains a compatibility bridge until the large visual workspace is split into smaller direct-wrapper components. The functional smoke guard now verifies both React-managed layers and rejects restoration of either retired script.
 
-Next step: run GitHub Actions and the manual browser smoke path, then move the compact More / Less behavior from `src/visualTextCollapse.js` into reusable React components without changing the screenshot-driven design.
+Next step: run GitHub Actions and the manual browser smoke path, then move Tool Map and Open Evidence Center into direct React callbacks while beginning the visual workspace module split needed for direct reusable text wrappers.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -179,4 +179,4 @@ npm run build
 
 ## Test status
 
-The repo has been updated through the GitHub connector. Static source checks were updated for the React navigation migration. Full local build and browser testing still need to be run in a connected development environment because this execution runtime could not resolve github.com for cloning.
+The repo has been updated through the GitHub connector. JSX syntax checks passed for the new React compact-text component and the updated app entrypoint, and the functional smoke script passed a Node syntax check. Full local build and browser testing still need to run in a connected development environment because this execution runtime could not resolve github.com for cloning.
