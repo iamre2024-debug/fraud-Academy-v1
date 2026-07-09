@@ -147,30 +147,161 @@
   position: relative;
 }
 
-.activity-row span:last-of-type {
-  padding-right: 44px;
+.activity-row.expanded {
+  border-color: rgba(255, 155, 233, 0.42);
+  box-shadow: inset 0 0 18px rgba(255, 92, 218, 0.1);
 }
 
-.row-pin-button {
+.activity-row span:last-of-type {
+  padding-right: 126px;
+}
+
+.row-action-group {
   position: absolute;
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  width: 30px;
-  height: 30px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.row-expand-button,
+.row-pin-button {
   display: grid;
   place-items: center;
   border: 1px solid rgba(255, 92, 218, 0.32);
   border-radius: 10px;
   background: rgba(255, 92, 218, 0.08);
   color: #ff9be9;
+  font-weight: 800;
   box-shadow: 0 0 12px rgba(255, 92, 218, 0.2);
 }
 
+.row-expand-button {
+  min-width: 72px;
+  height: 30px;
+  padding: 0 10px;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.row-pin-button {
+  width: 30px;
+  height: 30px;
+}
+
+.row-expand-button:hover,
+.row-expand-button:focus-visible,
 .row-pin-button:hover,
 .row-pin-button:focus-visible {
   border-color: rgba(255, 155, 233, 0.74);
   box-shadow: 0 0 16px rgba(255, 92, 218, 0.45);
+}
+
+.record-detail-panel {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0 12px;
+  border: 1px solid rgba(255, 92, 218, 0.22);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(255, 92, 218, 0.12), transparent 34%),
+    linear-gradient(145deg, rgba(255, 92, 218, 0.07), rgba(255, 255, 255, 0.012)),
+    rgba(6, 4, 14, 0.56);
+  padding: 14px;
+  box-shadow: inset 0 0 18px rgba(255, 92, 218, 0.05);
+}
+
+.record-detail-panel.empty {
+  color: rgba(255, 241, 251, 0.76);
+}
+
+.record-detail-panel.empty p {
+  margin: 4px 0 0;
+}
+
+.record-detail-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.record-detail-heading span,
+.record-detail-grid small {
+  color: rgba(255, 155, 233, 0.84);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.record-detail-heading h3 {
+  margin: 3px 0 0;
+  color: #fff1fb;
+  font-family: Cinzel, Georgia, serif;
+}
+
+.record-detail-heading button,
+.record-report-actions button {
+  border: 1px solid rgba(255, 92, 218, 0.32);
+  border-radius: 999px;
+  background: rgba(255, 92, 218, 0.1);
+  color: #ffcff5;
+  padding: 8px 11px;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.record-detail-grid,
+.record-review-lanes {
+  display: grid;
+  gap: 10px;
+}
+
+.record-detail-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.record-detail-grid article,
+.record-review-lanes article {
+  border: 1px solid rgba(255, 92, 218, 0.16);
+  border-radius: 14px;
+  background: rgba(6, 4, 14, 0.44);
+  padding: 11px;
+}
+
+.record-detail-grid strong {
+  display: grid;
+  gap: 2px;
+  margin-top: 4px;
+  color: rgba(255, 241, 251, 0.86);
+  font-size: 0.84rem;
+}
+
+.record-review-lanes {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.record-review-lanes h4 {
+  margin: 0 0 8px;
+  color: #ff9be9;
+  font-family: Cinzel, Georgia, serif;
+}
+
+.record-review-lanes p {
+  margin: 7px 0;
+  color: rgba(255, 241, 251, 0.76);
+  font-size: 0.82rem;
+}
+
+.record-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .submit-decision-panel {
@@ -563,7 +694,9 @@
   .decision-status-grid,
   .luna-debrief-grid,
   .academy-stat-row,
-  .academy-case-row {
+  .academy-case-row,
+  .record-detail-grid,
+  .record-review-lanes {
     grid-template-columns: 1fr;
   }
 
@@ -589,26 +722,43 @@
   }
 
   .activity-row {
-    padding-bottom: 38px;
+    padding-bottom: 42px;
   }
 
   .activity-row span:nth-child(7) {
     padding-right: 10px;
   }
 
-  .row-pin-button {
+  .row-action-group {
     top: auto;
     right: 10px;
     bottom: 7px;
     transform: none;
-    width: auto;
-    min-width: 88px;
+  }
+
+  .row-expand-button,
+  .row-pin-button {
     height: 28px;
+  }
+
+  .row-pin-button {
+    width: auto;
+    min-width: 58px;
+    padding-inline: 8px;
   }
 
   .row-pin-button::after {
     content: " Pin";
     font-size: 0.72rem;
+  }
+
+  .record-detail-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .record-report-actions {
+    display: grid;
   }
 
   .case-progress-score {
