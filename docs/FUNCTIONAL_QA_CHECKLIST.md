@@ -27,7 +27,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Category tiles | Identity / Digital / Financial / Business / Evidence / Connections / Investigation | Switch category and default sub-tool | Working | Keep |
 | Category tiles | Reviewed counters | Show completed sub-tool progress | Working | Keep |
 | Category tiles | Progress bars | Show progress toward category completion | Working | Keep |
-| Category heading | Tool Map | Opens Academy tool-map view | Working after QA patch | Keep |
+| Category heading | Tool Map | Opens Academy tool-map view | Working through React navigation event | Keep |
 | Tool panel | Sub-tool dropdown | Switch live sub-tools within category | Working | Keep |
 | Tool panel | Search bar | Filter visible records | Working | Keep |
 | Tool panel | Long purpose copy | Compact display with More / Less expansion | Working after compact text pass | Keep |
@@ -49,23 +49,23 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Academy Progress | Progress cards | Read saved packages from localStorage | Working | Retest after saving package |
 | Academy Progress | Long progress copy | Compact display with More / Less expansion | Working after compact text pass | Keep |
 | Investigation Tray | Pinned objects | Show current case pinned evidence | Working | Keep |
-| Investigation Tray | Open Evidence Center | Route user to Evidence Center workspace | Working after QA patch | Keep |
+| Investigation Tray | Open Evidence Center | Route user to Evidence Center workspace | Working through React navigation event | Keep |
 | Notebook | Textarea + Save Note | Save note to case and agent archive | Working | Keep |
 | Notebook | Case Report packets panel | Show saved packet feed | Working | Keep |
 | Notebook | Agent archive panel | Show agent notes by Agent ID | Working | Keep |
 | Notebook | Long note text | Compact display with More / Less expansion | Working after compact text pass | Keep |
-| Bottom nav | Dashboard | Open dashboard panel | Working after nav patch | Retest |
-| Bottom nav | Cases | Open case cards and switch case | Working after nav patch | Retest |
-| Bottom nav | Workspace | Return to main workspace | Working after nav patch | Retest |
-| Bottom nav | Academy | Open learning path panel | Working after nav patch | Retest |
-| Bottom nav | Progress | Open progress panel | Working after nav patch | Retest |
-| Verify scripts | `npm run functional-smoke-check` | Confirm source-of-truth, visual-shell, persistence, category-progress, and Submit Decision anchors exist | Automated guard active | Keep inside `npm run verify` |
+| Bottom nav | Dashboard | Open dashboard panel | React-managed | Retest |
+| Bottom nav | Cases | Open case cards and switch case | React-managed | Retest case switch |
+| Bottom nav | Workspace | Return to main workspace | React-managed | Retest |
+| Bottom nav | Academy | Open learning path panel | React-managed | Retest |
+| Bottom nav | Progress | Open progress panel | React-managed | Retest saved-package state |
+| Verify scripts | `npm run functional-smoke-check` | Confirm source-of-truth, visual-shell, React navigation, persistence, category-progress, and Submit Decision anchors exist | Automated guard active | Keep inside `npm run verify` |
 | Verify scripts | `npm run review-package-smoke-check` | Confirm Submit Decision locks for missing tools and short rationale, preserves optional packet feed, and snapshots saved packages | Automated guard active | Keep inside `npm run verify` |
 
 ## Immediate repair list
 
-1. Move bottom navigation behavior into React state instead of the current DOM patch once the major UI settles.
-2. Move More / Less text expansion into React components instead of the current DOM patch once the content structure stabilizes.
+1. Move More / Less text expansion into React components instead of the current DOM patch once the content structure stabilizes.
+2. Move the remaining Tool Map and Open Evidence Center QA bridge actions into direct React callbacks when the visual workspace component is split into smaller modules.
 3. Keep the automated smoke guards current when changing:
    - case switching
    - category switching
@@ -99,4 +99,4 @@ Use this path after every major UI update:
 
 ## Latest QA status
 
-Functional QA now has automated guards in `scripts/functional-smoke-check.mjs` and `scripts/review-package-smoke-check.mjs`. `npm run verify` runs the Evidence First wording check, visual-shell anchor check, Submit Decision package behavior check, and production build so the repo catches missing anchors and broken package logic before browser QA.
+Bottom navigation and its Dashboard, Cases, Academy, and Progress panels now use React state in `src/VisualNavigation.jsx`. The retired `src/visualNavPatch.js` DOM navigation script is no longer imported and has been removed. The functional smoke guard now checks the React navigation entrypoint and rejects reintroduction of the retired script. The remaining DOM bridge work is limited to compact More / Less controls and two QA routing helpers.
