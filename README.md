@@ -105,12 +105,13 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Desktop command-center pass places Scenario Engine, Case Workspace, and Academy Progress into a three-column neon workstation instead of stuck floating cards
 - Visual rebuild pass now makes the app entry open into an ornate gothic neon dashboard matching the uploaded reference direction before reconnecting deeper tool behavior
 - Visual workspace now reconnects live case data, case switching, category switching, searchable tool rows, pin-to-tray actions, and evidence-based notebook updates inside the screenshot-driven shell
-- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, and visual tool controls
+- Visual workspace now persists the investigation tray by case, reuses persisted notes/completed tools/decision drafts/review packages, shows reviewed progress counters on ornate category tiles, and contains the locked Submit Decision review package flow
+- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, and Submit Decision panel
 - Evidence First search sweep completed for answer-leaking wording
 
 ## Latest handoff
 
-The current priority is reconnecting the existing investigation behavior inside the screenshot-driven visual shell. Next step: persist visual-shell notes/tray by case, add reviewed-tool progress indicators back into the ornate category tiles, and then reconnect the locked Submit Decision package flow without changing the design.
+The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, and the locked Submit Decision package flow. Next step: reconnect post-submission Luna debrief display and Academy Progress into the ornate shell after a review package is saved, without changing Evidence First or the visual design.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
