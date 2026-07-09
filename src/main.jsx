@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import VisualWorkspace from './VisualWorkspace.jsx';
 import './visualWorkspace.css';
 import './visualPolish.css';
+import './mobileViewportFix.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
