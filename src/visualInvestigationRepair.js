@@ -85,17 +85,31 @@ function setTool(toolName) {
   return true;
 }
 
-function openTool(categoryLabel, toolName) {
-  triggerCategory(categoryLabel);
-  window.setTimeout(() => {
-    setTool(toolName);
-    document.querySelector('.activity-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    window.dispatchEvent(new Event('fraud-academy:repair-needed'));
-  }, 120);
-}
-
 function navigateTab(tab) {
   window.dispatchEvent(new CustomEvent('fraud-academy:navigate', { detail: { tab } }));
+}
+
+function focusSubmitDecision() {
+  navigateTab('workspace');
+  window.setTimeout(() => {
+    const panel = document.querySelector('.submit-decision-panel');
+    if (!panel) return;
+    panel.classList.add('submit-focus-ring');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.setTimeout(() => panel.classList.remove('submit-focus-ring'), 1800);
+  }, 180);
+}
+
+function openTool(categoryLabel, toolName) {
+  navigateTab('workspace');
+  window.setTimeout(() => {
+    triggerCategory(categoryLabel);
+    window.setTimeout(() => {
+      setTool(toolName);
+      document.querySelector('.activity-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.dispatchEvent(new Event('fraud-academy:repair-needed'));
+    }, 120);
+  }, 80);
 }
 
 function ensureToolMapRoute() {
@@ -134,9 +148,7 @@ function ensureSummaryActionButtons() {
   decisionButton.type = 'button';
   decisionButton.className = 'primary-action decision-jump-button';
   decisionButton.textContent = '🪄 Submit Decision ›';
-  decisionButton.addEventListener('click', () => {
-    document.querySelector('.submit-decision-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
+  decisionButton.addEventListener('click', focusSubmitDecision);
 
   actions.append(identityButton, reportButton, decisionButton);
 }
@@ -183,7 +195,7 @@ function ensureDecisionRouteInToolPanel() {
   route.type = 'button';
   route.className = 'decision-route-mini';
   route.textContent = 'Need to decide? Open Submit Decision';
-  route.addEventListener('click', () => document.querySelector('.submit-decision-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  route.addEventListener('click', focusSubmitDecision);
   panel.appendChild(route);
 }
 
