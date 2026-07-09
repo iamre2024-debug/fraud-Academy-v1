@@ -8,8 +8,10 @@ import './visualFunctional.css';
 import './visualReviewFlow.css';
 import './visualDesktopCommand.css';
 import './visualNavPatch.css';
+import './visualTextCollapse.css';
 import './visualNavPatch.js';
 import './visualQaPatch.js';
+import './visualTextCollapse.js';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
