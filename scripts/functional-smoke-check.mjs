@@ -31,7 +31,7 @@ const checks = [
   },
   {
     file: 'src/VisualNavigation.jsx',
-    label: 'React-managed screenshot navigation',
+    label: 'React-managed screenshot navigation with lightweight route bridge',
     mustContain: [
       "useState('workspace')",
       'createPortal',
@@ -42,16 +42,18 @@ const checks = [
     ],
   },
   {
-    file: 'src/VisualTextCollapse.jsx',
-    label: 'React-managed compact text controls',
+    file: 'src/visualInvestigationRepair.js',
+    label: 'lightweight investigation repair layer',
     mustContain: [
-      'COLLAPSE_SELECTOR',
-      'MutationObserver',
-      'createPortal',
-      'CollapsibleTextControl',
-      'collapsible-text-target',
-      'text-more-button',
-      'data-react-text-collapse="true"',
+      'ensureCaseSummaryMeta',
+      'repairDeviceIntelligenceTable',
+      'ensureDecisionRouteInToolPanel',
+      'ensureToolMapRoute',
+      'ensureEvidenceCenterRoute',
+      "window.addEventListener('fraud-academy:repair-needed'",
+    ],
+    mustNotContain: [
+      'new MutationObserver',
     ],
   },
   {
@@ -90,15 +92,17 @@ const checks = [
     mustContain: [
       "import VisualWorkspace from './VisualWorkspace.jsx'",
       "import VisualNavigation from './VisualNavigation.jsx'",
-      "import VisualTextCollapse from './VisualTextCollapse.jsx'",
+      "import './visualInvestigationRepair.js'",
       '<VisualWorkspace />',
       '<VisualNavigation />',
-      '<VisualTextCollapse />',
       "import './visualWorkspace.css'",
     ],
     mustNotContain: [
+      "import VisualTextCollapse from './VisualTextCollapse.jsx'",
+      '<VisualTextCollapse />',
       "import './visualNavPatch.js'",
       "import './visualTextCollapse.js'",
+      "import './visualQaPatch.js'",
     ],
   },
 ];
@@ -144,4 +148,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Functional smoke check passed. Visual shell anchors, React-managed navigation and compact text controls, case-scoped persistence, progress indicators, locked review package flow, and review package smoke wiring are present.');
+console.log('Functional smoke check passed. Visual shell anchors, React navigation bridge, lightweight no-observer investigation repair routes, case-scoped persistence, progress indicators, locked review package flow, and review package smoke wiring are present.');
