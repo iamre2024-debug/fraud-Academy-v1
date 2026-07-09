@@ -9,6 +9,7 @@ import './visualReviewFlow.css';
 import './visualDesktopCommand.css';
 import './visualNavPatch.css';
 import './visualNavPatch.js';
+import './visualQaPatch.js';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
