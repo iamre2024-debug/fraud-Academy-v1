@@ -59,6 +59,7 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Screenshot-driven gothic neon styling in `src/visualWorkspace.css`
 - Mobile viewport fix in `src/mobileViewportFix.css`
 - Visual tool reconnection styling in `src/visualFunctional.css`
+- Evidence First review/status styling in `src/visualReviewFlow.css`
 - Desktop visual command-center layout styling in `src/visualDesktopCommand.css`
 - Case Queue with Account Takeover, Chargeback Claim, and Credit Risk Review cases
 - Case switching inside one workspace
@@ -96,6 +97,7 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Case Report upgraded into a neutral draft package using case reason, customer snapshot, evidence inventory, pinned records, notebook notes, and tool progress
 - Submit Decision upgraded into a locked pre-submission checklist that checks documentation state without revealing the answer
 - Submit Decision now uses the neutral `reviewPackage` model for required tool coverage, pinned evidence, notebook notes, learner choice, confidence, and rationale
+- Submit Decision now reports a single locked blocker summary plus individual checklist items while preserving Evidence First
 - Learner review package drafts persist by case in localStorage
 - Saved review packages persist by case in localStorage, snapshot reviewed tools/pinned evidence/notes, and unlock Luna debrief only after submission
 - Luna debrief displays post-submission decision-quality scoring, breakdown, package strengths, and next coaching focus without exposing any pre-submission hinting
@@ -113,18 +115,21 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Visual workspace now reconnects the ornate tool dropdown into real sub-tools for Customer 360, Identity Intelligence, Login History, Session History, Device Intelligence, IP Intelligence, Transaction History, Financial Intelligence, Payment Verification, Business 360, Business Intelligence, Employee Profile, Payroll History, Evidence Center, Document Viewer, Link Analysis, Timeline, and Case Report
 - Tool panels now display the investigator question for the selected sub-tool plus the neutral Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report workflow chips
 - Category progress counters now count all real sub-tools in the ornate category tiles instead of only one placeholder tool per family
+- Category tiles now have stronger reviewed/active status polish while preserving the screenshot-driven shapes and neon gothic theme
 - Desktop visual shell now uses a denser command-center arrangement on wide screens: active tool panel on the left, Investigation Tray/Notebook and Submit Decision on the right, then Luna Debrief and Academy Progress below while keeping the ornate mobile stack intact
 - Tool records now support an expanded neutral review panel that shows selected record fields, staged search terms, history context, neutral link context, and a saveable generated report note without revealing any final outcome
 - Desktop command layout now reserves space for the expanded record panel under the active tool table
 - Document Viewer records now include richer packet previews and field inventories for customer, merchant, alert, payment, account setup, and requested-document packets
 - Payment Verification records now include deeper training-safe packet context for payment instruments, destination objects, authorization trails, dispute packets, Bank Codes, Destination IDs, and verification packets
 - Customer 360 profile-history records now include more documentable packet details for profile views, statement views, contact-history checks, payment-method additions, and account setup events
-- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, visual sub-tool controls, desktop visual command-center layout, and expandable record review states
+- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, visual sub-tool controls, desktop visual command-center layout, expandable record review states, and Evidence First review status affordances
 - Evidence First search sweep completed for answer-leaking wording
 
 ## Latest handoff
 
-The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, the locked Submit Decision package flow, Agent ID note archiving, post-submission Luna debrief, Academy Progress, live category sub-tool switching, desktop command-center density, richer Expand/History/Generated Report states, and deeper neutral packet details for Document Viewer, Payment Verification, and Customer 360 profile history. Next step: run full local build/browser QA, then wire record-specific packet actions so document/payment/profile packets can be saved as structured case report sections instead of only saved as neutral notes.
+The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, the locked Submit Decision package flow, Agent ID note archiving, post-submission Luna debrief, Academy Progress, live category sub-tool switching, desktop command-center density, richer Expand/History/Generated Report states, deeper neutral packet details, and an additional review-status polish layer that makes active/reviewed category state and Evidence First locking easier to see without changing the visual direction.
+
+Next step: run full local build/browser QA, then wire record-specific packet actions so document/payment/profile packets can be saved as structured case report sections instead of only saved as neutral notes.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -152,4 +157,4 @@ npm run build
 
 ## Test status
 
-The repo has been updated through the GitHub connector. This pass syntax-checked the edited data modules with `node --check`; full local Vite build/browser testing still needs to be run in a connected development environment because this execution runtime could not resolve github.com for cloning.
+The repo has been updated through the GitHub connector. This pass reviewed `docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md`, kept the React + Vite visual shell, added review-status styling, loaded that styling through `src/main.jsx`, and tightened the locked review package checklist in `src/data/reviewPackage.js`. Full local Vite build/browser testing still needs to be run in a connected development environment because this execution runtime cannot clone from github.com or install dependencies.
