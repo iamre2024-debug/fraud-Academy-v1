@@ -135,6 +135,7 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 - Submit Decision remains locked until the required tool checklist, pinned evidence, case notes, learner choice, and evidence-based rationale are present.
 - Submit Decision may display a neutral package input preview showing reviewed tools, pinned objects, notes, and Case Report packets that will snapshot into the saved learner package.
 - Luna scoring, strengths, follow-up coaching, and decision-quality breakdown stay hidden until a review package is saved.
+- Bottom navigation plus Dashboard, Cases, Academy, and Progress panels are managed by React state in `src/VisualNavigation.jsx`; do not restore the retired DOM navigation patch.
 - `npm run verify` must preserve the Evidence First wording check, functional smoke guard, review-package behavior smoke check, and production build so CI catches broken visual-shell anchors and package-lock behavior before they ship.
 
 ## Build waves
