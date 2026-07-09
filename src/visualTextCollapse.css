@@ -1,0 +1,66 @@
+/* Compact text pass: keep cards readable by default and let the user expand details on demand. */
+.collapsible-text-target {
+  position: relative;
+}
+
+.collapsible-text-target:not(.text-expanded) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--collapse-lines, 2);
+  overflow: hidden;
+}
+
+.collapsible-text-target.text-expanded {
+  display: block;
+  overflow: visible;
+}
+
+.text-more-button {
+  width: fit-content;
+  margin-top: 6px;
+  border: 1px solid rgba(255, 92, 218, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 92, 218, 0.08);
+  color: #ff9be9;
+  padding: 5px 10px;
+  font-family: Cinzel, Georgia, serif;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  box-shadow: inset 0 0 12px rgba(255, 92, 218, 0.04);
+}
+
+.text-more-button:hover,
+.text-more-button:focus-visible {
+  border-color: rgba(255, 155, 233, 0.72);
+  box-shadow: 0 0 14px rgba(255, 92, 218, 0.34);
+}
+
+.summary-copy .text-more-button,
+.tool-purpose-card .text-more-button,
+.visual-nav-heading .text-more-button {
+  margin-top: 8px;
+}
+
+.notebook-list .text-more-button,
+.tray-list .text-more-button,
+.decision-checklist .text-more-button,
+.luna-list-card .text-more-button,
+.academy-case-row .text-more-button,
+.record-review-lanes .text-more-button,
+.case-report-packet-panel .text-more-button,
+.agent-archive-panel .text-more-button {
+  justify-self: start;
+}
+
+@media (max-width: 760px) {
+  .collapsible-text-target:not(.text-expanded) {
+    -webkit-line-clamp: var(--collapse-lines-mobile, 2);
+  }
+
+  .text-more-button {
+    font-size: 0.62rem;
+    padding: 4px 9px;
+  }
+}
