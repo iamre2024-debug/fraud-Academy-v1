@@ -1,4 +1,4 @@
-import { buildReviewPackage, getReviewPackageStatus, minimumRationaleWords, requiredReviewTools, reviewChoices } from '../src/data/reviewPackage.js';
+import { buildReviewPackage, decisionCallGroups, getReviewPackageStatus, minimumRationaleWords, requiredReviewTools, reviewChoices } from '../src/data/reviewPackage.js';
 
 const requiredToolSet = [...requiredReviewTools];
 const samplePacket = {
@@ -28,6 +28,16 @@ function buildStatus(overrides = {}) {
     ...overrides,
   });
 }
+
+assert(reviewChoices.length >= 12, 'Decision call list should include realistic claim, route, escalation, and closure calls.');
+assert(reviewChoices.includes('Escalate for insider / vendor / API / open banking review'), 'Decision calls should include insider/vendor/API/open banking escalation.');
+assert(reviewChoices.includes('Route for credit risk underwriting review'), 'Decision calls should include credit risk review routing.');
+assert(reviewChoices.includes('Route for chargeback representment review'), 'Decision calls should include chargeback representment routing.');
+assert(decisionCallGroups.length >= 4, 'Decision call groups should organize outcome, information, routing, and closure calls.');
+
+const invalidChoiceStatus = buildStatus({ draft: { choice: 'Unsupported decision value', confidence: 'Medium', reason: 'The learner reviewed required tools and documented the evidence trail before saving this package.' } });
+assert(!invalidChoiceStatus.ready, 'Package should stay locked when the learner choice is not in the current decision list.');
+assert(invalidChoiceStatus.blockers.some((blocker) => blocker.includes('valid learner choice')), 'Invalid learner choice should be named as a blocker.');
 
 const missingToolStatus = buildStatus({ completedTools: requiredToolSet.filter((tool) => tool !== 'Case Report') });
 assert(!missingToolStatus.ready, 'Package should stay locked when a required tool is missing.');
@@ -70,4 +80,4 @@ assert(savedPackage.caseReportPackets.length === 1, 'Saved package should snapsh
 assert(savedPackage.caseReportPacketFeed[0].recordId === samplePacket.recordId, 'Saved package should preserve packet feed metadata.');
 assert(savedPackage.blockers.length === 0, 'Saved ready package should not retain blockers.');
 
-console.log('Review package smoke check passed. Locked blockers, rationale depth, optional packet feed, and saved package snapshots are working.');
+console.log('Review package smoke check passed. Expanded decision calls, locked blockers, rationale depth, optional packet feed, and saved package snapshots are working.');
