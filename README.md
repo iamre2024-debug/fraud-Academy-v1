@@ -56,13 +56,14 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Scenario Engine template panel in `src/ScenarioEnginePanel.jsx`
 - Desktop command-center styling pass in `src/desktopCommand.css`
 - Screenshot-driven visual workspace shell in `src/VisualWorkspace.jsx`
+- React-managed bottom navigation and command panels in `src/VisualNavigation.jsx`
 - Screenshot-driven gothic neon styling in `src/visualWorkspace.css`
 - Mobile viewport fix in `src/mobileViewportFix.css`
 - Visual tool reconnection styling in `src/visualFunctional.css`
 - Evidence First review/status styling in `src/visualReviewFlow.css`
 - Desktop visual command-center layout styling in `src/visualDesktopCommand.css`
-- Bottom navigation behavior in `src/visualNavPatch.js`
-- Functional QA control wiring in `src/visualQaPatch.js`
+- React navigation styling in `src/visualNavPatch.css`
+- Functional QA control routing in `src/visualQaPatch.js`
 - Compact More / Less text controls in `src/visualTextCollapse.js`
 - Compact More / Less text styling in `src/visualTextCollapse.css`
 - Functional QA checklist in `docs/FUNCTIONAL_QA_CHECKLIST.md`
@@ -135,10 +136,11 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Saved Case Report packets persist by case, appear in the ornate notebook packet panel, flow into Case Report rows, snapshot into saved review packages, and count toward Luna post-submission documentation scoring
 - Submit Decision now surfaces a neutral package input preview showing reviewed tools, pinned objects, notes, and the specific Case Report packet feed that will snapshot into the learner review package
 - Functional QA pass now maps visible UI elements to expected behavior, identifies no-op/decorative controls, and wires the remaining button-shaped controls into Tool Map and Evidence Center navigation
+- Bottom navigation plus Dashboard, Cases, Academy, and Progress panels now use React state; the retired DOM navigation patch has been removed
 - Compact text pass now collapses long card copy by default and adds More / Less expansion controls for case summary, tool purpose, record detail, checklist, Luna, progress, notebook, tray, packet, and archive text
-- Functional smoke guard now verifies Source of Truth, visual-shell persistence anchors, category progress anchors, locked Submit Decision anchors, review package smoke wiring, and the React + Vite entrypoint before production build
+- Functional smoke guard now verifies Source of Truth, visual-shell persistence anchors, category progress anchors, React navigation anchors, locked Submit Decision anchors, review package smoke wiring, and the React + Vite entrypoint before production build
 - Review package smoke guard now verifies locked blockers, rationale minimums, optional Case Report packet feed, and saved learner package snapshots
-- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, visual sub-tool controls, desktop visual command-center layout, expandable record review states, Evidence First review status affordances, and compact text expansion controls
+- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, visual sub-tool controls, desktop visual command-center layout, expandable record review states, Evidence First review status affordances, React navigation, and compact text expansion controls
 - `npm run verify` now runs the Evidence First wording check, functional smoke guard, review package behavior smoke check, and Vite production build locally
 - The GitHub Actions workflow runs the same verify command on pushes and pull requests to `main`
 - Evidence First search sweep completed for answer-leaking wording
@@ -146,9 +148,9 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 
 ## Latest handoff
 
-A review package behavior smoke check is now active. `npm run verify` runs the Evidence First wording check, confirms the screenshot-driven visual shell still contains the case-scoped tray/notes/report packet persistence anchors, ornate category progress anchors, locked Submit Decision package anchors, and React + Vite entrypoint anchors, then runs a Submit Decision model smoke check before the production build. The new smoke check verifies required-tool blockers, rationale depth locking, optional Case Report packet feed behavior, and saved package snapshots.
+Bottom navigation and its Dashboard, Cases, Academy, and Progress panels now run through React state in `src/VisualNavigation.jsx`. The app entrypoint renders the visual workspace and React navigation together, the legacy `src/visualNavPatch.js` mutation script has been removed, and Tool Map / Open Evidence Center route through a small navigation event bridge. The functional smoke guard now verifies the React navigation component and rejects reintroduction of the retired script.
 
-Next step: confirm the GitHub Actions verify result, run the manual browser smoke path in `docs/FUNCTIONAL_QA_CHECKLIST.md`, then replace the temporary DOM navigation and text-collapse patches with React-native state once the behavior feels right.
+Next step: run GitHub Actions and the manual browser smoke path, then move the compact More / Less behavior from `src/visualTextCollapse.js` into reusable React components without changing the screenshot-driven design.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -177,4 +179,4 @@ npm run build
 
 ## Test status
 
-The repo has been updated through the GitHub connector. Local build testing still needs to be run in a connected development environment because this execution runtime could not resolve github.com for cloning.
+The repo has been updated through the GitHub connector. Static source checks were updated for the React navigation migration. Full local build and browser testing still need to be run in a connected development environment because this execution runtime could not resolve github.com for cloning.
