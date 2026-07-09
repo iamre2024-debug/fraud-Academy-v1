@@ -11,6 +11,7 @@ import './visualDesktopCommand.css';
 import './visualNavPatch.css';
 import './visualTextCollapse.css';
 import './visualInvestigationRepair.css';
+import './visualInvestigationRepair.js';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
