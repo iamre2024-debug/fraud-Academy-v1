@@ -26,7 +26,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Category tiles | Identity / Digital / Financial / Business / Evidence / Connections / Investigation | Switch category and default sub-tool | Working | Keep |
 | Category tiles | Reviewed counters | Show completed sub-tool progress | Working | Keep |
 | Category tiles | Progress bars | Show progress toward category completion | Working | Keep |
-| Category heading | Tool Map | Opens Academy tool-map view | React navigation bridge | Move into direct React callback |
+| Category heading | Tool Map | Opens Academy tool-map view | Lightweight repair route | Retest, then move into direct React callback |
 | Tool panel | Sub-tool dropdown | Switch live sub-tools within category | Working | Keep |
 | Tool panel | Search bar | Filter visible records | Working | Keep |
 | Tool panel | Decision route | Scroll to Submit Decision | Lightweight repair layer active | Move into React render next |
@@ -46,7 +46,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Luna Debrief | Score / strengths / focus | Show only after package exists | Working | Retest after saving package |
 | Academy Progress | Progress cards | Read saved packages from localStorage | Working | Retest after saving package |
 | Investigation Tray | Pinned objects | Show current case pinned evidence | Working | Keep |
-| Investigation Tray | Open Evidence Center | Route user to Evidence Center workspace | Temporarily disabled with QA DOM patch | Move into React callback |
+| Investigation Tray | Open Evidence Center | Route user to Evidence Center workspace | Lightweight repair route | Retest, then move into direct React callback |
 | Notebook | Textarea + Save Note | Save note to case and agent archive | Working | Keep |
 | Notebook | Case Report packets panel | Show saved packet feed | Working | Keep |
 | Notebook | Agent archive panel | Show agent notes by Agent ID | Working | Keep |
@@ -55,7 +55,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Bottom nav | Workspace | Return to main workspace | React-managed | Retest |
 | Bottom nav | Academy | Open learning path panel | React-managed | Retest |
 | Bottom nav | Progress | Open progress panel | React-managed | Retest saved-package state |
-| Verify scripts | `npm run functional-smoke-check` | Confirm source-of-truth, visual-shell, React navigation, persistence, category-progress, and Submit Decision anchors exist | Automated guard active | Keep inside `npm run verify` |
+| Verify scripts | `npm run functional-smoke-check` | Confirm source-of-truth, visual-shell, React navigation bridge, lightweight no-observer repair routes, persistence, category-progress, and Submit Decision anchors exist | Automated guard active | Keep inside `npm run verify` |
 | Verify scripts | `npm run review-package-smoke-check` | Confirm Submit Decision locks for missing tools and short rationale, preserves optional packet feed, and snapshots saved packages | Automated guard active | Keep inside `npm run verify` |
 
 ## Immediate repair list
@@ -63,7 +63,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 1. Move Device IDs, case summary metadata, Submit Decision routing, Tool Map routing, Evidence Center routing, and More / Less text controls into actual React state/rendering.
 2. Keep `VisualTextCollapse.jsx` and broad DOM QA patch scripts disabled until they are rewritten without broad MutationObservers.
 3. Keep the lightweight investigation repair layer event-based only. Do not add full-page observers back.
-4. Keep the automated smoke guards current when changing case switching, category switching, sub-tool switching, search filtering, expand/pin/save note/save packet, Device IDs, case summary intake metadata, review package lock/unlock, and dashboard/cases/workspace/academy/progress navigation.
+4. Keep the automated smoke guards current when changing case switching, category switching, sub-tool switching, search filtering, expand/pin/save note/save packet, Device IDs, case summary intake metadata, lightweight route wiring, review package lock/unlock, and dashboard/cases/workspace/academy/progress navigation.
 5. Confirm no clickable-looking decorative element exists without an action.
 6. Run the full browser smoke path after each significant visual-shell change.
 
@@ -72,18 +72,22 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 Use this path after every major UI update:
 
 1. Open the app.
-2. Click Dashboard, Cases, Workspace, Academy, and Progress.
-3. Switch to each case from the case dropdown and from the Cases tab.
-4. Confirm Case Summary shows name, claim ID, total amount, transaction/payee info, and short neutral summary.
-5. Open Identity Intel, Case Report, and Submit Decision from the Case Summary quick actions.
-6. Open Device Intelligence and confirm repeated devices show the same Device ID.
-7. For each category, open every sub-tool from the dropdown.
-8. Search one record term, expand a row, pin it, save an expanded note, save a report note, and save a Case Report packet.
-9. Confirm the tray, notebook, packet panel, and agent archive update.
-10. Try Submit Decision while locked and confirm it only gives neutral checklist blockers.
-11. Fill choice, confidence, and rationale, then save a package.
-12. Confirm Luna Debrief and Academy Progress unlock only after package save.
+2. Confirm the page does not become unresponsive after 30 seconds.
+3. Click Dashboard, Cases, Workspace, Academy, and Progress.
+4. Switch to each case from the case dropdown and from the Cases tab.
+5. Use Tool Map and confirm it opens the Academy panel.
+6. Use Open Evidence Center and confirm it switches to Evidence → Evidence Center.
+7. Confirm Case Summary shows name, claim ID, total amount, transaction/payee info, and short neutral summary.
+8. Open Identity Intel, Case Report, and Submit Decision from the Case Summary quick actions.
+9. Open Device Intelligence and confirm repeated devices show the same Device ID.
+10. For each category, open every sub-tool from the dropdown.
+11. Search one record term, expand a row, pin it, save an expanded note, save a report note, and save a Case Report packet.
+12. Confirm the tray, notebook, packet panel, and agent archive update.
+13. Generate neutral reports until required tools are reviewed.
+14. Try Submit Decision while locked and confirm it only gives neutral checklist blockers.
+15. Fill choice, confidence, and rationale, then save a package.
+16. Confirm Luna Debrief and Academy Progress unlock only after package save.
 
 ## Latest QA status
 
-The page-unresponsive hotfix removed broad text-collapse and QA scanning from startup. A lightweight event-based investigation repair layer now restores missing case-summary metadata, stable Device IDs, and decision/report/identity routes while the final React-native implementation is queued.
+The page-unresponsive hotfix removed broad text-collapse and QA scanning from startup. A lightweight event-based investigation repair layer now restores missing case-summary metadata, stable Device IDs, decision/report/identity routes, Tool Map routing, and Open Evidence Center routing while the final React-native implementation is queued.
