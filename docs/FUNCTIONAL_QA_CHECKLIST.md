@@ -10,6 +10,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 - Every visible control must either perform an action, open a relevant view, save data, filter data, expand/collapse data, or clearly display real state.
 - Decorative visual accents are allowed only when they do not look clickable.
 - Long explanatory text should stay compact by default and expand only with a More / Less control.
+- Automated smoke checks should protect the current visual-shell anchors, but they do not replace manual browser QA.
 
 ## Current functional map
 
@@ -57,12 +58,13 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Bottom nav | Workspace | Return to main workspace | Working after nav patch | Retest |
 | Bottom nav | Academy | Open learning path panel | Working after nav patch | Retest |
 | Bottom nav | Progress | Open progress panel | Working after nav patch | Retest |
+| Verify scripts | `npm run functional-smoke-check` | Confirm source-of-truth, visual-shell, persistence, category-progress, and Submit Decision anchors exist | Automated guard added | Keep inside `npm run verify` |
 
 ## Immediate repair list
 
 1. Move bottom navigation behavior into React state instead of the current DOM patch once the major UI settles.
 2. Move More / Less text expansion into React components instead of the current DOM patch once the content structure stabilizes.
-3. Add a smoke-test script or manual QA checklist for:
+3. Keep the automated smoke guard current when changing:
    - case switching
    - category switching
    - sub-tool switching
@@ -72,6 +74,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
    - review package lock and unlock
    - dashboard/cases/workspace/academy/progress navigation
 4. Confirm no clickable-looking decorative element exists without an action.
+5. Run the full browser smoke path after each significant visual-shell change.
 
 ## Manual smoke test path
 
@@ -92,4 +95,4 @@ Use this path after every major UI update:
 
 ## Latest QA status
 
-Functional QA pass now includes compact text behavior. Long explanatory copy is collapsed by default and expands with More / Less controls so the interface does not feel like every card is carrying a full essay.
+Functional QA now has an automated smoke guard in `scripts/functional-smoke-check.mjs`. `npm run verify` runs the Evidence First wording check, the functional smoke guard, and the production build so the repo catches missing visual-shell anchors before browser QA.
