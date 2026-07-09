@@ -80,14 +80,16 @@ const defaultGuide = {
   ],
 };
 
-export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [], tray = [], notes = [] }) {
+export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [], tray = [], notes = [], reportPackets = [] }) {
   if (!reviewPackage) return null;
 
   const guide = debriefGuides[activeCase.id] ?? defaultGuide;
   const packageTools = reviewPackage.completedTools?.length ? reviewPackage.completedTools : completedTools;
   const pinnedEvidence = reviewPackage.pinnedEvidence?.length ? reviewPackage.pinnedEvidence : tray;
   const noteSnapshot = reviewPackage.noteSnapshot?.length ? reviewPackage.noteSnapshot : notes;
+  const caseReportPackets = reviewPackage.caseReportPackets?.length ? reviewPackage.caseReportPackets : reportPackets;
   const rationale = reviewPackage.reason ?? '';
+  const reportPacketText = caseReportPackets.map((packet) => `${packet.section} ${packet.recordId} ${packet.title} ${packet.summary}`).join(' ');
 
   const haystack = [
     activeCase.type,
@@ -95,6 +97,7 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
     ...packageTools,
     ...pinnedEvidence,
     ...noteSnapshot,
+    reportPacketText,
     rationale,
   ].join(' ').toLowerCase();
 
@@ -104,12 +107,13 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
     covered: area.keywords.some((keyword) => haystack.includes(keyword.toLowerCase())),
   }));
 
-  const toolScore = Math.round((coveredRequired / requiredReviewTools.length) * 36);
+  const toolScore = Math.round((coveredRequired / requiredReviewTools.length) * 34);
   const pinScore = Math.min(16, pinnedEvidence.length * 4);
   const noteScore = Math.min(18, noteSnapshot.length * 3 + (wordCount(rationale) >= 20 ? 6 : 0));
-  const focusScore = Math.round((focusCoverage.filter((area) => area.covered).length / focusCoverage.length) * 24);
+  const packetScore = Math.min(8, caseReportPackets.length * 2);
+  const focusScore = Math.round((focusCoverage.filter((area) => area.covered).length / focusCoverage.length) * 18);
   const confidenceScore = reviewPackage.confidence === 'High' ? 6 : reviewPackage.confidence === 'Medium' ? 4 : 2;
-  const score = Math.min(100, toolScore + pinScore + noteScore + focusScore + confidenceScore);
+  const score = Math.min(100, toolScore + pinScore + noteScore + packetScore + focusScore + confidenceScore);
   const followUps = focusCoverage.filter((area) => !area.covered).map((area) => area.label);
 
   return {
@@ -117,24 +121,26 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
     coachIntro: guide.coachIntro,
     score,
     scoreLabel: score >= 86 ? 'Strong package' : score >= 70 ? 'Solid package' : score >= 54 ? 'Developing package' : 'Needs more support',
-    strengths: buildStrengths({ coveredRequired, pinnedEvidence, noteSnapshot, rationale, focusCoverage }),
+    strengths: buildStrengths({ coveredRequired, pinnedEvidence, noteSnapshot, rationale, focusCoverage, caseReportPackets }),
     followUps: followUps.length ? followUps : ['No required focus gaps detected in this saved package.'],
     breakdown: [
       { label: 'Required tool coverage', value: `${coveredRequired}/${requiredReviewTools.length}`, points: toolScore },
       { label: 'Pinned evidence support', value: `${pinnedEvidence.length} object(s)`, points: pinScore },
       { label: 'Notebook and rationale depth', value: `${noteSnapshot.length} note(s)`, points: noteScore },
+      { label: 'Structured report packets', value: `${caseReportPackets.length} packet(s)`, points: packetScore },
       { label: 'Case focus coverage', value: `${focusCoverage.filter((area) => area.covered).length}/${focusCoverage.length}`, points: focusScore },
       { label: 'Confidence calibration', value: reviewPackage.confidence, points: confidenceScore },
     ],
   };
 }
 
-function buildStrengths({ coveredRequired, pinnedEvidence, noteSnapshot, rationale, focusCoverage }) {
+function buildStrengths({ coveredRequired, pinnedEvidence, noteSnapshot, rationale, focusCoverage, caseReportPackets }) {
   const strengths = [];
 
   if (coveredRequired >= 6) strengths.push('The package covers most required investigation tools before debrief.');
   if (pinnedEvidence.length >= 2) strengths.push('Pinned evidence gives the rationale concrete records to stand on.');
   if (noteSnapshot.length >= 2) strengths.push('Notebook activity shows the learner documented work instead of relying on memory.');
+  if (caseReportPackets.length >= 1) strengths.push('Structured Case Report packets connect expanded records to the final documentation draft.');
   if (wordCount(rationale) >= 20) strengths.push('The rationale has enough substance for coaching review.');
   if (focusCoverage.some((area) => area.covered)) strengths.push('At least one case-specific focus area is visible in the saved package.');
 
