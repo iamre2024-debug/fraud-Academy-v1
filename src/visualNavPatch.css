@@ -1,3 +1,11 @@
+.visual-os-frame > .visual-bottom-nav:not(.visual-react-bottom-nav) {
+  display: none;
+}
+
+.visual-react-nav-host {
+  display: contents;
+}
+
 body:not([data-visual-tab="workspace"]) .activity-panel,
 body:not([data-visual-tab="workspace"]) .submit-decision-panel,
 body:not([data-visual-tab="workspace"]) .luna-visual-panel,
@@ -187,7 +195,8 @@ body[data-visual-tab="workspace"] .visual-nav-panel:empty {
 }
 
 @media (min-width: 1181px) {
-  .visual-os-frame > .visual-nav-panel {
+  .visual-os-frame > .visual-nav-panel,
+  .visual-react-nav-host > .visual-nav-panel {
     grid-column: 1 / -1;
   }
 }
