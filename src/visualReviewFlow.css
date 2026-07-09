@@ -52,6 +52,45 @@
   text-shadow: 0 0 12px rgba(255, 92, 218, 0.9);
 }
 
+.category-status-copy {
+  position: relative;
+  z-index: 1;
+  color: rgba(255, 241, 251, 0.58);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.category-progress-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.category-progress-track b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(255, 92, 218, 0.82), rgba(184, 117, 255, 0.82));
+  box-shadow: 0 0 12px rgba(255, 92, 218, 0.44);
+}
+
+.case-report-packet-count {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 8px;
+  border: 1px solid rgba(255, 155, 233, 0.28);
+  border-radius: 999px;
+  padding: 5px 10px;
+  color: rgba(255, 241, 251, 0.72);
+  background: rgba(255, 92, 218, 0.07);
+  font-weight: 900;
+}
+
 .tool-purpose-card::after {
   content: "Evidence First lock active until Submit Decision";
   width: fit-content;
@@ -69,9 +108,53 @@
   scroll-margin-top: 20px;
 }
 
+.decision-status-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .decision-checklist p:first-child {
   border-color: rgba(255, 155, 233, 0.36);
   background: linear-gradient(135deg, rgba(255, 92, 218, 0.11), rgba(173, 76, 255, 0.07));
+}
+
+.record-report-actions .packet-save-button {
+  border-color: rgba(255, 155, 233, 0.44);
+  background: linear-gradient(135deg, rgba(255, 92, 218, 0.16), rgba(173, 76, 255, 0.12));
+  color: #fff1fb;
+}
+
+.packet-save-button::after {
+  content: "  ▣";
+}
+
+.case-report-packet-panel,
+.agent-archive-panel {
+  border: 1px solid rgba(255, 155, 233, 0.18);
+  border-radius: 18px;
+  padding: 10px;
+  background: rgba(10, 6, 22, 0.38);
+}
+
+.case-report-packet-panel summary,
+.agent-archive-panel summary {
+  cursor: pointer;
+  color: rgba(255, 241, 251, 0.82);
+  font-weight: 900;
+}
+
+.case-report-packet-panel div,
+.agent-archive-panel div {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.case-report-packet-panel p,
+.agent-archive-panel p {
+  margin: 0;
+  color: rgba(255, 241, 251, 0.68);
+  font-size: 0.78rem;
+  line-height: 1.35;
 }
 
 .decision-form button::after,
@@ -81,7 +164,8 @@
 
 .tray-list div,
 .notebook-list button,
-.agent-archive-panel {
+.agent-archive-panel,
+.case-report-packet-panel {
   box-shadow: inset 0 0 14px rgba(255, 92, 218, 0.035);
 }
 
@@ -99,6 +183,12 @@
 
   .bottom-investigation-grid {
     align-self: start;
+  }
+}
+
+@media (max-width: 760px) {
+  .decision-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
