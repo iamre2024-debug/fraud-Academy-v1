@@ -84,18 +84,9 @@ function buildSnapshot() {
   };
 }
 
-function setNativeSelectValue(select, value) {
-  const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')?.set;
-  if (setter) setter.call(select, value);
-  else select.value = value;
-  select.dispatchEvent(new Event('change', { bubbles: true }));
-}
-
-export default function VisualNavigation() {
-  const [activeTab, setActiveTab] = useState('workspace');
+export default function VisualNavigation({ activeTab = 'workspace', onNavigate, onOpenCase }) {
   const [panelHost, setPanelHost] = useState(null);
   const [snapshotVersion, setSnapshotVersion] = useState(0);
-
   const snapshot = useMemo(() => buildSnapshot(), [activeTab, snapshotVersion]);
 
   useEffect(() => {
@@ -118,40 +109,26 @@ export default function VisualNavigation() {
   }, []);
 
   useEffect(() => {
-    document.body.dataset.visualTab = activeTab;
     setSnapshotVersion((current) => current + 1);
     document.querySelector('.visual-os-frame')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [activeTab]);
 
   useEffect(() => {
     const refresh = () => setSnapshotVersion((current) => current + 1);
-    const navigate = (event) => {
-      const nextTab = event.detail?.tab;
-      if (navigationItems.some((item) => item.key === nextTab)) setActiveTab(nextTab);
-    };
-
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
-    window.addEventListener('fraud-academy:navigate', navigate);
     return () => {
       window.removeEventListener('storage', refresh);
       window.removeEventListener('focus', refresh);
-      window.removeEventListener('fraud-academy:navigate', navigate);
     };
   }, []);
-
-  function openCase(caseId) {
-    const select = document.querySelector('.visual-case-switcher select');
-    if (select) setNativeSelectValue(select, caseId);
-    setActiveTab('workspace');
-  }
 
   const panel = activeTab === 'workspace' ? null : (
     <NavigationPanel
       activeTab={activeTab}
       snapshot={snapshot}
-      setActiveTab={setActiveTab}
-      openCase={openCase}
+      onNavigate={onNavigate}
+      onOpenCase={onOpenCase}
     />
   );
 
@@ -164,7 +141,7 @@ export default function VisualNavigation() {
             key={item.key}
             type="button"
             className={activeTab === item.key ? 'active' : ''}
-            onClick={() => setActiveTab(item.key)}
+            onClick={() => onNavigate(item.key)}
             aria-current={activeTab === item.key ? 'page' : undefined}
           >
             {item.icon}<span>{item.label}</span>
@@ -175,7 +152,7 @@ export default function VisualNavigation() {
   );
 }
 
-function NavigationPanel({ activeTab, snapshot, setActiveTab, openCase }) {
+function NavigationPanel({ activeTab, snapshot, onNavigate, onOpenCase }) {
   const copy = tabCopy[activeTab] ?? tabCopy.dashboard;
 
   return (
@@ -188,15 +165,15 @@ function NavigationPanel({ activeTab, snapshot, setActiveTab, openCase }) {
         </div>
         <div aria-hidden="true">{copy.icon}</div>
       </div>
-      {activeTab === 'dashboard' && <DashboardPanel snapshot={snapshot} setActiveTab={setActiveTab} />}
-      {activeTab === 'cases' && <CasesPanel openCase={openCase} />}
+      {activeTab === 'dashboard' && <DashboardPanel snapshot={snapshot} onNavigate={onNavigate} />}
+      {activeTab === 'cases' && <CasesPanel onOpenCase={onOpenCase} />}
       {activeTab === 'academy' && <AcademyPanel />}
       {activeTab === 'progress' && <ProgressPanel packagesByCase={snapshot.packagesByCase} />}
     </section>
   );
 }
 
-function DashboardPanel({ snapshot, setActiveTab }) {
+function DashboardPanel({ snapshot, onNavigate }) {
   return (
     <>
       <div className="nav-stat-grid">
@@ -206,20 +183,20 @@ function DashboardPanel({ snapshot, setActiveTab }) {
         <article><strong>{snapshot.packages}</strong><span>Saved packages</span></article>
       </div>
       <div className="nav-action-row">
-        <button type="button" onClick={() => setActiveTab('cases')}>Open Case Queue</button>
-        <button type="button" onClick={() => setActiveTab('workspace')}>Return to Workspace</button>
-        <button type="button" onClick={() => setActiveTab('progress')}>View Progress</button>
+        <button type="button" onClick={() => onNavigate('cases')}>Open Case Queue</button>
+        <button type="button" onClick={() => onNavigate('workspace')}>Return to Workspace</button>
+        <button type="button" onClick={() => onNavigate('progress')}>View Progress</button>
       </div>
       <p className="nav-microcopy">{snapshot.packets} structured Case Report packet(s) saved across the training workspace.</p>
     </>
   );
 }
 
-function CasesPanel({ openCase }) {
+function CasesPanel({ onOpenCase }) {
   return (
     <div className="nav-case-grid">
       {trainingCases.map((item) => (
-        <button key={item.id} type="button" className="nav-case-card" onClick={() => openCase(item.id)}>
+        <button key={item.id} type="button" className="nav-case-card" onClick={() => onOpenCase(item.id)}>
           <span>{item.type}</span>
           <strong>{item.person}</strong>
           <small>{item.id} · {item.priority} priority</small>
