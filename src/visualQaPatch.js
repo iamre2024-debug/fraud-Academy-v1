@@ -1,3 +1,6 @@
+import './visualInvestigationRepair.css';
+import './visualInvestigationRepair.js';
+
 function navigate(tab) {
   window.dispatchEvent(new CustomEvent('fraud-academy:navigate', { detail: { tab } }));
 }
