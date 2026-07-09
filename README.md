@@ -114,12 +114,14 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Tool panels now display the investigator question for the selected sub-tool plus the neutral Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report workflow chips
 - Category progress counters now count all real sub-tools in the ornate category tiles instead of only one placeholder tool per family
 - Desktop visual shell now uses a denser command-center arrangement on wide screens: active tool panel on the left, Investigation Tray/Notebook and Submit Decision on the right, then Luna Debrief and Academy Progress below while keeping the ornate mobile stack intact
-- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, visual sub-tool controls, and desktop visual command-center layout
+- Tool records now support an expanded neutral review panel that shows selected record fields, staged search terms, history context, neutral link context, and a saveable generated report note without revealing any final outcome
+- Desktop command layout now reserves space for the expanded record panel under the active tool table
+- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, visual sub-tool controls, desktop visual command-center layout, and expandable record review states
 - Evidence First search sweep completed for answer-leaking wording
 
 ## Latest handoff
 
-The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, the locked Submit Decision package flow, Agent ID note archiving, post-submission Luna debrief, Academy Progress, live category sub-tool switching, and a desktop command-center density pass connected without changing the visual direction. Next step: run a local build and browser QA, then tighten the remaining tool details by adding richer Expand/History/Generated Report states inside each sub-tool while keeping Evidence First locked.
+The screenshot-driven visual shell now has persisted notes/tray state, reviewed progress indicators, the locked Submit Decision package flow, Agent ID note archiving, post-submission Luna debrief, Academy Progress, live category sub-tool switching, desktop command-center density, and richer Expand/History/Generated Report states connected without changing the visual direction. Next step: run a local build and browser QA, then add deeper per-tool evidence packet details for documents, payment objects, and profile history while keeping Evidence First locked.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
