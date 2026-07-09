@@ -1,4 +1,8 @@
 /* Compact text pass: keep cards readable by default and let the user expand details on demand. */
+.text-more-react-host {
+  display: contents;
+}
+
 .collapsible-text-target {
   position: relative;
 }
