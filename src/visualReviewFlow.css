@@ -1,0 +1,113 @@
+/* Evidence First review-state polish for the screenshot-driven visual shell.
+   This file intentionally adds status affordances without changing the locked
+   investigation doctrine or revealing any case outcome before submission. */
+
+.visual-category-row button {
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.visual-category-row button::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 8px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 92, 218, 0.64), rgba(173, 76, 255, 0.52));
+  box-shadow: 0 0 12px rgba(255, 92, 218, 0.36);
+  opacity: 0.42;
+}
+
+.visual-category-row button.active::before,
+.visual-category-row button.reviewed::before {
+  opacity: 1;
+}
+
+.visual-category-row button em::before {
+  content: "Reviewed ";
+}
+
+.visual-category-row button.reviewed span {
+  background: radial-gradient(circle at 50% 30%, rgba(255, 155, 233, 0.22), rgba(173, 76, 255, 0.12));
+  box-shadow: inset 0 0 18px rgba(255, 92, 218, 0.18), 0 0 18px rgba(255, 92, 218, 0.26);
+}
+
+.visual-category-row button.reviewed::after {
+  content: "✓";
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  position: absolute;
+  left: 10px;
+  top: -7px;
+  border: 1px solid rgba(255, 155, 233, 0.72);
+  border-radius: 50%;
+  background: rgba(6, 4, 14, 0.92);
+  color: #ffcff5;
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-shadow: 0 0 12px rgba(255, 92, 218, 0.9);
+}
+
+.tool-purpose-card::after {
+  content: "Evidence First lock active until Submit Decision";
+  width: fit-content;
+  border: 1px solid rgba(255, 92, 218, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 92, 218, 0.08);
+  color: rgba(255, 241, 251, 0.74);
+  padding: 4px 9px;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.submit-decision-panel {
+  scroll-margin-top: 20px;
+}
+
+.decision-checklist p:first-child {
+  border-color: rgba(255, 155, 233, 0.36);
+  background: linear-gradient(135deg, rgba(255, 92, 218, 0.11), rgba(173, 76, 255, 0.07));
+}
+
+.decision-form button::after,
+.notebook-compose button::after {
+  content: "  ✦";
+}
+
+.tray-list div,
+.notebook-list button,
+.agent-archive-panel {
+  box-shadow: inset 0 0 14px rgba(255, 92, 218, 0.035);
+}
+
+.notebook-compose textarea::placeholder,
+.decision-form textarea::placeholder {
+  color: rgba(255, 241, 251, 0.44);
+}
+
+@media (min-width: 1181px) {
+  .bottom-investigation-grid,
+  .submit-decision-panel {
+    position: sticky;
+    top: 18px;
+  }
+
+  .bottom-investigation-grid {
+    align-self: start;
+  }
+}
+
+@media (max-width: 560px) {
+  .visual-category-row button em::before {
+    content: "";
+  }
+
+  .tool-purpose-card::after {
+    font-size: 0.58rem;
+  }
+}
