@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import AcademyProgress from './AcademyProgress.jsx';
 import { trainingCases } from './data/cases.js';
 import { financialRecordsByCase } from './data/financialRecords.js';
 import { businessRecordsByCase } from './data/businessRecords.js';
 import { evidenceRecordsByCase } from './data/evidenceRecords.js';
+import { buildLunaDebrief } from './data/lunaDebrief.js';
 import { buildReviewPackage, getReviewPackageStatus, reviewChoices } from './data/reviewPackage.js';
 
 const AGENT_ID = 'AGT-TRAIN-001';
@@ -29,6 +31,8 @@ const defaultCompletedTools = {
   'FA-CB-24007': ['Case Summary'],
   'FA-CR-24003': ['Case Summary'],
 };
+
+const defaultAgentNotepad = { [AGENT_ID]: [] };
 
 function readStorage(key, fallback) {
   if (typeof window === 'undefined') return fallback;
@@ -57,6 +61,7 @@ export default function VisualWorkspace() {
   const [noteDraft, setNoteDraft] = useState('');
   const [trayByCase, setTrayByCase] = useState(() => readStorage('fraud-academy-visual-tray-v1', {}));
   const [notesByCase, setNotesByCase] = useState(() => readStorage('fraud-academy-notes-v1', defaultNotesByCase));
+  const [agentNotepadById, setAgentNotepadById] = useState(() => readStorage('fraud-academy-agent-notepad-v1', defaultAgentNotepad));
   const [completedToolsByCase, setCompletedToolsByCase] = useState(() => readStorage('fraud-academy-completed-tools-v1', defaultCompletedTools));
   const [decisionDraftsByCase, setDecisionDraftsByCase] = useState(() => readStorage('fraud-academy-decision-drafts-v1', {}));
   const [reviewPackagesByCase, setReviewPackagesByCase] = useState(() => readStorage('fraud-academy-review-packages-v1', {}));
@@ -65,10 +70,13 @@ export default function VisualWorkspace() {
   const activeCategoryConfig = useMemo(() => categories.find((item) => item.key === activeCategory) ?? categories[1], [activeCategory]);
   const tray = trayByCase[activeCase.id] ?? defaultTrayFor(activeCase.id);
   const notes = notesByCase[activeCase.id] ?? defaultNotesByCase[activeCase.id] ?? [`Investigation note · Opened ${activeCase.id} workspace.`];
+  const agentNotes = agentNotepadById[AGENT_ID] ?? [];
   const currentCompleted = completedToolsByCase[activeCase.id] ?? ['Case Summary'];
   const decisionDraft = decisionDraftsByCase[activeCase.id] ?? defaultDecisionDraft;
   const reviewPackages = reviewPackagesByCase[activeCase.id] ?? [];
+  const latestReviewPackage = reviewPackages[0] ?? null;
   const packageStatus = useMemo(() => getReviewPackageStatus({ completedTools: currentCompleted, tray, notes, draft: decisionDraft }), [currentCompleted, tray, notes, decisionDraft]);
+  const lunaDebrief = useMemo(() => buildLunaDebrief({ activeCase, reviewPackage: latestReviewPackage, completedTools: currentCompleted, tray, notes }), [activeCase, latestReviewPackage, currentCompleted, tray, notes]);
   const records = useMemo(() => buildToolRows(activeCategory, activeCase), [activeCategory, activeCase]);
   const filteredRows = useMemo(() => {
     const clean = query.trim().toLowerCase();
@@ -78,6 +86,7 @@ export default function VisualWorkspace() {
 
   useEffect(() => writeStorage('fraud-academy-visual-tray-v1', trayByCase), [trayByCase]);
   useEffect(() => writeStorage('fraud-academy-notes-v1', notesByCase), [notesByCase]);
+  useEffect(() => writeStorage('fraud-academy-agent-notepad-v1', agentNotepadById), [agentNotepadById]);
   useEffect(() => writeStorage('fraud-academy-completed-tools-v1', completedToolsByCase), [completedToolsByCase]);
   useEffect(() => writeStorage('fraud-academy-decision-drafts-v1', decisionDraftsByCase), [decisionDraftsByCase]);
   useEffect(() => writeStorage('fraud-academy-review-packages-v1', reviewPackagesByCase), [reviewPackagesByCase]);
@@ -97,7 +106,9 @@ export default function VisualWorkspace() {
     if (!clean) return;
     const timestamp = new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     const caseLine = `${timestamp} · ${type} · ${clean}`;
+    const agentEntry = { id: `${activeCase.id}-${Date.now()}`, agentId: AGENT_ID, caseId: activeCase.id, noteType: type, noteText: clean, timestamp };
     setNotesByCase((current) => ({ ...current, [activeCase.id]: [caseLine, ...(current[activeCase.id] ?? [])] }));
+    setAgentNotepadById((current) => ({ ...current, [AGENT_ID]: [agentEntry, ...(current[AGENT_ID] ?? [])] }));
   }
 
   function pinEvidence(value, label = 'Pinned object') {
@@ -156,7 +167,7 @@ export default function VisualWorkspace() {
       const caseTools = current[activeCase.id] ?? ['Case Summary'];
       return { ...current, [activeCase.id]: [...new Set([...caseTools, 'Submit Decision'])] };
     });
-    saveNote('Submit Decision: learner review package saved. Post-submission debrief can unlock from saved package state.', 'Decision package');
+    saveNote('Submit Decision: learner review package saved. Post-submission Luna debrief and Academy Progress can now read the saved package state.', 'Decision package');
   }
 
   return (
@@ -183,7 +194,9 @@ export default function VisualWorkspace() {
           reviewPackages={reviewPackages}
           submitReviewPackage={submitReviewPackage}
         />
-        <BottomInvestigationGrid tray={tray} notes={notes} noteDraft={noteDraft} setNoteDraft={setNoteDraft} submitManualNote={submitManualNote} pinEvidence={pinEvidence} />
+        <PostSubmissionInsightPanel lunaDebrief={lunaDebrief} latestReviewPackage={latestReviewPackage} />
+        <AcademyProgress />
+        <BottomInvestigationGrid tray={tray} notes={notes} agentNotes={agentNotes} noteDraft={noteDraft} setNoteDraft={setNoteDraft} submitManualNote={submitManualNote} pinEvidence={pinEvidence} />
         <VisualBottomNav />
       </section>
     </main>
@@ -343,11 +356,59 @@ function SubmitDecisionPanel({ activeCase, decisionDraft, updateDecisionDraft, p
   );
 }
 
+function PostSubmissionInsightPanel({ lunaDebrief, latestReviewPackage }) {
+  const locked = !latestReviewPackage || !lunaDebrief;
+
+  return (
+    <section className={`ornate-card luna-visual-panel ${locked ? 'locked' : 'unlocked'}`}>
+      <div className="card-title-row">
+        <div>
+          <h2>🌙 Luna Debrief</h2>
+          <p>{locked ? 'Post-submission coaching stays locked until the learner package is saved.' : lunaDebrief.coachIntro}</p>
+        </div>
+        <span>{locked ? '🔒' : '✨'}</span>
+      </div>
+      {locked ? (
+        <div className="luna-locked-state">
+          <strong>Evidence First lock is active.</strong>
+          <p>Submit Decision must save a review package before Luna shows scoring, strengths, or next coaching focus.</p>
+        </div>
+      ) : (
+        <div className="luna-debrief-grid">
+          <div className="luna-score-card">
+            <small>{lunaDebrief.theme}</small>
+            <strong>{lunaDebrief.score}/100</strong>
+            <span>{lunaDebrief.scoreLabel}</span>
+          </div>
+          <div className="luna-list-card">
+            <h3>Package strengths</h3>
+            {lunaDebrief.strengths.map((item) => <p key={item}>✦ {item}</p>)}
+          </div>
+          <div className="luna-list-card">
+            <h3>Next coaching focus</h3>
+            {lunaDebrief.followUps.map((item) => <p key={item}>☾ {item}</p>)}
+          </div>
+          <div className="luna-breakdown-card">
+            <h3>Decision-quality breakdown</h3>
+            {lunaDebrief.breakdown.map((item) => (
+              <div key={item.label}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+                <em>{item.points} pts</em>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function formatLines(value) {
   return String(value).split('\n').map((line) => <small key={line}>{line}</small>);
 }
 
-function BottomInvestigationGrid({ tray, notes, noteDraft, setNoteDraft, submitManualNote, pinEvidence }) {
+function BottomInvestigationGrid({ tray, notes, agentNotes, noteDraft, setNoteDraft, submitManualNote, pinEvidence }) {
   return (
     <section className="bottom-investigation-grid">
       <div className="ornate-card tray-card">
@@ -356,12 +417,19 @@ function BottomInvestigationGrid({ tray, notes, noteDraft, setNoteDraft, submitM
         <button className="add-evidence">✦ Evidence is saved by case</button>
       </div>
       <div className="ornate-card notebook-card">
-        <div className="card-title-row"><div><h2>📖 Investigation Notebook</h2><p>Saved notes stay with the active case</p></div><span>🐈‍⬛</span></div>
+        <div className="card-title-row"><div><h2>📖 Investigation Notebook</h2><p>Saved notes stay with the active case and the agent archive</p></div><span>🐈‍⬛</span></div>
         <form className="notebook-compose" onSubmit={submitManualNote}>
           <textarea value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} placeholder="Type an investigation note..." />
           <button type="submit">Save Note</button>
         </form>
         <div className="notebook-list">{notes.map((item, index) => <button key={`${item}-${index}`}><span>✎</span><p>{item}</p><em>›</em></button>)}</div>
+        <details className="agent-archive-panel">
+          <summary>Agent Notepad Archive · {AGENT_ID} · {agentNotes.length} saved</summary>
+          <div>
+            {agentNotes.slice(0, 8).map((item) => <p key={item.id}><strong>{item.caseId}</strong> · {item.noteType} · {item.noteText}</p>)}
+            {!agentNotes.length && <p>No agent archive notes yet.</p>}
+          </div>
+        </details>
       </div>
     </section>
   );
