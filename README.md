@@ -63,6 +63,8 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Desktop visual command-center layout styling in `src/visualDesktopCommand.css`
 - Bottom navigation behavior in `src/visualNavPatch.js`
 - Functional QA control wiring in `src/visualQaPatch.js`
+- Compact More / Less text controls in `src/visualTextCollapse.js`
+- Compact More / Less text styling in `src/visualTextCollapse.css`
 - Functional QA checklist in `docs/FUNCTIONAL_QA_CHECKLIST.md`
 - Evidence First wording check in `scripts/evidence-first-check.mjs`
 - GitHub Actions verify workflow in `.github/workflows/build.yml`
@@ -131,7 +133,8 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 - Saved Case Report packets persist by case, appear in the ornate notebook packet panel, flow into Case Report rows, snapshot into saved review packages, and count toward Luna post-submission documentation scoring
 - Submit Decision now surfaces a neutral package input preview showing reviewed tools, pinned objects, notes, and the specific Case Report packet feed that will snapshot into the learner review package
 - Functional QA pass now maps visible UI elements to expected behavior, identifies no-op/decorative controls, and wires the remaining button-shaped controls into Tool Map and Evidence Center navigation
-- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, visual sub-tool controls, desktop visual command-center layout, expandable record review states, and Evidence First review status affordances
+- Compact text pass now collapses long card copy by default and adds More / Less expansion controls for case summary, tool purpose, record detail, checklist, Luna, progress, notebook, tray, packet, and archive text
+- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, visual sub-tool controls, desktop visual command-center layout, expandable record review states, Evidence First review status affordances, and compact text expansion controls
 - `npm run verify` now runs the Evidence First wording check and Vite production build locally
 - The GitHub Actions workflow runs the same verify command on pushes and pull requests to `main`
 - Evidence First search sweep completed for answer-leaking wording
@@ -139,9 +142,9 @@ Wave 2 has started and currently adds core Case Workspace behavior:
 
 ## Latest handoff
 
-A functional QA pass is now active. The repo includes `docs/FUNCTIONAL_QA_CHECKLIST.md`, which maps visible controls to expected investigator behavior and flags anything that is still only informational or temporary. The latest patch wires the category `View All` control into the Academy tool map and changes the tray status button into an Evidence Center route.
+A compact text pass is now active. Long explanatory copy is collapsed by default with More / Less controls so cards stay clean and do not feel like every box is carrying a full essay. The QA checklist now treats expand/collapse behavior as a real function and includes it in the manual smoke path.
 
-Next step: run the manual smoke path in `docs/FUNCTIONAL_QA_CHECKLIST.md`, run `npm run verify`, then replace the temporary DOM navigation patches with React-native state once the user confirms the behavior feels right.
+Next step: run the manual smoke path in `docs/FUNCTIONAL_QA_CHECKLIST.md`, run `npm run verify`, then replace the temporary DOM navigation and text-collapse patches with React-native state once the user confirms the behavior feels right.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
