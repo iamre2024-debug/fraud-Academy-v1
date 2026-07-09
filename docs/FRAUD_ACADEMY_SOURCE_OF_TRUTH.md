@@ -133,6 +133,7 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 - Visual-shell Investigation Tray, case notes, agent notepad, reviewed tools, decision drafts, review packages, and Case Report packets persist in browser storage by case.
 - Ornate category tiles must show neutral progress only: open, in progress, complete, reviewed count, and progress track. They must not label evidence quality or case outcome.
 - Submit Decision remains locked until the required tool checklist, pinned evidence, case notes, learner choice, and evidence-based rationale are present.
+- Submit Decision may display a neutral package input preview showing reviewed tools, pinned objects, notes, and Case Report packets that will snapshot into the saved learner package.
 - Luna scoring, strengths, follow-up coaching, and decision-quality breakdown stay hidden until a review package is saved.
 
 ## Build waves
