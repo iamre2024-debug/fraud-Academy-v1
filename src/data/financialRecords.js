@@ -11,9 +11,9 @@ export const financialRecordsByCase = {
       { id: 'FIN-1003', type: 'Merchant context', value: 'Digital goods merchant category', observed: 'Jul 8, 2026', context: 'Merchant information should be reviewed with transaction and login records.' },
     ],
     paymentVerification: [
-      { id: 'PAY-1001', type: 'Payment instrument', object: 'Debit card ending 4410', status: 'Active', lastSeen: 'Jul 8, 2026', context: 'Instrument used by current transaction record.' },
-      { id: 'PAY-1002', type: 'Destination object', object: 'Merchant processor token MPT-7784', status: 'Recorded', lastSeen: 'Jul 8, 2026', context: 'Tokenized destination object for training review.' },
-      { id: 'PAY-1003', type: 'Authorization trail', object: 'AUTH-74218-CNP', status: 'Available', lastSeen: 'Jul 8, 2026', context: 'Authorization record can be pinned for later timeline review.' },
+      { id: 'PAY-1001', type: 'Payment instrument', object: 'Debit card ending 4410', status: 'Active', lastSeen: 'Jul 8, 2026', context: 'Payment packet includes instrument state, transaction reference TXN-1001, and card-present comparison records for neutral documentation.' },
+      { id: 'PAY-1002', type: 'Destination object', object: 'Merchant processor token MPT-7784', status: 'Recorded', lastSeen: 'Jul 8, 2026', context: 'Destination packet ties the tokenized merchant processor object to authorization timing and merchant context without assigning an outcome.' },
+      { id: 'PAY-1003', type: 'Authorization trail', object: 'AUTH-74218-CNP', status: 'Available', lastSeen: 'Jul 8, 2026', context: 'Authorization packet can be compared with login session, device, IP, and transaction timeline before case report drafting.' },
     ],
   },
   'FA-CB-24007': {
@@ -28,9 +28,9 @@ export const financialRecordsByCase = {
       { id: 'FIN-2203', type: 'Amount comparison', value: '$179.44 to $189.44', observed: 'May-Jul 2026', context: 'Amount change is a record detail, not a final case outcome.' },
     ],
     paymentVerification: [
-      { id: 'PAY-2201', type: 'Payment instrument', object: 'Credit card ending 8841', status: 'Active', lastSeen: 'Jul 8, 2026', context: 'Instrument used for current and prior merchant billing.' },
-      { id: 'PAY-2202', type: 'Merchant billing object', object: 'Subscription billing token SBT-2207', status: 'Recorded', lastSeen: 'Jul 8, 2026', context: 'Tokenized merchant billing object available for review.' },
-      { id: 'PAY-2203', type: 'Dispute packet', object: 'Billing dispute packet CB-24007', status: 'Open', lastSeen: 'Jul 8, 2026', context: 'Packet connects transaction records and requested documents.' },
+      { id: 'PAY-2201', type: 'Payment instrument', object: 'Credit card ending 8841', status: 'Active', lastSeen: 'Jul 8, 2026', context: 'Payment packet groups the instrument, current transaction, and prior-cycle merchant charges for billing-pattern documentation.' },
+      { id: 'PAY-2202', type: 'Merchant billing object', object: 'Subscription billing token SBT-2207', status: 'Recorded', lastSeen: 'Jul 8, 2026', context: 'Merchant billing packet connects descriptor, token, statement period, and requested cancellation evidence without deciding the claim.' },
+      { id: 'PAY-2203', type: 'Dispute packet', object: 'Billing dispute packet CB-24007', status: 'Open', lastSeen: 'Jul 8, 2026', context: 'Dispute packet links customer form, recurring transactions, and requested document status for the case report draft.' },
     ],
   },
   'FA-CR-24003': {
@@ -45,9 +45,9 @@ export const financialRecordsByCase = {
       { id: 'FIN-3303', type: 'Destination setup', value: 'New external destination token', observed: 'Jul 8, 2026', context: 'Destination object is available in payment verification.' },
     ],
     paymentVerification: [
-      { id: 'PAY-3301', type: 'Bank Code', object: 'BC-204', status: 'Tokenized', lastSeen: 'Jul 8, 2026', context: 'Training-safe payment routing object.' },
-      { id: 'PAY-3302', type: 'Destination ID', object: 'DST-7740', status: 'Tokenized', lastSeen: 'Jul 8, 2026', context: 'Training-safe destination object connected to the setup event.' },
-      { id: 'PAY-3303', type: 'Verification packet', object: 'PV-24003', status: 'Pending review', lastSeen: 'Jul 8, 2026', context: 'Payment verification packet is ready for investigator review.' },
+      { id: 'PAY-3301', type: 'Bank Code', object: 'BC-204', status: 'Tokenized', lastSeen: 'Jul 8, 2026', context: 'Payment packet shows the training-safe Bank Code object, setup timestamp, and linked Destination ID for neutral verification.' },
+      { id: 'PAY-3302', type: 'Destination ID', object: 'DST-7740', status: 'Tokenized', lastSeen: 'Jul 8, 2026', context: 'Destination packet connects DST-7740 to the external setup event, usage request, and profile-history packet.' },
+      { id: 'PAY-3303', type: 'Verification packet', object: 'PV-24003', status: 'Pending review', lastSeen: 'Jul 8, 2026', context: 'Verification packet groups Bank Code, Destination ID, account event, and identity objects for investigator review before submission.' },
     ],
   },
 };
