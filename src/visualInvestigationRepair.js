@@ -58,6 +58,8 @@ function ensureCaseSummaryMeta() {
     summaryCopy.appendChild(meta);
   }
 
+  if (meta.dataset.caseId === caseId) return;
+  meta.dataset.caseId = caseId;
   meta.innerHTML = `
     <article><small>Name</small><strong>${detail.name}</strong></article>
     <article><small>Claim ID</small><strong>${detail.claimId}</strong></article>
@@ -88,6 +90,7 @@ function openTool(categoryLabel, toolName) {
   window.setTimeout(() => {
     setTool(toolName);
     document.querySelector('.activity-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.dispatchEvent(new Event('fraud-academy:repair-needed'));
   }, 120);
 }
 
@@ -125,22 +128,22 @@ function repairDeviceIntelligenceTable() {
   const header = document.querySelector('.activity-row.table-head');
   const rows = [...document.querySelectorAll('.activity-table .activity-row:not(.table-head)')];
 
-  if (header && !header.dataset.deviceIdRepaired) {
+  if (header && header.dataset.deviceCaseId !== caseId) {
     const columns = [...header.querySelectorAll('span')];
     if (columns[0]) columns[0].textContent = 'Device ID';
     if (columns[1]) columns[1].textContent = 'Device / Browser';
-    header.dataset.deviceIdRepaired = 'true';
+    header.dataset.deviceCaseId = caseId;
   }
 
   rows.forEach((row) => {
-    if (row.dataset.deviceIdRepaired === 'true') return;
     const cells = [...row.querySelectorAll(':scope > span')];
     const deviceName = cells[1]?.textContent?.trim();
     if (!deviceName) return;
     const fallbackId = `DEV-${deviceName.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 18)}`;
     const deviceId = idMap[deviceName] ?? fallbackId;
+    if (row.dataset.deviceId === deviceId) return;
     if (cells[0]) cells[0].innerHTML = `<small>${deviceId}</small>`;
-    row.dataset.deviceIdRepaired = 'true';
+    row.dataset.deviceId = deviceId;
   });
 
   let note = document.querySelector('.device-id-context-note');
@@ -170,8 +173,22 @@ function runInvestigationRepairs() {
   ensureDecisionRouteInToolPanel();
 }
 
-const repairTimer = window.setInterval(runInvestigationRepairs, 350);
-window.setTimeout(() => window.clearInterval(repairTimer), 15000);
+function queueRepair() {
+  window.requestAnimationFrame(runInvestigationRepairs);
+}
 
-const repairObserver = new MutationObserver(runInvestigationRepairs);
-repairObserver.observe(document.body, { childList: true, subtree: true });
+window.addEventListener('load', queueRepair);
+window.addEventListener('focus', queueRepair);
+window.addEventListener('fraud-academy:repair-needed', queueRepair);
+document.addEventListener('change', (event) => {
+  if (event.target?.matches?.('.visual-case-switcher select, .tool-select')) queueRepair();
+});
+document.addEventListener('click', (event) => {
+  if (event.target?.closest?.('.visual-category-row button, .visual-bottom-nav button, .nav-case-card')) {
+    window.setTimeout(queueRepair, 120);
+  }
+});
+
+queueRepair();
+window.setTimeout(queueRepair, 400);
+window.setTimeout(queueRepair, 1200);
