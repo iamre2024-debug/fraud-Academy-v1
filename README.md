@@ -23,123 +23,35 @@ Use that file before making architecture, UI, tool, scenario, or Evidence First 
 - Mobile feels like a magical investigator notebook.
 - Desktop feels like a fraud command center.
 
-## Wave 1 build
+## Current status
 
-Wave 1 established the app shell and Case Workspace foundation:
+- The screenshot-driven visual workspace is active.
+- The workspace was recovered after a connector clipping issue partially overwrote `src/VisualWorkspace.jsx`.
+- `src/VisualWorkspace.jsx` is now a smaller stable recovery shell so the app can load and all three built-in cases can be audited without the file being clipped again.
+- The three built-in cases are enriched through `src/data/caseEnrichment.js`.
+- Case Summary now shows name, claim ID, total claim amount, transaction/payee info, and short neutral summary.
+- Device Intelligence now shows Device ID as the first column and uses enriched stable fictional device IDs where available.
+- Identity Intelligence, Case Report, Submit Decision, Evidence Center, Tool Map, and bottom navigation have direct visible routes in the stable shell.
+- The Submit Decision route now forces the workspace tab active before scrolling to the decision panel.
+- Broad MutationObserver helper scripts remain removed from the app entrypoint to avoid browser unresponsive loops.
 
-- React + Vite app
-- PWA manifest
-- Mobile-first bubbly purple/pink neon UI
-- Desktop command-center layout
-- Case Workspace frame
-- Investigation family cards
-- Active panel switching
-- Evidence First banner
-- Investigation Tray
-- Investigation Notebook
-- Neutral Link Analysis foundation
-- Timeline, Case Report, Submit Decision foundation panels
-- Placeholder tool panels for the locked architecture
+## Functional focus
 
-## Wave 2 progress
+The current working priority is stability plus three-case completeness:
 
-Wave 2 has started and currently adds core Case Workspace behavior:
-
-- Fictional training case data model in `src/data/cases.js`
-- Financial tool records in `src/data/financialRecords.js`
-- Business tool records in `src/data/businessRecords.js`
-- Evidence tool records in `src/data/evidenceRecords.js`
-- Neutral review package model in `src/data/reviewPackage.js`
-- Post-submission Luna debrief scoring model in `src/data/lunaDebrief.js`
-- Academy Progress layer in `src/AcademyProgress.jsx`
-- Scenario Engine foundation in `src/data/scenarioEngine.js`
-- Scenario Engine template panel in `src/ScenarioEnginePanel.jsx`
-- Desktop command-center styling pass in `src/desktopCommand.css`
-- Screenshot-driven visual workspace shell in `src/VisualWorkspace.jsx`
-- Screenshot-driven gothic neon styling in `src/visualWorkspace.css`
-- Mobile viewport fix in `src/mobileViewportFix.css`
-- Visual tool reconnection styling in `src/visualFunctional.css`
-- Evidence First review/status styling in `src/visualReviewFlow.css`
-- Desktop visual command-center layout styling in `src/visualDesktopCommand.css`
-- Bottom navigation behavior in `src/VisualNavigation.jsx`
-- Functional QA checklist in `docs/FUNCTIONAL_QA_CHECKLIST.md`
-- Evidence First wording check in `scripts/evidence-first-check.mjs`
-- GitHub Actions verify workflow in `.github/workflows/build.yml`
-- Case Queue with Account Takeover, Chargeback Claim, and Credit Risk Review cases
-- Case switching inside one workspace
-- Case Briefing with neutral investigation questions
-- Customer 360 with contact records, relationship snapshot, and profile-change history
-- Identity Intelligence with searchable identity records
-- Login History with searchable access records
-- Session History with searchable session records
-- Device Intelligence with searchable device records
-- IP Intelligence with searchable IP records
-- Transaction History with searchable records
-- Financial Intelligence with searchable context records
-- Payment Verification with searchable training-safe records
-- Business 360 with searchable relationship records
-- Business Intelligence with searchable business context records
-- Employee Profile with searchable role and employer records
-- Payroll History with searchable payroll records
-- Evidence Center with searchable evidence inventory
-- Document Viewer with searchable document previews
-- Search panels with record, object, and note actions
-- Search empty state for no-match results
-- Investigation progress tracking by reviewed tool
-- Reviewed counts on investigation family cards
-- Mark-reviewed actions for workspace tools
-- Pinned evidence resets per opened case
-- Notebook notes are saved by active case ID
-- Notebook has a Submit note composer
-- Notebook supports note types including Case rationale, Investigation note, Evidence note, and Follow-up needed
-- Notebook notes persist in localStorage
-- Each submitted or tool-generated note saves in two places: the active case notebook and an agent notepad keyed by Agent ID
-- Agent notepad entries preserve case ID, note type, note text, and timestamp so the agent can find notes even after leaving the case
-- Tool action notes also save into the active case notebook and agent notepad
-- Link Analysis upgraded into a searchable neutral connection panel across case objects, identity records, logins, sessions, and events
-- Timeline upgraded into a searchable event/story panel covering case opening, intake, profile history, access history, case events, and evidence items
-- Case Report upgraded into a neutral draft package using case reason, customer snapshot, evidence inventory, pinned records, notebook notes, and tool progress
-- Submit Decision upgraded into a locked pre-submission checklist that checks documentation state without revealing the answer
-- Submit Decision now uses the neutral `reviewPackage` model for required tool coverage, pinned evidence, notebook notes, learner choice, confidence, and rationale
-- Submit Decision now reports a single locked blocker summary plus individual checklist items while preserving Evidence First
-- Learner review package drafts persist by case in localStorage
-- Saved review packages persist by case in localStorage, snapshot reviewed tools/pinned evidence/notes, and unlock Luna debrief only after submission
-- Luna debrief displays post-submission decision-quality scoring, breakdown, package strengths, and next coaching focus without exposing any pre-submission hinting
-- Academy Progress rolls saved post-submission Luna scores into completed case count, saved package count, average score, skill meters, and case completion rows
-- Academy Progress stays locked for cases without saved learner packages and does not show scoring or coaching before submission
-- Scenario Engine defines neutral templates, generator inputs, fictional evidence packet structures, and safety rules without answer labels or pre-submission scoring
-- Scenario Engine preview panel shows packet structure and generator inputs while keeping outcomes and Luna decision coaching locked
-- Desktop command-center pass places Scenario Engine, Case Workspace, and Academy Progress into a three-column neon workstation instead of stuck floating cards
-- Visual rebuild pass now makes the app entry open into an ornate gothic neon dashboard matching the uploaded reference direction before reconnecting deeper tool behavior
-- Visual workspace now reconnects live case data, case switching, category switching, searchable tool rows, pin-to-tray actions, and evidence-based notebook updates inside the screenshot-driven shell
-- Visual workspace now persists the investigation tray by case, reuses persisted notes/completed tools/decision drafts/review packages, shows reviewed progress counters on ornate category tiles, and contains the locked Submit Decision review package flow
-- Visual workspace now writes note activity to both the active case notebook and the Agent ID notepad archive, then surfaces a compact archive inside the ornate notebook card
-- Visual workspace now renders post-submission Luna debrief inside the ornate shell and keeps it locked until a review package exists
-- Academy Progress is now rendered inside the screenshot-driven shell with locked states until saved packages unlock case-level scores
-- Visual workspace now reconnects the ornate tool dropdown into real sub-tools for Customer 360, Identity Intelligence, Login History, Session History, Device Intelligence, IP Intelligence, Transaction History, Financial Intelligence, Payment Verification, Business 360, Business Intelligence, Employee Profile, Payroll History, Evidence Center, Document Viewer, Link Analysis, Timeline, and Case Report
-- Tool panels now display the investigator question for the selected sub-tool plus the neutral Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report workflow chips
-- Category progress counters now count all real sub-tools in the ornate category tiles instead of only one placeholder tool per family
-- Category tiles now have stronger reviewed/active status polish while preserving the screenshot-driven shapes and neon gothic theme
-- Desktop visual shell now uses a denser command-center arrangement on wide screens: active tool panel on the left, Investigation Tray/Notebook and Submit Decision on the right, then Luna Debrief and Academy Progress below while keeping the ornate mobile stack intact
-- Tool records now support an expanded neutral review panel that shows selected record fields, staged search terms, history context, neutral link context, and a saveable generated report note without revealing any final outcome
-- Desktop command layout now reserves space for the expanded record panel under the active tool table
-- Document Viewer records now include richer packet previews and field inventories for customer, merchant, alert, payment, account setup, and requested-document packets
-- Payment Verification records now include deeper training-safe packet context for payment instruments, destination objects, authorization trails, dispute packets, Bank Codes, Destination IDs, and verification packets
-- Customer 360 profile-history records now include more documentable packet details for profile views, statement views, contact-history checks, payment-method additions, and account setup events
-- Expanded records now save structured Case Report packets for profile, payment, document, and other tool records while deduping repeat saves by tool and record
-- Saved Case Report packets persist by case, appear in the ornate notebook packet panel, flow into Case Report rows, snapshot into saved review packages, and count toward Luna post-submission documentation scoring
-- Submit Decision now surfaces a neutral package input preview showing reviewed tools, pinned objects, notes, and the specific Case Report packet feed that will snapshot into the learner review package
-- Functional QA pass now maps visible UI elements to expected behavior and flags no-op/decorative controls
-- Stability hotfix disabled broad DOM observer helper layers after browser page-unresponsive reports. More / Less text collapse, QA button bridge, and investigation repair overlays need to be rebuilt directly inside React components before re-enabling.
-- New styling for timeline/report records, the agent notepad archive, Luna debrief cards, Academy Progress, Scenario Engine, desktop command center, visual workspace shell, visual tool controls, category progress counters, notebook composer, Submit Decision panel, visual sub-tool controls, desktop visual command-center layout, expandable record review states, Evidence First review status affordances, React navigation, and disabled compact text styling
-- `npm run verify` now runs the Evidence First wording check, functional smoke guard, review package behavior smoke check, and Vite production build locally
-- The GitHub Actions workflow runs the same verify command on pushes and pull requests to `main`
-- Evidence First search sweep completed for answer-leaking wording
-- The Evidence First wording guard now distinguishes prohibited pre-submission answer leaks from allowed lock-state and post-submission Luna scoring language.
+1. Confirm all three built-in cases load.
+2. Confirm each category opens.
+3. Confirm each sub-tool opens.
+4. Confirm Device Intelligence shows Device ID and repeated devices reuse the same Device ID.
+5. Confirm Case Summary has full intake metadata.
+6. Confirm Case Report opens.
+7. Confirm Submit Decision is visible and reachable.
+8. Confirm no visible control is only decorative.
+9. After the stable shell is confirmed, split the workspace into smaller React modules and restore richer saved notes/review package/Luna behavior cleanly.
 
 ## Latest handoff
 
-A stability hotfix removed broad MutationObserver-based helper scripts from the app entrypoint after the browser became unresponsive. The app currently loads `VisualWorkspace` and React-managed bottom navigation only. The next step is to rebuild Device IDs, richer Case Summary metadata, direct Submit Decision routing, Tool Map routing, Evidence Center routing, and More / Less text expansion inside the React components instead of using DOM-scanning overlay scripts.
+A three-case audit recovery pass restored `VisualWorkspace.jsx` into a stable compact React shell and connected it to `caseEnrichment.js`. The app should now prioritize loading successfully, showing enriched case summaries, showing Device IDs, and making Submit Decision visible. Next step: run `npm run verify` locally, browser-test all three built-in cases, then rebuild the richer note/review-package/Luna behaviors into smaller React modules instead of one oversized file.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -157,15 +69,6 @@ npm run dev
 npm run build
 ```
 
-## Next waves
-
-1. App Shell + Case Workspace foundation
-2. Case Workspace core behavior
-3. Main consumer investigation tools
-4. Business, payroll, payment, and credit tools
-5. Scenario Engine
-6. Luna debrief, scoring, and academy progress
-
 ## Test status
 
-The repo has been updated through the GitHub connector. Local build testing still needs to be run in a connected development environment because this execution runtime could not resolve github.com for cloning.
+The repo has been updated through the GitHub connector. Local build testing still needs to run in the user's connected development environment.
