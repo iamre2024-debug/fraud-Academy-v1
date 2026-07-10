@@ -39,17 +39,17 @@ const checks = [
   },
   {
     file: 'src/VisualWorkspace.jsx',
-    label: 'visual shell case-scoped state and review flow',
+    label: 'visual shell action and review flow coordinator',
     mustContain: [
       "import ActiveToolPanel from './ActiveToolPanel.jsx'",
       "import BottomInvestigationGrid from './BottomInvestigationGrid.jsx'",
       "import CaseSummaryCard from './CaseSummaryCard.jsx'",
       "import CategoryTileRail from './CategoryTileRail.jsx'",
       "import SubmitDecisionPanel from './SubmitDecisionPanel.jsx'",
+      "import useVisualWorkspaceCaseState from './useVisualWorkspaceCaseState.js'",
       "import VisualShellHeader from './VisualShellHeader.jsx'",
       "from './visualWorkspaceModel.js'",
-      'readStorage(storageKeys.tray',
-      'writeStorage(storageKeys.reportPackets',
+      '} = useVisualWorkspaceCaseState(activeCase);',
       'rowsFor(tool, activeCase, reportPackets)',
       '<ActiveToolPanel',
       '<BottomInvestigationGrid',
@@ -64,6 +64,27 @@ const checks = [
       "window.dispatchEvent(new CustomEvent('fraud-academy:navigate'",
       'ensureCaseSummaryMeta',
       'repairDeviceIntelligenceTable',
+      'readStorage(',
+      'writeStorage(',
+      'useEffect(',
+    ],
+  },
+  {
+    file: 'src/useVisualWorkspaceCaseState.js',
+    label: 'case-scoped visual workspace persistence hook',
+    mustContain: [
+      "import { useEffect, useState } from 'react'",
+      "from './visualWorkspaceModel.js'",
+      'readStorage(storageKeys.tray',
+      'readStorage(storageKeys.notes',
+      'readStorage(storageKeys.completed',
+      'readStorage(storageKeys.decisions',
+      'readStorage(storageKeys.packages',
+      'readStorage(storageKeys.reportPackets',
+      'writeStorage(storageKeys.tray',
+      'writeStorage(storageKeys.reportPackets',
+      "currentCompleted: completedByCase[caseId] ?? ['Case Summary']",
+      'decisionDraft: decisionByCase[caseId] ?? defaultDecisionDraft',
     ],
   },
   {
@@ -89,7 +110,7 @@ const checks = [
       '<small>Claim ID</small>',
       '<small>Transaction / payee info</small>',
       '<small>Short summary</small>',
-      "pin(activeCase.id)",
+      'pin(activeCase.id)',
       "openTool('Identity Intelligence')",
       "openTool('Case Report')",
       "openTool('Login History')",
@@ -253,9 +274,11 @@ const checks = [
     label: 'verify command wiring',
     mustContain: [
       '"generated-case-smoke-check": "node scripts/generated-case-smoke-check.mjs"',
+      '"workspace-case-state-hook-smoke-check": "node scripts/workspace-case-state-hook-smoke-check.mjs"',
       'npm run generated-case-smoke-check',
       'npm run functional-smoke-check',
       'npm run review-package-smoke-check',
+      'npm run workspace-case-state-hook-smoke-check',
       'npm run build',
     ],
   },
@@ -314,4 +337,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Functional smoke check passed. Repository-backed generated cases, IndexedDB fallback, direct Submit Decision compact text, Evidence First locks, React navigation, and the full verify wiring are present.');
+console.log('Functional smoke check passed. Workspace persistence boundaries, repository-backed generated cases, IndexedDB fallback, direct Submit Decision compact text, Evidence First locks, React navigation, and the full verify wiring are present.');
