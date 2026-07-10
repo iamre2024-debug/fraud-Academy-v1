@@ -99,7 +99,7 @@ for (const required of [
 }
 
 for (const required of [
-  'trainingCases.map',
+  'cases.map',
   'onOpenCase(item.id)',
   "onNavigate('workspace')",
   "onNavigate('progress')",
