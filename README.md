@@ -29,6 +29,7 @@ Use that file before making architecture, UI, tool, scenario, or Evidence First 
 - `src/VisualApp.jsx` coordinates the active case, live case catalog, and active navigation tab through React state.
 - `src/VisualWorkspace.jsx` owns the core investigation workspace behavior: case-scoped tray, notes, reviewed tools, decision drafts, review packages, and Case Report packets.
 - `src/visualWorkspaceModel.js` now owns workspace constants, storage helpers, live tool row builders, System Access Lane row construction, and Case Report packet construction.
+- `src/SubmitDecisionPanel.jsx` owns the locked Submit Decision visual panel while the review package model keeps Evidence First behavior enforced.
 - `src/VisualNavigation.jsx` receives direct React callbacks for Dashboard, Cases, Workspace, Academy, Progress, and case opening.
 - `src/VisualTextCollapse.jsx` now uses limited event-triggered scans instead of a broad MutationObserver.
 - Insider / Vendor / API / Open Banking is now the Connections → System Access Lane sub-tool inside `src/VisualWorkspace.jsx`, powered by `src/data/systemAccessRecords.js`.
@@ -49,7 +50,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 1. Evidence First wording remains the rule: no final outcome, fraud score, red flags, green flags, AI recommendations, or answer hints before submission.
 2. Case Summary explains why the case exists using allegation or system alert plus neutral intake metadata.
 3. Customer 360 and Identity Intelligence include profile, relationship, contact, account age, and identity object records.
-4. Digital Activity includes Login History, Session History, Device Intelligence, IP Intelligence, and stable fictional Device IDs.
+4. Digital Activity includes Login History, Session History, Device Intelligence, and stable fictional Device IDs.
 5. Financial, Business, Evidence, Connections, Timeline, Case Report, Investigation Tray, Notebook, and Submit Decision remain present in the shell.
 6. Submit Decision remains locked until required tool review, pinned evidence, notes, learner choice, and rationale are complete.
 7. Expanded decision calls are validated by `scripts/review-package-smoke-check.mjs`.
@@ -60,7 +61,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 
 Still needs deeper module work after browser confirmation:
 
-1. Continue splitting `VisualWorkspace.jsx` into focused React modules so future edits do not risk connector clipping.
+1. Continue splitting `VisualWorkspace.jsx` into focused React modules so future edits do not risk connector clipping. The workspace model and Submit Decision panel are now split.
 2. Convert compact text target discovery into fully direct reusable wrappers instead of any selector discovery.
 3. Reconnect Academy Progress polish to the stable post-submission package flow.
 
@@ -83,7 +84,7 @@ The current working priority is stability plus three-case completeness:
 
 ## Latest handoff
 
-The first VisualWorkspace split is complete: `visualWorkspaceModel.js` now holds category definitions, storage helpers, row builders, System Access Lane rows, and Case Report packet construction. `VisualWorkspace.jsx` keeps the same screenshot-driven markup and interaction behavior, but no longer carries the large row-building model inline. Next step: browser-test all three built-in cases plus one generated case, then continue splitting the rendered workspace into focused React panels.
+The second VisualWorkspace split is complete: `SubmitDecisionPanel.jsx` now owns the locked Submit Decision visual markup and learner input controls, while `VisualWorkspace.jsx` still owns the case-scoped state and package save behavior. The screenshot-driven shell, CSS, and Evidence First review package behavior were preserved. Next step: browser-test all three built-in cases plus one generated case, then split the active category/tool panel into a focused React module.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
