@@ -145,6 +145,7 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 - Submit Decision remains locked until the required tool checklist, pinned evidence, case notes, learner choice, and evidence-based rationale are present.
 - Submit Decision may display a neutral package input preview showing reviewed tools, pinned objects, notes, and Case Report packets that will snapshot into the saved learner package.
 - Luna scoring, strengths, follow-up coaching, and decision-quality breakdown stay hidden until a review package is saved.
+- `src/LunaPostSubmissionPanel.jsx` must resolve the active case from the live built-in/generated case catalog. Generated cases must never fall back to an unrelated built-in case for package reads, lock state, or post-submission debrief.
 - Insider / Vendor / API / Open Banking records belong inside the core workspace tool switcher as the Connections → System Access Lane sub-tool. Do not restore a separate portal panel for this lane.
 - Bottom navigation plus Dashboard, Cases, Academy, and Progress panels are managed by React state in `src/VisualNavigation.jsx`; do not restore the retired DOM navigation patch.
 - Compact More / Less controls are React-managed in `src/VisualTextCollapse.jsx`; keep long copy collapsed by default and do not restore the retired `src/visualTextCollapse.js` patch.
@@ -158,4 +159,6 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 - The deeper Case Report view must preserve saved neutral report packet rows from the existing case-scoped packet feed.
 - Do not carry forward the retired PR #2 `src/data/caseStorage.js` or direct `src/data/generatedCases.js` storage rewrites. Backend readiness must continue through `src/data/generatedCaseRepository.js`.
 - The single Connections → System Access Lane stays available, but the parked ten-module System Access portal must not be revived.
-- `npm run verify` and `.github/workflows/build.yml` must preserve the Evidence First wording check, functional smoke guard, visual three-case smoke guard, generated-case repository smoke guard, Luna single-module smoke guard, review-package behavior smoke check, remaining-module depth guard, and production build so CI catches broken visual-shell anchors, case coverage, generated queue regressions, direct route callbacks, Luna duplication, package-lock behavior, and module-depth regressions before they ship.
+- Desktop category controls must remain pointer-accessible and must not be covered by sticky right-side investigation panels or the fixed bottom navigation.
+- `npm run verify` must preserve the Evidence First wording check, functional smoke guard, visual three-case smoke guard, generated-case repository smoke guard, Luna single-module smoke guard, review-package behavior smoke check, remaining-module depth guard, and production build.
+- `.github/workflows/build.yml` must also run Playwright against desktop and mobile Chromium for all three built-in cases, generated-case immediate open and persistence, the completed core modules, Connections → System Access Lane, and Luna’s pre-submission lock.
