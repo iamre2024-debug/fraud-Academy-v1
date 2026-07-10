@@ -70,6 +70,7 @@ for (const item of cases) {
 
 const visualApp = read('src/VisualApp.jsx');
 const visualWorkspace = read('src/VisualWorkspace.jsx');
+const visualWorkspaceModel = read('src/visualWorkspaceModel.js');
 const visualNavigation = read('src/VisualNavigation.jsx');
 const main = read('src/main.jsx');
 
@@ -86,20 +87,29 @@ for (const required of [
 for (const required of [
   "onNavigate('academy')",
   "openTool('Evidence Center')",
-  'System Access Lane',
-  'getSystemAccessRecords(activeCase.id)',
+  "from './visualWorkspaceModel.js'",
+  'rowsFor(tool, activeCase, reportPackets)',
+  'buildPacket(row, tool, activeCase)',
   'function jumpDecision()',
   'submitRef.current?.scrollIntoView',
   '<small>Claim ID</small>',
   '<small>Transaction / payee info</small>',
   '<small>Short summary</small>',
-  "columns: ['Device ID'",
-  'item.deviceId ?? `DEV-${item.id}`',
   'reviewChoices.map',
   'packageStatus.messages.map',
   'category-progress-track',
 ]) {
   requireText('src/VisualWorkspace.jsx', visualWorkspace, required, 'three-case visual workflow anchor');
+}
+
+for (const required of [
+  'System Access Lane',
+  'getSystemAccessRecords(activeCase.id)',
+  "columns: ['Device ID'",
+  'item.deviceId ?? `DEV-${item.id}`',
+  'export function rowsFor(tool, activeCase, reportPackets = [])',
+]) {
+  requireText('src/visualWorkspaceModel.js', visualWorkspaceModel, required, 'three-case visual model anchor');
 }
 
 for (const required of [
