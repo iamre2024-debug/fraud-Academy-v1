@@ -11,15 +11,25 @@ function mustContain(fileLabel, content, text) {
 }
 
 function mustNotContain(fileLabel, content, text) {
-  if (content.includes(text)) failures.push(`${fileLabel} still contains retired Progress selector or unsafe copy: ${text}`);
+  if (content.includes(text)) failures.push(`${fileLabel} still contains a retired Navigation selector or unsafe copy: ${text}`);
 }
 
 mustContain('VisualNavigation.jsx', navigation, "import DirectCollapsibleText from './DirectCollapsibleText.jsx';");
+mustContain('VisualNavigation.jsx', navigation, 'function NavigationPanel({ activeTab, cases, snapshot, onNavigate, onOpenCase })');
+mustContain('VisualNavigation.jsx', navigation, '<DirectCollapsibleText as="span" lines={2} mobileLines={2}>');
+mustContain('VisualNavigation.jsx', navigation, 'function AcademyPanel()');
+mustContain('VisualNavigation.jsx', navigation, '{detail}');
 mustContain('VisualNavigation.jsx', navigation, 'function ProgressPanel({ cases, packagesByCase })');
-mustContain('VisualNavigation.jsx', navigation, '<DirectCollapsibleText as="p" lines={2} mobileLines={2}>');
-mustContain('VisualNavigation.jsx', navigation, "Submit a review package to unlock Luna progress.");
+mustContain('VisualNavigation.jsx', navigation, 'Submit a review package to unlock Luna progress.');
 mustNotContain('VisualNavigation.jsx', navigation, 'Luna scoring only appears before submission');
+mustNotContain('VisualTextCollapse.jsx', visualTextCollapse, '.visual-nav-heading span');
+mustNotContain('VisualTextCollapse.jsx', visualTextCollapse, '.nav-learning-grid article p');
 mustNotContain('VisualTextCollapse.jsx', visualTextCollapse, '.nav-progress-list p');
+
+const directParagraphWrappers = navigation.match(/<DirectCollapsibleText as="p" lines=\{2\} mobileLines=\{2\}>/g) ?? [];
+if (directParagraphWrappers.length < 2) {
+  failures.push('VisualNavigation.jsx must keep direct paragraph wrappers for both Academy learning copy and Progress package status.');
+}
 
 if (failures.length) {
   console.error('Navigation direct-collapse smoke check failed. Repair these anchors before shipping:');
@@ -27,4 +37,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Navigation direct-collapse smoke check passed. Progress text is React-owned, the legacy selector is retired, and Luna progress remains package-gated.');
+console.log('Navigation direct-collapse smoke check passed. Heading, Academy learning, and Progress copy are React-owned, legacy selectors are retired, and Luna progress remains package-gated.');
