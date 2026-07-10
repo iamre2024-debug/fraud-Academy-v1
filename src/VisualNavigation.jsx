@@ -84,7 +84,7 @@ function buildSnapshot() {
   };
 }
 
-export default function VisualNavigation({ activeTab = 'workspace', onNavigate, onOpenCase }) {
+export default function VisualNavigation({ activeTab = 'workspace', cases = trainingCases, onNavigate, onOpenCase }) {
   const [panelHost, setPanelHost] = useState(null);
   const [snapshotVersion, setSnapshotVersion] = useState(0);
   const snapshot = useMemo(() => buildSnapshot(), [activeTab, snapshotVersion]);
@@ -126,6 +126,7 @@ export default function VisualNavigation({ activeTab = 'workspace', onNavigate, 
   const panel = activeTab === 'workspace' ? null : (
     <NavigationPanel
       activeTab={activeTab}
+      cases={cases}
       snapshot={snapshot}
       onNavigate={onNavigate}
       onOpenCase={onOpenCase}
@@ -152,7 +153,7 @@ export default function VisualNavigation({ activeTab = 'workspace', onNavigate, 
   );
 }
 
-function NavigationPanel({ activeTab, snapshot, onNavigate, onOpenCase }) {
+function NavigationPanel({ activeTab, cases, snapshot, onNavigate, onOpenCase }) {
   const copy = tabCopy[activeTab] ?? tabCopy.dashboard;
 
   return (
@@ -165,19 +166,19 @@ function NavigationPanel({ activeTab, snapshot, onNavigate, onOpenCase }) {
         </div>
         <div aria-hidden="true">{copy.icon}</div>
       </div>
-      {activeTab === 'dashboard' && <DashboardPanel snapshot={snapshot} onNavigate={onNavigate} />}
-      {activeTab === 'cases' && <CasesPanel onOpenCase={onOpenCase} />}
+      {activeTab === 'dashboard' && <DashboardPanel cases={cases} snapshot={snapshot} onNavigate={onNavigate} />}
+      {activeTab === 'cases' && <CasesPanel cases={cases} onOpenCase={onOpenCase} />}
       {activeTab === 'academy' && <AcademyPanel />}
-      {activeTab === 'progress' && <ProgressPanel packagesByCase={snapshot.packagesByCase} />}
+      {activeTab === 'progress' && <ProgressPanel cases={cases} packagesByCase={snapshot.packagesByCase} />}
     </section>
   );
 }
 
-function DashboardPanel({ snapshot, onNavigate }) {
+function DashboardPanel({ cases, snapshot, onNavigate }) {
   return (
     <>
       <div className="nav-stat-grid">
-        <article><strong>{trainingCases.length}</strong><span>Active cases</span></article>
+        <article><strong>{cases.length}</strong><span>Active cases</span></article>
         <article><strong>{snapshot.reviewed}</strong><span>Reviewed tools</span></article>
         <article><strong>{snapshot.notes}</strong><span>Notebook notes</span></article>
         <article><strong>{snapshot.packages}</strong><span>Saved packages</span></article>
@@ -192,10 +193,10 @@ function DashboardPanel({ snapshot, onNavigate }) {
   );
 }
 
-function CasesPanel({ onOpenCase }) {
+function CasesPanel({ cases, onOpenCase }) {
   return (
     <div className="nav-case-grid">
-      {trainingCases.map((item) => (
+      {cases.map((item) => (
         <button key={item.id} type="button" className="nav-case-card" onClick={() => onOpenCase(item.id)}>
           <span>{item.type}</span>
           <strong>{item.person}</strong>
@@ -220,10 +221,10 @@ function AcademyPanel() {
   );
 }
 
-function ProgressPanel({ packagesByCase }) {
+function ProgressPanel({ cases, packagesByCase }) {
   return (
     <div className="nav-progress-list">
-      {trainingCases.map((item) => {
+      {cases.map((item) => {
         const latest = (packagesByCase[item.id] ?? [])[0];
         return (
           <article key={item.id} className={latest ? 'unlocked' : 'locked'}>
