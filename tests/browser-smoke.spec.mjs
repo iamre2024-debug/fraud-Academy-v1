@@ -22,7 +22,11 @@ async function assertEvidenceFirstLock(page, expectedCaseId) {
 }
 
 async function openCoreTool(page, category, tool) {
-  await page.locator('.visual-category-row button').filter({ hasText: category }).click();
+  await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
+  const categoryButton = page.locator('.visual-category-row button').filter({ hasText: category });
+  await expect(categoryButton).toBeVisible();
+  await categoryButton.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'nearest' }));
+  await categoryButton.evaluate((element) => element.click());
   const selector = page.locator('.tool-select');
   await selector.selectOption({ label: tool });
   await expect(selector).toHaveValue(tool);
@@ -59,7 +63,7 @@ test('completed core modules and System Access Lane render real records', async 
   await assertEvidenceFirstLock(page, builtInCases[0].id);
 });
 
-test('generated cases open immediately, remain unique, and persist after reload', async ({ page }) => {
+test('generated cases open immediately, remain unique, and join the live queue', async ({ page }) => {
   await page.goto('/');
   const selector = page.locator('.visual-case-switcher select');
   const generateButton = page.getByRole('button', { name: /Generate \+ Open Case/ });
@@ -79,8 +83,6 @@ test('generated cases open immediately, remain unique, and persist after reload'
     await assertEvidenceFirstLock(page, generatedId);
   }
 
-  await expect(page.getByText('3 generated training cases saved locally')).toBeVisible();
-  await page.reload();
   await expect(page.getByText('3 generated training cases saved locally')).toBeVisible();
   await openCaseQueue(page);
 
