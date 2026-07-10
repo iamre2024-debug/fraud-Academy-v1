@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import VisualWorkspace from './VisualWorkspace.jsx';
 import VisualNavigation from './VisualNavigation.jsx';
 import VisualTextCollapse from './VisualTextCollapse.jsx';
+import SystemAccessLane from './SystemAccessLane.jsx';
 import { trainingCases } from './data/cases.js';
 
 export default function VisualApp() {
@@ -24,6 +25,7 @@ export default function VisualApp() {
         onCaseChange={openCase}
         onNavigate={setActiveTab}
       />
+      <SystemAccessLane activeCaseId={activeCaseId} />
       <VisualNavigation
         activeTab={activeTab}
         onNavigate={setActiveTab}
