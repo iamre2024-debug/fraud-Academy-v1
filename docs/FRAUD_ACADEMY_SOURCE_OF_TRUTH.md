@@ -138,6 +138,8 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 - Submit Decision remains locked until the required tool checklist, pinned evidence, case notes, learner choice, and evidence-based rationale are present.
 - Submit Decision may display a neutral package input preview showing reviewed tools, pinned objects, notes, and Case Report packets that will snapshot into the saved learner package.
 - Luna scoring, strengths, follow-up coaching, and decision-quality breakdown stay hidden until a review package is saved.
+- Core investigator verification must prove Luna returns no debrief without a saved learner package and only produces decision-quality scoring from a saved post-submission package.
+- Payment Verification must preserve training-safe Bank Code and Destination ID wording in payment records, link records, and Case Report package inputs.
 - Insider / Vendor / API / Open Banking records belong inside the core workspace tool switcher as the Connections → System Access Lane sub-tool. Do not restore a separate portal panel for this lane.
 - Bottom navigation plus Dashboard, Cases, Academy, and Progress panels are managed by React state in `src/VisualNavigation.jsx`; do not restore the retired DOM navigation patch.
 - Compact More / Less controls are React-managed in `src/VisualTextCollapse.jsx`; keep long copy collapsed by default and do not restore the retired `src/visualTextCollapse.js` patch.
