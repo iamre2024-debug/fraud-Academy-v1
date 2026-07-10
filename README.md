@@ -29,6 +29,7 @@ Use that file before making architecture, UI, tool, scenario, or Evidence First 
 - `src/VisualApp.jsx` coordinates the active case, live case catalog, and active navigation tab through React state.
 - `src/VisualWorkspace.jsx` owns the core investigation workspace behavior: case-scoped tray, notes, reviewed tools, decision drafts, review packages, and Case Report packets.
 - `src/visualWorkspaceModel.js` now owns workspace constants, storage helpers, live tool row builders, System Access Lane row construction, and Case Report packet construction.
+- `src/ActiveToolPanel.jsx` owns the active category/tool renderer: sub-tool dropdown, search, rows, expanded record lanes, pin/review actions, and neutral report packet saves.
 - `src/SubmitDecisionPanel.jsx` owns the locked Submit Decision visual panel while the review package model keeps Evidence First behavior enforced.
 - `src/VisualNavigation.jsx` receives direct React callbacks for Dashboard, Cases, Workspace, Academy, Progress, and case opening.
 - `src/VisualTextCollapse.jsx` now uses limited event-triggered scans instead of a broad MutationObserver.
@@ -61,7 +62,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 
 Still needs deeper module work after browser confirmation:
 
-1. Continue splitting `VisualWorkspace.jsx` into focused React modules so future edits do not risk connector clipping. The workspace model and Submit Decision panel are now split.
+1. Continue splitting `VisualWorkspace.jsx` into focused React modules so future edits do not risk connector clipping. The workspace model, active tool panel, and Submit Decision panel are now split.
 2. Convert compact text target discovery into fully direct reusable wrappers instead of any selector discovery.
 3. Reconnect Academy Progress polish to the stable post-submission package flow.
 
@@ -84,7 +85,7 @@ The current working priority is stability plus three-case completeness:
 
 ## Latest handoff
 
-The second VisualWorkspace split is complete: `SubmitDecisionPanel.jsx` now owns the locked Submit Decision visual markup and learner input controls, while `VisualWorkspace.jsx` still owns the case-scoped state and package save behavior. The screenshot-driven shell, CSS, and Evidence First review package behavior were preserved. Next step: browser-test all three built-in cases plus one generated case, then split the active category/tool panel into a focused React module.
+The third VisualWorkspace split is complete: `ActiveToolPanel.jsx` now owns the active category/tool renderer, while `VisualWorkspace.jsx` keeps the case-scoped state, data selection, and persistence behavior. The screenshot-driven shell, CSS classes, active tool workflow, and Evidence First review behavior were preserved. Next step: browser-test all three built-in cases plus one generated case, then split the tray/notebook bottom investigation grid into focused React modules.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
