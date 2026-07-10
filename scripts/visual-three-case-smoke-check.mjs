@@ -73,6 +73,7 @@ const visualWorkspace = read('src/VisualWorkspace.jsx');
 const visualWorkspaceModel = read('src/visualWorkspaceModel.js');
 const activeToolPanel = read('src/ActiveToolPanel.jsx');
 const bottomInvestigationGrid = read('src/BottomInvestigationGrid.jsx');
+const caseSummaryCard = read('src/CaseSummaryCard.jsx');
 const categoryTileRail = read('src/CategoryTileRail.jsx');
 const submitDecisionPanel = read('src/SubmitDecisionPanel.jsx');
 const visualNavigation = read('src/VisualNavigation.jsx');
@@ -94,15 +95,28 @@ for (const required of [
   'buildPacket(row, tool, activeCase)',
   'function jumpDecision()',
   'submitRef.current?.scrollIntoView',
-  '<small>Claim ID</small>',
-  '<small>Transaction / payee info</small>',
-  '<small>Short summary</small>',
   '<ActiveToolPanel',
   '<BottomInvestigationGrid',
+  '<CaseSummaryCard',
   '<CategoryTileRail',
   '<SubmitDecisionPanel',
 ]) {
   requireText('src/VisualWorkspace.jsx', visualWorkspace, required, 'three-case visual workflow anchor');
+}
+
+for (const required of [
+  'className="ornate-card case-summary-visual"',
+  'className="case-summary-meta-grid"',
+  '<small>Claim ID</small>',
+  '<small>Transaction / payee info</small>',
+  '<small>Short summary</small>',
+  "pin(activeCase.id)",
+  "openTool('Identity Intelligence')",
+  "openTool('Case Report')",
+  "openTool('Login History')",
+  'decision-jump-button',
+]) {
+  requireText('src/CaseSummaryCard.jsx', caseSummaryCard, required, 'case summary card module anchor');
 }
 
 for (const required of [
