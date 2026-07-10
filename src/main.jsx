@@ -12,6 +12,7 @@ import './visualTextCollapse.css';
 import './visualInvestigationRepair.css';
 import './systemAccessLane.css';
 import './generatedCaseControls.css';
+import './coreInvestigatorPanels.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
