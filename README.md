@@ -28,6 +28,7 @@ Use that file before making architecture, UI, tool, scenario, or Evidence First 
 - The screenshot-driven visual workspace is active.
 - `src/VisualApp.jsx` coordinates the active case, live case catalog, and active navigation tab through React state.
 - `src/VisualWorkspace.jsx` owns the core investigation workspace behavior: case-scoped tray, notes, reviewed tools, decision drafts, review packages, and Case Report packets.
+- `src/visualWorkspaceModel.js` now owns workspace constants, storage helpers, live tool row builders, System Access Lane row construction, and Case Report packet construction.
 - `src/VisualNavigation.jsx` receives direct React callbacks for Dashboard, Cases, Workspace, Academy, Progress, and case opening.
 - `src/VisualTextCollapse.jsx` now uses limited event-triggered scans instead of a broad MutationObserver.
 - Insider / Vendor / API / Open Banking is now the Connections → System Access Lane sub-tool inside `src/VisualWorkspace.jsx`, powered by `src/data/systemAccessRecords.js`.
@@ -59,7 +60,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 
 Still needs deeper module work after browser confirmation:
 
-1. Split `VisualWorkspace.jsx` further into smaller React modules so future edits do not risk connector clipping.
+1. Continue splitting `VisualWorkspace.jsx` into focused React modules so future edits do not risk connector clipping.
 2. Convert compact text target discovery into fully direct reusable wrappers instead of any selector discovery.
 3. Reconnect Academy Progress polish to the stable post-submission package flow.
 
@@ -82,7 +83,7 @@ The current working priority is stability plus three-case completeness:
 
 ## Latest handoff
 
-The system-access lane has moved from a separate portal panel into the core Connections category as the System Access Lane sub-tool. The old `src/SystemAccessLane.jsx` portal component is retired, while the same neutral Insider / Vendor / API / Open Banking records still flow through the standard Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report workflow. Next step: browser-test all three built-in cases plus one generated case, then split `VisualWorkspace.jsx` into smaller modules.
+The first VisualWorkspace split is complete: `visualWorkspaceModel.js` now holds category definitions, storage helpers, row builders, System Access Lane rows, and Case Report packet construction. `VisualWorkspace.jsx` keeps the same screenshot-driven markup and interaction behavior, but no longer carries the large row-building model inline. Next step: browser-test all three built-in cases plus one generated case, then continue splitting the rendered workspace into focused React panels.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
