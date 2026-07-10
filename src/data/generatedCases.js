@@ -1,4 +1,5 @@
 const generatedCaseStorageKey = 'fraud-academy-generated-cases-v1';
+const generatedCaseSequenceKey = 'fraud-academy-generated-case-sequence-v1';
 
 const typeTemplates = [
   {
@@ -56,13 +57,27 @@ export function writeGeneratedCases(cases = []) {
   window.localStorage.setItem(generatedCaseStorageKey, JSON.stringify(cases));
 }
 
+function nextGeneratedCaseIndex() {
+  const fallback = Date.now();
+  if (typeof window === 'undefined') return fallback;
+
+  try {
+    const saved = Number(window.localStorage.getItem(generatedCaseSequenceKey));
+    const next = Number.isFinite(saved) && saved >= fallback ? saved + 1 : fallback;
+    window.localStorage.setItem(generatedCaseSequenceKey, String(next));
+    return next;
+  } catch {
+    return fallback;
+  }
+}
+
 export function createGeneratedCase(index = Date.now()) {
   const template = typeTemplates[index % typeTemplates.length];
   const person = generatedNames[index % generatedNames.length];
   const city = generatedCities[index % generatedCities.length];
-  const id = `FA-${template.prefix}-G${String(index).slice(-5)}`;
-  const trainingId = `TRN-GEN-${String(index).slice(-4)}`;
-  const deviceId = `DEV-GEN-${template.prefix}-${String(index).slice(-4)}`;
+  const id = `FA-${template.prefix}-G${String(index).slice(-8)}`;
+  const trainingId = `TRN-GEN-${String(index).slice(-6)}`;
+  const deviceId = `DEV-GEN-${template.prefix}-${String(index).slice(-6)}`;
 
   return {
     id,
@@ -73,7 +88,7 @@ export function createGeneratedCase(index = Date.now()) {
     trainingId,
     amount: template.amount,
     opened: 'Generated training case',
-    claimId: `CLM-${template.prefix}-G${String(index).slice(-5)}`,
+    claimId: `CLM-${template.prefix}-G${String(index).slice(-8)}`,
     transactionInfo: template.transactionInfo,
     shortSummary: template.allegation,
     allegation: template.allegation,
@@ -116,9 +131,16 @@ export function createGeneratedCase(index = Date.now()) {
 
 export function addGeneratedCase() {
   const current = readGeneratedCases();
-  const nextCase = createGeneratedCase(Date.now());
-  const updated = [nextCase, ...current].slice(0, 50);
-  writeGeneratedCases(updated);
+  let seed = nextGeneratedCaseIndex();
+  let nextCase = createGeneratedCase(seed);
+  const existingIds = new Set(current.map((item) => item.id));
+
+  while (existingIds.has(nextCase.id)) {
+    seed += 1;
+    nextCase = createGeneratedCase(seed);
+  }
+
+  writeGeneratedCases([nextCase, ...current]);
   return nextCase;
 }
 
