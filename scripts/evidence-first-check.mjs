@@ -13,6 +13,8 @@ const protectedPhraseRules = [
   { label: 'AI recommendation wording', pattern: /ai\s+recommendations?/i },
   { label: 'final answer wording', pattern: /final\s+answer/i },
   { label: 'decision hint wording', pattern: /decision\s+hints?/i },
+  { label: 'suggested-first-tool coaching', pattern: /\b(?:open|suggested)\s+first\s+tool\b/i },
+  { label: 'visible investigator-question heading', pattern: /investigator\s+question/i },
 ];
 
 const allowedLockContext = /\b(no|never|not|without|locked|lock|until|after|post[-\s]?submission|before submission|before the learner submits|must not|do not reveal|stays locked|keeps? .* locked|preserving evidence first)\b/i;
@@ -56,7 +58,7 @@ for (const file of walkDirectory(sourceDir)) {
 }
 
 if (violations.length) {
-  console.error('Evidence First check failed. Remove pre-submission answer-leaking wording:');
+  console.error('Evidence First check failed. Remove pre-submission answer leaks or visible investigation coaching:');
   for (const violation of violations) console.error(`- ${violation}`);
   process.exit(1);
 }

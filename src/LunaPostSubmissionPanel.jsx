@@ -23,10 +23,10 @@ function readJson(key, fallback) {
   }
 }
 
-export default function LunaPostSubmissionPanel({ activeCaseId }) {
+export default function LunaPostSubmissionPanel({ activeCase: suppliedActiveCase, activeCaseId }) {
   const [host, setHost] = useState(null);
   const [version, setVersion] = useState(0);
-  const activeCase = cases.find((item) => item.id === activeCaseId) ?? cases[0];
+  const activeCase = suppliedActiveCase ?? cases.find((item) => item.id === activeCaseId) ?? cases[0];
 
   useEffect(() => {
     const frame = document.querySelector('.visual-os-frame');
@@ -76,7 +76,7 @@ export default function LunaPostSubmissionPanel({ activeCaseId }) {
 
   const locked = !state.reviewPackage || !state.debrief;
   const panel = (
-    <section className={`ornate-card luna-visual-panel ${locked ? 'locked' : 'unlocked'}`} aria-label="Luna post submission debrief">
+    <section className={`ornate-card luna-visual-panel ${locked ? 'locked' : 'unlocked'}`} aria-label="Luna post submission debrief" data-case-id={activeCase.id}>
       <div className="card-title-row">
         <div>
           <h2>🌙 Luna Post-Submission Debrief</h2>
