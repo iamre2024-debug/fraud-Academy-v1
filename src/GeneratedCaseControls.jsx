@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { addGeneratedCase, readGeneratedCases } from './data/generatedCases.js';
+import { generateAndSaveCase, listGeneratedCases } from './data/generatedCaseRepository.js';
 
 export default function GeneratedCaseControls({ onCaseGenerated }) {
   const [host, setHost] = useState(null);
-  const [count, setCount] = useState(() => readGeneratedCases().length);
+  const [count, setCount] = useState(0);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     const frame = document.querySelector('.visual-os-frame');
@@ -20,15 +21,24 @@ export default function GeneratedCaseControls({ onCaseGenerated }) {
     }
 
     setHost(generatorHost);
+    listGeneratedCases().then((cases) => setCount(cases.length)).catch(() => setCount(0));
+
     return () => {
       if (created) generatorHost.remove();
     };
   }, []);
 
-  function generateCase() {
-    const nextCase = addGeneratedCase();
-    setCount(readGeneratedCases().length);
-    onCaseGenerated?.(nextCase);
+  async function generateCase() {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    try {
+      const nextCase = await generateAndSaveCase();
+      const savedCases = await listGeneratedCases();
+      setCount(savedCases.length);
+      onCaseGenerated?.(nextCase);
+    } finally {
+      setIsGenerating(false);
+    }
   }
 
   const panel = (
@@ -37,7 +47,9 @@ export default function GeneratedCaseControls({ onCaseGenerated }) {
         <strong>Generated Case Queue</strong>
         <span>{count} generated training case{count === 1 ? '' : 's'} saved locally</span>
       </div>
-      <button type="button" onClick={generateCase}>✦ Generate + Open Case</button>
+      <button type="button" onClick={generateCase} disabled={isGenerating}>
+        {isGenerating ? '✦ Generating Case…' : '✦ Generate + Open Case'}
+      </button>
     </section>
   );
 
