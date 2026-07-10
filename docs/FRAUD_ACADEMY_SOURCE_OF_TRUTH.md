@@ -119,7 +119,7 @@ Includes Evidence Center, Document Viewer, customer documents, platform records,
 
 Investigator question: How does everything connect?
 
-Includes Link Analysis, shared identifiers, repeated Training IDs, phone/email/device/IP/address/payment relationships, and cross-case connections. Before submission, this must show relationships neutrally without labeling them as red flags, green flags, or final risk conclusions.
+Includes Link Analysis, shared identifiers, repeated Training IDs, phone/email/device/IP/address/payment relationships, system-access records, and cross-case connections. Before submission, this must show relationships neutrally without labeling them as red flags, green flags, or final risk conclusions.
 
 ### Investigation
 
@@ -136,7 +136,8 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 - Submit Decision remains locked until the required tool checklist, pinned evidence, case notes, learner choice, and evidence-based rationale are present.
 - Submit Decision may display a neutral package input preview showing reviewed tools, pinned objects, notes, and Case Report packets that will snapshot into the saved learner package.
 - Luna scoring, strengths, follow-up coaching, and decision-quality breakdown stay hidden until a review package is saved.
+- Insider / Vendor / API / Open Banking records belong inside the core workspace tool switcher as Connections sub-tools, not a separate portal panel. The umbrella System Access Lane can summarize the set, but the learner must also be able to open Insider Activity, Vendor Verification, Admin Change Log, Shared Access, API Activity, Token History, Consent Records, Aggregator Connections, Webhook Events, and Open Banking Links individually.
 - Bottom navigation plus Dashboard, Cases, Academy, and Progress panels are managed by React state in `src/VisualNavigation.jsx`; do not restore the retired DOM navigation patch.
 - Compact More / Less controls are React-managed in `src/VisualTextCollapse.jsx`; keep long copy collapsed by default and do not restore the retired `src/visualTextCollapse.js` patch.
 - The old `src/visualInvestigationRepair.js` route patch is retired. Do not restore DOM repair logic for Device IDs, Case Summary metadata, Submit Decision routing, Tool Map, or Open Evidence Center.
-- `npm run verify` must preserve the Evidence First wording check, functional smoke guard, visual three-case smoke guard, review-package behavior smoke check, and production build so CI catches broken visual-shell anchors, case coverage, direct route callbacks, and package-lock behavior before they ship.
+- `npm run verify` must preserve the Evidence First wording check, functional smoke guard, visual three-case smoke guard, Luna single-module smoke guard, review-package behavior smoke check, investigator-lanes smoke guard, and production build so CI catches broken visual-shell anchors, case coverage, direct route callbacks, Luna duplication, system-access tool coverage, and package-lock behavior before they ship.

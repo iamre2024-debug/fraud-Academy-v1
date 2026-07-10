@@ -5,6 +5,7 @@ import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
 import { businessRecordsByCase } from '../src/data/businessRecords.js';
 import { evidenceRecordsByCase } from '../src/data/evidenceRecords.js';
 import { financialRecordsByCase } from '../src/data/financialRecords.js';
+import { SYSTEM_ACCESS_TOOL_NAMES, systemAccessRecordsByCase } from '../src/data/systemAccessRecords.js';
 import { reviewChoices, decisionCallGroups } from '../src/data/reviewPackage.js';
 
 const rootDir = process.cwd();
@@ -57,6 +58,7 @@ for (const item of cases) {
   const financial = financialRecordsByCase[item.id] ?? {};
   const business = businessRecordsByCase[item.id] ?? {};
   const evidence = evidenceRecordsByCase[item.id] ?? {};
+  const systemAccess = systemAccessRecordsByCase[item.id] ?? [];
   requireCount(`${prefix} transaction records`, financial.transactions?.length ?? 0, 2);
   requireCount(`${prefix} financial intelligence records`, financial.financialIntel?.length ?? 0, 2);
   requireCount(`${prefix} payment verification records`, financial.paymentVerification?.length ?? 0, 2);
@@ -64,6 +66,12 @@ for (const item of cases) {
   requireCount(`${prefix} business intelligence records`, business.businessIntel?.length ?? 0, 1);
   requireCount(`${prefix} evidence center records`, evidence.evidence?.length ?? 0, 2);
   requireCount(`${prefix} document viewer records`, evidence.documents?.length ?? 0, 2);
+  requireCount(`${prefix} system access records`, systemAccess.length, SYSTEM_ACCESS_TOOL_NAMES.length);
+  for (const toolName of SYSTEM_ACCESS_TOOL_NAMES) {
+    if (!systemAccess.some((record) => record.tool === toolName)) {
+      failures.push(`${prefix} is missing system access tool record: ${toolName}.`);
+    }
+  }
 }
 
 const visualApp = read('src/VisualApp.jsx');
@@ -84,6 +92,9 @@ for (const required of [
 for (const required of [
   "onNavigate('academy')",
   "openTool('Evidence Center')",
+  'System Access Lane',
+  'SYSTEM_ACCESS_TOOL_NAMES',
+  'getSystemAccessRecordsByTool(activeCase.id, tool)',
   'function jumpDecision()',
   'submitRef.current?.scrollIntoView',
   '<small>Claim ID</small>',

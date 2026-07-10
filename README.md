@@ -30,7 +30,7 @@ Use that file before making architecture, UI, tool, scenario, or Evidence First 
 - `src/VisualWorkspace.jsx` owns the core investigation workspace behavior: case-scoped tray, notes, reviewed tools, decision drafts, review packages, and Case Report packets.
 - `src/VisualNavigation.jsx` receives direct React callbacks for Dashboard, Cases, Workspace, Academy, Progress, and case opening.
 - `src/VisualTextCollapse.jsx` now uses limited event-triggered scans instead of a broad MutationObserver.
-- `src/SystemAccessLane.jsx` adds the Insider / Vendor / API / Open Banking lane as a real React panel with case-specific neutral records.
+- Insider / Vendor / API / Open Banking is now the Connections → System Access Lane sub-tool inside `src/VisualWorkspace.jsx`, powered by `src/data/systemAccessRecords.js`.
 - `src/LunaPostSubmissionPanel.jsx` restores post-submission Luna scoring/debrief as a separate React module that stays locked before a learner package exists.
 - `src/GeneratedCaseControls.jsx` and `src/data/generatedCases.js` add a local generated-case foundation. Generated cases are saved to browser storage, added to the live React case catalog, and opened without page refresh.
 - The old `src/visualInvestigationRepair.js` DOM route patch is retired and not loaded by the app entrypoint.
@@ -53,16 +53,15 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 6. Submit Decision remains locked until required tool review, pinned evidence, notes, learner choice, and rationale are complete.
 7. Expanded decision calls are validated by `scripts/review-package-smoke-check.mjs`.
 8. Three-case visual coverage is validated by `scripts/visual-three-case-smoke-check.mjs`.
-9. Insider / Vendor / API / Open Banking records now exist as a real neutral evidence lane.
-10. Luna post-submission scoring is back as a separate locked/unlocked module.
+9. Insider / Vendor / API / Open Banking records now exist as a first-class Connections workspace sub-tool.
+10. Luna post-submission scoring is handled by one separate locked/unlocked module.
 11. Generated-case foundation exists and stores local generated cases.
 
 Still needs deeper module work after browser confirmation:
 
 1. Split `VisualWorkspace.jsx` further into smaller React modules so future edits do not risk connector clipping.
 2. Convert compact text target discovery into fully direct reusable wrappers instead of any selector discovery.
-3. Convert Insider / Vendor / API / Open Banking from a portal panel into a first-class category/sub-tool inside the workspace tool switcher.
-4. Reconnect Academy Progress polish to the stable post-submission package flow.
+3. Reconnect Academy Progress polish to the stable post-submission package flow.
 
 ## Functional focus
 
@@ -76,14 +75,14 @@ The current working priority is stability plus three-case completeness:
 6. Confirm notes, tray objects, reviewed tools, decision drafts, saved packages, and Case Report packets persist by case.
 7. Confirm Submit Decision locks until required tools, pinned evidence, notes, choice, and rationale are present.
 8. Confirm expanded decision calls appear in Submit Decision.
-9. Confirm Insider / Vendor / API / Open Banking lane appears with neutral records.
+9. Confirm Connections → System Access Lane opens with neutral Insider / Vendor / API / Open Banking records.
 10. Confirm Luna stays locked before submission and shows post-submission scoring only after a package is saved.
 11. Confirm Generate + Open Case saves a generated case locally, opens it immediately, and adds it to the workspace case queue without a page refresh.
 12. Confirm no visible control is only decorative or duplicated.
 
 ## Latest handoff
 
-The Bible audit module pass added a real system-access evidence lane, restored Luna post-submission scoring as a separate locked module, added local generated-case helpers, reduced compact text scanning to limited event-triggered scans, and expanded functional smoke coverage for these anchors. The generated-case control now opens the newly saved case through React state without reloading the app. Next step: browser-test all three built-in cases plus one generated case, then split `VisualWorkspace.jsx` into smaller modules and move the system-access lane into the core tool switcher.
+The system-access lane has moved from a separate portal panel into the core Connections category as the System Access Lane sub-tool. The old `src/SystemAccessLane.jsx` portal component is retired, while the same neutral Insider / Vendor / API / Open Banking records still flow through the standard Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report workflow. Next step: browser-test all three built-in cases plus one generated case, then split `VisualWorkspace.jsx` into smaller modules.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -103,4 +102,4 @@ npm run build
 
 ## Test status
 
-`npm run verify` passes locally with Evidence First, functional smoke, visual three-case smoke, review-package smoke, and production build checks. Browser testing still needs to run in the user's connected development environment.
+`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, Luna single-module smoke, review-package smoke, and production build checks. Browser testing still needs to run in the user's connected development environment.
