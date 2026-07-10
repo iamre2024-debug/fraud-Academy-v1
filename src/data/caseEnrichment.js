@@ -1,3 +1,5 @@
+import { appendGeneratedCases } from './generatedCases.js';
+
 const deviceIds = {
   'FA-ATO-24018': { 'iPhone 16': 'DEV-MAYA-IP16-001', 'Chrome Mobile': 'DEV-MAYA-CHRM-002' },
   'FA-CB-24007': { 'Android phone': 'DEV-JORDAN-AND-001', 'Desktop Chrome': 'DEV-JORDAN-DSK-002' },
@@ -112,27 +114,36 @@ function addDeviceIds(caseId, rows = []) {
   return rows.map((row) => ({ ...row, deviceId: row.deviceId ?? map[row.device] ?? `DEV-${String(row.device).toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 18)}` }));
 }
 
-export function enrichTrainingCases(cases = []) {
-  return cases.map((item) => {
-    const extra = caseIntake[item.id];
-    if (!extra) return item;
-
+function enrichOneCase(item) {
+  const extra = caseIntake[item.id];
+  if (!extra) {
     return {
       ...item,
-      claimId: item.claimId ?? extra.claimId,
-      transactionInfo: item.transactionInfo ?? extra.transactionInfo,
-      shortSummary: item.shortSummary ?? extra.shortSummary,
-      customer: {
-        ...item.customer,
-        relationship: [...(item.customer?.relationship ?? []), ...(extra.relationshipExtras ?? [])],
-        profileChanges: dedupeById([...(item.customer?.profileChanges ?? []), ...(extra.profileExtras ?? [])]),
-      },
-      identityRecords: dedupeById([...(item.identityRecords ?? []), ...(extra.identityExtras ?? [])]),
-      loginHistory: addDeviceIds(item.id, dedupeById([...(item.loginHistory ?? []), ...(extra.loginExtras ?? [])])),
-      events: dedupeById([...(extra.eventExtras ?? []), ...(item.events ?? [])]),
-      documents: dedupeById([...(item.documents ?? []), ...(extra.documentExtras ?? [])]),
-      links: dedupeStrings([...(item.links ?? []), ...(extra.linkExtras ?? [])]),
-      facts: dedupeStrings([...(item.facts ?? []), item.id === 'FA-CR-24003' ? 'Only early history available' : 'Expanded relationship history available']),
+      loginHistory: addDeviceIds(item.id, item.loginHistory ?? []),
+      links: dedupeStrings(item.links ?? []),
+      facts: dedupeStrings(item.facts ?? []),
     };
-  });
+  }
+
+  return {
+    ...item,
+    claimId: item.claimId ?? extra.claimId,
+    transactionInfo: item.transactionInfo ?? extra.transactionInfo,
+    shortSummary: item.shortSummary ?? extra.shortSummary,
+    customer: {
+      ...item.customer,
+      relationship: [...(item.customer?.relationship ?? []), ...(extra.relationshipExtras ?? [])],
+      profileChanges: dedupeById([...(item.customer?.profileChanges ?? []), ...(extra.profileExtras ?? [])]),
+    },
+    identityRecords: dedupeById([...(item.identityRecords ?? []), ...(extra.identityExtras ?? [])]),
+    loginHistory: addDeviceIds(item.id, dedupeById([...(item.loginHistory ?? []), ...(extra.loginExtras ?? [])])),
+    events: dedupeById([...(extra.eventExtras ?? []), ...(item.events ?? [])]),
+    documents: dedupeById([...(item.documents ?? []), ...(extra.documentExtras ?? [])]),
+    links: dedupeStrings([...(item.links ?? []), ...(extra.linkExtras ?? [])]),
+    facts: dedupeStrings([...(item.facts ?? []), item.id === 'FA-CR-24003' ? 'Only early history available' : 'Expanded relationship history available']),
+  };
+}
+
+export function enrichTrainingCases(cases = []) {
+  return appendGeneratedCases(cases).map(enrichOneCase);
 }
