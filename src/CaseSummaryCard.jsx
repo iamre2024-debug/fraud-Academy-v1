@@ -17,7 +17,7 @@ export default function CaseSummaryCard({ activeCase, pin, openTool, jumpDecisio
         <button type="button" onClick={() => pin(activeCase.id)}>📌 Pin Case</button>
         <button type="button" onClick={() => openTool('Identity Intelligence')}>▣ Identity Intel ›</button>
         <button type="button" onClick={() => openTool('Case Report')}>📄 Case Report ›</button>
-        <button type="button" onClick={() => openTool('Login History')}>🪄 Open First Tool ›</button>
+        <button type="button" onClick={() => openTool('Login History')}>🕘 Login History ›</button>
         <button type="button" className="primary-action decision-jump-button" onClick={jumpDecision}>🪄 Submit Decision ›</button>
       </div>
     </section>
