@@ -43,6 +43,7 @@ const checks = [
     mustContain: [
       "import ActiveToolPanel from './ActiveToolPanel.jsx'",
       "import BottomInvestigationGrid from './BottomInvestigationGrid.jsx'",
+      "import CategoryTileRail from './CategoryTileRail.jsx'",
       "import SubmitDecisionPanel from './SubmitDecisionPanel.jsx'",
       "from './visualWorkspaceModel.js'",
       'readStorage(storageKeys.tray',
@@ -50,16 +51,28 @@ const checks = [
       'rowsFor(tool, activeCase, reportPackets)',
       '<ActiveToolPanel',
       '<BottomInvestigationGrid',
+      '<CategoryTileRail',
       '<SubmitDecisionPanel',
-      'category-progress-track',
       'getReviewPackageStatus({ completedTools: currentCompleted, tray, notes, draft: decisionDraft, reportPackets })',
       'buildReviewPackage({',
-      "onNavigate('academy')",
     ],
     mustNotContain: [
       "window.dispatchEvent(new CustomEvent('fraud-academy:navigate'",
       'ensureCaseSummaryMeta',
       'repairDeviceIntelligenceTable',
+    ],
+  },
+  {
+    file: 'src/CategoryTileRail.jsx',
+    label: 'category tile rail module',
+    mustContain: [
+      'className="visual-categories"',
+      'className="visual-category-row"',
+      'category-progress-track',
+      'reviewedCount',
+      'progressPercent',
+      "onNavigate('academy')",
+      "setExpandedId('')",
     ],
   },
   {
