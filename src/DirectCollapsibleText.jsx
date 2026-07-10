@@ -12,13 +12,16 @@ export default function DirectCollapsibleText({
   as: Tag = 'p',
   children,
   className = '',
+  expanded: controlledExpanded,
   lines = 2,
   mobileLines = lines,
   minLength = 88,
+  showButton = true,
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [internalExpanded, setInternalExpanded] = useState(false);
   const cleanText = useMemo(() => textFromChildren(children).replace(/\s+/g, ' ').trim(), [children]);
   const shouldCollapse = cleanText.length >= minLength;
+  const expanded = controlledExpanded ?? internalExpanded;
   const targetClassName = [
     className,
     shouldCollapse ? 'collapsible-text-target' : '',
@@ -37,13 +40,13 @@ export default function DirectCollapsibleText({
       >
         {children}
       </Tag>
-      {shouldCollapse && (
+      {shouldCollapse && showButton && (
         <button
           type="button"
           className="text-more-button"
           aria-expanded={expanded}
           aria-label={expanded ? 'Show less text' : 'Show more text'}
-          onClick={() => setExpanded((current) => !current)}
+          onClick={() => setInternalExpanded((current) => !current)}
         >
           {expanded ? 'Less' : 'More'}
         </button>
