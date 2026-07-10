@@ -41,10 +41,12 @@ const checks = [
     file: 'src/VisualWorkspace.jsx',
     label: 'visual shell case-scoped state and review flow',
     mustContain: [
+      "import SubmitDecisionPanel from './SubmitDecisionPanel.jsx'",
       "from './visualWorkspaceModel.js'",
       'readStorage(storageKeys.tray',
       'writeStorage(storageKeys.reportPackets',
       'rowsFor(tool, activeCase, reportPackets)',
+      '<SubmitDecisionPanel',
       'category-progress-track',
       'getReviewPackageStatus({ completedTools: currentCompleted, tray, notes, draft: decisionDraft, reportPackets })',
       'buildReviewPackage({',
@@ -59,6 +61,19 @@ const checks = [
       "window.dispatchEvent(new CustomEvent('fraud-academy:navigate'",
       'ensureCaseSummaryMeta',
       'repairDeviceIntelligenceTable',
+    ],
+  },
+  {
+    file: 'src/SubmitDecisionPanel.jsx',
+    label: 'locked Submit Decision visual module',
+    mustContain: [
+      "import { reviewChoices } from './data/reviewPackage.js'",
+      'className="ornate-card submit-decision-panel"',
+      'No Luna scoring or answer reveal until a learner package is saved.',
+      'packageStatus.messages.map',
+      'reviewChoices.map',
+      'Save / Check Review Package',
+      'placeholder={`Write the evidence-based rationale for ${activeCase.id}.`}',
     ],
   },
   {
