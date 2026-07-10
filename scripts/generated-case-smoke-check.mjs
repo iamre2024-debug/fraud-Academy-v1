@@ -1,4 +1,18 @@
 const storage = new Map();
+const legacyCase = {
+  id: 'FA-LEGACY-G0000001',
+  type: 'Legacy Generated Case',
+  person: 'Legacy Learner',
+  trainingId: 'TRN-LEGACY-1',
+  claimId: 'CLM-LEGACY-1',
+  allegation: 'Legacy local case preserved for migration coverage.',
+  queueReason: 'Migration smoke coverage.',
+  facts: ['No final outcome shown', 'Evidence First lock active'],
+  loginHistory: [{ id: 'LEGACY-LOG-1', deviceId: 'DEV-LEGACY-1' }],
+  generatedAt: 1,
+};
+
+storage.set('fraud-academy-generated-cases-v1', JSON.stringify([legacyCase]));
 
 global.window = {
   localStorage: {
@@ -18,22 +32,27 @@ global.window = {
 };
 
 const {
-  addGeneratedCase,
-  appendGeneratedCases,
-  readGeneratedCases,
-} = await import('../src/data/generatedCases.js');
+  combineCaseCatalog,
+  generateAndSaveCase,
+  getGeneratedCaseRepository,
+  listGeneratedCases,
+} = await import('../src/data/generatedCaseRepository.js');
 
 const failures = [];
+const repository = await getGeneratedCaseRepository();
 const created = [];
 
-for (let index = 0; index < 125; index += 1) {
-  created.push(addGeneratedCase());
+if (repository.kind !== 'localStorage') failures.push(`Expected Node smoke fallback repository, found ${repository.kind}.`);
+
+for (let index = 0; index < 124; index += 1) {
+  created.push(await generateAndSaveCase());
 }
 
-const saved = readGeneratedCases();
+const saved = await listGeneratedCases();
 const ids = new Set(saved.map((item) => item.id));
 
 if (saved.length !== 125) failures.push(`Expected 125 generated cases without an app-level cap, found ${saved.length}.`);
+if (!ids.has(legacyCase.id)) failures.push('Legacy localStorage case was not preserved.');
 if (ids.size !== saved.length) failures.push('Generated case IDs are not unique.');
 if (created[created.length - 1]?.id !== saved[0]?.id) failures.push('Newest generated case was not added to the front of the queue.');
 
@@ -48,11 +67,11 @@ for (const item of saved) {
 }
 
 const baseCases = [{ id: saved[0].id }, { id: 'BUILT-IN-CASE' }];
-const appended = appendGeneratedCases(baseCases);
-const appendedIds = appended.map((item) => item.id);
+const combined = combineCaseCatalog(baseCases, saved);
+const combinedIds = combined.map((item) => item.id);
 
-if (appendedIds.filter((id) => id === saved[0].id).length !== 1) failures.push('appendGeneratedCases duplicated an existing case ID.');
-if (!appendedIds.includes('BUILT-IN-CASE')) failures.push('appendGeneratedCases removed a built-in case.');
+if (combinedIds.filter((id) => id === saved[0].id).length !== 1) failures.push('combineCaseCatalog duplicated an existing case ID.');
+if (!combinedIds.includes('BUILT-IN-CASE')) failures.push('combineCaseCatalog removed a built-in case.');
 
 if (failures.length) {
   console.error('Generated case smoke check failed:');
@@ -60,4 +79,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Generated case smoke check passed. The local queue keeps more than 50 unique Evidence First cases without an app-level cap.');
+console.log('Generated case smoke check passed. The repository adapter preserves legacy cases and keeps more than 50 unique Evidence First cases.');
