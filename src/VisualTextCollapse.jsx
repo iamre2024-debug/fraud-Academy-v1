@@ -8,7 +8,6 @@ const COLLAPSE_SELECTOR = [
   '.nav-learning-grid article p',
   '.nav-progress-list p',
   '.record-review-lanes p',
-  '.luna-list-card p',
   '.notebook-list p',
   '.tray-list em',
   '.case-report-packet-panel p',

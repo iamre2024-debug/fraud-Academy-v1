@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import { buildLunaDebrief } from './data/lunaDebrief.js';
@@ -98,11 +99,19 @@ export default function LunaPostSubmissionPanel({ activeCase: suppliedActiveCase
           </div>
           <div className="luna-list-card">
             <h3>Package strengths</h3>
-            {state.debrief.strengths.map((item) => <p key={item}>✦ {item}</p>)}
+            {state.debrief.strengths.map((item) => (
+              <DirectCollapsibleText key={item} as="p" lines={2} mobileLines={2}>
+                ✦ {item}
+              </DirectCollapsibleText>
+            ))}
           </div>
           <div className="luna-list-card">
             <h3>Next coaching focus</h3>
-            {state.debrief.followUps.map((item) => <p key={item}>☾ {item}</p>)}
+            {state.debrief.followUps.map((item) => (
+              <DirectCollapsibleText key={item} as="p" lines={2} mobileLines={2}>
+                ☾ {item}
+              </DirectCollapsibleText>
+            ))}
           </div>
           <div className="luna-breakdown-card">
             <h3>Decision-quality breakdown</h3>
