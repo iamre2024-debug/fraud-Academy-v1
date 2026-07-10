@@ -12,15 +12,33 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Show runtime versions
+        run: |
+          node --version
+          npm --version
 
       - name: Install dependencies
         run: npm install
 
-      - name: Evidence First and build verification
-        run: npm run verify
+      - name: Evidence First wording check
+        run: npm run evidence-first-check
+
+      - name: Functional smoke check
+        run: npm run functional-smoke-check
+
+      - name: Visual three-case smoke check
+        run: npm run visual-three-case-smoke-check
+
+      - name: Review package smoke check
+        run: npm run review-package-smoke-check
+
+      - name: Production build
+        run: npm run build
