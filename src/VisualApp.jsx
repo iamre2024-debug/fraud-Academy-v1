@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import VisualWorkspace from './VisualWorkspace.jsx';
 import VisualNavigation from './VisualNavigation.jsx';
-import VisualTextCollapse from './VisualTextCollapse.jsx';
 import LunaPostSubmissionPanel from './LunaPostSubmissionPanel.jsx';
 import GeneratedCaseControls from './GeneratedCaseControls.jsx';
 import { trainingCases as baseCases } from './data/cases.js';
@@ -63,7 +62,6 @@ export default function VisualApp() {
         onNavigate={setActiveTab}
         onOpenCase={openCase}
       />
-      <VisualTextCollapse />
     </>
   );
 }
