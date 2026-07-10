@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import { trainingCases } from './data/cases.js';
 
 const tabCopy = {
@@ -231,7 +232,9 @@ function ProgressPanel({ cases, packagesByCase }) {
             <div>
               <span>{item.type}</span>
               <strong>{item.person}</strong>
-              <p>{latest ? `Saved ${latest.savedAt}` : 'Submit a review package to unlock Luna progress.'}</p>
+              <DirectCollapsibleText as="p" lines={2} mobileLines={2}>
+                {latest ? `Saved ${latest.savedAt}` : 'Submit a review package to unlock Luna progress.'}
+              </DirectCollapsibleText>
             </div>
             <em>{latest ? 'Unlocked' : 'Locked'}</em>
           </article>
