@@ -1,0 +1,26 @@
+.visual-categories {
+  position: relative;
+  z-index: 24;
+  scroll-margin-block: 150px;
+  isolation: isolate;
+}
+
+.visual-category-row button {
+  position: relative;
+  z-index: 1;
+  scroll-margin-block: 150px;
+  backface-visibility: hidden;
+}
+
+@media (min-width: 901px) {
+  .visual-category-row {
+    position: relative;
+    z-index: 2;
+  }
+
+  .bottom-investigation-grid,
+  .submit-decision-panel {
+    position: relative;
+    z-index: 1;
+  }
+}
