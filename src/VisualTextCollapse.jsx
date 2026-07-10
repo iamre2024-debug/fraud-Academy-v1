@@ -10,12 +10,10 @@ const COLLAPSE_SELECTOR = [
   '.record-review-lanes p',
   '.decision-checklist p',
   '.luna-list-card p',
-  '.academy-case-row p',
-  '.academy-case-row small',
   '.notebook-list p',
   '.tray-list em',
   '.case-report-packet-panel p',
-  '.agent-archive-panel p',
+  '.system-access-grid p',
 ].join(',');
 
 const MIN_LENGTH = 88;
@@ -35,7 +33,7 @@ function getLineCount(element) {
 
 function prepareTarget(record) {
   const { element, host, lines } = record;
-  element.dataset.collapseReady = 'react';
+  element.dataset.collapseReady = 'react-limited';
   element.classList.add('collapsible-text-target');
   element.style.setProperty('--collapse-lines', String(lines));
   element.style.setProperty('--collapse-lines-mobile', String(lines));
@@ -83,13 +81,12 @@ function CollapsibleTextControl({ target, expanded, onToggle }) {
 export default function VisualTextCollapse() {
   const targetIds = useRef(new WeakMap());
   const nextTargetId = useRef(1);
+  const managedTargets = useRef(new Map());
+  const scanFrame = useRef(0);
   const [targets, setTargets] = useState([]);
   const [expandedById, setExpandedById] = useState({});
 
   useEffect(() => {
-    const managedTargets = new Map();
-    let scanFrame = 0;
-
     function getTargetId(element) {
       if (!targetIds.current.has(element)) {
         targetIds.current.set(element, `visual-collapse-${nextTargetId.current}`);
@@ -99,30 +96,30 @@ export default function VisualTextCollapse() {
     }
 
     function scanTargets() {
-      scanFrame = 0;
-      const eligibleElements = [...document.querySelectorAll(COLLAPSE_SELECTOR)].filter(shouldCollapse);
+      scanFrame.current = 0;
+      const eligibleElements = [...document.querySelectorAll(COLLAPSE_SELECTOR)].filter(shouldCollapse).slice(0, 80);
       const eligibleSet = new Set(eligibleElements);
 
-      for (const [element, record] of managedTargets.entries()) {
+      for (const [element, record] of managedTargets.current.entries()) {
         if (!element.isConnected || !eligibleSet.has(element)) {
           releaseTarget(record);
-          managedTargets.delete(element);
+          managedTargets.current.delete(element);
         }
       }
 
       const nextTargets = eligibleElements.map((element) => {
-        let record = managedTargets.get(element);
+        let record = managedTargets.current.get(element);
         const lines = getLineCount(element);
 
         if (!record) {
           const host = document.createElement('span');
           host.className = 'text-more-react-host';
-          host.dataset.collapseHost = 'react';
+          host.dataset.collapseHost = 'react-limited';
           record = { id: getTargetId(element), element, host, lines };
-          managedTargets.set(element, record);
+          managedTargets.current.set(element, record);
         } else if (record.lines !== lines) {
           record = { ...record, lines };
-          managedTargets.set(element, record);
+          managedTargets.current.set(element, record);
         }
 
         prepareTarget(record);
@@ -133,20 +130,29 @@ export default function VisualTextCollapse() {
     }
 
     function queueScan() {
-      if (scanFrame) return;
-      scanFrame = window.requestAnimationFrame(scanTargets);
+      if (scanFrame.current) return;
+      scanFrame.current = window.requestAnimationFrame(scanTargets);
     }
 
-    const observer = new MutationObserver(queueScan);
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    const delayedScan = () => window.setTimeout(queueScan, 80);
+    window.addEventListener('load', queueScan);
     window.addEventListener('focus', queueScan);
+    window.addEventListener('resize', delayedScan);
+    document.addEventListener('click', delayedScan);
+    document.addEventListener('change', delayedScan);
     queueScan();
+    window.setTimeout(queueScan, 500);
+    window.setTimeout(queueScan, 1200);
 
     return () => {
-      observer.disconnect();
+      window.removeEventListener('load', queueScan);
       window.removeEventListener('focus', queueScan);
-      if (scanFrame) window.cancelAnimationFrame(scanFrame);
-      managedTargets.forEach(releaseTarget);
+      window.removeEventListener('resize', delayedScan);
+      document.removeEventListener('click', delayedScan);
+      document.removeEventListener('change', delayedScan);
+      if (scanFrame.current) window.cancelAnimationFrame(scanFrame.current);
+      managedTargets.current.forEach(releaseTarget);
+      managedTargets.current.clear();
     };
   }, []);
 
@@ -162,7 +168,7 @@ export default function VisualTextCollapse() {
 
   return (
     <>
-      <span hidden data-react-text-collapse="true" />
+      <span hidden data-react-text-collapse="limited" />
       {targets.map((target) => (
         <CollapsibleTextControl
           key={target.id}
