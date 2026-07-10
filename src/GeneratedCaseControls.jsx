@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { addGeneratedCase, readGeneratedCases } from './data/generatedCases.js';
 
-export default function GeneratedCaseControls() {
+export default function GeneratedCaseControls({ onCaseGenerated }) {
   const [host, setHost] = useState(null);
   const [count, setCount] = useState(() => readGeneratedCases().length);
 
@@ -26,9 +26,9 @@ export default function GeneratedCaseControls() {
   }, []);
 
   function generateCase() {
-    addGeneratedCase();
+    const nextCase = addGeneratedCase();
     setCount(readGeneratedCases().length);
-    window.setTimeout(() => window.location.reload(), 150);
+    onCaseGenerated?.(nextCase);
   }
 
   const panel = (
@@ -37,7 +37,7 @@ export default function GeneratedCaseControls() {
         <strong>Generated Case Queue</strong>
         <span>{count} generated training case{count === 1 ? '' : 's'} saved locally</span>
       </div>
-      <button type="button" onClick={generateCase}>✦ Generate Case</button>
+      <button type="button" onClick={generateCase}>✦ Generate + Open Case</button>
     </section>
   );
 
