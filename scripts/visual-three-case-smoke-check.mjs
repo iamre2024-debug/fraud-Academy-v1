@@ -76,6 +76,7 @@ const bottomInvestigationGrid = read('src/BottomInvestigationGrid.jsx');
 const caseSummaryCard = read('src/CaseSummaryCard.jsx');
 const categoryTileRail = read('src/CategoryTileRail.jsx');
 const submitDecisionPanel = read('src/SubmitDecisionPanel.jsx');
+const visualShellHeader = read('src/VisualShellHeader.jsx');
 const visualNavigation = read('src/VisualNavigation.jsx');
 const main = read('src/main.jsx');
 
@@ -100,8 +101,22 @@ for (const required of [
   '<CaseSummaryCard',
   '<CategoryTileRail',
   '<SubmitDecisionPanel',
+  '<VisualShellHeader',
 ]) {
   requireText('src/VisualWorkspace.jsx', visualWorkspace, required, 'three-case visual workflow anchor');
+}
+
+for (const required of [
+  'className="visual-hero"',
+  'className="case-info-bar visual-case-strip"',
+  'className="visual-case-switcher"',
+  '<strong>Case</strong>',
+  '<strong>Claim Type:</strong>',
+  '<strong>Status:</strong>',
+  'cases.map',
+  'changeCase(event.target.value)',
+]) {
+  requireText('src/VisualShellHeader.jsx', visualShellHeader, required, 'visual shell header module anchor');
 }
 
 for (const required of [
