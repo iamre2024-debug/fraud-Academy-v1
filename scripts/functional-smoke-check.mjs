@@ -22,6 +22,9 @@ const checks = [
       '<VisualWorkspace',
       '<VisualNavigation',
       '<VisualTextCollapse',
+      '<SystemAccessLane',
+      '<LunaPostSubmissionPanel',
+      '<GeneratedCaseControls',
       "const [activeTab, setActiveTab] = useState('workspace')",
       'function openCase(caseId)',
     ],
@@ -52,6 +55,55 @@ const checks = [
     ],
   },
   {
+    file: 'src/SystemAccessLane.jsx',
+    label: 'insider vendor API open banking lane',
+    mustContain: [
+      'Insider / Vendor / API / Open Banking Lane',
+      'getSystemAccessRecords(activeCaseId)',
+      'createPortal',
+    ],
+  },
+  {
+    file: 'src/data/systemAccessRecords.js',
+    label: 'system access records',
+    mustContain: [
+      'Open banking consent',
+      'Vendor event',
+      'API event',
+      'Internal access',
+      'getSystemAccessRecords',
+    ],
+  },
+  {
+    file: 'src/LunaPostSubmissionPanel.jsx',
+    label: 'post submission Luna module',
+    mustContain: [
+      'buildLunaDebrief',
+      'Post-submission coaching stays locked',
+      'Decision-quality breakdown',
+      'fraud-academy:package-saved',
+    ],
+  },
+  {
+    file: 'src/data/generatedCases.js',
+    label: 'generated case helpers',
+    mustContain: [
+      'createGeneratedCase',
+      'addGeneratedCase',
+      'appendGeneratedCases',
+      'fraud-academy-generated-cases-v1',
+    ],
+  },
+  {
+    file: 'src/GeneratedCaseControls.jsx',
+    label: 'generated case controls',
+    mustContain: [
+      'Generate Case',
+      'addGeneratedCase()',
+      'window.location.reload()',
+    ],
+  },
+  {
     file: 'src/VisualNavigation.jsx',
     label: 'React-managed screenshot navigation with direct callbacks',
     mustContain: [
@@ -69,11 +121,16 @@ const checks = [
   },
   {
     file: 'src/VisualTextCollapse.jsx',
-    label: 'React compact text controls',
+    label: 'limited React compact text controls',
     mustContain: [
-      'data-react-text-collapse="true"',
+      'data-react-text-collapse="limited"',
       'aria-expanded',
       'text-more-button',
+      'slice(0, 80)',
+    ],
+    mustNotContain: [
+      'new MutationObserver',
+      "observer.observe(document.body",
     ],
   },
   {
@@ -83,7 +140,8 @@ const checks = [
       'minimumRationaleWords',
       'buildPackageInputSummary',
       'caseReportPacketFeed',
-      'reportPacketCount',
+      'Escalate for insider / vendor / API / open banking review',
+      'Route for credit risk underwriting review',
       'ready:',
     ],
   },
@@ -91,10 +149,12 @@ const checks = [
     file: 'scripts/review-package-smoke-check.mjs',
     label: 'review package behavior smoke test',
     mustContain: [
+      'invalidChoiceStatus',
       'missingToolStatus',
       'shortRationaleStatus',
       'noPacketStatus',
       'buildReviewPackage({',
+      'Escalate for insider / vendor / API / open banking review',
       'caseReportPacketFeed',
     ],
   },
@@ -126,6 +186,8 @@ const checks = [
       "import VisualApp from './VisualApp.jsx'",
       '<VisualApp />',
       "import './visualWorkspace.css'",
+      "import './systemAccessLane.css'",
+      "import './generatedCaseControls.css'",
     ],
     mustNotContain: [
       "import VisualWorkspace from './VisualWorkspace.jsx'",
@@ -180,4 +242,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Functional smoke check passed. Visual shell anchors, direct React route callbacks, compact text controls, case-scoped persistence, progress indicators, locked review package flow, and review package smoke wiring are present.');
+console.log('Functional smoke check passed. Bible anchors, system-access lane, generated-case helpers, limited compact text controls, direct React callbacks, case-scoped persistence, locked review package flow, Luna post-submission module, and review package smoke wiring are present.');
