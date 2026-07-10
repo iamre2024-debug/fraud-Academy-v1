@@ -23,6 +23,7 @@ function getCleanText(element) {
 
 function shouldCollapse(element) {
   if (!element || element.closest('.table-head')) return false;
+  if (element.dataset.directCollapse === 'true') return false;
   return getCleanText(element).length >= MIN_LENGTH;
 }
 
