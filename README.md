@@ -48,6 +48,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 4. Digital Activity includes Login History, Session History, Device Intelligence, IP Intelligence, and stable fictional Device IDs.
 5. Submit Decision remains locked until required tool review, pinned evidence, notes, learner choice, and rationale are complete.
 6. Expanded decision calls are validated by `scripts/review-package-smoke-check.mjs`.
+7. Three-case visual coverage is validated by `scripts/visual-three-case-smoke-check.mjs`.
 
 Still needs deeper module work after browser confirmation:
 
@@ -74,7 +75,7 @@ The current working priority is stability plus three-case completeness:
 
 ## Latest handoff
 
-The source-of-truth Bible audit expanded Submit Decision from four broad options into a realistic neutral decision-call list. The shared review package model now validates expanded decision calls and rejects unsupported stale choices. The review-package smoke check verifies expanded decision calls, insider/vendor/API/open banking escalation, credit risk routing, chargeback representment routing, locked blockers, rationale depth, optional packet feed, and saved package snapshots. Next step: run `npm run verify`, browser-test all three built-in cases, then split `VisualWorkspace.jsx` into smaller modules.
+The source-of-truth Bible audit expanded Submit Decision from four broad options into a realistic neutral decision-call list. The shared review package model now validates expanded decision calls and rejects unsupported stale choices. The review-package smoke check verifies expanded decision calls, insider/vendor/API/open banking escalation, credit risk routing, chargeback representment routing, locked blockers, rationale depth, optional packet feed, and saved package snapshots. A new visual three-case smoke check now verifies enriched intake metadata, stable Device IDs, record depth, direct React route anchors, and expanded Submit Decision choices for all built-in cases. `npm run verify` passes locally. Next step: browser-test all three built-in cases, then split `VisualWorkspace.jsx` into smaller modules.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -94,4 +95,4 @@ npm run build
 
 ## Test status
 
-The repo has been updated through the GitHub connector. Local build and browser testing still need to run in the user's connected development environment.
+`npm run verify` passes locally with Evidence First, functional smoke, visual three-case smoke, review-package smoke, and production build checks. Browser testing still needs to run in the user's connected development environment.
