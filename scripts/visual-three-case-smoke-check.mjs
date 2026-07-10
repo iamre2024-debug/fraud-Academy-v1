@@ -73,6 +73,7 @@ const visualWorkspace = read('src/VisualWorkspace.jsx');
 const visualWorkspaceModel = read('src/visualWorkspaceModel.js');
 const activeToolPanel = read('src/ActiveToolPanel.jsx');
 const bottomInvestigationGrid = read('src/BottomInvestigationGrid.jsx');
+const categoryTileRail = read('src/CategoryTileRail.jsx');
 const submitDecisionPanel = read('src/SubmitDecisionPanel.jsx');
 const visualNavigation = read('src/VisualNavigation.jsx');
 const main = read('src/main.jsx');
@@ -88,7 +89,6 @@ for (const required of [
 }
 
 for (const required of [
-  "onNavigate('academy')",
   "from './visualWorkspaceModel.js'",
   'rowsFor(tool, activeCase, reportPackets)',
   'buildPacket(row, tool, activeCase)',
@@ -99,10 +99,22 @@ for (const required of [
   '<small>Short summary</small>',
   '<ActiveToolPanel',
   '<BottomInvestigationGrid',
+  '<CategoryTileRail',
   '<SubmitDecisionPanel',
-  'category-progress-track',
 ]) {
   requireText('src/VisualWorkspace.jsx', visualWorkspace, required, 'three-case visual workflow anchor');
+}
+
+for (const required of [
+  'className="visual-categories"',
+  'className="visual-category-row"',
+  'category-progress-track',
+  'reviewedCount',
+  'progressPercent',
+  'setTool(item.tools[0])',
+  "onNavigate('academy')",
+]) {
+  requireText('src/CategoryTileRail.jsx', categoryTileRail, required, 'category tile rail module anchor');
 }
 
 for (const required of [
