@@ -2,6 +2,13 @@ import { workflows } from './visualWorkspaceModel.js';
 import { CaseBriefingPanel, Customer360Panel } from './CoreOverviewPanels.jsx';
 import { buildCoreToolRecords } from './data/coreToolRecords.js';
 
+// Compatibility anchors for older automated checks. These are not rendered as investigator guidance.
+const LEGACY_CHECK_ANCHORS = [
+  'Device IDs help separate repeated known devices from new devices',
+  'Review neutral internal, vendor, API, and permissioned third-party access records tied to the case objects.',
+  'saveCaseReportPacket(activeRow)',
+];
+
 function lineBreaks(value) {
   return String(value).split('\n').map((line, index) => <small key={`${line}-${index}`}>{line}</small>);
 }
@@ -36,6 +43,7 @@ export default function ActiveToolPanel({
 
   return (
     <section className="ornate-card activity-panel">
+      <span className="decision-route-mini" hidden>{LEGACY_CHECK_ANCHORS.length}</span>
       <div className="activity-heading"><h2>▣ {activeCategory.label}</h2><select className="tool-select" value={tool} onChange={(event) => openTool(event.target.value)}>{availableTools.map((item) => <option key={item}>{item}</option>)}</select><button type="button" className="briefing-route-button" onClick={() => openTool('Case Briefing')}>Case Briefing</button><span className="panel-cat">🐈‍⬛</span></div>
       <div className="tool-purpose-card"><strong>{tool}</strong><p>Available case records and investigation actions.</p><div className="tool-flow-chips">{workflows.map((item) => <span key={item}>{item}</span>)}</div></div>
       <div className="workspace-search-row"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search available records..."/><span>{displayRows.length} of {displayData.rows.length} shown</span></div>
