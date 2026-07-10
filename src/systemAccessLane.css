@@ -1,0 +1,56 @@
+.system-access-lane-host {
+  display: contents;
+}
+
+.system-access-lane {
+  display: grid;
+  gap: 14px;
+}
+
+.system-access-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.system-access-grid article {
+  border: 1px solid rgba(255, 92, 218, 0.22);
+  border-radius: 16px;
+  background: rgba(6, 4, 14, 0.52);
+  padding: 13px;
+  box-shadow: inset 0 0 16px rgba(255, 92, 218, 0.05);
+}
+
+.system-access-grid small {
+  display: block;
+  color: #ff9be9;
+  font-family: Cinzel, Georgia, serif;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.system-access-grid strong {
+  display: block;
+  margin-top: 6px;
+  color: #fff1fb;
+  font-family: Cinzel, Georgia, serif;
+  line-height: 1.25;
+}
+
+.system-access-grid p,
+.system-access-grid em {
+  display: block;
+  color: rgba(255, 241, 251, 0.74);
+  font-size: 0.78rem;
+  font-style: normal;
+  line-height: 1.35;
+  margin: 7px 0 0;
+}
+
+@media (max-width: 980px) {
+  .system-access-grid {
+    grid-template-columns: 1fr;
+  }
+}
