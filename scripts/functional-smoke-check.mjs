@@ -43,6 +43,7 @@ const checks = [
     mustContain: [
       "import ActiveToolPanel from './ActiveToolPanel.jsx'",
       "import BottomInvestigationGrid from './BottomInvestigationGrid.jsx'",
+      "import CaseSummaryCard from './CaseSummaryCard.jsx'",
       "import CategoryTileRail from './CategoryTileRail.jsx'",
       "import SubmitDecisionPanel from './SubmitDecisionPanel.jsx'",
       "from './visualWorkspaceModel.js'",
@@ -51,6 +52,7 @@ const checks = [
       'rowsFor(tool, activeCase, reportPackets)',
       '<ActiveToolPanel',
       '<BottomInvestigationGrid',
+      '<CaseSummaryCard',
       '<CategoryTileRail',
       '<SubmitDecisionPanel',
       'getReviewPackageStatus({ completedTools: currentCompleted, tray, notes, draft: decisionDraft, reportPackets })',
@@ -60,6 +62,22 @@ const checks = [
       "window.dispatchEvent(new CustomEvent('fraud-academy:navigate'",
       'ensureCaseSummaryMeta',
       'repairDeviceIntelligenceTable',
+    ],
+  },
+  {
+    file: 'src/CaseSummaryCard.jsx',
+    label: 'case summary card module',
+    mustContain: [
+      'className="ornate-card case-summary-visual"',
+      'className="case-summary-meta-grid"',
+      '<small>Claim ID</small>',
+      '<small>Transaction / payee info</small>',
+      '<small>Short summary</small>',
+      "pin(activeCase.id)",
+      "openTool('Identity Intelligence')",
+      "openTool('Case Report')",
+      "openTool('Login History')",
+      'decision-jump-button',
     ],
   },
   {
