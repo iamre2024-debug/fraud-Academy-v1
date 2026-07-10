@@ -29,15 +29,15 @@ Use that file before making architecture, UI, tool, scenario, or Evidence First 
 - `src/VisualApp.jsx` coordinates the active case, live case catalog, and active navigation tab through React state.
 - `src/VisualWorkspace.jsx` owns the core investigation workspace behavior: case-scoped tray, notes, reviewed tools, decision drafts, review packages, and Case Report packets.
 - `src/VisualShellHeader.jsx` owns the ornate app header, active case strip, and Case Queue dropdown.
-- `src/DirectCollapsibleText.jsx` is the reusable direct React compact-text wrapper; Active Tool purpose, expanded-record text, tray identifiers, Case Report packet text, notebook note entries, Submit Decision checklist messages, Luna coaching lists, Navigation heading and Academy learning copy, and Progress package status text now use it directly.
+- `src/DirectCollapsibleText.jsx` is the reusable direct React compact-text wrapper; Active Tool purpose, expanded-record text, tray identifiers, Case Report packet text, notebook note entries, Submit Decision checklist messages, Luna coaching lists, Navigation heading and Academy learning copy, Progress package status, and Case Summary transaction/payee and short-summary copy now use it directly.
 - `src/visualWorkspaceModel.js` now owns workspace constants, storage helpers, live tool row builders, System Access Lane row construction, and Case Report packet construction.
 - `src/ActiveToolPanel.jsx` owns the active category/tool renderer: sub-tool dropdown, search, rows, expanded record lanes, pin/review actions, and neutral report packet saves.
 - `src/BottomInvestigationGrid.jsx` owns the Investigation Tray and Investigation Notebook cards, including pinned objects, notes, packet feed, and Open Evidence Center routing.
-- `src/CaseSummaryCard.jsx` owns the ornate Case Summary card, including neutral intake facts, Pin Case, quick tool routes, and Submit Decision jump.
+- `src/CaseSummaryCard.jsx` owns the ornate Case Summary card, including neutral intake facts, direct compact controls for longer neutral summary fields, Pin Case, quick tool routes, and Submit Decision jump.
 - `src/CategoryTileRail.jsx` owns the ornate investigation category rail, including neutral reviewed counts, progress bars, active/reviewed state classes, and Tool Map routing.
 - `src/SubmitDecisionPanel.jsx` owns the locked Submit Decision visual panel while the review package model keeps Evidence First behavior enforced.
 - `src/VisualNavigation.jsx` receives direct React callbacks for Dashboard, Cases, Workspace, Academy, Progress, and case opening, and owns Navigation heading, Academy learning, and Progress package-status compact text directly.
-- `src/VisualTextCollapse.jsx` now uses limited event-triggered scans instead of a broad MutationObserver, and no longer scans Submit Decision checklist, Luna coaching, Navigation heading, Academy learning, or Progress package-status text.
+- `src/VisualTextCollapse.jsx` is now an inert compatibility marker only. It contains no selector discovery, portal controls, event listeners, or DOM scanning; compact More / Less behavior is React-owned through `DirectCollapsibleText`.
 - Insider / Vendor / API / Open Banking is now the Connections → System Access Lane sub-tool inside `src/VisualWorkspace.jsx`, powered by `src/data/systemAccessRecords.js`.
 - `src/LunaPostSubmissionPanel.jsx` restores post-submission Luna scoring/debrief as a separate React module that stays locked before a learner package exists, resolves the active case from the live built-in/generated catalog, and owns its coaching-list compact text controls directly.
 - `src/data/generatedCaseRepository.js` is the generated-case storage boundary. IndexedDB is primary, localStorage remains a fallback, and existing localStorage-generated cases migrate once into IndexedDB.
@@ -71,12 +71,12 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 14. Visible first-tool coaching and investigator-question headings are rejected by the Evidence First wording guard.
 15. Progress package-status text is rendered by direct React controls and cannot drift back into the legacy selector scanner.
 16. Navigation heading and Academy learning copy are rendered by direct React controls and cannot drift back into legacy selector discovery.
+17. Case Summary transaction/payee and short-summary copy are rendered by direct React controls, and the old selector scanner is inert.
 
 ## Remaining follow-up work
 
-1. Continue splitting `VisualWorkspace.jsx` into focused React modules so future edits do not risk connector clipping. The visual shell header, workspace model, active tool panel, bottom investigation grid, case summary card, category rail, and Submit Decision panel are now split.
-2. Continue converting compact text target discovery into direct reusable wrappers. Active Tool content, tray identifiers, Case Report packet text, notebook note entries, Submit Decision checklist messages, Luna coaching lists, Navigation heading and Academy learning copy, and Progress package-status text already use `DirectCollapsibleText`; remaining summary copy still uses the limited compatibility scanner.
-3. Reconnect Academy Progress polish to the stable post-submission package flow.
+1. Continue splitting `VisualWorkspace.jsx` state and action orchestration into focused hooks or controller modules so future edits do not risk connector clipping. The visual shell header, workspace model, active tool panel, bottom investigation grid, case summary card, category rail, and Submit Decision panel are already split.
+2. Reconnect Academy Progress polish to the stable post-submission package flow.
 
 ## Browser-confirmed functional coverage
 
@@ -90,7 +90,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 
 ## Latest handoff
 
-The latest follow-up moves Navigation heading and Academy learning compact text out of selector discovery and into direct React wrappers, while preserving the existing Progress direct wrapper and package lock. The navigation smoke guard now prevents all three retired selectors from returning. Browser automation remains part of CI through separate source verification and desktop/mobile Chromium jobs. Remaining summary copy, workspace splitting, and Academy Progress polish remain separate next steps.
+The latest follow-up moves the final Case Summary long-copy targets into direct React wrappers and reduces `VisualTextCollapse.jsx` to an inert marker with no DOM scanning. A dedicated summary guard prevents selector discovery from returning while preserving the screenshot-driven shell, Evidence First wording, Luna’s package lock, IndexedDB generated-case persistence, and the single Connections → System Access Lane. Workspace state/controller splitting and Academy Progress polish remain the next separate steps.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -111,4 +111,4 @@ npm run build
 
 ## Test status
 
-`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, Luna single-module smoke, review-package smoke, remaining-module depth, navigation direct-collapse, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for all three built-in cases, generated cases, core modules, System Access Lane, persistence, and Luna lock behavior.
+`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, Luna single-module smoke, review-package smoke, remaining-module depth, navigation direct-collapse, summary direct-collapse, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for all three built-in cases, generated cases, core modules, System Access Lane, persistence, and Luna lock behavior.

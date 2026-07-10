@@ -11,7 +11,7 @@ function mustContain(fileLabel, content, text) {
 }
 
 function mustNotContain(fileLabel, content, text) {
-  if (content.includes(text)) failures.push(`${fileLabel} still contains a retired Navigation selector or unsafe copy: ${text}`);
+  if (content.includes(text)) failures.push(`${fileLabel} still contains a retired Navigation selector, scanner, or unsafe copy: ${text}`);
 }
 
 mustContain('VisualNavigation.jsx', navigation, "import DirectCollapsibleText from './DirectCollapsibleText.jsx';");
@@ -22,6 +22,10 @@ mustContain('VisualNavigation.jsx', navigation, '{detail}');
 mustContain('VisualNavigation.jsx', navigation, 'function ProgressPanel({ cases, packagesByCase })');
 mustContain('VisualNavigation.jsx', navigation, 'Submit a review package to unlock Luna progress.');
 mustNotContain('VisualNavigation.jsx', navigation, 'Luna scoring only appears before submission');
+mustContain('VisualTextCollapse.jsx', visualTextCollapse, 'data-react-text-collapse="retired"');
+mustNotContain('VisualTextCollapse.jsx', visualTextCollapse, 'COLLAPSE_SELECTOR');
+mustNotContain('VisualTextCollapse.jsx', visualTextCollapse, 'querySelectorAll');
+mustNotContain('VisualTextCollapse.jsx', visualTextCollapse, 'createPortal');
 mustNotContain('VisualTextCollapse.jsx', visualTextCollapse, '.visual-nav-heading span');
 mustNotContain('VisualTextCollapse.jsx', visualTextCollapse, '.nav-learning-grid article p');
 mustNotContain('VisualTextCollapse.jsx', visualTextCollapse, '.nav-progress-list p');
@@ -37,4 +41,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Navigation direct-collapse smoke check passed. Heading, Academy learning, and Progress copy are React-owned, legacy selectors are retired, and Luna progress remains package-gated.');
+console.log('Navigation direct-collapse smoke check passed. Heading, Academy learning, and Progress copy are React-owned, the legacy scanner is inert, and Luna progress remains package-gated.');
