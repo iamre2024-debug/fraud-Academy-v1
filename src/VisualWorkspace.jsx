@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import { buildReviewPackage, getReviewPackageStatus } from './data/reviewPackage.js';
@@ -7,16 +7,14 @@ import BottomInvestigationGrid from './BottomInvestigationGrid.jsx';
 import CaseSummaryCard from './CaseSummaryCard.jsx';
 import CategoryTileRail from './CategoryTileRail.jsx';
 import SubmitDecisionPanel from './SubmitDecisionPanel.jsx';
+import useVisualWorkspaceCaseState from './useVisualWorkspaceCaseState.js';
 import VisualShellHeader from './VisualShellHeader.jsx';
 import {
   AGENT_ID,
   buildPacket,
   categories,
   defaultDecisionDraft,
-  readStorage,
   rowsFor,
-  storageKeys,
-  writeStorage,
 } from './visualWorkspaceModel.js';
 
 export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCases(baseCases), onCaseChange, onNavigate }) {
@@ -25,33 +23,28 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   const [query, setQuery] = useState('');
   const [expandedId, setExpandedId] = useState('');
   const [noteDraft, setNoteDraft] = useState('');
-  const [trayByCase, setTrayByCase] = useState(() => readStorage(storageKeys.tray, {}));
-  const [notesByCase, setNotesByCase] = useState(() => readStorage(storageKeys.notes, {}));
-  const [completedByCase, setCompletedByCase] = useState(() => readStorage(storageKeys.completed, {}));
-  const [decisionByCase, setDecisionByCase] = useState(() => readStorage(storageKeys.decisions, {}));
-  const [packagesByCase, setPackagesByCase] = useState(() => readStorage(storageKeys.packages, {}));
-  const [packetsByCase, setPacketsByCase] = useState(() => readStorage(storageKeys.reportPackets, {}));
   const submitRef = useRef(null);
 
   const activeCase = cases.find((item) => item.id === activeCaseId) ?? cases[0];
+  const {
+    tray,
+    notes,
+    currentCompleted,
+    decisionDraft,
+    reviewPackages,
+    reportPackets,
+    setTrayByCase,
+    setNotesByCase,
+    setCompletedByCase,
+    setDecisionByCase,
+    setPackagesByCase,
+    setPacketsByCase,
+  } = useVisualWorkspaceCaseState(activeCase);
   const activeCategory = categories.find((item) => item.key === categoryKey) ?? categories[1];
-  const tray = trayByCase[activeCase.id] ?? [activeCase.trainingId];
-  const notes = notesByCase[activeCase.id] ?? [];
-  const currentCompleted = completedByCase[activeCase.id] ?? ['Case Summary'];
-  const decisionDraft = decisionByCase[activeCase.id] ?? defaultDecisionDraft;
-  const reviewPackages = packagesByCase[activeCase.id] ?? [];
-  const reportPackets = packetsByCase[activeCase.id] ?? [];
   const data = rowsFor(tool, activeCase, reportPackets);
   const rows = useMemo(() => data.rows.filter((row) => !query || row.detail.toLowerCase().includes(query.toLowerCase())), [data.rows, query]);
   const activeRow = rows.find((row) => row.id === expandedId) ?? rows[0];
   const packageStatus = getReviewPackageStatus({ completedTools: currentCompleted, tray, notes, draft: decisionDraft, reportPackets });
-
-  useEffect(() => writeStorage(storageKeys.tray, trayByCase), [trayByCase]);
-  useEffect(() => writeStorage(storageKeys.notes, notesByCase), [notesByCase]);
-  useEffect(() => writeStorage(storageKeys.completed, completedByCase), [completedByCase]);
-  useEffect(() => writeStorage(storageKeys.decisions, decisionByCase), [decisionByCase]);
-  useEffect(() => writeStorage(storageKeys.packages, packagesByCase), [packagesByCase]);
-  useEffect(() => writeStorage(storageKeys.reportPackets, packetsByCase), [packetsByCase]);
 
   function openTool(nextTool) {
     const nextCategory = categories.find((item) => item.tools.includes(nextTool)) ?? categories[1];
