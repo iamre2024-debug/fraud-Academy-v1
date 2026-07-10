@@ -6,7 +6,6 @@ const COLLAPSE_SELECTOR = [
   '.tool-purpose-card p',
   '.visual-nav-heading span',
   '.nav-learning-grid article p',
-  '.nav-progress-list p',
   '.record-review-lanes p',
   '.notebook-list p',
   '.tray-list em',
