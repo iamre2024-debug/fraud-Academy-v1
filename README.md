@@ -29,6 +29,7 @@ Use that file before making architecture, UI, tool, scenario, or Evidence First 
 - `src/VisualApp.jsx` coordinates the active case, live case catalog, and active navigation tab through React state.
 - `src/VisualWorkspace.jsx` owns the core investigation workspace behavior: case-scoped tray, notes, reviewed tools, decision drafts, review packages, and Case Report packets.
 - `src/VisualShellHeader.jsx` owns the ornate app header, active case strip, and Case Queue dropdown.
+- `src/DirectCollapsibleText.jsx` is the reusable direct React compact-text wrapper; Active Tool purpose and expanded-record text now use it directly.
 - `src/visualWorkspaceModel.js` now owns workspace constants, storage helpers, live tool row builders, System Access Lane row construction, and Case Report packet construction.
 - `src/ActiveToolPanel.jsx` owns the active category/tool renderer: sub-tool dropdown, search, rows, expanded record lanes, pin/review actions, and neutral report packet saves.
 - `src/BottomInvestigationGrid.jsx` owns the Investigation Tray and Investigation Notebook cards, including pinned objects, notes, packet feed, and Open Evidence Center routing.
@@ -67,7 +68,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 Still needs deeper module work after browser confirmation:
 
 1. Continue splitting `VisualWorkspace.jsx` into focused React modules so future edits do not risk connector clipping. The visual shell header, workspace model, active tool panel, bottom investigation grid, case summary card, category rail, and Submit Decision panel are now split.
-2. Convert compact text target discovery into fully direct reusable wrappers instead of any selector discovery.
+2. Continue converting compact text target discovery into direct reusable wrappers. Active Tool content already uses `DirectCollapsibleText`; remaining legacy targets still use the limited compatibility scanner.
 3. Reconnect Academy Progress polish to the stable post-submission package flow.
 
 ## Functional focus
@@ -89,7 +90,7 @@ The current working priority is stability plus three-case completeness:
 
 ## Latest handoff
 
-The seventh VisualWorkspace split is complete: `VisualShellHeader.jsx` now owns the ornate app header, active case strip, and Case Queue dropdown while `VisualWorkspace.jsx` keeps active case state and workspace behavior. The screenshot-driven header/case-switch classes were preserved. Next step: browser-test all three built-in cases plus one generated case, then continue converting compact text into direct reusable wrappers or split another remaining visual shell section.
+The first direct compact-text conversion is complete: `DirectCollapsibleText.jsx` now owns reusable React More / Less behavior, `ActiveToolPanel.jsx` uses it for tool purpose and expanded-record text, and the limited `VisualTextCollapse.jsx` compatibility scanner ignores direct compact-text targets to avoid duplicate controls. Next step: browser-test all three built-in cases plus one generated case, then continue converting remaining notebook, tray, decision, Luna, progress, and navigation compact-text targets into direct wrappers.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
