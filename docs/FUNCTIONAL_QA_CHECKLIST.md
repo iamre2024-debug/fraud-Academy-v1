@@ -18,6 +18,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Header | Fraud Academy OS banner | Identity / app title only | Decorative, acceptable | Keep decorative only |
 | Header | Cats, bats, moon, butterfly accents | Visual theme only | Decorative, acceptable | Keep non-clickable |
 | App shell | VisualApp coordinator | Own active case, live case catalog, and active tab in React | Working | Keep direct state wiring |
+| Workspace model | visualWorkspaceModel module | Own category definitions, storage keys, row builders, and report packet construction | Split from VisualWorkspace | Keep module boundary |
 | Case strip | Case ID / claim type / status | Display active case metadata | Working | Keep |
 | Case strip | Case Queue dropdown | Switch active case | React callback | Retest after every case switch |
 | Case Summary | Pin Case | Add case ID to tray | Working | Keep |
@@ -90,4 +91,4 @@ Use this path after every major UI update:
 
 ## Latest QA status
 
-The lightweight investigation repair script has been retired. Device IDs, case-summary metadata, Submit Decision routing, Tool Map routing, Open Evidence Center routing, generated-case opening, case switching, and the System Access Lane sub-tool now run through React state/callbacks from `VisualApp.jsx`, `VisualWorkspace.jsx`, and `VisualNavigation.jsx` while keeping the screenshot-driven visual design intact. The three built-in cases now have an automated visual smoke guard in `npm run verify`; the browser smoke path is still required for real click/viewport confirmation.
+The lightweight investigation repair script has been retired. Device IDs, case-summary metadata, Submit Decision routing, Tool Map routing, Open Evidence Center routing, generated-case opening, case switching, and the System Access Lane sub-tool now run through React state/callbacks from `VisualApp.jsx`, `VisualWorkspace.jsx`, `visualWorkspaceModel.js`, and `VisualNavigation.jsx` while keeping the screenshot-driven visual design intact. The three built-in cases now have an automated visual smoke guard in `npm run verify`; the browser smoke path is still required for real click/viewport confirmation.
