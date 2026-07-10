@@ -19,6 +19,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Header | Cats, bats, moon, butterfly accents | Visual theme only | Decorative, acceptable | Keep non-clickable |
 | App shell | VisualApp coordinator | Own active case, live case catalog, and active tab in React | Working | Keep direct state wiring |
 | Workspace model | visualWorkspaceModel module | Own category definitions, storage keys, row builders, and report packet construction | Split from VisualWorkspace | Keep module boundary |
+| Active tool module | ActiveToolPanel module | Own sub-tool dropdown, search, table, expanded record lanes, pin/review/report actions | Split from VisualWorkspace | Keep screenshot classes |
 | Submit module | SubmitDecisionPanel module | Own locked Submit Decision visual markup and learner inputs | Split from VisualWorkspace | Keep Evidence First lock |
 | Case strip | Case ID / claim type / status | Display active case metadata | Working | Keep |
 | Case strip | Case Queue dropdown | Switch active case | React callback | Retest after every case switch |
@@ -61,7 +62,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 ## Immediate repair list
 
 1. Run GitHub Actions verify and the manual browser smoke path after the direct React routing migration.
-2. Continue splitting `VisualWorkspace.jsx` into smaller React modules so compact text can move away from selector-discovery compatibility. The workspace model and Submit Decision panel are already split.
+2. Continue splitting `VisualWorkspace.jsx` into smaller React modules so compact text can move away from selector-discovery compatibility. The workspace model, active tool panel, and Submit Decision panel are already split.
 3. Keep retired DOM patch scripts out of startup: `visualNavPatch.js`, `visualTextCollapse.js`, and `visualInvestigationRepair.js`.
 4. Keep the automated smoke guards current when changing case switching, category switching, sub-tool switching, search filtering, expand/pin/save note/save packet, Device IDs, case summary intake metadata, review package lock/unlock, and dashboard/cases/workspace/academy/progress navigation.
 5. Confirm no clickable-looking decorative element exists without an action.
