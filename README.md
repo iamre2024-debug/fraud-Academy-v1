@@ -31,6 +31,7 @@ Use that file before making architecture, UI, tool, scenario, or Evidence First 
 - `src/visualWorkspaceModel.js` now owns workspace constants, storage helpers, live tool row builders, System Access Lane row construction, and Case Report packet construction.
 - `src/ActiveToolPanel.jsx` owns the active category/tool renderer: sub-tool dropdown, search, rows, expanded record lanes, pin/review actions, and neutral report packet saves.
 - `src/BottomInvestigationGrid.jsx` owns the Investigation Tray and Investigation Notebook cards, including pinned objects, notes, packet feed, and Open Evidence Center routing.
+- `src/CaseSummaryCard.jsx` owns the ornate Case Summary card, including neutral intake facts, Pin Case, quick tool routes, and Submit Decision jump.
 - `src/CategoryTileRail.jsx` owns the ornate investigation category rail, including neutral reviewed counts, progress bars, active/reviewed state classes, and Tool Map routing.
 - `src/SubmitDecisionPanel.jsx` owns the locked Submit Decision visual panel while the review package model keeps Evidence First behavior enforced.
 - `src/VisualNavigation.jsx` receives direct React callbacks for Dashboard, Cases, Workspace, Academy, Progress, and case opening.
@@ -64,7 +65,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 
 Still needs deeper module work after browser confirmation:
 
-1. Continue splitting `VisualWorkspace.jsx` into focused React modules so future edits do not risk connector clipping. The workspace model, active tool panel, bottom investigation grid, category rail, and Submit Decision panel are now split.
+1. Continue splitting `VisualWorkspace.jsx` into focused React modules so future edits do not risk connector clipping. The workspace model, active tool panel, bottom investigation grid, case summary card, category rail, and Submit Decision panel are now split.
 2. Convert compact text target discovery into fully direct reusable wrappers instead of any selector discovery.
 3. Reconnect Academy Progress polish to the stable post-submission package flow.
 
@@ -87,7 +88,7 @@ The current working priority is stability plus three-case completeness:
 
 ## Latest handoff
 
-The fifth VisualWorkspace split is complete: `CategoryTileRail.jsx` now owns the ornate investigation category rail, neutral reviewed counts, progress bars, active/reviewed state classes, and Tool Map route while `VisualWorkspace.jsx` keeps category state. The screenshot-driven classes and Evidence First-neutral progress behavior were preserved. Next step: browser-test all three built-in cases plus one generated case, then split the case summary card into a focused React module.
+The sixth VisualWorkspace split is complete: `CaseSummaryCard.jsx` now owns the ornate Case Summary card, neutral intake metadata, Pin Case action, quick tool routes, and Submit Decision jump while `VisualWorkspace.jsx` keeps active case state and routing callbacks. The screenshot-driven classes and Evidence First-neutral summary behavior were preserved. Next step: browser-test all three built-in cases plus one generated case, then split the case strip/header shell or continue converting compact text into direct reusable wrappers.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
