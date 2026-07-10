@@ -26,13 +26,13 @@ Use that file before making architecture, UI, tool, scenario, or Evidence First 
 ## Current status
 
 - The screenshot-driven visual workspace is active.
-- `src/VisualApp.jsx` coordinates the active case and active navigation tab through React state.
+- `src/VisualApp.jsx` coordinates the active case, live case catalog, and active navigation tab through React state.
 - `src/VisualWorkspace.jsx` owns the core investigation workspace behavior: case-scoped tray, notes, reviewed tools, decision drafts, review packages, and Case Report packets.
 - `src/VisualNavigation.jsx` receives direct React callbacks for Dashboard, Cases, Workspace, Academy, Progress, and case opening.
 - `src/VisualTextCollapse.jsx` now uses limited event-triggered scans instead of a broad MutationObserver.
 - `src/SystemAccessLane.jsx` adds the Insider / Vendor / API / Open Banking lane as a real React panel with case-specific neutral records.
 - `src/LunaPostSubmissionPanel.jsx` restores post-submission Luna scoring/debrief as a separate React module that stays locked before a learner package exists.
-- `src/GeneratedCaseControls.jsx` and `src/data/generatedCases.js` add a local generated-case foundation. Generated cases are saved to browser storage and included through the enrichment pipeline after refresh.
+- `src/GeneratedCaseControls.jsx` and `src/data/generatedCases.js` add a local generated-case foundation. Generated cases are saved to browser storage, added to the live React case catalog, and opened without page refresh.
 - The old `src/visualInvestigationRepair.js` DOM route patch is retired and not loaded by the app entrypoint.
 - Case Summary metadata, Device ID rows, Tool Map, Open Evidence Center, and Submit Decision routing are rendered through React instead of repair scripts.
 - Submit Decision uses the locked review package model and remains Evidence First.
@@ -61,9 +61,8 @@ Still needs deeper module work after browser confirmation:
 
 1. Split `VisualWorkspace.jsx` further into smaller React modules so future edits do not risk connector clipping.
 2. Convert compact text target discovery into fully direct reusable wrappers instead of any selector discovery.
-3. Make generated cases open without a page refresh.
-4. Convert Insider / Vendor / API / Open Banking from a portal panel into a first-class category/sub-tool inside the workspace tool switcher.
-5. Reconnect Academy Progress polish to the stable post-submission package flow.
+3. Convert Insider / Vendor / API / Open Banking from a portal panel into a first-class category/sub-tool inside the workspace tool switcher.
+4. Reconnect Academy Progress polish to the stable post-submission package flow.
 
 ## Functional focus
 
@@ -79,12 +78,12 @@ The current working priority is stability plus three-case completeness:
 8. Confirm expanded decision calls appear in Submit Decision.
 9. Confirm Insider / Vendor / API / Open Banking lane appears with neutral records.
 10. Confirm Luna stays locked before submission and shows post-submission scoring only after a package is saved.
-11. Confirm Generate Case saves a generated case locally and reloads the app so it appears in the workspace case queue.
+11. Confirm Generate + Open Case saves a generated case locally, opens it immediately, and adds it to the workspace case queue without a page refresh.
 12. Confirm no visible control is only decorative or duplicated.
 
 ## Latest handoff
 
-The Bible audit module pass added a real system-access evidence lane, restored Luna post-submission scoring as a separate locked module, added local generated-case helpers and a Generate Case control, reduced compact text scanning to limited event-triggered scans, and expanded functional smoke coverage for these anchors. Next step: run `npm run verify`, browser-test all three built-in cases plus one generated case, then split `VisualWorkspace.jsx` into smaller modules and move the system-access lane into the core tool switcher.
+The Bible audit module pass added a real system-access evidence lane, restored Luna post-submission scoring as a separate locked module, added local generated-case helpers, reduced compact text scanning to limited event-triggered scans, and expanded functional smoke coverage for these anchors. The generated-case control now opens the newly saved case through React state without reloading the app. Next step: browser-test all three built-in cases plus one generated case, then split `VisualWorkspace.jsx` into smaller modules and move the system-access lane into the core tool switcher.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -104,4 +103,4 @@ npm run build
 
 ## Test status
 
-The repo has been updated through the GitHub connector. Local build and browser testing still need to run in the user's connected development environment.
+`npm run verify` passes locally with Evidence First, functional smoke, visual three-case smoke, review-package smoke, and production build checks. Browser testing still needs to run in the user's connected development environment.
