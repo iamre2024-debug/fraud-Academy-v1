@@ -131,6 +131,7 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 
 - The screenshot-driven visual shell is the active app entrypoint. Keep the ornate desktop command-center layout and mobile bottom-navigation polish intact while reconnecting behavior.
 - `src/VisualApp.jsx` coordinates the active case, live case catalog, and visual navigation tab through React state so case switching, generated-case opening, Tool Map, Open Evidence Center, and Submit Decision routing do not depend on DOM repair scripts.
+- `src/VisualShellHeader.jsx` owns the ornate app header and active case strip, including the Case Queue dropdown. Keep the screenshot-driven header and case-switch classes intact.
 - `src/visualWorkspaceModel.js` owns workspace constants, storage keys, row builders, and Case Report packet construction so `src/VisualWorkspace.jsx` can keep shrinking into focused React modules without changing the screenshot-driven shell.
 - `src/ActiveToolPanel.jsx` owns the active category/tool renderer, including the sub-tool dropdown, search row, record table, expanded record lanes, pin actions, reviewed actions, and neutral report packet action. Keep the existing ornate activity-panel classes and Evidence First copy intact.
 - `src/BottomInvestigationGrid.jsx` owns the Investigation Tray and Investigation Notebook cards, including pinned objects, Open Evidence Center routing, note compose/save UI, Case Report packet feed, and notebook list. Preserve case-scoped props and ornate tray/notebook classes.
