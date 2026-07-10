@@ -1,3 +1,5 @@
+import DirectCollapsibleText from './DirectCollapsibleText.jsx';
+
 export default function CaseSummaryCard({ activeCase, pin, openTool, jumpDecision }) {
   return (
     <section className="ornate-card case-summary-visual">
@@ -8,8 +10,18 @@ export default function CaseSummaryCard({ activeCase, pin, openTool, jumpDecisio
           <article><small>Name</small><strong>{activeCase.person}</strong></article>
           <article><small>Claim ID</small><strong>{activeCase.claimId ?? activeCase.id}</strong></article>
           <article><small>Total claim amount</small><strong>{activeCase.amount}</strong></article>
-          <article className="wide"><small>Transaction / payee info</small><strong>{activeCase.transactionInfo ?? activeCase.type}</strong></article>
-          <article className="wide"><small>Short summary</small><strong>{activeCase.shortSummary ?? activeCase.queueReason}</strong></article>
+          <article className="wide">
+            <small>Transaction / payee info</small>
+            <DirectCollapsibleText as="strong" lines={2} mobileLines={3}>
+              {activeCase.transactionInfo ?? activeCase.type}
+            </DirectCollapsibleText>
+          </article>
+          <article className="wide">
+            <small>Short summary</small>
+            <DirectCollapsibleText as="strong" lines={2} mobileLines={3}>
+              {activeCase.shortSummary ?? activeCase.queueReason}
+            </DirectCollapsibleText>
+          </article>
         </div>
       </div>
       <div className="butterfly-accent">🦋</div>
