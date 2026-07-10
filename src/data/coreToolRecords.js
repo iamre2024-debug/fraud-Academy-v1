@@ -63,7 +63,7 @@ export function buildCoreToolRecords(tool, activeCase) {
   };
 
   if (tool === 'Payment Verification') return {
-    columns: ['Record', 'Payment Object', 'Status', 'First / Last Seen', 'Linked Transactions', 'Linked Digital Objects', 'Context'],
+    columns: ['Record', 'Payment Object / Bank Code / Destination ID', 'Status', 'First / Last Seen', 'Linked Transactions', 'Linked Digital Objects', 'Context'],
     rows: financial.paymentVerification.map((item) => row(item.id, [item.id, `${item.type} · ${item.object}`, item.status, item.lastSeen, financial.transactions.map((txn) => txn.id).join(' · '), logins.map((login) => `${login.deviceId ?? login.device} · ${login.session}`).join(' · '), item.context], item.object, 'Payment verification')),
   };
 
@@ -86,7 +86,7 @@ export function buildCoreToolRecords(tool, activeCase) {
       ...(activeCase.identityRecords ?? []).map((item) => row(`LNK-${item.id}`, [`LNK-${item.id}`, item.value, item.type, activeCase.person, item.id, activeCase.id, item.history], item.value, 'Identity link')),
       ...logins.map((item) => row(`LNK-${item.session}`, [`LNK-${item.session}`, item.session, 'Session', `${item.deviceId ?? item.device} · ${item.ip}`, item.id, activeCase.id, `${item.location} · ${item.method}`], item.session, 'Digital link')),
       ...financial.transactions.map((item) => row(`LNK-${item.id}`, [`LNK-${item.id}`, item.id, 'Transaction', item.merchant, item.channel, activeCase.id, `${item.amount} · ${item.instrument}`], item.id, 'Transaction link')),
-      ...financial.paymentVerification.map((item) => row(`LNK-${item.id}`, [`LNK-${item.id}`, item.object, item.type, financial.transactions.map((txn) => txn.id).join(' · '), item.id, activeCase.id, item.context], item.object, 'Payment link')),
+      ...financial.paymentVerification.map((item) => row(`LNK-${item.id}`, [`LNK-${item.id}`, item.object, `${item.type} / Bank Code / Destination ID`, financial.transactions.map((txn) => txn.id).join(' · '), item.id, activeCase.id, item.context], item.object, 'Payment link')),
       ...evidence.evidence.map((item) => row(`LNK-${item.id}`, [`LNK-${item.id}`, item.id, 'Evidence', item.linkedObject, item.source, activeCase.id, item.summary], item.id, 'Evidence link')),
     ],
   };
@@ -107,7 +107,7 @@ export function buildCoreToolRecords(tool, activeCase) {
     rows: [
       row('REP-OVERVIEW', ['REP-OVERVIEW', 'Case overview', 'Case Briefing', 'Draft available', activeCase.id, activeCase.id, activeCase.queueReason], activeCase.id, 'Case report section'),
       row('REP-CUSTOMER', ['REP-CUSTOMER', 'Customer summary', 'Customer 360', 'Draft available', activeCase.trainingId, activeCase.id, `${activeCase.person} · ${activeCase.trainingId}`], activeCase.trainingId, 'Case report section'),
-      row('REP-PAYMENT', ['REP-PAYMENT', 'Payment verification', 'Payment Verification', 'Draft available', financial.paymentVerification.map((item) => item.id).join(' · '), activeCase.id, `${financial.paymentVerification.length} payment records available`], activeCase.id, 'Case report section'),
+      row('REP-PAYMENT', ['REP-PAYMENT', 'Payment verification', 'Payment Verification', 'Draft available', financial.paymentVerification.map((item) => item.id).join(' · '), activeCase.id, `${financial.paymentVerification.length} payment records available, including Bank Code and Destination ID objects when present`], activeCase.id, 'Case report section'),
       row('REP-BUSINESS', ['REP-BUSINESS', 'Business intelligence', 'Business Intelligence', 'Draft available', business.businessIntel.map((item) => item.id).join(' · '), activeCase.id, `${business.businessIntel.length} business records available`], activeCase.id, 'Case report section'),
       row('REP-EVIDENCE', ['REP-EVIDENCE', 'Evidence summary', 'Evidence Center', 'Draft available', evidence.evidence.map((item) => item.id).join(' · '), activeCase.id, `${evidence.evidence.length} evidence records available`], activeCase.id, 'Case report section'),
       row('REP-TIMELINE', ['REP-TIMELINE', 'Timeline summary', 'Timeline', 'Draft available', events.map((item) => item.id).join(' · '), activeCase.id, `${events.length + logins.length + financial.transactions.length} timeline records available`], activeCase.id, 'Case report section'),
