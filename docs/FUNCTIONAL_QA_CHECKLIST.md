@@ -30,6 +30,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Tool panel | Sub-tool dropdown | Switch live sub-tools within category | Working | Keep |
 | Tool panel | Search bar | Filter visible records | Working | Keep |
 | Tool panel | Decision route | Scroll to Submit Decision | React callback | Retest |
+| Connections | System Access Lane sub-tool | Show neutral Insider / Vendor / API / Open Banking records through the standard workspace table | Workspace sub-tool | Retest |
 | Device Intelligence | Device ID column | Stable fictional ID per repeated device/customer | Row builder | Retest each case |
 | Tool rows | Expand | Open/activate expanded record review | Working | Keep |
 | Tool rows | Pin | Add record object to tray | Working | Keep |
@@ -77,7 +78,7 @@ Use this path after every major UI update:
 7. Confirm Case Summary shows name, claim ID, total amount, transaction/payee info, and short neutral summary.
 8. Open Identity Intel, Case Report, and Submit Decision from the Case Summary quick actions.
 9. Open Device Intelligence and confirm repeated devices show the same Device ID.
-10. For each category, open every sub-tool from the dropdown.
+10. For each category, open every sub-tool from the dropdown, including Connections → System Access Lane.
 11. Use Generate + Open Case and confirm the generated case opens without a page refresh.
 12. Confirm the generated case appears in the case dropdown and Cases panel.
 13. Search one record term, expand a row, pin it, save an expanded note, and save a Case Report packet.
@@ -89,4 +90,4 @@ Use this path after every major UI update:
 
 ## Latest QA status
 
-The lightweight investigation repair script has been retired. Device IDs, case-summary metadata, Submit Decision routing, Tool Map routing, Open Evidence Center routing, generated-case opening, and case switching now run through React state/callbacks from `VisualApp.jsx`, `VisualWorkspace.jsx`, and `VisualNavigation.jsx` while keeping the screenshot-driven visual design intact. The three built-in cases now have an automated visual smoke guard in `npm run verify`; the browser smoke path is still required for real click/viewport confirmation.
+The lightweight investigation repair script has been retired. Device IDs, case-summary metadata, Submit Decision routing, Tool Map routing, Open Evidence Center routing, generated-case opening, case switching, and the System Access Lane sub-tool now run through React state/callbacks from `VisualApp.jsx`, `VisualWorkspace.jsx`, and `VisualNavigation.jsx` while keeping the screenshot-driven visual design intact. The three built-in cases now have an automated visual smoke guard in `npm run verify`; the browser smoke path is still required for real click/viewport confirmation.
