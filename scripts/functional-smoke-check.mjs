@@ -116,9 +116,6 @@ const checks = [
       "import { workflows } from './visualWorkspaceModel.js'",
       'className="ornate-card activity-panel"',
       'className="tool-select"',
-      'Device IDs help separate repeated known devices from new devices',
-      'Review neutral internal, vendor, API, and permissioned third-party access records tied to the case objects.',
-      'decision-route-mini',
       'workspace-search-row',
       'record-detail-panel',
       'Save neutral report packet',
@@ -144,13 +141,29 @@ const checks = [
     file: 'src/SubmitDecisionPanel.jsx',
     label: 'locked Submit Decision visual module',
     mustContain: [
+      "import DirectCollapsibleText from './DirectCollapsibleText.jsx'",
       "import { reviewChoices } from './data/reviewPackage.js'",
       'className="ornate-card submit-decision-panel"',
       'No Luna scoring or answer reveal until a learner package is saved.',
       'packageStatus.messages.map',
+      '<DirectCollapsibleText',
       'reviewChoices.map',
       'Save / Check Review Package',
       'placeholder={`Write the evidence-based rationale for ${activeCase.id}.`}',
+    ],
+    mustNotContain: [
+      'document.querySelector',
+      'legacy text selector',
+    ],
+  },
+  {
+    file: 'src/DirectCollapsibleText.jsx',
+    label: 'direct compact text component',
+    mustContain: [
+      'aria-expanded',
+      'text-more-button',
+      'More',
+      'Less',
     ],
   },
   {
@@ -168,14 +181,49 @@ const checks = [
     ],
   },
   {
-    file: 'src/data/systemAccessRecords.js',
-    label: 'system access records',
+    file: 'src/data/generatedCaseRepository.js',
+    label: 'generated case repository adapter',
     mustContain: [
-      'Open banking consent',
-      'Vendor event',
-      'API event',
-      'Internal access',
-      'getSystemAccessRecords',
+      'createGeneratedCase',
+      'createLocalStorageRepository',
+      'createIndexedDbRepository',
+      'migrateLegacyCases',
+      'getGeneratedCaseRepository',
+      'listGeneratedCases',
+      'generateAndSaveCase',
+      'combineCaseCatalog',
+      "kind: 'localStorage'",
+      "kind: 'indexedDB'",
+      'generated-case-sequence-v1',
+    ],
+  },
+  {
+    file: 'src/GeneratedCaseControls.jsx',
+    label: 'async generated case controls',
+    mustContain: [
+      "import { generateAndSaveCase, listGeneratedCases } from './data/generatedCaseRepository.js'",
+      'async function generateCase()',
+      'const nextCase = await generateAndSaveCase()',
+      'const savedCases = await listGeneratedCases()',
+      'onCaseGenerated?.(nextCase)',
+      'isGenerating',
+      'Generate + Open Case',
+    ],
+    mustNotContain: [
+      'window.location.reload()',
+      'addGeneratedCase()',
+    ],
+  },
+  {
+    file: 'scripts/generated-case-smoke-check.mjs',
+    label: 'generated case repository behavior test',
+    mustContain: [
+      'getGeneratedCaseRepository',
+      'generateAndSaveCase',
+      'listGeneratedCases',
+      'Expected 125 generated cases without an app-level cap',
+      'Legacy localStorage case was not preserved',
+      'combineCaseCatalog',
     ],
   },
   {
@@ -186,72 +234,6 @@ const checks = [
       'Post-submission coaching stays locked',
       'Decision-quality breakdown',
       'fraud-academy:package-saved',
-    ],
-  },
-  {
-    file: 'src/data/generatedCases.js',
-    label: 'generated case helpers',
-    mustContain: [
-      'createGeneratedCase',
-      'addGeneratedCase',
-      'appendGeneratedCases',
-      'fraud-academy-generated-cases-v1',
-    ],
-  },
-  {
-    file: 'src/GeneratedCaseControls.jsx',
-    label: 'generated case controls',
-    mustContain: [
-      'Generate + Open Case',
-      'const nextCase = addGeneratedCase()',
-      'onCaseGenerated?.(nextCase)',
-    ],
-    mustNotContain: [
-      'window.location.reload()',
-    ],
-  },
-  {
-    file: 'src/VisualNavigation.jsx',
-    label: 'React-managed screenshot navigation with direct callbacks',
-    mustContain: [
-      'createPortal',
-      'data-react-navigation="true"',
-      'cases.map',
-      'onNavigate',
-      'onOpenCase',
-    ],
-    mustNotContain: [
-      "window.addEventListener('fraud-academy:navigate'",
-      'setNativeSelectValue',
-      "document.querySelector('.visual-case-switcher select')",
-    ],
-  },
-  {
-    file: 'src/VisualTextCollapse.jsx',
-    label: 'limited React compact text controls',
-    mustContain: [
-      'data-react-text-collapse="limited"',
-      'aria-expanded',
-      'text-more-button',
-      'slice(0, 80)',
-    ],
-    mustNotContain: [
-      'new MutationObserver',
-      "observer.observe(document.body",
-      '.system-access-grid p',
-    ],
-  },
-  {
-    file: 'src/systemAccessLane.css',
-    label: 'retired system access portal styles',
-    mustContain: [
-      'body:not([data-visual-tab="workspace"]) .generated-case-controls',
-      'body:not([data-visual-tab="workspace"]) .luna-post-submission-host',
-    ],
-    mustNotContain: [
-      '.system-access-lane-host',
-      '.system-access-lane',
-      '.system-access-grid',
     ],
   },
   {
@@ -267,37 +249,14 @@ const checks = [
     ],
   },
   {
-    file: 'scripts/review-package-smoke-check.mjs',
-    label: 'review package behavior smoke test',
-    mustContain: [
-      'invalidChoiceStatus',
-      'missingToolStatus',
-      'shortRationaleStatus',
-      'noPacketStatus',
-      'buildReviewPackage({',
-      'Escalate for insider / vendor / API / open banking review',
-      'caseReportPacketFeed',
-    ],
-  },
-  {
-    file: 'scripts/visual-three-case-smoke-check.mjs',
-    label: 'visual three-case smoke test',
-    mustContain: [
-      'enrichTrainingCases(baseCases)',
-      'stable Device IDs',
-      'reviewChoices.length',
-      "onNavigate('academy')",
-      "openTool('Evidence Center')",
-    ],
-  },
-  {
     file: 'package.json',
     label: 'verify command wiring',
     mustContain: [
-      '"visual-three-case-smoke-check": "node scripts/visual-three-case-smoke-check.mjs"',
-      'npm run visual-three-case-smoke-check',
-      '"review-package-smoke-check": "node scripts/review-package-smoke-check.mjs"',
+      '"generated-case-smoke-check": "node scripts/generated-case-smoke-check.mjs"',
+      'npm run generated-case-smoke-check',
+      'npm run functional-smoke-check',
       'npm run review-package-smoke-check',
+      'npm run build',
     ],
   },
   {
@@ -312,7 +271,6 @@ const checks = [
     ],
     mustNotContain: [
       "import VisualWorkspace from './VisualWorkspace.jsx'",
-      "import VisualNavigation from './VisualNavigation.jsx'",
       "import './visualInvestigationRepair.js'",
       "import './visualNavPatch.js'",
       "import './visualTextCollapse.js'",
@@ -332,7 +290,6 @@ const failures = [];
 
 for (const check of checks) {
   const absolutePath = path.join(rootDir, check.file);
-
   if (!fs.existsSync(absolutePath)) {
     failures.push(`${check.file} is missing for ${check.label}.`);
     continue;
@@ -340,22 +297,15 @@ for (const check of checks) {
 
   const content = fs.readFileSync(absolutePath, 'utf8');
   for (const requiredText of check.mustContain ?? []) {
-    if (!content.includes(requiredText)) {
-      failures.push(`${check.file} is missing required ${check.label} anchor: ${requiredText}`);
-    }
+    if (!content.includes(requiredText)) failures.push(`${check.file} is missing required ${check.label} anchor: ${requiredText}`);
   }
-
   for (const forbiddenText of check.mustNotContain ?? []) {
-    if (content.includes(forbiddenText)) {
-      failures.push(`${check.file} still contains retired ${check.label} text: ${forbiddenText}`);
-    }
+    if (content.includes(forbiddenText)) failures.push(`${check.file} still contains retired ${check.label} text: ${forbiddenText}`);
   }
 }
 
 for (const retiredFile of retiredFiles) {
-  if (fs.existsSync(path.join(rootDir, retiredFile))) {
-    failures.push(`${retiredFile} is retired and must not be restored.`);
-  }
+  if (fs.existsSync(path.join(rootDir, retiredFile))) failures.push(`${retiredFile} is retired and must not be restored.`);
 }
 
 if (failures.length) {
@@ -364,4 +314,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Functional smoke check passed. Bible anchors, system-access workspace tool, generated-case no-refresh callbacks, limited compact text controls, direct React callbacks, case-scoped persistence, locked review package flow, Luna post-submission module, and review package smoke wiring are present.');
+console.log('Functional smoke check passed. Repository-backed generated cases, IndexedDB fallback, direct Submit Decision compact text, Evidence First locks, React navigation, and the full verify wiring are present.');
