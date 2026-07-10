@@ -1,4 +1,4 @@
-const generatedCaseStorageKey = 'fraud-academy-generated-cases-v1';
+import { localCaseStorage } from './caseStorage.js';
 
 const typeTemplates = [
   {
@@ -41,20 +41,12 @@ const typeTemplates = [
 const generatedNames = ['Riley Monroe', 'Sienna Vale', 'Drew Harper', 'Kai Bennett', 'Morgan Reese', 'Nova Lane'];
 const generatedCities = ['Dallas, TX', 'Fort Worth, TX', 'Arlington, TX', 'Irving, TX', 'DeSoto, TX', 'Cedar Hill, TX'];
 
-export function readGeneratedCases() {
-  if (typeof window === 'undefined') return [];
-  try {
-    const saved = window.localStorage.getItem(generatedCaseStorageKey);
-    const parsed = saved ? JSON.parse(saved) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+export function readGeneratedCases(storage = localCaseStorage) {
+  return storage.readAll();
 }
 
-export function writeGeneratedCases(cases = []) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(generatedCaseStorageKey, JSON.stringify(cases));
+export function writeGeneratedCases(cases = [], storage = localCaseStorage) {
+  return storage.writeAll(cases);
 }
 
 export function createGeneratedCase(index = Date.now()) {
@@ -115,8 +107,8 @@ export function createGeneratedCase(index = Date.now()) {
   };
 }
 
-export function addGeneratedCase() {
-  const current = readGeneratedCases();
+export function addGeneratedCase(storage = localCaseStorage) {
+  const current = readGeneratedCases(storage);
   const existingIds = new Set(current.map((item) => item.id));
   let seed = Date.now() + current.length;
   let nextCase = createGeneratedCase(seed);
@@ -126,12 +118,12 @@ export function addGeneratedCase() {
     nextCase = createGeneratedCase(seed);
   }
 
-  writeGeneratedCases([nextCase, ...current]);
+  storage.upsert(nextCase);
   return nextCase;
 }
 
-export function appendGeneratedCases(baseCases = []) {
-  const generated = readGeneratedCases();
+export function appendGeneratedCases(baseCases = [], storage = localCaseStorage) {
+  const generated = readGeneratedCases(storage);
   const existingIds = new Set(baseCases.map((item) => item.id));
   return [...baseCases, ...generated.filter((item) => !existingIds.has(item.id))];
 }
