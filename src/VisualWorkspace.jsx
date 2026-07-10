@@ -145,12 +145,70 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   return (
     <main className="visual-os-shell">
       <section className="visual-os-frame">
-        <VisualShellHeader activeCase={activeCase} cases={cases} changeCase={changeCase} />
-        <CaseSummaryCard activeCase={activeCase} pin={pin} openTool={openTool} jumpDecision={jumpDecision} />
-        <CategoryTileRail categories={categories} categoryKey={categoryKey} currentCompleted={currentCompleted} onNavigate={onNavigate} setCategoryKey={setCategoryKey} setTool={setTool} setExpandedId={setExpandedId} />
-        <ActiveToolPanel activeCategory={activeCategory} activeCase={activeCase} tool={tool} openTool={openTool} query={query} setQuery={setQuery} data={data} rows={rows} activeRow={activeRow} setExpandedId={setExpandedId} pin={pin} saveNote={saveNote} saveCaseReportPacket={saveCaseReportPacket} markReviewed={markReviewed} currentCompleted={currentCompleted} jumpDecision={jumpDecision} />
-        <SubmitDecisionPanel submitRef={submitRef} packageStatus={packageStatus} tray={tray} notes={notes} reviewPackages={reviewPackages} decisionDraft={decisionDraft} activeCase={activeCase} updateDecision={updateDecision} submitDecision={submitDecision} />
-        <BottomInvestigationGrid tray={tray} pin={pin} openTool={openTool} noteDraft={noteDraft} setNoteDraft={setNoteDraft} submitNote={submitNote} reportPackets={reportPackets} notes={notes} />
+        <VisualShellHeader
+          activeCase={activeCase}
+          cases={cases}
+          changeCase={changeCase}
+        />
+
+        <CaseSummaryCard
+          activeCase={activeCase}
+          pin={pin}
+          openTool={openTool}
+          jumpDecision={jumpDecision}
+        />
+
+        <CategoryTileRail
+          categories={categories}
+          categoryKey={categoryKey}
+          currentCompleted={currentCompleted}
+          onNavigate={onNavigate}
+          setCategoryKey={setCategoryKey}
+          setTool={setTool}
+          setExpandedId={setExpandedId}
+        />
+
+        <ActiveToolPanel
+          activeCategory={activeCategory}
+          activeCase={activeCase}
+          tool={tool}
+          openTool={openTool}
+          query={query}
+          setQuery={setQuery}
+          data={data}
+          rows={rows}
+          activeRow={activeRow}
+          setExpandedId={setExpandedId}
+          pin={pin}
+          saveNote={saveNote}
+          saveCaseReportPacket={saveCaseReportPacket}
+          markReviewed={markReviewed}
+          currentCompleted={currentCompleted}
+          jumpDecision={jumpDecision}
+        />
+
+        <SubmitDecisionPanel
+          submitRef={submitRef}
+          packageStatus={packageStatus}
+          tray={tray}
+          notes={notes}
+          reviewPackages={reviewPackages}
+          decisionDraft={decisionDraft}
+          activeCase={activeCase}
+          updateDecision={updateDecision}
+          submitDecision={submitDecision}
+        />
+
+        <BottomInvestigationGrid
+          tray={tray}
+          pin={pin}
+          openTool={openTool}
+          noteDraft={noteDraft}
+          setNoteDraft={setNoteDraft}
+          submitNote={submitNote}
+          reportPackets={reportPackets}
+          notes={notes}
+        />
         <nav className="visual-bottom-nav" aria-hidden="true" />
       </section>
     </main>
