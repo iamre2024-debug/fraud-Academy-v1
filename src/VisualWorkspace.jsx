@@ -6,7 +6,6 @@ import { businessRecordsByCase } from './data/businessRecords.js';
 import { evidenceRecordsByCase } from './data/evidenceRecords.js';
 import { buildReviewPackage, getReviewPackageStatus, reviewChoices } from './data/reviewPackage.js';
 
-const cases = enrichTrainingCases(baseCases);
 const AGENT_ID = 'AGT-TRAIN-001';
 
 const categories = [
@@ -226,7 +225,7 @@ function buildPacket(row, tool, activeCase) {
   };
 }
 
-export default function VisualWorkspace({ activeCaseId = cases[0].id, onCaseChange, onNavigate }) {
+export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCases(baseCases), onCaseChange, onNavigate }) {
   const [categoryKey, setCategoryKey] = useState('digital');
   const [tool, setTool] = useState('Login History');
   const [query, setQuery] = useState('');
