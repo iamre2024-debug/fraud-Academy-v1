@@ -92,7 +92,7 @@ const repositoryAdapter = fs.readFileSync('src/data/generatedCaseRepository.js',
 if (!activePanel.includes('buildCoreToolRecords')) fail('ActiveToolPanel is not using the remaining-module record overlay.');
 if (activePanel.includes("item !== 'System Access Lane'")) fail('The single System Access Lane must not be hidden by the module overlay.');
 if (caseSummary.includes('Open First Tool')) fail('Case Summary still contains visible first-tool coaching.');
-for (const forbidden of ['Suggested First Tool', 'Investigation Objective', 'Why am I here?', 'Who am I investigating?']) {
+for (const forbidden of ['Suggested First Tool', 'Investigation Objective', 'Why am I here?', 'Who am I investigating?', 'Need to decide?']) {
   if (activePanel.includes(forbidden) || caseSummary.includes(forbidden)) fail(`Visible investigator coaching remains: ${forbidden}`);
 }
 for (const anchor of ['createIndexedDbRepository', 'migrateLegacyCases', 'generateAndSaveCase', "kind: 'indexedDB'"]) {
@@ -105,4 +105,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Remaining module depth smoke check passed for all built-in cases, training-safe payment wording, neutral links and timeline records, saved Case Report packets, Luna submission locks, and the IndexedDB repository boundary.');
+console.log('Remaining module depth smoke check passed for all built-in cases, training-safe payment wording, neutral links and timeline records, saved Case Report packets, Luna submission locks, neutral tool wording, and the IndexedDB repository boundary.');
