@@ -13,9 +13,22 @@
   .visual-os-frame > .visual-hero,
   .visual-os-frame > .case-info-bar,
   .visual-os-frame > .case-summary-visual,
-  .visual-os-frame > .visual-categories,
   .visual-os-frame > .visual-bottom-nav {
     grid-column: 1 / -1;
+  }
+
+  .visual-os-frame > .visual-categories {
+    grid-column: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .visual-category-row {
+    grid-template-columns: repeat(7, minmax(150px, 1fr));
+    min-width: 0;
+    overflow-x: auto;
+    scroll-padding-inline: 4px;
+    padding-bottom: 8px;
   }
 
   .visual-os-frame > .activity-panel {
