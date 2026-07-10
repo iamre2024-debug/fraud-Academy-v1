@@ -5,6 +5,7 @@ import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
 import { businessRecordsByCase } from '../src/data/businessRecords.js';
 import { evidenceRecordsByCase } from '../src/data/evidenceRecords.js';
 import { financialRecordsByCase } from '../src/data/financialRecords.js';
+import { systemAccessRecordsByCase } from '../src/data/systemAccessRecords.js';
 import { reviewChoices, decisionCallGroups } from '../src/data/reviewPackage.js';
 
 const rootDir = process.cwd();
@@ -64,6 +65,7 @@ for (const item of cases) {
   requireCount(`${prefix} business intelligence records`, business.businessIntel?.length ?? 0, 1);
   requireCount(`${prefix} evidence center records`, evidence.evidence?.length ?? 0, 2);
   requireCount(`${prefix} document viewer records`, evidence.documents?.length ?? 0, 2);
+  requireCount(`${prefix} system access records`, systemAccessRecordsByCase[item.id]?.length ?? 0, 2);
 }
 
 const visualApp = read('src/VisualApp.jsx');
@@ -84,6 +86,8 @@ for (const required of [
 for (const required of [
   "onNavigate('academy')",
   "openTool('Evidence Center')",
+  'System Access Lane',
+  'getSystemAccessRecords(activeCase.id)',
   'function jumpDecision()',
   'submitRef.current?.scrollIntoView',
   '<small>Claim ID</small>',
