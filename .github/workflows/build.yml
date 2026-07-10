@@ -50,4 +50,17 @@ jobs:
         run: npm run build
 
       - name: Desktop and mobile browser smoke
-        run: npm run browser-smoke-check:ci -- --reporter=line
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_FILE: playwright-results.json
+        run: npm run browser-smoke-check:ci -- --reporter=json
+
+      - name: Upload browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-smoke-results
+          path: |
+            playwright-results.json
+            test-results
+          if-no-files-found: ignore
+          retention-days: 3
