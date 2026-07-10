@@ -37,11 +37,17 @@ jobs:
       - name: Visual three-case smoke check
         run: npm run visual-three-case-smoke-check
 
+      - name: Generated-case repository smoke check
+        run: npm run generated-case-smoke-check
+
       - name: Luna single-module smoke check
         run: npm run luna-single-module-smoke-check
 
       - name: Review package smoke check
         run: npm run review-package-smoke-check
+
+      - name: Remaining module depth smoke check
+        run: npm run remaining-module-depth-smoke-check
 
       - name: Production build
         run: npm run build
