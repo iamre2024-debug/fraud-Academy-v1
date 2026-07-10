@@ -13,7 +13,6 @@ const COLLAPSE_SELECTOR = [
   '.notebook-list p',
   '.tray-list em',
   '.case-report-packet-panel p',
-  '.system-access-grid p',
 ].join(',');
 
 const MIN_LENGTH = 88;
