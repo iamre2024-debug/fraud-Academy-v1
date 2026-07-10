@@ -1,5 +1,3 @@
-import { appendGeneratedCases } from './generatedCases.js';
-
 const deviceIds = {
   'FA-ATO-24018': { 'iPhone 16': 'DEV-MAYA-IP16-001', 'Chrome Mobile': 'DEV-MAYA-CHRM-002' },
   'FA-CB-24007': { 'Android phone': 'DEV-JORDAN-AND-001', 'Desktop Chrome': 'DEV-JORDAN-DSK-002' },
@@ -145,5 +143,5 @@ function enrichOneCase(item) {
 }
 
 export function enrichTrainingCases(cases = []) {
-  return appendGeneratedCases(cases).map(enrichOneCase);
+  return cases.map(enrichOneCase);
 }
