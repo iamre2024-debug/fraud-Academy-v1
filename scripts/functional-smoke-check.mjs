@@ -22,7 +22,6 @@ const checks = [
       '<VisualWorkspace',
       '<VisualNavigation',
       '<VisualTextCollapse',
-      '<SystemAccessLane',
       '<LunaPostSubmissionPanel',
       '<GeneratedCaseControls',
       'const [caseCatalog, setCaseCatalog]',
@@ -33,6 +32,7 @@ const checks = [
       'function openCase(caseId)',
     ],
     mustNotContain: [
+      '<SystemAccessLane',
       "window.dispatchEvent(new CustomEvent('fraud-academy:navigate'",
       "document.querySelector('.visual-case-switcher select')",
     ],
@@ -49,6 +49,9 @@ const checks = [
       'buildReviewPackage({',
       "onNavigate('academy')",
       "openTool('Evidence Center')",
+      'System Access Lane',
+      'getSystemAccessRecords(activeCase.id)',
+      'Review neutral internal, vendor, API, and permissioned third-party access records tied to the case objects.',
       'decision-route-mini',
       'Device IDs help separate repeated known devices from new devices',
     ],
@@ -56,15 +59,6 @@ const checks = [
       "window.dispatchEvent(new CustomEvent('fraud-academy:navigate'",
       'ensureCaseSummaryMeta',
       'repairDeviceIntelligenceTable',
-    ],
-  },
-  {
-    file: 'src/SystemAccessLane.jsx',
-    label: 'insider vendor API open banking lane',
-    mustContain: [
-      'Insider / Vendor / API / Open Banking Lane',
-      'getSystemAccessRecords(activeCaseId)',
-      'createPortal',
     ],
   },
   {
@@ -138,6 +132,20 @@ const checks = [
     mustNotContain: [
       'new MutationObserver',
       "observer.observe(document.body",
+      '.system-access-grid p',
+    ],
+  },
+  {
+    file: 'src/systemAccessLane.css',
+    label: 'retired system access portal styles',
+    mustContain: [
+      'body:not([data-visual-tab="workspace"]) .generated-case-controls',
+      'body:not([data-visual-tab="workspace"]) .luna-post-submission-host',
+    ],
+    mustNotContain: [
+      '.system-access-lane-host',
+      '.system-access-lane',
+      '.system-access-grid',
     ],
   },
   {
@@ -211,6 +219,7 @@ const retiredFiles = [
   'src/visualNavPatch.js',
   'src/visualTextCollapse.js',
   'src/visualInvestigationRepair.js',
+  'src/SystemAccessLane.jsx',
 ];
 
 const failures = [];
@@ -249,4 +258,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Functional smoke check passed. Bible anchors, system-access lane, generated-case no-refresh callbacks, limited compact text controls, direct React callbacks, case-scoped persistence, locked review package flow, Luna post-submission module, and review package smoke wiring are present.');
+console.log('Functional smoke check passed. Bible anchors, system-access workspace tool, generated-case no-refresh callbacks, limited compact text controls, direct React callbacks, case-scoped persistence, locked review package flow, Luna post-submission module, and review package smoke wiring are present.');
