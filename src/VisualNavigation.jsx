@@ -163,7 +163,9 @@ function NavigationPanel({ activeTab, cases, snapshot, onNavigate, onOpenCase })
         <div>
           <p>{copy.eyebrow}</p>
           <h2>{copy.title}</h2>
-          <span>{copy.text}</span>
+          <DirectCollapsibleText as="span" lines={2} mobileLines={2}>
+            {copy.text}
+          </DirectCollapsibleText>
         </div>
         <div aria-hidden="true">{copy.icon}</div>
       </div>
@@ -215,7 +217,9 @@ function AcademyPanel() {
         <article key={step}>
           <span>{String(index + 1).padStart(2, '0')}</span>
           <strong>{step}</strong>
-          <p>{detail}</p>
+          <DirectCollapsibleText as="p" lines={2} mobileLines={2}>
+            {detail}
+          </DirectCollapsibleText>
         </article>
       ))}
     </div>
