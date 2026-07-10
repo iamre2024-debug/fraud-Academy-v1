@@ -29,7 +29,7 @@ Use that file before making architecture, UI, tool, scenario, or Evidence First 
 - `src/VisualApp.jsx` coordinates the active case, live case catalog, and active navigation tab through React state.
 - `src/VisualWorkspace.jsx` owns the core investigation workspace behavior: case-scoped tray, notes, reviewed tools, decision drafts, review packages, and Case Report packets.
 - `src/VisualShellHeader.jsx` owns the ornate app header, active case strip, and Case Queue dropdown.
-- `src/DirectCollapsibleText.jsx` is the reusable direct React compact-text wrapper; Active Tool purpose, expanded-record text, tray identifiers, and Case Report packet text now use it directly.
+- `src/DirectCollapsibleText.jsx` is the reusable direct React compact-text wrapper; Active Tool purpose, expanded-record text, tray identifiers, Case Report packet text, and notebook note entries now use it directly.
 - `src/visualWorkspaceModel.js` now owns workspace constants, storage helpers, live tool row builders, System Access Lane row construction, and Case Report packet construction.
 - `src/ActiveToolPanel.jsx` owns the active category/tool renderer: sub-tool dropdown, search, rows, expanded record lanes, pin/review actions, and neutral report packet saves.
 - `src/BottomInvestigationGrid.jsx` owns the Investigation Tray and Investigation Notebook cards, including pinned objects, notes, packet feed, and Open Evidence Center routing.
@@ -68,7 +68,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 Still needs deeper module work after browser confirmation:
 
 1. Continue splitting `VisualWorkspace.jsx` into focused React modules so future edits do not risk connector clipping. The visual shell header, workspace model, active tool panel, bottom investigation grid, case summary card, category rail, and Submit Decision panel are now split.
-2. Continue converting compact text target discovery into direct reusable wrappers. Active Tool content, tray identifiers, and Case Report packet text already use `DirectCollapsibleText`; remaining legacy targets still use the limited compatibility scanner.
+2. Continue converting compact text target discovery into direct reusable wrappers. Active Tool content, tray identifiers, Case Report packet text, and notebook note entries already use `DirectCollapsibleText`; remaining legacy targets still use the limited compatibility scanner.
 3. Reconnect Academy Progress polish to the stable post-submission package flow.
 
 ## Functional focus
@@ -90,7 +90,7 @@ The current working priority is stability plus three-case completeness:
 
 ## Latest handoff
 
-The second direct compact-text conversion is complete: `DirectCollapsibleText.jsx` now handles Active Tool purpose, expanded-record text, tray identifiers, and Case Report packet text directly. The limited `VisualTextCollapse.jsx` compatibility scanner remains for notebook notes, decision checklist, Luna, progress, and navigation copy. Next step: browser-test all three built-in cases plus one generated case, then refactor notebook note entries away from nested button markup before giving them direct More / Less controls.
+The third direct compact-text conversion is complete: notebook note entry buttons now expand/collapse their own note text, and `DirectCollapsibleText.jsx` handles Active Tool purpose, expanded-record text, tray identifiers, Case Report packet text, and notebook note entries directly. The limited `VisualTextCollapse.jsx` compatibility scanner remains for decision checklist, Luna, progress, and navigation copy. Next step: browser-test all three built-in cases plus one generated case, then continue converting those remaining text targets.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
