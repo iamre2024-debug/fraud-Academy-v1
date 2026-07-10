@@ -17,7 +17,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 |---|---|---|---|---|
 | Header | Fraud Academy OS banner | Identity / app title only | Decorative, acceptable | Keep decorative only |
 | Header | Cats, bats, moon, butterfly accents | Visual theme only | Decorative, acceptable | Keep non-clickable |
-| App shell | VisualApp coordinator | Own active case and active tab in React | Working | Keep direct state wiring |
+| App shell | VisualApp coordinator | Own active case, live case catalog, and active tab in React | Working | Keep direct state wiring |
 | Case strip | Case ID / claim type / status | Display active case metadata | Working | Keep |
 | Case strip | Case Queue dropdown | Switch active case | React callback | Retest after every case switch |
 | Case Summary | Pin Case | Add case ID to tray | Working | Keep |
@@ -50,6 +50,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Bottom nav | Workspace | Return to main workspace | React-managed | Retest |
 | Bottom nav | Academy | Open learning path panel | React-managed | Retest |
 | Bottom nav | Progress | Open progress panel | React-managed | Retest saved-package state |
+| Generated cases | Generate + Open Case | Save a local generated case, add it to the live catalog, and open it without page refresh | React callback | Retest generated case |
 | Verify scripts | `npm run functional-smoke-check` | Confirm source-of-truth, visual-shell, direct React routes, persistence, category-progress, compact text, and Submit Decision anchors exist | Automated guard active | Keep inside `npm run verify` |
 | Verify scripts | `npm run visual-three-case-smoke-check` | Confirm all three built-in cases have enriched intake metadata, stable Device IDs, record depth, direct route anchors, and expanded Submit Decision choices | Automated guard active | Keep inside `npm run verify` |
 | Verify scripts | `npm run review-package-smoke-check` | Confirm Submit Decision locks for missing tools and short rationale, preserves optional packet feed, and snapshots saved packages | Automated guard active | Keep inside `npm run verify` |
@@ -77,13 +78,15 @@ Use this path after every major UI update:
 8. Open Identity Intel, Case Report, and Submit Decision from the Case Summary quick actions.
 9. Open Device Intelligence and confirm repeated devices show the same Device ID.
 10. For each category, open every sub-tool from the dropdown.
-11. Search one record term, expand a row, pin it, save an expanded note, and save a Case Report packet.
-12. Confirm the tray, notebook, and packet panel update by case.
-13. Generate neutral reports until required tools are reviewed.
-14. Try Submit Decision while locked and confirm it only gives neutral checklist blockers.
-15. Fill choice, confidence, and rationale, then save a package.
-16. Confirm Luna Debrief and Academy Progress unlock only after package save.
+11. Use Generate + Open Case and confirm the generated case opens without a page refresh.
+12. Confirm the generated case appears in the case dropdown and Cases panel.
+13. Search one record term, expand a row, pin it, save an expanded note, and save a Case Report packet.
+14. Confirm the tray, notebook, and packet panel update by case.
+15. Generate neutral reports until required tools are reviewed.
+16. Try Submit Decision while locked and confirm it only gives neutral checklist blockers.
+17. Fill choice, confidence, and rationale, then save a package.
+18. Confirm Luna Debrief and Academy Progress unlock only after package save.
 
 ## Latest QA status
 
-The lightweight investigation repair script has been retired. Device IDs, case-summary metadata, Submit Decision routing, Tool Map routing, Open Evidence Center routing, and case switching now run through React state/callbacks from `VisualApp.jsx`, `VisualWorkspace.jsx`, and `VisualNavigation.jsx` while keeping the screenshot-driven visual design intact. The three built-in cases now have an automated visual smoke guard in `npm run verify`; the browser smoke path is still required for real click/viewport confirmation.
+The lightweight investigation repair script has been retired. Device IDs, case-summary metadata, Submit Decision routing, Tool Map routing, Open Evidence Center routing, generated-case opening, and case switching now run through React state/callbacks from `VisualApp.jsx`, `VisualWorkspace.jsx`, and `VisualNavigation.jsx` while keeping the screenshot-driven visual design intact. The three built-in cases now have an automated visual smoke guard in `npm run verify`; the browser smoke path is still required for real click/viewport confirmation.
