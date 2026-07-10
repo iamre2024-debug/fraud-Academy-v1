@@ -350,6 +350,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     });
 
     setPackagesByCase((current) => ({ ...current, [activeCase.id]: [reviewPackage, ...(current[activeCase.id] ?? [])] }));
+    window.dispatchEvent(new CustomEvent('fraud-academy:package-saved', { detail: { caseId: activeCase.id, packageId: reviewPackage.id } }));
     markReviewed('Submit Decision');
     saveNote('Submit Decision: learner review package saved. Post-submission Luna debrief can now read the saved package state.', 'Decision package');
   }
@@ -429,11 +430,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
             <label className="decision-rationale">Learner rationale<textarea value={decisionDraft.reason} onChange={(event) => updateDecision('reason', event.target.value)} placeholder={`Write the evidence-based rationale for ${activeCase.id}.`} /></label>
             <button className="primary-action" type="submit">Save / Check Review Package</button>
           </form>
-        </section>
-
-        <section className="ornate-card luna-visual-panel locked">
-          <div className="card-title-row"><div><h2>🌙 Luna Debrief</h2><p>{reviewPackages.length ? 'Saved package exists. Post-submission coaching can read the learner package.' : 'Post-submission coaching stays locked until the learner package is saved.'}</p></div><span>{reviewPackages.length ? '✨' : '🔒'}</span></div>
-          <div className="luna-locked-state"><strong>Evidence First lock is active before submission.</strong><p>Submit Decision must save a review package before Luna shows scoring, strengths, or next coaching focus.</p></div>
         </section>
 
         <section className="bottom-investigation-grid">
