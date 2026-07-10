@@ -4,6 +4,7 @@ import path from 'node:path';
 const rootDir = process.cwd();
 const workspace = fs.readFileSync(path.join(rootDir, 'src/VisualWorkspace.jsx'), 'utf8');
 const lunaPanel = fs.readFileSync(path.join(rootDir, 'src/LunaPostSubmissionPanel.jsx'), 'utf8');
+const visualTextCollapse = fs.readFileSync(path.join(rootDir, 'src/VisualTextCollapse.jsx'), 'utf8');
 const failures = [];
 
 function mustContain(fileLabel, content, text) {
@@ -11,7 +12,7 @@ function mustContain(fileLabel, content, text) {
 }
 
 function mustNotContain(fileLabel, content, text) {
-  if (content.includes(text)) failures.push(`${fileLabel} still contains duplicate Luna workspace text: ${text}`);
+  if (content.includes(text)) failures.push(`${fileLabel} still contains duplicate or legacy Luna text: ${text}`);
 }
 
 mustNotContain('VisualWorkspace.jsx', workspace, '🌙 Luna Debrief');
@@ -22,6 +23,14 @@ mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Luna Post-Submission Debr
 mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Post-submission coaching stays locked');
 mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Decision-quality breakdown');
 mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, "window.addEventListener('fraud-academy:package-saved'");
+mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, "import DirectCollapsibleText from './DirectCollapsibleText.jsx';");
+
+const directWrapperCount = (lunaPanel.match(/<DirectCollapsibleText/g) ?? []).length;
+if (directWrapperCount < 2) {
+  failures.push('LunaPostSubmissionPanel.jsx must render both coaching lists through DirectCollapsibleText.');
+}
+
+mustNotContain('VisualTextCollapse.jsx', visualTextCollapse, '.luna-list-card p');
 
 if (failures.length) {
   console.error('Luna single-module smoke check failed. Repair these anchors before shipping:');
@@ -29,4 +38,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Luna single-module smoke check passed. VisualWorkspace no longer renders duplicate Luna UI, and the post-submission Luna module listens for saved packages.');
+console.log('Luna single-module smoke check passed. Luna remains a single post-submission module, listens for saved packages, and owns direct compact-text controls without legacy selector scanning.');
