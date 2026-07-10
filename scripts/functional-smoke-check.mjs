@@ -99,9 +99,22 @@ const checks = [
     ],
   },
   {
+    file: 'scripts/visual-three-case-smoke-check.mjs',
+    label: 'visual three-case smoke test',
+    mustContain: [
+      'enrichTrainingCases(baseCases)',
+      'stable Device IDs',
+      'reviewChoices.length',
+      "onNavigate('academy')",
+      "openTool('Evidence Center')",
+    ],
+  },
+  {
     file: 'package.json',
     label: 'verify command wiring',
     mustContain: [
+      '"visual-three-case-smoke-check": "node scripts/visual-three-case-smoke-check.mjs"',
+      'npm run visual-three-case-smoke-check',
       '"review-package-smoke-check": "node scripts/review-package-smoke-check.mjs"',
       'npm run review-package-smoke-check',
     ],
