@@ -4,8 +4,6 @@ import { createPortal } from 'react-dom';
 const COLLAPSE_SELECTOR = [
   '.summary-copy p:not(.visual-section-title)',
   '.tool-purpose-card p',
-  '.visual-nav-heading span',
-  '.nav-learning-grid article p',
   '.record-review-lanes p',
   '.notebook-list p',
   '.tray-list em',
