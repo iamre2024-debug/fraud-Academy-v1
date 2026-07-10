@@ -51,6 +51,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Bottom nav | Academy | Open learning path panel | React-managed | Retest |
 | Bottom nav | Progress | Open progress panel | React-managed | Retest saved-package state |
 | Verify scripts | `npm run functional-smoke-check` | Confirm source-of-truth, visual-shell, direct React routes, persistence, category-progress, compact text, and Submit Decision anchors exist | Automated guard active | Keep inside `npm run verify` |
+| Verify scripts | `npm run visual-three-case-smoke-check` | Confirm all three built-in cases have enriched intake metadata, stable Device IDs, record depth, direct route anchors, and expanded Submit Decision choices | Automated guard active | Keep inside `npm run verify` |
 | Verify scripts | `npm run review-package-smoke-check` | Confirm Submit Decision locks for missing tools and short rationale, preserves optional packet feed, and snapshots saved packages | Automated guard active | Keep inside `npm run verify` |
 
 ## Immediate repair list
@@ -85,4 +86,4 @@ Use this path after every major UI update:
 
 ## Latest QA status
 
-The lightweight investigation repair script has been retired. Device IDs, case-summary metadata, Submit Decision routing, Tool Map routing, Open Evidence Center routing, and case switching now run through React state/callbacks from `VisualApp.jsx`, `VisualWorkspace.jsx`, and `VisualNavigation.jsx` while keeping the screenshot-driven visual design intact.
+The lightweight investigation repair script has been retired. Device IDs, case-summary metadata, Submit Decision routing, Tool Map routing, Open Evidence Center routing, and case switching now run through React state/callbacks from `VisualApp.jsx`, `VisualWorkspace.jsx`, and `VisualNavigation.jsx` while keeping the screenshot-driven visual design intact. The three built-in cases now have an automated visual smoke guard in `npm run verify`; the browser smoke path is still required for real click/viewport confirmation.
