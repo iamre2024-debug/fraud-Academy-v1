@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
-import { buildReviewPackage, getReviewPackageStatus, reviewChoices } from './data/reviewPackage.js';
+import { buildReviewPackage, getReviewPackageStatus } from './data/reviewPackage.js';
+import SubmitDecisionPanel from './SubmitDecisionPanel.jsx';
 import {
   AGENT_ID,
   buildPacket,
@@ -213,17 +214,17 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
           <button type="button" className="view-full-button" onClick={() => markReviewed(tool)}>{currentCompleted.includes(tool) ? '✓ Reviewed · Generate Another Neutral Tool Report' : '✦ Generate Neutral Tool Report ›'}</button>
         </section>
 
-        <section ref={submitRef} className="ornate-card submit-decision-panel">
-          <div className="card-title-row"><div><h2>🪄 Submit Decision</h2><p>Locked checklist. No Luna scoring or answer reveal until a learner package is saved.</p></div><span>☾</span></div>
-          <div className="decision-status-grid"><div><strong>{packageStatus.reviewedRequired}/{packageStatus.totalRequired}</strong><span>Required tools</span></div><div><strong>{tray.length}</strong><span>Pinned objects</span></div><div><strong>{notes.length}</strong><span>Notes</span></div><div><strong>{reviewPackages.length}</strong><span>Saved packages</span></div></div>
-          <div className="decision-checklist">{packageStatus.messages.map((message) => <p key={message}>✦ {message}</p>)}</div>
-          <form className="decision-form" onSubmit={submitDecision}>
-            <label>Learner choice<select value={decisionDraft.choice} onChange={(event) => updateDecision('choice', event.target.value)}><option value="">Select neutral choice...</option>{reviewChoices.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-            <label>Confidence<select value={decisionDraft.confidence} onChange={(event) => updateDecision('confidence', event.target.value)}><option>Low</option><option>Medium</option><option>High</option></select></label>
-            <label className="decision-rationale">Learner rationale<textarea value={decisionDraft.reason} onChange={(event) => updateDecision('reason', event.target.value)} placeholder={`Write the evidence-based rationale for ${activeCase.id}.`} /></label>
-            <button className="primary-action" type="submit">Save / Check Review Package</button>
-          </form>
-        </section>
+        <SubmitDecisionPanel
+          submitRef={submitRef}
+          packageStatus={packageStatus}
+          tray={tray}
+          notes={notes}
+          reviewPackages={reviewPackages}
+          decisionDraft={decisionDraft}
+          activeCase={activeCase}
+          updateDecision={updateDecision}
+          submitDecision={submitDecision}
+        />
 
         <section className="bottom-investigation-grid">
           <div className="ornate-card tray-card"><div className="card-title-row"><div><h2>▰ Investigation Tray</h2><p>Pinned Evidence & Key Identifiers</p></div><span>🦋</span></div><div className="tray-list">{tray.map((item) => <div key={item}><span>▯</span><strong>Pinned</strong><em>{item}</em><button type="button" onClick={() => pin(item)}>📌</button></div>)}</div><button type="button" className="add-evidence" onClick={() => openTool('Evidence Center')}>✦ Open Evidence Center ›</button></div>
