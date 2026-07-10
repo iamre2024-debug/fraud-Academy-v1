@@ -12,7 +12,8 @@
     "visual-three-case-smoke-check": "node scripts/visual-three-case-smoke-check.mjs",
     "luna-single-module-smoke-check": "node scripts/luna-single-module-smoke-check.mjs",
     "review-package-smoke-check": "node scripts/review-package-smoke-check.mjs",
-    "verify": "npm run evidence-first-check && npm run functional-smoke-check && npm run visual-three-case-smoke-check && npm run luna-single-module-smoke-check && npm run review-package-smoke-check && npm run build"
+    "investigator-lanes-smoke-check": "node scripts/investigator-lanes-smoke-check.mjs",
+    "verify": "npm run evidence-first-check && npm run functional-smoke-check && npm run visual-three-case-smoke-check && npm run luna-single-module-smoke-check && npm run review-package-smoke-check && npm run investigator-lanes-smoke-check && npm run build"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
