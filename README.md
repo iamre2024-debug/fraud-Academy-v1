@@ -50,7 +50,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 1. Evidence First wording remains the rule: no final outcome, fraud score, red flags, green flags, AI recommendations, or answer hints before submission.
 2. Case Summary explains why the case exists using allegation or system alert plus neutral intake metadata.
 3. Customer 360 and Identity Intelligence include profile, relationship, contact, account age, and identity object records.
-4. Digital Activity includes Login History, Session History, Device Intelligence, and stable fictional Device IDs.
+4. Digital Activity includes Login History, Session History, Device Intelligence, IP Intelligence, and stable fictional Device IDs.
 5. Financial, Business, Evidence, Connections, Timeline, Case Report, Investigation Tray, Notebook, and Submit Decision remain present in the shell.
 6. Submit Decision remains locked until required tool review, pinned evidence, notes, learner choice, and rationale are complete.
 7. Expanded decision calls are validated by `scripts/review-package-smoke-check.mjs`.
