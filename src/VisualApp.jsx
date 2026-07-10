@@ -22,8 +22,10 @@ export default function VisualApp() {
   }
 
   function handleGeneratedCase(nextCase) {
-    const nextCatalog = enrichTrainingCases(baseCases);
-    setCaseCatalog(nextCatalog);
+    setCaseCatalog((current) => {
+      const withoutDuplicate = current.filter((item) => item.id !== nextCase.id);
+      return enrichTrainingCases([...withoutDuplicate, nextCase]);
+    });
     openCase(nextCase.id);
   }
 
