@@ -6,8 +6,8 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   fullyParallel: false,
   workers: 1,
-  retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? 'line' : 'line',
+  retries: 0,
+  reporter: 'line',
   use: {
     baseURL: 'http://127.0.0.1:4173',
     trace: 'retain-on-failure',
