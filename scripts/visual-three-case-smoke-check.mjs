@@ -72,6 +72,7 @@ const visualApp = read('src/VisualApp.jsx');
 const visualWorkspace = read('src/VisualWorkspace.jsx');
 const visualWorkspaceModel = read('src/visualWorkspaceModel.js');
 const activeToolPanel = read('src/ActiveToolPanel.jsx');
+const bottomInvestigationGrid = read('src/BottomInvestigationGrid.jsx');
 const submitDecisionPanel = read('src/SubmitDecisionPanel.jsx');
 const visualNavigation = read('src/VisualNavigation.jsx');
 const main = read('src/main.jsx');
@@ -88,7 +89,6 @@ for (const required of [
 
 for (const required of [
   "onNavigate('academy')",
-  "openTool('Evidence Center')",
   "from './visualWorkspaceModel.js'",
   'rowsFor(tool, activeCase, reportPackets)',
   'buildPacket(row, tool, activeCase)',
@@ -98,10 +98,21 @@ for (const required of [
   '<small>Transaction / payee info</small>',
   '<small>Short summary</small>',
   '<ActiveToolPanel',
+  '<BottomInvestigationGrid',
   '<SubmitDecisionPanel',
   'category-progress-track',
 ]) {
   requireText('src/VisualWorkspace.jsx', visualWorkspace, required, 'three-case visual workflow anchor');
+}
+
+for (const required of [
+  'className="bottom-investigation-grid"',
+  'className="ornate-card tray-card"',
+  "openTool('Evidence Center')",
+  'className="ornate-card notebook-card"',
+  'case-report-packet-panel',
+]) {
+  requireText('src/BottomInvestigationGrid.jsx', bottomInvestigationGrid, required, 'bottom investigation grid module anchor');
 }
 
 for (const required of [
