@@ -45,7 +45,8 @@ export function readGeneratedCases() {
   if (typeof window === 'undefined') return [];
   try {
     const saved = window.localStorage.getItem(generatedCaseStorageKey);
-    return saved ? JSON.parse(saved) : [];
+    const parsed = saved ? JSON.parse(saved) : [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
@@ -116,9 +117,16 @@ export function createGeneratedCase(index = Date.now()) {
 
 export function addGeneratedCase() {
   const current = readGeneratedCases();
-  const nextCase = createGeneratedCase(Date.now());
-  const updated = [nextCase, ...current].slice(0, 50);
-  writeGeneratedCases(updated);
+  const existingIds = new Set(current.map((item) => item.id));
+  let seed = Date.now() + current.length;
+  let nextCase = createGeneratedCase(seed);
+
+  while (existingIds.has(nextCase.id)) {
+    seed += 1;
+    nextCase = createGeneratedCase(seed);
+  }
+
+  writeGeneratedCases([nextCase, ...current]);
   return nextCase;
 }
 
