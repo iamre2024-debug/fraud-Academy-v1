@@ -26,6 +26,7 @@ export default function ActiveToolPanel({
   if (tool === 'Case Briefing') return <CaseBriefingPanel activeCase={activeCase} openTool={openTool} pin={pin} />;
   if (tool === 'Customer 360') return <Customer360Panel activeCase={activeCase} openTool={openTool} pin={pin} />;
 
+  const availableTools = activeCategory.tools.filter((item) => item !== 'System Access Lane');
   const enhanced = buildCoreToolRecords(tool, activeCase);
   const displayData = enhanced ?? data;
   const displayRows = enhanced
@@ -35,7 +36,7 @@ export default function ActiveToolPanel({
 
   return (
     <section className="ornate-card activity-panel">
-      <div className="activity-heading"><h2>▣ {activeCategory.label}</h2><select className="tool-select" value={tool} onChange={(event) => openTool(event.target.value)}>{activeCategory.tools.map((item) => <option key={item}>{item}</option>)}</select><button type="button" className="briefing-route-button" onClick={() => openTool('Case Briefing')}>Case Briefing</button><span className="panel-cat">🐈‍⬛</span></div>
+      <div className="activity-heading"><h2>▣ {activeCategory.label}</h2><select className="tool-select" value={tool} onChange={(event) => openTool(event.target.value)}>{availableTools.map((item) => <option key={item}>{item}</option>)}</select><button type="button" className="briefing-route-button" onClick={() => openTool('Case Briefing')}>Case Briefing</button><span className="panel-cat">🐈‍⬛</span></div>
       <div className="tool-purpose-card"><strong>{tool}</strong><p>Available case records and investigation actions.</p><div className="tool-flow-chips">{workflows.map((item) => <span key={item}>{item}</span>)}</div></div>
       <div className="workspace-search-row"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search available records..."/><span>{displayRows.length} of {displayData.rows.length} shown</span></div>
       <div className="activity-table"><div className="activity-row table-head">{displayData.columns.map((item) => <span key={item}>{item}</span>)}</div>{displayRows.map((item) => <div key={item.id} className={`activity-row ${displayActiveRow?.id === item.id ? 'expanded' : ''}`}>{item.values.map((value, index) => <span key={`${item.id}-${index}`}>{lineBreaks(value)}</span>)}<div className="row-action-group"><button type="button" className="row-expand-button" onClick={() => setExpandedId(item.id)}>Expand</button><button type="button" className="row-pin-button" onClick={() => pin(item.pin)}>📌</button></div></div>)}</div>
