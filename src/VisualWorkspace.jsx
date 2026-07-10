@@ -4,6 +4,7 @@ import { enrichTrainingCases } from './data/caseEnrichment.js';
 import { buildReviewPackage, getReviewPackageStatus } from './data/reviewPackage.js';
 import ActiveToolPanel from './ActiveToolPanel.jsx';
 import BottomInvestigationGrid from './BottomInvestigationGrid.jsx';
+import CaseSummaryCard from './CaseSummaryCard.jsx';
 import CategoryTileRail from './CategoryTileRail.jsx';
 import SubmitDecisionPanel from './SubmitDecisionPanel.jsx';
 import {
@@ -164,27 +165,12 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
           <label className="visual-case-switcher"><span>Case Queue</span><select value={activeCase.id} onChange={(event) => changeCase(event.target.value)}>{cases.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.person}</option>)}</select></label>
         </section>
 
-        <section className="ornate-card case-summary-visual">
-          <div className="moon-medallion">☾</div>
-          <div className="summary-copy">
-            <p className="visual-section-title">♥ Case Summary</p>
-            <div className="case-summary-meta-grid">
-              <article><small>Name</small><strong>{activeCase.person}</strong></article>
-              <article><small>Claim ID</small><strong>{activeCase.claimId ?? activeCase.id}</strong></article>
-              <article><small>Total claim amount</small><strong>{activeCase.amount}</strong></article>
-              <article className="wide"><small>Transaction / payee info</small><strong>{activeCase.transactionInfo ?? activeCase.type}</strong></article>
-              <article className="wide"><small>Short summary</small><strong>{activeCase.shortSummary ?? activeCase.queueReason}</strong></article>
-            </div>
-          </div>
-          <div className="butterfly-accent">🦋</div>
-          <div className="summary-actions">
-            <button type="button" onClick={() => pin(activeCase.id)}>📌 Pin Case</button>
-            <button type="button" onClick={() => openTool('Identity Intelligence')}>▣ Identity Intel ›</button>
-            <button type="button" onClick={() => openTool('Case Report')}>📄 Case Report ›</button>
-            <button type="button" onClick={() => openTool('Login History')}>🪄 Open First Tool ›</button>
-            <button type="button" className="primary-action decision-jump-button" onClick={jumpDecision}>🪄 Submit Decision ›</button>
-          </div>
-        </section>
+        <CaseSummaryCard
+          activeCase={activeCase}
+          pin={pin}
+          openTool={openTool}
+          jumpDecision={jumpDecision}
+        />
 
         <CategoryTileRail
           categories={categories}
