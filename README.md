@@ -33,7 +33,7 @@ Use that file before making architecture, UI, tool, scenario, or Evidence First 
 - `src/VisualNavigation.jsx` receives direct React callbacks for Dashboard, Cases, Workspace, Academy, Progress, and case opening.
 - `src/VisualTextCollapse.jsx` now uses limited event-triggered scans instead of a broad MutationObserver.
 - Insider / Vendor / API / Open Banking is now the Connections → System Access Lane sub-tool inside `src/VisualWorkspace.jsx`, powered by `src/data/systemAccessRecords.js`.
-- `src/LunaPostSubmissionPanel.jsx` restores post-submission Luna scoring/debrief as a separate React module that stays locked before a learner package exists.
+- `src/LunaPostSubmissionPanel.jsx` restores post-submission Luna scoring/debrief as a separate React module that stays locked before a learner package exists; `scripts/core-investigator-wave-smoke-check.mjs` now behavior-checks that lock.
 - `src/GeneratedCaseControls.jsx` and `src/data/generatedCases.js` add a local generated-case foundation. Generated cases are saved to browser storage, added to the live React case catalog, and opened without page refresh.
 - The old `src/visualInvestigationRepair.js` DOM route patch is retired and not loaded by the app entrypoint.
 - Case Summary metadata, Device ID rows, Tool Map, Open Evidence Center, and Submit Decision routing are rendered through React instead of repair scripts.
@@ -56,8 +56,9 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 7. Expanded decision calls are validated by `scripts/review-package-smoke-check.mjs`.
 8. Three-case visual coverage is validated by `scripts/visual-three-case-smoke-check.mjs`.
 9. Insider / Vendor / API / Open Banking records now exist as a first-class Connections workspace sub-tool.
-10. Luna post-submission scoring is handled by one separate locked/unlocked module.
+10. Luna post-submission scoring is handled by one separate locked/unlocked module and is behavior-checked so no debrief is produced without a saved learner package.
 11. Generated-case foundation exists and stores local generated cases.
+12. Payment Verification, Link Analysis, Timeline, and Case Report preserve training-safe Bank Code and Destination ID wording where payment objects are surfaced.
 
 Still needs deeper module work after browser confirmation:
 
@@ -84,7 +85,7 @@ The current working priority is stability plus three-case completeness:
 
 ## Latest handoff
 
-The second VisualWorkspace split is complete: `SubmitDecisionPanel.jsx` now owns the locked Submit Decision visual markup and learner input controls, while `VisualWorkspace.jsx` still owns the case-scoped state and package save behavior. The screenshot-driven shell, CSS, and Evidence First review package behavior were preserved. Next step: browser-test all three built-in cases plus one generated case, then split the active category/tool panel into a focused React module.
+PR #2 remains open on `agent/core-investigator-wave-1` and is still the active core investigator handoff branch. The remaining core module expansion now covers Payment Verification, Business Intelligence, Evidence Center, Link Analysis, Timeline, Case Report, and Luna Debrief guard behavior. The latest pass fixed the Payment Verification training-safe wording path so Bank Code and Destination ID appear in core payment records, link records, and Case Report package inputs, then strengthened the core investigator smoke check to prove Luna returns no debrief before a saved learner package and produces post-submission scoring only from a saved package. Next step: reconcile this branch against the newest `main`, resolve PR #2 conflicts, and browser-test all three built-in cases plus one generated case.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
