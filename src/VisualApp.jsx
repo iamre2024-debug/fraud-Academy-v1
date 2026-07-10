@@ -5,11 +5,13 @@ import VisualTextCollapse from './VisualTextCollapse.jsx';
 import SystemAccessLane from './SystemAccessLane.jsx';
 import LunaPostSubmissionPanel from './LunaPostSubmissionPanel.jsx';
 import GeneratedCaseControls from './GeneratedCaseControls.jsx';
-import { trainingCases } from './data/cases.js';
+import { trainingCases as baseCases } from './data/cases.js';
+import { enrichTrainingCases } from './data/caseEnrichment.js';
 
 export default function VisualApp() {
+  const [caseCatalog, setCaseCatalog] = useState(() => enrichTrainingCases(baseCases));
   const [activeTab, setActiveTab] = useState('workspace');
-  const [activeCaseId, setActiveCaseId] = useState(trainingCases[0]?.id ?? '');
+  const [activeCaseId, setActiveCaseId] = useState(() => enrichTrainingCases(baseCases)[0]?.id ?? '');
 
   useEffect(() => {
     document.body.dataset.visualTab = activeTab;
@@ -20,18 +22,26 @@ export default function VisualApp() {
     setActiveTab('workspace');
   }
 
+  function handleGeneratedCase(nextCase) {
+    const nextCatalog = enrichTrainingCases(baseCases);
+    setCaseCatalog(nextCatalog);
+    openCase(nextCase.id);
+  }
+
   return (
     <>
       <VisualWorkspace
         activeCaseId={activeCaseId}
+        cases={caseCatalog}
         onCaseChange={openCase}
         onNavigate={setActiveTab}
       />
-      <GeneratedCaseControls />
+      <GeneratedCaseControls onCaseGenerated={handleGeneratedCase} />
       <SystemAccessLane activeCaseId={activeCaseId} />
       <LunaPostSubmissionPanel activeCaseId={activeCaseId} />
       <VisualNavigation
         activeTab={activeTab}
+        cases={caseCatalog}
         onNavigate={setActiveTab}
         onOpenCase={openCase}
       />
