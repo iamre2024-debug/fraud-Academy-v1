@@ -14,13 +14,31 @@ function requireText(path, content, text) {
 const overview = read('src/CoreOverviewPanels.jsx');
 const records = read('src/data/coreToolRecords.js');
 const panel = read('src/ActiveToolPanel.jsx');
+const luna = read('src/LunaPostSubmissionPanel.jsx');
 const main = read('src/main.jsx');
 
 for (const text of ['Case Briefing', 'Claimed Transactions', 'Case Intake Documents', 'Customer 360', 'Customer Timeline']) {
   requireText('src/CoreOverviewPanels.jsx', overview, text);
 }
 
-for (const text of ['Identity Intelligence', 'Login History', 'Device Intelligence', 'IP Intelligence', 'Session History', 'Financial Intelligence']) {
+for (const text of [
+  'Identity Intelligence',
+  'Login History',
+  'Device Intelligence',
+  'IP Intelligence',
+  'Session History',
+  'Financial Intelligence',
+  'Payment Verification',
+  'Business Intelligence',
+  'Evidence Center',
+  'Link Analysis',
+  'Timeline',
+  'Case Report',
+]) {
+  requireText('src/data/coreToolRecords.js', records, text);
+}
+
+for (const text of ['Bank Code', 'Destination ID', 'Linked Transactions', 'Linked Digital Objects', 'Evidence summary', 'Timeline summary']) {
   requireText('src/data/coreToolRecords.js', records, text);
 }
 
@@ -28,7 +46,11 @@ for (const text of ['buildCoreToolRecords', "item !== 'System Access Lane'", "op
   requireText('src/ActiveToolPanel.jsx', panel, text);
 }
 
-requireText('src/main.jsx', main, "./coreInvestigatorPanels.css");
+for (const text of ['buildLunaDebrief', 'Post-submission coaching stays locked', 'fraud-academy:package-saved']) {
+  requireText('src/LunaPostSubmissionPanel.jsx', luna, text);
+}
+
+requireText('src/main.jsx', main, './coreInvestigatorPanels.css');
 
 for (const forbidden of ['Why am I here?', 'Who am I investigating?', 'Briefing questions', 'Suggested First Tool', 'Investigation Objective']) {
   if (overview.includes(forbidden) || panel.includes(forbidden)) {
