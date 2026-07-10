@@ -1,0 +1,45 @@
+.generated-case-control-host {
+  display: contents;
+}
+
+.generated-case-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid rgba(255, 92, 218, 0.26);
+  border-radius: 18px;
+  background: rgba(6, 4, 14, 0.56);
+  box-shadow: 0 0 18px rgba(255, 92, 218, 0.16), inset 0 0 18px rgba(255, 92, 218, 0.05);
+  color: #fff1fb;
+  padding: 12px 14px;
+}
+
+.generated-case-controls strong {
+  display: block;
+  color: #ff9be9;
+  font-family: Cinzel, Georgia, serif;
+}
+
+.generated-case-controls span {
+  color: rgba(255, 241, 251, 0.72);
+  font-size: 0.78rem;
+}
+
+.generated-case-controls button {
+  border: 1px solid rgba(255, 155, 233, 0.54);
+  border-radius: 999px;
+  background: rgba(255, 92, 218, 0.14);
+  color: #ffcff5;
+  cursor: pointer;
+  font-family: Cinzel, Georgia, serif;
+  font-weight: 900;
+  padding: 9px 13px;
+}
+
+@media (max-width: 680px) {
+  .generated-case-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
