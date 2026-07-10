@@ -30,7 +30,7 @@ export default function LunaPostSubmissionPanel({ activeCaseId }) {
 
   useEffect(() => {
     const frame = document.querySelector('.visual-os-frame');
-    const anchor = document.querySelector('.system-access-lane-host') ?? document.querySelector('.submit-decision-panel');
+    const anchor = document.querySelector('.submit-decision-panel');
     if (!frame || !anchor) return undefined;
 
     let lunaHost = frame.querySelector('.luna-post-submission-host');
