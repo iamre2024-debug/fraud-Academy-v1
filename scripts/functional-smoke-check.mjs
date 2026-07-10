@@ -25,6 +25,10 @@ const checks = [
       '<SystemAccessLane',
       '<LunaPostSubmissionPanel',
       '<GeneratedCaseControls',
+      'const [caseCatalog, setCaseCatalog]',
+      'function handleGeneratedCase(nextCase)',
+      'cases={caseCatalog}',
+      'onCaseGenerated={handleGeneratedCase}',
       "const [activeTab, setActiveTab] = useState('workspace')",
       'function openCase(caseId)',
     ],
@@ -98,8 +102,11 @@ const checks = [
     file: 'src/GeneratedCaseControls.jsx',
     label: 'generated case controls',
     mustContain: [
-      'Generate Case',
-      'addGeneratedCase()',
+      'Generate + Open Case',
+      'const nextCase = addGeneratedCase()',
+      'onCaseGenerated?.(nextCase)',
+    ],
+    mustNotContain: [
       'window.location.reload()',
     ],
   },
@@ -109,7 +116,7 @@ const checks = [
     mustContain: [
       'createPortal',
       'data-react-navigation="true"',
-      'trainingCases.map',
+      'cases.map',
       'onNavigate',
       'onOpenCase',
     ],
@@ -242,4 +249,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Functional smoke check passed. Bible anchors, system-access lane, generated-case helpers, limited compact text controls, direct React callbacks, case-scoped persistence, locked review package flow, Luna post-submission module, and review package smoke wiring are present.');
+console.log('Functional smoke check passed. Bible anchors, system-access lane, generated-case no-refresh callbacks, limited compact text controls, direct React callbacks, case-scoped persistence, locked review package flow, Luna post-submission module, and review package smoke wiring are present.');
