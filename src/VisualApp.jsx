@@ -4,6 +4,7 @@ import VisualNavigation from './VisualNavigation.jsx';
 import VisualTextCollapse from './VisualTextCollapse.jsx';
 import SystemAccessLane from './SystemAccessLane.jsx';
 import LunaPostSubmissionPanel from './LunaPostSubmissionPanel.jsx';
+import GeneratedCaseControls from './GeneratedCaseControls.jsx';
 import { trainingCases } from './data/cases.js';
 
 export default function VisualApp() {
@@ -26,6 +27,7 @@ export default function VisualApp() {
         onCaseChange={openCase}
         onNavigate={setActiveTab}
       />
+      <GeneratedCaseControls />
       <SystemAccessLane activeCaseId={activeCaseId} />
       <LunaPostSubmissionPanel activeCaseId={activeCaseId} />
       <VisualNavigation
