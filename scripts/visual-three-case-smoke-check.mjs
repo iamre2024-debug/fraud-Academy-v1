@@ -71,6 +71,7 @@ for (const item of cases) {
 const visualApp = read('src/VisualApp.jsx');
 const visualWorkspace = read('src/VisualWorkspace.jsx');
 const visualWorkspaceModel = read('src/visualWorkspaceModel.js');
+const submitDecisionPanel = read('src/SubmitDecisionPanel.jsx');
 const visualNavigation = read('src/VisualNavigation.jsx');
 const main = read('src/main.jsx');
 
@@ -95,11 +96,20 @@ for (const required of [
   '<small>Claim ID</small>',
   '<small>Transaction / payee info</small>',
   '<small>Short summary</small>',
-  'reviewChoices.map',
-  'packageStatus.messages.map',
+  '<SubmitDecisionPanel',
   'category-progress-track',
 ]) {
   requireText('src/VisualWorkspace.jsx', visualWorkspace, required, 'three-case visual workflow anchor');
+}
+
+for (const required of [
+  'reviewChoices.map',
+  'packageStatus.messages.map',
+  'className="ornate-card submit-decision-panel"',
+  'activeCase.id',
+  'Save / Check Review Package',
+]) {
+  requireText('src/SubmitDecisionPanel.jsx', submitDecisionPanel, required, 'Submit Decision panel module anchor');
 }
 
 for (const required of [
