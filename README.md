@@ -39,7 +39,7 @@ Use that file before making architecture, UI, tool, scenario, or Evidence First 
 - `src/VisualNavigation.jsx` receives direct React callbacks for Dashboard, Cases, Workspace, Academy, Progress, and case opening.
 - `src/VisualTextCollapse.jsx` now uses limited event-triggered scans instead of a broad MutationObserver, and no longer scans Submit Decision checklist text.
 - Insider / Vendor / API / Open Banking is now the Connections → System Access Lane sub-tool inside `src/VisualWorkspace.jsx`, powered by `src/data/systemAccessRecords.js`.
-- `src/LunaPostSubmissionPanel.jsx` restores post-submission Luna scoring/debrief as a separate React module that stays locked before a learner package exists.
+- `src/LunaPostSubmissionPanel.jsx` restores post-submission Luna scoring/debrief as a separate React module that stays locked before a learner package exists and resolves the active case from the live built-in/generated catalog.
 - `src/data/generatedCaseRepository.js` is the generated-case storage boundary. IndexedDB is primary, localStorage remains a fallback, and existing localStorage-generated cases migrate once into IndexedDB.
 - Generated cases are added to the live React case catalog, opened without page refresh, and preserved behind a backend-ready repository contract.
 - The generated queue has no arbitrary application count cap. A monotonic sequence prevents rapid-generation ID collisions, and `scripts/generated-case-smoke-check.mjs` verifies more than 50 cases remain unique and available.
@@ -63,39 +63,32 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 6. Submit Decision remains locked until required tool review, pinned evidence, notes, learner choice, and rationale are complete.
 7. Expanded decision calls are validated by `scripts/review-package-smoke-check.mjs`.
 8. Three-case visual coverage is validated by `scripts/visual-three-case-smoke-check.mjs`.
-9. Insider / Vendor / API / Open Banking records now exist as a first-class Connections workspace sub-tool.
-10. Luna post-submission scoring is handled by one separate locked/unlocked module.
+9. Insider / Vendor / API / Open Banking records exist as a first-class Connections workspace sub-tool.
+10. Luna post-submission scoring is handled by one separate locked/unlocked module and remains scoped to generated active cases.
 11. Generated cases open immediately and persist through the IndexedDB-first repository adapter.
 12. Generated-case behavior above 50 cases is guarded by `scripts/generated-case-smoke-check.mjs`.
+13. Playwright validates all three built-in cases, generated-case immediate open and reload persistence, the remaining core modules, System Access Lane, and Luna’s pre-submission lock in desktop and mobile Chromium.
+14. Visible first-tool coaching and investigator-question headings are rejected by the Evidence First wording guard.
 
-Still needs deeper module work after browser confirmation:
+## Remaining follow-up work
 
 1. Continue splitting `VisualWorkspace.jsx` into focused React modules so future edits do not risk connector clipping. The visual shell header, workspace model, active tool panel, bottom investigation grid, case summary card, category rail, and Submit Decision panel are now split.
 2. Continue converting compact text target discovery into direct reusable wrappers. Active Tool content, tray identifiers, Case Report packet text, notebook note entries, and Submit Decision checklist messages already use `DirectCollapsibleText`; Luna, Progress, Navigation, and remaining summary copy still use the limited compatibility scanner.
 3. Reconnect Academy Progress polish to the stable post-submission package flow.
 
-## Functional focus
+## Browser-confirmed functional coverage
 
-The current working priority is stability plus three-case completeness:
-
-1. Confirm all three built-in cases load from both the case dropdown and the Cases tab.
-2. Confirm each category opens and each sub-tool opens.
-3. Confirm Device Intelligence shows Device ID and repeated devices reuse the same Device ID.
-4. Confirm Case Summary has full intake metadata.
-5. Confirm Tool Map opens Academy and Open Evidence Center routes to Evidence Center.
-6. Confirm notes, tray objects, reviewed tools, decision drafts, saved packages, and Case Report packets persist by case.
-7. Confirm Submit Decision locks until required tools, pinned evidence, notes, choice, and rationale are present.
-8. Confirm expanded decision calls appear in Submit Decision.
-9. Confirm Connections → System Access Lane opens with neutral Insider / Vendor / API / Open Banking records.
-10. Confirm Luna stays locked before submission and shows post-submission scoring only after a package is saved.
-11. Confirm Generate + Open Case saves through the repository, opens immediately, and adds the case to the workspace queue without a page refresh.
-12. Confirm more than 50 generated cases remain available without duplicate IDs.
-13. Confirm localStorage-generated cases migrate into IndexedDB without losing case IDs or case-scoped workspace data.
-14. Confirm no visible control is only decorative or duplicated.
+1. All three built-in cases load from the Cases tab and update the active case workspace.
+2. Payment Verification, Business Intelligence, Evidence Center, Link Analysis, System Access Lane, Timeline, and Case Report open with records.
+3. Generated cases save through the repository, open immediately, remain unique during rapid generation, and persist after reload.
+4. Luna remains locked before submission and follows the active built-in or generated case ID.
+5. Desktop and mobile Chromium render the tested flows without visible Evidence First answer leaks.
+6. The desktop category rail remains clickable without being blocked by sticky right-side panels or the fixed navigation.
+7. More than 50 generated cases and localStorage-to-IndexedDB migration remain covered by repository-level smoke checks.
 
 ## Latest handoff
 
-IndexedDB-first generated-case persistence is implemented behind `src/data/generatedCaseRepository.js`, with one-time localStorage migration and a fallback repository for unsupported environments. Submit Decision checklist copy now uses direct React-managed More / Less controls and has been removed from the legacy selector scanner. Next step: browser-test built-in and generated cases across refresh, migration, rapid generation, mobile, and desktop, then continue direct compact-text conversion in Luna, Progress, and Navigation.
+The reconciled branch is based on the latest module-depth implementation on `main`. Browser automation is now part of CI through separate source verification and desktop/mobile Chromium jobs. The final Bible audit fixed generated-case Luna scoping, strengthened neutral-copy guards, and removed a desktop pointer obstruction from the category rail. Display-polish work remains intentionally separate.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -104,6 +97,7 @@ Record → Expand → Search → History → Link Analysis → Generate Report �
 ```bash
 npm install
 npm run verify
+npm run browser-smoke-check
 npm run dev
 ```
 
@@ -115,4 +109,4 @@ npm run build
 
 ## Test status
 
-`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, Luna single-module smoke, review-package smoke, and production build checks. Browser testing still needs to run in the user's connected development environment.
+`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, Luna single-module smoke, review-package smoke, remaining-module depth, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for all three built-in cases, generated cases, core modules, System Access Lane, persistence, and Luna lock behavior.
