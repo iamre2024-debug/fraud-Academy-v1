@@ -1,3 +1,9 @@
+body:not([data-visual-tab="workspace"]) .system-access-lane,
+body:not([data-visual-tab="workspace"]) .generated-case-controls,
+body:not([data-visual-tab="workspace"]) .luna-post-submission-host {
+  display: none !important;
+}
+
 .system-access-lane-host {
   display: contents;
 }
