@@ -70,6 +70,7 @@ for (const item of cases) {
 
 const visualApp = read('src/VisualApp.jsx');
 const visualWorkspace = read('src/VisualWorkspace.jsx');
+const visualWorkspaceActions = read('src/useVisualWorkspaceActions.js');
 const visualWorkspaceModel = read('src/visualWorkspaceModel.js');
 const activeToolPanel = read('src/ActiveToolPanel.jsx');
 const bottomInvestigationGrid = read('src/BottomInvestigationGrid.jsx');
@@ -91,9 +92,10 @@ for (const required of [
 }
 
 for (const required of [
+  "import useVisualWorkspaceActions from './useVisualWorkspaceActions.js'",
   "from './visualWorkspaceModel.js'",
   'rowsFor(tool, activeCase, reportPackets)',
-  'buildPacket(row, tool, activeCase)',
+  'useVisualWorkspaceActions({',
   'function jumpDecision()',
   'submitRef.current?.scrollIntoView',
   '<ActiveToolPanel',
@@ -104,6 +106,15 @@ for (const required of [
   '<VisualShellHeader',
 ]) {
   requireText('src/VisualWorkspace.jsx', visualWorkspace, required, 'three-case visual workflow anchor');
+}
+
+for (const required of [
+  'buildPacket(row, tool, activeCase)',
+  'getReviewPackageStatus({',
+  'buildReviewPackage({',
+  "window.dispatchEvent(new CustomEvent('fraud-academy:package-saved'",
+]) {
+  requireText('src/useVisualWorkspaceActions.js', visualWorkspaceActions, required, 'three-case action controller anchor');
 }
 
 for (const required of [
@@ -225,4 +236,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Visual three-case smoke check passed. All built-in cases have enriched intake metadata, stable Device IDs, record depth, direct React routing anchors, and expanded Submit Decision choices.');
+console.log('Visual three-case smoke check passed. All built-in cases have enriched intake metadata, stable Device IDs, record depth, direct React routing anchors, controller-backed case actions, and expanded Submit Decision choices.');
