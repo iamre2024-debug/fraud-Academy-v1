@@ -54,8 +54,8 @@ mustContain('Cases handoff', handoff, 'agent/cases-approved-theme-v1');
 mustContain('Source of Truth', sourceOfTruth, '`src/CasesThemeV1Panel.jsx`');
 mustContain('Source of Truth', sourceOfTruth, '`src/displayCasesThemeV1.css`');
 mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_CASES_THEME_V1.md`');
-mustContain('Source of Truth', sourceOfTruth, 'Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, and Timeline are the completed approved replacements');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Decision & Luna only**');
+mustContain('Source of Truth', sourceOfTruth, 'Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, and Decision & Luna are the completed approved replacements');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Academy only**');
 
 for (const forbidden of [
   'generatedCaseRepository',
@@ -88,4 +88,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Cases approved-theme v1 smoke check passed. Search, filters, sorting, queue states, selected preview, responsive presentation, Evidence First wording, protected persistence boundaries, and the synchronized Timeline handoff remain intact.');
+console.log('Cases approved-theme v1 smoke check passed. Search, filters, sorting, queue states, selected preview, responsive presentation, Evidence First wording, protected persistence boundaries, and the synchronized Decision and Luna handoff remain intact.');
