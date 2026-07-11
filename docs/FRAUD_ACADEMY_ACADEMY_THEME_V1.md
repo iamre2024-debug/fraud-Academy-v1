@@ -2,54 +2,71 @@
 
 ## Status
 
-Implementation branch: `agent/academy-approved-theme-v1`
+This handoff records the completed isolated approved-theme v1 redesign for the **Academy only** step in the locked screen order.
 
-Authoritative base: `main` at `6be1f83e231cfd3edbbaff51dea8e3b918e1306d`
+- Runtime branch: `agent/academy-approved-theme-v1`
+- Authoritative base audited before work: `main` at `6be1f83e231cfd3edbbaff51dea8e3b918e1306d`
+- Final verified runtime head: `11ee589509368a75e049c67474d1a1e648d9911a`
+- Runtime pull request: `#43`
+- Runtime merge on `main`: `c7154d9b66c1446cdc32f34b2148b8eb83a70be7`
+- Final runtime verification: GitHub Actions `Fraud Academy Verify` run `#403` passed the complete named smoke chain, production build, desktop Chromium, and Pixel 7 Chromium
+- Handoff synchronization branch: `agent/academy-theme-v1-handoff-sync`
+- Preceding completed screen group: Decision and Luna
+- Next isolated screen: **Profile only**
 
-Runtime pull request: #43
+## Authority chain
 
-Verified runtime head: `11ee589509368a75e049c67474d1a1e648d9911a`
+Use these sources together:
 
-Runtime merge on `main`: `c7154d9b66c1446cdc32f34b2148b8eb83a70be7`
+1. Fraud Academy Bible v2.1
+2. Fraud Academy Display Bible v1.0 - New Design Exploration
+3. Approve display theme v.1
+4. GitHub Issue #22
+5. Approved mobile reference
+6. `docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md`
 
-Runtime verification: GitHub Actions run #403 passed the complete named smoke chain, production build, desktop Chromium, and Pixel 7 Chromium.
+The display sources control presentation, hierarchy, responsive behavior, and the screen-specific experience. The repository Source of Truth controls architecture, Evidence First, persistence, storage, routes, notes, reports, case behavior, and protected implementation boundaries.
 
-Handoff synchronization pull request: #46
+## Isolated scope
 
-Scope: **Academy only**.
+This step redesigns Academy only. It does not redesign Profile or perform the final responsive/mobile polish pass.
 
-This handoff records the focused approved theme v1 replacement for the Academy learning surface. It does not redesign Profile, alter final responsive/mobile polish outside Academy, change investigation behavior, or migrate persistence.
+`src/AcademyThemeV1Panel.jsx` owns the approved Academy learning surface. `src/displayAcademyThemeV1.css` owns the light lavender and white responsive presentation, and `src/displayAcademyThemeV1Safety.css` isolates Academy from unreplaced workspace surfaces without changing those surfaces or their runtime behavior.
 
 ## Approved Academy surface
 
-The Academy screen uses the approved light lavender and white direction while preserving the existing four-item global navigation.
+Academy now provides:
 
-It provides:
+- an Evidence First Learning Center hero;
+- four learning paths arranged in investigation order;
+- eight core practice steps mapped to the current workspace flow;
+- a Fraud Library organized by neutral investigation topics;
+- neutral achievement guidance tied to completed case work;
+- direct routes to Workspace, Case Queue, and contextual Academy Progress;
+- desktop, tablet, Pixel 7, and compact-phone layouts without required horizontal page scrolling;
+- the existing four-item global navigation with Academy Progress remaining contextual rather than becoming a fifth global destination.
 
-- An Evidence First learning-center hero.
-- Four learning paths arranged in investigation order.
-- Eight core practice steps mapped to the current workspace flow.
-- A Fraud Library organized by investigator topic.
-- Neutral achievement guidance tied to completed case work.
-- Functional routes to Workspace, Case Queue, and contextual Academy Progress.
-- Desktop, tablet, phone, and compact-phone layouts without required horizontal page scrolling.
-- A focused isolation layer that keeps unreplaced Workspace surfaces and generated-case controls out of the Academy screen without changing those features.
+The Academy screen teaches process and investigation habits. It does not predict a case outcome, calculate a score, reveal red or green flags, or duplicate the saved learner-package model.
 
 ## Protected behavior
 
-The Academy replacement must preserve:
+The following remain unchanged:
 
-- Dashboard, Cases, Workspace, and Academy as the only permanent global destinations.
-- Academy Progress as a contextual route rather than a fifth global destination.
-- The existing `fraud-academy:package-saved` refresh behavior.
-- Neutral visible learning language before submission.
-- Evidence First and Luna's pre-submission lock.
-- The live built-in and generated case catalog.
-- `src/data/generatedCaseRepository.js` as the generated-case persistence boundary.
-- IndexedDB as primary storage with the existing localStorage migration and fallback.
-- Unlimited generated cases and collision-safe IDs.
-- The single Connections → System Access Lane.
-- The parked ten-module System Access portal remaining retired.
+- Dashboard, Cases, Workspace, and Academy as the only permanent global destinations;
+- Academy Progress as a contextual route;
+- the existing `fraud-academy:package-saved` refresh behavior;
+- Evidence First and neutral pre-submission wording;
+- Luna remains locked until a learner package is saved;
+- all built-in and unlimited generated cases;
+- `src/data/generatedCaseRepository.js` as the IndexedDB-first persistence boundary;
+- localStorage migration and fallback behavior;
+- every storage key;
+- active-case switching;
+- case-scoped notes, pinned evidence, reviewed tools, reports, report packets, decision drafts, and review packages;
+- all existing routes and investigation actions;
+- the single Connections → System Access Lane;
+- parked standalone System Access portals remain retired;
+- fictional training-safe wording.
 
 ## Implementation anchors
 
@@ -61,23 +78,25 @@ The Academy replacement must preserve:
 - `scripts/academy-theme-v1-smoke-check.mjs`
 - `tests/academy-browser.spec.mjs`
 
-The Academy panel must stay presentation- and navigation-focused. It must not call browser storage, write generated cases, build learner packages, calculate Luna scoring, or duplicate case-state ownership. The safety CSS may hide unreplaced surfaces only while `body[data-visual-tab="academy"]` is active and must not change their runtime behavior.
+The Academy panel remains presentation- and navigation-focused. It does not call browser storage, write generated cases, build learner packages, calculate Luna scoring, or duplicate case-state ownership.
 
-## Verification gate
+## Completed verification
 
-The exact runtime implementation head passed:
+The final runtime branch head passed all required gates before merge:
 
-- The full named `npm run verify` chain.
-- The Academy approved-theme v1 static guard.
-- Production build.
-- Desktop Chromium Academy browser coverage.
-- Pixel 7 Chromium Academy browser coverage.
-- Evidence First and Luna lock checks.
-- Academy isolation from unreplaced Workspace surfaces.
-- Viewport and horizontal-overflow checks.
+1. complete named `npm run verify` chain;
+2. production build;
+3. focused Academy approved-theme v1 static guard;
+4. desktop Chromium Academy browser coverage;
+5. Pixel 7 Chromium Academy browser coverage;
+6. Evidence First wording checks;
+7. Luna pre-submission lock checks;
+8. Academy isolation from workspace and generated-case controls;
+9. Learning Center, Fraud Library, achievement, Workspace, Case Queue, and Academy Progress routes;
+10. four-item global navigation protection;
+11. 44-pixel control and keyboard-focus coverage;
+12. viewport-width and horizontal-overflow safety.
 
-The handoff synchronization must also pass the complete repository verification and desktop/Pixel 7 browser gates before merge.
+## Exact next starting point
 
-## Next isolated screen
-
-The Academy implementation is verified, merged, and synchronized into the repository handoff. The next isolated screen is **Profile only**. Do not combine Profile with final responsive/mobile polish.
+Re-audit the new `main` head, active redesign branches, open pull requests, recent commits, CI, GitHub Issue #22, and this completed Academy handoff. Then redesign **Profile only** on a separate branch. Do not combine final responsive/mobile polish with the Profile pull request.
