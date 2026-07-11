@@ -32,10 +32,14 @@ Use both files before making architecture, UI, navigation, responsive, tool, sce
 
 ## Current status
 
-- The screenshot-driven visual workspace remains the active transitional runtime while focused display phases are prepared.
+- The screenshot-driven visual workspace remains the active transitional runtime while focused display phases replace one surface at a time.
 - `src/VisualApp.jsx` coordinates the active case, live case catalog, and active navigation tab through React state.
 - `src/VisualWorkspace.jsx` coordinates the core investigation workspace while `src/useVisualWorkspaceCaseState.js` owns case-scoped persistence and `src/useVisualWorkspaceActions.js` owns investigation actions and learner-package submission.
-- `src/VisualShellHeader.jsx` owns the ornate app header, active case strip, and Case Queue dropdown.
+- `src/VisualShellHeader.jsx` owns the ornate app header, active case strip, Case Queue dropdown, and functional Help, Settings, and Agent-profile controls.
+- The Help control routes to Academy and Cases, Settings persists a reduced-motion preference, and Agent profile exposes the current assignment plus Progress and Workspace routes.
+- `src/VisualNavigation.jsx` now renders exactly four global destinations: Dashboard, Cases, Workspace, and Academy.
+- Academy Progress remains active through contextual Dashboard, Academy, and Agent-profile actions rather than a fifth equal navigation item.
+- `src/displayPhaseOne.css` owns the four-column global navigation override, header-control presentation, contextual Progress shortcut, and reduced-motion behavior.
 - `src/DirectCollapsibleText.jsx` is the reusable direct React compact-text wrapper; Active Tool purpose, expanded-record text, tray identifiers, Case Report packet text, notebook note entries, Submit Decision checklist messages, Luna coaching lists, Navigation heading and Academy learning copy, Academy Progress package status, and Case Summary transaction/payee and short-summary copy use it directly.
 - `src/visualWorkspaceModel.js` owns workspace constants, storage helpers, live tool row builders, System Access Lane row construction, and Case Report packet construction.
 - `src/ActiveToolPanel.jsx` owns the active category/tool renderer: sub-tool dropdown, search, rows, expanded record lanes, pin/review actions, and neutral report packet saves.
@@ -43,7 +47,6 @@ Use both files before making architecture, UI, navigation, responsive, tool, sce
 - `src/CaseSummaryCard.jsx` owns the ornate Case Summary card, including neutral intake facts, direct compact controls for longer neutral summary fields, Pin Case, quick tool routes, and Submit Decision jump.
 - `src/CategoryTileRail.jsx` owns the ornate investigation category rail, including neutral reviewed counts, progress bars, active/reviewed state classes, and Tool Map routing.
 - `src/SubmitDecisionPanel.jsx` owns the locked Submit Decision visual panel while the review package model keeps Evidence First behavior enforced.
-- `src/VisualNavigation.jsx` receives direct React callbacks for Dashboard, Cases, Workspace, Academy, Progress, and case opening. The current five-item runtime navigation is transitional; the Display Handoff defines the safe four-item global target and contextual Progress relocation.
 - `src/AcademyProgressPanel.jsx` owns neutral locked/unlocked case status, saved-package counts, reviewed-tool/pinned-object/note/report-packet snapshots, and case-return actions without exposing Luna scoring.
 - `src/VisualTextCollapse.jsx` is an inert compatibility marker only. It contains no selector discovery, portal controls, event listeners, or DOM scanning; compact More / Less behavior is React-owned through `DirectCollapsibleText`.
 - Insider / Vendor / API / Open Banking remains the single Connections → System Access Lane sub-tool inside `src/VisualWorkspace.jsx`, powered by `src/data/systemAccessRecords.js`.
@@ -80,12 +83,13 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 17. Case Summary transaction/payee and short-summary copy are rendered by direct React controls, and the old selector scanner is inert.
 18. Workspace case persistence and action orchestration are split into focused hooks with dedicated verification guards.
 19. Academy Progress reads the stable saved learner-package snapshots, refreshes in the same session, and remains neutral until submission.
-20. The Display Handoff now locks the approved design authority, phased migration order, four-item global target, active-case workflow target, responsive review ranges, no-horizontal-overflow rule, and architecture boundaries.
+20. The Display Handoff locks the approved design authority, phased migration order, four-item global target, active-case workflow target, responsive review ranges, no-horizontal-overflow rule, and architecture boundaries.
+21. Display Phase 1 implements the four-item global navigation, contextual Progress entry points, functional Help, Settings, and Agent-profile controls, and a dedicated global-shell regression guard.
 
 ## Remaining follow-up work
 
-1. Begin Display Phase 1 only: global navigation and functional header controls, with Academy Progress relocated contextually rather than removed.
-2. Keep the active-case workflow rail, broad glow calibration, and mobile record conversion as separate later phases.
+1. Begin Display Phase 2 only: add the active-case workflow rail while keeping the current category rail inside Investigate.
+2. Keep broad glow calibration and mobile record conversion as separate later phases.
 3. Continue presentation-only component splitting only when a display phase needs it, without changing the IndexedDB generated-case boundary or Evidence First behavior.
 
 ## Browser-confirmed functional coverage
@@ -100,7 +104,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 
 ## Latest handoff
 
-The latest follow-up reconciles the repository with the approved display authority before runtime presentation changes begin. `docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md` now records the target information architecture, staged case flow, visual hierarchy, six responsive review ranges, no-horizontal-overflow requirement, phased migration order, and non-negotiable Evidence First, Luna, generated-case, and System Access boundaries. A dedicated smoke guard keeps that contract wired into `npm run verify` and CI.
+The latest focused display change completes Phase 1 without altering investigation behavior. The global navigation now contains Dashboard, Cases, Workspace, and Academy, Academy Progress is available contextually, and the header Help, Settings, and Agent-profile controls perform real actions. `scripts/display-phase-one-smoke-check.mjs` and the existing full browser suite protect the new global-shell boundary while Evidence First, Luna gating, generated-case persistence, and the single Connections → System Access Lane remain unchanged.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -121,4 +125,4 @@ npm run build
 
 ## Test status
 
-`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, Luna single-module smoke, review-package smoke, remaining-module depth, navigation direct-collapse, Academy Progress package-flow, summary direct-collapse, workspace case-state hook, workspace action-controller, display-handoff, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for all three built-in cases, generated cases, core modules, System Access Lane, persistence, and Luna lock behavior.
+`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, Luna single-module smoke, review-package smoke, remaining-module depth, navigation direct-collapse, Academy Progress package-flow, summary direct-collapse, workspace case-state hook, workspace action-controller, display-handoff, Display Phase 1 global-shell, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for all three built-in cases, generated cases, core modules, System Access Lane, persistence, and Luna lock behavior.

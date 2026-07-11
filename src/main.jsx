@@ -13,6 +13,7 @@ import './visualInvestigationRepair.css';
 import './systemAccessLane.css';
 import './generatedCaseControls.css';
 import './browserInteractionStability.css';
+import './displayPhaseOne.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

@@ -17,26 +17,26 @@ Historical PR #2, stale branches, archived design notes, and retired DOM patches
 
 The current screenshot-driven visual shell remains the active runtime until a focused display phase replaces a specific surface and passes the full verification and browser gates. Do not perform a broad theme rewrite, replace working investigation behavior, or mix several display phases into one pull request.
 
-The current five-item runtime navigation is transitional. It must not be treated as the permanent global information architecture.
+Display Phase 1 replaces only the global navigation and header-control surface. The remaining workspace shell, category rail, investigation panels, review flow, Luna panel, and generated-case controls stay on the existing verified runtime until their own focused phases pass.
 
 ## Approved global structure target
 
-The permanent global navigation target is:
+The permanent global navigation is:
 
 - Dashboard
 - Cases
 - Workspace
 - Academy
 
-Academy Progress remains a supported product feature, but it belongs in contextual Dashboard, Academy, profile, or learner-progress entry points rather than as a fifth equal global destination.
+Academy Progress remains a supported product feature through contextual Dashboard, Academy, and Agent-profile entry points rather than as a fifth equal global destination.
 
-The application header target also includes accessible controls for:
+The application header includes accessible, functional controls for:
 
 - Help
 - Settings
 - Agent profile or avatar
 
-These controls must not be decorative placeholders. A visible control must have a working, training-safe action before it ships.
+Visible controls must not be decorative placeholders. Help routes to active training guidance, Settings changes a persisted reduced-motion preference, and Agent profile exposes the current assignment plus contextual Progress and Workspace routes.
 
 ## Active-case workflow target
 
@@ -105,23 +105,32 @@ Every display phase must preserve all of the following:
 
 ### Phase 0 - Repository handoff lock
 
-- Add this display contract.
-- Link it from the README and Source of Truth.
-- Add a verification guard so the authority chain and safety boundaries cannot silently disappear.
-- Do not change runtime presentation in this phase.
+Completed:
+
+- Added this display contract.
+- Linked it from the README and Source of Truth.
+- Added a verification guard so the authority chain and safety boundaries cannot silently disappear.
+- Left runtime presentation unchanged during the lock phase.
 
 ### Phase 1 - Global navigation and header
 
-- Move toward the four-item permanent global navigation.
-- Relocate Progress to a contextual entry point without removing the feature.
-- Add functional Help, Settings, and Agent profile controls.
-- Preserve all current navigation routes and case-opening behavior.
+Completed in the focused global-shell change:
+
+- Permanent global navigation now contains Dashboard, Cases, Workspace, and Academy only.
+- Academy Progress remains active through contextual Dashboard, Academy, and Agent-profile actions.
+- Help, Settings, and Agent-profile controls perform real, training-safe actions.
+- The Settings control persists a reduced-motion preference without changing investigation data.
+- Existing navigation routes, case switching, generated-case opening, Progress data, Evidence First locks, and Luna gating remain intact.
+- `scripts/display-phase-one-smoke-check.mjs` guards the four-item structure, contextual Progress routes, functional controls, and style wiring.
 
 ### Phase 2 - Active-case workflow rail
+
+Next isolated item:
 
 - Add the seven-stage case workflow.
 - Keep the existing category rail inside Investigate.
 - Preserve neutral completion language and Submit Decision locks.
+- Do not combine glow calibration or mobile record conversion.
 
 ### Phase 3 - Hierarchy and glow calibration
 
@@ -155,4 +164,4 @@ A display pull request is not complete until it confirms:
 
 ## Next safe item
 
-After this handoff lock merges, the next isolated display item is Phase 1: global navigation and header only. Do not combine the workflow rail, broad glow changes, or mobile table conversion into that same pull request.
+After Phase 1 merges and its exact tree passes the full verify and browser jobs, the next isolated display item is Phase 2: active-case workflow rail only. Do not combine broad glow calibration or mobile table conversion into that pull request.

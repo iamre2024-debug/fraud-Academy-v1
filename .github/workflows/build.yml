@@ -62,6 +62,9 @@ jobs:
       - name: Display handoff smoke check
         run: npm run display-handoff-smoke-check
 
+      - name: Display Phase 1 global-shell smoke check
+        run: npm run display-phase-one-smoke-check
+
       - name: Production build
         run: npm run build
 

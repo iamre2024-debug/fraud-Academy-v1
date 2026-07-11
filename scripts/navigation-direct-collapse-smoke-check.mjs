@@ -19,8 +19,9 @@ mustContain('VisualNavigation.jsx', navigation, "import AcademyProgressPanel fro
 mustContain('VisualNavigation.jsx', navigation, "import DirectCollapsibleText from './DirectCollapsibleText.jsx';");
 mustContain('VisualNavigation.jsx', navigation, 'function NavigationPanel({ activeTab, cases, snapshot, onNavigate, onOpenCase })');
 mustContain('VisualNavigation.jsx', navigation, '<DirectCollapsibleText as="span" lines={2} mobileLines={2}>');
-mustContain('VisualNavigation.jsx', navigation, 'function AcademyPanel()');
+mustContain('VisualNavigation.jsx', navigation, 'function AcademyPanel({ onNavigate })');
 mustContain('VisualNavigation.jsx', navigation, '{detail}');
+mustContain('VisualNavigation.jsx', navigation, "onClick={() => onNavigate('progress')}>Open Academy Progress</button>");
 mustContain('VisualNavigation.jsx', navigation, '<AcademyProgressPanel cases={cases} packagesByCase={snapshot.packagesByCase} onOpenCase={onOpenCase} />');
 mustContain('AcademyProgressPanel.jsx', progress, "import DirectCollapsibleText from './DirectCollapsibleText.jsx';");
 mustContain('AcademyProgressPanel.jsx', progress, '<DirectCollapsibleText as="p" lines={2} mobileLines={2}>');
@@ -50,4 +51,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Navigation direct-collapse smoke check passed. Heading, Academy learning, and Progress copy are React-owned, the legacy scanner is inert, and Luna progress remains package-gated.');
+console.log('Navigation direct-collapse smoke check passed. Heading, Academy learning, contextual Progress, and package copy are React-owned, the legacy scanner is inert, and Luna progress remains package-gated.');

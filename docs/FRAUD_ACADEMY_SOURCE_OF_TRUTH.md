@@ -26,7 +26,7 @@ For display work, use Fraud Academy Bible v2.1 as the consolidated source hierar
 
 The current screenshot-driven visual shell remains active until a focused display phase replaces a specific surface and passes the full verify and desktop/mobile browser gates. Preserve the recognizable dark purple, pink, and cyan identity, rounded glass surfaces, and playful professional details while improving hierarchy and reducing indiscriminate glow.
 
-The current five-item runtime navigation is transitional. The permanent global target is Dashboard, Cases, Workspace, and Academy, with Academy Progress available through contextual Dashboard, Academy, profile, or learner-progress entry points. Do not remove Progress functionality while relocating its entry point.
+The runtime global navigation now uses Dashboard, Cases, Workspace, and Academy. Academy Progress remains fully supported through contextual Dashboard, Academy, and Agent-profile entry points rather than a fifth equal global destination.
 
 ## Investigation doctrine
 
@@ -127,7 +127,8 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 
 - The screenshot-driven visual shell is the active app entrypoint and remains transitional. Keep it intact until each focused display phase in `docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md` passes verification and browser coverage.
 - `src/VisualApp.jsx` coordinates the active case, live case catalog, and visual navigation tab through React state so case switching, generated-case opening, Tool Map, Open Evidence Center, and Submit Decision routing do not depend on DOM repair scripts.
-- `src/VisualShellHeader.jsx` owns the ornate app header and active case strip, including the Case Queue dropdown. Preserve its working case-switch behavior during the future header-control phase.
+- `src/VisualShellHeader.jsx` owns the ornate app header, functional Help, Settings, and Agent-profile controls, the persisted reduced-motion preference, and the active case strip with Case Queue dropdown. Keep every visible header control functional and training-safe.
+- `src/displayPhaseOne.css` owns the four-column global navigation override, accessible header-control surfaces, contextual Academy Progress shortcut, and reduced-motion presentation behavior. It must not absorb later workflow-rail, glow-calibration, or mobile-record work.
 - `src/visualWorkspaceModel.js` owns workspace constants, storage keys, row builders, and Case Report packet construction so `src/VisualWorkspace.jsx` can keep shrinking into focused React modules without changing the screenshot-driven shell.
 - `src/useVisualWorkspaceCaseState.js` owns the six case-scoped browser-persistence slices for tray items, notes, reviewed tools, decision drafts, learner packages, and Case Report packets. Keep generated-case persistence separate behind `src/data/generatedCaseRepository.js`.
 - `src/useVisualWorkspaceActions.js` owns pinning, note saving, reviewed-tool updates, neutral Case Report packet creation, decision-draft updates, checklist handling, and learner-package submission. Keep Luna package events and Evidence First wording inside this focused action boundary rather than rebuilding them inline in `src/VisualWorkspace.jsx`.
@@ -147,7 +148,7 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 - Luna scoring, strengths, follow-up coaching, and decision-quality breakdown stay hidden until a review package is saved.
 - `src/LunaPostSubmissionPanel.jsx` must resolve the active case from the live built-in/generated case catalog. Generated cases must never fall back to an unrelated built-in case for package reads, lock state, or post-submission debrief.
 - Insider / Vendor / API / Open Banking records belong inside the core workspace tool switcher as the Connections → System Access Lane sub-tool. Do not restore a separate portal panel for this lane.
-- The current runtime navigation plus Dashboard, Cases, Workspace, Academy, and Progress panels are managed by React state in `src/VisualNavigation.jsx`. The display handoff defines the four-item permanent global target and the safe contextual relocation of Progress.
+- `src/VisualNavigation.jsx` now renders exactly four permanent global destinations: Dashboard, Cases, Workspace, and Academy. The `progress` route and `AcademyProgressPanel` remain active through Dashboard, Academy, and Agent-profile shortcuts.
 - The `fraud-academy:package-saved` event must refresh Navigation package snapshots in the same browser session so Dashboard and Academy Progress never require a reload to reflect a newly saved learner package.
 - Compact More / Less controls must be React-owned through `src/DirectCollapsibleText.jsx`; keep long copy collapsed by default. The retired selector-based compatibility scanner must not return, and the retired `src/visualTextCollapse.js` patch must not return.
 - Generated cases must open immediately, join the live case catalog, remain Evidence First, and preserve case-scoped notes, tray, progress, decision drafts, packages, and reports.
@@ -162,9 +163,9 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 - The single Connections → System Access Lane stays available, but the parked ten-module System Access portal must not be revived.
 - Desktop category controls must remain pointer-accessible and must not be covered by sticky right-side investigation panels or the fixed bottom navigation.
 - Display changes must not introduce required horizontal page scrolling. Dense mobile records should become cards, drawers, or another touch-friendly presentation during the dedicated responsive phase.
-- `npm run verify` must preserve the Evidence First wording check, functional smoke guard, visual three-case smoke guard, generated-case repository smoke guard, Luna single-module smoke guard, review-package behavior smoke check, remaining-module depth guard, Navigation direct-collapse guard, Academy Progress package-flow guard, Case Summary direct-collapse guard, workspace case-state hook guard, workspace action-controller guard, display-handoff guard, and production build.
+- `npm run verify` must preserve the Evidence First wording check, functional smoke guard, visual three-case smoke guard, generated-case repository smoke guard, Luna single-module smoke guard, review-package behavior smoke check, remaining-module depth guard, Navigation direct-collapse guard, Academy Progress package-flow guard, Case Summary direct-collapse guard, workspace case-state hook guard, workspace-action controller guard, display-handoff guard, Display Phase 1 global-shell guard, and production build.
 - `.github/workflows/build.yml` must also run Playwright against desktop and mobile Chromium for all three built-in cases, generated-case immediate open and persistence, the completed core modules, Connections → System Access Lane, and Luna’s pre-submission lock.
 
 ## Next safe display item
 
-After the display handoff guard passes, begin only Phase 1 from `docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md`: reconcile global navigation and header controls while preserving Progress functionality and every existing route. Do not combine the active-case workflow rail, broad glow calibration, or mobile table conversion into the same pull request.
+After Display Phase 1 passes its full verify and browser gates, begin only Phase 2 from `docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md`: add the active-case workflow rail while keeping the existing investigation category rail inside Investigate. Do not combine broad glow calibration or mobile record conversion into that pull request.

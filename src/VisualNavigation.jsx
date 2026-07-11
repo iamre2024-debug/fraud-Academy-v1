@@ -36,7 +36,6 @@ const navigationItems = [
   { key: 'cases', icon: '▣', label: 'Cases' },
   { key: 'workspace', icon: '🪄', label: 'Workspace' },
   { key: 'academy', icon: '▱', label: 'Academy' },
-  { key: 'progress', icon: '▢', label: 'Progress' },
 ];
 
 const learningSteps = [
@@ -174,7 +173,7 @@ function NavigationPanel({ activeTab, cases, snapshot, onNavigate, onOpenCase })
       </div>
       {activeTab === 'dashboard' && <DashboardPanel cases={cases} snapshot={snapshot} onNavigate={onNavigate} />}
       {activeTab === 'cases' && <CasesPanel cases={cases} onOpenCase={onOpenCase} />}
-      {activeTab === 'academy' && <AcademyPanel />}
+      {activeTab === 'academy' && <AcademyPanel onNavigate={onNavigate} />}
       {activeTab === 'progress' && (
         <AcademyProgressPanel cases={cases} packagesByCase={snapshot.packagesByCase} onOpenCase={onOpenCase} />
       )}
@@ -215,18 +214,24 @@ function CasesPanel({ cases, onOpenCase }) {
   );
 }
 
-function AcademyPanel() {
+function AcademyPanel({ onNavigate }) {
   return (
-    <div className="nav-learning-grid">
-      {learningSteps.map(([step, detail], index) => (
-        <article key={step}>
-          <span>{String(index + 1).padStart(2, '0')}</span>
-          <strong>{step}</strong>
-          <DirectCollapsibleText as="p" lines={2} mobileLines={2}>
-            {detail}
-          </DirectCollapsibleText>
-        </article>
-      ))}
-    </div>
+    <>
+      <div className="nav-learning-grid">
+        {learningSteps.map(([step, detail], index) => (
+          <article key={step}>
+            <span>{String(index + 1).padStart(2, '0')}</span>
+            <strong>{step}</strong>
+            <DirectCollapsibleText as="p" lines={2} mobileLines={2}>
+              {detail}
+            </DirectCollapsibleText>
+          </article>
+        ))}
+      </div>
+      <aside className="nav-context-card" aria-label="Academy Progress shortcut">
+        <div><span>▢</span><strong>Academy Progress</strong><p>Review saved learner-package status and return to any case without adding a fifth global navigation item.</p></div>
+        <button type="button" onClick={() => onNavigate('progress')}>Open Academy Progress</button>
+      </aside>
+    </>
   );
 }
