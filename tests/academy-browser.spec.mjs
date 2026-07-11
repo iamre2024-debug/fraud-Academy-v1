@@ -10,7 +10,7 @@ async function openAcademy(page) {
   return academy;
 }
 
-test('approved Academy keeps learning routes functional, Evidence First, and responsive', async ({ page }, testInfo) => {
+test('approved Academy preserves neutral learning routes and responsive safety', async ({ page }, testInfo) => {
   await page.goto('/');
   const academy = await openAcademy(page);
 
