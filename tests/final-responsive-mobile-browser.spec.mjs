@@ -25,9 +25,16 @@ async function assertResponsiveSafety(page, label, projectName) {
       const rect = element.getBoundingClientRect();
       return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
     };
+    const describe = (element) => {
+      const aria = element.getAttribute('aria-label');
+      const text = element.textContent?.replace(/\s+/g, ' ').trim().slice(0, 70);
+      const classes = typeof element.className === 'string' ? element.className.trim().replace(/\s+/g, '.') : '';
+      return aria || text || `${element.tagName.toLowerCase()}${classes ? `.${classes}` : ''}`;
+    };
     const bounds = (element) => {
       const rect = element.getBoundingClientRect();
       return {
+        name: describe(element),
         left: rect.left,
         right: rect.right,
         width: rect.width,
@@ -37,7 +44,7 @@ async function assertResponsiveSafety(page, label, projectName) {
     };
     const surfaces = [...document.querySelectorAll(selector)]
       .filter(visible)
-      .map((element) => ({ name: element.getAttribute('data-react-navigation-panel') || element.getAttribute('data-case-id') || element.className || element.tagName, ...bounds(element) }));
+      .map((element) => ({ name: element.getAttribute('data-react-navigation-panel') || element.getAttribute('data-case-id') || describe(element), ...bounds(element) }));
     const bottomNav = document.querySelector('.visual-react-bottom-nav');
     const bottomButtons = bottomNav ? [...bottomNav.querySelectorAll('button')].filter(visible).map(bounds) : [];
     const criticalControls = [
@@ -72,15 +79,15 @@ async function assertResponsiveSafety(page, label, projectName) {
   expect(snapshot.bottomButtons, `${label}: four permanent destinations`).toHaveLength(4);
 
   if (projectName === 'mobile-chromium') {
-    for (const [index, control] of snapshot.bottomButtons.entries()) {
-      expect(control.height, `${label}: bottom navigation button ${index + 1} height`).toBeGreaterThanOrEqual(44);
+    for (const control of snapshot.bottomButtons) {
+      expect(control.height, `${label}: bottom navigation ${control.name} height`).toBeGreaterThanOrEqual(44);
     }
-    for (const [index, control] of snapshot.criticalControls.entries()) {
-      expect(control.height, `${label}: critical control ${index + 1} height`).toBeGreaterThanOrEqual(44);
-      expect(control.width, `${label}: critical control ${index + 1} width`).toBeGreaterThanOrEqual(44);
+    for (const control of snapshot.criticalControls) {
+      expect(control.height, `${label}: critical control ${control.name} height`).toBeGreaterThanOrEqual(44);
+      expect(control.width, `${label}: critical control ${control.name} width`).toBeGreaterThanOrEqual(44);
     }
-    for (const [index, control] of snapshot.surfaceButtons.entries()) {
-      expect(control.height, `${label}: current-surface control ${index + 1} height`).toBeGreaterThanOrEqual(44);
+    for (const control of snapshot.surfaceButtons) {
+      expect(control.height, `${label}: current-surface control ${control.name} height`).toBeGreaterThanOrEqual(44);
     }
   }
 }
