@@ -197,7 +197,6 @@ body[data-visual-motion="reduced"] *::after {
   .customer-360-identity-metrics,
   .investigation-tool-metrics,
   .timeline-metrics,
-  .decision-status-grid,
   .academy-stat-grid,
   .profile-stat-grid,
   .profile-goal-grid {
@@ -210,6 +209,7 @@ body[data-visual-motion="reduced"] *::after {
   .investigation-tool-workspace,
   .timeline-workspace,
   .decision-v1-workspace,
+  .decision-status-grid,
   .academy-main-grid,
   .academy-path-grid,
   .profile-main-grid,
@@ -232,10 +232,6 @@ body[data-visual-motion="reduced"] *::after {
   .customer-360-tool-row,
   .customer-360-search-row {
     grid-template-columns: 1fr !important;
-  }
-
-  .active-case-workflow-list {
-    grid-auto-columns: minmax(132px, 82vw) !important;
   }
 
   .visual-react-bottom-nav {
@@ -272,6 +268,7 @@ body[data-visual-motion="reduced"] *::after {
   .investigation-tool-workspace,
   .timeline-workspace,
   .decision-v1-workspace,
+  .decision-status-grid,
   .academy-main-grid,
   .profile-main-grid {
     grid-template-columns: 1fr !important;
@@ -283,7 +280,6 @@ body[data-visual-motion="reduced"] *::after {
   .customer-360-identity-metrics,
   .investigation-tool-metrics,
   .timeline-metrics,
-  .decision-status-grid,
   .academy-stat-grid,
   .profile-stat-grid,
   .profile-goal-grid {
@@ -319,6 +315,7 @@ body[data-visual-motion="reduced"] *::after {
   .investigation-tool-workspace,
   .timeline-workspace,
   .decision-v1-workspace,
+  .decision-status-grid,
   .academy-main-grid,
   .profile-main-grid {
     grid-template-columns: 1fr !important;
@@ -376,7 +373,7 @@ body[data-visual-motion="reduced"] *::after {
 @media (max-width: 1023px) {
   .visual-hero {
     min-height: 0 !important;
-    padding: 14px !important;
+    padding: 10px 12px !important;
   }
 
   .hero-cat,
@@ -407,13 +404,6 @@ body[data-visual-motion="reduced"] *::after {
     overscroll-behavior-inline: contain;
     scrollbar-width: thin;
     -webkit-overflow-scrolling: touch;
-  }
-
-  .active-case-workflow-list {
-    display: grid !important;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(142px, 1fr);
-    scroll-snap-type: inline proximity;
   }
 
   .active-case-workflow-list li,
@@ -447,6 +437,13 @@ body[data-visual-motion="reduced"] *::after {
   .customer-360-review-bar,
   .academy-practice-banner {
     flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 767px) {
+  body[data-visual-tab="cases"] .cases-theme-v1-panel button {
+    min-height: 44px;
+    min-block-size: 44px;
   }
 }
 
