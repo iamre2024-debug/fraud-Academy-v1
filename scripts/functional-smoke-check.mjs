@@ -59,6 +59,7 @@ const checks = [
       '<CategoryTileRail',
       '<SubmitDecisionPanel',
       '<VisualShellHeader',
+      'jumpDecision={jumpDecision}',
     ],
     mustNotContain: [
       "window.dispatchEvent(new CustomEvent('fraud-academy:navigate'",
@@ -143,7 +144,7 @@ const checks = [
       "openTool('Identity Intelligence')",
       "openTool('Case Report')",
       "openTool('Login History')",
-      'jumpDecision={jumpDecision}',
+      'onClick={jumpDecision}',
       'decision-jump-button',
       'Case briefing quick routes',
     ],
