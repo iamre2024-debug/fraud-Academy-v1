@@ -8,6 +8,8 @@ const styles = fs.readFileSync(path.join(rootDir, 'src/displayCustomer360ThemeV1
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/customer-360-browser.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_CUSTOMER_360_THEME_V1.md'), 'utf8');
+const sourceOfTruth = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'), 'utf8');
+const readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8');
 const failures = [];
 
 function mustContain(fileLabel, content, text) {
@@ -75,6 +77,12 @@ mustContain('customer-360-browser.spec.mjs', browser, 'approved Customer 360 is 
 mustContain('customer-360-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('Customer 360 handoff', handoff, 'agent/customer-360-approved-theme-v1');
 mustContain('Customer 360 handoff', handoff, 'Investigation tools only');
+mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_CUSTOMER_360_THEME_V1.md`');
+mustContain('Source of Truth', sourceOfTruth, '`src/Customer360Panel.jsx`');
+mustContain('Source of Truth', sourceOfTruth, '`src/displayCustomer360ThemeV1.css`');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Investigation tools only**');
+mustContain('README', readme, 'The approved Customer 360 handoff lives in');
+mustContain('README', readme, 'The next isolated screen group is **Investigation tools only**');
 
 for (const forbidden of [
   'generatedCaseRepository',
@@ -105,4 +113,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Customer 360 approved-theme v1 smoke check passed. The full dossier, profile-change log, claim-specific context, responsive layout, Evidence First wording, and protected persistence boundaries remain intact.');
+console.log('Customer 360 approved-theme v1 smoke check passed. The full dossier, profile-change log, claim-specific context, responsive layout, synchronized Investigation-tools handoff, Evidence First wording, and protected persistence boundaries remain intact.');
