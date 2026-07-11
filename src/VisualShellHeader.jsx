@@ -51,7 +51,7 @@ export default function VisualShellHeader({ activeCase, cases, changeCase, onNav
         <nav className="visual-header-controls" aria-label="Application controls">
           <button type="button" className={activeControl === 'help' ? 'active' : ''} aria-label="Open Help" aria-expanded={activeControl === 'help'} aria-controls="visual-header-control-panel" onClick={() => toggleControl('help')}><span aria-hidden="true">?</span><strong>Help</strong></button>
           <button type="button" className={activeControl === 'settings' ? 'active' : ''} aria-label="Open Settings" aria-expanded={activeControl === 'settings'} aria-controls="visual-header-control-panel" onClick={() => toggleControl('settings')}><span aria-hidden="true">⚙</span><strong>Settings</strong></button>
-          <button type="button" className={activeControl === 'profile' ? 'active' : ''} aria-label="Open Agent profile" aria-expanded={activeControl === 'profile'} aria-controls="visual-header-control-panel" onClick={() => toggleControl('profile')}><span className="agent-avatar" aria-hidden="true">LA</span><strong>Agent</strong></button>
+          <button type="button" aria-label="Open Agent profile" onClick={() => navigate('profile')}><span className="agent-avatar" aria-hidden="true">LA</span><strong>Agent</strong></button>
         </nav>
       </header>
 
@@ -69,13 +69,6 @@ export default function VisualShellHeader({ activeCase, cases, changeCase, onNav
             <>
               <div className="header-control-heading"><span aria-hidden="true">⚙</span><div><p>Settings</p><h2>Workspace preferences</h2></div></div>
               <label className="header-setting-row"><span><strong>Reduce motion</strong><small>Use immediate scrolling and limit interface animation.</small></span><input type="checkbox" checked={reducedMotion} onChange={(event) => setReducedMotion(event.target.checked)} /></label>
-            </>
-          )}
-          {activeControl === 'profile' && (
-            <>
-              <div className="header-control-heading"><span className="agent-avatar" aria-hidden="true">LA</span><div><p>Agent profile</p><h2>Learner Agent</h2></div></div>
-              <p>Current assignment: <strong>{activeCase.id}</strong>. Saved learner-package progress remains available through the contextual progress view.</p>
-              <div className="nav-action-row"><button type="button" onClick={() => navigate('progress')}>View Progress</button><button type="button" onClick={() => navigate('workspace')}>Open Workspace</button></div>
             </>
           )}
         </section>
