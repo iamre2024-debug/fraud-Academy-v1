@@ -126,5 +126,5 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
 
   await persistedLuna.getByRole('button', { name: 'Finish and Return to Queue', exact: true }).click();
   await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'cases');
-  await expect(page.locator('[data-cases-screen="approved-theme-v1"]')).toBeVisible();
+  await expect(page.locator('[data-cases-theme-v1="approved"]')).toBeVisible();
 });
