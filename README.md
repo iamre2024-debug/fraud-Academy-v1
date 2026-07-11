@@ -40,11 +40,12 @@ Use these files before making architecture, UI, navigation, responsive, tool, sc
 - Luna can encourage before submission, but Luna debrief and scoring only happen after submission.
 - Mobile remains touch-friendly, functional, and free of required horizontal page scrolling.
 - Desktop remains a polished fraud command center.
-- Display migration happens in focused phases without replacing working behavior or persistence architecture.
+- Screen redesign happens one surface at a time without replacing working behavior or persistence architecture.
 
 ## Current status
 
-- The screenshot-driven visual workspace remains the active transitional runtime while focused display phases replace one surface at a time.
+- The screenshot-driven visual workspace remains active for surfaces that have not yet been replaced.
+- The Dashboard is the first approved theme v1 replacement. `src/displayDashboardThemeV1.css` provides the light lavender and white, mobile-first presentation while keeping the active case, Case Queue, Evidence Workspace, Timeline, Reports & Progress, neutral Luna guidance, and four-item navigation available.
 - `src/VisualApp.jsx` coordinates the active case, live case catalog, and active navigation tab through React state.
 - `src/VisualWorkspace.jsx` coordinates the core investigation workspace while `src/useVisualWorkspaceCaseState.js` owns case-scoped persistence and `src/useVisualWorkspaceActions.js` owns investigation actions and learner-package submission.
 - `src/VisualShellHeader.jsx` owns the ornate app header, active case strip, Case Queue dropdown, and functional Help, Settings, and Agent-profile controls.
@@ -59,7 +60,7 @@ Use these files before making architecture, UI, navigation, responsive, tool, sc
 - Display Phase 3 calibrates hierarchy and glow through `src/displayPhaseThree.css`, reducing repeated decorative bloom while formalizing primary, secondary, quiet, informational, warning, destructive, disabled, hover, focus, and selected states.
 - `src/displayPhaseFour.css` preserves desktop record tables and converts dense rows into labeled, touch-friendly cards at phone widths without horizontal scrolling.
 - Display Phase 5 records the exact runtime and release-package verdict in `docs/FRAUD_ACADEMY_RELEASE_READINESS.md`, adds generated-case reload persistence coverage, and introduces no runtime redesign.
-- `docs/FRAUD_ACADEMY_RELEASE_PACKAGE.md` now centralizes the runtime architecture, data and persistence boundaries, fictional-data statement, accessibility and browser status, deployment status, limitations, and post-v1 backlog without changing runtime behavior.
+- `docs/FRAUD_ACADEMY_RELEASE_PACKAGE.md` centralizes the runtime architecture, data and persistence boundaries, fictional-data statement, accessibility and browser status, deployment status, limitations, and post-v1 backlog without changing runtime behavior.
 - `src/DirectCollapsibleText.jsx` is the reusable direct React compact-text wrapper; Active Tool purpose, expanded-record text, tray identifiers, Case Report packet text, notebook note entries, Submit Decision checklist messages, Luna coaching lists, Navigation heading and Academy learning copy, Academy Progress package status, and Case Summary transaction/payee and short-summary copy use it directly.
 - `src/visualWorkspaceModel.js` owns workspace constants, storage helpers, live tool row builders, System Access Lane row construction, and Case Report packet construction.
 - `src/ActiveToolPanel.jsx` owns the active category/tool renderer: sub-tool dropdown, search, semantic desktop table, responsive `data-field` labels, mobile record cards, expanded record lanes, pin/review actions, and neutral report packet saves.
@@ -95,7 +96,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 10. Luna post-submission scoring is handled by one separate locked/unlocked module and remains scoped to generated active cases.
 11. Generated cases open immediately and persist through the IndexedDB-first repository adapter.
 12. Generated-case behavior above 50 cases is guarded by `scripts/generated-case-smoke-check.mjs`.
-13. Playwright validates all three built-in cases, generated-case immediate open and reload persistence, the remaining core modules, System Access Lane, Luna’s pre-submission lock, desktop record headers, Pixel 7 record cards, and no page overflow.
+13. Playwright validates the approved Dashboard, all three built-in cases, generated-case immediate open and reload persistence, the remaining core modules, System Access Lane, Luna’s pre-submission lock, desktop record headers, Pixel 7 record cards, and no page overflow.
 14. Visible first-tool coaching and investigator-question headings are rejected by the Evidence First wording guard.
 15. Progress package-status text is rendered by direct React controls and cannot drift back into the legacy selector scanner.
 16. Navigation heading and Academy learning copy are rendered by direct React controls and cannot drift back into legacy selector discovery.
@@ -109,30 +110,32 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 24. Display Phase 4 converts phone-width records to labeled cards, preserves desktop tables and actions, prevents required page overflow, and adds dedicated source and browser regression coverage.
 25. Display Phase 5 audits the exact merged display tree, confirms the runtime candidate for internal user acceptance, records unresolved commercial release-package gaps, adds generated-case reload persistence coverage, and protects the verdict with a dedicated guard.
 26. The release package centralizes architecture, persistence, fictional-data safety, accessibility/browser status, deployment status, limitations, and backlog while preserving the honest internal-UAT verdict.
+27. The approved Dashboard theme v1 replaces only the Dashboard surface, preserves all case and persistence behavior, adds focused static and desktop/mobile browser guards, and advances the locked redesign order to Cases.
 
 ## Remaining follow-up work
 
-1. Compare current desktop/mobile screenshots with the original Bible v2.1 and Display Bible sources for final visual sign-off.
-2. Add a curated current desktop/mobile screenshot set.
-3. Record a production deployment or demo URL when available.
-4. Complete manual accessibility and non-Chromium browser validation.
-5. Select a repository license before external commercial handoff.
-6. Keep these external handoff changes separate from redesign, persistence migration, investigation behavior, and System Access expansion.
+1. Redesign Cases only using the approved theme v1 while preserving the live built-in and generated case catalog.
+2. Continue the locked order after Cases: Workspace, Case Briefing, Customer 360, Investigation tools, Timeline, Decision & Luna, Academy, Profile, and final responsive/mobile polish.
+3. Compare each completed desktop/mobile screen with the original Bible v2.1 and Display Bible references before advancing.
+4. Add a curated current desktop/mobile screenshot set.
+5. Complete manual accessibility and non-Chromium browser validation.
+6. Select a repository license before external commercial handoff.
 
 ## Browser-confirmed functional coverage
 
-1. All three built-in cases load from the Cases tab and update the active case workspace.
-2. Payment Verification, Business Intelligence, Evidence Center, Link Analysis, System Access Lane, Timeline, and Case Report open with records.
-3. Generated cases save through the repository, open immediately, remain unique during rapid generation, persist after reload, and return to the live Case Queue.
-4. Luna remains locked before submission and follows the active built-in or generated case ID.
-5. Desktop and mobile Chromium render the tested flows without visible Evidence First answer leaks.
-6. The desktop category rail and active-case workflow controls remain clickable without being blocked by sticky right-side panels or the fixed navigation.
-7. Desktop investigation headers remain visible while Pixel 7 records become labeled cards and the document stays free of required horizontal page overflow.
-8. More than 50 generated cases and localStorage-to-IndexedDB migration remain covered by repository-level smoke checks.
+1. The approved Dashboard renders on desktop and Pixel 7, shows the active case and contextual shortcuts, returns to the active workspace, and remains free of required page overflow.
+2. All three built-in cases load from the Cases tab and update the active case workspace.
+3. Payment Verification, Business Intelligence, Evidence Center, Link Analysis, System Access Lane, Timeline, and Case Report open with records.
+4. Generated cases save through the repository, open immediately, remain unique during rapid generation, persist after reload, and return to the live Case Queue.
+5. Luna remains locked before submission and follows the active built-in or generated case ID.
+6. Desktop and mobile Chromium render the tested flows without visible Evidence First answer leaks.
+7. The desktop category rail and active-case workflow controls remain clickable without being blocked by sticky right-side panels or the fixed navigation.
+8. Desktop investigation headers remain visible while Pixel 7 records become labeled cards and the document stays free of required horizontal page overflow.
+9. More than 50 generated cases and localStorage-to-IndexedDB migration remain covered by repository-level smoke checks.
 
 ## Latest handoff
 
-The latest focused work adds the documentation-only release package without changing runtime presentation, investigation behavior, or persistence. `scripts/release-package-smoke-check.mjs` protects the architecture, data-model, fictional-data, accessibility/browser, deployment, limitations, backlog, and honest release-status anchors while Evidence First, Luna gating, IndexedDB-first generated-case persistence, training-safe labels, and the single Connections → System Access Lane remain unchanged.
+The approved Dashboard theme v1 is merged and protected by `scripts/dashboard-theme-v1-smoke-check.mjs` plus desktop and Pixel 7 browser coverage. The implementation keeps the four-item navigation, active case, contextual Academy Progress, neutral Luna process guidance, Evidence First, Luna locking, IndexedDB-first generated cases, and the single Connections → System Access Lane unchanged. The next isolated screen is Cases.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -153,4 +156,4 @@ npm run build
 
 ## Test status
 
-`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, Luna single-module smoke, review-package smoke, remaining-module depth, navigation direct-collapse, Academy Progress package-flow, summary direct-collapse, workspace case-state hook, workspace action-controller, display-handoff, Display Phase 1 global-shell, Display Phase 2 workflow-rail, Display Phase 3 hierarchy-and-glow, Display Phase 4 responsive-record, Display Phase 5 release-readiness, release-package documentation, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for all three built-in cases, generated-case immediate open and reload persistence, core modules, System Access Lane, Luna lock behavior, the active-case workflow surface, and responsive record presentation.
+`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, Luna single-module smoke, review-package smoke, remaining-module depth, navigation direct-collapse, Academy Progress package-flow, summary direct-collapse, workspace case-state hook, workspace action-controller, display-handoff, Display Phase 1 global-shell, Display Phase 2 workflow-rail, Display Phase 3 hierarchy-and-glow, Display Phase 4 responsive-record, Display Phase 5 release-readiness, Dashboard approved-theme v1, release-package documentation, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for the approved Dashboard, all three built-in cases, generated-case immediate open and reload persistence, core modules, System Access Lane, Luna lock behavior, the active-case workflow surface, and responsive record presentation.

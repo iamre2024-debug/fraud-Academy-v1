@@ -49,7 +49,7 @@ for (const safeLabel of [
 
 mustContain('Release Readiness', releaseReadiness, 'docs/FRAUD_ACADEMY_RELEASE_PACKAGE.md');
 mustContain('Source of Truth', sourceOfTruth, 'docs/FRAUD_ACADEMY_RELEASE_PACKAGE.md');
-mustContain('Source of Truth', sourceOfTruth, 'The focused display migration is complete.');
+mustContain('Source of Truth', sourceOfTruth, 'GitHub Issue #22 and the approved theme v1 references now lock the screen-by-screen replacement order');
 mustContain('README', readme, 'docs/FRAUD_ACADEMY_RELEASE_PACKAGE.md');
 mustContain('package.json', packageJson, 'release-package-smoke-check');
 mustContain('package.json', packageJson, 'npm run release-package-smoke-check');
