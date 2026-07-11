@@ -12,6 +12,10 @@ Verified runtime head: `11ee589509368a75e049c67474d1a1e648d9911a`
 
 Runtime merge on `main`: `c7154d9b66c1446cdc32f34b2148b8eb83a70be7`
 
+Runtime verification: GitHub Actions run #403 passed the complete named smoke chain, production build, desktop Chromium, and Pixel 7 Chromium.
+
+Handoff synchronization pull request: #45
+
 Scope: **Academy only**.
 
 This handoff records the focused approved theme v1 replacement for the Academy learning surface. It does not redesign Profile, alter final responsive/mobile polish outside Academy, change investigation behavior, or migrate persistence.
@@ -61,7 +65,7 @@ The Academy panel must stay presentation- and navigation-focused. It must not ca
 
 ## Verification gate
 
-Before merge, the exact implementation head must pass:
+The exact runtime implementation head passed:
 
 - The full named `npm run verify` chain.
 - The Academy approved-theme v1 static guard.
@@ -74,4 +78,4 @@ Before merge, the exact implementation head must pass:
 
 ## Next isolated screen
 
-After this Academy implementation is verified, merged, and synchronized into the repository handoff, the next isolated screen is **Profile only**. Do not combine Profile with final responsive/mobile polish.
+The Academy implementation is verified, merged, and synchronized into the repository handoff. The next isolated screen is **Profile only**. Do not combine Profile with final responsive/mobile polish.
