@@ -1,0 +1,166 @@
+name: Timeline handoff synchronization
+
+on:
+  push:
+    branches:
+      - agent/timeline-handoff-sync
+
+permissions:
+  contents: write
+
+jobs:
+  sync-handoff:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out handoff branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/timeline-handoff-sync
+          fetch-depth: 0
+
+      - name: Synchronize Timeline handoff
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_required(path, old, new):
+              file = Path(path)
+              text = file.read_text()
+              if old not in text:
+                  raise SystemExit(f"Missing required handoff anchor in {path}: {old}")
+              file.write_text(text.replace(old, new))
+
+          source = Path('docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md')
+          source_text = source.read_text()
+          source_replacements = [
+              (
+                  "The approved Investigation tools handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_INVESTIGATION_TOOLS_THEME_V1.md\n```\n",
+                  "The approved Investigation tools handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_INVESTIGATION_TOOLS_THEME_V1.md\n```\n\nThe approved Timeline handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_TIMELINE_THEME_V1.md\n```\n",
+              ),
+              (
+                  "The screenshot-driven visual shell remains active for surfaces that have not yet been replaced. Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, and Investigation tools are the completed approved replacements. Dashboard uses the light lavender and white, mobile-first presentation in `src/displayDashboardThemeV1.css`; Cases uses `src/CasesThemeV1Panel.jsx` and `src/displayCasesThemeV1.css`; the Workspace shell uses the compact Workspace-only header in `src/VisualShellHeader.jsx`, `src/displayWorkspaceShellThemeV1.css`, and `src/displayWorkspaceShellLayoutV1.css`; Case Briefing uses `src/CaseSummaryCard.jsx`, `src/displayCaseBriefingThemeV1.css`, and `src/displayCaseBriefingRoutesV1.css`; Customer 360 uses `src/Customer360Panel.jsx` and `src/displayCustomer360ThemeV1.css`; Investigation tools use `src/investigationToolGroups.js`, `src/InvestigationToolPanel.jsx`, and `src/displayInvestigationToolsThemeV1.css`. Preserve working routes, case data, responsive behavior, and architecture while each later surface is replaced.",
+                  "The screenshot-driven visual shell remains active for surfaces that have not yet been replaced. Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, and Timeline are the completed approved replacements. Dashboard uses the light lavender and white, mobile-first presentation in `src/displayDashboardThemeV1.css`; Cases uses `src/CasesThemeV1Panel.jsx` and `src/displayCasesThemeV1.css`; the Workspace shell uses the compact Workspace-only header in `src/VisualShellHeader.jsx`, `src/displayWorkspaceShellThemeV1.css`, and `src/displayWorkspaceShellLayoutV1.css`; Case Briefing uses `src/CaseSummaryCard.jsx`, `src/displayCaseBriefingThemeV1.css`, and `src/displayCaseBriefingRoutesV1.css`; Customer 360 uses `src/Customer360Panel.jsx` and `src/displayCustomer360ThemeV1.css`; Investigation tools use `src/investigationToolGroups.js`, `src/InvestigationToolPanel.jsx`, and `src/displayInvestigationToolsThemeV1.css`; Timeline uses `src/TimelinePanel.jsx` and `src/displayTimelineThemeV1.css`. Preserve working routes, case data, responsive behavior, and architecture while each later surface is replaced.",
+              ),
+              (
+                  "- `docs/FRAUD_ACADEMY_INVESTIGATION_TOOLS_THEME_V1.md` is the approved Investigation tools handoff. It records the six contextual groups, neutral working questions, preserved record actions and routes, responsive verification, and Timeline-only next step.",
+                  "- `docs/FRAUD_ACADEMY_INVESTIGATION_TOOLS_THEME_V1.md` is the approved Investigation tools handoff. It records the six contextual groups, neutral working questions, preserved record actions and routes, and responsive verification.\n- `docs/FRAUD_ACADEMY_TIMELINE_THEME_V1.md` is the approved Timeline handoff. It records case-scoped event ordering, neutral source verification, preserved evidence actions and routes, responsive verification, and the Decision & Luna-only next step.",
+              ),
+              (
+                  "- `src/investigationToolGroups.js` owns the six approved contextual groups: Identity & Customer; Login, Device & IP; Transactions & Financial; Business & Payment Verification; Evidence & Documents; and Links & Related Cases. Timeline and Case Report remain in Workflow Review until their later isolated redesigns.",
+                  "- `src/investigationToolGroups.js` owns the six approved contextual groups: Identity & Customer; Login, Device & IP; Transactions & Financial; Business & Payment Verification; Evidence & Documents; and Links & Related Cases. Timeline now uses its approved dedicated renderer, while Case Report remains in Workflow Review until its later isolated redesign.",
+              ),
+              (
+                  "- `src/displayInvestigationToolsThemeV1.css` owns only the approved Investigation-tools presentation. It must remain scoped to `body[data-visual-tab=\"workspace\"]`, preserve keyboard focus, 44-pixel controls, desktop two-column review, Pixel 7 stacked review, and no required horizontal page scrolling, and must not access persistence or absorb Timeline, Decision/Luna, Academy, or Profile redesign work.",
+                  "- `src/displayInvestigationToolsThemeV1.css` owns only the approved Investigation-tools presentation. It must remain scoped to `body[data-visual-tab=\"workspace\"]`, preserve keyboard focus, 44-pixel controls, desktop two-column review, Pixel 7 stacked review, and no required horizontal page scrolling, and must not access persistence or absorb Timeline, Decision/Luna, Academy, or Profile redesign work.\n- `src/TimelinePanel.jsx` owns the approved Timeline workspace: neutral event metrics, search, source filtering, sequence cards, expanded source review, pinning, notes, neutral report packets, reviewed state, and routes to Evidence Center, Case Report, and locked Submit Decision. `src/displayTimelineThemeV1.css` owns only its responsive light-lavender and white presentation. Neither file may access generated-case persistence, expand System Access, or reveal an outcome before submission.",
+              ),
+              (
+                  "- `src/ActiveToolPanel.jsx` remains the Timeline and Case Report renderer until those later isolated redesign steps. Keep Evidence First copy and the existing record/action behavior intact.",
+                  "- `src/ActiveToolPanel.jsx` remains the Case Report renderer until its later isolated redesign step. Keep Evidence First copy and the existing record/action behavior intact.",
+              ),
+              (
+                  "- `tests/investigation-tools-browser.spec.mjs` verifies the approved Investigation tools on desktop and Pixel 7, including the six contextual groups, tool routing, search, record expansion, pinning, notes, neutral report packets, reviewed state, Timeline routing, built-in case switching, responsive two-column/stacked layouts, viewport safety, Evidence First, and Luna's pre-submission lock.",
+                  "- `tests/investigation-tools-browser.spec.mjs` verifies the approved Investigation tools on desktop and Pixel 7, including the six contextual groups, tool routing, search, record expansion, pinning, notes, neutral report packets, reviewed state, Timeline routing, built-in case switching, responsive two-column/stacked layouts, viewport safety, Evidence First, and Luna's pre-submission lock.\n- `tests/timeline-browser.spec.mjs` verifies the approved Timeline on desktop and Pixel 7, including event ordering, search, source filtering, expansion, pinning, notes, neutral report packets, reviewed state, workflow routing, built-in case switching, viewport safety, Evidence First, and Luna's pre-submission lock.",
+              ),
+              (
+                  "Investigation tools approved-theme v1 guard, release-package documentation guard, and production build.",
+                  "Investigation tools approved-theme v1 guard, Timeline approved-theme v1 guard, release-package documentation guard, and production build.",
+              ),
+              (
+                  "for the approved Dashboard, Cases queue, Workspace shell, Case Briefing, Customer 360, and Investigation tools, all three built-in cases",
+                  "for the approved Dashboard, Cases queue, Workspace shell, Case Briefing, Customer 360, Investigation tools, and Timeline, all three built-in cases",
+              ),
+              (
+                  "The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, and Investigation tools redesigns are complete and protected by focused static and desktop/mobile browser guards. The next isolated safe item is **Timeline only**. Preserve active-case switching, case-scoped event ordering, report-packet events, evidence links, search and record actions, Evidence First, neutral visible wording, Luna gating, IndexedDB-first generated-case persistence, the four-item global navigation, and the single Connections → System Access Lane. Do not begin Decision & Luna, Academy, Profile, or final responsive/mobile redesign in the same pull request.",
+                  "The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, and Timeline redesigns are complete and protected by focused static and desktop/mobile browser guards. The next isolated safe item is **Decision & Luna only**. Preserve active-case switching, Submit Decision checklist and package requirements, case-scoped drafts and saved learner packages, Evidence First, neutral visible wording, Luna's pre-submission lock, post-submission active-case resolution, IndexedDB-first generated-case persistence, the four-item global navigation, and the single Connections → System Access Lane. Do not begin Academy, Profile, or final responsive/mobile redesign in the same pull request.",
+              ),
+          ]
+          for old, new in source_replacements:
+              if old not in source_text:
+                  raise SystemExit(f'Missing Source of Truth anchor: {old[:100]}')
+              source_text = source_text.replace(old, new)
+          source.write_text(source_text)
+
+          readme = Path('README.md')
+          readme_text = readme.read_text()
+          readme_replacements = [
+              (
+                  "The approved Investigation tools handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_INVESTIGATION_TOOLS_THEME_V1.md\n```\n",
+                  "The approved Investigation tools handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_INVESTIGATION_TOOLS_THEME_V1.md\n```\n\nThe approved Timeline handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_TIMELINE_THEME_V1.md\n```\n",
+              ),
+              (
+                  "the Investigation tools handoff records the completed contextual record-review workspace and Timeline-only next step",
+                  "the Investigation tools handoff records the completed contextual record-review workspace, the Timeline handoff records the completed event-sequence workspace and Decision-&-Luna-only next step",
+              ),
+              (
+                  "- The Investigation tools approved theme v1 replacement uses `src/investigationToolGroups.js`, `src/InvestigationToolPanel.jsx`, and `src/displayInvestigationToolsThemeV1.css` for six contextual tool groups, one neutral working question per tool, searchable records, expanded detail, History, Link Analysis, neutral report packets, notes, pinning, reviewed state, workflow routes, and responsive desktop/Pixel 7 presentation.",
+                  "- The Investigation tools approved theme v1 replacement uses `src/investigationToolGroups.js`, `src/InvestigationToolPanel.jsx`, and `src/displayInvestigationToolsThemeV1.css` for six contextual tool groups, one neutral working question per tool, searchable records, expanded detail, History, Link Analysis, neutral report packets, notes, pinning, reviewed state, workflow routes, and responsive desktop/Pixel 7 presentation.\n- The Timeline approved theme v1 replacement uses `src/TimelinePanel.jsx` and `src/displayTimelineThemeV1.css` for neutral event metrics, search, source filtering, sequence cards, expanded source review, pinning, timeline notes, neutral report packets, reviewed state, workflow routes, and responsive desktop/Pixel 7 presentation.",
+              ),
+              (
+                  "- `docs/FRAUD_ACADEMY_INVESTIGATION_TOOLS_THEME_V1.md` records the isolated Investigation tools scope, protected record actions and routes, desktop/mobile verification gate, and Timeline-only next step.",
+                  "- `docs/FRAUD_ACADEMY_INVESTIGATION_TOOLS_THEME_V1.md` records the isolated Investigation tools scope, protected record actions and routes, and desktop/mobile verification gate.\n- `docs/FRAUD_ACADEMY_TIMELINE_THEME_V1.md` records the isolated Timeline scope, protected event actions and routes, desktop/mobile verification gate, and Decision-&-Luna-only next step.",
+              ),
+              (
+                  "- Timeline and Summary open the existing Timeline and Case Report tools; Indicators opens the neutral Evidence Center; Determination keeps the existing package-gated submit flow; Debrief remains locked until a learner package exists.",
+                  "- Timeline opens the approved dedicated Timeline workspace and Summary keeps the existing Case Report tool; Indicators opens the neutral Evidence Center; Determination keeps the existing package-gated submit flow; Debrief remains locked until a learner package exists.",
+              ),
+              (
+                  "- `src/ActiveToolPanel.jsx` remains the existing Timeline and Case Report renderer until those later isolated redesign steps.",
+                  "- `src/ActiveToolPanel.jsx` remains the existing Case Report renderer until its later isolated redesign step.\n- `src/TimelinePanel.jsx` owns the approved Timeline workspace and preserves case-scoped event ordering, source verification, pinning, notes, neutral report packets, reviewed state, and workflow routes on the existing workspace action boundaries.",
+              ),
+              (
+                  "32. The approved Investigation tools theme v1 replaces only the deep-tool record workspace, preserves tool data and action boundaries, adds six contextual groups and focused record review, and has focused static plus desktop/mobile browser guards.",
+                  "32. The approved Investigation tools theme v1 replaces only the deep-tool record workspace, preserves tool data and action boundaries, adds six contextual groups and focused record review, and has focused static plus desktop/mobile browser guards.\n33. The approved Timeline theme v1 replaces only the event-sequence workspace, preserves case-scoped records and action boundaries, keeps all visible conclusions neutral, and has focused static plus desktop/mobile browser guards.",
+              ),
+              (
+                  "1. Redesign Timeline only using the approved theme v1 while preserving case-scoped event ordering, evidence links, report-packet events, active-case switching, neutral visible wording, and all existing Timeline actions.\n2. Continue the locked order after Timeline: Decision & Luna, Academy, Profile, and final responsive/mobile polish.",
+                  "1. Redesign Decision & Luna only using the approved theme v1 while preserving the existing checklist, learner choice, confidence, rationale, case-scoped drafts, saved learner packages, pre-submission lock, and active-case post-submission debrief.\n2. Continue the locked order after Decision & Luna: Academy, Profile, and final responsive/mobile polish.",
+              ),
+              (
+                  "6. The approved Investigation tools render on desktop and Pixel 7 with six contextual groups, tool switching, search, record expansion, pinning, notes, neutral report packets, reviewed state, Timeline/Case Report routing, two-column desktop review, stacked mobile review, and no required page overflow.\n7. All three built-in cases load from the Cases queue and update the active case workspace.",
+                  "6. The approved Investigation tools render on desktop and Pixel 7 with six contextual groups, tool switching, search, record expansion, pinning, notes, neutral report packets, reviewed state, Timeline/Case Report routing, two-column desktop review, stacked mobile review, and no required page overflow.\n7. The approved Timeline renders on desktop and Pixel 7 with event ordering, search, source filtering, expansion, pinning, notes, neutral report packets, reviewed state, workflow routing, stacked mobile review, and no required page overflow.\n8. All three built-in cases load from the Cases queue and update the active case workspace.",
+              ),
+              (
+                  "8. Payment Verification, Business Intelligence, Evidence Center, Link Analysis, System Access Lane, Timeline, and Case Report open with records.\n9. Generated cases save through the repository, open immediately, remain unique during rapid generation, persist after reload, and return to the approved Case Queue.\n10. Luna remains locked before submission and follows the active built-in or generated case ID.\n11. Desktop and mobile Chromium render the tested flows without visible Evidence First answer leaks.\n12. The contextual tool groups and active-case workflow controls remain clickable without being blocked by sticky panels or navigation.\n13. Desktop Investigation-tool records and expanded detail stay aligned while Pixel 7 stacks the review surfaces and keeps the document free of required horizontal page overflow.\n14. More than 50 generated cases and localStorage-to-IndexedDB migration remain covered by repository-level smoke checks.",
+                  "9. Payment Verification, Business Intelligence, Evidence Center, Link Analysis, System Access Lane, Timeline, and Case Report open with records.\n10. Generated cases save through the repository, open immediately, remain unique during rapid generation, persist after reload, and return to the approved Case Queue.\n11. Luna remains locked before submission and follows the active built-in or generated case ID.\n12. Desktop and mobile Chromium render the tested flows without visible Evidence First answer leaks.\n13. The contextual tool groups and active-case workflow controls remain clickable without being blocked by sticky panels or navigation.\n14. Desktop Investigation-tool records and expanded detail stay aligned while Pixel 7 stacks the review surfaces and keeps the document free of required horizontal page overflow.\n15. More than 50 generated cases and localStorage-to-IndexedDB migration remain covered by repository-level smoke checks.",
+              ),
+              (
+                  "The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, and Investigation tools theme v1 replacements are merged and protected by focused static guards plus desktop and Pixel 7 browser coverage. The implementations keep the four-item navigation, active case, contextual Academy Progress, neutral visible wording, Evidence First, Luna locking, IndexedDB-first generated cases, and the single Connections → System Access Lane unchanged. The next isolated screen is **Timeline only**.",
+                  "The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, and Timeline theme v1 replacements are merged and protected by focused static guards plus desktop and Pixel 7 browser coverage. The implementations keep the four-item navigation, active case, contextual Academy Progress, neutral visible wording, Evidence First, Luna locking, IndexedDB-first generated cases, and the single Connections → System Access Lane unchanged. The next isolated screen is **Decision & Luna only**.",
+              ),
+              (
+                  "Investigation tools approved-theme v1, release-package documentation, and production build checks.",
+                  "Investigation tools approved-theme v1, Timeline approved-theme v1, release-package documentation, and production build checks.",
+              ),
+              (
+                  "for the approved Dashboard, Cases queue, Workspace shell, Case Briefing, Customer 360, and Investigation tools, all three built-in cases",
+                  "for the approved Dashboard, Cases queue, Workspace shell, Case Briefing, Customer 360, Investigation tools, and Timeline, all three built-in cases",
+              ),
+          ]
+          for old, new in readme_replacements:
+              if old not in readme_text:
+                  raise SystemExit(f'Missing README anchor: {old[:100]}')
+              readme_text = readme_text.replace(old, new)
+          readme.write_text(readme_text)
+
+          for script in Path('scripts').glob('*theme-v1-smoke-check.mjs'):
+              text = script.read_text()
+              text = text.replace('The next isolated safe item is **Timeline only**', 'The next isolated safe item is **Decision & Luna only**')
+              text = text.replace('The next isolated screen is **Timeline only**', 'The next isolated screen is **Decision & Luna only**')
+              script.write_text(text)
+
+          timeline_guard = Path('scripts/timeline-theme-v1-smoke-check.mjs')
+          guard_text = timeline_guard.read_text()
+          guard_text = guard_text.replace(
+              "console.log('Timeline approved-theme v1 smoke check passed. Case-scoped event ordering, source links, search, filtering, event actions, responsive safety, Evidence First wording, Luna locking, and protected persistence boundaries remain intact.');",
+              "console.log('Timeline approved-theme v1 smoke check passed. Case-scoped event ordering, source links, search, filtering, event actions, responsive safety, Evidence First wording, Luna locking, protected persistence boundaries, and the Decision & Luna-only handoff remain intact.');",
+          )
+          timeline_guard.write_text(guard_text)
+          PY
+
+          rm .github/workflows/timeline-handoff-sync.yml
+          git config user.name "Fraud Academy Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add README.md docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md scripts .github/workflows/timeline-handoff-sync.yml
+          git commit -m "Sync Timeline handoff after approved merge"
+          git push origin HEAD:agent/timeline-handoff-sync
