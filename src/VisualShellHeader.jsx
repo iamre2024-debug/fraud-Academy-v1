@@ -39,6 +39,14 @@ export default function VisualShellHeader({ activeCase, cases, changeCase, onNav
         <div className="hero-cat left">🐈‍⬛</div>
         <div className="hero-bat">🦇</div>
         <div className="hero-title-wrap"><div className="hero-jewel">💜</div><h1>Fraud Academy OS</h1><span>v1.0</span></div>
+        <div className="workspace-shell-heading">
+          <span className="workspace-shell-mark" aria-hidden="true">FA</span>
+          <div>
+            <p>Investigation Workspace</p>
+            <h1>Fraud Academy OS</h1>
+            <span>Evidence First · Active case {activeCase.id}</span>
+          </div>
+        </div>
         <div className="hero-cat right">🦇</div>
         <nav className="visual-header-controls" aria-label="Application controls">
           <button type="button" className={activeControl === 'help' ? 'active' : ''} aria-label="Open Help" aria-expanded={activeControl === 'help'} aria-controls="visual-header-control-panel" onClick={() => toggleControl('help')}><span aria-hidden="true">?</span><strong>Help</strong></button>
