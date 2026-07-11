@@ -18,6 +18,7 @@ import './displayPhaseTwo.css';
 import './displayPhaseThree.css';
 import './displayPhaseFour.css';
 import './displayDashboardThemeV1.css';
+import './displayCasesThemeV1.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

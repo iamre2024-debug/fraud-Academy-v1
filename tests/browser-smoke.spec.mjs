@@ -10,7 +10,7 @@ const forbiddenPreSubmissionCopy = /\b(?:fraud score|red flags?|green flags?|cor
 
 async function openCaseQueue(page) {
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: /Cases/ }).click();
-  await expect(page.locator('[data-react-navigation-panel="cases"]')).toBeVisible();
+  await expect(page.locator('[data-cases-theme-v1="approved"]')).toBeVisible();
 }
 
 async function assertEvidenceFirstLock(page, expectedCaseId) {
@@ -64,13 +64,71 @@ test('approved Dashboard resumes the active case without answer leaks', async ({
   await assertEvidenceFirstLock(page, builtInCases[0].id);
 });
 
+test('approved Cases queue supports neutral search, filters, preview, and responsive layout', async ({ page }, testInfo) => {
+  await page.goto('/');
+  await openCaseQueue(page);
+
+  const queue = page.locator('.cases-theme-v1-panel');
+  const cards = queue.locator('.nav-case-card');
+  await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'cases');
+  await expect(queue.getByRole('heading', { name: 'Case Queue' })).toBeVisible();
+  await expect(queue.getByLabel('Search cases')).toBeVisible();
+  await expect(queue.getByRole('combobox', { name: 'Priority', exact: true })).toBeVisible();
+  await expect(queue.getByRole('combobox', { name: 'Sort', exact: true })).toBeVisible();
+  await expect(queue.getByRole('button', { name: 'Detail', exact: true })).toBeVisible();
+  await expect(queue.getByRole('button', { name: 'Compact', exact: true })).toBeVisible();
+  await expect(cards).toHaveCount(3);
+
+  await queue.getByLabel('Search cases').fill('Jordan Ellis');
+  await expect(cards).toHaveCount(1);
+  await expect(cards.first()).toContainText('FA-CB-24007');
+
+  const jordanItem = queue.locator('.case-queue-item').filter({ hasText: 'Jordan Ellis' });
+  await jordanItem.getByRole('button', { name: /Preview/ }).click();
+  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Jordan Ellis');
+  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Chargeback Claim');
+
+  await queue.getByLabel('Search cases').fill('');
+  await queue.getByRole('combobox', { name: 'Priority', exact: true }).selectOption('High');
+  await expect(cards).toHaveCount(1);
+  await expect(cards.first()).toContainText('FA-ATO-24018');
+  await queue.getByRole('combobox', { name: 'Priority', exact: true }).selectOption('all');
+
+  await queue.getByRole('button', { name: 'Compact', exact: true }).click();
+  await expect(queue.locator('.case-queue-list')).toHaveClass(/view-compact/);
+
+  const layout = await page.evaluate(() => {
+    const panel = document.querySelector('.cases-theme-v1-panel');
+    const preview = document.querySelector('.case-queue-preview');
+    const panelRect = panel?.getBoundingClientRect();
+    return {
+      viewportWidth: window.innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      panelLeft: panelRect?.left ?? 0,
+      panelRight: panelRect?.right ?? 0,
+      previewPosition: preview ? getComputedStyle(preview).position : '',
+    };
+  });
+
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.panelLeft).toBeGreaterThanOrEqual(-1);
+  expect(layout.panelRight).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  if (testInfo.project.name === 'mobile-chromium') {
+    expect(layout.previewPosition).toBe('static');
+  } else {
+    expect(layout.previewPosition).toBe('sticky');
+  }
+
+  await assertEvidenceFirstLock(page, builtInCases[0].id);
+});
+
 test('all three built-in cases open from the queue without answer leaks', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /Fraud Academy OS/ })).toBeVisible();
 
   for (const item of builtInCases) {
     await openCaseQueue(page);
-    await page.locator('.nav-case-card').filter({ hasText: item.id }).click();
+    await page.locator('.cases-theme-v1-panel .nav-case-card').filter({ hasText: item.id }).click();
     await expect(page.locator('.visual-case-switcher select')).toHaveValue(item.id);
     await expect(page.locator('.case-summary-meta-grid').getByText(item.person, { exact: true })).toBeVisible();
     await assertEvidenceFirstLock(page, item.id);
@@ -167,10 +225,10 @@ test('generated cases persist through reload and remain Evidence First', async (
   await openCaseQueue(page);
 
   for (const generatedId of generatedIds) {
-    await expect(page.locator('.nav-case-card').filter({ hasText: generatedId })).toBeVisible();
+    await expect(page.locator('.cases-theme-v1-panel .nav-case-card').filter({ hasText: generatedId })).toBeVisible();
   }
 
-  await page.locator('.nav-case-card').filter({ hasText: generatedIds[0] }).click();
+  await page.locator('.cases-theme-v1-panel .nav-case-card').filter({ hasText: generatedIds[0] }).click();
   await expect(selector).toHaveValue(generatedIds[0]);
   await assertEvidenceFirstLock(page, generatedIds[0]);
 
@@ -179,10 +237,10 @@ test('generated cases persist through reload and remain Evidence First', async (
   await openCaseQueue(page);
 
   for (const generatedId of generatedIds) {
-    await expect(page.locator('.nav-case-card').filter({ hasText: generatedId })).toBeVisible();
+    await expect(page.locator('.cases-theme-v1-panel .nav-case-card').filter({ hasText: generatedId })).toBeVisible();
   }
 
-  await page.locator('.nav-case-card').filter({ hasText: generatedIds[0] }).click();
+  await page.locator('.cases-theme-v1-panel .nav-case-card').filter({ hasText: generatedIds[0] }).click();
   await expect(page.locator('.visual-case-switcher select')).toHaveValue(generatedIds[0]);
   await assertEvidenceFirstLock(page, generatedIds[0]);
 });
