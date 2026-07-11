@@ -133,22 +133,19 @@ const checks = [
     file: 'src/CaseSummaryCard.jsx',
     label: 'approved Case Briefing module',
     mustContain: [
-      'className="case-summary-visual case-briefing-theme-v1"',
+      'data-case-briefing-container="approved-theme-v1"',
       'data-case-briefing-screen="approved-theme-v1"',
       'className="case-summary-meta-grid"',
       '<small>Claim ID</small>',
       '<small>Transaction / payee info</small>',
       '<small>Short summary</small>',
       'pin(activeCase.id)',
-      "openTool('Customer 360', 'investigate')",
-      "openTool('Timeline', 'timeline')",
-      "openTool('Case Report', 'summary')",
-      'Luna Briefing Assistant',
-      'Begin Investigation',
-    ],
-    mustNotContain: [
+      "openTool('Identity Intelligence')",
+      "openTool('Case Report')",
+      "openTool('Login History')",
+      'jumpDecision={jumpDecision}',
       'decision-jump-button',
-      'Submit Decision',
+      'Case briefing quick routes',
     ],
   },
   {
@@ -373,4 +370,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Functional smoke check passed. Workspace state and action boundaries, repository-backed generated cases, IndexedDB fallback, direct Submit Decision compact text, Evidence First locks, React navigation, and the full verify wiring are present.');
+console.log('Functional smoke check passed. Workspace state and action boundaries, repository-backed generated cases, IndexedDB fallback, approved Case Briefing quick routes, direct Submit Decision compact text, Evidence First locks, React navigation, and the full verify wiring are present.');
