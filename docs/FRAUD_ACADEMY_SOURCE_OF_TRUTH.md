@@ -108,6 +108,8 @@ Use fictional, training-safe labels in the UI and generated evidence:
 - `docs/FRAUD_ACADEMY_INVESTIGATION_TOOLS_THEME_V1.md` is the approved Investigation tools handoff.
 - `docs/FRAUD_ACADEMY_TIMELINE_THEME_V1.md` is the approved Timeline handoff.
 - `docs/FRAUD_ACADEMY_DECISION_LUNA_THEME_V1.md` is the completed approved Decision and Luna handoff. It records runtime PR #37, verified head `e1731cd91f7c26992605cfe311672354aa5e4643`, merge commit `92d7848e608f62d2800849f5111eb5115f505569`, and the Academy-only next step.
+- `src/displayPhaseThree.css` owns hierarchy and glow calibration only. It preserves visible focus and interaction states without changing records or persistence.
+- `src/displayPhaseFour.css` owns responsive investigation-record presentation only. It preserves desktop tables and converts phone-width records into labeled cards without horizontal scrolling.
 - `src/displayDashboardThemeV1.css` owns only the approved Dashboard replacement.
 - `src/CasesThemeV1Panel.jsx` and `src/displayCasesThemeV1.css` own the approved Cases queue and presentation. They must not generate cases or write persistence data.
 - `src/VisualShellHeader.jsx`, `src/displayWorkspaceShellThemeV1.css`, and `src/displayWorkspaceShellLayoutV1.css` own the approved Workspace shell.
