@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 
 const learningPaths = [
@@ -46,36 +44,13 @@ const achievementSteps = [
   ['Submit the package', 'Unlock the case-scoped Luna debrief and progress snapshot.'],
 ];
 
-export default function AcademyThemeV1Panel({ active = false, onNavigate }) {
-  const [panelHost, setPanelHost] = useState(null);
-
-  useEffect(() => {
-    const frame = document.querySelector('.visual-os-frame');
-    const anchor = frame?.querySelector('.visual-react-nav-host');
-    if (!frame || !anchor) return undefined;
-
-    let host = frame.querySelector('.academy-theme-v1-host');
-    const created = !host;
-    if (!host) {
-      host = document.createElement('div');
-      host.className = 'academy-theme-v1-host';
-      anchor.insertAdjacentElement('afterend', host);
-    }
-
-    setPanelHost(host);
-    return () => {
-      if (created) host.remove();
-    };
-  }, []);
-
-  if (!active || !panelHost) return null;
-
-  return createPortal(
-    <section className="academy-theme-v1" data-academy-screen="approved-theme-v1" aria-label="Fraud Academy Learning Center">
+export default function AcademyThemeV1Panel({ onNavigate }) {
+  return (
+    <div className="academy-theme-v1" data-academy-screen="approved-theme-v1">
       <header className="academy-hero">
         <div className="academy-hero-copy">
           <span className="academy-kicker">Learning Center</span>
-          <h2>Build investigator judgment</h2>
+          <h3>Build investigator judgment</h3>
           <DirectCollapsibleText as="p" lines={3} mobileLines={3}>
             Practice the complete Evidence First rhythm, then use the active case workspace to apply each skill to realistic fictional records.
           </DirectCollapsibleText>
@@ -106,7 +81,7 @@ export default function AcademyThemeV1Panel({ active = false, onNavigate }) {
           <div className="academy-section-heading">
             <div>
               <span className="academy-kicker">Learning paths</span>
-              <h3 id="academy-paths-title">Practice in investigation order</h3>
+              <h4 id="academy-paths-title">Practice in investigation order</h4>
             </div>
             <p>Each path maps to the existing workspace flow and keeps the outcome protected until submission.</p>
           </div>
@@ -118,7 +93,7 @@ export default function AcademyThemeV1Panel({ active = false, onNavigate }) {
                   <span>{path.number}</span>
                   <small>{path.label}</small>
                 </div>
-                <h4>{path.title}</h4>
+                <h5>{path.title}</h5>
                 <DirectCollapsibleText as="p" lines={3} mobileLines={3}>
                   {path.description}
                 </DirectCollapsibleText>
@@ -133,7 +108,7 @@ export default function AcademyThemeV1Panel({ active = false, onNavigate }) {
         <aside className="academy-context-column">
           <section className="academy-library-card" aria-labelledby="academy-library-title">
             <span className="academy-kicker">Fraud Library</span>
-            <h3 id="academy-library-title">Reference by investigator question</h3>
+            <h4 id="academy-library-title">Reference by investigator question</h4>
             <div className="academy-library-list">
               {libraryTopics.map(([title, detail]) => (
                 <article key={title}>
@@ -149,7 +124,7 @@ export default function AcademyThemeV1Panel({ active = false, onNavigate }) {
 
           <section className="academy-achievement-card" aria-labelledby="academy-achievements-title">
             <span className="academy-kicker">Achievements</span>
-            <h3 id="academy-achievements-title">Progress follows completed work</h3>
+            <h4 id="academy-achievements-title">Progress follows completed work</h4>
             <p>Academy status stays neutral until a learner package is saved for the case.</p>
             <ol>
               {achievementSteps.map(([title, detail]) => (
@@ -172,7 +147,6 @@ export default function AcademyThemeV1Panel({ active = false, onNavigate }) {
         </div>
         <button type="button" onClick={() => onNavigate('workspace')}>Practice in Workspace</button>
       </footer>
-    </section>,
-    panelHost,
+    </div>
   );
 }
