@@ -59,9 +59,12 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
     const workspace = document.querySelector('.decision-v1-workspace');
     const metrics = document.querySelector('.decision-status-grid');
     const lockedGrid = document.querySelector('.luna-v1-unlock-grid');
+    const viewportWidth = window.innerWidth;
+    const rect = panel?.getBoundingClientRect();
     return {
-      viewportWidth: window.innerWidth,
+      viewportWidth,
       documentWidth: document.documentElement.scrollWidth,
+      panelOverflow: rect ? Math.max(0, -rect.left, rect.right - viewportWidth) : Number.POSITIVE_INFINITY,
       workspaceColumns: workspace ? getComputedStyle(workspace).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
       metricColumns: metrics ? getComputedStyle(metrics).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
       lockedColumns: lockedGrid ? getComputedStyle(lockedGrid).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
@@ -70,6 +73,7 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
   });
 
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.panelOverflow).toBeLessThanOrEqual(4);
   expect(layout.position).toBe('static');
   if (testInfo.project.name === 'mobile-chromium') {
     expect(layout.workspaceColumns).toBe(1);
