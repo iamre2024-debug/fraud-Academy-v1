@@ -22,8 +22,8 @@ mustNotContain('VisualWorkspace.jsx', workspace, "window.dispatchEvent(new Custo
 mustContain('useVisualWorkspaceActions.js', workspaceActions, "window.dispatchEvent(new CustomEvent('fraud-academy:package-saved'");
 mustContain('useVisualWorkspaceActions.js', workspaceActions, "markReviewed('Submit Decision')");
 
-mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Luna Case Debrief');
-mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Post-submission coaching stays protected');
+mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Luna Post-Submission Debrief');
+mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Post-submission coaching stays locked');
 mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Evidence First lock is active');
 mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Your submitted determination');
 mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Decision-quality breakdown');
