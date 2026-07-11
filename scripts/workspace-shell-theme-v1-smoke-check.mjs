@@ -80,10 +80,10 @@ mustContain('workspace-shell-browser.spec.mjs', browser, 'approved Workspace she
 mustContain('workspace-shell-browser.spec.mjs', browser, '.workspace-shell-heading');
 mustContain('Workspace shell handoff', handoff, 'agent/workspace-shell-approved-theme-v1');
 mustContain('Workspace shell handoff', handoff, 'Case Briefing');
-mustContain('Source of Truth', sourceOfTruth, 'Dashboard, Cases, and the Workspace shell are the completed approved replacements');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Case Briefing only**');
-mustContain('README', readme, 'The approved Dashboard, Cases, and Workspace shell theme v1 replacements are merged');
-mustContain('README', readme, 'The next isolated screen is **Case Briefing only**');
+mustContain('Source of Truth', sourceOfTruth, 'Dashboard, Cases, the Workspace shell, and Case Briefing are the completed approved replacements');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Customer 360 only**');
+mustContain('README', readme, 'The approved Dashboard, Cases, Workspace shell, and Case Briefing theme v1 replacements are merged');
+mustContain('README', readme, 'The next isolated screen is **Customer 360 only**');
 
 for (const forbidden of [
   'generatedCaseRepository',
@@ -106,4 +106,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Workspace shell approved-theme v1 smoke check passed. The compact header, active-case strip, workflow rail, responsive grid safety, synchronized handoff, Evidence First wording, and protected persistence boundaries remain intact.');
+console.log('Workspace shell approved-theme v1 smoke check passed. The compact header, active-case strip, workflow rail, responsive grid safety, synchronized Customer 360 handoff, Evidence First wording, and protected persistence boundaries remain intact.');
