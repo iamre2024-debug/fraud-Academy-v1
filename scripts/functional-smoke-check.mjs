@@ -144,7 +144,7 @@ const checks = [
   {
     file: 'src/VisualTextCollapse.jsx',
     label: 'inert compact-text compatibility marker',
-    mustContain: ['return null'],
+    mustContain: ['data-react-text-collapse="retired"'],
     mustNotContain: ['querySelectorAll', 'createPortal', 'addEventListener', 'MutationObserver'],
   },
   {
