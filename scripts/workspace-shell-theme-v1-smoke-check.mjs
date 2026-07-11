@@ -64,7 +64,8 @@ for (const anchor of [
   '.workflow-investigate-stage',
   '.workflow-active-tool-stage',
   'grid-column: 1 / -1',
-  'grid-template-columns: minmax(0, 1fr) auto',
+  'grid-template-columns: 1fr',
+  'justify-self: end',
   '@media (max-width: 620px)',
 ]) {
   mustContain('displayWorkspaceShellLayoutV1.css', layoutStyles, anchor);
