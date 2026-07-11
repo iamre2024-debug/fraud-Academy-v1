@@ -3,6 +3,7 @@ import path from 'node:path';
 
 const rootDir = process.cwd();
 const workspace = fs.readFileSync(path.join(rootDir, 'src/VisualWorkspace.jsx'), 'utf8');
+const workspaceActions = fs.readFileSync(path.join(rootDir, 'src/useVisualWorkspaceActions.js'), 'utf8');
 const lunaPanel = fs.readFileSync(path.join(rootDir, 'src/LunaPostSubmissionPanel.jsx'), 'utf8');
 const visualTextCollapse = fs.readFileSync(path.join(rootDir, 'src/VisualTextCollapse.jsx'), 'utf8');
 const failures = [];
@@ -17,7 +18,9 @@ function mustNotContain(fileLabel, content, text) {
 
 mustNotContain('VisualWorkspace.jsx', workspace, '🌙 Luna Debrief');
 mustNotContain('VisualWorkspace.jsx', workspace, 'className="ornate-card luna-visual-panel locked"');
-mustContain('VisualWorkspace.jsx', workspace, "window.dispatchEvent(new CustomEvent('fraud-academy:package-saved'");
+mustNotContain('VisualWorkspace.jsx', workspace, "window.dispatchEvent(new CustomEvent('fraud-academy:package-saved'");
+mustContain('useVisualWorkspaceActions.js', workspaceActions, "window.dispatchEvent(new CustomEvent('fraud-academy:package-saved'");
+mustContain('useVisualWorkspaceActions.js', workspaceActions, "markReviewed('Submit Decision')");
 
 mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Luna Post-Submission Debrief');
 mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Post-submission coaching stays locked');
@@ -38,4 +41,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Luna single-module smoke check passed. Luna remains a single post-submission module, listens for saved packages, and owns direct compact-text controls without legacy selector scanning.');
+console.log('Luna single-module smoke check passed. Luna remains a single post-submission module, listens for controller-saved packages, and owns direct compact-text controls without legacy selector scanning.');

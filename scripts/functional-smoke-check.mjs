@@ -39,17 +39,19 @@ const checks = [
   },
   {
     file: 'src/VisualWorkspace.jsx',
-    label: 'visual shell action and review flow coordinator',
+    label: 'visual shell composition coordinator',
     mustContain: [
       "import ActiveToolPanel from './ActiveToolPanel.jsx'",
       "import BottomInvestigationGrid from './BottomInvestigationGrid.jsx'",
       "import CaseSummaryCard from './CaseSummaryCard.jsx'",
       "import CategoryTileRail from './CategoryTileRail.jsx'",
       "import SubmitDecisionPanel from './SubmitDecisionPanel.jsx'",
+      "import useVisualWorkspaceActions from './useVisualWorkspaceActions.js'",
       "import useVisualWorkspaceCaseState from './useVisualWorkspaceCaseState.js'",
       "import VisualShellHeader from './VisualShellHeader.jsx'",
       "from './visualWorkspaceModel.js'",
       '} = useVisualWorkspaceCaseState(activeCase);',
+      '} = useVisualWorkspaceActions({',
       'rowsFor(tool, activeCase, reportPackets)',
       '<ActiveToolPanel',
       '<BottomInvestigationGrid',
@@ -57,8 +59,6 @@ const checks = [
       '<CategoryTileRail',
       '<SubmitDecisionPanel',
       '<VisualShellHeader',
-      'getReviewPackageStatus({ completedTools: currentCompleted, tray, notes, draft: decisionDraft, reportPackets })',
-      'buildReviewPackage({',
     ],
     mustNotContain: [
       "window.dispatchEvent(new CustomEvent('fraud-academy:navigate'",
@@ -67,6 +67,15 @@ const checks = [
       'readStorage(',
       'writeStorage(',
       'useEffect(',
+      'getReviewPackageStatus(',
+      'buildReviewPackage(',
+      'function pin(',
+      'function saveNote(',
+      'function markReviewed(',
+      'function saveCaseReportPacket(',
+      'function updateDecision(',
+      'function submitNote(',
+      'function submitDecision(',
     ],
   },
   {
@@ -85,6 +94,25 @@ const checks = [
       'writeStorage(storageKeys.reportPackets',
       "currentCompleted: completedByCase[caseId] ?? ['Case Summary']",
       'decisionDraft: decisionByCase[caseId] ?? defaultDecisionDraft',
+    ],
+  },
+  {
+    file: 'src/useVisualWorkspaceActions.js',
+    label: 'case action and review package controller hook',
+    mustContain: [
+      "import { buildReviewPackage, getReviewPackageStatus } from './data/reviewPackage.js'",
+      "from './visualWorkspaceModel.js'",
+      'const packageStatus = getReviewPackageStatus({',
+      'function pin(value)',
+      "function saveNote(text, type = 'Investigation note')",
+      'function markReviewed(toolName = tool)',
+      'function saveCaseReportPacket(row = activeRow)',
+      'function updateDecision(field, value)',
+      'function submitNote(event)',
+      'function submitDecision(event)',
+      'const reviewPackage = buildReviewPackage({',
+      "window.dispatchEvent(new CustomEvent('fraud-academy:package-saved'",
+      "markReviewed('Submit Decision')",
     ],
   },
   {
@@ -275,10 +303,12 @@ const checks = [
     mustContain: [
       '"generated-case-smoke-check": "node scripts/generated-case-smoke-check.mjs"',
       '"workspace-case-state-hook-smoke-check": "node scripts/workspace-case-state-hook-smoke-check.mjs"',
+      '"workspace-actions-controller-smoke-check": "node scripts/workspace-actions-controller-smoke-check.mjs"',
       'npm run generated-case-smoke-check',
       'npm run functional-smoke-check',
       'npm run review-package-smoke-check',
       'npm run workspace-case-state-hook-smoke-check',
+      'npm run workspace-actions-controller-smoke-check',
       'npm run build',
     ],
   },
@@ -337,4 +367,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Functional smoke check passed. Workspace persistence boundaries, repository-backed generated cases, IndexedDB fallback, direct Submit Decision compact text, Evidence First locks, React navigation, and the full verify wiring are present.');
+console.log('Functional smoke check passed. Workspace state and action boundaries, repository-backed generated cases, IndexedDB fallback, direct Submit Decision compact text, Evidence First locks, React navigation, and the full verify wiring are present.');
