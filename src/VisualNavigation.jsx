@@ -6,15 +6,15 @@ import { trainingCases } from './data/cases.js';
 
 const tabCopy = {
   dashboard: {
-    eyebrow: 'Command Dashboard',
-    title: 'Investigation overview',
-    text: 'A neutral command view for active training cases, saved packages, reviewed tools, and the next Evidence First action.',
-    icon: '⌂',
+    eyebrow: 'Fraud Academy',
+    title: 'Investigator dashboard',
+    text: 'Resume the active case, review your queue, and continue the next Evidence First action.',
+    icon: '✦',
   },
   cases: {
     eyebrow: 'Case Queue',
     title: 'Choose a training case',
-    text: 'Open a case and continue the same investigation workspace without resetting the gothic neon shell.',
+    text: 'Open a case and continue the same investigation workspace without resetting progress.',
     icon: '▣',
   },
   academy: {
@@ -34,7 +34,7 @@ const tabCopy = {
 const navigationItems = [
   { key: 'dashboard', icon: '⌂', label: 'Dashboard' },
   { key: 'cases', icon: '▣', label: 'Cases' },
-  { key: 'workspace', icon: '🪄', label: 'Workspace' },
+  { key: 'workspace', icon: '◈', label: 'Workspace' },
   { key: 'academy', icon: '▱', label: 'Academy' },
 ];
 
@@ -81,11 +81,14 @@ function buildSnapshot() {
     notes: countValuesByCase(notesByCase),
     packages: countValuesByCase(packagesByCase),
     packets: countValuesByCase(packetsByCase),
+    completedByCase,
+    notesByCase,
     packagesByCase,
+    packetsByCase,
   };
 }
 
-export default function VisualNavigation({ activeTab = 'workspace', cases = trainingCases, onNavigate, onOpenCase }) {
+export default function VisualNavigation({ activeTab = 'workspace', activeCaseId = '', cases = trainingCases, onNavigate, onOpenCase }) {
   const [panelHost, setPanelHost] = useState(null);
   const [snapshotVersion, setSnapshotVersion] = useState(0);
   const snapshot = useMemo(() => buildSnapshot(), [activeTab, snapshotVersion]);
@@ -129,6 +132,7 @@ export default function VisualNavigation({ activeTab = 'workspace', cases = trai
   const panel = activeTab === 'workspace' ? null : (
     <NavigationPanel
       activeTab={activeTab}
+      activeCaseId={activeCaseId}
       cases={cases}
       snapshot={snapshot}
       onNavigate={onNavigate}
@@ -156,11 +160,11 @@ export default function VisualNavigation({ activeTab = 'workspace', cases = trai
   );
 }
 
-function NavigationPanel({ activeTab, cases, snapshot, onNavigate, onOpenCase }) {
+function NavigationPanel({ activeTab, activeCaseId, cases, snapshot, onNavigate, onOpenCase }) {
   const copy = tabCopy[activeTab] ?? tabCopy.dashboard;
 
   return (
-    <section className="ornate-card visual-nav-panel" aria-live="polite" data-react-navigation-panel={activeTab}>
+    <section className={`ornate-card visual-nav-panel ${activeTab === 'dashboard' ? 'dashboard-theme-v1' : ''}`} aria-live="polite" data-react-navigation-panel={activeTab}>
       <div className="visual-nav-heading">
         <div>
           <p>{copy.eyebrow}</p>
@@ -171,7 +175,15 @@ function NavigationPanel({ activeTab, cases, snapshot, onNavigate, onOpenCase })
         </div>
         <div aria-hidden="true">{copy.icon}</div>
       </div>
-      {activeTab === 'dashboard' && <DashboardPanel cases={cases} snapshot={snapshot} onNavigate={onNavigate} />}
+      {activeTab === 'dashboard' && (
+        <DashboardPanel
+          activeCaseId={activeCaseId}
+          cases={cases}
+          snapshot={snapshot}
+          onNavigate={onNavigate}
+          onOpenCase={onOpenCase}
+        />
+      )}
       {activeTab === 'cases' && <CasesPanel cases={cases} onOpenCase={onOpenCase} />}
       {activeTab === 'academy' && <AcademyPanel onNavigate={onNavigate} />}
       {activeTab === 'progress' && (
@@ -181,22 +193,83 @@ function NavigationPanel({ activeTab, cases, snapshot, onNavigate, onOpenCase })
   );
 }
 
-function DashboardPanel({ cases, snapshot, onNavigate }) {
+function DashboardPanel({ activeCaseId, cases, snapshot, onNavigate, onOpenCase }) {
+  const activeCase = cases.find((item) => item.id === activeCaseId) ?? cases[0];
+  const reviewedForCase = snapshot.completedByCase[activeCase?.id]?.length ?? 0;
+  const notesForCase = snapshot.notesByCase[activeCase?.id]?.length ?? 0;
+  const packagesForCase = snapshot.packagesByCase[activeCase?.id]?.length ?? 0;
+  const progress = Math.min(100, 18 + reviewedForCase * 4 + notesForCase * 3 + packagesForCase * 20);
+
   return (
-    <>
-      <div className="nav-stat-grid">
-        <article><strong>{cases.length}</strong><span>Active cases</span></article>
+    <div className="dashboard-v1-shell">
+      <header className="dashboard-welcome-card">
+        <div>
+          <span className="dashboard-kicker">Welcome back</span>
+          <h3>Investigator</h3>
+          <p>Pick up your active case and keep the evidence trail moving.</p>
+        </div>
+        <div className="dashboard-agent-mark" aria-hidden="true">☾</div>
+      </header>
+
+      {activeCase && (
+        <article className="dashboard-active-case" aria-label="Active case">
+          <div className="dashboard-active-case-copy">
+            <span className="dashboard-kicker">Active case</span>
+            <div className="dashboard-case-title-row">
+              <div>
+                <h3>{activeCase.id}</h3>
+                <p>{activeCase.type} · {activeCase.person}</p>
+              </div>
+              <span className={`dashboard-priority priority-${String(activeCase.priority).toLowerCase()}`}>{activeCase.priority} priority</span>
+            </div>
+            <div className="dashboard-progress-row">
+              <span>Investigation progress</span>
+              <div className="dashboard-progress-track" aria-label={`${progress}% investigation progress`}>
+                <span style={{ width: `${progress}%` }} />
+              </div>
+              <strong>{progress}%</strong>
+            </div>
+          </div>
+          <button type="button" className="dashboard-primary-action" onClick={() => onOpenCase(activeCase.id)}>
+            Open Workspace <span aria-hidden="true">→</span>
+          </button>
+        </article>
+      )}
+
+      <div className="dashboard-quick-grid" aria-label="Dashboard shortcuts">
+        <button type="button" onClick={() => onNavigate('cases')}>
+          <span className="dashboard-quick-icon">▣</span>
+          <span><strong>Case Queue</strong><small>{cases.length} available cases</small></span>
+        </button>
+        <button type="button" onClick={() => onNavigate('workspace')}>
+          <span className="dashboard-quick-icon">◈</span>
+          <span><strong>Evidence Workspace</strong><small>{snapshot.reviewed} tools reviewed</small></span>
+        </button>
+        <button type="button" onClick={() => onNavigate('workspace')}>
+          <span className="dashboard-quick-icon">◷</span>
+          <span><strong>Timeline</strong><small>Review case events</small></span>
+        </button>
+        <button type="button" onClick={() => onNavigate('progress')}>
+          <span className="dashboard-quick-icon">▱</span>
+          <span><strong>Reports & Progress</strong><small>{snapshot.packets} packets · {snapshot.packages} packages</small></span>
+        </button>
+      </div>
+
+      <section className="dashboard-summary-grid" aria-label="Recent work summary">
+        <article><strong>{snapshot.notes}</strong><span>Saved notes</span></article>
         <article><strong>{snapshot.reviewed}</strong><span>Reviewed tools</span></article>
-        <article><strong>{snapshot.notes}</strong><span>Notebook notes</span></article>
-        <article><strong>{snapshot.packages}</strong><span>Saved packages</span></article>
-      </div>
-      <div className="nav-action-row">
-        <button type="button" onClick={() => onNavigate('cases')}>Open Case Queue</button>
-        <button type="button" onClick={() => onNavigate('workspace')}>Return to Workspace</button>
-        <button type="button" onClick={() => onNavigate('progress')}>View Progress</button>
-      </div>
-      <p className="nav-microcopy">{snapshot.packets} structured Case Report packet(s) saved across the training workspace.</p>
-    </>
+        <article><strong>{snapshot.packages}</strong><span>Submitted packages</span></article>
+      </section>
+
+      <aside className="dashboard-luna-card">
+        <div className="dashboard-luna-orb" aria-hidden="true">L</div>
+        <div>
+          <span className="dashboard-kicker">Luna guide</span>
+          <strong>Process coaching stays neutral</strong>
+          <p>Luna can guide the workflow, but case scoring remains locked until the decision package is submitted.</p>
+        </div>
+      </aside>
+    </div>
   );
 }
 
