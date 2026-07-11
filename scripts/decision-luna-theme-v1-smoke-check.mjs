@@ -163,9 +163,9 @@ mustContain('Decision and Luna handoff', handoff, 'Academy only');
 mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_DECISION_LUNA_THEME_V1.md`');
 mustContain('Source of Truth', sourceOfTruth, '`src/SubmitDecisionPanel.jsx` owns the approved Decision workspace');
 mustContain('Source of Truth', sourceOfTruth, '`src/LunaPostSubmissionPanel.jsx` owns the approved locked and post-submission Luna states');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Academy only**');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Profile only**');
 mustContain('README', readme, 'The approved Decision and Luna handoff lives in');
-mustContain('README', readme, 'The next isolated screen is **Academy only**');
+mustContain('README', readme, 'The next isolated screen is **Profile only**');
 mustContain('package.json', packageJson, 'decision-luna-theme-v1-smoke-check');
 mustContain('build.yml', workflow, 'Decision and Luna approved-theme v1 smoke check');
 
@@ -200,4 +200,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Decision and Luna approved-theme v1 smoke check passed. Evidence First locking, lane-organized learner choices, rationale readiness, case-scoped package saving, post-submission coaching, viewport-bound layout safety, existing persistence boundaries, and the synchronized Academy-only handoff remain intact.');
+console.log('Decision and Luna approved-theme v1 smoke check passed. Evidence First locking, lane-organized learner choices, rationale readiness, case-scoped package saving, post-submission coaching, viewport-bound layout safety, existing persistence boundaries, and the synchronized Profile-only handoff remain intact.');

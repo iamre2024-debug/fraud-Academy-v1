@@ -106,8 +106,8 @@ mustContain('investigation-tools-browser.spec.mjs', browser, 'approved Investiga
 mustContain('investigation-tools-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('Investigation tools handoff', handoff, 'agent/investigation-tools-approved-theme-v1');
 mustContain('Investigation tools handoff', handoff, 'Timeline only');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Academy only**');
-mustContain('README', readme, 'The next isolated screen is **Academy only**');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Profile only**');
+mustContain('README', readme, 'The next isolated screen is **Profile only**');
 
 for (const forbidden of [
   'generatedCaseRepository',

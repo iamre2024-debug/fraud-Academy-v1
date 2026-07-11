@@ -9,6 +9,8 @@ const safetyStyles = fs.readFileSync(path.join(rootDir, 'src/displayAcademyTheme
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/academy-browser.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md'), 'utf8');
+const sourceOfTruth = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'), 'utf8');
+const readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8');
 const packageJson = fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8');
 const workflow = fs.readFileSync(path.join(rootDir, '.github/workflows/build.yml'), 'utf8');
 const failures = [];
@@ -82,6 +84,11 @@ mustContain('academy-browser.spec.mjs', browser, "page.locator('.active-case-wor
 mustContain('academy-browser.spec.mjs', browser, "page.locator('.generated-case-controls')");
 mustContain('Academy handoff', handoff, 'agent/academy-approved-theme-v1');
 mustContain('Academy handoff', handoff, 'Profile only');
+mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md`');
+mustContain('Source of Truth', sourceOfTruth, 'Decision & Luna, and Academy are the completed approved replacements');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Profile only**');
+mustContain('README', readme, 'docs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md');
+mustContain('README', readme, 'The next isolated screen is **Profile only**');
 mustContain('package.json', packageJson, 'academy-theme-v1-smoke-check');
 mustContain('build.yml', workflow, 'Academy approved-theme v1 smoke check');
 
