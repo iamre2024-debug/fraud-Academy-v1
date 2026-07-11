@@ -99,6 +99,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
           activeCase={activeCase}
           cases={cases}
           changeCase={changeCase}
+          onNavigate={onNavigate}
         />
 
         <CaseSummaryCard
