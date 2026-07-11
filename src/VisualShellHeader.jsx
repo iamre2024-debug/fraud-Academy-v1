@@ -1,4 +1,38 @@
-export default function VisualShellHeader({ activeCase, cases, changeCase }) {
+import { useEffect, useState } from 'react';
+
+const reducedMotionKey = 'fraud-academy-reduced-motion-v1';
+
+function readReducedMotion() {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(reducedMotionKey) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export default function VisualShellHeader({ activeCase, cases, changeCase, onNavigate }) {
+  const [activeControl, setActiveControl] = useState('');
+  const [reducedMotion, setReducedMotion] = useState(readReducedMotion);
+
+  useEffect(() => {
+    document.body.dataset.visualMotion = reducedMotion ? 'reduced' : 'standard';
+    try {
+      window.localStorage.setItem(reducedMotionKey, String(reducedMotion));
+    } catch {
+      // Keep the setting functional for the current session when storage is unavailable.
+    }
+  }, [reducedMotion]);
+
+  function toggleControl(control) {
+    setActiveControl((current) => (current === control ? '' : control));
+  }
+
+  function navigate(tab) {
+    onNavigate?.(tab);
+    setActiveControl('');
+  }
+
   return (
     <>
       <header className="visual-hero">
@@ -6,7 +40,38 @@ export default function VisualShellHeader({ activeCase, cases, changeCase }) {
         <div className="hero-bat">🦇</div>
         <div className="hero-title-wrap"><div className="hero-jewel">💜</div><h1>Fraud Academy OS</h1><span>v1.0</span></div>
         <div className="hero-cat right">🦇</div>
+        <nav className="visual-header-controls" aria-label="Application controls">
+          <button type="button" className={activeControl === 'help' ? 'active' : ''} aria-label="Open Help" aria-expanded={activeControl === 'help'} aria-controls="visual-header-control-panel" onClick={() => toggleControl('help')}><span aria-hidden="true">?</span><strong>Help</strong></button>
+          <button type="button" className={activeControl === 'settings' ? 'active' : ''} aria-label="Open Settings" aria-expanded={activeControl === 'settings'} aria-controls="visual-header-control-panel" onClick={() => toggleControl('settings')}><span aria-hidden="true">⚙</span><strong>Settings</strong></button>
+          <button type="button" className={activeControl === 'profile' ? 'active' : ''} aria-label="Open Agent profile" aria-expanded={activeControl === 'profile'} aria-controls="visual-header-control-panel" onClick={() => toggleControl('profile')}><span className="agent-avatar" aria-hidden="true">LA</span><strong>Agent</strong></button>
+        </nav>
       </header>
+
+      {activeControl && (
+        <section id="visual-header-control-panel" className="ornate-card visual-header-control-panel" data-header-panel={activeControl} aria-live="polite">
+          <button type="button" className="header-panel-close" aria-label="Close header panel" onClick={() => setActiveControl('')}>×</button>
+          {activeControl === 'help' && (
+            <>
+              <div className="header-control-heading"><span aria-hidden="true">?</span><div><p>Help</p><h2>Evidence First guide</h2></div></div>
+              <p>Review records, expand details, search related objects, connect evidence, document the case, and submit only after the checklist is complete.</p>
+              <div className="nav-action-row"><button type="button" onClick={() => navigate('academy')}>Open Academy</button><button type="button" onClick={() => navigate('cases')}>Open Case Queue</button></div>
+            </>
+          )}
+          {activeControl === 'settings' && (
+            <>
+              <div className="header-control-heading"><span aria-hidden="true">⚙</span><div><p>Settings</p><h2>Workspace preferences</h2></div></div>
+              <label className="header-setting-row"><span><strong>Reduce motion</strong><small>Use immediate scrolling and limit interface animation.</small></span><input type="checkbox" checked={reducedMotion} onChange={(event) => setReducedMotion(event.target.checked)} /></label>
+            </>
+          )}
+          {activeControl === 'profile' && (
+            <>
+              <div className="header-control-heading"><span className="agent-avatar" aria-hidden="true">LA</span><div><p>Agent profile</p><h2>Learner Agent</h2></div></div>
+              <p>Current assignment: <strong>{activeCase.id}</strong>. Saved learner-package progress remains available through the contextual progress view.</p>
+              <div className="nav-action-row"><button type="button" onClick={() => navigate('progress')}>View Progress</button><button type="button" onClick={() => navigate('workspace')}>Open Workspace</button></div>
+            </>
+          )}
+        </section>
+      )}
 
       <section className="case-info-bar visual-case-strip">
         <div><span>▣</span><strong>Case</strong><em>{activeCase.id}</em></div>
