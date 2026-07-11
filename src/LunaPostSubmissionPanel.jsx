@@ -93,8 +93,8 @@ export default function LunaPostSubmissionPanel({
       <header className="luna-v1-header">
         <div>
           <p className="luna-v1-eyebrow">Debrief · Senior investigator coaching</p>
-          <h2>Luna Case Debrief</h2>
-          <p>{locked ? 'Post-submission coaching stays protected until Submit Decision saves a learner package.' : state.debrief.coachIntro}</p>
+          <h2>Luna Post-Submission Debrief</h2>
+          <p>{locked ? 'Post-submission coaching stays locked until Submit Decision saves a learner package.' : state.debrief.coachIntro}</p>
         </div>
         <div className="luna-v1-header-status">
           <span>{activeCase.id}</span>
