@@ -54,7 +54,7 @@ mustContain('Final responsive handoff', handoff, 'agent/final-responsive-polish-
 mustContain('Final responsive handoff', handoff, 'Runtime pull request: `#55`');
 mustContain('Final responsive handoff', handoff, 'Final verified runtime head: `b4666c0c659520225d38e4408cc964b058bb401f`');
 mustContain('Final responsive handoff', handoff, 'Runtime merge on `main`: `f769d80e4b87d6d3e89095026df0bffd0355b6d7`');
-mustContain('Final responsive handoff', handoff, 'all listed screens are complete');
+mustContain('Final responsive handoff', handoff, 'All listed screens are complete');
 mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_FINAL_RESPONSIVE_POLISH_V1.md`');
 mustContain('Source of Truth', sourceOfTruth, 'There is no unfinished item remaining in the approved display redesign sequence.');
 mustContain('README', readme, 'docs/FRAUD_ACADEMY_FINAL_RESPONSIVE_POLISH_V1.md');
