@@ -1,3 +1,9 @@
+body[data-visual-tab="workspace"] #root,
+body[data-visual-tab="workspace"] .visual-os-shell,
+body[data-visual-tab="workspace"] .visual-os-frame {
+  overflow-x: clip !important;
+}
+
 body[data-visual-tab="workspace"] [data-workflow-stage="determination"] {
   min-width: 0;
   max-width: 100%;
