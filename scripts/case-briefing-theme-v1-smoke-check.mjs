@@ -39,6 +39,7 @@ for (const anchor of [
   'Identity Intel',
   'Login History',
   'Submit Decision',
+  "openTool('Customer 360', 'investigate')",
   "openTool('Identity Intelligence')",
   "openTool('Case Report')",
   "openTool('Login History')",
@@ -57,7 +58,6 @@ for (const anchor of [
   'openNotes={openNotes}',
   'openMoreTools={openMoreTools}',
   'jumpDecision={jumpDecision}',
-  "openTool('Customer 360', 'investigate')",
 ]) {
   mustContain('VisualWorkspace.jsx', workspace, anchor);
 }
