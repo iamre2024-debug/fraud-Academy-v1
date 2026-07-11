@@ -82,7 +82,7 @@ mustContain('Workspace shell handoff', handoff, 'agent/workspace-shell-approved-
 mustContain('Workspace shell handoff', handoff, 'Case Briefing');
 mustContain('Source of Truth', sourceOfTruth, 'Decision & Luna, Academy, and Profile are the completed approved replacements');
 mustContain('Source of Truth', sourceOfTruth, 'There is no unfinished item remaining in the approved display redesign sequence.');
-mustContain('README', readme, 'Decision and Luna, Academy, and Profile theme v1 replacements are merged');
+mustContain('README', readme, 'Decision and Luna, Academy, Profile, and final responsive/mobile polish are merged');
 mustContain('README', readme, 'The approved display redesign sequence is complete.');
 
 for (const forbidden of [
