@@ -24,10 +24,20 @@ async function assertEvidenceFirstLock(page, expectedCaseId) {
 async function openCoreTool(page, category, tool) {
   await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
 
-  if (tool === 'Timeline' || tool === 'Case Report') {
+  if (tool === 'Timeline') {
     const workflow = page.getByRole('navigation', { name: 'Active case workflow' });
-    const route = tool === 'Timeline' ? /Timeline/ : /Summary/;
-    await workflow.getByRole('button', { name: route }).click();
+    await workflow.getByRole('button', { name: /Timeline/ }).click();
+    const timeline = page.locator('[data-timeline-screen="approved-theme-v1"]');
+    await expect(timeline).toBeVisible();
+    await expect(timeline.getByRole('heading', { name: 'Case Timeline', exact: true })).toBeVisible();
+    await expect(timeline.locator('[data-timeline-event]').first()).toBeVisible();
+    await expect(timeline.locator('.timeline-detail')).toBeAttached();
+    return;
+  }
+
+  if (tool === 'Case Report') {
+    const workflow = page.getByRole('navigation', { name: 'Active case workflow' });
+    await workflow.getByRole('button', { name: /Summary/ }).click();
     const selector = page.locator('.activity-panel .tool-select');
     await expect(selector).toHaveValue(tool);
     await expect(page.locator('.tool-purpose-card strong')).toHaveText(tool);
