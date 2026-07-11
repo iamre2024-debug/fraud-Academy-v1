@@ -5,7 +5,15 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
-body,
+body {
+  min-width: 0;
+  width: auto;
+  max-width: 100%;
+  margin: 0;
+  overflow-x: clip;
+  box-sizing: border-box;
+}
+
 #root,
 .visual-os-shell,
 .visual-os-frame {
@@ -20,11 +28,6 @@ body,
 .visual-os-shell *::before,
 .visual-os-shell *::after {
   box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  overflow-x: clip;
 }
 
 .visual-os-frame,
@@ -72,10 +75,6 @@ body {
 
 .visual-os-frame :where(button, [role="button"], input:not([type="checkbox"]):not([type="radio"]), select) {
   min-height: 44px;
-}
-
-body[data-visual-tab="cases"] .cases-theme-v1-panel button {
-  min-height: 44px !important;
 }
 
 .visual-os-frame :where(button, [role="button"], input, select, textarea):focus-visible {
@@ -177,10 +176,11 @@ body[data-visual-tab="cases"] .cases-theme-v1-panel button {
   }
 
   body[data-visual-tab="workspace"] .visual-hero {
-    grid-template-columns: minmax(0, 1fr) auto !important;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    padding: 8px 10px !important;
     gap: 6px;
+    padding: 10px 12px;
   }
 
   body[data-visual-tab="workspace"] .workspace-shell-heading {
@@ -197,16 +197,20 @@ body[data-visual-tab="cases"] .cases-theme-v1-panel button {
   }
 
   body[data-visual-tab="workspace"] .workspace-shell-heading h1 {
-    font-size: 0.98rem;
+    font-size: 0.94rem;
   }
 
   body[data-visual-tab="workspace"] .workspace-shell-heading div > span {
-    max-width: 34vw;
+    max-width: 36vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   body[data-visual-tab="workspace"] .visual-header-controls {
     flex: 0 0 auto;
-    gap: 4px;
+    gap: 3px;
+    margin-left: 0;
   }
 
   body[data-visual-tab="workspace"] .visual-header-controls button,
