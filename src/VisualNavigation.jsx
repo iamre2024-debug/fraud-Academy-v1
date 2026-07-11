@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import AcademyProgressPanel from './AcademyProgressPanel.jsx';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import { trainingCases } from './data/cases.js';
 
@@ -118,9 +119,11 @@ export default function VisualNavigation({ activeTab = 'workspace', cases = trai
     const refresh = () => setSnapshotVersion((current) => current + 1);
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
+    window.addEventListener('fraud-academy:package-saved', refresh);
     return () => {
       window.removeEventListener('storage', refresh);
       window.removeEventListener('focus', refresh);
+      window.removeEventListener('fraud-academy:package-saved', refresh);
     };
   }, []);
 
@@ -172,7 +175,9 @@ function NavigationPanel({ activeTab, cases, snapshot, onNavigate, onOpenCase })
       {activeTab === 'dashboard' && <DashboardPanel cases={cases} snapshot={snapshot} onNavigate={onNavigate} />}
       {activeTab === 'cases' && <CasesPanel cases={cases} onOpenCase={onOpenCase} />}
       {activeTab === 'academy' && <AcademyPanel />}
-      {activeTab === 'progress' && <ProgressPanel cases={cases} packagesByCase={snapshot.packagesByCase} />}
+      {activeTab === 'progress' && (
+        <AcademyProgressPanel cases={cases} packagesByCase={snapshot.packagesByCase} onOpenCase={onOpenCase} />
+      )}
     </section>
   );
 }
@@ -222,28 +227,6 @@ function AcademyPanel() {
           </DirectCollapsibleText>
         </article>
       ))}
-    </div>
-  );
-}
-
-function ProgressPanel({ cases, packagesByCase }) {
-  return (
-    <div className="nav-progress-list">
-      {cases.map((item) => {
-        const latest = (packagesByCase[item.id] ?? [])[0];
-        return (
-          <article key={item.id} className={latest ? 'unlocked' : 'locked'}>
-            <div>
-              <span>{item.type}</span>
-              <strong>{item.person}</strong>
-              <DirectCollapsibleText as="p" lines={2} mobileLines={2}>
-                {latest ? `Saved ${latest.savedAt}` : 'Submit a review package to unlock Luna progress.'}
-              </DirectCollapsibleText>
-            </div>
-            <em>{latest ? 'Unlocked' : 'Locked'}</em>
-          </article>
-        );
-      })}
     </div>
   );
 }
