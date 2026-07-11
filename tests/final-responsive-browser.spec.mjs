@@ -1,7 +1,20 @@
 import { test, expect } from '@playwright/test';
 
+const approvedSurfaceSelector = [
+  '[data-react-navigation-panel]',
+  '[data-cases-theme-v1="approved"]',
+  '[data-case-briefing-screen="approved-theme-v1"]',
+  '[data-customer-360-screen="approved-theme-v1"]',
+  '[data-investigation-tools-screen="approved-theme-v1"]',
+  '[data-timeline-screen="approved-theme-v1"]',
+  '[data-decision-screen="approved-theme-v1"]',
+  '[data-luna-screen="approved-theme-v1"]',
+  '[data-academy-screen="approved-theme-v1"]',
+  '[data-profile-screen="approved-theme-v1"]',
+].join(',');
+
 async function assertViewportSafe(page, rootSelector, label) {
-  const result = await page.evaluate(({ rootSelector }) => {
+  const result = await page.evaluate(({ rootSelector, approvedSurfaceSelector }) => {
     const root = document.querySelector(rootSelector);
     const frame = document.querySelector('.visual-os-frame');
     const viewportWidth = window.innerWidth;
@@ -9,6 +22,22 @@ async function assertViewportSafe(page, rootSelector, label) {
       const rect = element?.getBoundingClientRect();
       return rect ? Math.max(0, -rect.left, rect.right - viewportWidth) : Number.POSITIVE_INFINITY;
     };
+    const visible = (element) => {
+      if (!(element instanceof HTMLElement)) return false;
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+    };
+    const visibleSurfaces = [...document.querySelectorAll(approvedSurfaceSelector)]
+      .filter(visible)
+      .map((element) => ({
+        name: element.getAttribute('data-react-navigation-panel')
+          || element.getAttribute('data-case-id')
+          || element.getAttribute('data-active-tool')
+          || element.className
+          || element.tagName,
+        overflow: overflow(element),
+      }));
     return {
       viewportWidth,
       documentWidth: document.documentElement.scrollWidth,
@@ -16,14 +45,19 @@ async function assertViewportSafe(page, rootSelector, label) {
       rootOverflow: overflow(root),
       frameOverflow: overflow(frame),
       rootPosition: root ? getComputedStyle(root).position : '',
+      visibleSurfaces,
     };
-  }, { rootSelector });
+  }, { rootSelector, approvedSurfaceSelector });
 
   expect(result.documentWidth, `${label} document width`).toBeLessThanOrEqual(result.viewportWidth + 1);
   expect(result.bodyWidth, `${label} body width`).toBeLessThanOrEqual(result.viewportWidth + 1);
   expect(result.rootOverflow, `${label} root overflow`).toBeLessThanOrEqual(4);
   expect(result.frameOverflow, `${label} frame overflow`).toBeLessThanOrEqual(2);
   expect(result.rootPosition, `${label} root position`).not.toBe('fixed');
+  expect(result.visibleSurfaces.length, `${label} visible approved surface`).toBeGreaterThan(0);
+  for (const surface of result.visibleSurfaces) {
+    expect(surface.overflow, `${label} ${surface.name} overflow`).toBeLessThanOrEqual(4);
+  }
 }
 
 async function openGlobalTab(page, label) {
