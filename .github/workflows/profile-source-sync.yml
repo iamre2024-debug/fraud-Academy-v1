@@ -1,0 +1,118 @@
+name: Synchronize Profile Source of Truth
+
+on:
+  push:
+    branches:
+      - agent/profile-source-sync
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v7
+        with:
+          ref: agent/profile-source-sync
+          fetch-depth: 0
+
+      - name: Synchronize current handoff
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path('.')
+          sot = root / 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'
+          text = sot.read_text()
+          academy_block = "The approved Academy handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md\n```\n"
+          text = text.replace(academy_block, academy_block + "\nThe approved Profile handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_PROFILE_THEME_V1.md\n```\n", 1)
+          text = text.replace('Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision & Luna, and Academy are the completed approved replacements.', 'Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision & Luna, Academy, and Profile are the completed approved replacements.')
+          text = text.replace('Academy uses `src/AcademyThemeV1Panel.jsx`, `src/displayAcademyThemeV1.css`, and `src/displayAcademyThemeV1Safety.css`. Preserve working routes', 'Academy uses `src/AcademyThemeV1Panel.jsx`, `src/displayAcademyThemeV1.css`, and `src/displayAcademyThemeV1Safety.css`; Profile uses `src/ProfileThemeV1Panel.jsx`, `src/displayProfileThemeV1.css`, and `src/displayProfileThemeV1Safety.css`. Preserve working routes')
+          academy_handoff = '- `docs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md` is the approved Academy handoff. It records the Evidence First learning center, four learning paths, Fraud Library, neutral achievement guidance, contextual Academy Progress, responsive isolation, runtime PR #43, verified head `11ee589509368a75e049c67474d1a1e648d9911a`, merge commit `c7154d9b66c1446cdc32f34b2148b8eb83a70be7`, and the Profile-only next step.'
+          text = text.replace(academy_handoff, academy_handoff.replace(', and the Profile-only next step', '') + '\n- `docs/FRAUD_ACADEMY_PROFILE_THEME_V1.md` is the completed Profile handoff. It records the contextual avatar-owned profile, activity-based investigator rank, skill proficiency, badges, saved-work summary, active-case goals, runtime PR #47, verified head `000c90b87984d41cd01a093a790457fb187ec7a3`, merge commit `01e25967098594dbe67d4c523d12fe249e810564`, and the final responsive/mobile polish-only next step.', 1)
+          academy_anchor = '- `src/AcademyThemeV1Panel.jsx` owns the approved Academy learning center: neutral Evidence First learning paths, Fraud Library topics, achievement guidance, and functional routes to Workspace, Cases, and contextual Academy Progress. `src/displayAcademyThemeV1.css` owns its light-lavender responsive presentation, while `src/displayAcademyThemeV1Safety.css` isolates Academy from unreplaced Workspace surfaces without changing their runtime behavior. These files must not access generated-case persistence, calculate Luna scoring, expand System Access, or redesign Profile.'
+          text = text.replace(academy_anchor, academy_anchor.replace(', or redesign Profile', '') + '\n- `src/ProfileThemeV1Panel.jsx` owns the approved contextual Agent profile: activity-based investigator rank, neutral saved-work metrics, skill proficiency, badges, activity summary, active-case goals, and routes to Workspace, Academy, and Academy Progress. `src/displayProfileThemeV1.css` owns its responsive presentation, while `src/displayProfileThemeV1Safety.css` isolates Profile from Workspace surfaces. Profile must not become a fifth global destination, access generated-case persistence, calculate Luna scoring, expand System Access, or absorb final polish work.', 1)
+          academy_browser = '- `tests/academy-browser.spec.mjs` verifies the approved Academy on desktop and Pixel 7, including the four learning paths, neutral copy, contextual Academy Progress, Cases and Workspace routes, isolation from unreplaced Workspace surfaces, and viewport safety.'
+          text = text.replace(academy_browser, academy_browser + '\n- `tests/profile-browser.spec.mjs` verifies the approved contextual Profile on desktop and Pixel 7, including avatar entry from Workspace and Dashboard, neutral rank, skill, badge, activity, and goal metrics, Workspace, Academy, and Academy Progress routes, four-item navigation, isolation, and viewport safety.', 1)
+          text = text.replace('Decision and Luna approved-theme v1 guard, Academy approved-theme v1 guard, release-package documentation guard', 'Decision and Luna approved-theme v1 guard, Academy approved-theme v1 guard, Profile approved-theme v1 guard, release-package documentation guard')
+          text = text.replace('Timeline, Decision & Luna, and Academy, all three built-in cases', 'Timeline, Decision & Luna, Academy, and Profile, all three built-in cases')
+          text = text.replace("The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision & Luna, and Academy redesigns are complete and protected by focused static and desktop/mobile browser guards. The next isolated safe item is **Profile only**. Preserve the four-item global navigation, functional Help and Settings controls, active-case assignment context, contextual Academy Progress, neutral visible wording, Evidence First, Luna's pre-submission lock, IndexedDB-first generated-case persistence, and the single Connections → System Access Lane. Do not begin final responsive/mobile polish in the same pull request.", "The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision & Luna, Academy, and Profile redesigns are complete and protected by focused static and desktop/mobile browser guards. The next isolated safe item is **final responsive/mobile polish only**. Preserve every completed screen boundary, the four-item global navigation, contextual Profile and Academy Progress routes, Evidence First, Luna's pre-submission lock, IndexedDB-first generated-case persistence, active-case and case-scoped state, and the single Connections → System Access Lane. Do not add new product modules or redesign investigation behavior in the final polish pull request.", 1)
+          sot.write_text(text)
+
+          readme = root / 'README.md'
+          text = readme.read_text()
+          academy_block = "The approved Academy handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md\n```\n"
+          text = text.replace(academy_block, academy_block + "\nThe approved Profile handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_PROFILE_THEME_V1.md\n```\n", 1)
+          text = text.replace('the Academy handoff records the completed learning center and Profile-only next step,', 'the Academy handoff records the completed learning center, the Profile handoff records the completed contextual profile and final-polish-only next step,')
+          academy_line = '- The Academy approved theme v1 replacement uses `src/AcademyThemeV1Panel.jsx`, `src/displayAcademyThemeV1.css`, and `src/displayAcademyThemeV1Safety.css` for four Evidence First learning paths, Fraud Library topics, neutral achievement guidance, contextual Academy Progress, functional Cases and Workspace routes, and responsive isolation from unreplaced Workspace surfaces.'
+          text = text.replace(academy_line, academy_line + '\n- The Profile approved theme v1 replacement uses `src/ProfileThemeV1Panel.jsx`, `src/displayProfileThemeV1.css`, and `src/displayProfileThemeV1Safety.css` for the contextual avatar-owned profile, activity-based rank, neutral saved-work metrics, skill proficiency, badges, active-case goals, Workspace, Academy, and Academy Progress routes, and responsive isolation.', 1)
+          academy_doc = '- `docs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md` records the isolated Academy scope, protected learning and Progress routes, completed desktop/mobile verification gate, and Profile-only next step.'
+          text = text.replace(academy_doc, academy_doc.replace(', and Profile-only next step', '') + '\n- `docs/FRAUD_ACADEMY_PROFILE_THEME_V1.md` records the isolated completed Profile scope, avatar entry, protected neutral metrics and routes, completed desktop/mobile verification gate, and final responsive/mobile polish-only next step.', 1)
+          text = text.replace('13. Playwright validates the approved Dashboard, Cases queue, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision and Luna, and Academy,', '13. Playwright validates the approved Dashboard, Cases queue, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision and Luna, Academy, and Profile,')
+          academy_note = '35. The approved Academy theme v1 replaces only the learning center, preserves contextual Academy Progress and case routes, keeps learning copy neutral, isolates unreplaced Workspace surfaces, and has focused static plus desktop/mobile browser guards.'
+          text = text.replace(academy_note, academy_note + '\n36. The approved Profile theme v1 replaces only the contextual Agent profile, preserves four-item navigation and Workspace controls, keeps activity metrics neutral, isolates Workspace surfaces, and has focused static plus desktop/mobile browser guards.', 1)
+          text = text.replace('1. Redesign Profile only using the approved theme v1 while preserving active-case assignment context, Help, Settings, contextual Academy Progress, Workspace routing, Evidence First wording, and four-item navigation.\n2. Continue the locked order after Profile with final responsive/mobile polish.', '1. Complete final responsive/mobile polish only across the verified screen set without changing screen ownership, investigation behavior, persistence, Evidence First, Luna gating, or System Access.\n2. Re-run the complete desktop and Pixel 7 suite after each focused polish change.')
+          academy_coverage = '9. The approved Academy renders on desktop and Pixel 7 with four Evidence First learning paths, Fraud Library topics, neutral achievement guidance, contextual Progress, functional Cases and Workspace routes, isolation from unreplaced Workspace surfaces, and no required page overflow.'
+          text = text.replace(academy_coverage, academy_coverage + '\n10. The approved Profile renders on desktop and Pixel 7 with contextual avatar entry, neutral rank, skills, badges, activity, and goals, Workspace, Academy, and Progress routes, four-item navigation, isolation, and no required page overflow.', 1)
+          start = text.index('## Browser-confirmed functional coverage')
+          end = text.index('## Latest handoff')
+          lines = text[start:end].splitlines()
+          count = 0
+          for index, line in enumerate(lines):
+              match = re.match(r'^(\d+)\. (.*)$', line)
+              if match:
+                  count += 1
+                  lines[index] = f'{count}. {match.group(2)}'
+          text = text[:start] + '\n'.join(lines) + '\n\n' + text[end:]
+          text = text.replace('The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision and Luna, and Academy theme v1 replacements are merged and protected by focused static guards plus desktop and Pixel 7 browser coverage. The implementations keep the four-item navigation, active case, contextual Academy Progress, neutral visible wording, Evidence First, Luna locking, IndexedDB-first generated cases, and the single Connections → System Access Lane unchanged. The next isolated screen is **Profile only**.', 'The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision and Luna, Academy, and Profile theme v1 replacements are merged and protected by focused static guards plus desktop and Pixel 7 browser coverage. The implementations keep the four-item navigation, active case, contextual Profile and Academy Progress, neutral visible wording, Evidence First, Luna locking, IndexedDB-first generated cases, and the single Connections → System Access Lane unchanged. The next isolated step is **final responsive/mobile polish only**.')
+          text = text.replace('Decision and Luna approved-theme v1, Academy approved-theme v1, release-package documentation', 'Decision and Luna approved-theme v1, Academy approved-theme v1, Profile approved-theme v1, release-package documentation')
+          text = text.replace('Timeline, Decision and Luna, and Academy, all three built-in cases', 'Timeline, Decision and Luna, Academy, and Profile, all three built-in cases')
+          readme.write_text(text)
+
+          guard_names = [
+              'case-briefing-theme-v1-smoke-check.mjs',
+              'cases-theme-v1-smoke-check.mjs',
+              'customer-360-theme-v1-smoke-check.mjs',
+              'dashboard-theme-v1-smoke-check.mjs',
+              'decision-luna-theme-v1-smoke-check.mjs',
+              'investigation-tools-theme-v1-smoke-check.mjs',
+              'timeline-theme-v1-smoke-check.mjs',
+              'workspace-shell-theme-v1-smoke-check.mjs',
+          ]
+          for name in guard_names:
+              path = root / 'scripts' / name
+              value = path.read_text()
+              value = value.replace('The next isolated safe item is **Profile only**', 'The next isolated safe item is **final responsive/mobile polish only**')
+              value = value.replace('The next isolated screen is **Profile only**', 'The next isolated step is **final responsive/mobile polish only**')
+              value = value.replace('Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision & Luna, and Academy are the completed approved replacements', 'Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision & Luna, Academy, and Profile are the completed approved replacements')
+              value = value.replace('Decision & Luna, and Academy are the completed approved replacements', 'Decision & Luna, Academy, and Profile are the completed approved replacements')
+              value = value.replace('the synchronized Profile-only handoff', 'the synchronized final-polish-only handoff')
+              path.write_text(value)
+
+          academy_guard = root / 'scripts/academy-theme-v1-smoke-check.mjs'
+          value = academy_guard.read_text()
+          value = value.replace("mustContain('Source of Truth', sourceOfTruth, 'Decision & Luna, and Academy are the completed approved replacements');", "mustContain('Source of Truth', sourceOfTruth, 'Decision & Luna, Academy, and Profile are the completed approved replacements');")
+          value = value.replace("mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Profile only**');", "mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **final responsive/mobile polish only**');")
+          value = value.replace("mustContain('README', readme, 'The next isolated screen is **Profile only**');", "mustContain('README', readme, 'The next isolated step is **final responsive/mobile polish only**');")
+          value = value.replace('Profile-only handoff remain intact.', 'final-polish-only handoff remain intact.')
+          academy_guard.write_text(value)
+
+          profile_guard = root / 'scripts/profile-theme-v1-smoke-check.mjs'
+          value = profile_guard.read_text()
+          value = value.replace("const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_PROFILE_THEME_V1.md'), 'utf8');\n", "const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_PROFILE_THEME_V1.md'), 'utf8');\nconst sourceOfTruth = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'), 'utf8');\nconst readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8');\n")
+          value = value.replace("mustContain('Profile handoff', handoff, 'final responsive/mobile polish only');\n", "mustContain('Profile handoff', handoff, 'Final verified Profile runtime head: `000c90b87984d41cd01a093a790457fb187ec7a3`');\nmustContain('Profile handoff', handoff, 'Profile runtime merge on `main`: `01e25967098594dbe67d4c523d12fe249e810564`');\nmustContain('Profile handoff', handoff, 'final responsive/mobile polish only');\nmustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_PROFILE_THEME_V1.md`');\nmustContain('Source of Truth', sourceOfTruth, 'Decision & Luna, Academy, and Profile are the completed approved replacements');\nmustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **final responsive/mobile polish only**');\nmustContain('README', readme, 'docs/FRAUD_ACADEMY_PROFILE_THEME_V1.md');\nmustContain('README', readme, 'The next isolated step is **final responsive/mobile polish only**');\n")
+          profile_guard.write_text(value)
+
+          Path('.github/workflows/profile-source-sync.yml').unlink()
+          PY
+
+      - name: Commit synchronized authority
+        run: |
+          git config user.name "fraud-academy-audit"
+          git config user.email "actions@users.noreply.github.com"
+          git add README.md docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md scripts .github/workflows/profile-source-sync.yml
+          git commit -m "Sync Source of Truth after Profile merge"
+          git push origin HEAD:agent/profile-source-sync
