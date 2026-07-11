@@ -48,7 +48,7 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
 
   const lockedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="locked"]');
   await expect(lockedLuna).toBeAttached();
-  await expect(lockedLuna).toContainText('Evidence First lock is active');
+  await expect(lockedLuna).toContainText('Evidence First lock is active.');
   await expect(lockedLuna.locator('.luna-v1-unlock-grid article')).toHaveCount(4);
   expect(await lockedLuna.innerText()).not.toMatch(forbiddenLockedCopy);
 
@@ -87,8 +87,9 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
   await choice.selectOption({ label: learnerChoice });
   await decision.getByRole('combobox', { name: 'Learner confidence' }).selectOption('High');
   await decision.getByRole('textbox', { name: 'Learner rationale' }).fill(rationale);
-  await expect(decision.getByRole('button', { name: 'Save learner package', exact: true })).toBeVisible();
-  await decision.getByRole('button', { name: 'Save learner package', exact: true }).click();
+  const savePackage = decision.getByRole('button', { name: /Save learner package/ });
+  await expect(savePackage).toBeVisible();
+  await savePackage.click();
 
   await expect(decision.getByRole('heading', { name: `Learner package saved for ${caseId}` })).toBeVisible();
   await expect(decision.getByText('Luna debrief unlocked', { exact: true })).toBeVisible();
