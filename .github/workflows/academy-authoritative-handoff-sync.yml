@@ -1,0 +1,131 @@
+name: Synchronize Academy authoritative handoff
+
+on:
+  push:
+    branches:
+      - agent/academy-authoritative-handoff-sync
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v7
+        with:
+          ref: agent/academy-authoritative-handoff-sync
+          fetch-depth: 0
+
+      - name: Synchronize Source of Truth, README, and guards
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path('.')
+          sot = root / 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'
+          text = sot.read_text()
+          decision_block = "The approved Decision & Luna handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_DECISION_LUNA_THEME_V1.md\n```\n"
+          text = text.replace(decision_block, decision_block + "\nThe approved Academy handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md\n```\n", 1)
+          text = text.replace(
+              "The screenshot-driven visual shell remains active for surfaces that have not yet been replaced. Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, and Decision & Luna are the completed approved replacements. Dashboard uses the light lavender and white, mobile-first presentation in `src/displayDashboardThemeV1.css`; Cases uses `src/CasesThemeV1Panel.jsx` and `src/displayCasesThemeV1.css`; the Workspace shell uses the compact Workspace-only header in `src/VisualShellHeader.jsx`, `src/displayWorkspaceShellThemeV1.css`, and `src/displayWorkspaceShellLayoutV1.css`; Case Briefing uses `src/CaseSummaryCard.jsx`, `src/displayCaseBriefingThemeV1.css`, and `src/displayCaseBriefingRoutesV1.css`; Customer 360 uses `src/Customer360Panel.jsx` and `src/displayCustomer360ThemeV1.css`; Investigation tools use `src/investigationToolGroups.js`, `src/InvestigationToolPanel.jsx`, and `src/displayInvestigationToolsThemeV1.css`; Timeline uses `src/TimelinePanel.jsx` and `src/displayTimelineThemeV1.css`; Decision & Luna use `src/SubmitDecisionPanel.jsx`, `src/LunaPostSubmissionPanel.jsx`, `src/displayDecisionLunaThemeV1.css`, and `src/displayDecisionLunaLayoutSafetyV1.css`. Preserve working routes, case data, responsive behavior, and architecture while each later surface is replaced.",
+              "The screenshot-driven visual shell remains active for surfaces that have not yet been replaced. Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision & Luna, and Academy are the completed approved replacements. Dashboard uses the light lavender and white, mobile-first presentation in `src/displayDashboardThemeV1.css`; Cases uses `src/CasesThemeV1Panel.jsx` and `src/displayCasesThemeV1.css`; the Workspace shell uses the compact Workspace-only header in `src/VisualShellHeader.jsx`, `src/displayWorkspaceShellThemeV1.css`, and `src/displayWorkspaceShellLayoutV1.css`; Case Briefing uses `src/CaseSummaryCard.jsx`, `src/displayCaseBriefingThemeV1.css`, and `src/displayCaseBriefingRoutesV1.css`; Customer 360 uses `src/Customer360Panel.jsx` and `src/displayCustomer360ThemeV1.css`; Investigation tools use `src/investigationToolGroups.js`, `src/InvestigationToolPanel.jsx`, and `src/displayInvestigationToolsThemeV1.css`; Timeline uses `src/TimelinePanel.jsx` and `src/displayTimelineThemeV1.css`; Decision & Luna use `src/SubmitDecisionPanel.jsx`, `src/LunaPostSubmissionPanel.jsx`, `src/displayDecisionLunaThemeV1.css`, and `src/displayDecisionLunaLayoutSafetyV1.css`; Academy uses `src/AcademyThemeV1Panel.jsx`, `src/displayAcademyThemeV1.css`, and `src/displayAcademyThemeV1Safety.css`. Preserve working routes, case data, responsive behavior, and architecture while each later surface is replaced.",
+              1,
+          )
+          text = text.replace(
+              "- `docs/FRAUD_ACADEMY_DECISION_LUNA_THEME_V1.md` is the approved Decision & Luna handoff. It records the Evidence First determination workspace, case-scoped learner package, locked and unlocked Luna states, responsive verification, and the Academy-only next step.",
+              "- `docs/FRAUD_ACADEMY_DECISION_LUNA_THEME_V1.md` is the approved Decision & Luna handoff. It records the Evidence First determination workspace, case-scoped learner package, locked and unlocked Luna states, and responsive verification.\n- `docs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md` is the approved Academy handoff. It records the Evidence First learning center, four learning paths, Fraud Library, neutral achievement guidance, contextual Academy Progress, responsive isolation, runtime PR #43, verified head `11ee589509368a75e049c67474d1a1e648d9911a`, merge commit `c7154d9b66c1446cdc32f34b2148b8eb83a70be7`, and the Profile-only next step.",
+              1,
+          )
+          decision_css = "- `src/displayDecisionLunaThemeV1.css` owns the approved light-lavender Decision and Luna presentation. `src/displayDecisionLunaLayoutSafetyV1.css` owns focused Determination/Luna viewport containment and phone gutters. Neither file may access persistence, expand System Access, or add fixed overlays."
+          text = text.replace(decision_css, decision_css + "\n- `src/AcademyThemeV1Panel.jsx` owns the approved Academy learning center: neutral Evidence First learning paths, Fraud Library topics, achievement guidance, and functional routes to Workspace, Cases, and contextual Academy Progress. `src/displayAcademyThemeV1.css` owns its light-lavender responsive presentation, while `src/displayAcademyThemeV1Safety.css` isolates Academy from unreplaced Workspace surfaces without changing their runtime behavior. These files must not access generated-case persistence, calculate Luna scoring, expand System Access, or redesign Profile.", 1)
+          decision_browser = "- `tests/decision-luna-browser.spec.mjs` verifies the approved Decision & Luna flow on desktop and Pixel 7, including Evidence First lock copy, package readiness, learner choice, confidence, rationale, saved-package submission, immediate and persisted Luna unlock, debrief routes, viewport containment, and Return to Queue."
+          text = text.replace(decision_browser, decision_browser + "\n- `tests/academy-browser.spec.mjs` verifies the approved Academy on desktop and Pixel 7, including the four learning paths, neutral copy, contextual Academy Progress, Cases and Workspace routes, isolation from unreplaced Workspace surfaces, and viewport safety.", 1)
+          text = text.replace("Decision and Luna approved-theme v1 guard, release-package documentation guard", "Decision and Luna approved-theme v1 guard, Academy approved-theme v1 guard, release-package documentation guard")
+          text = text.replace("Timeline, and Decision & Luna, all three built-in cases", "Timeline, Decision & Luna, and Academy, all three built-in cases")
+          text = text.replace(
+              "The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, and Decision & Luna redesigns are complete and protected by focused static and desktop/mobile browser guards. The next isolated safe item is **Academy only**. Preserve contextual Academy Progress, saved learner-package snapshots, same-session package refresh, neutral visible wording, Evidence First, Luna's pre-submission lock, active-case routing, IndexedDB-first generated-case persistence, the four-item global navigation, and the single Connections → System Access Lane. Do not begin Profile or final responsive/mobile redesign in the same pull request.",
+              "The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision & Luna, and Academy redesigns are complete and protected by focused static and desktop/mobile browser guards. The next isolated safe item is **Profile only**. Preserve the four-item global navigation, functional Help and Settings controls, active-case assignment context, contextual Academy Progress, neutral visible wording, Evidence First, Luna's pre-submission lock, IndexedDB-first generated-case persistence, and the single Connections → System Access Lane. Do not begin final responsive/mobile polish in the same pull request.",
+              1,
+          )
+          sot.write_text(text)
+
+          readme = root / 'README.md'
+          text = readme.read_text()
+          decision_block = "The approved Decision and Luna handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_DECISION_LUNA_THEME_V1.md\n```\n"
+          text = text.replace(decision_block, decision_block + "\nThe approved Academy handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md\n```\n", 1)
+          text = text.replace("the Decision and Luna handoff records the completed determination, protected pre-submission lock, post-submission coaching, and Academy-only next step,", "the Decision and Luna handoff records the completed determination, protected pre-submission lock, and post-submission coaching, the Academy handoff records the completed learning center and Profile-only next step,")
+          decision_line = "- The Decision and Luna approved theme v1 replacement uses `src/SubmitDecisionPanel.jsx`, `src/LunaPostSubmissionPanel.jsx`, `src/displayDecisionLunaThemeV1.css`, and `src/displayDecisionLunaLayoutSafetyV1.css` for the Evidence First determination workspace, package readiness, lane-organized learner choices, responsive package saving, the protected pre-submission Luna lock, and the case-scoped post-submission debrief."
+          text = text.replace(decision_line, decision_line + "\n- The Academy approved theme v1 replacement uses `src/AcademyThemeV1Panel.jsx`, `src/displayAcademyThemeV1.css`, and `src/displayAcademyThemeV1Safety.css` for four Evidence First learning paths, Fraud Library topics, neutral achievement guidance, contextual Academy Progress, functional Cases and Workspace routes, and responsive isolation from unreplaced Workspace surfaces.", 1)
+          text = text.replace(
+              "- `docs/FRAUD_ACADEMY_DECISION_LUNA_THEME_V1.md` records the isolated Decision and Luna scope, protected package and debrief behavior, completed desktop/mobile verification gate, and Academy-only next step.",
+              "- `docs/FRAUD_ACADEMY_DECISION_LUNA_THEME_V1.md` records the isolated Decision and Luna scope, protected package and debrief behavior, and completed desktop/mobile verification gate.\n- `docs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md` records the isolated Academy scope, protected learning and Progress routes, completed desktop/mobile verification gate, and Profile-only next step.",
+              1,
+          )
+          text = text.replace("13. Playwright validates the approved Dashboard, Cases queue, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, and Decision and Luna,", "13. Playwright validates the approved Dashboard, Cases queue, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision and Luna, and Academy,")
+          decision_note = "34. The approved Decision and Luna theme v1 replaces only Determination and Debrief, preserves the package and persistence boundaries, keeps Luna locked before submission, adds the active-case post-submission review, and has focused static plus desktop/mobile browser guards."
+          text = text.replace(decision_note, decision_note + "\n35. The approved Academy theme v1 replaces only the learning center, preserves contextual Academy Progress and case routes, keeps learning copy neutral, isolates unreplaced Workspace surfaces, and has focused static plus desktop/mobile browser guards.", 1)
+          text = text.replace(
+              "1. Redesign Academy only using the approved theme v1 while preserving the existing learning content, Academy Progress routes, saved learner-package snapshots, active-case routes, Evidence First wording, and four-item navigation.\n2. Continue the locked order after Academy: Profile, then final responsive/mobile polish.",
+              "1. Redesign Profile only using the approved theme v1 while preserving active-case assignment context, Help, Settings, contextual Academy Progress, Workspace routing, Evidence First wording, and four-item navigation.\n2. Continue the locked order after Profile with final responsive/mobile polish.",
+              1,
+          )
+          decision_coverage = "8. The approved Decision and Luna flow renders on desktop and Pixel 7 with the readiness checklist, package submission, locked pre-submission Luna state, case-scoped post-submission debrief, refresh persistence, functional Workspace/Case Summary/Queue routes, and no required page overflow."
+          text = text.replace(decision_coverage, decision_coverage + "\n9. The approved Academy renders on desktop and Pixel 7 with four Evidence First learning paths, Fraud Library topics, neutral achievement guidance, contextual Progress, functional Cases and Workspace routes, isolation from unreplaced Workspace surfaces, and no required page overflow.", 1)
+          start = text.index('## Browser-confirmed functional coverage')
+          end = text.index('## Latest handoff')
+          lines = text[start:end].splitlines()
+          count = 0
+          for index, line in enumerate(lines):
+              match = re.match(r'^(\d+)\. (.*)$', line)
+              if match:
+                  count += 1
+                  lines[index] = f'{count}. {match.group(2)}'
+          text = text[:start] + '\n'.join(lines) + '\n\n' + text[end:]
+          text = text.replace(
+              "The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, and Decision and Luna theme v1 replacements are merged and protected by focused static guards plus desktop and Pixel 7 browser coverage. The implementations keep the four-item navigation, active case, contextual Academy Progress, neutral visible wording, Evidence First, Luna locking, IndexedDB-first generated cases, and the single Connections → System Access Lane unchanged. The next isolated screen is **Academy only**.",
+              "The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision and Luna, and Academy theme v1 replacements are merged and protected by focused static guards plus desktop and Pixel 7 browser coverage. The implementations keep the four-item navigation, active case, contextual Academy Progress, neutral visible wording, Evidence First, Luna locking, IndexedDB-first generated cases, and the single Connections → System Access Lane unchanged. The next isolated screen is **Profile only**.",
+              1,
+          )
+          text = text.replace("Decision and Luna approved-theme v1, release-package documentation", "Decision and Luna approved-theme v1, Academy approved-theme v1, release-package documentation")
+          text = text.replace("Timeline, and Decision and Luna, all three built-in cases", "Timeline, Decision and Luna, and Academy, all three built-in cases")
+          readme.write_text(text)
+
+          guard_names = [
+              'case-briefing-theme-v1-smoke-check.mjs',
+              'cases-theme-v1-smoke-check.mjs',
+              'customer-360-theme-v1-smoke-check.mjs',
+              'dashboard-theme-v1-smoke-check.mjs',
+              'decision-luna-theme-v1-smoke-check.mjs',
+              'investigation-tools-theme-v1-smoke-check.mjs',
+              'timeline-theme-v1-smoke-check.mjs',
+              'workspace-shell-theme-v1-smoke-check.mjs',
+          ]
+          for name in guard_names:
+              path = root / 'scripts' / name
+              value = path.read_text()
+              value = value.replace('The next isolated safe item is **Academy only**', 'The next isolated safe item is **Profile only**')
+              value = value.replace('The next isolated screen is **Academy only**', 'The next isolated screen is **Profile only**')
+              value = value.replace('Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, and Decision & Luna are the completed approved replacements', 'Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision & Luna, and Academy are the completed approved replacements')
+              value = value.replace('Decision & Luna are the completed approved replacements', 'Decision & Luna, and Academy are the completed approved replacements')
+              value = value.replace('the synchronized Academy-only handoff', 'the synchronized Profile-only handoff')
+              path.write_text(value)
+
+          guard = root / 'scripts/academy-theme-v1-smoke-check.mjs'
+          value = guard.read_text()
+          value = value.replace("const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md'), 'utf8');\n", "const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md'), 'utf8');\nconst sourceOfTruth = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'), 'utf8');\nconst readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8');\n")
+          value = value.replace("mustContain('Academy handoff', handoff, 'Profile only');\n", "mustContain('Academy handoff', handoff, 'Profile only');\nmustContain('Academy handoff', handoff, 'Final verified runtime head: `11ee589509368a75e049c67474d1a1e648d9911a`');\nmustContain('Academy handoff', handoff, 'Runtime merge on `main`: `c7154d9b66c1446cdc32f34b2148b8eb83a70be7`');\nmustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md`');\nmustContain('Source of Truth', sourceOfTruth, 'Decision & Luna, and Academy are the completed approved replacements');\nmustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Profile only**');\nmustContain('README', readme, 'docs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md');\nmustContain('README', readme, 'The next isolated screen is **Profile only**');\n")
+          guard.write_text(value)
+
+          Path('.github/workflows/academy-authoritative-handoff-sync.yml').unlink()
+          PY
+
+      - name: Commit synchronized handoff
+        run: |
+          git config user.name "fraud-academy-audit"
+          git config user.email "actions@users.noreply.github.com"
+          git add README.md docs scripts .github/workflows/academy-authoritative-handoff-sync.yml
+          git commit -m "Sync Source of Truth after Academy merge"
+          git push origin HEAD:agent/academy-authoritative-handoff-sync
