@@ -17,6 +17,7 @@ import './lightMoonlightLace.css';
 import './displayNavigationPanels.css';
 import './displayFoundation.css';
 import './phase2WorkspaceShell.css';
+import './phase2BriefingCustomer360.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
