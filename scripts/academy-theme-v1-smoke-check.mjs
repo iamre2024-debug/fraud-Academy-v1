@@ -5,6 +5,7 @@ const rootDir = process.cwd();
 const panel = fs.readFileSync(path.join(rootDir, 'src/AcademyThemeV1Panel.jsx'), 'utf8');
 const navigation = fs.readFileSync(path.join(rootDir, 'src/VisualNavigation.jsx'), 'utf8');
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayAcademyThemeV1.css'), 'utf8');
+const safetyStyles = fs.readFileSync(path.join(rootDir, 'src/displayAcademyThemeV1Safety.css'), 'utf8');
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/academy-browser.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md'), 'utf8');
@@ -62,9 +63,23 @@ for (const anchor of [
   '@media (max-width: 350px)',
 ]) mustContain('displayAcademyThemeV1.css', styles, anchor);
 
+for (const anchor of [
+  'body[data-visual-tab="academy"] .visual-os-shell',
+  'body[data-visual-tab="academy"] .visual-os-frame',
+  'body[data-visual-tab="academy"] .visual-hero',
+  'body[data-visual-tab="academy"] .generated-case-control-host',
+  'body[data-visual-tab="academy"] .active-case-workflow',
+  'body[data-visual-tab="academy"] .workflow-investigate-stage',
+  'body[data-visual-tab="academy"] .visual-react-bottom-nav',
+  '@media (max-width: 560px)',
+]) mustContain('displayAcademyThemeV1Safety.css', safetyStyles, anchor);
+
 mustContain('main.jsx', entrypoint, "import './displayAcademyThemeV1.css';");
-mustContain('academy-browser.spec.mjs', browser, 'approved Academy keeps learning routes functional, Evidence First, and responsive');
+mustContain('main.jsx', entrypoint, "import './displayAcademyThemeV1Safety.css';");
+mustContain('academy-browser.spec.mjs', browser, 'approved Academy preserves neutral learning routes and responsive safety');
 mustContain('academy-browser.spec.mjs', browser, 'mobile-chromium');
+mustContain('academy-browser.spec.mjs', browser, "page.locator('.active-case-workflow')");
+mustContain('academy-browser.spec.mjs', browser, "page.locator('.generated-case-controls')");
 mustContain('Academy handoff', handoff, 'agent/academy-approved-theme-v1');
 mustContain('Academy handoff', handoff, 'Profile only');
 mustContain('package.json', packageJson, 'academy-theme-v1-smoke-check');
@@ -82,6 +97,7 @@ for (const forbidden of [
 ]) {
   mustNotContain('AcademyThemeV1Panel.jsx', panel, forbidden);
   mustNotContain('displayAcademyThemeV1.css', styles, forbidden);
+  mustNotContain('displayAcademyThemeV1Safety.css', safetyStyles, forbidden);
 }
 
 for (const forbidden of [
@@ -100,4 +116,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Academy approved-theme v1 smoke check passed. The Evidence First learning hub, contextual Progress route, functional case routes, responsive presentation, protected persistence boundaries, and Profile-only handoff remain intact.');
+console.log('Academy approved-theme v1 smoke check passed. The Evidence First learning hub, contextual Progress route, functional case routes, isolated responsive presentation, protected persistence boundaries, and Profile-only handoff remain intact.');
