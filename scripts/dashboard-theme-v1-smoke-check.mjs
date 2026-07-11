@@ -18,6 +18,8 @@ function mustNotContain(fileLabel, content, text) {
 }
 
 mustContain('VisualNavigation.jsx', navigation, "activeTab === 'dashboard' ? 'dashboard-theme-v1' : ''");
+mustContain('VisualNavigation.jsx', navigation, "anchor.closest('.workflow-investigate-stage') ?? anchor");
+mustContain('VisualNavigation.jsx', navigation, "panelAnchor.insertAdjacentElement('afterend', host)");
 mustContain('VisualNavigation.jsx', navigation, 'className="dashboard-active-case"');
 mustContain('VisualNavigation.jsx', navigation, '<strong>Case Queue</strong>');
 mustContain('VisualNavigation.jsx', navigation, '<strong>Evidence Workspace</strong>');
@@ -61,4 +63,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Dashboard approved-theme v1 smoke check passed. The light mobile-first Dashboard, contextual progress, neutral Luna guidance, responsive scope, and protected architecture boundaries remain intact.');
+console.log('Dashboard approved-theme v1 smoke check passed. The light mobile-first Dashboard, contextual progress, neutral Luna guidance, visible portal host, responsive scope, and protected architecture boundaries remain intact.');
