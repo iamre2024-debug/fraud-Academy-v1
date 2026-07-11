@@ -161,6 +161,41 @@ a:focus-visible {
     border-inline: 0;
   }
 
+  body[data-visual-tab="workspace"] .visual-hero {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+  }
+
+  body[data-visual-tab="workspace"] .workspace-shell-heading {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  body[data-visual-tab="workspace"] .visual-header-controls {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    justify-self: end;
+    width: auto;
+    max-width: none;
+  }
+
+  body[data-visual-tab="workspace"] .visual-os-frame > [data-workflow-stage="briefing"],
+  body[data-visual-tab="workspace"] .visual-os-frame > .workflow-investigate-stage,
+  body[data-visual-tab="workspace"] .visual-os-frame > .workflow-active-tool-stage,
+  body[data-visual-tab="workspace"] .visual-os-frame > [data-workflow-stage="indicators"],
+  body[data-visual-tab="workspace"] .visual-os-frame > [data-workflow-stage="determination"],
+  body[data-visual-tab="workspace"] .case-summary-visual[data-case-briefing-container="approved-theme-v1"],
+  body[data-visual-tab="workspace"] [data-case-briefing-screen="approved-theme-v1"] {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: calc(100vw - 20px);
+    margin-inline: 0;
+    justify-self: stretch;
+  }
+
   body[data-visual-tab="cases"] .visual-os-frame,
   body[data-visual-tab="cases"] .cases-theme-v1-host,
   body[data-visual-tab="cases"] .cases-theme-v1-panel {
@@ -222,6 +257,15 @@ a:focus-visible {
 @media (max-width: 390px) {
   .visual-header-controls {
     gap: 4px;
+  }
+
+  body[data-visual-tab="workspace"] .workspace-shell-mark {
+    width: 32px;
+    height: 32px;
+  }
+
+  body[data-visual-tab="workspace"] .workspace-shell-heading div > span {
+    display: none;
   }
 
   body[data-visual-tab="workspace"] .visual-header-controls button,
