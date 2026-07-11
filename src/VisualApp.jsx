@@ -5,7 +5,6 @@ import VisualTextCollapse from './VisualTextCollapse.jsx';
 import LunaPostSubmissionPanel from './LunaPostSubmissionPanel.jsx';
 import GeneratedCaseControls from './GeneratedCaseControls.jsx';
 import CasesThemeV1Panel from './CasesThemeV1Panel.jsx';
-import AcademyThemeV1Panel from './AcademyThemeV1Panel.jsx';
 import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import { combineCaseCatalog, listGeneratedCases } from './data/generatedCaseRepository.js';
@@ -92,10 +91,6 @@ export default function VisualApp() {
         activeCaseId={activeCaseId}
         cases={caseCatalog}
         onOpenCase={openCase}
-      />
-      <AcademyThemeV1Panel
-        active={activeTab === 'academy'}
-        onNavigate={setActiveTab}
       />
       <VisualTextCollapse />
     </>
