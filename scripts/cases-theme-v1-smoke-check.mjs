@@ -55,7 +55,7 @@ mustContain('Source of Truth', sourceOfTruth, '`src/CasesThemeV1Panel.jsx`');
 mustContain('Source of Truth', sourceOfTruth, '`src/displayCasesThemeV1.css`');
 mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_CASES_THEME_V1.md`');
 mustContain('Source of Truth', sourceOfTruth, 'Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision & Luna, Academy, and Profile are the completed approved replacements');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **final responsive/mobile polish only**');
+mustContain('Source of Truth', sourceOfTruth, 'There is no unfinished item remaining in the approved display redesign sequence.');
 
 for (const forbidden of [
   'generatedCaseRepository',

@@ -97,9 +97,9 @@ mustContain('Case Briefing handoff', handoff, 'Customer 360 only');
 mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_CASE_BRIEFING_THEME_V1.md`');
 mustContain('Source of Truth', sourceOfTruth, '`src/displayCaseBriefingThemeV1.css`');
 mustContain('Source of Truth', sourceOfTruth, '`src/displayCaseBriefingRoutesV1.css`');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **final responsive/mobile polish only**');
+mustContain('Source of Truth', sourceOfTruth, 'There is no unfinished item remaining in the approved display redesign sequence.');
 mustContain('README', readme, 'The approved Case Briefing handoff lives in');
-mustContain('README', readme, 'The next isolated step is **final responsive/mobile polish only**');
+mustContain('README', readme, 'The approved display redesign sequence is complete.');
 
 for (const forbidden of [
   'generatedCaseRepository',

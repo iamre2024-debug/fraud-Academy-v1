@@ -81,9 +81,9 @@ mustContain('workspace-shell-browser.spec.mjs', browser, '.workspace-shell-headi
 mustContain('Workspace shell handoff', handoff, 'agent/workspace-shell-approved-theme-v1');
 mustContain('Workspace shell handoff', handoff, 'Case Briefing');
 mustContain('Source of Truth', sourceOfTruth, 'Decision & Luna, Academy, and Profile are the completed approved replacements');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **final responsive/mobile polish only**');
+mustContain('Source of Truth', sourceOfTruth, 'There is no unfinished item remaining in the approved display redesign sequence.');
 mustContain('README', readme, 'Decision and Luna, Academy, and Profile theme v1 replacements are merged');
-mustContain('README', readme, 'The next isolated step is **final responsive/mobile polish only**');
+mustContain('README', readme, 'The approved display redesign sequence is complete.');
 
 for (const forbidden of [
   'generatedCaseRepository',
@@ -106,4 +106,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Workspace shell approved-theme v1 smoke check passed. The compact header, active-case strip, workflow rail, responsive grid safety, synchronized final-polish-only handoff, Evidence First wording, and protected persistence boundaries remain intact.');
+console.log('Workspace shell approved-theme v1 smoke check passed. The compact header, active-case strip, workflow rail, responsive grid safety, synchronized completed display handoff, Evidence First wording, and protected persistence boundaries remain intact.');

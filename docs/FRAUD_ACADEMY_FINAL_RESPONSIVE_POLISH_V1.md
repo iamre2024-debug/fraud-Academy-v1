@@ -2,9 +2,13 @@
 
 ## Status
 
-This handoff records the final cross-screen responsive/mobile polish candidate after every isolated approved-theme v1 screen redesign.
+This handoff records the completed final cross-screen responsive/mobile polish after every isolated approved-theme v1 screen redesign.
 
 - Runtime branch: `agent/final-responsive-polish-reconciled`
+- Runtime pull request: `#55`
+- Final verified runtime head: `b4666c0c659520225d38e4408cc964b058bb401f`
+- Runtime merge on `main`: `f769d80e4b87d6d3e89095026df0bffd0355b6d7`
+- Final verification: workflow run `29159917879` passed the complete named smoke chain, production build, desktop Chromium, Pixel 7 Chromium, and the six-range responsive browser matrix
 - Authoritative base audited before work: `main` at `915887f9fd5a204fc0aeacf5b281dbda717ecdd9`
 - Preceding completed screen: Profile
 - Profile runtime pull request: `#47`
@@ -12,7 +16,7 @@ This handoff records the final cross-screen responsive/mobile polish candidate a
 - Profile runtime merge: `01e25967098594dbe67d4c523d12fe249e810564`
 - Profile Source of Truth synchronization: `915887f9fd5a204fc0aeacf5b281dbda717ecdd9`
 - Scope: final responsive/mobile polish only
-- Completion condition: all listed screens complete, full verification passes, and no additional redesign work remains
+- Completion condition: satisfied. All listed screens are complete, full verification passed, and no additional redesign work remains in the approved display sequence
 
 ## Authority chain
 
@@ -87,7 +91,7 @@ The final polish layer does not call storage, generate cases, build learner pack
 
 ## Verification gate
 
-The final branch head must pass all of these gates before merge:
+The final verified branch head passed all of these gates before merge:
 
 1. complete named `npm run verify` chain;
 2. production build;
@@ -104,4 +108,4 @@ The final branch head must pass all of these gates before merge:
 
 ## Exact next starting point
 
-After the final branch passes, merges, and the repository handoff is synchronized, report the display redesign complete and make no further changes. Future product work must begin under a new approved scope rather than silently extending this redesign sequence.
+The approved display redesign sequence is complete. Make no further display changes under this sequence. Any future product or presentation work must begin under a new approved scope rather than silently extending the completed redesign.

@@ -6,6 +6,8 @@ const styles = fs.readFileSync(path.join(rootDir, 'src/displayFinalResponsivePol
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/final-responsive-browser.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_FINAL_RESPONSIVE_POLISH_V1.md'), 'utf8');
+const sourceOfTruth = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'), 'utf8');
+const readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8');
 const packageJson = fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8');
 const workflow = fs.readFileSync(path.join(rootDir, '.github/workflows/build.yml'), 'utf8');
 const failures = [];
@@ -49,7 +51,14 @@ mustContain('final-responsive-browser.spec.mjs', browser, '{ width: 1024, height
 mustContain('final-responsive-browser.spec.mjs', browser, '{ width: 1440, height: 1000 }');
 mustContain('final-responsive-browser.spec.mjs', browser, "['briefing', 'investigate', 'timeline', 'determination', 'debrief']");
 mustContain('Final responsive handoff', handoff, 'agent/final-responsive-polish-reconciled');
-mustContain('Final responsive handoff', handoff, 'all listed screens complete');
+mustContain('Final responsive handoff', handoff, 'Runtime pull request: `#55`');
+mustContain('Final responsive handoff', handoff, 'Final verified runtime head: `b4666c0c659520225d38e4408cc964b058bb401f`');
+mustContain('Final responsive handoff', handoff, 'Runtime merge on `main`: `f769d80e4b87d6d3e89095026df0bffd0355b6d7`');
+mustContain('Final responsive handoff', handoff, 'all listed screens are complete');
+mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_FINAL_RESPONSIVE_POLISH_V1.md`');
+mustContain('Source of Truth', sourceOfTruth, 'There is no unfinished item remaining in the approved display redesign sequence.');
+mustContain('README', readme, 'docs/FRAUD_ACADEMY_FINAL_RESPONSIVE_POLISH_V1.md');
+mustContain('README', readme, 'The approved display redesign sequence is complete.');
 mustContain('package.json', packageJson, 'final-responsive-polish-v1-smoke-check');
 mustContain('build.yml', workflow, 'Final responsive/mobile polish v1 smoke check');
 
@@ -71,4 +80,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Final responsive/mobile polish v1 smoke check passed. Compact phone, standard phone, large phone/small tablet, tablet, laptop, wide-screen, touch-target, safe-area, focus, reduced-motion, and horizontal-overflow protections remain presentation-only.');
+console.log('Final responsive/mobile polish v1 smoke check passed. Compact phone, standard phone, large phone/small tablet, tablet, laptop, wide-screen, touch-target, safe-area, focus, reduced-motion, horizontal-overflow protections, verified merge metadata, and the completed display handoff remain intact.');

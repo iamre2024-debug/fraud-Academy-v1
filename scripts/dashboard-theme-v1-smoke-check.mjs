@@ -40,7 +40,7 @@ mustContain('browser-smoke.spec.mjs', browser, "toHaveAttribute('data-visual-tab
 mustContain('browser-smoke.spec.mjs', browser, "locator('.dashboard-active-case')");
 mustContain('Source of Truth', sourceOfTruth, '`src/displayDashboardThemeV1.css`');
 mustContain('Source of Truth', sourceOfTruth, 'Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision & Luna, Academy, and Profile are the completed approved replacements');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **final responsive/mobile polish only**');
+mustContain('Source of Truth', sourceOfTruth, 'There is no unfinished item remaining in the approved display redesign sequence.');
 
 for (const forbidden of [
   'generatedCaseRepository',

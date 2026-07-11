@@ -86,9 +86,9 @@ mustContain('Academy handoff', handoff, 'agent/academy-approved-theme-v1');
 mustContain('Academy handoff', handoff, 'Profile only');
 mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md`');
 mustContain('Source of Truth', sourceOfTruth, 'Decision & Luna, Academy, and Profile are the completed approved replacements');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **final responsive/mobile polish only**');
+mustContain('Source of Truth', sourceOfTruth, 'There is no unfinished item remaining in the approved display redesign sequence.');
 mustContain('README', readme, 'docs/FRAUD_ACADEMY_ACADEMY_THEME_V1.md');
-mustContain('README', readme, 'The next isolated step is **final responsive/mobile polish only**');
+mustContain('README', readme, 'The approved display redesign sequence is complete.');
 mustContain('package.json', packageJson, 'academy-theme-v1-smoke-check');
 mustContain('build.yml', workflow, 'Academy approved-theme v1 smoke check');
 
