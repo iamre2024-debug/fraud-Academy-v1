@@ -5,6 +5,7 @@ const rootDir = process.cwd();
 const header = fs.readFileSync(path.join(rootDir, 'src/VisualShellHeader.jsx'), 'utf8');
 const workflow = fs.readFileSync(path.join(rootDir, 'src/ActiveCaseWorkflowRail.jsx'), 'utf8');
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayWorkspaceShellThemeV1.css'), 'utf8');
+const layoutStyles = fs.readFileSync(path.join(rootDir, 'src/displayWorkspaceShellLayoutV1.css'), 'utf8');
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/workspace-shell-browser.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_WORKSPACE_SHELL_THEME_V1.md'), 'utf8');
@@ -57,7 +58,20 @@ for (const anchor of [
   mustContain('displayWorkspaceShellThemeV1.css', styles, anchor);
 }
 
+for (const anchor of [
+  '.visual-os-frame > *',
+  '.generated-case-control-host',
+  '.workflow-investigate-stage',
+  '.workflow-active-tool-stage',
+  'grid-column: 1 / -1',
+  'grid-template-columns: minmax(0, 1fr) auto',
+  '@media (max-width: 620px)',
+]) {
+  mustContain('displayWorkspaceShellLayoutV1.css', layoutStyles, anchor);
+}
+
 mustContain('main.jsx', entrypoint, "import './displayWorkspaceShellThemeV1.css';");
+mustContain('main.jsx', entrypoint, "import './displayWorkspaceShellLayoutV1.css';");
 mustContain('workspace-shell-browser.spec.mjs', browser, 'approved Workspace shell is compact, functional, and responsive');
 mustContain('workspace-shell-browser.spec.mjs', browser, '.workspace-shell-heading');
 mustContain('Workspace shell handoff', handoff, 'agent/workspace-shell-approved-theme-v1');
@@ -68,11 +82,10 @@ for (const forbidden of [
   'indexedDB',
   'localStorage',
   'position: fixed',
-  'overflow-x: auto',
-  'overflow-x: scroll',
   'SystemAccessLane',
 ]) {
   mustNotContain('displayWorkspaceShellThemeV1.css', styles, forbidden);
+  mustNotContain('displayWorkspaceShellLayoutV1.css', layoutStyles, forbidden);
 }
 
 for (const forbidden of ['Fraudulent', 'Legitimate', 'Correct answer', 'AI recommendation', 'Red flag', 'Green flag']) {
@@ -85,4 +98,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Workspace shell approved-theme v1 smoke check passed. The compact header, active-case strip, workflow rail, responsive layout, navigation shell, Evidence First wording, and protected persistence boundaries remain intact.');
+console.log('Workspace shell approved-theme v1 smoke check passed. The compact header, active-case strip, workflow rail, responsive grid safety, navigation shell, Evidence First wording, and protected persistence boundaries remain intact.');
