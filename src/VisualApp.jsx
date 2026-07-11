@@ -48,6 +48,21 @@ export default function VisualApp() {
     openCase(nextCase.id);
   }
 
+  function returnToQueue() {
+    setActiveTab('cases');
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
+  }
+
+  function returnToWorkspace() {
+    setActiveTab('workspace');
+    window.setTimeout(() => document.querySelector('.active-case-workflow')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  }
+
+  function viewCaseSummary() {
+    setActiveTab('workspace');
+    window.setTimeout(() => document.querySelector('[data-workflow-stage="briefing"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  }
+
   return (
     <>
       <VisualWorkspace
@@ -57,7 +72,13 @@ export default function VisualApp() {
         onNavigate={setActiveTab}
       />
       <GeneratedCaseControls onCaseGenerated={handleGeneratedCase} />
-      <LunaPostSubmissionPanel activeCase={activeCase} activeCaseId={activeCaseId} />
+      <LunaPostSubmissionPanel
+        activeCase={activeCase}
+        activeCaseId={activeCaseId}
+        onBackToWorkspace={returnToWorkspace}
+        onViewCaseSummary={viewCaseSummary}
+        onReturnToQueue={returnToQueue}
+      />
       <VisualNavigation
         activeTab={activeTab}
         activeCaseId={activeCaseId}
