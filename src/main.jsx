@@ -15,6 +15,7 @@ import './generatedCaseControls.css';
 import './browserInteractionStability.css';
 import './lightMoonlightLace.css';
 import './displayNavigationPanels.css';
+import './displayFoundation.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
