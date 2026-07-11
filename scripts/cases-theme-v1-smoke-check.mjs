@@ -8,6 +8,7 @@ const app = fs.readFileSync(path.join(rootDir, 'src/VisualApp.jsx'), 'utf8');
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/browser-smoke.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_CASES_THEME_V1.md'), 'utf8');
+const sourceOfTruth = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'), 'utf8');
 const failures = [];
 
 function mustContain(fileLabel, content, text) {
@@ -50,6 +51,10 @@ mustContain('browser-smoke.spec.mjs', browser, '[data-cases-theme-v1="approved"]
 mustContain('browser-smoke.spec.mjs', browser, '.cases-theme-v1-panel .nav-case-card');
 mustContain('Cases handoff', handoff, 'Workspace shell');
 mustContain('Cases handoff', handoff, 'agent/cases-approved-theme-v1');
+mustContain('Source of Truth', sourceOfTruth, '`src/CasesThemeV1Panel.jsx`');
+mustContain('Source of Truth', sourceOfTruth, '`src/displayCasesThemeV1.css`');
+mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_CASES_THEME_V1.md`');
+mustContain('Source of Truth', sourceOfTruth, 'Workspace shell only');
 
 for (const forbidden of [
   'generatedCaseRepository',
@@ -82,4 +87,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Cases approved-theme v1 smoke check passed. Search, filters, sorting, queue states, selected preview, responsive presentation, Evidence First wording, and protected persistence boundaries remain intact.');
+console.log('Cases approved-theme v1 smoke check passed. Search, filters, sorting, queue states, selected preview, responsive presentation, Evidence First wording, protected persistence boundaries, and the Workspace-shell handoff remain intact.');
