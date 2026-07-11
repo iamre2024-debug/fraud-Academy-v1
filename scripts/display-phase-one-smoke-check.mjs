@@ -4,6 +4,7 @@ import path from 'node:path';
 const rootDir = process.cwd();
 const navigation = fs.readFileSync(path.join(rootDir, 'src/VisualNavigation.jsx'), 'utf8');
 const academyPanel = fs.readFileSync(path.join(rootDir, 'src/AcademyThemeV1Panel.jsx'), 'utf8');
+const profilePanel = fs.readFileSync(path.join(rootDir, 'src/ProfileThemeV1Panel.jsx'), 'utf8');
 const header = fs.readFileSync(path.join(rootDir, 'src/VisualShellHeader.jsx'), 'utf8');
 const workspace = fs.readFileSync(path.join(rootDir, 'src/VisualWorkspace.jsx'), 'utf8');
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayPhaseOne.css'), 'utf8');
@@ -30,13 +31,20 @@ if (!navigationBlock) {
 }
 
 mustNotContain('VisualNavigation.jsx global navigation', navigationBlock?.[1] ?? '', "key: 'progress'");
+mustNotContain('VisualNavigation.jsx global navigation', navigationBlock?.[1] ?? '', "key: 'profile'");
 mustContain('VisualNavigation.jsx', navigation, "progress: {");
+mustContain('VisualNavigation.jsx', navigation, "profile: {");
 mustContain('VisualNavigation.jsx', navigation, '<strong>Reports & Progress</strong>');
 mustContain('VisualNavigation.jsx', navigation, "import AcademyThemeV1Panel from './AcademyThemeV1Panel.jsx';");
+mustContain('VisualNavigation.jsx', navigation, "import ProfileThemeV1Panel from './ProfileThemeV1Panel.jsx';");
 mustContain('VisualNavigation.jsx', navigation, '<AcademyThemeV1Panel');
+mustContain('VisualNavigation.jsx', navigation, '<ProfileThemeV1Panel');
+mustContain('VisualNavigation.jsx', navigation, 'className="visual-nav-profile-entry"');
 mustContain('VisualNavigation.jsx', navigation, '<AcademyProgressPanel cases={cases} packagesByCase={snapshot.packagesByCase} onOpenCase={onOpenCase} />');
 mustContain('AcademyThemeV1Panel.jsx', academyPanel, "onClick={() => onNavigate('progress')}");
 mustContain('AcademyThemeV1Panel.jsx', academyPanel, 'Open Academy Progress');
+mustContain('ProfileThemeV1Panel.jsx', profilePanel, 'Open Academy Progress');
+mustContain('ProfileThemeV1Panel.jsx', profilePanel, 'Current assignment');
 
 mustContain('VisualShellHeader.jsx', header, "import { useEffect, useState } from 'react';");
 mustContain('VisualShellHeader.jsx', header, 'aria-label="Application controls"');
@@ -47,8 +55,8 @@ mustContain('VisualShellHeader.jsx', header, 'aria-expanded={activeControl ===')
 mustContain('VisualShellHeader.jsx', header, 'Evidence First guide');
 mustContain('VisualShellHeader.jsx', header, 'type="checkbox" checked={reducedMotion}');
 mustContain('VisualShellHeader.jsx', header, "window.localStorage.setItem(reducedMotionKey, String(reducedMotion))");
-mustContain('VisualShellHeader.jsx', header, "navigate('progress')");
-mustContain('VisualShellHeader.jsx', header, 'Current assignment: <strong>{activeCase.id}</strong>');
+mustContain('VisualShellHeader.jsx', header, "navigate('profile')");
+mustNotContain('VisualShellHeader.jsx', header, 'Current assignment: <strong>{activeCase.id}</strong>');
 mustNotContain('VisualShellHeader.jsx', header, 'Coming soon');
 mustNotContain('VisualShellHeader.jsx', header, 'placeholder');
 
@@ -67,4 +75,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Display Phase 1 smoke check passed. Global navigation has four destinations, Progress remains contextual through the approved Academy panel and Agent profile, and Help, Settings, and Agent profile controls are functional and accessible.');
+console.log('Display Phase 1 smoke check passed. Global navigation has four destinations, Progress and Profile remain contextual, the persistent Agent avatar owns Profile entry, and Help and Settings remain functional accessible controls.');
