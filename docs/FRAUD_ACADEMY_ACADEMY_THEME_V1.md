@@ -6,6 +6,12 @@ Implementation branch: `agent/academy-approved-theme-v1`
 
 Authoritative base: `main` at `6be1f83e231cfd3edbbaff51dea8e3b918e1306d`
 
+Runtime pull request: #43
+
+Verified runtime head: `11ee589509368a75e049c67474d1a1e648d9911a`
+
+Runtime merge on `main`: `c7154d9b66c1446cdc32f34b2148b8eb83a70be7`
+
 Scope: **Academy only**.
 
 This handoff records the focused approved theme v1 replacement for the Academy learning surface. It does not redesign Profile, alter final responsive/mobile polish outside Academy, change investigation behavior, or migrate persistence.
