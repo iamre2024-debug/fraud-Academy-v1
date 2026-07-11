@@ -43,6 +43,7 @@ mustContain('main.jsx', entrypoint, "import './displayFinalResponsivePolishV1.cs
 mustContain('final-responsive-browser.spec.mjs', browser, 'final responsive polish protects every completed global surface');
 mustContain('final-responsive-browser.spec.mjs', browser, '{ width: 350, height: 780 }');
 mustContain('final-responsive-browser.spec.mjs', browser, '{ width: 412, height: 915 }');
+mustContain('final-responsive-browser.spec.mjs', browser, '{ width: 640, height: 900 }');
 mustContain('final-responsive-browser.spec.mjs', browser, '{ width: 768, height: 900 }');
 mustContain('final-responsive-browser.spec.mjs', browser, '{ width: 1024, height: 900 }');
 mustContain('final-responsive-browser.spec.mjs', browser, '{ width: 1440, height: 1000 }');
@@ -70,4 +71,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Final responsive/mobile polish v1 smoke check passed. Compact, phone, tablet, desktop, wide-screen, touch-target, safe-area, focus, reduced-motion, and horizontal-overflow protections remain presentation-only.');
+console.log('Final responsive/mobile polish v1 smoke check passed. Compact phone, standard phone, large phone/small tablet, tablet, laptop, wide-screen, touch-target, safe-area, focus, reduced-motion, and horizontal-overflow protections remain presentation-only.');
