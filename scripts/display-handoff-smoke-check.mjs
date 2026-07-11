@@ -35,10 +35,11 @@ function mustNotContain(fileLabel, content, text) {
   '`src/data/generatedCaseRepository.js` as the generated-case persistence boundary.',
   'Parked ten-module System Access portal modules remain retired.',
   'Phase 1 - Global navigation and header',
+  'Phase 2 - Active-case workflow rail',
 ].forEach((anchor) => mustContain('FRAUD_ACADEMY_DISPLAY_HANDOFF.md', displayHandoff, anchor));
 
 mustContain('FRAUD_ACADEMY_SOURCE_OF_TRUTH.md', sourceOfTruth, 'docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md');
-mustContain('FRAUD_ACADEMY_SOURCE_OF_TRUTH.md', sourceOfTruth, 'The current five-item runtime navigation is transitional.');
+mustContain('FRAUD_ACADEMY_SOURCE_OF_TRUTH.md', sourceOfTruth, 'The runtime global navigation now uses Dashboard, Cases, Workspace, and Academy.');
 mustContain('README.md', readme, 'docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md');
 mustContain('package.json', packageJson, '"display-handoff-smoke-check": "node scripts/display-handoff-smoke-check.mjs"');
 mustContain('package.json', packageJson, 'npm run display-handoff-smoke-check');
