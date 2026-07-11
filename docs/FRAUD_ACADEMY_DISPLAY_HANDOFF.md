@@ -17,7 +17,7 @@ Historical PR #2, stale branches, archived design notes, and retired DOM patches
 
 The current screenshot-driven visual shell remains the active runtime until a focused display phase replaces a specific surface and passes the full verification and browser gates. Do not perform a broad theme rewrite, replace working investigation behavior, or mix several display phases into one pull request.
 
-Display Phase 1 replaces only the global navigation and header-control surface. The remaining workspace shell, category rail, investigation panels, review flow, Luna panel, and generated-case controls stay on the existing verified runtime until their own focused phases pass.
+Display Phase 1 replaced only the global navigation and header-control surface. Display Phase 2 adds only the active-case workflow rail. The remaining glow hierarchy, dense record presentation, investigation panels, review flow, Luna panel, and generated-case controls stay on the existing verified runtime until their own focused phases pass.
 
 ## Approved global structure target
 
@@ -40,7 +40,7 @@ Visible controls must not be decorative placeholders. Help routes to active trai
 
 ## Active-case workflow target
 
-An open case should expose a clear workflow rail or equivalent staged navigation:
+An open case exposes the approved staged workflow:
 
 1. Case Briefing
 2. Investigate
@@ -50,9 +50,18 @@ An open case should expose a clear workflow rail or equivalent staged navigation
 6. Determination
 7. Debrief
 
-The existing investigation category rail belongs inside the Investigate stage. It should not be mistaken for the full case workflow.
+The existing investigation category rail belongs inside the Investigate stage. It is not the complete case workflow.
 
-Before submission, stage labels, status text, counts, and progress signals must remain neutral. They may describe completion, availability, or missing requirements, but they must not label evidence as red, green, fraudulent, legitimate, suspicious, safe, correct, or incorrect.
+Before submission, stage labels, status text, counts, and progress signals remain neutral. They may describe reviewed tools, collected objects, open requirements, readiness, availability, or lock state, but they must not label evidence as red, green, fraudulent, legitimate, suspicious, safe, correct, or incorrect.
+
+The current runtime behavior is:
+
+- Case Briefing scrolls to the allegation or system-alert summary.
+- Investigate returns to the category rail.
+- Timeline and Summary open their existing Timeline and Case Report tools.
+- Indicators opens the neutral Evidence Center while collected object counts remain descriptive only.
+- Determination scrolls to the existing package-gated Submit Decision panel.
+- Debrief scrolls to Luna, which stays locked until a learner package exists.
 
 ## Visual hierarchy target
 
@@ -85,6 +94,8 @@ Mobile rules:
 - Visible controls must be thumb-friendly and functional.
 - Fixed navigation must not cover active controls or content.
 - Compact text remains React-owned through `DirectCollapsibleText`.
+
+The Phase 2 rail wraps from seven columns to four and then two columns, avoiding required horizontal page scrolling while keeping every stage directly reachable.
 
 ## Architecture and safety boundaries
 
@@ -125,18 +136,24 @@ Completed in the focused global-shell change:
 
 ### Phase 2 - Active-case workflow rail
 
-Next isolated item:
+Completed in the focused workflow-rail change:
 
-- Add the seven-stage case workflow.
-- Keep the existing category rail inside Investigate.
-- Preserve neutral completion language and Submit Decision locks.
-- Do not combine glow calibration or mobile record conversion.
+- Added Case Briefing, Investigate, Timeline, Summary, Indicators, Determination, and Debrief in the approved order.
+- Kept the existing category rail inside Investigate.
+- Added accessible current-step state and direct stage actions without hiding existing workspace content.
+- Derived neutral status text from reviewed tools, collected objects, open package requirements, saved packages, and Luna availability.
+- Preserved the Submit Decision checklist and Luna pre-submission lock.
+- Added compact wrapping styles without broad glow calibration or mobile record conversion.
+- `scripts/display-phase-two-smoke-check.mjs` guards the stage order, neutral language, category placement, package gating, Debrief lock, responsive style wiring, and architecture boundaries.
 
 ### Phase 3 - Hierarchy and glow calibration
+
+Next isolated item:
 
 - Reduce decorative saturation without flattening the Fraud Academy identity.
 - Formalize button, card, selected, focus, warning, and disabled states.
 - Keep existing component behavior and props stable where practical.
+- Do not combine mobile record conversion or persistence work.
 
 ### Phase 4 - Responsive record presentation
 
@@ -164,4 +181,4 @@ A display pull request is not complete until it confirms:
 
 ## Next safe item
 
-After Phase 1 merges and its exact tree passes the full verify and browser jobs, the next isolated display item is Phase 2: active-case workflow rail only. Do not combine broad glow calibration or mobile table conversion into that pull request.
+After Phase 2 merges and its exact tree passes the full verify and browser jobs, the next isolated display item is Phase 3: hierarchy and glow calibration only. Do not combine mobile record conversion, generated-case storage changes, or investigation behavior rewrites into that pull request.
