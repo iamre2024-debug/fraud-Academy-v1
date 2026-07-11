@@ -22,17 +22,23 @@ mustNotContain('VisualWorkspace.jsx', workspace, "window.dispatchEvent(new Custo
 mustContain('useVisualWorkspaceActions.js', workspaceActions, "window.dispatchEvent(new CustomEvent('fraud-academy:package-saved'");
 mustContain('useVisualWorkspaceActions.js', workspaceActions, "markReviewed('Submit Decision')");
 
-mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Luna Post-Submission Debrief');
-mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Post-submission coaching stays locked');
-mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Evidence First lock is active');
-mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Your submitted determination');
-mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Decision-quality breakdown');
-mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, "window.addEventListener('fraud-academy:package-saved'");
-mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, "import DirectCollapsibleText from './DirectCollapsibleText.jsx';");
+for (const anchor of [
+  'Luna Post-Submission Debrief',
+  'data-luna-screen="approved-theme-v1"',
+  "data-luna-state={locked ? 'locked' : 'unlocked'}",
+  'Post-submission coaching stays locked',
+  'Evidence First lock is active',
+  'Your submitted determination',
+  'Decision-quality breakdown',
+  "window.addEventListener('fraud-academy:package-saved'",
+  "import DirectCollapsibleText from './DirectCollapsibleText.jsx';",
+]) {
+  mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, anchor);
+}
 
 const directWrapperCount = (lunaPanel.match(/<DirectCollapsibleText/g) ?? []).length;
 if (directWrapperCount < 4) {
-  failures.push('LunaPostSubmissionPanel.jsx must render learner reasoning and both coaching lists through DirectCollapsibleText.');
+  failures.push(`LunaPostSubmissionPanel.jsx must render learner reasoning and both coaching lists through DirectCollapsibleText; found ${directWrapperCount}.`);
 }
 
 mustNotContain('VisualTextCollapse.jsx', visualTextCollapse, '.luna-list-card p');
@@ -43,4 +49,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Luna single-module smoke check passed. Luna remains one case-scoped post-submission module, listens for controller-saved packages, preserves Evidence First locking, and owns direct compact-text controls without legacy selector scanning.');
+console.log('Luna single-module smoke check passed. Luna remains one case-scoped approved post-submission module, listens for controller-saved packages, preserves Evidence First locking, and owns direct compact-text controls without legacy selector scanning.');
