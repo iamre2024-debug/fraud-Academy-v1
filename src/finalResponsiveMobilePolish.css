@@ -19,6 +19,7 @@ body {
 .visual-os-frame,
 .visual-react-nav-host,
 .visual-nav-panel,
+.cases-theme-v1-panel,
 .active-case-workflow,
 .workflow-investigate-stage,
 .workflow-active-tool-stage,
@@ -31,6 +32,7 @@ body {
 [data-academy-screen="approved-theme-v1"],
 [data-profile-screen="approved-theme-v1"],
 [data-cases-theme-v1="approved"] {
+  box-sizing: border-box;
   min-width: 0;
   max-width: 100%;
 }
@@ -111,6 +113,19 @@ a:focus-visible {
     min-width: 44px;
   }
 
+  body[data-visual-tab="workspace"] .visual-header-controls button {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    height: 44px;
+    padding: 0;
+  }
+
+  body[data-visual-tab="workspace"] .visual-case-switcher select,
+  body[data-visual-tab="workspace"] .generated-case-controls button {
+    min-height: 44px;
+  }
+
   .header-panel-close {
     width: 44px;
     height: 44px;
@@ -129,7 +144,9 @@ a:focus-visible {
   .decision-v1-panel,
   .academy-theme-v1,
   .profile-theme-v1 {
+    box-sizing: border-box;
     width: 100%;
+    max-width: 100%;
   }
 
   input:not([type="checkbox"]):not([type="radio"]),
@@ -142,6 +159,18 @@ a:focus-visible {
 @media (max-width: 620px) {
   .visual-os-frame {
     border-inline: 0;
+  }
+
+  body[data-visual-tab="cases"] .visual-os-frame,
+  body[data-visual-tab="cases"] .cases-theme-v1-host,
+  body[data-visual-tab="cases"] .cases-theme-v1-panel {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  body[data-visual-tab="cases"] .cases-theme-v1-panel {
+    padding-inline: 14px;
   }
 
   .visual-nav-heading {
@@ -195,8 +224,12 @@ a:focus-visible {
     gap: 4px;
   }
 
-  .visual-header-controls button,
+  body[data-visual-tab="workspace"] .visual-header-controls button,
   .visual-nav-profile-entry {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    height: 44px;
     border-radius: 13px;
   }
 
