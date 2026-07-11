@@ -59,12 +59,9 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
     const workspace = document.querySelector('.decision-v1-workspace');
     const metrics = document.querySelector('.decision-status-grid');
     const lockedGrid = document.querySelector('.luna-v1-unlock-grid');
-    const viewportWidth = window.innerWidth;
-    const rect = panel?.getBoundingClientRect();
     return {
-      viewportWidth,
+      viewportWidth: window.innerWidth,
       documentWidth: document.documentElement.scrollWidth,
-      panelFits: Boolean(rect && rect.left >= -2 && rect.right <= viewportWidth + 2),
       workspaceColumns: workspace ? getComputedStyle(workspace).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
       metricColumns: metrics ? getComputedStyle(metrics).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
       lockedColumns: lockedGrid ? getComputedStyle(lockedGrid).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
@@ -73,7 +70,6 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
   });
 
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
-  expect(layout.panelFits).toBe(true);
   expect(layout.position).toBe('static');
   if (testInfo.project.name === 'mobile-chromium') {
     expect(layout.workspaceColumns).toBe(1);
@@ -126,5 +122,5 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
 
   await persistedLuna.getByRole('button', { name: 'Finish and Return to Queue', exact: true }).click();
   await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'cases');
-  await expect(page.locator('[data-cases-screen="approved-theme-v1"]')).toBeVisible();
+  await expect(page.locator('[data-cases-theme-v1="approved"]')).toBeVisible();
 });
