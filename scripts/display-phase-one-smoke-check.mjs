@@ -30,7 +30,8 @@ if (!navigationBlock) {
 
 mustNotContain('VisualNavigation.jsx global navigation', navigationBlock?.[1] ?? '', "key: 'progress'");
 mustContain('VisualNavigation.jsx', navigation, "progress: {");
-mustContain('VisualNavigation.jsx', navigation, "onClick={() => onNavigate('progress')}>View Progress</button>");
+mustContain('VisualNavigation.jsx', navigation, "onClick={() => onNavigate('progress')}");
+mustContain('VisualNavigation.jsx', navigation, '<strong>Reports & Progress</strong>');
 mustContain('VisualNavigation.jsx', navigation, "onClick={() => onNavigate('progress')}>Open Academy Progress</button>");
 mustContain('VisualNavigation.jsx', navigation, '<AcademyProgressPanel cases={cases} packagesByCase={snapshot.packagesByCase} onOpenCase={onOpenCase} />');
 
