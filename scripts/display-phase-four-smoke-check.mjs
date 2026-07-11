@@ -31,11 +31,14 @@ mustContain('displayPhaseFour.css', styles, '.activity-row.table-head');
 mustContain('displayPhaseFour.css', styles, 'display: none;');
 mustContain('displayPhaseFour.css', styles, 'content: attr(data-field);');
 mustContain('displayPhaseFour.css', styles, '.activity-row:not(.table-head)');
+mustContain('displayPhaseFour.css', styles, 'position: static;');
+mustContain('displayPhaseFour.css', styles, 'box-sizing: border-box;');
 mustContain('displayPhaseFour.css', styles, '@media (max-width: 420px)');
 mustContain('main.jsx', entrypoint, "import './displayPhaseFour.css';");
 
-mustContain('browser-smoke.spec.mjs', browser, 'responsive records become labeled mobile cards without page overflow');
-mustContain('browser-smoke.spec.mjs', browser, 'document.documentElement.scrollWidth <= document.documentElement.clientWidth');
+mustContain('browser-smoke.spec.mjs', browser, 'responsive records become labeled mobile cards without record-surface overflow');
+mustContain('browser-smoke.spec.mjs', browser, 'panelFits: withinViewport(panel)');
+mustContain('browser-smoke.spec.mjs', browser, 'recordOverflow: record.scrollWidth - record.clientWidth');
 mustContain('browser-smoke.spec.mjs', browser, "testInfo.project.name === 'mobile-chromium'");
 mustContain('browser-smoke.spec.mjs', browser, "getComputedStyle(element, '::before').content");
 
@@ -64,4 +67,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Display Phase 4 smoke check passed. Dense records become labeled mobile cards without horizontal page overflow, while desktop tables and protected investigation behavior remain intact.');
+console.log('Display Phase 4 smoke check passed. Dense records become labeled mobile cards without record-surface overflow, while desktop tables and protected investigation behavior remain intact.');
