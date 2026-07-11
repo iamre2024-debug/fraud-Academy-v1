@@ -35,6 +35,35 @@ async function openCoreTool(page, category, tool) {
   await expect(page.locator('.record-detail-panel')).toBeAttached();
 }
 
+test('approved Dashboard resumes the active case without answer leaks', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: /Dashboard/ }).click();
+
+  await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'dashboard');
+  await expect(page.locator('[data-react-navigation-panel="dashboard"]')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Investigator dashboard' })).toBeVisible();
+  await expect(page.locator('.dashboard-active-case')).toContainText(builtInCases[0].id);
+  await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Case Queue/ })).toBeVisible();
+  await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Evidence Workspace/ })).toBeVisible();
+  await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Timeline/ })).toBeVisible();
+  await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Reports & Progress/ })).toBeVisible();
+
+  const dashboardLayout = await page.evaluate(() => ({
+    viewportWidth: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    frameWidth: document.querySelector('.visual-os-frame')?.getBoundingClientRect().width ?? 0,
+  }));
+
+  expect(dashboardLayout.documentWidth).toBeLessThanOrEqual(dashboardLayout.viewportWidth + 1);
+  expect(dashboardLayout.frameWidth).toBeLessThanOrEqual(dashboardLayout.viewportWidth + 1);
+  await assertEvidenceFirstLock(page, builtInCases[0].id);
+
+  await page.locator('.dashboard-primary-action').click();
+  await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'workspace');
+  await expect(page.locator('.visual-case-switcher select')).toHaveValue(builtInCases[0].id);
+  await assertEvidenceFirstLock(page, builtInCases[0].id);
+});
+
 test('all three built-in cases open from the queue without answer leaks', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /Fraud Academy OS/ })).toBeVisible();
