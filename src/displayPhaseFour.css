@@ -2,6 +2,14 @@
    Converts dense investigation rows into touch-friendly mobile record cards
    without changing record data, investigation actions, persistence, or locks. */
 
+.activity-panel,
+.activity-panel *,
+.activity-panel *::before,
+.activity-panel *::after {
+  box-sizing: border-box;
+}
+
+.activity-panel,
 .activity-table,
 .activity-row,
 .activity-row > span,
@@ -10,6 +18,10 @@
 .record-review-lanes {
   min-width: 0;
   max-width: 100%;
+}
+
+.activity-panel {
+  width: 100%;
 }
 
 .activity-row > span small,
@@ -56,6 +68,8 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
+    width: 100%;
+    min-width: 0;
   }
 
   .workspace-search-row input {
@@ -69,6 +83,7 @@
   }
 
   .activity-table {
+    width: 100%;
     border: 0;
     border-radius: 0;
     overflow: visible;
@@ -81,6 +96,7 @@
 
   .activity-row:not(.table-head) {
     display: block;
+    width: 100%;
     min-height: 0;
     margin-bottom: 12px;
     border: 1px solid rgba(255, 155, 233, 0.2);
@@ -95,12 +111,15 @@
     box-shadow: 0 0 0 1px rgba(110, 231, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.28);
   }
 
-  .activity-row:not(.table-head) > span {
+  .activity-row:not(.table-head) > span,
+  .activity-row:not(.table-head) > span:last-of-type {
     display: grid;
     grid-template-columns: minmax(6.5rem, 0.72fr) minmax(0, 1fr);
     align-items: start;
     gap: 12px;
+    width: 100%;
     padding: 11px 12px;
+    padding-right: 12px;
     border-right: 0;
     border-bottom: 1px solid rgba(255, 155, 233, 0.11);
     color: rgba(255, 241, 251, 0.9);
@@ -125,9 +144,14 @@
   }
 
   .row-action-group {
+    position: static;
+    right: auto;
+    top: auto;
+    transform: none;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
+    width: 100%;
     padding: 10px 12px 12px;
     background: rgba(255, 255, 255, 0.018);
   }
@@ -183,7 +207,8 @@
 }
 
 @media (max-width: 420px) {
-  .activity-row:not(.table-head) > span {
+  .activity-row:not(.table-head) > span,
+  .activity-row:not(.table-head) > span:last-of-type {
     grid-template-columns: minmax(0, 1fr);
     gap: 5px;
   }
