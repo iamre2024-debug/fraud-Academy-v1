@@ -2,13 +2,17 @@
 
 ## Status
 
-This handoff records the isolated approved-theme v1 redesign for the **Decision and Luna only** step in the locked screen order.
+This handoff records the completed isolated approved-theme v1 redesign for the **Decision and Luna only** step in the locked screen order.
 
-- Branch: `agent/decision-luna-approved-theme-v1`
+- Runtime branch: `agent/decision-luna-approved-theme-v1`
 - Base audited before work: `main` at `8e834ce3bc438a1cbd973ae192fb232d9f551873`
-- Runtime merge on `main`: pending final verification and merge
+- Final verified runtime head: `e1731cd91f7c26992605cfe311672354aa5e4643`
+- Runtime pull request: `#37`
+- Runtime merge on `main`: `92d7848e608f62d2800849f5111eb5115f505569`
+- Final runtime verification: GitHub Actions `Fraud Academy Verify` run `#382` passed the complete named smoke chain, production build, desktop Chromium, and Pixel 7 Chromium
+- Handoff synchronization branch: `agent/decision-luna-theme-v1-handoff-sync`
 - Preceding completed screen group: Timeline
-- Next isolated screen after this change passes, merges, and is synchronized: **Academy only**
+- Next isolated screen: **Academy only**
 
 ## Authority chain
 
@@ -113,9 +117,9 @@ Decision and Luna must:
 - preserve visible keyboard focus and text labels for state;
 - keep compact-phone content readable at 350 pixels.
 
-## Verification gate
+## Completed verification
 
-Do not merge until all of the following pass on the final branch head:
+The final runtime branch head passed all required gates before merge:
 
 1. complete named `npm run verify` chain;
 2. production build;
@@ -134,4 +138,4 @@ Do not merge until all of the following pass on the final branch head:
 
 ## Exact next starting point
 
-After this change is verified, merged, and synchronized, re-audit the new `main` head, active branches, open pull requests, recent commits, CI, and the last completed handoff. Then redesign **Academy only**. Do not combine Profile or final responsive/mobile polish with that pull request.
+Re-audit the new `main` head, active branches, open pull requests, recent commits, CI, and this completed handoff. Then redesign **Academy only** on a separate branch. Do not combine Profile or final responsive/mobile polish with the Academy pull request.
