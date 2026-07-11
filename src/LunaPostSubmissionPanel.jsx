@@ -33,6 +33,7 @@ export default function LunaPostSubmissionPanel({
 }) {
   const [host, setHost] = useState(null);
   const [version, setVersion] = useState(0);
+  const [submittedPackage, setSubmittedPackage] = useState(null);
   const activeCase = suppliedActiveCase ?? cases.find((item) => item.id === activeCaseId) ?? cases[0];
 
   useEffect(() => {
@@ -55,11 +56,19 @@ export default function LunaPostSubmissionPanel({
   }, []);
 
   useEffect(() => {
-    const refresh = () => setVersion((current) => current + 1);
+    setSubmittedPackage(null);
+  }, [activeCase.id]);
+
+  useEffect(() => {
     let packageRefreshTimer = null;
-    const refreshAfterPackageSaved = () => {
+    const refresh = () => setVersion((current) => current + 1);
+    const refreshAfterPackageSaved = (event) => {
+      if (event.detail?.caseId === activeCase.id && event.detail?.reviewPackage) {
+        setSubmittedPackage(event.detail.reviewPackage);
+      }
+      refresh();
       if (packageRefreshTimer !== null) window.clearTimeout(packageRefreshTimer);
-      packageRefreshTimer = window.setTimeout(refresh, 0);
+      packageRefreshTimer = window.setTimeout(refresh, 24);
     };
 
     window.addEventListener('storage', refresh);
@@ -71,7 +80,7 @@ export default function LunaPostSubmissionPanel({
       window.removeEventListener('fraud-academy:package-saved', refreshAfterPackageSaved);
       if (packageRefreshTimer !== null) window.clearTimeout(packageRefreshTimer);
     };
-  }, []);
+  }, [activeCase.id]);
 
   const state = useMemo(() => {
     const packagesByCase = readJson(storageKeys.packages, {});
@@ -79,14 +88,15 @@ export default function LunaPostSubmissionPanel({
     const trayByCase = readJson(storageKeys.tray, {});
     const notesByCase = readJson(storageKeys.notes, {});
     const packetsByCase = readJson(storageKeys.packets, {});
-    const reviewPackage = (packagesByCase[activeCase.id] ?? [])[0] ?? null;
+    const storedPackage = (packagesByCase[activeCase.id] ?? [])[0] ?? null;
+    const reviewPackage = submittedPackage?.caseId === activeCase.id ? submittedPackage : storedPackage;
     const completedTools = completedByCase[activeCase.id] ?? [];
     const tray = trayByCase[activeCase.id] ?? [];
     const notes = notesByCase[activeCase.id] ?? [];
     const reportPackets = packetsByCase[activeCase.id] ?? [];
     const debrief = buildLunaDebrief({ activeCase, reviewPackage, completedTools, tray, notes, reportPackets });
     return { reviewPackage, debrief };
-  }, [activeCase, version]);
+  }, [activeCase, submittedPackage, version]);
 
   const locked = !state.reviewPackage || !state.debrief;
   const panel = (
