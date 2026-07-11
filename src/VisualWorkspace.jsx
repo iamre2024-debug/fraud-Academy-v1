@@ -93,7 +93,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   }
 
   return (
-    <main className="visual-os-shell">
+    <main id="fraud-academy-workspace" className="visual-os-shell" tabIndex="-1">
       <section className="visual-os-frame">
         <VisualShellHeader
           activeCase={activeCase}
