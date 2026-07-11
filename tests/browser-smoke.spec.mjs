@@ -23,16 +23,33 @@ async function assertEvidenceFirstLock(page, expectedCaseId) {
 
 async function openCoreTool(page, category, tool) {
   await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
-  const categoryButton = page.locator('.visual-category-row button').filter({ hasText: category });
+
+  if (tool === 'Timeline' || tool === 'Case Report') {
+    const workflow = page.getByRole('navigation', { name: 'Active case workflow' });
+    const route = tool === 'Timeline' ? /Timeline/ : /Summary/;
+    await workflow.getByRole('button', { name: route }).click();
+    const selector = page.locator('.activity-panel .tool-select');
+    await expect(selector).toHaveValue(tool);
+    await expect(page.locator('.tool-purpose-card strong')).toHaveText(tool);
+    await expect(page.locator('.activity-row:not(.table-head)').first()).toBeVisible();
+    await expect(page.locator('.record-detail-panel')).toBeAttached();
+    return;
+  }
+
+  const categoryButton = page.locator('[data-investigation-tool-groups="approved-theme-v1"] .visual-category-row button').filter({ hasText: category });
   await expect(categoryButton).toBeVisible();
   await categoryButton.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'nearest' }));
   await categoryButton.evaluate((element) => element.click());
-  const selector = page.locator('.tool-select');
-  await selector.selectOption({ label: tool });
+
+  const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
+  const selector = panel.getByRole('combobox', { name: 'Choose investigation tool' });
+  await expect(panel).toBeVisible();
+  if (await selector.inputValue() !== tool) await selector.selectOption({ label: tool });
   await expect(selector).toHaveValue(tool);
-  await expect(page.locator('.tool-purpose-card strong')).toHaveText(tool);
-  await expect(page.locator('.activity-row:not(.table-head)').first()).toBeVisible();
-  await expect(page.locator('.record-detail-panel')).toBeAttached();
+  await expect(panel).toHaveAttribute('data-tool-name', tool);
+  await expect(panel.getByRole('heading', { name: tool, exact: true })).toBeVisible();
+  await expect(panel.locator('[data-investigation-record]').first()).toBeVisible();
+  await expect(panel.locator('.investigation-tool-detail')).toBeAttached();
 }
 
 test('approved Dashboard resumes the active case without answer leaks', async ({ page }) => {
@@ -138,64 +155,70 @@ test('all three built-in cases open from the queue without answer leaks', async 
 test('completed core modules and System Access Lane render real records', async ({ page }) => {
   await page.goto('/');
 
-  await openCoreTool(page, 'Financial', 'Payment Verification');
-  await openCoreTool(page, 'Business', 'Business Intelligence');
-  await openCoreTool(page, 'Evidence', 'Evidence Center');
-  await openCoreTool(page, 'Connections', 'Link Analysis');
-  await openCoreTool(page, 'Connections', 'System Access Lane');
-  await openCoreTool(page, 'Investigation', 'Timeline');
-  await openCoreTool(page, 'Investigation', 'Case Report');
+  await openCoreTool(page, 'Business & Payment Verification', 'Payment Verification');
+  await openCoreTool(page, 'Business & Payment Verification', 'Business Intelligence');
+  await openCoreTool(page, 'Evidence & Documents', 'Evidence Center');
+  await openCoreTool(page, 'Links & Related Cases', 'Link Analysis');
+  await openCoreTool(page, 'Links & Related Cases', 'System Access Lane');
+  await openCoreTool(page, 'Workflow Review', 'Timeline');
+  await openCoreTool(page, 'Workflow Review', 'Case Report');
 
   await expect(page.locator('.view-full-button')).toBeVisible();
   await assertEvidenceFirstLock(page, builtInCases[0].id);
 });
 
-test('responsive records become labeled mobile cards without record-surface overflow', async ({ page }, testInfo) => {
+test('responsive investigation records stay inside the viewport', async ({ page }, testInfo) => {
   await page.goto('/');
-  await openCoreTool(page, 'Financial', 'Payment Verification');
+  await openCoreTool(page, 'Business & Payment Verification', 'Payment Verification');
 
-  const table = page.locator('.activity-table');
-  const header = table.locator('.table-head');
-  const firstRecord = table.locator('.activity-row:not(.table-head)').first();
-  const firstCell = firstRecord.locator('[role="cell"][data-field]').first();
+  const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
+  const recordList = panel.locator('.investigation-tool-records');
+  const detail = panel.locator('.investigation-tool-detail');
+  const firstRecord = panel.locator('[data-investigation-record]').first();
+  const firstField = firstRecord.locator('dl > div').first();
 
-  await expect(table).toHaveAttribute('role', 'table');
-  await expect(firstCell).toHaveAttribute('data-field', /.+/);
+  await expect(firstRecord).toBeVisible();
+  await expect(firstField).toBeVisible();
 
   const layout = await page.evaluate(() => {
-    const panel = document.querySelector('.activity-panel');
-    const recordTable = document.querySelector('.activity-table');
-    const record = document.querySelector('.activity-row:not(.table-head)');
+    const panelElement = document.querySelector('[data-investigation-tools-screen="approved-theme-v1"]');
+    const recordListElement = document.querySelector('.investigation-tool-records');
+    const detailElement = document.querySelector('.investigation-tool-detail');
+    const record = document.querySelector('[data-investigation-record]');
+    const fieldGrid = document.querySelector('[data-investigation-record] dl');
     const viewportWidth = window.innerWidth;
+    const rect = (element) => element?.getBoundingClientRect();
     const withinViewport = (element) => {
-      const rect = element.getBoundingClientRect();
-      return rect.left >= -1 && rect.right <= viewportWidth + 1;
+      const box = rect(element);
+      return Boolean(box && box.left >= -1 && box.right <= viewportWidth + 1);
     };
 
     return {
-      panelFits: withinViewport(panel),
-      tableFits: withinViewport(recordTable),
+      panelFits: withinViewport(panelElement),
+      listFits: withinViewport(recordListElement),
+      detailFits: withinViewport(detailElement),
       recordFits: withinViewport(record),
-      panelOverflow: panel.scrollWidth - panel.clientWidth,
+      panelOverflow: panelElement.scrollWidth - panelElement.clientWidth,
       recordOverflow: record.scrollWidth - record.clientWidth,
+      fieldColumns: fieldGrid ? getComputedStyle(fieldGrid).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      listTop: rect(recordListElement)?.top ?? 0,
+      detailTop: rect(detailElement)?.top ?? 0,
     };
   });
 
   expect(layout.panelFits).toBe(true);
-  expect(layout.tableFits).toBe(true);
+  expect(layout.listFits).toBe(true);
+  expect(layout.detailFits).toBe(true);
   expect(layout.recordFits).toBe(true);
+  expect(layout.panelOverflow).toBeLessThanOrEqual(1);
+  expect(layout.recordOverflow).toBeLessThanOrEqual(1);
 
   if (testInfo.project.name === 'mobile-chromium') {
-    await expect(header).toBeHidden();
-    expect(await firstRecord.evaluate((element) => getComputedStyle(element).display)).toBe('block');
-    expect(layout.panelOverflow).toBeLessThanOrEqual(1);
-    expect(layout.recordOverflow).toBeLessThanOrEqual(1);
-    const mobileLabel = await firstCell.evaluate((element) => getComputedStyle(element, '::before').content);
-    expect(mobileLabel).not.toBe('none');
-    expect(mobileLabel).not.toBe('normal');
+    expect(layout.fieldColumns).toBe(1);
+    expect(layout.detailTop).toBeGreaterThan(layout.listTop + 20);
   } else {
-    await expect(header).toBeVisible();
-    expect(await firstRecord.evaluate((element) => getComputedStyle(element).display)).toBe('grid');
+    expect(layout.fieldColumns).toBe(2);
+    expect(Math.abs(layout.listTop - layout.detailTop)).toBeLessThanOrEqual(2);
   }
 
   await assertEvidenceFirstLock(page, builtInCases[0].id);
@@ -217,7 +240,7 @@ test('generated cases persist through reload and remain Evidence First', async (
     expect(generatedIds).not.toContain(generatedId);
     generatedIds.push(generatedId);
     await expect(page.locator('.visual-case-strip')).toContainText('Generated');
-    await expect(page.locator('.activity-row:not(.table-head)').first()).toBeVisible();
+    await expect(page.locator('[data-investigation-record]').first()).toBeVisible();
     await assertEvidenceFirstLock(page, generatedId);
   }
 
