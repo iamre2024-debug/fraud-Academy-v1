@@ -108,7 +108,7 @@ export default function AcademyThemeV1Panel({ onNavigate }) {
         <aside className="academy-context-column">
           <section className="academy-library-card" aria-labelledby="academy-library-title">
             <span className="academy-kicker">Fraud Library</span>
-            <h4 id="academy-library-title">Reference by investigator question</h4>
+            <h4 id="academy-library-title">Reference by investigation topic</h4>
             <div className="academy-library-list">
               {libraryTopics.map(([title, detail]) => (
                 <article key={title}>
