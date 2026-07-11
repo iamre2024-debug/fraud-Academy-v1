@@ -14,6 +14,8 @@ const layoutSafety = fs.readFileSync(path.join(rootDir, 'src/displayDecisionLuna
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/decision-luna-browser.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_DECISION_LUNA_THEME_V1.md'), 'utf8');
+const sourceOfTruth = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'), 'utf8');
+const readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8');
 const packageJson = fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8');
 const workflow = fs.readFileSync(path.join(rootDir, '.github/workflows/build.yml'), 'utf8');
 const failures = [];
@@ -142,6 +144,7 @@ for (const anchor of [
   'max-width: 100% !important',
   'margin-inline: 0 !important',
   'transform: none !important',
+  'width: calc(100% - 18px) !important',
 ]) {
   mustContain('displayDecisionLunaLayoutSafetyV1.css', layoutSafety, anchor);
 }
@@ -157,6 +160,12 @@ mustContain('decision-luna-browser.spec.mjs', browser, 'panelOverflow');
 mustContain('decision-luna-browser.spec.mjs', browser, 'toBeLessThanOrEqual(4)');
 mustContain('Decision and Luna handoff', handoff, 'agent/decision-luna-approved-theme-v1');
 mustContain('Decision and Luna handoff', handoff, 'Academy only');
+mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_DECISION_LUNA_THEME_V1.md`');
+mustContain('Source of Truth', sourceOfTruth, '`src/SubmitDecisionPanel.jsx` owns the approved Decision workspace');
+mustContain('Source of Truth', sourceOfTruth, '`src/LunaPostSubmissionPanel.jsx` owns the approved locked and post-submission Luna states');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Academy only**');
+mustContain('README', readme, 'The approved Decision & Luna handoff lives in');
+mustContain('README', readme, 'The next isolated screen is **Academy only**');
 mustContain('package.json', packageJson, 'decision-luna-theme-v1-smoke-check');
 mustContain('build.yml', workflow, 'Decision and Luna approved-theme v1 smoke check');
 
@@ -191,4 +200,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Decision and Luna approved-theme v1 smoke check passed. Evidence First locking, lane-organized learner choices, rationale readiness, case-scoped package saving, post-submission coaching, viewport-bound layout safety, existing persistence boundaries, and the Academy-only handoff remain intact.');
+console.log('Decision and Luna approved-theme v1 smoke check passed. Evidence First locking, lane-organized learner choices, rationale readiness, case-scoped package saving, post-submission coaching, viewport-bound layout safety, existing persistence boundaries, and the synchronized Academy-only handoff remain intact.');
