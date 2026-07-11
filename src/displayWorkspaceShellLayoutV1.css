@@ -3,7 +3,10 @@ body[data-visual-tab="workspace"] .visual-os-frame > * {
   max-width: 100%;
 }
 
-body[data-visual-tab="workspace"] .visual-hero {
+body[data-visual-tab="workspace"] .visual-hero,
+body[data-visual-tab="workspace"] .case-info-bar,
+body[data-visual-tab="workspace"] .active-case-workflow,
+body[data-visual-tab="workspace"] .generated-case-controls {
   box-sizing: border-box;
 }
 
