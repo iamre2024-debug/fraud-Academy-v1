@@ -164,7 +164,7 @@ mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_DECISION_LUNA
 mustContain('Source of Truth', sourceOfTruth, '`src/SubmitDecisionPanel.jsx` owns the approved Decision workspace');
 mustContain('Source of Truth', sourceOfTruth, '`src/LunaPostSubmissionPanel.jsx` owns the approved locked and post-submission Luna states');
 mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Academy only**');
-mustContain('README', readme, 'The approved Decision & Luna handoff lives in');
+mustContain('README', readme, 'The approved Decision and Luna handoff lives in');
 mustContain('README', readme, 'The next isolated screen is **Academy only**');
 mustContain('package.json', packageJson, 'decision-luna-theme-v1-smoke-check');
 mustContain('build.yml', workflow, 'Decision and Luna approved-theme v1 smoke check');
