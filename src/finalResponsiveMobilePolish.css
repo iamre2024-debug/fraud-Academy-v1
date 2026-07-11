@@ -37,6 +37,10 @@ body {
   max-width: 100%;
 }
 
+body[data-visual-tab="workspace"] .visual-os-frame {
+  overflow-x: clip;
+}
+
 .visual-os-frame *,
 .visual-nav-panel * {
   min-inline-size: 0;
