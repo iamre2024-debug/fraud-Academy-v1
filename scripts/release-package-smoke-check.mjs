@@ -48,7 +48,7 @@ for (const safeLabel of [
 }
 
 mustContain('Release Readiness', releaseReadiness, 'docs/FRAUD_ACADEMY_RELEASE_PACKAGE.md');
-mustContain('Source of Truth', sourceOfTruth, 'src/data/generatedCaseRepository.js');
+mustContain('Source of Truth', sourceOfTruth, 'docs/FRAUD_ACADEMY_RELEASE_PACKAGE.md');
 mustContain('Source of Truth', sourceOfTruth, 'The focused display migration is complete.');
 mustContain('README', readme, 'docs/FRAUD_ACADEMY_RELEASE_PACKAGE.md');
 mustContain('package.json', packageJson, 'release-package-smoke-check');
