@@ -10,6 +10,7 @@ const state = fs.readFileSync(path.join(rootDir, 'src/useVisualWorkspaceCaseStat
 const reviewPackage = fs.readFileSync(path.join(rootDir, 'src/data/reviewPackage.js'), 'utf8');
 const debrief = fs.readFileSync(path.join(rootDir, 'src/data/lunaDebrief.js'), 'utf8');
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayDecisionLunaThemeV1.css'), 'utf8');
+const layoutSafety = fs.readFileSync(path.join(rootDir, 'src/displayDecisionLunaLayoutSafetyV1.css'), 'utf8');
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/decision-luna-browser.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_DECISION_LUNA_THEME_V1.md'), 'utf8');
@@ -135,12 +136,25 @@ for (const anchor of [
   mustContain('displayDecisionLunaThemeV1.css', styles, anchor);
 }
 
+for (const anchor of [
+  '[data-workflow-stage="determination"]',
+  'width: 100% !important',
+  'max-width: 100% !important',
+  'margin-inline: 0 !important',
+  'transform: none !important',
+]) {
+  mustContain('displayDecisionLunaLayoutSafetyV1.css', layoutSafety, anchor);
+}
+
 mustContain('main.jsx', entrypoint, "import './displayDecisionLunaThemeV1.css';");
+mustContain('main.jsx', entrypoint, "import './displayDecisionLunaLayoutSafetyV1.css';");
 mustContain('decision-luna-browser.spec.mjs', browser, 'approved Decision and Luna preserve Evidence First, package submission, debrief routes, and responsive safety');
 mustContain('decision-luna-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('decision-luna-browser.spec.mjs', browser, 'data-decision-screen="approved-theme-v1"');
 mustContain('decision-luna-browser.spec.mjs', browser, 'data-luna-state="locked"');
 mustContain('decision-luna-browser.spec.mjs', browser, 'data-luna-state="unlocked"');
+mustContain('decision-luna-browser.spec.mjs', browser, 'panelOverflow');
+mustContain('decision-luna-browser.spec.mjs', browser, 'toBeLessThanOrEqual(4)');
 mustContain('Decision and Luna handoff', handoff, 'agent/decision-luna-approved-theme-v1');
 mustContain('Decision and Luna handoff', handoff, 'Academy only');
 mustContain('package.json', packageJson, 'decision-luna-theme-v1-smoke-check');
@@ -156,6 +170,7 @@ for (const forbidden of [
   mustNotContain('SubmitDecisionPanel.jsx', decision, forbidden);
   mustNotContain('LunaPostSubmissionPanel.jsx', luna, forbidden);
   mustNotContain('displayDecisionLunaThemeV1.css', styles, forbidden);
+  mustNotContain('displayDecisionLunaLayoutSafetyV1.css', layoutSafety, forbidden);
 }
 
 for (const forbidden of [
@@ -176,4 +191,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Decision and Luna approved-theme v1 smoke check passed. Evidence First locking, lane-organized learner choices, rationale readiness, case-scoped package saving, post-submission coaching, responsive safety, existing persistence boundaries, and the Academy-only handoff remain intact.');
+console.log('Decision and Luna approved-theme v1 smoke check passed. Evidence First locking, lane-organized learner choices, rationale readiness, case-scoped package saving, post-submission coaching, viewport-bound layout safety, existing persistence boundaries, and the Academy-only handoff remain intact.');
