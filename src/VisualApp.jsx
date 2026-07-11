@@ -49,6 +49,7 @@ export default function VisualApp() {
 
   return (
     <>
+      <a className="fa-skip-link" href="#fraud-academy-workspace">Skip to investigation workspace</a>
       <VisualWorkspace
         activeCaseId={activeCaseId}
         cases={caseCatalog}
