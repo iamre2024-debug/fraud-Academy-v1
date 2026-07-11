@@ -43,7 +43,7 @@ export default function SubmitDecisionPanel({
         <div>
           <p>Evidence First protection</p>
           <h3>Luna debrief stays locked until this case has a saved learner package.</h3>
-          <span>The checklist may guide completion, but no score or post-submission coaching appears before saving.</span>
+          <span>Locked checklist guidance may show completion needs, but no score or post-submission coaching appears before saving.</span>
         </div>
       </section>
 
