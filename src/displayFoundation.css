@@ -1,0 +1,188 @@
+/* Phase 1 shared shell and component foundation.
+   Presentation only. Investigation state, Evidence First, Luna, and persistence remain untouched. */
+
+:root {
+  --fa-space-1: 0.25rem;
+  --fa-space-2: 0.5rem;
+  --fa-space-3: 0.75rem;
+  --fa-space-4: 1rem;
+  --fa-space-5: 1.25rem;
+  --fa-space-6: 1.5rem;
+  --fa-space-8: 2rem;
+  --fa-space-10: 2.5rem;
+  --fa-content-max: 1280px;
+  --fa-control-height: 44px;
+  --fa-transition: 160ms ease;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body { margin: 0; min-width: 320px; }
+
+.fa-skip-link {
+  position: fixed;
+  top: 10px;
+  left: 12px;
+  z-index: 10000;
+  transform: translateY(-160%);
+  padding: 10px 14px;
+  border: 1px solid var(--fa-line-strong);
+  border-radius: var(--fa-radius-pill);
+  background: var(--fa-surface-strong);
+  color: var(--fa-plum-strong);
+  font-weight: 800;
+  box-shadow: var(--fa-shadow-md);
+  transition: transform var(--fa-transition);
+}
+
+.fa-skip-link:focus { transform: translateY(0); }
+
+.visual-os-shell {
+  min-height: 100vh;
+  padding: 18px 18px 118px;
+}
+
+.visual-os-frame {
+  width: min(100%, var(--fa-content-max));
+  margin: 0 auto;
+  display: grid;
+  gap: var(--fa-space-5);
+}
+
+.visual-react-nav-host { min-width: 0; }
+
+.visual-hero,
+.case-info-bar,
+.ornate-card,
+.visual-react-nav-host > section {
+  isolation: isolate;
+}
+
+/* Shared surface language */
+.ornate-card,
+.visual-nav-panel,
+.activity-panel,
+.submit-panel,
+.evidence-tray,
+.notebook-card,
+.report-card {
+  border: 1px solid var(--fa-line);
+  background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(248,241,255,.88));
+  box-shadow: var(--fa-shadow-md);
+}
+
+/* Shared control language */
+button,
+input,
+select,
+textarea { font: inherit; }
+
+button,
+[role='button'] {
+  min-height: var(--fa-control-height);
+  transition: transform var(--fa-transition), border-color var(--fa-transition), box-shadow var(--fa-transition), background var(--fa-transition);
+}
+
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']) { cursor: pointer; }
+
+button:disabled,
+[aria-disabled='true'] { cursor: not-allowed; opacity: .56; }
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--fa-line-strong);
+  border-radius: var(--fa-radius-sm);
+  background: rgba(255,255,255,.9);
+  color: var(--fa-ink);
+  padding: 11px 13px;
+}
+
+textarea { min-height: 110px; resize: vertical; }
+
+::placeholder { color: var(--fa-ink-faint); }
+
+/* Status chips and compact labels */
+.visual-status-chip,
+.case-status-chip,
+.tool-status,
+.priority-chip,
+.nav-case-card > em,
+.nav-progress-list em {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: fit-content;
+  min-height: 28px;
+  padding: 5px 10px;
+  border: 1px solid var(--fa-line);
+  border-radius: var(--fa-radius-pill);
+  background: rgba(111,59,121,.07);
+  color: var(--fa-plum);
+  font-size: .72rem;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* Desktop navigation behaves as a calm command dock. */
+@media (min-width: 980px) {
+  .visual-os-shell { padding-bottom: 106px; }
+
+  .visual-react-bottom-nav {
+    width: min(calc(100% - 36px), 980px);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    border-radius: 20px 20px 0 0;
+    padding: 8px;
+  }
+
+  .visual-react-bottom-nav button {
+    border-radius: 12px;
+    min-width: 120px;
+  }
+}
+
+/* Tablet rhythm */
+@media (max-width: 979px) {
+  .visual-os-shell { padding-inline: 14px; }
+  .visual-os-frame { gap: var(--fa-space-4); }
+  .case-info-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Mobile-first interaction floor */
+@media (max-width: 760px) {
+  .visual-os-shell { padding: 10px 10px 104px; }
+  .visual-os-frame { gap: 12px; }
+
+  .ornate-card,
+  .visual-nav-panel,
+  .activity-panel,
+  .submit-panel { padding: 16px; }
+
+  .case-info-bar { grid-template-columns: 1fr; }
+  .case-info-bar > div { min-height: 58px; border-right: 0; border-bottom: 1px solid var(--fa-line); }
+  .case-info-bar > div:last-child { border-bottom: 0; }
+
+  .visual-react-bottom-nav {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .visual-react-bottom-nav button {
+    min-width: 0;
+    min-height: 50px;
+    padding-inline: 8px;
+  }
+
+  .visual-react-bottom-nav button span { font-size: .68rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
