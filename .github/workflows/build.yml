@@ -47,6 +47,9 @@ jobs:
       - name: Navigation direct-collapse smoke check
         run: npm run navigation-direct-collapse-smoke-check
 
+      - name: Academy Progress package-flow smoke check
+        run: npm run academy-progress-smoke-check
+
       - name: Summary direct-collapse smoke check
         run: npm run summary-direct-collapse-smoke-check
 
