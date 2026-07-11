@@ -208,6 +208,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
             activeCase={activeCase}
             pin={pin}
             openTool={openTool}
+            jumpDecision={jumpDecision}
             openNotes={openNotes}
             openMoreTools={openMoreTools}
           />
