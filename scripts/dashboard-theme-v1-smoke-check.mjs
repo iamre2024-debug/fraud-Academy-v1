@@ -39,8 +39,8 @@ mustContain('browser-smoke.spec.mjs', browser, 'approved Dashboard resumes the a
 mustContain('browser-smoke.spec.mjs', browser, "toHaveAttribute('data-visual-tab', 'dashboard')");
 mustContain('browser-smoke.spec.mjs', browser, "locator('.dashboard-active-case')");
 mustContain('Source of Truth', sourceOfTruth, '`src/displayDashboardThemeV1.css`');
-mustContain('Source of Truth', sourceOfTruth, 'Dashboard, Cases, the Workspace shell, Case Briefing, and Customer 360 are the completed approved replacements');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Investigation tools only**');
+mustContain('Source of Truth', sourceOfTruth, 'Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, and Investigation tools are the completed approved replacements');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Timeline only**');
 
 for (const forbidden of [
   'generatedCaseRepository',
@@ -64,4 +64,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Dashboard approved-theme v1 smoke check passed. The light mobile-first Dashboard, contextual progress, neutral Luna guidance, synchronized Investigation-tools handoff, responsive scope, and protected architecture boundaries remain intact.');
+console.log('Dashboard approved-theme v1 smoke check passed. The light mobile-first Dashboard, contextual progress, neutral Luna guidance, synchronized Timeline handoff, responsive scope, and protected architecture boundaries remain intact.');
