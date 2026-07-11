@@ -11,13 +11,15 @@ Use the newest approved product and display sources in this order:
 3. `docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md` for the live repository architecture, Evidence First rules, safety locks, persistence boundaries, and current implementation anchors.
 4. Latest merged `main` and its passing verification suite for the actual code handoff.
 
+The completed Phase 5 audit and remaining release-package gaps are recorded in `docs/FRAUD_ACADEMY_RELEASE_READINESS.md`.
+
 Historical PR #2, stale branches, archived design notes, and retired DOM patches are reference-only. They never override newer merged work.
 
 ## Runtime transition rule
 
 The current screenshot-driven visual shell remains the active runtime until a focused display phase replaces a specific surface and passes the full verification and browser gates. Do not perform a broad theme rewrite, replace working investigation behavior, or mix several display phases into one pull request.
 
-Display Phase 1 replaced only the global navigation and header-control surface. Display Phase 2 added only the active-case workflow rail. Display Phase 3 calibrated hierarchy, glow, and interaction states without changing component behavior or persistence. Display Phase 4 converts dense investigation records into labeled, touch-friendly mobile cards while preserving the desktop table, record data, investigation actions, and storage boundaries.
+Display Phase 1 replaced only the global navigation and header-control surface. Display Phase 2 added only the active-case workflow rail. Display Phase 3 calibrated hierarchy, glow, and interaction states without changing component behavior or persistence. Display Phase 4 converted dense investigation records into labeled, touch-friendly mobile cards while preserving the desktop table, record data, investigation actions, and storage boundaries. Display Phase 5 audited the exact merged tree and added no runtime redesign.
 
 ## Approved global structure target
 
@@ -177,12 +179,14 @@ Completed in the focused responsive-record change:
 
 ### Phase 5 - Final Bible and release-readiness audit
 
-Next isolated item:
+Completed in the final Bible and release-readiness audit:
 
-- Compare the exact merged display tree against Fraud Academy Bible v2.1, Fraud Academy Display Bible v1.0, this handoff, and the live Source of Truth.
-- Run the full named verification suite and desktop/mobile browser jobs on the exact merge candidate.
-- Confirm all three built-in cases plus a generated case preserve routes, storage, Evidence First, Luna gating, and System Access boundaries.
-- Record any remaining display gaps without introducing a new redesign or unrelated feature work.
+- Audited the exact tree that began from authoritative `main` at `0c5dfb5eee82235b1024b020a55833841672daeb`.
+- Added `docs/FRAUD_ACADEMY_RELEASE_READINESS.md` with an honest split verdict: runtime candidate passes for internal user acceptance, while the commercial/public release package still has documented gaps.
+- Confirmed Evidence First, Luna gating, all three built-in cases, the single System Access Lane, display phases, and the generated-case repository boundary.
+- Extended Playwright to reload the application and confirm generated cases remain available and Evidence First after IndexedDB persistence is exercised.
+- Added `scripts/display-phase-five-smoke-check.mjs` and a named CI step so release claims, persistence anchors, and audit documentation cannot silently drift.
+- Recorded missing release-package items without adding a redesign, persistence migration, investigation behavior change, or System Access expansion.
 
 ## Required verification for every display pull request
 
@@ -204,4 +208,4 @@ A display pull request is not complete until it confirms:
 
 ## Next safe item
 
-After Phase 4 merges and its exact tree passes the full verify and browser jobs, begin only Phase 5: the final Bible and release-readiness audit. Do not combine the audit with a new theme rewrite, persistence migration, investigation behavior change, or System Access expansion.
+The focused display migration is complete. The next isolated work is documentation-only release packaging from `docs/FRAUD_ACADEMY_RELEASE_READINESS.md`: architecture, data model, fictional-data safety, accessibility and browser notes, known limitations, deployment status, screenshots, and a user-selected license. Do not combine that packaging work with a new theme rewrite, persistence migration, investigation behavior change, or System Access expansion.
