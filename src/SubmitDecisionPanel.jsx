@@ -28,6 +28,7 @@ export default function SubmitDecisionPanel({
     100,
     Math.round((packageStatus.rationaleWordCount / packageStatus.minimumRationaleWords) * 100),
   );
+  const submitLabel = packageStatus.ready ? 'Save learner package' : 'Check package readiness';
 
   return (
     <section
@@ -140,8 +141,8 @@ export default function SubmitDecisionPanel({
             <small id="decision-rationale-help">Use the reviewed records, pinned objects, notes, and unresolved gaps. Minimum {packageStatus.minimumRationaleWords} words.</small>
           </label>
 
-          <button className="primary-action" type="submit">
-            {packageStatus.ready ? 'Save learner package' : 'Check package readiness'}
+          <button className="primary-action" type="submit" aria-label={submitLabel}>
+            {submitLabel}
           </button>
         </form>
       </div>
