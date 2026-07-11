@@ -29,6 +29,7 @@ import './displayTimelineThemeV1.css';
 import './displayDecisionLunaThemeV1.css';
 import './displayDecisionLunaLayoutSafetyV1.css';
 import './displayAcademyThemeV1.css';
+import './displayAcademyThemeV1Safety.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
