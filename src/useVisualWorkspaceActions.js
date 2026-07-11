@@ -127,7 +127,7 @@ export default function useVisualWorkspaceActions({
       [activeCase.id]: [reviewPackage, ...(current[activeCase.id] ?? [])],
     }));
     window.dispatchEvent(new CustomEvent('fraud-academy:package-saved', {
-      detail: { caseId: activeCase.id, packageId: reviewPackage.id },
+      detail: { caseId: activeCase.id, packageId: reviewPackage.id, reviewPackage },
     }));
     markReviewed('Submit Decision');
     saveNote(
