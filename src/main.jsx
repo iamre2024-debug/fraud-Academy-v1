@@ -14,6 +14,7 @@ import './systemAccessLane.css';
 import './generatedCaseControls.css';
 import './browserInteractionStability.css';
 import './displayPhaseOne.css';
+import './displayPhaseTwo.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
