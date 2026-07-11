@@ -97,9 +97,9 @@ mustContain('Case Briefing handoff', handoff, 'Customer 360 only');
 mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_CASE_BRIEFING_THEME_V1.md`');
 mustContain('Source of Truth', sourceOfTruth, '`src/displayCaseBriefingThemeV1.css`');
 mustContain('Source of Truth', sourceOfTruth, '`src/displayCaseBriefingRoutesV1.css`');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Decision & Luna only**');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Academy only**');
 mustContain('README', readme, 'The approved Case Briefing handoff lives in');
-mustContain('README', readme, 'The next isolated screen is **Decision & Luna only**');
+mustContain('README', readme, 'The next isolated screen is **Academy only**');
 
 for (const forbidden of [
   'generatedCaseRepository',
@@ -135,4 +135,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Case Briefing approved-theme v1 smoke check passed. The card-grid hierarchy, functional quick routes, synchronized Timeline handoff, Evidence First wording, responsive layout, direct text controls, and protected persistence boundaries remain intact.');
+console.log('Case Briefing approved-theme v1 smoke check passed. The card-grid hierarchy, functional quick routes, synchronized Decision and Luna handoff, Evidence First wording, responsive layout, direct text controls, and protected persistence boundaries remain intact.');

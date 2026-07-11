@@ -106,8 +106,8 @@ mustContain('investigation-tools-browser.spec.mjs', browser, 'approved Investiga
 mustContain('investigation-tools-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('Investigation tools handoff', handoff, 'agent/investigation-tools-approved-theme-v1');
 mustContain('Investigation tools handoff', handoff, 'Timeline only');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Decision & Luna only**');
-mustContain('README', readme, 'The next isolated screen is **Decision & Luna only**');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Academy only**');
+mustContain('README', readme, 'The next isolated screen is **Academy only**');
 
 for (const forbidden of [
   'generatedCaseRepository',
@@ -139,4 +139,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Investigation tools approved-theme v1 smoke check passed. Contextual grouping, focused record review, search, notes, report packets, review progress, workflow routes, responsive safety, Evidence First wording, protected persistence boundaries, and the isolated Timeline renderer remain intact.');
+console.log('Investigation tools approved-theme v1 smoke check passed. Contextual grouping, focused record review, search, notes, report packets, review progress, workflow routes, responsive safety, Evidence First wording, protected persistence boundaries, and the synchronized Decision and Luna handoff remain intact.');
