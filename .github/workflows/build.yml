@@ -104,6 +104,9 @@ jobs:
       - name: Investigation tools approved-theme v1 smoke check
         run: npm run investigation-tools-theme-v1-smoke-check
 
+      - name: Timeline approved-theme v1 smoke check
+        run: npm run timeline-theme-v1-smoke-check
+
       - name: Release package documentation smoke check
         run: npm run release-package-smoke-check
 

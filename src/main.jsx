@@ -25,6 +25,7 @@ import './displayCaseBriefingThemeV1.css';
 import './displayCaseBriefingRoutesV1.css';
 import './displayCustomer360ThemeV1.css';
 import './displayInvestigationToolsThemeV1.css';
+import './displayTimelineThemeV1.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

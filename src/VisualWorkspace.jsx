@@ -9,6 +9,7 @@ import CategoryTileRail from './CategoryTileRail.jsx';
 import Customer360Panel from './Customer360Panel.jsx';
 import InvestigationToolPanel from './InvestigationToolPanel.jsx';
 import SubmitDecisionPanel from './SubmitDecisionPanel.jsx';
+import TimelinePanel from './TimelinePanel.jsx';
 import useVisualWorkspaceActions from './useVisualWorkspaceActions.js';
 import useVisualWorkspaceCaseState from './useVisualWorkspaceCaseState.js';
 import VisualShellHeader from './VisualShellHeader.jsx';
@@ -253,7 +254,9 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
         <div className="workflow-active-tool-stage" data-active-workflow-stage={activeStage}>
           {tool === 'Customer 360' ? (
             <Customer360Panel {...activeToolProps} />
-          ) : ['Timeline', 'Case Report'].includes(tool) ? (
+          ) : tool === 'Timeline' ? (
+            <TimelinePanel {...activeToolProps} />
+          ) : tool === 'Case Report' ? (
             <ActiveToolPanel {...activeToolProps} />
           ) : (
             <InvestigationToolPanel {...activeToolProps} />
