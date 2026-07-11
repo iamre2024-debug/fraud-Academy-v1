@@ -5,12 +5,11 @@
 This handoff records the completed isolated approved-theme v1 redesign for the **Decision and Luna only** step in the locked screen order.
 
 - Runtime branch: `agent/decision-luna-approved-theme-v1`
+- Runtime pull request: #37
 - Base audited before work: `main` at `8e834ce3bc438a1cbd973ae192fb232d9f551873`
-- Final verified runtime head: `e1731cd91f7c26992605cfe311672354aa5e4643`
-- Runtime pull request: `#37`
+- Verified runtime head: `e1731cd91f7c26992605cfe311672354aa5e4643`
 - Runtime merge on `main`: `92d7848e608f62d2800849f5111eb5115f505569`
-- Final runtime verification: GitHub Actions `Fraud Academy Verify` run `#382` passed the complete named smoke chain, production build, desktop Chromium, and Pixel 7 Chromium
-- Handoff synchronization branch: `agent/decision-luna-theme-v1-handoff-sync`
+- Verification: GitHub Actions run #382 passed the complete named smoke chain, production build, desktop Chromium, and Pixel 7 Chromium
 - Preceding completed screen group: Timeline
 - Next isolated screen: **Academy only**
 
@@ -31,7 +30,7 @@ The display sources control presentation, hierarchy, responsive behavior, and th
 
 This step redesigns Decision and Luna only. It does not redesign Academy, Profile, or the final responsive/mobile pass.
 
-`src/SubmitDecisionPanel.jsx` owns the approved determination and learner-package presentation. `src/LunaPostSubmissionPanel.jsx` owns the approved locked and post-submission debrief presentation. `src/displayDecisionLunaThemeV1.css` owns their responsive light-lavender and white layout.
+`src/SubmitDecisionPanel.jsx` owns the approved determination and learner-package presentation. `src/LunaPostSubmissionPanel.jsx` owns the approved locked and post-submission debrief presentation. `src/displayDecisionLunaThemeV1.css` owns their responsive light-lavender and white layout, while `src/displayDecisionLunaLayoutSafetyV1.css` keeps the determination and debrief inside the mobile workspace column.
 
 The established action and state boundaries remain unchanged:
 
@@ -104,7 +103,7 @@ The following remain unchanged:
 
 ## Responsive contract
 
-Decision and Luna must:
+Decision and Luna:
 
 - present checklist and decision form beside one another on wide desktop;
 - stack the checklist and decision form intentionally at tablet and phone widths;
@@ -119,7 +118,7 @@ Decision and Luna must:
 
 ## Completed verification
 
-The final runtime branch head passed all required gates before merge:
+The final runtime head passed:
 
 1. complete named `npm run verify` chain;
 2. production build;
@@ -138,4 +137,4 @@ The final runtime branch head passed all required gates before merge:
 
 ## Exact next starting point
 
-Re-audit the new `main` head, active branches, open pull requests, recent commits, CI, and this completed handoff. Then redesign **Academy only** on a separate branch. Do not combine Profile or final responsive/mobile polish with the Academy pull request.
+Re-audit `main` at or after `92d7848e608f62d2800849f5111eb5115f505569`, active redesign branches, open pull requests, recent commits, CI, and this completed handoff. Then redesign **Academy only**. Do not combine Profile or final responsive/mobile polish with that pull request.
