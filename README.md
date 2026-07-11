@@ -50,6 +50,7 @@ Use these files before making architecture, UI, navigation, responsive, tool, sc
 
 ## Current status
 
+- Display Phase 3 calibrates hierarchy and glow through `src/displayPhaseThree.css` without changing records or persistence.
 - Dashboard uses `src/displayDashboardThemeV1.css`.
 - Cases uses `src/CasesThemeV1Panel.jsx` and `src/displayCasesThemeV1.css`.
 - Workspace shell uses `src/VisualShellHeader.jsx`, `src/displayWorkspaceShellThemeV1.css`, and `src/displayWorkspaceShellLayoutV1.css`.
