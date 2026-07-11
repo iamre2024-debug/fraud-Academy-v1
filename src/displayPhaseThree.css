@@ -1,0 +1,295 @@
+:root {
+  --visual-surface-border: rgba(255, 155, 233, 0.22);
+  --visual-surface-shadow: 0 16px 34px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  --visual-selected-border: rgba(255, 155, 233, 0.82);
+  --visual-selected-shadow: 0 0 0 1px rgba(255, 92, 218, 0.16), 0 10px 24px rgba(0, 0, 0, 0.34), 0 0 18px rgba(255, 92, 218, 0.22);
+  --visual-focus-ring: 0 0 0 3px rgba(110, 231, 255, 0.28), 0 0 0 1px rgba(110, 231, 255, 0.72);
+  --visual-info-border: rgba(110, 231, 255, 0.34);
+  --visual-warning-border: rgba(255, 199, 112, 0.48);
+  --visual-warning-surface: rgba(255, 199, 112, 0.07);
+  --visual-danger-border: rgba(255, 111, 145, 0.52);
+  --visual-danger-surface: rgba(255, 111, 145, 0.08);
+  --visual-disabled-opacity: 0.46;
+}
+
+body {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 92, 218, 0.12), transparent 24rem),
+    radial-gradient(circle at 82% 0%, rgba(173, 76, 255, 0.1), transparent 24rem),
+    linear-gradient(180deg, #080510 0%, #100719 47%, #06020b 100%);
+}
+
+.visual-os-shell {
+  background:
+    radial-gradient(circle at 50% -6%, rgba(255, 92, 218, 0.07), transparent 28rem),
+    radial-gradient(circle at 0% 38%, rgba(173, 76, 255, 0.07), transparent 24rem),
+    radial-gradient(circle at 100% 44%, rgba(110, 231, 255, 0.04), transparent 22rem);
+}
+
+.visual-os-frame::before,
+.visual-os-frame::after {
+  color: rgba(255, 155, 233, 0.42);
+  text-shadow: 0 0 10px rgba(255, 92, 218, 0.4);
+}
+
+.visual-hero,
+.case-info-bar,
+.ornate-card,
+.visual-category-row button,
+.visual-bottom-nav,
+.active-case-workflow {
+  border-color: var(--visual-surface-border);
+  box-shadow: var(--visual-surface-shadow);
+}
+
+.visual-hero {
+  min-height: 218px;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 92, 218, 0.2), transparent 16rem),
+    radial-gradient(circle at 15% 22%, rgba(255, 155, 233, 0.1), transparent 11rem),
+    radial-gradient(circle at 82% 20%, rgba(173, 76, 255, 0.13), transparent 12rem),
+    linear-gradient(180deg, rgba(18, 9, 31, 0.95), rgba(4, 3, 10, 0.94));
+}
+
+.visual-hero::before {
+  border-color: rgba(255, 155, 233, 0.28);
+  box-shadow: inset 0 0 18px rgba(255, 92, 218, 0.1);
+}
+
+.visual-hero::after {
+  color: rgba(255, 155, 233, 0.58);
+  text-shadow: 0 0 9px rgba(255, 92, 218, 0.42);
+}
+
+.hero-title-wrap::before,
+.hero-title-wrap::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 155, 233, 0.56), rgba(255, 92, 218, 0.12));
+  box-shadow: 0 0 8px rgba(255, 92, 218, 0.34);
+}
+
+.hero-title-wrap h1 {
+  font-size: clamp(2.2rem, 6vw, 4.6rem);
+  text-shadow: 0 0 8px rgba(255, 92, 218, 0.58), 0 0 24px rgba(173, 76, 255, 0.28);
+  filter: none;
+}
+
+.hero-jewel,
+.hero-crown,
+.hero-cat,
+.hero-bat,
+.hero-sparkles,
+.panel-cat,
+.card-title-row > span,
+.butterfly-accent {
+  filter: drop-shadow(0 0 8px rgba(255, 92, 218, 0.42));
+}
+
+.moon-medallion {
+  box-shadow: inset 0 0 22px rgba(255, 92, 218, 0.12), 0 12px 28px rgba(0, 0, 0, 0.3);
+}
+
+.visual-section-title,
+.visual-section-heading h2,
+.activity-heading h2,
+.card-title-row h2,
+.tool-purpose-card strong,
+.decision-status-grid strong {
+  text-shadow: 0 0 8px rgba(255, 92, 218, 0.24);
+}
+
+.ornate-card::before {
+  opacity: 0.48;
+  text-shadow: 0 0 8px rgba(255, 92, 218, 0.32);
+}
+
+.case-summary-visual,
+.activity-panel,
+.bottom-investigation-grid .ornate-card {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)),
+    rgba(14, 7, 27, 0.92);
+}
+
+.summary-actions button,
+.activity-heading button,
+.visual-section-heading button,
+.view-full-button,
+.add-evidence,
+.visual-category-row button,
+.active-case-workflow-list button,
+.visual-header-controls button,
+.header-panel-close,
+.nav-context-card button,
+.nav-action-row button,
+.row-expand-button,
+.row-pin-button,
+.record-detail-heading button,
+.record-report-actions button,
+.decision-form button,
+.notebook-compose button,
+.tray-list button,
+.visual-bottom-nav button {
+  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 150ms ease, opacity 150ms ease;
+}
+
+.summary-actions button:hover,
+.activity-heading button:hover,
+.nav-context-card button:hover,
+.nav-action-row button:hover,
+.row-expand-button:hover,
+.row-pin-button:hover,
+.record-detail-heading button:hover,
+.record-report-actions button:hover,
+.decision-form button:hover,
+.notebook-compose button:hover {
+  border-color: rgba(255, 155, 233, 0.58);
+  background-color: rgba(255, 92, 218, 0.1);
+  transform: translateY(-1px);
+}
+
+.summary-actions button:focus-visible,
+.activity-heading button:focus-visible,
+.visual-section-heading button:focus-visible,
+.view-full-button:focus-visible,
+.add-evidence:focus-visible,
+.visual-category-row button:focus-visible,
+.active-case-workflow-list button:focus-visible,
+.visual-header-controls button:focus-visible,
+.header-panel-close:focus-visible,
+.nav-context-card button:focus-visible,
+.nav-action-row button:focus-visible,
+.row-expand-button:focus-visible,
+.row-pin-button:focus-visible,
+.record-detail-heading button:focus-visible,
+.record-report-actions button:focus-visible,
+.decision-form button:focus-visible,
+.notebook-compose button:focus-visible,
+.tray-list button:focus-visible,
+.visual-bottom-nav button:focus-visible,
+.visual-case-switcher select:focus-visible,
+.workspace-search-row input:focus-visible,
+.decision-form select:focus-visible,
+.decision-form textarea:focus-visible,
+.notebook-compose textarea:focus-visible,
+.tool-select:focus-visible {
+  outline: 2px solid rgba(110, 231, 255, 0.84);
+  outline-offset: 2px;
+  box-shadow: var(--visual-focus-ring);
+}
+
+.summary-actions .primary-action,
+.decision-form .primary-action,
+.notebook-compose button,
+.record-report-actions .packet-save-button {
+  border-color: rgba(255, 155, 233, 0.62);
+  background: linear-gradient(135deg, rgba(255, 92, 218, 0.58), rgba(173, 76, 255, 0.42));
+  color: #fff7fd;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28), 0 0 14px rgba(255, 92, 218, 0.18);
+}
+
+.visual-section-heading button,
+.view-full-button,
+.add-evidence,
+.header-panel-close,
+.tray-list button {
+  background: transparent;
+  box-shadow: none;
+}
+
+.nav-context-card,
+.tool-purpose-card,
+.record-detail-panel.empty {
+  border-color: var(--visual-info-border);
+  background-color: rgba(110, 231, 255, 0.045);
+  box-shadow: inset 3px 0 0 rgba(110, 231, 255, 0.24);
+}
+
+.visual-bottom-nav button.active,
+.visual-category-row button.active,
+.visual-category-row button.reviewed,
+.active-case-workflow-list button.active,
+.visual-header-controls button.active {
+  border-color: var(--visual-selected-border);
+  box-shadow: var(--visual-selected-shadow);
+}
+
+.visual-category-row button.active span,
+.visual-category-row button.reviewed span {
+  box-shadow: inset 0 0 12px rgba(255, 92, 218, 0.1);
+}
+
+.visual-category-row button::before,
+.category-progress-track b {
+  box-shadow: none;
+}
+
+.active-case-workflow-list button.locked,
+.nav-progress-list article.locked,
+.decision-checklist p:first-child {
+  border-color: var(--visual-warning-border);
+  background: var(--visual-warning-surface);
+}
+
+.tray-list button,
+button[data-visual-tone="destructive"] {
+  color: #ffb3c6;
+}
+
+.tray-list button:hover,
+.tray-list button:focus-visible,
+button[data-visual-tone="destructive"]:hover,
+button[data-visual-tone="destructive"]:focus-visible {
+  border-color: var(--visual-danger-border);
+  background: var(--visual-danger-surface);
+  color: #ffd3de;
+}
+
+button:disabled,
+button[aria-disabled="true"],
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  opacity: var(--visual-disabled-opacity);
+  filter: saturate(0.55);
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.visual-case-switcher select,
+.workspace-search-row input,
+.decision-form select,
+.decision-form textarea,
+.notebook-compose textarea,
+.tool-select {
+  border-color: rgba(255, 155, 233, 0.26);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.activity-table,
+.tray-list div,
+.notebook-list button,
+.agent-archive-panel,
+.case-report-packet-panel,
+.record-detail-panel,
+.record-detail-grid article,
+.record-review-lanes article,
+.decision-status-grid div,
+.decision-checklist p {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+@media (max-width: 820px) {
+  .visual-hero {
+    min-height: 160px;
+  }
+
+  .hero-title-wrap h1 {
+    font-size: clamp(2rem, 10vw, 3.25rem);
+  }
+
+  .visual-os-frame::before,
+  .visual-os-frame::after {
+    opacity: 0.32;
+  }
+}
