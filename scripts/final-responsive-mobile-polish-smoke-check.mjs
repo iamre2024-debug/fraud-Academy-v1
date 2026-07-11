@@ -65,7 +65,7 @@ for (const anchor of [
 
 mustContain('Final responsive/mobile handoff', handoff, 'agent/final-responsive-mobile-polish');
 mustContain('Final responsive/mobile handoff', handoff, 'all listed screens are complete');
-mustContain('Final responsive/mobile handoff', handoff, 'no further redesign screen remains');
+mustContain('Final responsive/mobile handoff', handoff, 'No further redesign screen remains');
 mustContain('package.json', packageJson, 'final-responsive-mobile-polish-smoke-check');
 mustContain('build.yml', workflow, 'Final responsive/mobile polish smoke check');
 
