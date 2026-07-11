@@ -74,6 +74,9 @@ jobs:
       - name: Display Phase 4 responsive-record smoke check
         run: npm run display-phase-four-smoke-check
 
+      - name: Display Phase 5 release-readiness smoke check
+        run: npm run display-phase-five-smoke-check
+
       - name: Production build
         run: npm run build
 
