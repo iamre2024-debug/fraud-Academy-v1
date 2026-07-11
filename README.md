@@ -4,13 +4,19 @@ Fraud Academy OS is a fictional fraud investigation training operating system. I
 
 ## Source of truth
 
-The locked product compass lives in:
+The locked product and repository compass lives in:
 
 ```text
 docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md
 ```
 
-Use that file before making architecture, UI, tool, scenario, or Evidence First changes.
+The focused display migration contract lives in:
+
+```text
+docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md
+```
+
+Use both files before making architecture, UI, navigation, responsive, tool, scenario, or Evidence First changes. The Display Handoff records the approved Bible v2.1 and Display Bible authority chain while the Source of Truth protects the live code architecture and safety boundaries.
 
 ## Locked direction
 
@@ -20,35 +26,34 @@ Use that file before making architecture, UI, tool, scenario, or Evidence First 
 - Summaries assist. Event logs verify.
 - Search finds evidence. Link Analysis connects evidence.
 - Luna can encourage before submission, but Luna debrief and scoring only happen after submission.
-- Mobile feels like a magical investigator notebook.
-- Desktop feels like a fraud command center.
+- Mobile remains touch-friendly, functional, and free of required horizontal page scrolling.
+- Desktop remains a polished fraud command center.
+- Display migration happens in focused phases without replacing working behavior or persistence architecture.
 
 ## Current status
 
-- The screenshot-driven visual workspace is active.
+- The screenshot-driven visual workspace remains the active transitional runtime while focused display phases are prepared.
 - `src/VisualApp.jsx` coordinates the active case, live case catalog, and active navigation tab through React state.
 - `src/VisualWorkspace.jsx` coordinates the core investigation workspace while `src/useVisualWorkspaceCaseState.js` owns case-scoped persistence and `src/useVisualWorkspaceActions.js` owns investigation actions and learner-package submission.
 - `src/VisualShellHeader.jsx` owns the ornate app header, active case strip, and Case Queue dropdown.
-- `src/DirectCollapsibleText.jsx` is the reusable direct React compact-text wrapper; Active Tool purpose, expanded-record text, tray identifiers, Case Report packet text, notebook note entries, Submit Decision checklist messages, Luna coaching lists, Navigation heading and Academy learning copy, Academy Progress package status, and Case Summary transaction/payee and short-summary copy now use it directly.
-- `src/visualWorkspaceModel.js` now owns workspace constants, storage helpers, live tool row builders, System Access Lane row construction, and Case Report packet construction.
+- `src/DirectCollapsibleText.jsx` is the reusable direct React compact-text wrapper; Active Tool purpose, expanded-record text, tray identifiers, Case Report packet text, notebook note entries, Submit Decision checklist messages, Luna coaching lists, Navigation heading and Academy learning copy, Academy Progress package status, and Case Summary transaction/payee and short-summary copy use it directly.
+- `src/visualWorkspaceModel.js` owns workspace constants, storage helpers, live tool row builders, System Access Lane row construction, and Case Report packet construction.
 - `src/ActiveToolPanel.jsx` owns the active category/tool renderer: sub-tool dropdown, search, rows, expanded record lanes, pin/review actions, and neutral report packet saves.
 - `src/BottomInvestigationGrid.jsx` owns the Investigation Tray and Investigation Notebook cards, including pinned objects, notes, packet feed, and Open Evidence Center routing.
 - `src/CaseSummaryCard.jsx` owns the ornate Case Summary card, including neutral intake facts, direct compact controls for longer neutral summary fields, Pin Case, quick tool routes, and Submit Decision jump.
 - `src/CategoryTileRail.jsx` owns the ornate investigation category rail, including neutral reviewed counts, progress bars, active/reviewed state classes, and Tool Map routing.
 - `src/SubmitDecisionPanel.jsx` owns the locked Submit Decision visual panel while the review package model keeps Evidence First behavior enforced.
-- `src/VisualNavigation.jsx` receives direct React callbacks for Dashboard, Cases, Workspace, Academy, Progress, and case opening. It also refreshes saved-package snapshots when the package controller emits `fraud-academy:package-saved`.
+- `src/VisualNavigation.jsx` receives direct React callbacks for Dashboard, Cases, Workspace, Academy, Progress, and case opening. The current five-item runtime navigation is transitional; the Display Handoff defines the safe four-item global target and contextual Progress relocation.
 - `src/AcademyProgressPanel.jsx` owns neutral locked/unlocked case status, saved-package counts, reviewed-tool/pinned-object/note/report-packet snapshots, and case-return actions without exposing Luna scoring.
-- `src/VisualTextCollapse.jsx` is now an inert compatibility marker only. It contains no selector discovery, portal controls, event listeners, or DOM scanning; compact More / Less behavior is React-owned through `DirectCollapsibleText`.
-- Insider / Vendor / API / Open Banking is now the Connections → System Access Lane sub-tool inside `src/VisualWorkspace.jsx`, powered by `src/data/systemAccessRecords.js`.
-- `src/LunaPostSubmissionPanel.jsx` restores post-submission Luna scoring/debrief as a separate React module that stays locked before a learner package exists, resolves the active case from the live built-in/generated catalog, and owns its coaching-list compact text controls directly.
+- `src/VisualTextCollapse.jsx` is an inert compatibility marker only. It contains no selector discovery, portal controls, event listeners, or DOM scanning; compact More / Less behavior is React-owned through `DirectCollapsibleText`.
+- Insider / Vendor / API / Open Banking remains the single Connections → System Access Lane sub-tool inside `src/VisualWorkspace.jsx`, powered by `src/data/systemAccessRecords.js`.
+- `src/LunaPostSubmissionPanel.jsx` restores post-submission Luna scoring/debrief as a separate React module that stays locked before a learner package exists and resolves the active case from the live built-in/generated catalog.
 - `src/data/generatedCaseRepository.js` is the generated-case storage boundary. IndexedDB is primary, localStorage remains a fallback, and existing localStorage-generated cases migrate once into IndexedDB.
 - Generated cases are added to the live React case catalog, opened without page refresh, and preserved behind a backend-ready repository contract.
 - The generated queue has no arbitrary application count cap. A monotonic sequence prevents rapid-generation ID collisions, and `scripts/generated-case-smoke-check.mjs` verifies more than 50 cases remain unique and available.
 - The old `src/visualInvestigationRepair.js` DOM route patch is retired and not loaded by the app entrypoint.
 - Case Summary metadata, Device ID rows, Tool Map, Open Evidence Center, and Submit Decision routing are rendered through React instead of repair scripts.
 - Submit Decision uses the locked review package model and remains Evidence First.
-- Submit Decision decision calls now include claim outcome calls, more-information calls, review-route calls, escalation calls, and administrative closure calls.
-- The decision model now includes insider / vendor / API / open banking escalation, credit risk routing, chargeback representment routing, identity verification routing, payment verification routing, and fraud-ring / link-analysis routing.
 - Ornate category tiles show neutral reviewed counts and progress tracks only.
 - Broad DOM repair scripts remain out of the app entrypoint to avoid browser unresponsive loops.
 
@@ -75,11 +80,13 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 17. Case Summary transaction/payee and short-summary copy are rendered by direct React controls, and the old selector scanner is inert.
 18. Workspace case persistence and action orchestration are split into focused hooks with dedicated verification guards.
 19. Academy Progress reads the stable saved learner-package snapshots, refreshes in the same session, and remains neutral until submission.
+20. The Display Handoff now locks the approved design authority, phased migration order, four-item global target, active-case workflow target, responsive review ranges, no-horizontal-overflow rule, and architecture boundaries.
 
 ## Remaining follow-up work
 
-1. Reconcile the repository UI handoff with the latest approved Display Bible before changing global navigation, header controls, workflow rails, responsive ranges, or glow hierarchy.
-2. Continue presentation-only component splitting when a display phase needs it, without changing the IndexedDB generated-case boundary or Evidence First behavior.
+1. Begin Display Phase 1 only: global navigation and functional header controls, with Academy Progress relocated contextually rather than removed.
+2. Keep the active-case workflow rail, broad glow calibration, and mobile record conversion as separate later phases.
+3. Continue presentation-only component splitting only when a display phase needs it, without changing the IndexedDB generated-case boundary or Evidence First behavior.
 
 ## Browser-confirmed functional coverage
 
@@ -93,7 +100,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 
 ## Latest handoff
 
-The latest follow-up reconnects Academy Progress to the stable learner-package flow. A dedicated React panel now shows neutral saved-package counts and package-input snapshots, listens for same-session package saves through the existing controller event, returns learners to the selected case, and keeps Luna scoring outside Progress. Dedicated Progress and direct-collapse guards are part of `npm run verify`, while the existing desktop and mobile browser suite remains the regression gate.
+The latest follow-up reconciles the repository with the approved display authority before runtime presentation changes begin. `docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md` now records the target information architecture, staged case flow, visual hierarchy, six responsive review ranges, no-horizontal-overflow requirement, phased migration order, and non-negotiable Evidence First, Luna, generated-case, and System Access boundaries. A dedicated smoke guard keeps that contract wired into `npm run verify` and CI.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -114,4 +121,4 @@ npm run build
 
 ## Test status
 
-`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, Luna single-module smoke, review-package smoke, remaining-module depth, navigation direct-collapse, Academy Progress package-flow, summary direct-collapse, workspace case-state hook, workspace action-controller, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for all three built-in cases, generated cases, core modules, System Access Lane, persistence, and Luna lock behavior.
+`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, Luna single-module smoke, review-package smoke, remaining-module depth, navigation direct-collapse, Academy Progress package-flow, summary direct-collapse, workspace case-state hook, workspace action-controller, display-handoff, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for all three built-in cases, generated cases, core modules, System Access Lane, persistence, and Luna lock behavior.
