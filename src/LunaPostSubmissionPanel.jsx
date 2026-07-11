@@ -107,7 +107,7 @@ export default function LunaPostSubmissionPanel({
           <section>
             <div aria-hidden="true">⌁</div>
             <div>
-              <p>Evidence First lock is active</p>
+              <p>Evidence First lock is active.</p>
               <h3>Finish and save your own reasoning before Luna reviews the case.</h3>
               <span>No score, strengths, evidence coaching, or decision-quality feedback appears before submission.</span>
             </div>
