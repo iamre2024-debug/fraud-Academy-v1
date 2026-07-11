@@ -114,7 +114,7 @@ test('responsive records become labeled mobile cards without record-surface over
   await assertEvidenceFirstLock(page, builtInCases[0].id);
 });
 
-test('generated cases open immediately, remain unique, and join the live queue', async ({ page }) => {
+test('generated cases persist through reload and remain Evidence First', async ({ page }) => {
   await page.goto('/');
   const selector = page.locator('.visual-case-switcher select');
   const generateButton = page.getByRole('button', { name: /Generate \+ Open Case/ });
@@ -143,5 +143,17 @@ test('generated cases open immediately, remain unique, and join the live queue',
 
   await page.locator('.nav-case-card').filter({ hasText: generatedIds[0] }).click();
   await expect(selector).toHaveValue(generatedIds[0]);
+  await assertEvidenceFirstLock(page, generatedIds[0]);
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: /Fraud Academy OS/ })).toBeVisible();
+  await openCaseQueue(page);
+
+  for (const generatedId of generatedIds) {
+    await expect(page.locator('.nav-case-card').filter({ hasText: generatedId })).toBeVisible();
+  }
+
+  await page.locator('.nav-case-card').filter({ hasText: generatedIds[0] }).click();
+  await expect(page.locator('.visual-case-switcher select')).toHaveValue(generatedIds[0]);
   await assertEvidenceFirstLock(page, generatedIds[0]);
 });

@@ -22,6 +22,12 @@ The current repository display contract lives in:
 docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md
 ```
 
+The completed release-readiness audit and remaining packaging gaps live in:
+
+```text
+docs/FRAUD_ACADEMY_RELEASE_READINESS.md
+```
+
 For display work, use Fraud Academy Bible v2.1 as the consolidated source hierarchy and Fraud Academy Display Bible v1.0 - New Design Exploration as the authority for layout, hierarchy, navigation, responsive behavior, accessibility, and screen presentation. This Source of Truth remains authoritative for live repository architecture, safety locks, persistence boundaries, and implementation anchors.
 
 The current screenshot-driven visual shell remains active until a focused display phase replaces a specific surface and passes the full verify and desktop/mobile browser gates. Preserve the recognizable dark purple, pink, and cyan identity, rounded glass surfaces, and playful professional details while improving hierarchy and reducing indiscriminate glow.
@@ -30,9 +36,11 @@ The runtime global navigation now uses Dashboard, Cases, Workspace, and Academy.
 
 The active case now exposes the approved seven-stage workflow rail: Case Briefing, Investigate, Timeline, Summary, Indicators, Determination, and Debrief. The existing category rail remains inside Investigate, and all pre-submission status language stays neutral.
 
-Display Phase 3 now calibrates hierarchy and glow through a focused final CSS override. Strong glow is reserved for selected and focus states, decorative saturation is reduced, and primary, secondary, quiet, informational, warning, destructive, disabled, hover, focus, and selected states are visually distinct without changing investigation behavior.
+Display Phase 3 calibrates hierarchy and glow through a focused final CSS override. Strong glow is reserved for selected and focus states, decorative saturation is reduced, and primary, secondary, quiet, informational, warning, destructive, disabled, hover, focus, and selected states are visually distinct without changing investigation behavior.
 
-Display Phase 4 now preserves semantic desktop record tables while converting dense investigation rows into labeled, touch-friendly cards at phone widths. The responsive layer uses existing row data and actions, adds no horizontal scroller, and does not touch case persistence, generated-case storage, Evidence First, Luna gating, or System Access architecture.
+Display Phase 4 preserves semantic desktop record tables while converting dense investigation rows into labeled, touch-friendly cards at phone widths. The responsive layer uses existing row data and actions, adds no horizontal scroller, and does not touch case persistence, generated-case storage, Evidence First, Luna gating, or System Access architecture.
+
+Display Phase 5 audits the exact merged display tree, records runtime and release-package status honestly, and adds generated-case reload coverage without changing runtime presentation or investigation behavior.
 
 ## Investigation doctrine
 
@@ -132,6 +140,7 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 ## Current v1.0 implementation anchors
 
 - The screenshot-driven visual shell is the active app entrypoint and remains transitional. Keep it intact until each focused display phase in `docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md` passes verification and browser coverage.
+- `docs/FRAUD_ACADEMY_RELEASE_READINESS.md` is the Phase 5 release audit. It may approve the runtime for internal user acceptance while still listing unresolved commercial packaging gaps; do not silently upgrade that verdict.
 - `src/VisualApp.jsx` coordinates the active case, live case catalog, and visual navigation tab through React state so case switching, generated-case opening, Tool Map, Open Evidence Center, and Submit Decision routing do not depend on DOM repair scripts.
 - `src/VisualShellHeader.jsx` owns the ornate app header, functional Help, Settings, and Agent-profile controls, the persisted reduced-motion preference, and the active case strip with Case Queue dropdown. Keep every visible header control functional and training-safe.
 - `src/ActiveCaseWorkflowRail.jsx` owns the seven-stage active-case workflow, accessible current-step state, and neutral stage status copy. Case Briefing scrolls to the allegation/system-alert summary, Investigate returns to the category rail, Timeline and Summary open their existing tools, Indicators opens the neutral Evidence Center, Determination preserves the locked Submit Decision checklist, and Debrief routes to the locked/unlocked Luna panel.
@@ -173,10 +182,10 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 - The single Connections → System Access Lane stays available, but the parked ten-module System Access portal must not be revived.
 - Desktop category and workflow controls must remain pointer-accessible and must not be covered by sticky right-side investigation panels or the fixed bottom navigation.
 - Display changes must not introduce required horizontal page scrolling. Phone-width records use labeled cards instead of a horizontal table scroller.
-- `tests/browser-smoke.spec.mjs` verifies all three built-in cases, generated-case immediate open and uniqueness, completed core tools, the single System Access Lane, desktop record headers, Pixel 7 record cards, no page overflow, and Luna's pre-submission lock.
-- `npm run verify` must preserve the Evidence First wording check, functional smoke guard, visual three-case smoke guard, generated-case repository smoke guard, Luna single-module smoke guard, review-package behavior smoke check, remaining-module depth guard, Navigation direct-collapse guard, Academy Progress package-flow guard, Case Summary direct-collapse guard, workspace case-state hook guard, workspace-action controller guard, display-handoff guard, Display Phase 1 global-shell guard, Display Phase 2 workflow-rail guard, Display Phase 3 hierarchy-and-glow guard, Display Phase 4 responsive-record guard, and production build.
-- `.github/workflows/build.yml` must also run Playwright against desktop and mobile Chromium for all three built-in cases, generated-case immediate open and persistence, the completed core modules, Connections → System Access Lane, Luna’s pre-submission lock, the active-case workflow surface, and responsive record presentation.
+- `tests/browser-smoke.spec.mjs` verifies all three built-in cases, generated-case immediate open, uniqueness, reload persistence, completed core tools, the single System Access Lane, desktop record headers, Pixel 7 record cards, no page overflow, and Luna's pre-submission lock.
+- `npm run verify` must preserve the Evidence First wording check, functional smoke guard, visual three-case smoke guard, generated-case repository smoke guard, Luna single-module smoke guard, review-package behavior smoke check, remaining-module depth guard, Navigation direct-collapse guard, Academy Progress package-flow guard, Case Summary direct-collapse guard, workspace case-state hook guard, workspace-action controller guard, display-handoff guard, Display Phase 1 global-shell guard, Display Phase 2 workflow-rail guard, Display Phase 3 hierarchy-and-glow guard, Display Phase 4 responsive-record guard, Display Phase 5 release-readiness guard, and production build.
+- `.github/workflows/build.yml` must also run Playwright against desktop and mobile Chromium for all three built-in cases, generated-case immediate open and reload persistence, the completed core modules, Connections → System Access Lane, Luna’s pre-submission lock, the active-case workflow surface, and responsive record presentation.
 
-## Next safe display item
+## Next safe item
 
-After Display Phase 4 passes its full verify and browser gates, begin only Phase 5 from `docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md`: the final Bible and release-readiness audit. Do not combine that audit with a new theme rewrite, persistence migration, investigation behavior change, or System Access expansion.
+The focused display migration is complete. The next safe work is the documentation-only release package listed in `docs/FRAUD_ACADEMY_RELEASE_READINESS.md`. Do not combine release packaging with a theme rewrite, persistence migration, investigation behavior change, or System Access expansion.
