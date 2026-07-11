@@ -19,6 +19,7 @@ import './displayFoundation.css';
 import './phase2WorkspaceShell.css';
 import './phase2BriefingCustomer360.css';
 import './phase2InvestigationTools.css';
+import './phase2ClosingFlow.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
