@@ -1,0 +1,105 @@
+name: Synchronize final responsive handoff
+
+on:
+  push:
+    branches:
+      - agent/final-responsive-handoff-sync
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v7
+        with:
+          ref: agent/final-responsive-handoff-sync
+          fetch-depth: 0
+
+      - name: Synchronize final display authority
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+          final_doc = root / 'docs/FRAUD_ACADEMY_FINAL_RESPONSIVE_POLISH_V1.md'
+          text = final_doc.read_text()
+          text = text.replace('This handoff records the final cross-screen responsive/mobile polish candidate after every isolated approved-theme v1 screen redesign.', 'This handoff records the completed final cross-screen responsive/mobile polish after every isolated approved-theme v1 screen redesign.')
+          text = text.replace('- Runtime branch: `agent/final-responsive-polish-reconciled`', '- Runtime branch: `agent/final-responsive-polish-reconciled`\n- Runtime pull request: `#55`\n- Final verified runtime head: `b4666c0c659520225d38e4408cc964b058bb401f`\n- Runtime merge on `main`: `f769d80e4b87d6d3e89095026df0bffd0355b6d7`\n- Final verification: workflow run `29159917879` passed the complete named smoke chain, production build, desktop Chromium, Pixel 7 Chromium, and the six-range responsive browser matrix')
+          text = text.replace('- Completion condition: all listed screens complete, full verification passes, and no additional redesign work remains', '- Completion condition: satisfied. All listed screens are complete, full verification passed, and no additional redesign work remains in the approved display sequence')
+          text = text.replace('The final branch head must pass all of these gates before merge:', 'The final verified branch head passed all of these gates before merge:')
+          text = text.replace('After the final branch passes, merges, and the repository handoff is synchronized, report the display redesign complete and make no further changes. Future product work must begin under a new approved scope rather than silently extending this redesign sequence.', 'The approved display redesign sequence is complete. Make no further display changes under this sequence. Any future product or presentation work must begin under a new approved scope rather than silently extending the completed redesign.')
+          final_doc.write_text(text)
+
+          sot = root / 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'
+          text = sot.read_text()
+          profile_block = "The approved Profile handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_PROFILE_THEME_V1.md\n```\n"
+          if 'docs/FRAUD_ACADEMY_FINAL_RESPONSIVE_POLISH_V1.md' not in text:
+              text = text.replace(profile_block, profile_block + "\nThe completed final responsive/mobile handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_FINAL_RESPONSIVE_POLISH_V1.md\n```\n", 1)
+          text = text.replace('The screenshot-driven visual shell remains active for surfaces that have not yet been replaced. Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision & Luna, Academy, and Profile are the completed approved replacements.', 'The approved screen-by-screen display redesign and final responsive/mobile polish are complete. Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision & Luna, Academy, and Profile are the completed approved replacements.')
+          profile_handoff = '- `docs/FRAUD_ACADEMY_PROFILE_THEME_V1.md` is the completed Profile handoff. It records the contextual avatar-owned profile, activity-based investigator rank, skill proficiency, badges, saved-work summary, active-case goals, runtime PR #47, verified head `000c90b87984d41cd01a093a790457fb187ec7a3`, merge commit `01e25967098594dbe67d4c523d12fe249e810564`, and the final responsive/mobile polish-only next step.'
+          text = text.replace(profile_handoff, profile_handoff.replace(', and the final responsive/mobile polish-only next step', '') + '\n- `docs/FRAUD_ACADEMY_FINAL_RESPONSIVE_POLISH_V1.md` is the completed final responsive/mobile handoff. It records runtime PR #55, verified head `b4666c0c659520225d38e4408cc964b058bb401f`, merge commit `f769d80e4b87d6d3e89095026df0bffd0355b6d7`, six-range responsive coverage, touch-target and safe-area protection, width containment, workspace stage-jump alignment, and the completion of the approved display sequence.', 1)
+          profile_anchor = '- `src/ProfileThemeV1Panel.jsx` owns the approved contextual Agent profile: activity-based investigator rank, neutral saved-work metrics, skill proficiency, badges, activity summary, active-case goals, and routes to Workspace, Academy, and Academy Progress. `src/displayProfileThemeV1.css` owns its responsive presentation, while `src/displayProfileThemeV1Safety.css` isolates Profile from Workspace surfaces. Profile must not become a fifth global destination, access generated-case persistence, calculate Luna scoring, expand System Access, or absorb final polish work.'
+          if '`src/displayFinalResponsivePolishV1.css` owns the completed cross-screen responsive safety layer' not in text:
+              text = text.replace(profile_anchor, profile_anchor.replace(', or absorb final polish work', '') + '\n- `src/displayFinalResponsivePolishV1.css` owns the completed cross-screen responsive safety layer. It provides width containment, long-value wrapping, media containment, 44-pixel interaction targets, focus visibility, safe-area padding, compact-phone through wide-screen spacing, reduced-motion behavior, mobile Workspace header containment, and vertical workflow-stage alignment. It must remain presentation-only and must not access persistence, change investigation behavior, calculate Luna scoring, expand System Access, or add required horizontal page scrolling.', 1)
+          profile_browser = '- `tests/profile-browser.spec.mjs` verifies the approved contextual Profile on desktop and Pixel 7, including avatar entry from Workspace and Dashboard, neutral rank, skill, badge, activity, and goal metrics, Workspace, Academy, and Academy Progress routes, four-item navigation, isolation, and viewport safety.'
+          if '`tests/final-responsive-browser.spec.mjs` verifies the completed cross-screen responsive layer' not in text:
+              text = text.replace(profile_browser, profile_browser + '\n- `tests/final-responsive-browser.spec.mjs` verifies the completed cross-screen responsive layer at 350, 390, 412, 640, 768, 1024, and 1440 pixels across Dashboard, Cases, Academy, contextual Profile, Workspace, and the Case Briefing, Investigate, Timeline, Determination, and Debrief stages. It protects viewport width, touch targets, visible approved surfaces, and vertical stage alignment.', 1)
+          text = text.replace('Profile approved-theme v1 guard, release-package documentation guard', 'Profile approved-theme v1 guard, final responsive/mobile polish v1 guard, release-package documentation guard')
+          text = text.replace('Academy, and Profile, all three built-in cases', 'Academy, Profile, and the final responsive matrix, all three built-in cases')
+          old_next = "The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision & Luna, Academy, and Profile redesigns are complete and protected by focused static and desktop/mobile browser guards. The next isolated safe item is **final responsive/mobile polish only**. Preserve every completed screen boundary, the four-item global navigation, contextual Profile and Academy Progress routes, Evidence First, Luna's pre-submission lock, IndexedDB-first generated-case persistence, active-case and case-scoped state, and the single Connections → System Access Lane. Do not add new product modules or redesign investigation behavior in the final polish pull request."
+          new_next = "The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision & Luna, Academy, Profile, and final responsive/mobile polish are complete and protected by focused static plus multi-viewport browser guards. **There is no unfinished item remaining in the approved display redesign sequence.** Preserve every completed screen boundary, the four-item global navigation, contextual Profile and Academy Progress routes, Evidence First, Luna's pre-submission lock, IndexedDB-first generated-case persistence, active-case and case-scoped state, and the single Connections → System Access Lane. Any future work requires a new approved scope."
+          text = text.replace(old_next, new_next)
+          sot.write_text(text)
+
+          readme = root / 'README.md'
+          text = readme.read_text()
+          profile_block = "The approved Profile handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_PROFILE_THEME_V1.md\n```\n"
+          if 'docs/FRAUD_ACADEMY_FINAL_RESPONSIVE_POLISH_V1.md' not in text:
+              text = text.replace(profile_block, profile_block + "\nThe completed final responsive/mobile handoff lives in:\n\n```text\ndocs/FRAUD_ACADEMY_FINAL_RESPONSIVE_POLISH_V1.md\n```\n", 1)
+          text = text.replace('the Profile handoff records the completed contextual profile and final-polish-only next step,', 'the Profile handoff records the completed contextual profile, the final responsive handoff records the completed cross-screen polish and closed display sequence,')
+          profile_line = '- The Profile approved theme v1 replacement uses `src/ProfileThemeV1Panel.jsx`, `src/displayProfileThemeV1.css`, and `src/displayProfileThemeV1Safety.css` for the contextual avatar-owned profile, activity-based rank, neutral saved-work metrics, skill proficiency, badges, active-case goals, Workspace, Academy, and Academy Progress routes, and responsive isolation.'
+          if 'The final responsive/mobile polish uses `src/displayFinalResponsivePolishV1.css`' not in text:
+              text = text.replace(profile_line, profile_line + '\n- The final responsive/mobile polish uses `src/displayFinalResponsivePolishV1.css` for cross-screen width containment, long-value wrapping, media safety, touch targets, focus, safe areas, compact-phone through wide-screen spacing, reduced motion, mobile Workspace header containment, and vertical workflow-stage alignment.', 1)
+          profile_doc = '- `docs/FRAUD_ACADEMY_PROFILE_THEME_V1.md` records the isolated completed Profile scope, avatar entry, protected neutral metrics and routes, completed desktop/mobile verification gate, and final responsive/mobile polish-only next step.'
+          text = text.replace(profile_doc, profile_doc.replace(', and final responsive/mobile polish-only next step', '') + '\n- `docs/FRAUD_ACADEMY_FINAL_RESPONSIVE_POLISH_V1.md` records the completed cross-screen responsive scope, runtime PR #55, exact verified head and merge, six-range browser matrix, protected presentation-only boundaries, and completion of the approved display sequence.', 1)
+          text = text.replace('1. Complete final responsive/mobile polish only across the verified screen set without changing screen ownership, investigation behavior, persistence, Evidence First, Luna gating, or System Access.\n2. Re-run the complete desktop and Pixel 7 suite after each focused polish change.', '1. The approved display redesign sequence is complete. Do not continue display work without a new approved scope.\n2. Preserve the complete verification chain and multi-viewport responsive matrix for future repository changes.')
+          profile_coverage = '10. The approved Profile renders on desktop and Pixel 7 with contextual avatar entry, neutral rank, skills, badges, activity, and goals, Workspace, Academy, and Progress routes, four-item navigation, isolation, and no required page overflow.'
+          if 'The completed final responsive layer passes the six-range matrix' not in text:
+              text = text.replace(profile_coverage, profile_coverage + '\n11. The completed final responsive layer passes the six-range matrix at 350, 390, 412, 640, 768, 1024, and 1440 pixels across the completed global surfaces and key Workspace stages, with protected touch targets, width containment, visible approved surfaces, and vertical stage alignment.', 1)
+          text = text.replace('The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision and Luna, Academy, and Profile theme v1 replacements are merged and protected by focused static guards plus desktop and Pixel 7 browser coverage. The implementations keep the four-item navigation, active case, contextual Profile and Academy Progress, neutral visible wording, Evidence First, Luna locking, IndexedDB-first generated cases, and the single Connections → System Access Lane unchanged. The next isolated step is **final responsive/mobile polish only**.', 'The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, Decision and Luna, Academy, Profile, and final responsive/mobile polish are merged and protected by focused static guards plus the six-range browser matrix. The implementations keep the four-item navigation, active case, contextual Profile and Academy Progress, neutral visible wording, Evidence First, Luna locking, IndexedDB-first generated cases, and the single Connections → System Access Lane unchanged. **The approved display redesign sequence is complete.**')
+          text = text.replace('Profile approved-theme v1, release-package documentation', 'Profile approved-theme v1, final responsive/mobile polish v1, release-package documentation')
+          text = text.replace('Academy, and Profile, all three built-in cases', 'Academy, Profile, and the final responsive matrix, all three built-in cases')
+          readme.write_text(text)
+
+          old_sot = 'The next isolated safe item is **final responsive/mobile polish only**'
+          new_sot = 'There is no unfinished item remaining in the approved display redesign sequence.'
+          old_readme = 'The next isolated step is **final responsive/mobile polish only**'
+          new_readme = 'The approved display redesign sequence is complete.'
+          for path in Path('scripts').glob('*-smoke-check.mjs'):
+              value = path.read_text()
+              value = value.replace(old_sot, new_sot)
+              value = value.replace(old_readme, new_readme)
+              value = value.replace('synchronized final-polish-only handoff', 'synchronized completed display handoff')
+              path.write_text(value)
+
+          guard = root / 'scripts/final-responsive-polish-v1-smoke-check.mjs'
+          value = guard.read_text()
+          if "const sourceOfTruth =" not in value:
+              value = value.replace("const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_FINAL_RESPONSIVE_POLISH_V1.md'), 'utf8');\n", "const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_FINAL_RESPONSIVE_POLISH_V1.md'), 'utf8');\nconst sourceOfTruth = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'), 'utf8');\nconst readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8');\n")
+          value = value.replace("mustContain('Final responsive handoff', handoff, 'all listed screens complete');\n", "mustContain('Final responsive handoff', handoff, 'Runtime pull request: `#55`');\nmustContain('Final responsive handoff', handoff, 'Final verified runtime head: `b4666c0c659520225d38e4408cc964b058bb401f`');\nmustContain('Final responsive handoff', handoff, 'Runtime merge on `main`: `f769d80e4b87d6d3e89095026df0bffd0355b6d7`');\nmustContain('Final responsive handoff', handoff, 'all listed screens are complete');\nmustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_FINAL_RESPONSIVE_POLISH_V1.md`');\nmustContain('Source of Truth', sourceOfTruth, 'There is no unfinished item remaining in the approved display redesign sequence.');\nmustContain('README', readme, 'docs/FRAUD_ACADEMY_FINAL_RESPONSIVE_POLISH_V1.md');\nmustContain('README', readme, 'The approved display redesign sequence is complete.');\n")
+          value = value.replace('and horizontal-overflow protections remain presentation-only.', 'horizontal-overflow protections, verified merge metadata, and the completed display handoff remain intact.')
+          guard.write_text(value)
+
+          Path('.github/workflows/final-responsive-handoff-sync.yml').unlink()
+          PY
+
+      - name: Commit synchronized handoff
+        run: |
+          git config user.name "fraud-academy-audit"
+          git config user.email "actions@users.noreply.github.com"
+          git add README.md docs scripts .github/workflows/final-responsive-handoff-sync.yml
+          git commit -m "Sync final responsive handoff after merge"
+          git push origin HEAD:agent/final-responsive-handoff-sync
