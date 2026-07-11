@@ -8,13 +8,13 @@ const tabCopy = {
   dashboard: {
     eyebrow: 'Command Dashboard',
     title: 'Investigation overview',
-    text: 'A neutral command view for active training cases, saved packages, reviewed tools, and the next Evidence First action.',
-    icon: '⌂',
+    text: 'A calm command view for active training cases, saved packages, reviewed tools, and the next Evidence First action.',
+    icon: '☾',
   },
   cases: {
     eyebrow: 'Case Queue',
     title: 'Choose a training case',
-    text: 'Open a case and continue the same investigation workspace without resetting the gothic neon shell.',
+    text: 'Open a case and continue the same investigation workspace without resetting saved notes, reports, or progress.',
     icon: '▣',
   },
   academy: {
@@ -27,16 +27,16 @@ const tabCopy = {
     eyebrow: 'Academy Progress',
     title: 'Saved package progress',
     text: 'Progress stays locked until a learner review package is saved. Luna scoring only appears after submission.',
-    icon: '▢',
+    icon: '✦',
   },
 };
 
 const navigationItems = [
   { key: 'dashboard', icon: '⌂', label: 'Dashboard' },
   { key: 'cases', icon: '▣', label: 'Cases' },
-  { key: 'workspace', icon: '🪄', label: 'Workspace' },
+  { key: 'workspace', icon: '◈', label: 'Workspace' },
   { key: 'academy', icon: '▱', label: 'Academy' },
-  { key: 'progress', icon: '▢', label: 'Progress' },
+  { key: 'progress', icon: '✦', label: 'Progress' },
 ];
 
 const learningSteps = [
@@ -173,7 +173,7 @@ function NavigationPanel({ activeTab, cases, snapshot, onNavigate, onOpenCase })
         <div aria-hidden="true">{copy.icon}</div>
       </div>
       {activeTab === 'dashboard' && <DashboardPanel cases={cases} snapshot={snapshot} onNavigate={onNavigate} />}
-      {activeTab === 'cases' && <CasesPanel cases={cases} onOpenCase={onOpenCase} />}
+      {activeTab === 'cases' && <CasesPanel cases={cases} packagesByCase={snapshot.packagesByCase} onOpenCase={onOpenCase} />}
       {activeTab === 'academy' && <AcademyPanel />}
       {activeTab === 'progress' && (
         <AcademyProgressPanel cases={cases} packagesByCase={snapshot.packagesByCase} onOpenCase={onOpenCase} />
@@ -183,34 +183,51 @@ function NavigationPanel({ activeTab, cases, snapshot, onNavigate, onOpenCase })
 }
 
 function DashboardPanel({ cases, snapshot, onNavigate }) {
+  const submittedCases = cases.filter((item) => (snapshot.packagesByCase[item.id] ?? []).length > 0).length;
+
   return (
     <>
-      <div className="nav-stat-grid">
+      <div className="nav-stat-grid" aria-label="Workspace totals">
         <article><strong>{cases.length}</strong><span>Active cases</span></article>
         <article><strong>{snapshot.reviewed}</strong><span>Reviewed tools</span></article>
         <article><strong>{snapshot.notes}</strong><span>Notebook notes</span></article>
         <article><strong>{snapshot.packages}</strong><span>Saved packages</span></article>
+      </div>
+      <div className="nav-dashboard-brief">
+        <div>
+          <span>Evidence First status</span>
+          <strong>{submittedCases} of {cases.length} cases submitted</strong>
+          <p>Investigation outcomes remain hidden until each learner package is saved.</p>
+        </div>
+        <div>
+          <span>Case reports</span>
+          <strong>{snapshot.packets} packet{snapshot.packets === 1 ? '' : 's'} saved</strong>
+          <p>Reports, notes, and generated cases remain scoped to their original case.</p>
+        </div>
       </div>
       <div className="nav-action-row">
         <button type="button" onClick={() => onNavigate('cases')}>Open Case Queue</button>
         <button type="button" onClick={() => onNavigate('workspace')}>Return to Workspace</button>
         <button type="button" onClick={() => onNavigate('progress')}>View Progress</button>
       </div>
-      <p className="nav-microcopy">{snapshot.packets} structured Case Report packet(s) saved across the training workspace.</p>
     </>
   );
 }
 
-function CasesPanel({ cases, onOpenCase }) {
+function CasesPanel({ cases, packagesByCase, onOpenCase }) {
   return (
     <div className="nav-case-grid">
-      {cases.map((item) => (
-        <button key={item.id} type="button" className="nav-case-card" onClick={() => onOpenCase(item.id)}>
-          <span>{item.type}</span>
-          <strong>{item.person}</strong>
-          <small>{item.id} · {item.priority} priority</small>
-        </button>
-      ))}
+      {cases.map((item) => {
+        const submitted = (packagesByCase[item.id] ?? []).length > 0;
+        return (
+          <button key={item.id} type="button" className="nav-case-card" onClick={() => onOpenCase(item.id)}>
+            <span>{item.type}</span>
+            <strong>{item.person}</strong>
+            <small>{item.id} · {item.priority} priority</small>
+            <em>{submitted ? 'Package saved' : 'Investigation open'}</em>
+          </button>
+        );
+      })}
     </div>
   );
 }
