@@ -2,15 +2,17 @@
 
 ## Status
 
-This handoff records the isolated approved-theme v1 redesign candidate for the **Profile only** step in the locked screen order.
+This handoff records the completed isolated approved-theme v1 redesign for the **Profile only** step in the locked screen order.
 
 - Runtime branch: `agent/profile-approved-theme-v1`
 - Authoritative base audited before work: `main` at `c7154d9b66c1446cdc32f34b2148b8eb83a70be7`
 - Preceding completed screen: Academy
 - Academy runtime pull request: `#43`
 - Academy verification: GitHub Actions `Fraud Academy Verify` run `#403` passed the complete named smoke chain, production build, desktop Chromium, and Pixel 7 Chromium
-- Profile pull request: create only after the focused branch is complete
-- Profile verification: required before merge
+- Final verified runtime head: `000c90b87984d41cd01a093a790457fb187ec7a3`
+- Profile pull request: `#47`
+- Runtime merge on `main`: `01e25967098594dbe67d4c523d12fe249e810564`
+- Final verification: GitHub Actions `Fraud Academy Verify` run `#409` passed the complete named smoke chain, production build, desktop Chromium, and Pixel 7 Chromium
 - Next isolated step after Profile passes and merges: **final responsive/mobile polish only**
 
 ## Authority chain
@@ -84,9 +86,9 @@ The following remain unchanged:
 
 The Profile panel receives the established navigation snapshot from `VisualNavigation`. It does not call browser storage, write generated cases, build learner packages, calculate Luna scoring, or duplicate case-state ownership.
 
-## Required verification gate
+## Completed verification
 
-The final Profile branch head must pass all of these gates before merge:
+The final Profile branch head passed all of these gates before merge:
 
 1. complete named `npm run verify` chain;
 2. production build;
@@ -103,4 +105,4 @@ The final Profile branch head must pass all of these gates before merge:
 
 ## Exact next starting point
 
-After Profile passes, merges, and this handoff is synchronized, re-audit the new `main` head, active redesign branches, open pull requests, recent commits, CI, GitHub Issue #22, and the completed Profile verification. Then begin **final responsive/mobile polish only**. Do not make additional screen redesign changes in the Profile pull request.
+Re-audit the new `main` head, active branches, open pull requests, recent commits, CI/browser results, this completed Profile handoff, and `docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md`. Then begin **final responsive/mobile polish only** on a separate branch. Preserve every verified screen, Evidence First, Luna locking, IndexedDB-first generated cases, the four-item global navigation, and the single Connections → System Access Lane.
