@@ -32,6 +32,7 @@ import './displayAcademyThemeV1.css';
 import './displayAcademyThemeV1Safety.css';
 import './displayProfileThemeV1.css';
 import './displayProfileThemeV1Safety.css';
+import './finalResponsiveMobilePolish.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
