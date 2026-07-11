@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/academy-handoff-sync
+  pull_request:
+    branches:
+      - main
 
 jobs:
   export:
