@@ -80,9 +80,9 @@ mustContain('Customer 360 handoff', handoff, 'Investigation tools only');
 mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_CUSTOMER_360_THEME_V1.md`');
 mustContain('Source of Truth', sourceOfTruth, '`src/Customer360Panel.jsx`');
 mustContain('Source of Truth', sourceOfTruth, '`src/displayCustomer360ThemeV1.css`');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Timeline only**');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Decision & Luna only**');
 mustContain('README', readme, 'The approved Customer 360 handoff lives in');
-mustContain('README', readme, 'The next isolated screen is **Timeline only**');
+mustContain('README', readme, 'The next isolated screen is **Decision & Luna only**');
 
 for (const forbidden of [
   'generatedCaseRepository',
