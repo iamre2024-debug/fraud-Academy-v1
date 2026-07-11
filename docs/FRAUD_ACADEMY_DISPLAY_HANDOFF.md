@@ -17,7 +17,7 @@ Historical PR #2, stale branches, archived design notes, and retired DOM patches
 
 The current screenshot-driven visual shell remains the active runtime until a focused display phase replaces a specific surface and passes the full verification and browser gates. Do not perform a broad theme rewrite, replace working investigation behavior, or mix several display phases into one pull request.
 
-Display Phase 1 replaced only the global navigation and header-control surface. Display Phase 2 adds only the active-case workflow rail. The remaining glow hierarchy, dense record presentation, investigation panels, review flow, Luna panel, and generated-case controls stay on the existing verified runtime until their own focused phases pass.
+Display Phase 1 replaced only the global navigation and header-control surface. Display Phase 2 added only the active-case workflow rail. Display Phase 3 calibrates hierarchy, glow, and shared interaction states without changing workflow behavior. Dense mobile record presentation, investigation behavior, review logic, Luna behavior, and generated-case storage remain on the verified runtime until their own focused work passes.
 
 ## Approved global structure target
 
@@ -73,6 +73,8 @@ Preserve the recognizable dark purple, pink, and cyan Fraud Academy identity whi
 - Use clear primary, secondary, quiet, informational, destructive, disabled, hover, focus, and selected states.
 - Maintain readable contrast and visible keyboard focus.
 - Avoid giant decorative treatment that pushes active investigation content below the fold without purpose.
+
+Phase 3 implements this target through a presentation-only token layer, calmer shared surfaces, restrained default shadows, stronger selected and keyboard-focus states, neutral locked/disabled states, and warning emphasis reserved for package readiness and Evidence First lock messaging.
 
 ## Responsive target
 
@@ -148,18 +150,23 @@ Completed in the focused workflow-rail change:
 
 ### Phase 3 - Hierarchy and glow calibration
 
-Next isolated item:
+Completed in the focused hierarchy change:
 
-- Reduce decorative saturation without flattening the Fraud Academy identity.
-- Formalize button, card, selected, focus, warning, and disabled states.
-- Keep existing component behavior and props stable where practical.
-- Do not combine mobile record conversion or persistence work.
+- Added `src/displayPhaseThree.css` as a presentation-only layer after the verified Phase 1 and Phase 2 styles.
+- Reduced default glow and decorative saturation while preserving the dark purple, pink, cyan, glass, moon, and playful professional identity.
+- Formalized shared card, control, hover, selected, keyboard-focus, informational, warning, locked, and disabled states.
+- Kept active workflow, category selection, package readiness, Luna lock, and Academy Progress language neutral.
+- Did not change component props, investigation actions, case state, generated-case storage, or System Access architecture.
+- `scripts/display-phase-three-smoke-check.mjs` guards the style wiring, shared state anchors, presentation-only boundary, and reduced-motion support.
 
 ### Phase 4 - Responsive record presentation
+
+Next isolated item:
 
 - Replace mobile table overflow with record cards, drawers, or another no-horizontal-scroll pattern.
 - Validate compact phone through wide desktop behavior.
 - Extend Playwright coverage for the changed surfaces.
+- Do not combine generated-case persistence changes or investigation behavior rewrites.
 
 ## Required verification for every display pull request
 
@@ -181,4 +188,4 @@ A display pull request is not complete until it confirms:
 
 ## Next safe item
 
-After Phase 2 merges and its exact tree passes the full verify and browser jobs, the next isolated display item is Phase 3: hierarchy and glow calibration only. Do not combine mobile record conversion, generated-case storage changes, or investigation behavior rewrites into that pull request.
+After Phase 3 merges and its exact tree passes the full verify and browser jobs, the next isolated display item is Phase 4: responsive record presentation only. Do not combine generated-case storage changes, persistence rewrites, or investigation behavior changes into that pull request.
