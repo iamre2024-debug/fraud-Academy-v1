@@ -60,10 +60,13 @@ for (const anchor of [
 for (const anchor of [
   "import ActiveToolPanel from './ActiveToolPanel.jsx'",
   "import InvestigationToolPanel from './InvestigationToolPanel.jsx'",
+  "import TimelinePanel from './TimelinePanel.jsx'",
   "from './investigationToolGroups.js'",
   'categories={investigationToolGroups}',
   "tool === 'Customer 360'",
-  "['Timeline', 'Case Report'].includes(tool)",
+  "tool === 'Timeline'",
+  '<TimelinePanel {...activeToolProps} />',
+  "tool === 'Case Report'",
   '<ActiveToolPanel {...activeToolProps} />',
   '<InvestigationToolPanel {...activeToolProps} />',
   'rowsFor(tool, activeCase, reportPackets)',
@@ -136,4 +139,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Investigation tools approved-theme v1 smoke check passed. Contextual grouping, focused record review, search, notes, report packets, review progress, workflow routes, responsive safety, Evidence First wording, protected persistence boundaries, and the Timeline-only handoff remain intact.');
+console.log('Investigation tools approved-theme v1 smoke check passed. Contextual grouping, focused record review, search, notes, report packets, review progress, workflow routes, responsive safety, Evidence First wording, protected persistence boundaries, and the isolated Timeline renderer remain intact.');
