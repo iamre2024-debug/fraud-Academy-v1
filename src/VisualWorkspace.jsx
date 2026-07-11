@@ -119,10 +119,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     },
   };
 
-  function scrollToWorkspace(selector, delay = 50) {
-    window.setTimeout(() => document.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), delay);
-  }
-
   function resetWorkspaceInlineScroll() {
     [
       document.documentElement,
@@ -132,6 +128,14 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     ].forEach((element) => {
       if (element) element.scrollLeft = 0;
     });
+  }
+
+  function scrollToWorkspace(selector, delay = 50) {
+    window.setTimeout(() => {
+      resetWorkspaceInlineScroll();
+      document.querySelector(selector)?.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' });
+      resetWorkspaceInlineScroll();
+    }, delay);
   }
 
   function openTool(nextTool, nextStage = stageForTool(nextTool)) {
