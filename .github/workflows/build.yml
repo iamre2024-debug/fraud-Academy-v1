@@ -71,6 +71,9 @@ jobs:
       - name: Display Phase 3 hierarchy-and-glow smoke check
         run: npm run display-phase-three-smoke-check
 
+      - name: Display Phase 4 responsive-record smoke check
+        run: npm run display-phase-four-smoke-check
+
       - name: Production build
         run: npm run build
 

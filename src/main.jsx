@@ -16,6 +16,7 @@ import './browserInteractionStability.css';
 import './displayPhaseOne.css';
 import './displayPhaseTwo.css';
 import './displayPhaseThree.css';
+import './displayPhaseFour.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
