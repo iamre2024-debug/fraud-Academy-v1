@@ -98,12 +98,13 @@ export default function VisualNavigation({ activeTab = 'workspace', activeCaseId
     const anchor = document.querySelector('.visual-categories');
     if (!frame || !anchor) return undefined;
 
+    const panelAnchor = anchor.closest('.workflow-investigate-stage') ?? anchor;
     let host = frame.querySelector('.visual-react-nav-host');
     const created = !host;
     if (!host) {
       host = document.createElement('div');
       host.className = 'visual-react-nav-host';
-      anchor.insertAdjacentElement('afterend', host);
+      panelAnchor.insertAdjacentElement('afterend', host);
     }
 
     setPanelHost(host);
