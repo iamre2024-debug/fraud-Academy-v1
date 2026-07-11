@@ -2,7 +2,7 @@
 
 ## Status
 
-The locked Fraud Academy display redesign is complete. Every isolated approved-theme v1 screen and the final cross-screen responsive/mobile release pass are merged and verified. All listed screens complete.
+The locked Fraud Academy display redesign is complete. Every isolated approved-theme v1 screen and the final cross-screen responsive/mobile release pass are merged and verified. The completion state is: all listed screens complete.
 
 - Final runtime branch: `agent/final-responsive-polish-reconciled`
 - Final runtime pull request: `#55`
