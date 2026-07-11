@@ -19,9 +19,10 @@
     "summary-direct-collapse-smoke-check": "node scripts/summary-direct-collapse-smoke-check.mjs",
     "workspace-case-state-hook-smoke-check": "node scripts/workspace-case-state-hook-smoke-check.mjs",
     "workspace-actions-controller-smoke-check": "node scripts/workspace-actions-controller-smoke-check.mjs",
+    "display-handoff-smoke-check": "node scripts/display-handoff-smoke-check.mjs",
     "browser-smoke-check": "npm run build && playwright test",
     "browser-smoke-check:ci": "playwright test",
-    "verify": "npm run evidence-first-check && npm run functional-smoke-check && npm run visual-three-case-smoke-check && npm run generated-case-smoke-check && npm run luna-single-module-smoke-check && npm run review-package-smoke-check && npm run remaining-module-depth-smoke-check && npm run navigation-direct-collapse-smoke-check && npm run academy-progress-smoke-check && npm run summary-direct-collapse-smoke-check && npm run workspace-case-state-hook-smoke-check && npm run workspace-actions-controller-smoke-check && npm run build"
+    "verify": "npm run evidence-first-check && npm run functional-smoke-check && npm run visual-three-case-smoke-check && npm run generated-case-smoke-check && npm run luna-single-module-smoke-check && npm run review-package-smoke-check && npm run remaining-module-depth-smoke-check && npm run navigation-direct-collapse-smoke-check && npm run academy-progress-smoke-check && npm run summary-direct-collapse-smoke-check && npm run workspace-case-state-hook-smoke-check && npm run workspace-actions-controller-smoke-check && npm run display-handoff-smoke-check && npm run build"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
