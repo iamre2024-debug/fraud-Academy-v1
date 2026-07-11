@@ -9,6 +9,8 @@ const layoutStyles = fs.readFileSync(path.join(rootDir, 'src/displayWorkspaceShe
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/workspace-shell-browser.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_WORKSPACE_SHELL_THEME_V1.md'), 'utf8');
+const sourceOfTruth = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'), 'utf8');
+const readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8');
 const failures = [];
 
 function mustContain(fileLabel, content, text) {
@@ -66,6 +68,7 @@ for (const anchor of [
   'grid-column: 1 / -1',
   'grid-template-columns: 1fr',
   'justify-self: end',
+  'box-sizing: border-box',
   '@media (max-width: 620px)',
 ]) {
   mustContain('displayWorkspaceShellLayoutV1.css', layoutStyles, anchor);
@@ -77,6 +80,10 @@ mustContain('workspace-shell-browser.spec.mjs', browser, 'approved Workspace she
 mustContain('workspace-shell-browser.spec.mjs', browser, '.workspace-shell-heading');
 mustContain('Workspace shell handoff', handoff, 'agent/workspace-shell-approved-theme-v1');
 mustContain('Workspace shell handoff', handoff, 'Case Briefing');
+mustContain('Source of Truth', sourceOfTruth, 'Dashboard, Cases, and the Workspace shell are the completed approved replacements');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Case Briefing only**');
+mustContain('README', readme, 'The approved Dashboard, Cases, and Workspace shell theme v1 replacements are merged');
+mustContain('README', readme, 'The next isolated screen is **Case Briefing only**');
 
 for (const forbidden of [
   'generatedCaseRepository',
@@ -99,4 +106,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Workspace shell approved-theme v1 smoke check passed. The compact header, active-case strip, workflow rail, responsive grid safety, navigation shell, Evidence First wording, and protected persistence boundaries remain intact.');
+console.log('Workspace shell approved-theme v1 smoke check passed. The compact header, active-case strip, workflow rail, responsive grid safety, synchronized handoff, Evidence First wording, and protected persistence boundaries remain intact.');
