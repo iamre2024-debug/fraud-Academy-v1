@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 const forbiddenCopy = /Fraudulent|Legitimate|Correct answer|AI recommendation|Red flag|Green flag|final answer/i;
 
 async function openAcademy(page) {
-  await page.locator('.visual-react-bottom-nav').getByRole('button', { name: 'Academy', exact: true }).click();
+  await page.locator('.visual-react-bottom-nav').getByRole('button', { name: /Academy/ }).click();
   await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'academy');
   const academy = page.locator('[data-academy-screen="approved-theme-v1"]');
   await expect(academy).toBeVisible();
