@@ -30,6 +30,8 @@ import './displayDecisionLunaThemeV1.css';
 import './displayDecisionLunaLayoutSafetyV1.css';
 import './displayAcademyThemeV1.css';
 import './displayAcademyThemeV1Safety.css';
+import './displayProfileThemeV1.css';
+import './displayProfileThemeV1Safety.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
