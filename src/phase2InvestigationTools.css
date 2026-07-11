@@ -1,0 +1,301 @@
+/* Phase 2 active investigation tool and record workflow presentation. */
+
+.visual-categories,
+.activity-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.visual-section-heading,
+.activity-heading,
+.record-detail-heading,
+.workspace-search-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.visual-section-heading > div,
+.activity-heading > div,
+.tool-purpose-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.tool-context-label,
+.record-detail-heading span,
+.workspace-search-row label > span {
+  color: var(--fa-plum);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.visual-category-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.visual-category-row button {
+  min-height: 142px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-content: center;
+  gap: 7px 10px;
+  padding: 18px;
+  text-align: left;
+  border-radius: var(--fa-radius-md);
+}
+
+.visual-category-row button > span {
+  font-size: 1.5rem;
+}
+
+.visual-category-row button strong,
+.visual-category-row button small,
+.category-progress-track {
+  grid-column: 1 / -1;
+}
+
+.visual-category-row button em {
+  justify-self: end;
+  color: var(--fa-ink-soft);
+  font-style: normal;
+  font-weight: 800;
+}
+
+.visual-category-row button.active {
+  border-color: rgba(111, 59, 121, 0.45);
+  background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(238,226,246,.95));
+  box-shadow: var(--fa-shadow-md), inset 0 0 0 1px rgba(111,59,121,.08);
+}
+
+.visual-category-row button.reviewed {
+  border-color: rgba(111, 138, 121, 0.35);
+}
+
+.category-status-copy {
+  color: var(--fa-ink-soft);
+  font-weight: 700;
+}
+
+.category-progress-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--fa-radius-pill);
+  background: rgba(111, 59, 121, 0.1);
+}
+
+.category-progress-track b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--fa-plum), var(--fa-orchid));
+}
+
+.tool-purpose-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid var(--fa-line);
+  border-radius: var(--fa-radius-md);
+  background: linear-gradient(145deg, rgba(255,255,255,.9), rgba(248,241,255,.78));
+}
+
+.tool-status-chip {
+  width: fit-content;
+  padding: 5px 9px;
+  border-radius: var(--fa-radius-pill);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+
+.tool-status-chip.open {
+  color: var(--fa-plum);
+  background: rgba(111,59,121,.09);
+}
+
+.tool-status-chip.reviewed {
+  color: var(--fa-sage);
+  background: rgba(111,138,121,.12);
+}
+
+.tool-flow-chips {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.tool-flow-chips li {
+  min-height: 54px;
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  padding: 8px;
+  border: 1px solid var(--fa-line);
+  border-radius: var(--fa-radius-sm);
+  color: var(--fa-ink-soft);
+  background: rgba(255,255,255,.68);
+  font-size: .72rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.tool-flow-chips li span {
+  color: var(--fa-plum);
+  font-size: .66rem;
+  font-weight: 900;
+}
+
+.workspace-search-row label {
+  flex: 1;
+  display: grid;
+  gap: 6px;
+}
+
+.workspace-search-row > span {
+  flex: 0 0 auto;
+  color: var(--fa-ink-soft);
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.activity-table {
+  overflow: auto;
+  border: 1px solid var(--fa-line);
+  border-radius: var(--fa-radius-md);
+  background: rgba(255,255,255,.72);
+}
+
+.activity-row {
+  min-width: 760px;
+}
+
+.activity-row:not(.table-head) {
+  transition: background .18s ease, box-shadow .18s ease;
+}
+
+.activity-row.expanded {
+  background: rgba(238,226,246,.72);
+  box-shadow: inset 4px 0 0 var(--fa-orchid);
+}
+
+.row-action-group {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.row-action-group button {
+  min-height: 38px;
+}
+
+.record-detail-panel {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--fa-line);
+  border-radius: var(--fa-radius-md);
+  background: rgba(255,255,255,.76);
+}
+
+.record-review-lanes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.record-review-lanes article {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 190px;
+  padding: 18px;
+  border: 1px solid var(--fa-line);
+  border-radius: var(--fa-radius-md);
+  background: linear-gradient(145deg, rgba(255,255,255,.92), rgba(248,241,255,.72));
+}
+
+.record-lane-step {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  color: var(--fa-orchid);
+  font-size: .7rem;
+  font-weight: 900;
+}
+
+.record-review-lanes h4 {
+  margin: 0;
+  color: var(--fa-plum-strong);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.35rem;
+}
+
+.record-report-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.tool-empty-state {
+  padding: 32px;
+  text-align: center;
+  border: 1px dashed var(--fa-line-strong);
+  border-radius: var(--fa-radius-md);
+  color: var(--fa-ink-soft);
+}
+
+.tool-empty-state p {
+  margin-bottom: 0;
+}
+
+@media (max-width: 980px) {
+  .tool-flow-chips {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .record-review-lanes {
+    grid-template-columns: 1fr;
+  }
+
+  .record-review-lanes article {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 680px) {
+  .visual-section-heading,
+  .activity-heading,
+  .record-detail-heading,
+  .workspace-search-row,
+  .tool-purpose-card {
+    align-items: stretch;
+    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+
+  .tool-flow-chips {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .visual-category-row {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-search-row > span {
+    align-self: flex-end;
+  }
+}
