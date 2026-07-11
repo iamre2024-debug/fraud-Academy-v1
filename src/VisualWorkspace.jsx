@@ -144,6 +144,18 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     window.setTimeout(() => submitRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   }
 
+  function openNotes() {
+    onNavigate('workspace');
+    setActiveStage('indicators');
+    scrollToWorkspace('.notebook-card', 80);
+  }
+
+  function openMoreTools() {
+    onNavigate('workspace');
+    setActiveStage('investigate');
+    scrollToWorkspace('[data-workflow-stage="investigate"]', 80);
+  }
+
   function selectWorkflowStage(nextStage) {
     onNavigate('workspace');
     setActiveStage(nextStage);
@@ -197,6 +209,8 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
             pin={pin}
             openTool={openTool}
             jumpDecision={jumpDecision}
+            openNotes={openNotes}
+            openMoreTools={openMoreTools}
           />
         </div>
 

@@ -1,0 +1,24 @@
+body[data-visual-tab="workspace"] .case-summary-visual[data-case-briefing-container="approved-theme-v1"] {
+  display: block;
+  min-height: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+body[data-visual-tab="workspace"] .case-summary-visual[data-case-briefing-container="approved-theme-v1"]::before {
+  display: none;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-quick-routes {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 430px) {
+  body[data-visual-tab="workspace"] .case-briefing-quick-routes {
+    grid-template-columns: 1fr;
+  }
+}

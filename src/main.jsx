@@ -21,6 +21,8 @@ import './displayDashboardThemeV1.css';
 import './displayCasesThemeV1.css';
 import './displayWorkspaceShellThemeV1.css';
 import './displayWorkspaceShellLayoutV1.css';
+import './displayCaseBriefingThemeV1.css';
+import './displayCaseBriefingRoutesV1.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

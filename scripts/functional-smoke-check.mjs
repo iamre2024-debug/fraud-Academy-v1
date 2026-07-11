@@ -59,6 +59,7 @@ const checks = [
       '<CategoryTileRail',
       '<SubmitDecisionPanel',
       '<VisualShellHeader',
+      'jumpDecision={jumpDecision}',
     ],
     mustNotContain: [
       "window.dispatchEvent(new CustomEvent('fraud-academy:navigate'",
@@ -131,9 +132,10 @@ const checks = [
   },
   {
     file: 'src/CaseSummaryCard.jsx',
-    label: 'case summary card module',
+    label: 'approved Case Briefing module',
     mustContain: [
-      'className="ornate-card case-summary-visual"',
+      'data-case-briefing-container="approved-theme-v1"',
+      'data-case-briefing-screen="approved-theme-v1"',
       'className="case-summary-meta-grid"',
       '<small>Claim ID</small>',
       '<small>Transaction / payee info</small>',
@@ -142,7 +144,9 @@ const checks = [
       "openTool('Identity Intelligence')",
       "openTool('Case Report')",
       "openTool('Login History')",
+      'onClick={jumpDecision}',
       'decision-jump-button',
+      'Case briefing quick routes',
     ],
   },
   {
@@ -367,4 +371,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Functional smoke check passed. Workspace state and action boundaries, repository-backed generated cases, IndexedDB fallback, direct Submit Decision compact text, Evidence First locks, React navigation, and the full verify wiring are present.');
+console.log('Functional smoke check passed. Workspace state and action boundaries, repository-backed generated cases, IndexedDB fallback, approved Case Briefing quick routes, direct Submit Decision compact text, Evidence First locks, React navigation, and the full verify wiring are present.');
