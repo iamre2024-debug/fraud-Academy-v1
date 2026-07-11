@@ -1,6 +1,7 @@
 body[data-visual-tab="workspace"] #root,
 body[data-visual-tab="workspace"] .visual-os-shell,
 body[data-visual-tab="workspace"] .visual-os-frame {
+  box-sizing: border-box;
   overflow-x: clip !important;
 }
 
