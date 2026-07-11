@@ -3,6 +3,7 @@ export default function CategoryTileRail({
   categoryKey,
   currentCompleted,
   onNavigate,
+  onInvestigate,
   setCategoryKey,
   setTool,
   setExpandedId,
@@ -17,7 +18,7 @@ export default function CategoryTileRail({
           const complete = reviewedCount === item.tools.length;
           const status = complete ? 'Complete' : reviewedCount > 0 ? 'In progress' : 'Open';
           return (
-            <button key={item.key} type="button" className={`${categoryKey === item.key ? 'active' : ''} ${complete ? 'reviewed' : ''}`} onClick={() => { setCategoryKey(item.key); setTool(item.tools[0]); setExpandedId(''); }}>
+            <button key={item.key} type="button" className={`${categoryKey === item.key ? 'active' : ''} ${complete ? 'reviewed' : ''}`} onClick={() => { onInvestigate?.(); setCategoryKey(item.key); setTool(item.tools[0]); setExpandedId(''); }}>
               <span>{item.icon}</span><strong>{item.label}</strong><em>{reviewedCount}/{item.tools.length}</em><small className="category-status-copy">{status}</small><div className="category-progress-track"><b style={{ width: `${progressPercent}%` }} /></div>
             </button>
           );

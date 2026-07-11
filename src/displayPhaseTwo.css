@@ -1,0 +1,161 @@
+.active-case-workflow {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.active-case-workflow-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+}
+
+.active-case-workflow-heading p,
+.active-case-workflow-heading h2 {
+  margin: 0;
+}
+
+.active-case-workflow-heading p {
+  color: #ff9be9;
+  font-family: Cinzel, Georgia, serif;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.active-case-workflow-heading h2 {
+  margin-top: 4px;
+  color: #fff1fb;
+  font-family: Cinzel, Georgia, serif;
+  font-size: clamp(1rem, 2vw, 1.28rem);
+}
+
+.active-case-workflow-heading > span {
+  color: #ff9be9;
+  font-size: 1.4rem;
+}
+
+.active-case-workflow-list {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.active-case-workflow-list li {
+  min-width: 0;
+}
+
+.active-case-workflow-list button {
+  width: 100%;
+  min-height: 108px;
+  display: grid;
+  grid-template-columns: auto auto;
+  align-content: center;
+  justify-content: start;
+  gap: 4px 8px;
+  border: 1px solid rgba(255, 155, 233, 0.22);
+  border-radius: 16px;
+  background: rgba(7, 3, 14, 0.58);
+  color: rgba(255, 241, 251, 0.76);
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.active-case-workflow-list button:hover,
+.active-case-workflow-list button:focus-visible {
+  border-color: rgba(255, 155, 233, 0.7);
+  outline: none;
+  color: #fff1fb;
+}
+
+.active-case-workflow-list button.active {
+  border-color: rgba(255, 92, 218, 0.86);
+  background: linear-gradient(145deg, rgba(255, 92, 218, 0.16), rgba(110, 231, 255, 0.06));
+  color: #fff1fb;
+  box-shadow: 0 0 16px rgba(255, 92, 218, 0.34), inset 0 0 16px rgba(255, 255, 255, 0.04);
+}
+
+.active-case-workflow-list button.complete small,
+.active-case-workflow-list button.ready small {
+  color: #b9f6ff;
+}
+
+.active-case-workflow-list button.locked small {
+  color: rgba(255, 241, 251, 0.54);
+}
+
+.workflow-stage-number {
+  color: rgba(255, 155, 233, 0.72);
+  font-family: Cinzel, Georgia, serif;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.workflow-stage-icon {
+  color: #ff9be9;
+  font-size: 1rem;
+}
+
+.active-case-workflow-list strong,
+.active-case-workflow-list small {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.active-case-workflow-list strong {
+  overflow-wrap: anywhere;
+  font-family: Cinzel, Georgia, serif;
+  font-size: 0.84rem;
+  line-height: 1.2;
+}
+
+.active-case-workflow-list small {
+  color: rgba(255, 241, 251, 0.62);
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.workflow-investigate-stage,
+.workflow-active-tool-stage,
+[data-workflow-stage="briefing"],
+[data-workflow-stage="indicators"],
+[data-workflow-stage="determination"] {
+  min-width: 0;
+  scroll-margin-top: 18px;
+}
+
+.workflow-investigate-stage {
+  display: grid;
+}
+
+@media (max-width: 980px) {
+  .active-case-workflow-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .active-case-workflow {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .active-case-workflow-heading {
+    align-items: flex-start;
+  }
+
+  .active-case-workflow-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .active-case-workflow-list button {
+    min-height: 94px;
+    padding: 10px;
+  }
+}

@@ -65,6 +65,9 @@ jobs:
       - name: Display Phase 1 global-shell smoke check
         run: npm run display-phase-one-smoke-check
 
+      - name: Display Phase 2 workflow-rail smoke check
+        run: npm run display-phase-two-smoke-check
+
       - name: Production build
         run: npm run build
 
