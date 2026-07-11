@@ -1,0 +1,255 @@
+/* Phase 2 evidence, review, decision, and Luna debrief presentation. */
+
+.bottom-investigation-grid {
+  align-items: stretch;
+}
+
+.tray-card,
+.notebook-card,
+.submit-decision-panel,
+.luna-visual-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.tray-summary-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--fa-line);
+  border-radius: var(--fa-radius-md);
+  background: rgba(255,255,255,.74);
+}
+
+.tray-summary-row strong {
+  color: var(--fa-plum-strong);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 2rem;
+}
+
+.tray-summary-row span,
+.tray-empty-state {
+  color: var(--fa-ink-soft);
+}
+
+.tray-list {
+  display: grid;
+  gap: 10px;
+}
+
+.tray-list > div,
+.notebook-list > button,
+.case-report-packet-panel,
+.decision-checklist,
+.luna-locked-state,
+.luna-score-card,
+.luna-list-card,
+.luna-breakdown-card {
+  border: 1px solid var(--fa-line);
+  border-radius: var(--fa-radius-md);
+  background: rgba(255,255,255,.78);
+  box-shadow: var(--fa-shadow-sm);
+}
+
+.tray-list > div {
+  display: grid;
+  grid-template-columns: auto auto minmax(0,1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+}
+
+.notebook-compose {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 12px;
+}
+
+.notebook-compose textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.case-report-packet-panel {
+  padding: 14px 16px;
+}
+
+.case-report-packet-panel summary {
+  cursor: pointer;
+  color: var(--fa-plum-strong);
+  font-weight: 800;
+}
+
+.notebook-list {
+  display: grid;
+  gap: 10px;
+}
+
+.notebook-list > button {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 12px 14px;
+  text-align: left;
+  color: var(--fa-ink);
+}
+
+.decision-heading-row {
+  align-items: start;
+}
+
+.decision-readiness-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 6px 12px;
+  border-radius: var(--fa-radius-pill);
+  font-size: .75rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.decision-readiness-chip.ready {
+  background: rgba(111,138,121,.14);
+  color: #4d6c59;
+}
+
+.decision-readiness-chip.waiting {
+  background: rgba(111,59,121,.08);
+  color: var(--fa-plum);
+}
+
+.decision-status-grid {
+  gap: 12px;
+}
+
+.decision-status-grid > div {
+  min-height: 104px;
+  padding: 18px;
+  border: 1px solid var(--fa-line);
+  border-radius: var(--fa-radius-md);
+  background: linear-gradient(145deg, rgba(255,255,255,.92), rgba(248,241,255,.76));
+}
+
+.decision-status-grid strong {
+  color: var(--fa-plum-strong);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.85rem;
+}
+
+.decision-checklist {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.decision-form {
+  gap: 14px;
+}
+
+.decision-form label {
+  color: var(--fa-ink-soft);
+  font-weight: 700;
+}
+
+.decision-form select,
+.decision-form textarea,
+.notebook-compose textarea {
+  width: 100%;
+  margin-top: 6px;
+  border: 1px solid var(--fa-line-strong);
+  border-radius: var(--fa-radius-sm);
+  background: rgba(255,255,255,.92);
+  color: var(--fa-ink);
+  padding: 12px 14px;
+}
+
+.decision-rationale textarea {
+  min-height: 150px;
+}
+
+.decision-submit-button {
+  min-height: 48px;
+}
+
+.luna-visual-panel.locked {
+  border-style: dashed;
+}
+
+.luna-locked-state {
+  padding: 20px;
+}
+
+.luna-locked-state strong,
+.luna-list-card h3,
+.luna-breakdown-card h3 {
+  color: var(--fa-plum-strong);
+}
+
+.luna-debrief-grid {
+  display: grid;
+  grid-template-columns: .8fr 1fr 1fr;
+  gap: 14px;
+}
+
+.luna-score-card,
+.luna-list-card,
+.luna-breakdown-card {
+  padding: 18px;
+}
+
+.luna-score-card strong {
+  color: var(--fa-plum-strong);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 2.4rem;
+}
+
+.luna-breakdown-card {
+  grid-column: 1 / -1;
+}
+
+.luna-breakdown-card > div {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--fa-line);
+}
+
+@media (max-width: 900px) {
+  .luna-debrief-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .luna-score-card,
+  .luna-breakdown-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 620px) {
+  .notebook-compose,
+  .luna-debrief-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tray-list > div {
+    grid-template-columns: auto minmax(0,1fr) auto;
+  }
+
+  .tray-list > div > strong {
+    display: none;
+  }
+
+  .decision-status-grid {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+
+  .decision-heading-row {
+    display: grid;
+    gap: 12px;
+  }
+}
