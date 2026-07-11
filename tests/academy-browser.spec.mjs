@@ -21,15 +21,20 @@ test('approved Academy preserves neutral learning routes and responsive safety',
   await expect(academy.getByText('Record review practice', { exact: true })).toBeVisible();
   await expect(academy.getByText('Evidence connections', { exact: true })).toBeVisible();
   await expect(academy.getByText('Case quality and submission', { exact: true })).toBeVisible();
+  await expect(page.locator('.visual-hero')).toBeHidden();
+  await expect(page.locator('.active-case-workflow')).toBeHidden();
+  await expect(page.locator('.generated-case-controls')).toBeHidden();
   expect(await academy.innerText()).not.toMatch(forbiddenCopy);
 
   const layout = await page.evaluate(() => {
     const panel = document.querySelector('[data-academy-screen="approved-theme-v1"]');
+    const frame = document.querySelector('.visual-os-frame');
     const mainGrid = document.querySelector('.academy-main-grid');
     const pathGrid = document.querySelector('.academy-path-grid');
     const statGrid = document.querySelector('.academy-stat-grid');
     const viewportWidth = window.innerWidth;
     const rect = panel?.getBoundingClientRect();
+    const frameRect = frame?.getBoundingClientRect();
     const columns = (element) => element
       ? getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean).length
       : 0;
@@ -37,6 +42,7 @@ test('approved Academy preserves neutral learning routes and responsive safety',
       viewportWidth,
       documentWidth: document.documentElement.scrollWidth,
       panelOverflow: rect ? Math.max(0, -rect.left, rect.right - viewportWidth) : Number.POSITIVE_INFINITY,
+      frameOverflow: frameRect ? Math.max(0, -frameRect.left, frameRect.right - viewportWidth) : Number.POSITIVE_INFINITY,
       mainColumns: columns(mainGrid),
       pathColumns: columns(pathGrid),
       statColumns: columns(statGrid),
@@ -46,6 +52,7 @@ test('approved Academy preserves neutral learning routes and responsive safety',
 
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
   expect(layout.panelOverflow).toBeLessThanOrEqual(4);
+  expect(layout.frameOverflow).toBeLessThanOrEqual(1);
   expect(layout.position).not.toBe('fixed');
   if (testInfo.project.name === 'mobile-chromium') {
     expect(layout.mainColumns).toBe(1);
