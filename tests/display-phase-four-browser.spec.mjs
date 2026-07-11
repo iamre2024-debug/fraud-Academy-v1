@@ -4,10 +4,10 @@ test('responsive records become labeled mobile cards without record-surface over
   await page.goto('/');
 
   const workflow = page.getByRole('navigation', { name: 'Active case workflow' });
-  await workflow.getByRole('button', { name: /Timeline/ }).click();
+  await workflow.getByRole('button', { name: /Summary/ }).click();
 
   const selector = page.locator('.activity-panel .tool-select');
-  await expect(selector).toHaveValue('Timeline');
+  await expect(selector).toHaveValue('Case Report');
 
   const table = page.locator('.activity-table');
   const header = table.locator('.table-head');
