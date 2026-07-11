@@ -1,10 +1,3 @@
-body[data-visual-tab="workspace"] #root,
-body[data-visual-tab="workspace"] .visual-os-shell,
-body[data-visual-tab="workspace"] .visual-os-frame {
-  box-sizing: border-box;
-  overflow-x: clip !important;
-}
-
 body[data-visual-tab="workspace"] [data-workflow-stage="determination"] {
   min-width: 0;
   max-width: 100%;
@@ -25,6 +18,9 @@ body[data-visual-tab="workspace"] .luna-theme-v1 {
   body[data-visual-tab="workspace"] [data-workflow-stage="determination"] > .decision-theme-v1,
   body[data-visual-tab="workspace"] .luna-post-submission-host,
   body[data-visual-tab="workspace"] .luna-theme-v1 {
+    width: calc(100% - 18px) !important;
+    max-width: calc(100% - 18px) !important;
+    margin-inline: auto !important;
     inset-inline: auto !important;
   }
 }
