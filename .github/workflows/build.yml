@@ -98,6 +98,9 @@ jobs:
       - name: Case Briefing approved-theme v1 smoke check
         run: npm run case-briefing-theme-v1-smoke-check
 
+      - name: Customer 360 approved-theme v1 smoke check
+        run: npm run customer-360-theme-v1-smoke-check
+
       - name: Release package documentation smoke check
         run: npm run release-package-smoke-check
 

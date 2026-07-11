@@ -1,0 +1,768 @@
+body[data-visual-tab="workspace"] .customer-360-theme-v1,
+body[data-visual-tab="workspace"] .customer-360-theme-v1 * {
+  box-sizing: border-box;
+}
+
+body[data-visual-tab="workspace"] .customer-360-theme-v1 {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  overflow: clip;
+  border: 1px solid rgba(91, 62, 154, 0.14);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 18px;
+  color: #171243;
+  box-shadow: 0 14px 34px rgba(67, 43, 126, 0.1);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  scroll-margin-top: 18px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-theme-v1::before,
+body[data-visual-tab="workspace"] .customer-360-theme-v1::after {
+  display: none;
+}
+
+body[data-visual-tab="workspace"] .customer-360-theme-v1 h2,
+body[data-visual-tab="workspace"] .customer-360-theme-v1 h3,
+body[data-visual-tab="workspace"] .customer-360-theme-v1 h4,
+body[data-visual-tab="workspace"] .customer-360-theme-v1 p,
+body[data-visual-tab="workspace"] .customer-360-theme-v1 dl,
+body[data-visual-tab="workspace"] .customer-360-theme-v1 dd,
+body[data-visual-tab="workspace"] .customer-360-theme-v1 dt {
+  margin: 0;
+  font-family: inherit;
+  text-shadow: none;
+}
+
+body[data-visual-tab="workspace"] .customer-360-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  min-width: 0;
+  border-bottom: 1px solid rgba(91, 62, 154, 0.1);
+  padding: 2px 2px 15px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-header > div:first-child {
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .customer-360-eyebrow {
+  color: #7551c8;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .customer-360-header h2 {
+  margin-top: 4px;
+  color: #171243;
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+  line-height: 1.08;
+}
+
+body[data-visual-tab="workspace"] .customer-360-header > div:first-child > p:last-child {
+  max-width: 720px;
+  margin-top: 7px;
+  color: #655e7f;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+body[data-visual-tab="workspace"] .customer-360-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-header-actions button,
+body[data-visual-tab="workspace"] .customer-360-actions button,
+body[data-visual-tab="workspace"] .customer-360-event-actions button,
+body[data-visual-tab="workspace"] .customer-360-record-grid button,
+body[data-visual-tab="workspace"] .customer-360-review-bar button {
+  min-height: 44px;
+  border: 1px solid rgba(91, 62, 154, 0.18);
+  border-radius: 13px;
+  background: #f7f3ff;
+  padding: 9px 13px;
+  color: #51496d;
+  font: 800 0.76rem/1.15 Inter, ui-sans-serif, system-ui, sans-serif;
+  box-shadow: none;
+}
+
+body[data-visual-tab="workspace"] .customer-360-header-actions button:hover,
+body[data-visual-tab="workspace"] .customer-360-header-actions button:focus-visible,
+body[data-visual-tab="workspace"] .customer-360-actions button:hover,
+body[data-visual-tab="workspace"] .customer-360-actions button:focus-visible,
+body[data-visual-tab="workspace"] .customer-360-event-actions button:hover,
+body[data-visual-tab="workspace"] .customer-360-event-actions button:focus-visible,
+body[data-visual-tab="workspace"] .customer-360-record-grid button:hover,
+body[data-visual-tab="workspace"] .customer-360-record-grid button:focus-visible,
+body[data-visual-tab="workspace"] .customer-360-review-bar button:hover,
+body[data-visual-tab="workspace"] .customer-360-review-bar button:focus-visible {
+  border-color: rgba(117, 81, 200, 0.56);
+  background: #eee6ff;
+  color: #4f2f9d;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(117, 81, 200, 0.11);
+}
+
+body[data-visual-tab="workspace"] .customer-360-status {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(117, 81, 200, 0.2);
+  border-radius: 999px;
+  background: #f3edff;
+  padding: 7px 11px;
+  color: #5f3cad;
+  font-size: 0.72rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+body[data-visual-tab="workspace"] .customer-360-identity-band {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 0.8fr) minmax(360px, 1.45fr);
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.12);
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f9f6ff 0%, #fff 48%, #fff8fc 100%);
+  padding: 15px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-avatar {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #7551c8, #a461c8);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  box-shadow: 0 8px 20px rgba(89, 53, 160, 0.18);
+}
+
+body[data-visual-tab="workspace"] .customer-360-identity-copy {
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .customer-360-identity-copy > span {
+  color: #7551c8;
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .customer-360-identity-copy h3 {
+  margin-top: 4px;
+  color: #21184a;
+  font-size: 1.08rem;
+}
+
+body[data-visual-tab="workspace"] .customer-360-identity-copy p {
+  margin-top: 5px;
+  color: #6f6688;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .customer-360-identity-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .customer-360-identity-metrics article {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(91, 62, 154, 0.1);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.86);
+  padding: 10px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-identity-metrics span {
+  color: #7a7094;
+  font-size: 0.64rem;
+  font-weight: 800;
+}
+
+body[data-visual-tab="workspace"] .customer-360-identity-metrics strong {
+  min-width: 0;
+  color: #29204f;
+  font-size: 0.76rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .customer-360-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .customer-360-actions button:last-child,
+body[data-visual-tab="workspace"] .customer-360-primary {
+  border-color: #7551c8;
+  background: linear-gradient(135deg, #7551c8, #8d5ac5);
+  color: #fff;
+}
+
+body[data-visual-tab="workspace"] .customer-360-actions button:last-child:hover,
+body[data-visual-tab="workspace"] .customer-360-actions button:last-child:focus-visible,
+body[data-visual-tab="workspace"] .customer-360-primary:hover,
+body[data-visual-tab="workspace"] .customer-360-primary:focus-visible {
+  border-color: #5f3cad;
+  background: linear-gradient(135deg, #6845b5, #7d4bb6);
+  color: #fff;
+}
+
+body[data-visual-tab="workspace"] .customer-360-tool-row {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.5fr) minmax(0, 1.5fr);
+  align-items: end;
+  gap: 12px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .customer-360-tool-row label,
+body[data-visual-tab="workspace"] .customer-360-search-row label {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-tool-row label > span,
+body[data-visual-tab="workspace"] .customer-360-search-row label > span {
+  color: #766d8e;
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .customer-360-tool-row .tool-select,
+body[data-visual-tab="workspace"] .customer-360-search-row input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid rgba(91, 62, 154, 0.18);
+  border-radius: 13px;
+  background: #fff;
+  padding: 10px 12px;
+  color: #2b2350;
+  font: 750 0.78rem/1.2 Inter, ui-sans-serif, system-ui, sans-serif;
+  outline: none;
+  box-shadow: none;
+}
+
+body[data-visual-tab="workspace"] .customer-360-tool-row .tool-select:focus-visible,
+body[data-visual-tab="workspace"] .customer-360-search-row input:focus-visible {
+  border-color: #7551c8;
+  box-shadow: 0 0 0 3px rgba(117, 81, 200, 0.11);
+}
+
+body[data-visual-tab="workspace"] .customer-360-flow-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .customer-360-flow-chips span {
+  border: 1px solid rgba(91, 62, 154, 0.12);
+  border-radius: 999px;
+  background: #faf8ff;
+  padding: 7px 9px;
+  color: #716887;
+  font-size: 0.63rem;
+  font-weight: 750;
+}
+
+body[data-visual-tab="workspace"] .customer-360-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.1);
+  border-radius: 16px;
+  background: #faf8ff;
+  padding: 12px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-search-row > span {
+  align-self: center;
+  color: #756c8d;
+  font-size: 0.7rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+body[data-visual-tab="workspace"] .customer-360-claim-context,
+body[data-visual-tab="workspace"] .customer-360-card,
+body[data-visual-tab="workspace"] .customer-360-profile-log,
+body[data-visual-tab="workspace"] .customer-360-related-records,
+body[data-visual-tab="workspace"] .customer-360-review-bar {
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.12);
+  border-radius: 18px;
+  background: #fff;
+  color: #171243;
+  box-shadow: 0 8px 22px rgba(67, 43, 126, 0.06);
+}
+
+body[data-visual-tab="workspace"] .customer-360-claim-context {
+  padding: 15px;
+  background: linear-gradient(145deg, #f8f4ff 0%, #fff9fc 100%);
+}
+
+body[data-visual-tab="workspace"] .customer-360-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin-bottom: 13px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-card-heading > span {
+  min-width: 38px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 11px;
+  background: #eee6ff;
+  padding: 0 7px;
+  color: #6a43be;
+  font-size: 0.61rem;
+  font-weight: 950;
+}
+
+body[data-visual-tab="workspace"] .customer-360-card-heading > div {
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .customer-360-card-heading p,
+body[data-visual-tab="workspace"] .customer-360-section-heading p {
+  color: #7a7094;
+  font-size: 0.64rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .customer-360-card-heading h3,
+body[data-visual-tab="workspace"] .customer-360-section-heading h3 {
+  margin-top: 2px;
+  color: #21184a;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+body[data-visual-tab="workspace"] .customer-360-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-highlight-grid > div {
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 10px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-highlight-grid dt,
+body[data-visual-tab="workspace"] .customer-360-field-grid dt,
+body[data-visual-tab="workspace"] .customer-360-event-copy dt {
+  color: #7a7094;
+  font-size: 0.64rem;
+  font-weight: 800;
+}
+
+body[data-visual-tab="workspace"] .customer-360-highlight-grid dd,
+body[data-visual-tab="workspace"] .customer-360-field-grid dd,
+body[data-visual-tab="workspace"] .customer-360-event-copy dd {
+  margin-top: 4px;
+  color: #30264f;
+  font-size: 0.75rem;
+  font-weight: 760;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .customer-360-dossier-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .customer-360-card {
+  grid-column: span 6;
+  padding: 15px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-identity,
+body[data-visual-tab="workspace"] .customer-360-products,
+body[data-visual-tab="workspace"] .customer-360-security,
+body[data-visual-tab="workspace"] .customer-360-contact-log {
+  background: #fbf9ff;
+}
+
+body[data-visual-tab="workspace"] .customer-360-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .customer-360-field-grid > div {
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.09);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.86);
+  padding: 9px 10px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-field-grid .direct-collapsible-text,
+body[data-visual-tab="workspace"] .customer-360-event-copy .direct-collapsible-text,
+body[data-visual-tab="workspace"] .customer-360-record-grid .direct-collapsible-text {
+  color: #30264f;
+  font-family: inherit;
+  font-size: inherit;
+  font-style: normal;
+  font-weight: inherit;
+  text-shadow: none;
+}
+
+body[data-visual-tab="workspace"] .customer-360-profile-log,
+body[data-visual-tab="workspace"] .customer-360-related-records {
+  padding: 15px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-section-heading > span {
+  border-radius: 999px;
+  background: #f1ebff;
+  padding: 6px 9px;
+  color: #6847b4;
+  font-size: 0.67rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+body[data-visual-tab="workspace"] .customer-360-event-list {
+  display: grid;
+  gap: 9px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-event-card {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.22fr) minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.1);
+  border-radius: 14px;
+  background: #faf8ff;
+  padding: 12px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-event-time {
+  display: grid;
+  gap: 4px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-event-time strong {
+  color: #342758;
+  font-size: 0.77rem;
+}
+
+body[data-visual-tab="workspace"] .customer-360-event-time span,
+body[data-visual-tab="workspace"] .customer-360-event-card > span {
+  color: #7a7094;
+  font-size: 0.65rem;
+  font-weight: 750;
+}
+
+body[data-visual-tab="workspace"] .customer-360-event-copy {
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .customer-360-event-copy h4,
+body[data-visual-tab="workspace"] .customer-360-record-grid h4 {
+  color: #29204f;
+  font-size: 0.84rem;
+  line-height: 1.25;
+}
+
+body[data-visual-tab="workspace"] .customer-360-event-copy > .direct-collapsible-text {
+  margin-top: 5px;
+  color: #665d7e;
+  font-size: 0.73rem;
+  line-height: 1.45;
+}
+
+body[data-visual-tab="workspace"] .customer-360-event-copy dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 10px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-event-copy dl > div {
+  min-width: 0;
+  border-radius: 10px;
+  background: #fff;
+  padding: 8px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-event-actions {
+  display: grid;
+  gap: 7px;
+  min-width: 92px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-record-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .customer-360-record-grid article {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  border: 1px solid rgba(91, 62, 154, 0.1);
+  border-radius: 14px;
+  background: #faf8ff;
+  padding: 12px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-record-grid article.selected {
+  border-color: rgba(117, 81, 200, 0.45);
+  background: #f3edff;
+}
+
+body[data-visual-tab="workspace"] .customer-360-record-grid article > span {
+  color: #7551c8;
+  font-size: 0.63rem;
+  font-weight: 850;
+}
+
+body[data-visual-tab="workspace"] .customer-360-record-grid article > .direct-collapsible-text {
+  color: #665d7e;
+  font-size: 0.73rem;
+  line-height: 1.4;
+}
+
+body[data-visual-tab="workspace"] .customer-360-record-grid article > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: auto;
+  padding-top: 5px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-empty {
+  grid-column: 1 / -1;
+  border: 1px dashed rgba(91, 62, 154, 0.22);
+  border-radius: 14px;
+  background: #faf8ff;
+  padding: 18px;
+  color: #716887;
+  font-size: 0.78rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+body[data-visual-tab="workspace"] .customer-360-review-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px;
+  background: linear-gradient(145deg, #f8f4ff 0%, #fff 100%);
+}
+
+body[data-visual-tab="workspace"] .customer-360-review-bar > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-review-bar strong {
+  color: #29204f;
+  font-size: 0.84rem;
+}
+
+body[data-visual-tab="workspace"] .customer-360-review-bar span {
+  color: #716887;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+body[data-visual-tab="workspace"] .customer-360-review-bar > div:last-child {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 980px) {
+  body[data-visual-tab="workspace"] .customer-360-identity-band {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-identity-metrics {
+    grid-column: 1 / -1;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-highlight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-event-copy dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-record-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  body[data-visual-tab="workspace"] .customer-360-theme-v1 {
+    gap: 12px;
+    border-radius: 20px;
+    padding: 13px;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-header,
+  body[data-visual-tab="workspace"] .customer-360-review-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-header-actions,
+  body[data-visual-tab="workspace"] .customer-360-review-bar > div:last-child {
+    justify-content: stretch;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-header-actions > *,
+  body[data-visual-tab="workspace"] .customer-360-review-bar button {
+    flex: 1 1 0;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-tool-row,
+  body[data-visual-tab="workspace"] .customer-360-search-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-flow-chips {
+    justify-content: flex-start;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-search-row > span {
+    white-space: normal;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-card {
+    grid-column: 1 / -1;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-event-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-event-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-record-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 430px) {
+  body[data-visual-tab="workspace"] .customer-360-theme-v1 {
+    padding: 10px;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-identity-band {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 15px;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-identity-metrics,
+  body[data-visual-tab="workspace"] .customer-360-highlight-grid,
+  body[data-visual-tab="workspace"] .customer-360-field-grid,
+  body[data-visual-tab="workspace"] .customer-360-event-copy dl,
+  body[data-visual-tab="workspace"] .customer-360-actions,
+  body[data-visual-tab="workspace"] .customer-360-review-bar > div:last-child {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-review-bar > div:last-child {
+    display: grid;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-header-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-event-actions,
+  body[data-visual-tab="workspace"] .customer-360-record-grid article > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 350px) {
+  body[data-visual-tab="workspace"] .customer-360-theme-v1 {
+    padding: 8px;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-header-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
