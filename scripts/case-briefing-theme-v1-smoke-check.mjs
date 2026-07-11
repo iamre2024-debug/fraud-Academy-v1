@@ -5,6 +5,7 @@ const rootDir = process.cwd();
 const briefing = fs.readFileSync(path.join(rootDir, 'src/CaseSummaryCard.jsx'), 'utf8');
 const workspace = fs.readFileSync(path.join(rootDir, 'src/VisualWorkspace.jsx'), 'utf8');
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayCaseBriefingThemeV1.css'), 'utf8');
+const routeStyles = fs.readFileSync(path.join(rootDir, 'src/displayCaseBriefingRoutesV1.css'), 'utf8');
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/case-briefing-browser.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_CASE_BRIEFING_THEME_V1.md'), 'utf8');
@@ -20,6 +21,7 @@ function mustNotContain(fileLabel, content, text) {
 
 for (const anchor of [
   'case-briefing-theme-v1',
+  'data-case-briefing-container="approved-theme-v1"',
   'data-case-briefing-screen="approved-theme-v1"',
   'Case Briefing',
   'Briefing summary',
@@ -32,6 +34,15 @@ for (const anchor of [
   'Reports',
   'More Tools',
   'Begin Investigation',
+  'case-briefing-quick-routes',
+  'Case briefing quick routes',
+  'Identity Intel',
+  'Login History',
+  'Submit Decision',
+  "openTool('Identity Intelligence')",
+  "openTool('Case Report')",
+  "openTool('Login History')",
+  'decision-jump-button',
   '<small>Transaction / payee info</small>',
   '<small>Short summary</small>',
   '{activeCase.transactionInfo ?? activeCase.type}',
@@ -45,6 +56,7 @@ for (const anchor of [
   'function openMoreTools()',
   'openNotes={openNotes}',
   'openMoreTools={openMoreTools}',
+  'jumpDecision={jumpDecision}',
   "openTool('Customer 360', 'investigate')",
 ]) {
   mustContain('VisualWorkspace.jsx', workspace, anchor);
@@ -64,8 +76,19 @@ for (const anchor of [
   mustContain('displayCaseBriefingThemeV1.css', styles, anchor);
 }
 
+for (const anchor of [
+  '.case-summary-visual[data-case-briefing-container="approved-theme-v1"]',
+  '.case-briefing-quick-routes',
+  'grid-template-columns: repeat(3, minmax(0, 1fr))',
+  '@media (max-width: 430px)',
+]) {
+  mustContain('displayCaseBriefingRoutesV1.css', routeStyles, anchor);
+}
+
 mustContain('main.jsx', entrypoint, "import './displayCaseBriefingThemeV1.css';");
+mustContain('main.jsx', entrypoint, "import './displayCaseBriefingRoutesV1.css';");
 mustContain('case-briefing-browser.spec.mjs', browser, 'approved Case Briefing is Evidence First, functional, and responsive');
+mustContain('case-briefing-browser.spec.mjs', browser, 'Case briefing quick routes');
 mustContain('case-briefing-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('Case Briefing handoff', handoff, 'agent/case-briefing-approved-theme-v1');
 mustContain('Case Briefing handoff', handoff, 'Customer 360 only');
@@ -78,6 +101,7 @@ for (const forbidden of [
   'SystemAccessLane',
 ]) {
   mustNotContain('displayCaseBriefingThemeV1.css', styles, forbidden);
+  mustNotContain('displayCaseBriefingRoutesV1.css', routeStyles, forbidden);
   mustNotContain('CaseSummaryCard.jsx', briefing, forbidden);
 }
 
@@ -88,7 +112,6 @@ for (const forbidden of [
   'AI recommendation',
   'Red flag',
   'Green flag',
-  'Submit Decision',
 ]) {
   mustNotContain('CaseSummaryCard.jsx visible copy', briefing, forbidden);
 }
@@ -104,4 +127,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Case Briefing approved-theme v1 smoke check passed. The card-grid hierarchy, utilities, Evidence First wording, responsive layout, direct text controls, and protected persistence boundaries remain intact.');
+console.log('Case Briefing approved-theme v1 smoke check passed. The card-grid hierarchy, functional quick routes, Evidence First wording, responsive layout, direct text controls, and protected persistence boundaries remain intact.');
