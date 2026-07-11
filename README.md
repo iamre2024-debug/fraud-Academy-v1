@@ -22,7 +22,13 @@ The completed Phase 5 release-readiness audit lives in:
 docs/FRAUD_ACADEMY_RELEASE_READINESS.md
 ```
 
-Use these files before making architecture, UI, navigation, responsive, tool, scenario, Evidence First, or release-readiness changes. The Display Handoff records the approved Bible v2.1 and Display Bible authority chain, the Source of Truth protects the live code architecture and safety boundaries, and the Release Readiness audit records the exact runtime verdict plus remaining commercial packaging gaps.
+The documentation-only external handoff bundle lives in:
+
+```text
+docs/FRAUD_ACADEMY_RELEASE_PACKAGE.md
+```
+
+Use these files before making architecture, UI, navigation, responsive, tool, scenario, Evidence First, persistence, or release-readiness changes. The Display Handoff records the approved Bible v2.1 and Display Bible authority chain, the Source of Truth protects the live code architecture and safety boundaries, the Release Readiness audit records the runtime verdict, and the Release Package collects architecture, data model, fictional-data safety, accessibility/browser status, deployment status, limitations, and backlog in one handoff document.
 
 ## Locked direction
 
@@ -53,6 +59,7 @@ Use these files before making architecture, UI, navigation, responsive, tool, sc
 - Display Phase 3 calibrates hierarchy and glow through `src/displayPhaseThree.css`, reducing repeated decorative bloom while formalizing primary, secondary, quiet, informational, warning, destructive, disabled, hover, focus, and selected states.
 - `src/displayPhaseFour.css` preserves desktop record tables and converts dense rows into labeled, touch-friendly cards at phone widths without horizontal scrolling.
 - Display Phase 5 records the exact runtime and release-package verdict in `docs/FRAUD_ACADEMY_RELEASE_READINESS.md`, adds generated-case reload persistence coverage, and introduces no runtime redesign.
+- `docs/FRAUD_ACADEMY_RELEASE_PACKAGE.md` now centralizes the runtime architecture, data and persistence boundaries, fictional-data statement, accessibility and browser status, deployment status, limitations, and post-v1 backlog without changing runtime behavior.
 - `src/DirectCollapsibleText.jsx` is the reusable direct React compact-text wrapper; Active Tool purpose, expanded-record text, tray identifiers, Case Report packet text, notebook note entries, Submit Decision checklist messages, Luna coaching lists, Navigation heading and Academy learning copy, Academy Progress package status, and Case Summary transaction/payee and short-summary copy use it directly.
 - `src/visualWorkspaceModel.js` owns workspace constants, storage helpers, live tool row builders, System Access Lane row construction, and Case Report packet construction.
 - `src/ActiveToolPanel.jsx` owns the active category/tool renderer: sub-tool dropdown, search, semantic desktop table, responsive `data-field` labels, mobile record cards, expanded record lanes, pin/review actions, and neutral report packet saves.
@@ -101,14 +108,16 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 23. Display Phase 3 reduces indiscriminate glow, clarifies hierarchy and interaction states, preserves visible keyboard focus, and adds a dedicated hierarchy-and-glow regression guard without changing records or persistence.
 24. Display Phase 4 converts phone-width records to labeled cards, preserves desktop tables and actions, prevents required page overflow, and adds dedicated source and browser regression coverage.
 25. Display Phase 5 audits the exact merged display tree, confirms the runtime candidate for internal user acceptance, records unresolved commercial release-package gaps, adds generated-case reload persistence coverage, and protects the verdict with a dedicated guard.
+26. The release package centralizes architecture, persistence, fictional-data safety, accessibility/browser status, deployment status, limitations, and backlog while preserving the honest internal-UAT verdict.
 
 ## Remaining follow-up work
 
-1. Create the documentation-only release package listed in `docs/FRAUD_ACADEMY_RELEASE_READINESS.md`.
-2. Add architecture, data-model, fictional-data safety, accessibility and supported-browser, known-limitations, deployment-status, and backlog documentation.
-3. Add a current desktop/mobile screenshot set and demo link when available.
-4. Select a repository license before external commercial handoff.
-5. Keep these packaging changes separate from redesign, persistence migration, investigation behavior, and System Access expansion.
+1. Compare current desktop/mobile screenshots with the original Bible v2.1 and Display Bible sources for final visual sign-off.
+2. Add a curated current desktop/mobile screenshot set.
+3. Record a production deployment or demo URL when available.
+4. Complete manual accessibility and non-Chromium browser validation.
+5. Select a repository license before external commercial handoff.
+6. Keep these external handoff changes separate from redesign, persistence migration, investigation behavior, and System Access expansion.
 
 ## Browser-confirmed functional coverage
 
@@ -123,7 +132,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 
 ## Latest handoff
 
-The latest focused work completes Display Phase 5 without altering runtime presentation, investigation behavior, or persistence. The release audit approves the verified runtime candidate for internal user acceptance while honestly recording that the commercial/public release package is not complete. `scripts/display-phase-five-smoke-check.mjs` protects the audit wording, architecture anchors, CI wiring, and generated-case reload coverage while Evidence First, Luna gating, IndexedDB-first generated-case persistence, training-safe labels, and the single Connections → System Access Lane remain unchanged.
+The latest focused work adds the documentation-only release package without changing runtime presentation, investigation behavior, or persistence. `scripts/release-package-smoke-check.mjs` protects the architecture, data-model, fictional-data, accessibility/browser, deployment, limitations, backlog, and honest release-status anchors while Evidence First, Luna gating, IndexedDB-first generated-case persistence, training-safe labels, and the single Connections → System Access Lane remain unchanged.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -144,4 +153,4 @@ npm run build
 
 ## Test status
 
-`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, Luna single-module smoke, review-package smoke, remaining-module depth, navigation direct-collapse, Academy Progress package-flow, summary direct-collapse, workspace case-state hook, workspace action-controller, display-handoff, Display Phase 1 global-shell, Display Phase 2 workflow-rail, Display Phase 3 hierarchy-and-glow, Display Phase 4 responsive-record, Display Phase 5 release-readiness, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for all three built-in cases, generated-case immediate open and reload persistence, core modules, System Access Lane, Luna lock behavior, the active-case workflow surface, and responsive record presentation.
+`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, Luna single-module smoke, review-package smoke, remaining-module depth, navigation direct-collapse, Academy Progress package-flow, summary direct-collapse, workspace case-state hook, workspace action-controller, display-handoff, Display Phase 1 global-shell, Display Phase 2 workflow-rail, Display Phase 3 hierarchy-and-glow, Display Phase 4 responsive-record, Display Phase 5 release-readiness, release-package documentation, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for all three built-in cases, generated-case immediate open and reload persistence, core modules, System Access Lane, Luna lock behavior, the active-case workflow surface, and responsive record presentation.
