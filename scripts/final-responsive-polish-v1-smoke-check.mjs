@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+// Keep this guard deterministic so every final responsive branch update receives a fresh CI verdict.
 const rootDir = process.cwd();
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayFinalResponsivePolishV1.css'), 'utf8');
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
