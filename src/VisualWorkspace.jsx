@@ -123,6 +123,17 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     window.setTimeout(() => document.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), delay);
   }
 
+  function resetWorkspaceInlineScroll() {
+    [
+      document.documentElement,
+      document.body,
+      document.getElementById('root'),
+      document.querySelector('.visual-os-frame'),
+    ].forEach((element) => {
+      if (element) element.scrollLeft = 0;
+    });
+  }
+
   function openTool(nextTool, nextStage = stageForTool(nextTool)) {
     const nextCategory = groupForTool(nextTool) ?? investigationToolGroups[1];
     onNavigate('workspace');
@@ -146,7 +157,11 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   function jumpDecision() {
     onNavigate('workspace');
     setActiveStage('determination');
-    window.setTimeout(() => submitRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    window.setTimeout(() => {
+      resetWorkspaceInlineScroll();
+      submitRef.current?.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' });
+      resetWorkspaceInlineScroll();
+    }, 80);
   }
 
   function openNotes() {
