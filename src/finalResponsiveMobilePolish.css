@@ -1,0 +1,228 @@
+/* Final cross-screen responsive and mobile safety pass.
+   This file only hardens layout, touch targets, safe-area spacing, and text wrapping.
+   It must not change investigation logic, persistence, routes, or Evidence First behavior. */
+
+html,
+body,
+#root,
+.visual-os-shell {
+  max-width: 100%;
+}
+
+html,
+body {
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.visual-os-frame,
+.visual-react-nav-host,
+.visual-nav-panel,
+.active-case-workflow,
+.workflow-investigate-stage,
+.workflow-active-tool-stage,
+[data-case-briefing-screen="approved-theme-v1"],
+[data-customer-360-screen="approved-theme-v1"],
+[data-investigation-tools-screen="approved-theme-v1"],
+[data-timeline-screen="approved-theme-v1"],
+[data-decision-screen="approved-theme-v1"],
+[data-luna-screen="approved-theme-v1"],
+[data-academy-screen="approved-theme-v1"],
+[data-profile-screen="approved-theme-v1"],
+[data-cases-theme-v1="approved"] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.visual-os-frame *,
+.visual-nav-panel * {
+  min-inline-size: 0;
+}
+
+button,
+select,
+input,
+textarea {
+  touch-action: manipulation;
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline-offset: 3px;
+}
+
+.visual-nav-heading,
+.visual-nav-heading h2,
+.visual-nav-heading span,
+.workspace-shell-heading,
+.workspace-shell-heading h1,
+.visual-case-strip,
+.visual-case-strip strong,
+.visual-case-strip em,
+.case-summary-meta-grid,
+.customer-360-field-grid,
+.investigation-tool-records,
+.timeline-detail,
+.decision-v1-workspace,
+.academy-theme-v1,
+.profile-theme-v1 {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 820px) {
+  .visual-os-shell {
+    padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .visual-bottom-nav,
+  .visual-react-bottom-nav {
+    bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .visual-header-controls {
+    max-width: calc(100% - 20px);
+  }
+
+  .visual-header-controls button,
+  .header-panel-close,
+  .summary-actions button,
+  .active-case-workflow-list button,
+  .visual-case-switcher select,
+  .visual-nav-profile-entry,
+  .visual-nav-panel button,
+  [data-cases-theme-v1="approved"] button,
+  [data-case-briefing-screen="approved-theme-v1"] button,
+  [data-customer-360-screen="approved-theme-v1"] button,
+  [data-investigation-tools-screen="approved-theme-v1"] button,
+  [data-timeline-screen="approved-theme-v1"] button,
+  [data-decision-screen="approved-theme-v1"] button,
+  [data-luna-screen="approved-theme-v1"] button,
+  [data-academy-screen="approved-theme-v1"] button,
+  [data-profile-screen="approved-theme-v1"] button {
+    min-height: 44px;
+  }
+
+  .visual-header-controls button {
+    min-width: 44px;
+  }
+
+  .header-panel-close {
+    width: 44px;
+    height: 44px;
+  }
+
+  .visual-header-control-panel {
+    max-width: 100%;
+  }
+
+  .visual-nav-panel,
+  .cases-theme-v1-panel,
+  .case-summary-card,
+  .customer-360-panel,
+  .investigation-tool-panel,
+  .timeline-v1-panel,
+  .decision-v1-panel,
+  .academy-theme-v1,
+  .profile-theme-v1 {
+    width: 100%;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 620px) {
+  .visual-os-frame {
+    border-inline: 0;
+  }
+
+  .visual-nav-heading {
+    align-items: flex-start;
+  }
+
+  .visual-nav-heading > div:first-child,
+  .workspace-shell-heading > div,
+  .case-info-bar > *,
+  .visual-case-strip > * {
+    min-width: 0;
+  }
+
+  .visual-case-switcher,
+  .visual-case-switcher select,
+  .header-setting-row,
+  .header-setting-row > span {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .header-setting-row {
+    flex-wrap: wrap;
+  }
+
+  .visual-react-bottom-nav {
+    width: calc(100% - 16px);
+    max-width: 520px;
+  }
+
+  .visual-react-bottom-nav button {
+    min-width: 0;
+    padding-inline: 4px;
+  }
+
+  .visual-react-bottom-nav button span {
+    overflow-wrap: anywhere;
+  }
+
+  .summary-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-actions button {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 390px) {
+  .visual-header-controls {
+    gap: 4px;
+  }
+
+  .visual-header-controls button,
+  .visual-nav-profile-entry {
+    border-radius: 13px;
+  }
+
+  .visual-react-bottom-nav {
+    gap: 3px;
+    padding-inline: 5px;
+  }
+
+  .visual-react-bottom-nav button {
+    font-size: 1rem;
+  }
+
+  .visual-react-bottom-nav button span {
+    font-size: 0.62rem;
+    line-height: 1.05;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}
