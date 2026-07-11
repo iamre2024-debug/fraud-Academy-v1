@@ -101,8 +101,9 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await activeDetail.getByRole('button', { name: 'Save neutral report packet', exact: true }).click();
   await expect(page.locator('.case-report-packet-panel')).toContainText('1 saved');
 
+  await groupRail.getByRole('button', { name: /Login, Device & IP/ }).click();
   const toolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
-  await toolSelect.selectOption('Login History');
+  await expect(toolSelect).toHaveValue('Login History');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Login History');
   await expect(groupRail.getByRole('button', { name: /Login, Device & IP/ })).toHaveAttribute('aria-pressed', 'true');
 
