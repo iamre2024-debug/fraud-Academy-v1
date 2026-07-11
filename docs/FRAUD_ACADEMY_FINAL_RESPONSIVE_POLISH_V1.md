@@ -56,7 +56,7 @@ The polish layer provides:
 - 44-pixel minimum interactive targets;
 - visible keyboard focus;
 - mobile safe-area padding;
-- compact-phone, large-phone, tablet, desktop, and wide-screen spacing calibration;
+- compact-phone, standard-phone, large-phone/small-tablet, tablet, laptop, and wide-screen spacing calibration;
 - improved workspace header controls on mobile;
 - bottom-navigation touch spacing;
 - responsive action stacking;
@@ -94,7 +94,7 @@ The final branch head must pass all of these gates before merge:
 3. focused final responsive/mobile polish static guard;
 4. all existing screen-specific desktop Chromium checks;
 5. all existing screen-specific Pixel 7 Chromium checks;
-6. final cross-screen audit at 350, 412, 768, 1024, and 1440 pixels;
+6. final cross-screen audit at 350, 412, 640, 768, 1024, and 1440 pixels;
 7. Dashboard, Cases, Workspace, Academy, and Profile global-surface width checks;
 8. Workspace Case Briefing, Investigate, Timeline, Determination, and Debrief width checks;
 9. compact-phone global-navigation touch-target checks;
