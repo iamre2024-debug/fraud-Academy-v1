@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
+import ActiveCaseWorkflowRail from './ActiveCaseWorkflowRail.jsx';
 import ActiveToolPanel from './ActiveToolPanel.jsx';
 import BottomInvestigationGrid from './BottomInvestigationGrid.jsx';
 import CaseSummaryCard from './CaseSummaryCard.jsx';
@@ -14,7 +15,17 @@ import {
   rowsFor,
 } from './visualWorkspaceModel.js';
 
+const workspaceTools = categories.flatMap((category) => category.tools);
+
+function stageForTool(toolName) {
+  if (toolName === 'Timeline') return 'timeline';
+  if (toolName === 'Case Report') return 'summary';
+  if (['Evidence Center', 'Document Viewer', 'Link Analysis'].includes(toolName)) return 'indicators';
+  return 'investigate';
+}
+
 export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCases(baseCases), onCaseChange, onNavigate }) {
+  const [activeStage, setActiveStage] = useState('briefing');
   const [categoryKey, setCategoryKey] = useState('digital');
   const [tool, setTool] = useState('Login History');
   const [query, setQuery] = useState('');
@@ -69,18 +80,58 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setPacketsByCase,
   });
 
-  function openTool(nextTool) {
+  const reviewedWorkspaceTools = workspaceTools.filter((toolName) => currentCompleted.includes(toolName)).length;
+  const collectedIndicators = tray.length + notes.length + reportPackets.length;
+  const hasReviewPackage = reviewPackages.length > 0;
+  const stageStatus = {
+    briefing: {
+      label: currentCompleted.includes('Case Summary') ? 'Reviewed' : 'Open',
+      state: currentCompleted.includes('Case Summary') ? 'complete' : 'open',
+    },
+    investigate: {
+      label: `${reviewedWorkspaceTools}/${workspaceTools.length} reviewed`,
+      state: reviewedWorkspaceTools === workspaceTools.length ? 'complete' : reviewedWorkspaceTools > 0 ? 'in-progress' : 'open',
+    },
+    timeline: {
+      label: currentCompleted.includes('Timeline') ? 'Reviewed' : 'Open',
+      state: currentCompleted.includes('Timeline') ? 'complete' : 'open',
+    },
+    summary: {
+      label: currentCompleted.includes('Case Report') ? 'Reviewed' : 'Open',
+      state: currentCompleted.includes('Case Report') ? 'complete' : 'open',
+    },
+    indicators: {
+      label: collectedIndicators ? `${collectedIndicators} collected` : 'Open',
+      state: collectedIndicators ? 'in-progress' : 'open',
+    },
+    determination: {
+      label: hasReviewPackage ? 'Package saved' : packageStatus.ready ? 'Ready to save' : `${packageStatus.blockers.length} open`,
+      state: hasReviewPackage ? 'complete' : packageStatus.ready ? 'ready' : 'locked',
+    },
+    debrief: {
+      label: hasReviewPackage ? 'Available' : 'Locked',
+      state: hasReviewPackage ? 'complete' : 'locked',
+    },
+  };
+
+  function scrollToWorkspace(selector, delay = 50) {
+    window.setTimeout(() => document.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), delay);
+  }
+
+  function openTool(nextTool, nextStage = stageForTool(nextTool)) {
     const nextCategory = categories.find((item) => item.tools.includes(nextTool)) ?? categories[1];
     onNavigate('workspace');
+    setActiveStage(nextStage);
     setCategoryKey(nextCategory.key);
     setTool(nextTool);
     setQuery('');
     setExpandedId('');
-    window.setTimeout(() => document.querySelector('.activity-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    scrollToWorkspace('.activity-panel');
   }
 
   function changeCase(nextCaseId) {
     onCaseChange(nextCaseId);
+    setActiveStage('briefing');
     setCategoryKey('digital');
     setTool('Login History');
     setQuery('');
@@ -89,7 +140,39 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
   function jumpDecision() {
     onNavigate('workspace');
+    setActiveStage('determination');
     window.setTimeout(() => submitRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  }
+
+  function selectWorkflowStage(nextStage) {
+    onNavigate('workspace');
+    setActiveStage(nextStage);
+
+    if (nextStage === 'briefing') {
+      scrollToWorkspace('[data-workflow-stage="briefing"]');
+      return;
+    }
+    if (nextStage === 'investigate') {
+      scrollToWorkspace('[data-workflow-stage="investigate"]');
+      return;
+    }
+    if (nextStage === 'timeline') {
+      openTool('Timeline', 'timeline');
+      return;
+    }
+    if (nextStage === 'summary') {
+      openTool('Case Report', 'summary');
+      return;
+    }
+    if (nextStage === 'indicators') {
+      openTool('Evidence Center', 'indicators');
+      return;
+    }
+    if (nextStage === 'determination') {
+      jumpDecision();
+      return;
+    }
+    scrollToWorkspace('.luna-visual-panel', 80);
   }
 
   return (
@@ -102,64 +185,81 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
           onNavigate={onNavigate}
         />
 
-        <CaseSummaryCard
-          activeCase={activeCase}
-          pin={pin}
-          openTool={openTool}
-          jumpDecision={jumpDecision}
+        <ActiveCaseWorkflowRail
+          activeStage={activeStage}
+          stageStatus={stageStatus}
+          onStageSelect={selectWorkflowStage}
         />
 
-        <CategoryTileRail
-          categories={categories}
-          categoryKey={categoryKey}
-          currentCompleted={currentCompleted}
-          onNavigate={onNavigate}
-          setCategoryKey={setCategoryKey}
-          setTool={setTool}
-          setExpandedId={setExpandedId}
-        />
+        <div data-workflow-stage="briefing">
+          <CaseSummaryCard
+            activeCase={activeCase}
+            pin={pin}
+            openTool={openTool}
+            jumpDecision={jumpDecision}
+          />
+        </div>
 
-        <ActiveToolPanel
-          activeCategory={activeCategory}
-          activeCase={activeCase}
-          tool={tool}
-          openTool={openTool}
-          query={query}
-          setQuery={setQuery}
-          data={data}
-          rows={rows}
-          activeRow={activeRow}
-          setExpandedId={setExpandedId}
-          pin={pin}
-          saveNote={saveNote}
-          saveCaseReportPacket={saveCaseReportPacket}
-          markReviewed={markReviewed}
-          currentCompleted={currentCompleted}
-          jumpDecision={jumpDecision}
-        />
+        <section className="workflow-investigate-stage" data-workflow-stage="investigate" aria-label="Investigate stage categories">
+          <CategoryTileRail
+            categories={categories}
+            categoryKey={categoryKey}
+            currentCompleted={currentCompleted}
+            onNavigate={onNavigate}
+            onInvestigate={() => setActiveStage('investigate')}
+            setCategoryKey={setCategoryKey}
+            setTool={setTool}
+            setExpandedId={setExpandedId}
+          />
+        </section>
 
-        <SubmitDecisionPanel
-          submitRef={submitRef}
-          packageStatus={packageStatus}
-          tray={tray}
-          notes={notes}
-          reviewPackages={reviewPackages}
-          decisionDraft={decisionDraft}
-          activeCase={activeCase}
-          updateDecision={updateDecision}
-          submitDecision={submitDecision}
-        />
+        <div className="workflow-active-tool-stage" data-active-workflow-stage={activeStage}>
+          <ActiveToolPanel
+            activeCategory={activeCategory}
+            activeCase={activeCase}
+            tool={tool}
+            openTool={openTool}
+            query={query}
+            setQuery={setQuery}
+            data={data}
+            rows={rows}
+            activeRow={activeRow}
+            setExpandedId={setExpandedId}
+            pin={pin}
+            saveNote={saveNote}
+            saveCaseReportPacket={saveCaseReportPacket}
+            markReviewed={markReviewed}
+            currentCompleted={currentCompleted}
+            jumpDecision={jumpDecision}
+          />
+        </div>
 
-        <BottomInvestigationGrid
-          tray={tray}
-          pin={pin}
-          openTool={openTool}
-          noteDraft={noteDraft}
-          setNoteDraft={setNoteDraft}
-          submitNote={submitNote}
-          reportPackets={reportPackets}
-          notes={notes}
-        />
+        <div data-workflow-stage="indicators">
+          <BottomInvestigationGrid
+            tray={tray}
+            pin={pin}
+            openTool={openTool}
+            noteDraft={noteDraft}
+            setNoteDraft={setNoteDraft}
+            submitNote={submitNote}
+            reportPackets={reportPackets}
+            notes={notes}
+          />
+        </div>
+
+        <div data-workflow-stage="determination">
+          <SubmitDecisionPanel
+            submitRef={submitRef}
+            packageStatus={packageStatus}
+            tray={tray}
+            notes={notes}
+            reviewPackages={reviewPackages}
+            decisionDraft={decisionDraft}
+            activeCase={activeCase}
+            updateDecision={updateDecision}
+            submitDecision={submitDecision}
+          />
+        </div>
         <nav className="visual-bottom-nav" aria-hidden="true" />
       </section>
     </main>
