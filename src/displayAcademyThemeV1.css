@@ -1,0 +1,620 @@
+body[data-visual-tab="academy"] {
+  --academy-ink: #251845;
+  --academy-muted: #6f6487;
+  --academy-purple: #6d4bc3;
+  --academy-purple-deep: #4c3194;
+  --academy-pink: #c668a7;
+  --academy-line: #ded5ef;
+  --academy-panel: #ffffff;
+  --academy-lavender: #f4f0fb;
+  --academy-lavender-deep: #ebe3f8;
+  --academy-shadow: 0 18px 44px rgba(70, 45, 119, 0.12);
+  background: #f6f3fb;
+  color: var(--academy-ink);
+}
+
+body[data-visual-tab="academy"] .visual-os-frame {
+  overflow-x: clip;
+}
+
+body[data-visual-tab="academy"] .visual-react-nav-host {
+  display: block;
+  grid-column: 1 / -1;
+  min-width: 0;
+  width: 100%;
+}
+
+body[data-visual-tab="academy"] .visual-nav-panel {
+  box-sizing: border-box;
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 20px;
+  border: 1px solid var(--academy-line);
+  border-radius: 28px;
+  background: linear-gradient(180deg, #fbf9fe 0%, #f2edf9 100%);
+  color: var(--academy-ink);
+  box-shadow: var(--academy-shadow);
+  overflow: hidden;
+}
+
+body[data-visual-tab="academy"] .visual-nav-panel::before,
+body[data-visual-tab="academy"] .visual-nav-panel::after {
+  display: none;
+}
+
+body[data-visual-tab="academy"] .visual-nav-heading {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid var(--academy-line);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 10px 26px rgba(70, 45, 119, 0.08);
+}
+
+body[data-visual-tab="academy"] .visual-nav-heading > div:first-child {
+  min-width: 0;
+}
+
+body[data-visual-tab="academy"] .visual-nav-heading p {
+  margin: 0 0 5px;
+  color: var(--academy-purple);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="academy"] .visual-nav-heading h2 {
+  margin: 0;
+  color: var(--academy-ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: clamp(1.25rem, 2vw, 1.7rem);
+  line-height: 1.12;
+  text-shadow: none;
+}
+
+body[data-visual-tab="academy"] .visual-nav-heading span {
+  margin-top: 7px;
+  color: var(--academy-muted);
+  line-height: 1.45;
+}
+
+body[data-visual-tab="academy"] .visual-nav-heading > div:last-child {
+  display: grid;
+  place-items: center;
+  flex: 0 0 58px;
+  width: 58px;
+  min-width: 58px;
+  height: 58px;
+  border: 1px solid #d7caec;
+  border-radius: 18px;
+  background: var(--academy-lavender);
+  color: var(--academy-purple);
+  font-size: 1.45rem;
+  box-shadow: none;
+}
+
+body[data-visual-tab="academy"] .academy-theme-v1,
+body[data-visual-tab="academy"] .academy-theme-v1 * {
+  box-sizing: border-box;
+}
+
+body[data-visual-tab="academy"] .academy-theme-v1 {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  width: 100%;
+  color: var(--academy-ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body[data-visual-tab="academy"] .academy-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+  padding: clamp(22px, 4vw, 38px);
+  border: 1px solid #d9cfee;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 85% 15%, rgba(204, 168, 231, 0.34), transparent 28%),
+    linear-gradient(135deg, #ffffff 0%, #f4effb 62%, #eee6f8 100%);
+  box-shadow: 0 16px 38px rgba(70, 45, 119, 0.1);
+  overflow: hidden;
+}
+
+body[data-visual-tab="academy"] .academy-hero-copy {
+  min-width: 0;
+  max-width: 760px;
+}
+
+body[data-visual-tab="academy"] .academy-kicker {
+  display: inline-flex;
+  margin: 0 0 8px;
+  color: var(--academy-purple);
+  font-size: 0.75rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="academy"] .academy-hero h3,
+body[data-visual-tab="academy"] .academy-section-heading h4,
+body[data-visual-tab="academy"] .academy-library-card h4,
+body[data-visual-tab="academy"] .academy-achievement-card h4 {
+  margin: 0;
+  color: var(--academy-ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  text-shadow: none;
+}
+
+body[data-visual-tab="academy"] .academy-hero h3 {
+  font-size: clamp(1.9rem, 4vw, 3.2rem);
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+
+body[data-visual-tab="academy"] .academy-hero p {
+  max-width: 660px;
+  margin: 14px 0 0;
+  color: var(--academy-muted);
+  font-size: 1rem;
+  line-height: 1.62;
+}
+
+body[data-visual-tab="academy"] .academy-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+body[data-visual-tab="academy"] .academy-theme-v1 button {
+  min-height: 44px;
+  border-radius: 13px;
+  font: inherit;
+  font-weight: 780;
+  cursor: pointer;
+}
+
+body[data-visual-tab="academy"] .academy-primary-action {
+  border: 1px solid var(--academy-purple-deep);
+  background: linear-gradient(135deg, #7654c9, #58389f);
+  color: #ffffff;
+  padding: 11px 16px;
+  box-shadow: 0 9px 20px rgba(86, 54, 155, 0.22);
+}
+
+body[data-visual-tab="academy"] .academy-secondary-action {
+  border: 1px solid #d5c9e9;
+  background: #ffffff;
+  color: var(--academy-purple-deep);
+  padding: 11px 16px;
+}
+
+body[data-visual-tab="academy"] .academy-hero-mark {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  width: clamp(116px, 15vw, 158px);
+  aspect-ratio: 1;
+  border: 1px solid #d2c4e8;
+  border-radius: 34px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--academy-purple-deep);
+  box-shadow: 0 18px 34px rgba(78, 49, 142, 0.13);
+  transform: rotate(3deg);
+}
+
+body[data-visual-tab="academy"] .academy-hero-mark span {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 900;
+  letter-spacing: -0.06em;
+}
+
+body[data-visual-tab="academy"] .academy-hero-mark small {
+  color: var(--academy-pink);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="academy"] .academy-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+body[data-visual-tab="academy"] .academy-stat-grid article {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--academy-line);
+  border-radius: 18px;
+  background: var(--academy-panel);
+  box-shadow: 0 8px 20px rgba(70, 45, 119, 0.06);
+}
+
+body[data-visual-tab="academy"] .academy-stat-grid strong {
+  display: block;
+  color: var(--academy-purple-deep);
+  font-size: clamp(1.15rem, 2vw, 1.55rem);
+  line-height: 1.1;
+}
+
+body[data-visual-tab="academy"] .academy-stat-grid span {
+  display: block;
+  margin-top: 5px;
+  color: var(--academy-muted);
+  font-size: 0.83rem;
+}
+
+body[data-visual-tab="academy"] .academy-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(290px, 0.75fr);
+  align-items: start;
+  gap: 18px;
+  min-width: 0;
+}
+
+body[data-visual-tab="academy"] .academy-learning-center,
+body[data-visual-tab="academy"] .academy-library-card,
+body[data-visual-tab="academy"] .academy-achievement-card {
+  min-width: 0;
+  border: 1px solid var(--academy-line);
+  border-radius: 22px;
+  background: var(--academy-panel);
+  box-shadow: 0 10px 28px rgba(70, 45, 119, 0.07);
+}
+
+body[data-visual-tab="academy"] .academy-learning-center {
+  padding: 20px;
+}
+
+body[data-visual-tab="academy"] .academy-section-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.8fr);
+  align-items: end;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+body[data-visual-tab="academy"] .academy-section-heading h4,
+body[data-visual-tab="academy"] .academy-library-card h4,
+body[data-visual-tab="academy"] .academy-achievement-card h4 {
+  font-size: 1.15rem;
+  line-height: 1.22;
+}
+
+body[data-visual-tab="academy"] .academy-section-heading > p,
+body[data-visual-tab="academy"] .academy-library-card > p,
+body[data-visual-tab="academy"] .academy-achievement-card > p {
+  margin: 0;
+  color: var(--academy-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+body[data-visual-tab="academy"] .academy-path-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+body[data-visual-tab="academy"] .academy-path-card {
+  min-width: 0;
+  padding: 17px;
+  border: 1px solid #ded4ee;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fcfbfe 0%, #f7f3fb 100%);
+}
+
+body[data-visual-tab="academy"] .academy-path-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+body[data-visual-tab="academy"] .academy-path-topline > span {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--academy-lavender-deep);
+  color: var(--academy-purple-deep);
+  font-weight: 900;
+}
+
+body[data-visual-tab="academy"] .academy-path-topline small {
+  border: 1px solid #dacdea;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--academy-purple);
+  padding: 5px 8px;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+body[data-visual-tab="academy"] .academy-path-card h5 {
+  margin: 14px 0 7px;
+  color: var(--academy-ink);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+body[data-visual-tab="academy"] .academy-path-card p {
+  margin: 0;
+  color: var(--academy-muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+body[data-visual-tab="academy"] .academy-path-card ol {
+  display: grid;
+  gap: 7px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+body[data-visual-tab="academy"] .academy-path-card li {
+  position: relative;
+  padding-left: 18px;
+  color: #504568;
+  font-size: 0.82rem;
+  font-weight: 720;
+}
+
+body[data-visual-tab="academy"] .academy-path-card li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.45em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--academy-pink);
+}
+
+body[data-visual-tab="academy"] .academy-context-column {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+body[data-visual-tab="academy"] .academy-library-card,
+body[data-visual-tab="academy"] .academy-achievement-card {
+  padding: 20px;
+}
+
+body[data-visual-tab="academy"] .academy-library-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+body[data-visual-tab="academy"] .academy-library-list article {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #e3daef;
+  border-radius: 15px;
+  background: #faf8fd;
+}
+
+body[data-visual-tab="academy"] .academy-library-list article > span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--academy-lavender-deep);
+  color: var(--academy-purple-deep);
+}
+
+body[data-visual-tab="academy"] .academy-library-list strong,
+body[data-visual-tab="academy"] .academy-achievement-card li strong,
+body[data-visual-tab="academy"] .academy-practice-banner strong {
+  color: var(--academy-ink);
+}
+
+body[data-visual-tab="academy"] .academy-library-list p {
+  margin: 3px 0 0;
+  color: var(--academy-muted);
+  font-size: 0.78rem;
+  line-height: 1.42;
+}
+
+body[data-visual-tab="academy"] .academy-achievement-card {
+  background: linear-gradient(145deg, #ffffff, #f2ecfa);
+}
+
+body[data-visual-tab="academy"] .academy-achievement-card ol {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+}
+
+body[data-visual-tab="academy"] .academy-achievement-card li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+}
+
+body[data-visual-tab="academy"] .academy-achievement-card li > span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: #e7ddf5;
+  color: var(--academy-purple-deep);
+  font-weight: 900;
+}
+
+body[data-visual-tab="academy"] .academy-achievement-card li small {
+  display: block;
+  margin-top: 2px;
+  color: var(--academy-muted);
+  line-height: 1.4;
+}
+
+body[data-visual-tab="academy"] .academy-achievement-card button,
+body[data-visual-tab="academy"] .academy-practice-banner button {
+  width: 100%;
+  border: 1px solid #cbbbe2;
+  background: #ffffff;
+  color: var(--academy-purple-deep);
+  padding: 10px 13px;
+}
+
+body[data-visual-tab="academy"] .academy-practice-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid #d7caea;
+  border-radius: 20px;
+  background: linear-gradient(100deg, #eee7f8, #ffffff);
+}
+
+body[data-visual-tab="academy"] .academy-practice-banner p {
+  margin: 5px 0 0;
+  color: var(--academy-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+body[data-visual-tab="academy"] .academy-practice-banner button {
+  width: auto;
+  min-width: 180px;
+}
+
+body[data-visual-tab="academy"] .academy-theme-v1 button:hover {
+  transform: translateY(-1px);
+}
+
+body[data-visual-tab="academy"] .academy-theme-v1 button:focus-visible {
+  outline: 3px solid rgba(109, 75, 195, 0.3);
+  outline-offset: 3px;
+}
+
+@media (max-width: 960px) {
+  body[data-visual-tab="academy"] .academy-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-visual-tab="academy"] .academy-context-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  body[data-visual-tab="academy"] .visual-nav-panel {
+    padding: 14px;
+    border-radius: 22px;
+  }
+
+  body[data-visual-tab="academy"] .academy-hero {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-visual-tab="academy"] .academy-hero-mark {
+    display: none;
+  }
+
+  body[data-visual-tab="academy"] .academy-stat-grid,
+  body[data-visual-tab="academy"] .academy-path-grid,
+  body[data-visual-tab="academy"] .academy-context-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-visual-tab="academy"] .academy-section-heading {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  body[data-visual-tab="academy"] .academy-context-column {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-visual-tab="academy"] .academy-practice-banner {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-visual-tab="academy"] .academy-practice-banner button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  body[data-visual-tab="academy"] .visual-nav-heading {
+    align-items: flex-start;
+    padding: 15px;
+  }
+
+  body[data-visual-tab="academy"] .visual-nav-heading > div:last-child {
+    flex-basis: 48px;
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
+    border-radius: 15px;
+    font-size: 1.15rem;
+  }
+
+  body[data-visual-tab="academy"] .academy-hero,
+  body[data-visual-tab="academy"] .academy-learning-center,
+  body[data-visual-tab="academy"] .academy-library-card,
+  body[data-visual-tab="academy"] .academy-achievement-card {
+    padding: 16px;
+  }
+
+  body[data-visual-tab="academy"] .academy-hero-actions {
+    display: grid;
+  }
+
+  body[data-visual-tab="academy"] .academy-hero-actions button {
+    width: 100%;
+  }
+
+  body[data-visual-tab="academy"] .academy-path-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 350px) {
+  body[data-visual-tab="academy"] .visual-nav-panel {
+    padding: 10px;
+  }
+
+  body[data-visual-tab="academy"] .academy-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-visual-tab="academy"] .academy-hero h3 {
+    font-size: 1.65rem;
+  }
+}

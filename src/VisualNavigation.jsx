@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import AcademyProgressPanel from './AcademyProgressPanel.jsx';
+import AcademyThemeV1Panel from './AcademyThemeV1Panel.jsx';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import { trainingCases } from './data/cases.js';
 
@@ -36,17 +37,6 @@ const navigationItems = [
   { key: 'cases', icon: '▣', label: 'Cases' },
   { key: 'workspace', icon: '◈', label: 'Workspace' },
   { key: 'academy', icon: '▱', label: 'Academy' },
-];
-
-const learningSteps = [
-  ['Evidence First', 'No answer leaks before submission.'],
-  ['Open records', 'Review the live case objects inside the workspace.'],
-  ['Expand details', 'Open history and source context before documenting.'],
-  ['Search objects', 'Find records using case-safe identifiers.'],
-  ['Link analysis', 'Connect shared objects without assigning an outcome.'],
-  ['Generate report', 'Save a neutral tool report into the case record.'],
-  ['Case report', 'Build a documented evidence packet.'],
-  ['Submit package', 'Save the learner decision only after the checklist passes.'],
 ];
 
 const storageKeys = {
@@ -186,7 +176,15 @@ function NavigationPanel({ activeTab, activeCaseId, cases, snapshot, onNavigate,
         />
       )}
       {activeTab === 'cases' && <CasesPanel cases={cases} onOpenCase={onOpenCase} />}
-      {activeTab === 'academy' && <AcademyPanel onNavigate={onNavigate} />}
+      {activeTab === 'academy' && (
+        <AcademyThemeV1Panel
+          activeCaseId={activeCaseId}
+          cases={cases}
+          snapshot={snapshot}
+          onNavigate={onNavigate}
+          onOpenCase={onOpenCase}
+        />
+      )}
       {activeTab === 'progress' && (
         <AcademyProgressPanel cases={cases} packagesByCase={snapshot.packagesByCase} onOpenCase={onOpenCase} />
       )}
@@ -285,27 +283,5 @@ function CasesPanel({ cases, onOpenCase }) {
         </button>
       ))}
     </div>
-  );
-}
-
-function AcademyPanel({ onNavigate }) {
-  return (
-    <>
-      <div className="nav-learning-grid">
-        {learningSteps.map(([step, detail], index) => (
-          <article key={step}>
-            <span>{String(index + 1).padStart(2, '0')}</span>
-            <strong>{step}</strong>
-            <DirectCollapsibleText as="p" lines={2} mobileLines={2}>
-              {detail}
-            </DirectCollapsibleText>
-          </article>
-        ))}
-      </div>
-      <aside className="nav-context-card" aria-label="Academy Progress shortcut">
-        <div><span>▢</span><strong>Academy Progress</strong><p>Review saved learner-package status and return to any case without adding a fifth global navigation item.</p></div>
-        <button type="button" onClick={() => onNavigate('progress')}>Open Academy Progress</button>
-      </aside>
-    </>
   );
 }
