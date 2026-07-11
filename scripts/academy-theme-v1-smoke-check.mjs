@@ -63,7 +63,7 @@ for (const anchor of [
 ]) mustContain('displayAcademyThemeV1.css', styles, anchor);
 
 mustContain('main.jsx', entrypoint, "import './displayAcademyThemeV1.css';");
-mustContain('academy-browser.spec.mjs', browser, 'approved Academy preserves neutral learning routes and responsive safety');
+mustContain('academy-browser.spec.mjs', browser, 'approved Academy keeps learning routes functional, Evidence First, and responsive');
 mustContain('academy-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('Academy handoff', handoff, 'agent/academy-approved-theme-v1');
 mustContain('Academy handoff', handoff, 'Profile only');
