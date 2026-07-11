@@ -4,7 +4,7 @@
 
 Case Briefing is the fourth isolated screen in the locked approved-theme replacement order.
 
-This change starts from audited `main` commit `5b4df2d30bf99db30e5e73f0ec4dcb5efad5c073`, after Dashboard, Cases, and the Workspace shell were merged and protected. No open pull request or active current-screen redesign branch was found before creating this branch.
+The initial audit found `main` at `5b4df2d30bf99db30e5e73f0ec4dcb5efad5c073`, after Dashboard, Cases, and the Workspace shell were merged. While this isolated change was being prepared, the documentation/guard-only Workspace handoff advanced `main`. The branch was then safely reconciled onto current `main` commit `0694b642b303b7c8102d75c7d6e1369fbd4f045f` without overwriting those updates. No competing Case Briefing implementation or open current-screen redesign pull request was found.
 
 ## Branch
 
