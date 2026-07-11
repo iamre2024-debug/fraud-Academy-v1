@@ -59,6 +59,7 @@ export default function VisualApp() {
       <LunaPostSubmissionPanel activeCase={activeCase} activeCaseId={activeCaseId} />
       <VisualNavigation
         activeTab={activeTab}
+        activeCaseId={activeCaseId}
         cases={caseCatalog}
         onNavigate={setActiveTab}
         onOpenCase={openCase}

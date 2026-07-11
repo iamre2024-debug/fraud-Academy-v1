@@ -17,7 +17,7 @@ function mustNotContain(fileLabel, content, text) {
 
 mustContain('VisualNavigation.jsx', navigation, "import AcademyProgressPanel from './AcademyProgressPanel.jsx';");
 mustContain('VisualNavigation.jsx', navigation, "import DirectCollapsibleText from './DirectCollapsibleText.jsx';");
-mustContain('VisualNavigation.jsx', navigation, 'function NavigationPanel({ activeTab, cases, snapshot, onNavigate, onOpenCase })');
+mustContain('VisualNavigation.jsx', navigation, 'function NavigationPanel({ activeTab, activeCaseId, cases, snapshot, onNavigate, onOpenCase })');
 mustContain('VisualNavigation.jsx', navigation, '<DirectCollapsibleText as="span" lines={2} mobileLines={2}>');
 mustContain('VisualNavigation.jsx', navigation, 'function AcademyPanel({ onNavigate })');
 mustContain('VisualNavigation.jsx', navigation, '{detail}');
