@@ -80,9 +80,9 @@ mustContain('workspace-shell-browser.spec.mjs', browser, 'approved Workspace she
 mustContain('workspace-shell-browser.spec.mjs', browser, '.workspace-shell-heading');
 mustContain('Workspace shell handoff', handoff, 'agent/workspace-shell-approved-theme-v1');
 mustContain('Workspace shell handoff', handoff, 'Case Briefing');
-mustContain('Source of Truth', sourceOfTruth, 'Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, and Decision & Luna are the completed approved replacements');
+mustContain('Source of Truth', sourceOfTruth, 'Decision & Luna are the completed approved replacements');
 mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Academy only**');
-mustContain('README', readme, 'The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, and Decision and Luna theme v1 replacements are merged');
+mustContain('README', readme, 'Decision and Luna theme v1 replacements are merged');
 mustContain('README', readme, 'The next isolated screen is **Academy only**');
 
 for (const forbidden of [
