@@ -76,11 +76,12 @@ body[data-visual-tab="workspace"] .workflow-investigate-stage .visual-category-r
 @media (max-width: 620px) {
   body[data-visual-tab="workspace"] .visual-hero {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px;
+    grid-template-columns: 1fr;
+    gap: 6px;
   }
 
   body[data-visual-tab="workspace"] .workspace-shell-heading {
+    width: 100%;
     min-width: 0;
     gap: 7px;
   }
@@ -120,8 +121,12 @@ body[data-visual-tab="workspace"] .workflow-investigate-stage .visual-category-r
   }
 
   body[data-visual-tab="workspace"] .visual-header-controls {
+    width: fit-content;
+    max-width: 100%;
+    justify-self: end;
     flex: 0 0 auto;
     gap: 3px;
+    margin-left: 0;
   }
 
   body[data-visual-tab="workspace"] .visual-header-controls button {
@@ -162,7 +167,7 @@ body[data-visual-tab="workspace"] .workflow-investigate-stage .visual-category-r
   }
 
   body[data-visual-tab="workspace"] .workspace-shell-heading p {
-    max-width: 132px;
+    max-width: 190px;
   }
 
   body[data-visual-tab="workspace"] .workspace-shell-heading h1 {
