@@ -22,15 +22,17 @@ mustNotContain('VisualWorkspace.jsx', workspace, "window.dispatchEvent(new Custo
 mustContain('useVisualWorkspaceActions.js', workspaceActions, "window.dispatchEvent(new CustomEvent('fraud-academy:package-saved'");
 mustContain('useVisualWorkspaceActions.js', workspaceActions, "markReviewed('Submit Decision')");
 
-mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Luna Post-Submission Debrief');
-mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Post-submission coaching stays locked');
+mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Luna Case Debrief');
+mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Post-submission coaching stays protected');
+mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Evidence First lock is active');
+mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Your submitted determination');
 mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, 'Decision-quality breakdown');
 mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, "window.addEventListener('fraud-academy:package-saved'");
 mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, "import DirectCollapsibleText from './DirectCollapsibleText.jsx';");
 
 const directWrapperCount = (lunaPanel.match(/<DirectCollapsibleText/g) ?? []).length;
-if (directWrapperCount < 2) {
-  failures.push('LunaPostSubmissionPanel.jsx must render both coaching lists through DirectCollapsibleText.');
+if (directWrapperCount < 4) {
+  failures.push('LunaPostSubmissionPanel.jsx must render learner reasoning and both coaching lists through DirectCollapsibleText.');
 }
 
 mustNotContain('VisualTextCollapse.jsx', visualTextCollapse, '.luna-list-card p');
@@ -41,4 +43,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Luna single-module smoke check passed. Luna remains a single post-submission module, listens for controller-saved packages, and owns direct compact-text controls without legacy selector scanning.');
+console.log('Luna single-module smoke check passed. Luna remains one case-scoped post-submission module, listens for controller-saved packages, preserves Evidence First locking, and owns direct compact-text controls without legacy selector scanning.');
