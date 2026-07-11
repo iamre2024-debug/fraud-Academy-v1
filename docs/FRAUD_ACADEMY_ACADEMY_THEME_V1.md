@@ -14,7 +14,7 @@ Runtime merge on `main`: `c7154d9b66c1446cdc32f34b2148b8eb83a70be7`
 
 Runtime verification: GitHub Actions run #403 passed the complete named smoke chain, production build, desktop Chromium, and Pixel 7 Chromium.
 
-Handoff synchronization pull request: #46
+Handoff synchronization pull request: #48
 
 Scope: **Academy only**.
 
