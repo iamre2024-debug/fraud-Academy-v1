@@ -14,7 +14,7 @@ Runtime merge on `main`: `c7154d9b66c1446cdc32f34b2148b8eb83a70be7`
 
 Runtime verification: GitHub Actions run #403 passed the complete named smoke chain, production build, desktop Chromium, and Pixel 7 Chromium.
 
-Handoff synchronization pull request: #45
+Handoff synchronization pull request: #46
 
 Scope: **Academy only**.
 
@@ -75,6 +75,8 @@ The exact runtime implementation head passed:
 - Evidence First and Luna lock checks.
 - Academy isolation from unreplaced Workspace surfaces.
 - Viewport and horizontal-overflow checks.
+
+The handoff synchronization must also pass the complete repository verification and desktop/Pixel 7 browser gates before merge.
 
 ## Next isolated screen
 
