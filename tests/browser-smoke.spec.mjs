@@ -73,8 +73,8 @@ test('approved Cases queue supports neutral search, filters, preview, and respon
   await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'cases');
   await expect(queue.getByRole('heading', { name: 'Case Queue' })).toBeVisible();
   await expect(queue.getByLabel('Search cases')).toBeVisible();
-  await expect(queue.getByLabel('Priority')).toBeVisible();
-  await expect(queue.getByLabel('Sort')).toBeVisible();
+  await expect(queue.getByRole('combobox', { name: 'Priority', exact: true })).toBeVisible();
+  await expect(queue.getByRole('combobox', { name: 'Sort', exact: true })).toBeVisible();
   await expect(queue.getByRole('button', { name: 'Detail', exact: true })).toBeVisible();
   await expect(queue.getByRole('button', { name: 'Compact', exact: true })).toBeVisible();
   await expect(cards).toHaveCount(3);
@@ -89,10 +89,10 @@ test('approved Cases queue supports neutral search, filters, preview, and respon
   await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Chargeback Claim');
 
   await queue.getByLabel('Search cases').fill('');
-  await queue.getByLabel('Priority').selectOption('High');
+  await queue.getByRole('combobox', { name: 'Priority', exact: true }).selectOption('High');
   await expect(cards).toHaveCount(1);
   await expect(cards.first()).toContainText('FA-ATO-24018');
-  await queue.getByLabel('Priority').selectOption('all');
+  await queue.getByRole('combobox', { name: 'Priority', exact: true }).selectOption('all');
 
   await queue.getByRole('button', { name: 'Compact', exact: true }).click();
   await expect(queue.locator('.case-queue-list')).toHaveClass(/view-compact/);
