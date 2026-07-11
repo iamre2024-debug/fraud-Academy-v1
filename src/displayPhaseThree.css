@@ -1,0 +1,269 @@
+:root {
+  --fa-surface-strong: rgba(20, 12, 31, 0.94);
+  --fa-surface: rgba(16, 9, 27, 0.86);
+  --fa-surface-soft: rgba(31, 18, 44, 0.72);
+  --fa-border: rgba(255, 155, 233, 0.2);
+  --fa-border-strong: rgba(255, 155, 233, 0.46);
+  --fa-text: #fff2fb;
+  --fa-text-soft: rgba(255, 242, 251, 0.72);
+  --fa-text-faint: rgba(255, 242, 251, 0.52);
+  --fa-accent: #ff86df;
+  --fa-accent-strong: #ff5cda;
+  --fa-cyan: #8beeff;
+  --fa-warning: #f2c889;
+  --fa-shadow-card: 0 18px 42px rgba(0, 0, 0, 0.34), inset 0 1px rgba(255, 255, 255, 0.025);
+  --fa-shadow-raised: 0 12px 28px rgba(0, 0, 0, 0.3), 0 0 12px rgba(255, 92, 218, 0.1);
+  --fa-shadow-selected: 0 0 0 1px rgba(255, 134, 223, 0.32), 0 0 18px rgba(255, 92, 218, 0.18);
+  --fa-focus-ring: 0 0 0 3px rgba(139, 238, 255, 0.28), 0 0 0 1px rgba(139, 238, 255, 0.78);
+}
+
+body {
+  background:
+    radial-gradient(circle at 12% 5%, rgba(255, 92, 218, 0.12), transparent 24rem),
+    radial-gradient(circle at 86% 2%, rgba(110, 231, 255, 0.08), transparent 24rem),
+    linear-gradient(180deg, #080510 0%, #10081a 48%, #07040d 100%);
+}
+
+.visual-hero,
+.case-info-bar,
+.ornate-card,
+.visual-category-row button,
+.visual-bottom-nav,
+.active-case-workflow,
+.visual-header-control-panel,
+.visual-nav-panel {
+  border-color: var(--fa-border);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.038), rgba(255, 255, 255, 0.008)),
+    var(--fa-surface);
+  box-shadow: var(--fa-shadow-card);
+}
+
+.visual-hero {
+  background:
+    radial-gradient(circle at 50% 16%, rgba(255, 92, 218, 0.2), transparent 14rem),
+    radial-gradient(circle at 84% 18%, rgba(110, 231, 255, 0.09), transparent 12rem),
+    linear-gradient(180deg, rgba(22, 12, 36, 0.96), rgba(8, 5, 15, 0.96));
+}
+
+.visual-hero::before,
+.visual-hero::after {
+  border-color: rgba(255, 155, 233, 0.24);
+  box-shadow: inset 0 0 18px rgba(255, 92, 218, 0.08);
+}
+
+.hero-title-wrap h1 {
+  color: var(--fa-text);
+  text-shadow: 0 0 14px rgba(255, 92, 218, 0.42), 0 0 34px rgba(173, 76, 255, 0.18);
+}
+
+.hero-jewel,
+.hero-crown,
+.hero-cat,
+.hero-bat,
+.hero-sparkles,
+.butterfly-accent {
+  filter: drop-shadow(0 0 9px rgba(255, 92, 218, 0.38));
+}
+
+.visual-section-title,
+.visual-section-heading h2,
+.activity-heading h2,
+.card-title-row h2,
+.visual-nav-heading h2,
+.active-case-workflow-heading h2 {
+  color: var(--fa-text);
+  text-shadow: 0 0 10px rgba(255, 92, 218, 0.24);
+}
+
+.visual-section-heading p,
+.card-title-row p,
+.visual-nav-heading span,
+.active-case-workflow-heading p,
+.tool-purpose-card p,
+.nav-microcopy {
+  color: var(--fa-text-soft);
+}
+
+.case-info-bar,
+.tool-purpose-card,
+.workspace-search-row,
+.record-detail-panel,
+.decision-checklist,
+.header-setting-row,
+.nav-context-card,
+.luna-locked-state,
+.luna-score-card,
+.luna-list-card,
+.luna-breakdown-card,
+.case-report-packet-panel {
+  border-color: var(--fa-border);
+  background: var(--fa-surface-soft);
+  box-shadow: none;
+}
+
+.visual-category-row button,
+.active-case-workflow-list button,
+.summary-actions button,
+.view-full-button,
+.add-evidence,
+.decision-route-mini,
+.row-action-group button,
+.record-report-actions button,
+.decision-form button,
+.visual-header-controls button,
+.nav-action-row button,
+.nav-case-card,
+.header-panel-close,
+.nav-context-card button {
+  border-color: var(--fa-border);
+  background: rgba(9, 5, 16, 0.7);
+  color: var(--fa-text-soft);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.025);
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.visual-category-row button:hover,
+.active-case-workflow-list button:hover,
+.summary-actions button:hover,
+.view-full-button:hover,
+.add-evidence:hover,
+.decision-route-mini:hover,
+.row-action-group button:hover,
+.record-report-actions button:hover,
+.decision-form button:hover,
+.visual-header-controls button:hover,
+.nav-action-row button:hover,
+.nav-case-card:hover,
+.header-panel-close:hover,
+.nav-context-card button:hover {
+  border-color: var(--fa-border-strong);
+  background: rgba(28, 15, 40, 0.82);
+  color: var(--fa-text);
+  box-shadow: var(--fa-shadow-raised);
+  transform: translateY(-1px);
+}
+
+.visual-category-row button.active,
+.active-case-workflow-list button.active,
+.visual-bottom-nav button.active,
+.visual-header-controls button.active,
+.summary-actions .primary-action,
+.decision-form .primary-action,
+.nav-action-row button:first-child {
+  border-color: rgba(255, 134, 223, 0.68);
+  background: linear-gradient(145deg, rgba(255, 92, 218, 0.2), rgba(110, 231, 255, 0.055));
+  color: var(--fa-text);
+  box-shadow: var(--fa-shadow-selected);
+}
+
+.visual-category-row button.reviewed,
+.active-case-workflow-list button.complete,
+.active-case-workflow-list button.ready,
+.nav-progress-list article.unlocked {
+  border-color: rgba(139, 238, 255, 0.32);
+}
+
+.active-case-workflow-list button.complete small,
+.active-case-workflow-list button.ready small,
+.nav-progress-list article.unlocked em,
+.agent-avatar,
+.nav-context-card span,
+.nav-context-card strong {
+  color: var(--fa-cyan);
+}
+
+.active-case-workflow-list button.locked,
+.nav-progress-list article.locked,
+button:disabled,
+[aria-disabled='true'] {
+  opacity: 0.58;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.active-case-workflow-list button.locked small,
+.nav-progress-list article.locked em {
+  color: var(--fa-text-faint);
+}
+
+.decision-checklist p,
+.package-readiness-copy,
+.luna-locked-state strong {
+  color: var(--fa-warning);
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--fa-focus-ring) !important;
+}
+
+input,
+select,
+textarea {
+  border-color: var(--fa-border);
+  background: rgba(7, 4, 13, 0.76);
+  color: var(--fa-text);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--fa-text-faint);
+}
+
+.activity-row,
+.tray-list > div,
+.notebook-list > button,
+.nav-stat-grid article,
+.nav-learning-grid article,
+.nav-progress-list article {
+  border-color: rgba(255, 155, 233, 0.14);
+  background: rgba(10, 6, 18, 0.5);
+  box-shadow: none;
+}
+
+.activity-row.expanded,
+.notebook-list > button[aria-expanded='true'] {
+  border-color: rgba(255, 134, 223, 0.42);
+  background: rgba(37, 18, 48, 0.7);
+  box-shadow: inset 3px 0 rgba(255, 134, 223, 0.62);
+}
+
+.table-head {
+  color: var(--fa-text-soft);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.ornate-card::before,
+.visual-category-row button i {
+  text-shadow: 0 0 8px rgba(255, 92, 218, 0.28);
+}
+
+.moon-medallion {
+  box-shadow: inset 0 0 26px rgba(255, 92, 218, 0.1), 0 0 18px rgba(255, 92, 218, 0.16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .visual-category-row button,
+  .active-case-workflow-list button,
+  .summary-actions button,
+  .view-full-button,
+  .add-evidence,
+  .decision-route-mini,
+  .row-action-group button,
+  .record-report-actions button,
+  .decision-form button,
+  .visual-header-controls button,
+  .nav-action-row button,
+  .nav-case-card,
+  .header-panel-close,
+  .nav-context-card button {
+    transition: none;
+  }
+}
