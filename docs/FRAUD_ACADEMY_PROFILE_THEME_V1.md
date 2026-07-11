@@ -2,16 +2,17 @@
 
 ## Status
 
-This handoff records the isolated approved-theme v1 redesign candidate for the **Profile only** step in the locked screen order.
+This handoff records the completed isolated approved-theme v1 redesign for the **Profile only** step in the locked screen order.
 
 - Runtime branch: `agent/profile-approved-theme-v1`
-- Authoritative base audited before work: `main` at `c7154d9b66c1446cdc32f34b2148b8eb83a70be7`
+- Authoritative implementation base audited before work: `main` at `c7154d9b66c1446cdc32f34b2148b8eb83a70be7`
+- Academy handoff synchronization merged while Profile work was in progress: `97099ca43dbf5584ac7f2f0557eb3ee6e94440a6`
+- Final verified Profile runtime head: `000c90b87984d41cd01a093a790457fb187ec7a3`
+- Profile runtime pull request: `#47`
+- Profile runtime merge on `main`: `01e25967098594dbe67d4c523d12fe249e810564`
+- Final Profile verification: GitHub Actions `Fraud Academy Verify` run `#409` passed the complete named smoke chain, production build, desktop Chromium, and Pixel 7 Chromium
 - Preceding completed screen: Academy
-- Academy runtime pull request: `#43`
-- Academy verification: GitHub Actions `Fraud Academy Verify` run `#403` passed the complete named smoke chain, production build, desktop Chromium, and Pixel 7 Chromium
-- Profile pull request: create only after the focused branch is complete
-- Profile verification: required before merge
-- Next isolated step after Profile passes and merges: **final responsive/mobile polish only**
+- Next isolated step: **final responsive/mobile polish only**
 
 ## Authority chain
 
@@ -28,7 +29,7 @@ The display sources control presentation, hierarchy, responsive behavior, and th
 
 ## Isolated scope
 
-This step redesigns Profile only. It does not begin the final responsive/mobile polish pass.
+This step redesigned Profile only. It did not begin the final responsive/mobile polish pass.
 
 `src/ProfileThemeV1Panel.jsx` owns the approved profile surface. `src/displayProfileThemeV1.css` owns the light lavender and white responsive presentation, and `src/displayProfileThemeV1Safety.css` isolates Profile from the workspace without changing the workspace or its runtime behavior.
 
@@ -84,9 +85,9 @@ The following remain unchanged:
 
 The Profile panel receives the established navigation snapshot from `VisualNavigation`. It does not call browser storage, write generated cases, build learner packages, calculate Luna scoring, or duplicate case-state ownership.
 
-## Required verification gate
+## Completed verification
 
-The final Profile branch head must pass all of these gates before merge:
+The final Profile runtime head passed all required gates before merge:
 
 1. complete named `npm run verify` chain;
 2. production build;
@@ -103,4 +104,4 @@ The final Profile branch head must pass all of these gates before merge:
 
 ## Exact next starting point
 
-After Profile passes, merges, and this handoff is synchronized, re-audit the new `main` head, active redesign branches, open pull requests, recent commits, CI, GitHub Issue #22, and the completed Profile verification. Then begin **final responsive/mobile polish only**. Do not make additional screen redesign changes in the Profile pull request.
+Re-audit the new `main` head, active redesign branches, open pull requests, recent commits, CI, GitHub Issue #22, and this completed Profile verification. Then begin **final responsive/mobile polish only** on a separate branch. Do not redesign or rewrite any completed screen functionality during the final polish pass.
