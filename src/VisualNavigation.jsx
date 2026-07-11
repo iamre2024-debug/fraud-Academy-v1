@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import AcademyProgressPanel from './AcademyProgressPanel.jsx';
 import AcademyThemeV1Panel from './AcademyThemeV1Panel.jsx';
+import ProfileThemeV1Panel from './ProfileThemeV1Panel.jsx';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import { trainingCases } from './data/cases.js';
 
@@ -29,6 +30,12 @@ const tabCopy = {
     title: 'Saved package progress',
     text: 'Progress stays locked until a learner review package is saved. Luna scoring only appears after submission.',
     icon: '▢',
+  },
+  profile: {
+    eyebrow: 'Agent Profile',
+    title: 'Investigator development',
+    text: 'Review activity-based skill proficiency, badges, saved work, and goals without exposing protected case outcomes.',
+    icon: '◎',
   },
 };
 
@@ -164,6 +171,9 @@ function NavigationPanel({ activeTab, activeCaseId, cases, snapshot, onNavigate,
             {copy.text}
           </DirectCollapsibleText>
         </div>
+        <button type="button" className="visual-nav-profile-entry" aria-label="Open Agent profile" onClick={() => onNavigate('profile')}>
+          <span>LA</span><small>Agent</small>
+        </button>
         <div aria-hidden="true">{copy.icon}</div>
       </div>
       {activeTab === 'dashboard' && (
@@ -188,6 +198,15 @@ function NavigationPanel({ activeTab, activeCaseId, cases, snapshot, onNavigate,
       {activeTab === 'progress' && (
         <AcademyProgressPanel cases={cases} packagesByCase={snapshot.packagesByCase} onOpenCase={onOpenCase} />
       )}
+      {activeTab === 'profile' && (
+        <ProfileThemeV1Panel
+          activeCaseId={activeCaseId}
+          cases={cases}
+          snapshot={snapshot}
+          onNavigate={onNavigate}
+          onOpenCase={onOpenCase}
+        />
+      )}
     </section>
   );
 }
@@ -207,7 +226,7 @@ function DashboardPanel({ activeCaseId, cases, snapshot, onNavigate, onOpenCase 
           <h3>Investigator</h3>
           <p>Pick up your active case and keep the evidence trail moving.</p>
         </div>
-        <div className="dashboard-agent-mark" aria-hidden="true">☾</div>
+        <button type="button" className="dashboard-agent-mark" aria-label="Open Agent profile" onClick={() => onNavigate('profile')}>☾</button>
       </header>
 
       {activeCase && (
