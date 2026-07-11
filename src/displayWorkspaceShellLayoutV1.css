@@ -3,6 +3,10 @@ body[data-visual-tab="workspace"] .visual-os-frame > * {
   max-width: 100%;
 }
 
+body[data-visual-tab="workspace"] .visual-hero {
+  box-sizing: border-box;
+}
+
 body[data-visual-tab="workspace"] .visual-os-frame > .visual-hero,
 body[data-visual-tab="workspace"] .visual-os-frame > .case-info-bar,
 body[data-visual-tab="workspace"] .visual-os-frame > .generated-case-control-host,
