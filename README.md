@@ -52,6 +52,12 @@ The approved Timeline handoff lives in:
 docs/FRAUD_ACADEMY_TIMELINE_THEME_V1.md
 ```
 
+The approved Decision and Luna handoff lives in:
+
+```text
+docs/FRAUD_ACADEMY_DECISION_LUNA_THEME_V1.md
+```
+
 The completed Phase 5 release-readiness audit lives in:
 
 ```text
@@ -64,7 +70,7 @@ The documentation-only external handoff bundle lives in:
 docs/FRAUD_ACADEMY_RELEASE_PACKAGE.md
 ```
 
-Use these files before making architecture, UI, navigation, responsive, tool, scenario, Evidence First, persistence, or release-readiness changes. The Display Handoff records the approved Bible v2.1 and Display Bible authority chain, the Source of Truth protects the live code architecture and safety boundaries, the Cases handoff records the completed queue scope, the Workspace shell handoff records the completed shell scope, the Case Briefing handoff records the completed allegation/system-alert card-grid scope, the Customer 360 handoff records the completed identity dossier, the Investigation tools handoff records the completed contextual record-review workspace, the Timeline handoff records the completed event-sequence workspace and Decision-&-Luna-only next step, the Release Readiness audit records the runtime verdict, and the Release Package collects architecture, data model, fictional-data safety, accessibility/browser status, deployment status, limitations, and backlog in one handoff document.
+Use these files before making architecture, UI, navigation, responsive, tool, scenario, Evidence First, persistence, or release-readiness changes. The Display Handoff records the approved Bible v2.1 and Display Bible authority chain, the Source of Truth protects the live code architecture and safety boundaries, the Cases handoff records the completed queue scope, the Workspace shell handoff records the completed shell scope, the Case Briefing handoff records the completed allegation/system-alert card-grid scope, the Customer 360 handoff records the completed identity dossier, the Investigation tools handoff records the completed contextual record-review workspace, the Timeline handoff records the completed event-sequence workspace, the Decision and Luna handoff records the completed determination, protected pre-submission lock, post-submission coaching, and Academy-only next step, the Release Readiness audit records the runtime verdict, and the Release Package collects architecture, data model, fictional-data safety, accessibility/browser status, deployment status, limitations, and backlog in one handoff document.
 
 ## Locked direction
 
@@ -88,13 +94,15 @@ Use these files before making architecture, UI, navigation, responsive, tool, sc
 - The Customer 360 approved theme v1 replacement uses `src/Customer360Panel.jsx` and `src/displayCustomer360ThemeV1.css` for the complete customer/account dossier, profile-change history, claim-specific neutral context, related records, preserved evidence actions and routes, and responsive light lavender and white card presentation.
 - The Investigation tools approved theme v1 replacement uses `src/investigationToolGroups.js`, `src/InvestigationToolPanel.jsx`, and `src/displayInvestigationToolsThemeV1.css` for six contextual tool groups, one neutral working question per tool, searchable records, expanded detail, History, Link Analysis, neutral report packets, notes, pinning, reviewed state, workflow routes, and responsive desktop/Pixel 7 presentation.
 - The Timeline approved theme v1 replacement uses `src/TimelinePanel.jsx` and `src/displayTimelineThemeV1.css` for neutral event metrics, search, source filtering, sequence cards, expanded source review, pinning, timeline notes, neutral report packets, reviewed state, workflow routes, and responsive desktop/Pixel 7 presentation.
+- The Decision and Luna approved theme v1 replacement uses `src/SubmitDecisionPanel.jsx`, `src/LunaPostSubmissionPanel.jsx`, `src/displayDecisionLunaThemeV1.css`, and `src/displayDecisionLunaLayoutSafetyV1.css` for the Evidence First determination workspace, package readiness, lane-organized learner choices, responsive package saving, the protected pre-submission Luna lock, and the case-scoped post-submission debrief.
 - `docs/FRAUD_ACADEMY_CASES_THEME_V1.md` records the isolated Cases scope and completed verification.
 - `docs/FRAUD_ACADEMY_WORKSPACE_SHELL_THEME_V1.md` records the isolated Workspace shell scope, protected behavior, and desktop/mobile verification gate.
 - `docs/FRAUD_ACADEMY_CASE_BRIEFING_THEME_V1.md` records the isolated Case Briefing scope, protected route behavior, and desktop/mobile verification gate.
 - `docs/FRAUD_ACADEMY_CUSTOMER_360_THEME_V1.md` records the isolated Customer 360 scope, protected dossier actions and routes, and desktop/mobile verification gate.
 - `docs/FRAUD_ACADEMY_INVESTIGATION_TOOLS_THEME_V1.md` records the isolated Investigation tools scope, protected record actions and routes, and desktop/mobile verification gate.
-- `docs/FRAUD_ACADEMY_TIMELINE_THEME_V1.md` records the isolated Timeline scope, protected event actions and routes, desktop/mobile verification gate, and Decision-&-Luna-only next step.
-- `src/VisualApp.jsx` coordinates the active case, live case catalog, and active navigation tab through React state, and mounts the Cases replacement against the same catalog and existing `onOpenCase` route.
+- `docs/FRAUD_ACADEMY_TIMELINE_THEME_V1.md` records the isolated Timeline scope, protected event actions and routes, and desktop/mobile verification gate.
+- `docs/FRAUD_ACADEMY_DECISION_LUNA_THEME_V1.md` records the isolated Decision and Luna scope, protected package and debrief behavior, completed desktop/mobile verification gate, and Academy-only next step.
+- `src/VisualApp.jsx` coordinates the active case, live case catalog, active navigation tab, and the Decision/Luna return routes through React state, and mounts the Cases replacement against the same catalog and existing `onOpenCase` route.
 - `src/VisualWorkspace.jsx` coordinates the core investigation workspace while `src/useVisualWorkspaceCaseState.js` owns case-scoped persistence and `src/useVisualWorkspaceActions.js` owns investigation actions and learner-package submission.
 - `src/VisualShellHeader.jsx` owns the compact approved Workspace header, active case strip, Case Queue dropdown, and functional Help, Settings, and Agent-profile controls while unreplaced surfaces retain their existing presentation.
 - The Help control routes to Academy and Cases, Settings persists a reduced-motion preference, and Agent profile exposes the current assignment plus Progress and Workspace routes.
@@ -102,7 +110,7 @@ Use these files before making architecture, UI, navigation, responsive, tool, sc
 - Academy Progress remains active through contextual Dashboard, Academy, and Agent-profile actions rather than a fifth equal navigation item.
 - `src/ActiveCaseWorkflowRail.jsx` renders Case Briefing, Investigate, Timeline, Summary, Indicators, Determination, and Debrief with neutral status text and accessible current-step state.
 - `src/CategoryTileRail.jsx` renders the six approved contextual tool groups inside Investigate; Timeline and Case Report remain on the workflow rail.
-- Timeline opens the approved dedicated Timeline workspace and Summary keeps the existing Case Report tool; Indicators opens the neutral Evidence Center; Determination keeps the existing package-gated submit flow; Debrief remains locked until a learner package exists.
+- Timeline opens the approved dedicated Timeline workspace and Summary keeps the existing Case Report tool; Indicators opens the neutral Evidence Center; Determination opens the approved package-gated Decision workspace; Debrief remains locked until a learner package exists and then opens the approved case-scoped Luna review.
 - `src/displayPhaseOne.css` owns the four-column global navigation override, header-control presentation, contextual Progress shortcut, and reduced-motion behavior.
 - `src/displayPhaseTwo.css` owns the focused workflow-rail presentation and compact wrapping without performing later hierarchy or mobile-record phases.
 - Display Phase 3 calibrates hierarchy and glow through `src/displayPhaseThree.css`, reducing repeated decorative bloom while formalizing primary, secondary, quiet, informational, warning, destructive, disabled, hover, focus, and selected states.
@@ -117,11 +125,11 @@ Use these files before making architecture, UI, navigation, responsive, tool, sc
 - `src/InvestigationToolPanel.jsx` owns the approved deep-tool record workspace and keeps search, expansion, pinning, notes, neutral report packets, reviewed state, Timeline/Case Report routes, case switching, and Submit Decision routing on the existing action boundaries.
 - `src/BottomInvestigationGrid.jsx` owns the Investigation Tray and Investigation Notebook cards, including pinned objects, notes, packet feed, and Open Evidence Center routing.
 - `src/CaseSummaryCard.jsx` owns the approved Case Briefing card grid, direct compact controls, Pin Case, Workspace/Timeline/Notes/Reports/More Tools utilities, Identity Intelligence and Login History quick routes, and the Submit Decision jump.
-- `src/SubmitDecisionPanel.jsx` owns the locked Submit Decision visual panel while the review package model keeps Evidence First behavior enforced.
+- `src/SubmitDecisionPanel.jsx` owns the approved Evidence First determination and learner-package workspace while the review package model keeps readiness and submission rules enforced.
+- `src/LunaPostSubmissionPanel.jsx` owns the approved protected lock and post-submission debrief, follows the active built-in or generated case, and reads the saved learner package through the existing state boundaries.
 - `src/AcademyProgressPanel.jsx` owns neutral locked/unlocked case status, saved-package counts, reviewed-tool/pinned-object/note/report-packet snapshots, and case-return actions without exposing Luna scoring.
 - `src/VisualTextCollapse.jsx` is an inert compatibility marker only. It contains no selector discovery, portal controls, event listeners, or DOM scanning; compact More / Less behavior is React-owned through `DirectCollapsibleText`.
 - Insider / Vendor / API / Open Banking remains the single Connections → System Access Lane sub-tool inside the workspace, powered by `src/data/systemAccessRecords.js`.
-- `src/LunaPostSubmissionPanel.jsx` restores post-submission Luna scoring/debrief as a separate React module that stays locked before a learner package exists and resolves the active case from the live built-in/generated catalog.
 - `src/data/generatedCaseRepository.js` is the generated-case storage boundary. IndexedDB is primary, localStorage remains a fallback, and existing localStorage-generated cases migrate once into IndexedDB.
 - Generated cases are added to the live React case catalog, opened without page refresh, preserved after reload, and kept behind a backend-ready repository contract.
 - The generated queue has no arbitrary application count cap. A monotonic sequence prevents rapid-generation ID collisions, and `scripts/generated-case-smoke-check.mjs` verifies more than 50 cases remain unique and available.
@@ -147,7 +155,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 10. Luna post-submission scoring is handled by one separate locked/unlocked module and remains scoped to generated active cases.
 11. Generated cases open immediately and persist through the IndexedDB-first repository adapter.
 12. Generated-case behavior above 50 cases is guarded by `scripts/generated-case-smoke-check.mjs`.
-13. Playwright validates the approved Dashboard, Cases queue, Workspace shell, Case Briefing, Customer 360, and Investigation tools, all three built-in cases, generated-case immediate open and reload persistence, the remaining core modules, System Access Lane, Luna’s pre-submission lock, desktop record layouts, Pixel 7 stacked records, and no page overflow.
+13. Playwright validates the approved Dashboard, Cases queue, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, and Decision and Luna, all three built-in cases, generated-case immediate open and reload persistence, the remaining core modules, System Access Lane, Luna’s pre-submission lock, desktop record layouts, Pixel 7 stacked records, and no page overflow.
 14. Visible first-tool coaching and investigator-question headings are rejected by the Evidence First wording guard.
 15. Progress package-status text is rendered by direct React controls and cannot drift back into the legacy selector scanner.
 16. Navigation heading and Academy learning copy are rendered by direct React controls and cannot drift back into legacy selector discovery.
@@ -168,11 +176,12 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 31. The approved Customer 360 theme v1 replaces only the identity dossier, preserves case switching and evidence actions, keeps claim-specific context neutral, and has focused static plus desktop/mobile browser guards.
 32. The approved Investigation tools theme v1 replaces only the deep-tool record workspace, preserves tool data and action boundaries, adds six contextual groups and focused record review, and has focused static plus desktop/mobile browser guards.
 33. The approved Timeline theme v1 replaces only the event-sequence workspace, preserves case-scoped records and action boundaries, keeps all visible conclusions neutral, and has focused static plus desktop/mobile browser guards.
+34. The approved Decision and Luna theme v1 replaces only Determination and Debrief, preserves the package and persistence boundaries, keeps Luna locked before submission, adds the active-case post-submission review, and has focused static plus desktop/mobile browser guards.
 
 ## Remaining follow-up work
 
-1. Redesign Decision & Luna only using the approved theme v1 while preserving the existing checklist, learner choice, confidence, rationale, case-scoped drafts, saved learner packages, pre-submission lock, and active-case post-submission debrief.
-2. Continue the locked order after Decision & Luna: Academy, Profile, and final responsive/mobile polish.
+1. Redesign Academy only using the approved theme v1 while preserving the existing learning content, Academy Progress routes, saved learner-package snapshots, active-case routes, Evidence First wording, and four-item navigation.
+2. Continue the locked order after Academy: Profile, then final responsive/mobile polish.
 3. Compare each completed desktop/mobile screen with the original Bible v2.1 and Display Bible references before advancing.
 4. Add a curated current desktop/mobile screenshot set.
 5. Complete manual accessibility and non-Chromium browser validation.
@@ -187,18 +196,19 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 5. The approved Customer 360 renders on desktop and Pixel 7 with the full dossier, profile-change log, claim-specific neutral context, search, reviewed state, case switching, related-tool routes, stacked mobile cards, and no required page overflow.
 6. The approved Investigation tools render on desktop and Pixel 7 with six contextual groups, tool switching, search, record expansion, pinning, notes, neutral report packets, reviewed state, Timeline/Case Report routing, two-column desktop review, stacked mobile review, and no required page overflow.
 7. The approved Timeline renders on desktop and Pixel 7 with event ordering, search, source filtering, expansion, pinning, notes, neutral report packets, reviewed state, workflow routing, stacked mobile review, and no required page overflow.
-8. All three built-in cases load from the Cases queue and update the active case workspace.
-9. Payment Verification, Business Intelligence, Evidence Center, Link Analysis, System Access Lane, Timeline, and Case Report open with records.
-10. Generated cases save through the repository, open immediately, remain unique during rapid generation, persist after reload, and return to the approved Case Queue.
-11. Luna remains locked before submission and follows the active built-in or generated case ID.
-12. Desktop and mobile Chromium render the tested flows without visible Evidence First answer leaks.
-13. The contextual tool groups and active-case workflow controls remain clickable without being blocked by sticky panels or navigation.
-14. Desktop Investigation-tool records and expanded detail stay aligned while Pixel 7 stacks the review surfaces and keeps the document free of required horizontal page overflow.
-15. More than 50 generated cases and localStorage-to-IndexedDB migration remain covered by repository-level smoke checks.
+8. The approved Decision and Luna flow renders on desktop and Pixel 7 with the readiness checklist, package submission, locked pre-submission Luna state, case-scoped post-submission debrief, refresh persistence, functional Workspace/Case Summary/Queue routes, and no required page overflow.
+9. All three built-in cases load from the Cases queue and update the active case workspace.
+10. Payment Verification, Business Intelligence, Evidence Center, Link Analysis, System Access Lane, Timeline, and Case Report open with records.
+11. Generated cases save through the repository, open immediately, remain unique during rapid generation, persist after reload, and return to the approved Case Queue.
+12. Luna remains locked before submission and follows the active built-in or generated case ID.
+13. Desktop and mobile Chromium render the tested flows without visible Evidence First answer leaks.
+14. The contextual tool groups and active-case workflow controls remain clickable without being blocked by sticky panels or navigation.
+15. Desktop Investigation-tool records and expanded detail stay aligned while Pixel 7 stacks the review surfaces and keeps the document free of required horizontal page overflow.
+16. More than 50 generated cases and localStorage-to-IndexedDB migration remain covered by repository-level smoke checks.
 
 ## Latest handoff
 
-The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, and Timeline theme v1 replacements are merged and protected by focused static guards plus desktop and Pixel 7 browser coverage. The implementations keep the four-item navigation, active case, contextual Academy Progress, neutral visible wording, Evidence First, Luna locking, IndexedDB-first generated cases, and the single Connections → System Access Lane unchanged. The next isolated screen is **Decision & Luna only**.
+The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, and Decision and Luna theme v1 replacements are merged and protected by focused static guards plus desktop and Pixel 7 browser coverage. The implementations keep the four-item navigation, active case, contextual Academy Progress, neutral visible wording, Evidence First, Luna locking, IndexedDB-first generated cases, and the single Connections → System Access Lane unchanged. The next isolated screen is **Academy only**.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -219,4 +229,4 @@ npm run build
 
 ## Test status
 
-`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, Luna single-module smoke, review-package smoke, remaining-module depth, navigation direct-collapse, Academy Progress package-flow, summary direct-collapse, workspace case-state hook, workspace action-controller, display-handoff, Display Phase 1 global-shell, Display Phase 2 workflow-rail, Display Phase 3 hierarchy-and-glow, Display Phase 4 responsive-record, Display Phase 5 release-readiness, Dashboard approved-theme v1, Cases approved-theme v1, Workspace shell approved-theme v1, Case Briefing approved-theme v1, Customer 360 approved-theme v1, Investigation tools approved-theme v1, Timeline approved-theme v1, release-package documentation, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for the approved Dashboard, Cases queue, Workspace shell, Case Briefing, Customer 360, Investigation tools, and Timeline, all three built-in cases, generated-case immediate open and reload persistence, core modules, System Access Lane, Luna lock behavior, the active-case workflow surface, and responsive record presentation.
+`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, Luna single-module smoke, review-package smoke, remaining-module depth, navigation direct-collapse, Academy Progress package-flow, summary direct-collapse, workspace case-state hook, workspace action-controller, display-handoff, Display Phase 1 global-shell, Display Phase 2 workflow-rail, Display Phase 3 hierarchy-and-glow, Display Phase 4 responsive-record, Display Phase 5 release-readiness, Dashboard approved-theme v1, Cases approved-theme v1, Workspace shell approved-theme v1, Case Briefing approved-theme v1, Customer 360 approved-theme v1, Investigation tools approved-theme v1, Timeline approved-theme v1, Decision and Luna approved-theme v1, release-package documentation, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for the approved Dashboard, Cases queue, Workspace shell, Case Briefing, Customer 360, Investigation tools, Timeline, and Decision and Luna, all three built-in cases, generated-case immediate open and reload persistence, core modules, System Access Lane, Luna lock behavior, the active-case workflow surface, and responsive record presentation.
