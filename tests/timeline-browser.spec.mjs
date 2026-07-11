@@ -118,7 +118,7 @@ test('approved Timeline preserves sequence review, evidence actions, and respons
     .getByRole('button', { name: 'Open Submit Decision', exact: true })
     .click();
   await expect(page.locator('.submit-decision-panel')).toBeVisible();
-  await expect(page.locator('.submit-decision-panel')).toContainText('Locked checklist');
+  await expect(page.locator('.submit-decision-panel')).toContainText('Evidence First protection');
 
   const selector = page.locator('.visual-case-switcher select');
   await selector.selectOption(secondCase.id);

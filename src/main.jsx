@@ -26,6 +26,8 @@ import './displayCaseBriefingRoutesV1.css';
 import './displayCustomer360ThemeV1.css';
 import './displayInvestigationToolsThemeV1.css';
 import './displayTimelineThemeV1.css';
+import './displayDecisionLunaThemeV1.css';
+import './displayDecisionLunaLayoutSafetyV1.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

@@ -1,0 +1,26 @@
+body[data-visual-tab="workspace"] [data-workflow-stage="determination"] {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+body[data-visual-tab="workspace"] [data-workflow-stage="determination"] > .decision-theme-v1,
+body[data-visual-tab="workspace"] .luna-post-submission-host,
+body[data-visual-tab="workspace"] .luna-theme-v1 {
+  box-sizing: border-box;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-inline: 0 !important;
+  transform: none !important;
+}
+
+@media (max-width: 520px) {
+  body[data-visual-tab="workspace"] [data-workflow-stage="determination"] > .decision-theme-v1,
+  body[data-visual-tab="workspace"] .luna-post-submission-host,
+  body[data-visual-tab="workspace"] .luna-theme-v1 {
+    width: calc(100% - 18px) !important;
+    max-width: calc(100% - 18px) !important;
+    margin-inline: auto !important;
+    inset-inline: auto !important;
+  }
+}
