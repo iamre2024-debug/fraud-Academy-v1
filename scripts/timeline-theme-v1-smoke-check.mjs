@@ -91,8 +91,8 @@ mustContain('timeline-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('timeline-browser.spec.mjs', browser, 'data-timeline-screen="approved-theme-v1"');
 mustContain('Timeline handoff', handoff, 'agent/timeline-approved-theme-v1');
 mustContain('Timeline handoff', handoff, 'Decision & Luna only');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Academy only**');
-mustContain('README', readme, 'The next isolated screen is **Academy only**');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Profile only**');
+mustContain('README', readme, 'The next isolated screen is **Profile only**');
 mustContain('package.json', packageJson, 'timeline-theme-v1-smoke-check');
 mustContain('build.yml', workflow, 'Timeline approved-theme v1 smoke check');
 
