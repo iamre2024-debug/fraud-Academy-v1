@@ -63,7 +63,7 @@ test('completed core modules and System Access Lane render real records', async 
   await assertEvidenceFirstLock(page, builtInCases[0].id);
 });
 
-test('responsive records become labeled mobile cards without page overflow', async ({ page }, testInfo) => {
+test('responsive records become labeled mobile cards without record-surface overflow', async ({ page }, testInfo) => {
   await page.goto('/');
   await openCoreTool(page, 'Financial', 'Payment Verification');
 
@@ -74,11 +74,35 @@ test('responsive records become labeled mobile cards without page overflow', asy
 
   await expect(table).toHaveAttribute('role', 'table');
   await expect(firstCell).toHaveAttribute('data-field', /.+/);
-  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  const layout = await page.evaluate(() => {
+    const panel = document.querySelector('.activity-panel');
+    const recordTable = document.querySelector('.activity-table');
+    const record = document.querySelector('.activity-row:not(.table-head)');
+    const viewportWidth = window.innerWidth;
+    const withinViewport = (element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.left >= -1 && rect.right <= viewportWidth + 1;
+    };
+
+    return {
+      panelFits: withinViewport(panel),
+      tableFits: withinViewport(recordTable),
+      recordFits: withinViewport(record),
+      panelOverflow: panel.scrollWidth - panel.clientWidth,
+      recordOverflow: record.scrollWidth - record.clientWidth,
+    };
+  });
+
+  expect(layout.panelFits).toBe(true);
+  expect(layout.tableFits).toBe(true);
+  expect(layout.recordFits).toBe(true);
 
   if (testInfo.project.name === 'mobile-chromium') {
     await expect(header).toBeHidden();
     expect(await firstRecord.evaluate((element) => getComputedStyle(element).display)).toBe('block');
+    expect(layout.panelOverflow).toBeLessThanOrEqual(1);
+    expect(layout.recordOverflow).toBeLessThanOrEqual(1);
     const mobileLabel = await firstCell.evaluate((element) => getComputedStyle(element, '::before').content);
     expect(mobileLabel).not.toBe('none');
     expect(mobileLabel).not.toBe('normal');
