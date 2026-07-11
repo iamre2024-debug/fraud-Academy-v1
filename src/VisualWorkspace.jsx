@@ -6,6 +6,7 @@ import ActiveToolPanel from './ActiveToolPanel.jsx';
 import BottomInvestigationGrid from './BottomInvestigationGrid.jsx';
 import CaseSummaryCard from './CaseSummaryCard.jsx';
 import CategoryTileRail from './CategoryTileRail.jsx';
+import Customer360Panel from './Customer360Panel.jsx';
 import SubmitDecisionPanel from './SubmitDecisionPanel.jsx';
 import useVisualWorkspaceActions from './useVisualWorkspaceActions.js';
 import useVisualWorkspaceCaseState from './useVisualWorkspaceCaseState.js';
@@ -187,6 +188,25 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     scrollToWorkspace('.luna-visual-panel', 80);
   }
 
+  const activeToolProps = {
+    activeCategory,
+    activeCase,
+    tool,
+    openTool,
+    query,
+    setQuery,
+    data,
+    rows,
+    activeRow,
+    setExpandedId,
+    pin,
+    saveNote,
+    saveCaseReportPacket,
+    markReviewed,
+    currentCompleted,
+    jumpDecision,
+  };
+
   return (
     <main className="visual-os-shell">
       <section className="visual-os-frame">
@@ -228,24 +248,11 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
         </section>
 
         <div className="workflow-active-tool-stage" data-active-workflow-stage={activeStage}>
-          <ActiveToolPanel
-            activeCategory={activeCategory}
-            activeCase={activeCase}
-            tool={tool}
-            openTool={openTool}
-            query={query}
-            setQuery={setQuery}
-            data={data}
-            rows={rows}
-            activeRow={activeRow}
-            setExpandedId={setExpandedId}
-            pin={pin}
-            saveNote={saveNote}
-            saveCaseReportPacket={saveCaseReportPacket}
-            markReviewed={markReviewed}
-            currentCompleted={currentCompleted}
-            jumpDecision={jumpDecision}
-          />
+          {tool === 'Customer 360' ? (
+            <Customer360Panel {...activeToolProps} />
+          ) : (
+            <ActiveToolPanel {...activeToolProps} />
+          )}
         </div>
 
         <div data-workflow-stage="indicators">
