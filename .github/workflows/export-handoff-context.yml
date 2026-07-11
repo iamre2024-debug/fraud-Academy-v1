@@ -1,0 +1,22 @@
+name: Export handoff context
+
+on:
+  push:
+    branches:
+      - agent/academy-handoff-sync
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Upload handoff context
+        uses: actions/upload-artifact@v4
+        with:
+          name: academy-handoff-context
+          path: |
+            docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md
+            README.md
+            scripts
+          retention-days: 1
