@@ -43,11 +43,12 @@ Use both files before making architecture, UI, navigation, responsive, tool, sce
 - The existing `src/CategoryTileRail.jsx` category rail is rendered inside Investigate and remains the entry point to the evidence tool families.
 - Timeline and Summary open the existing Timeline and Case Report tools; Indicators opens the neutral Evidence Center; Determination keeps the existing package-gated submit flow; Debrief remains locked until a learner package exists.
 - `src/displayPhaseOne.css` owns the four-column global navigation override, header-control presentation, contextual Progress shortcut, and reduced-motion behavior.
-- `src/displayPhaseTwo.css` owns the focused workflow-rail presentation and compact wrapping without performing the later glow or mobile-record phases.
-- Display Phase 3 calibrates hierarchy and glow through `src/displayPhaseThree.css`, reducing repeated decorative bloom while formalizing primary, secondary, quiet, informational, warning, destructive, disabled, hover, focus, and selected states.
+- `src/displayPhaseTwo.css` owns the focused workflow-rail presentation and compact wrapping without performing later hierarchy or mobile-record phases.
+- `src/displayPhaseThree.css` calibrates hierarchy and glow, reducing repeated decorative bloom while formalizing primary, secondary, quiet, informational, warning, destructive, disabled, hover, focus, and selected states.
+- `src/displayPhaseFour.css` preserves desktop record tables and converts dense rows into labeled, touch-friendly cards at phone widths without horizontal scrolling.
 - `src/DirectCollapsibleText.jsx` is the reusable direct React compact-text wrapper; Active Tool purpose, expanded-record text, tray identifiers, Case Report packet text, notebook note entries, Submit Decision checklist messages, Luna coaching lists, Navigation heading and Academy learning copy, Academy Progress package status, and Case Summary transaction/payee and short-summary copy use it directly.
 - `src/visualWorkspaceModel.js` owns workspace constants, storage helpers, live tool row builders, System Access Lane row construction, and Case Report packet construction.
-- `src/ActiveToolPanel.jsx` owns the active category/tool renderer: sub-tool dropdown, search, rows, expanded record lanes, pin/review actions, and neutral report packet saves.
+- `src/ActiveToolPanel.jsx` owns the active category/tool renderer: sub-tool dropdown, search, semantic desktop table, responsive `data-field` labels, mobile record cards, expanded record lanes, pin/review actions, and neutral report packet saves.
 - `src/BottomInvestigationGrid.jsx` owns the Investigation Tray and Investigation Notebook cards, including pinned objects, notes, packet feed, and Open Evidence Center routing.
 - `src/CaseSummaryCard.jsx` owns the ornate Case Summary card, including neutral intake facts, direct compact controls for longer neutral summary fields, Pin Case, quick tool routes, and Submit Decision jump.
 - `src/SubmitDecisionPanel.jsx` owns the locked Submit Decision visual panel while the review package model keeps Evidence First behavior enforced.
@@ -80,7 +81,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 10. Luna post-submission scoring is handled by one separate locked/unlocked module and remains scoped to generated active cases.
 11. Generated cases open immediately and persist through the IndexedDB-first repository adapter.
 12. Generated-case behavior above 50 cases is guarded by `scripts/generated-case-smoke-check.mjs`.
-13. Playwright validates all three built-in cases, generated-case immediate open and reload persistence, the remaining core modules, System Access Lane, and Luna’s pre-submission lock in desktop and mobile Chromium.
+13. Playwright validates all three built-in cases, generated-case immediate open and reload persistence, the remaining core modules, System Access Lane, Luna’s pre-submission lock, desktop record headers, Pixel 7 record cards, and no page overflow.
 14. Visible first-tool coaching and investigator-question headings are rejected by the Evidence First wording guard.
 15. Progress package-status text is rendered by direct React controls and cannot drift back into the legacy selector scanner.
 16. Navigation heading and Academy learning copy are rendered by direct React controls and cannot drift back into legacy selector discovery.
@@ -91,12 +92,13 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 21. Display Phase 1 implements the four-item global navigation, contextual Progress entry points, functional Help, Settings, and Agent-profile controls, and a dedicated global-shell regression guard.
 22. Display Phase 2 implements the seven-stage active-case workflow, keeps categories inside Investigate, preserves neutral package and Debrief lock language, and adds a dedicated workflow-rail regression guard.
 23. Display Phase 3 reduces indiscriminate glow, clarifies hierarchy and interaction states, preserves visible keyboard focus, and adds a dedicated hierarchy-and-glow regression guard without changing records or persistence.
+24. Display Phase 4 converts phone-width records to labeled cards, preserves desktop tables and actions, prevents required page overflow, and adds dedicated source and browser regression coverage.
 
 ## Remaining follow-up work
 
-1. Begin Display Phase 4 only: replace dense mobile record overflow with a touch-friendly no-horizontal-scroll presentation.
-2. Validate compact phone through wide desktop behavior for the changed record surfaces.
-3. Continue presentation-only component splitting only when a display phase needs it, without changing the IndexedDB generated-case boundary or Evidence First behavior.
+1. Run Phase 5 only: final Bible and release-readiness audit against the exact merged display tree.
+2. Confirm all three built-in cases plus a generated case on the exact merge candidate.
+3. Record remaining gaps without combining the audit with a new redesign, persistence migration, or System Access expansion.
 
 ## Browser-confirmed functional coverage
 
@@ -106,11 +108,12 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 4. Luna remains locked before submission and follows the active built-in or generated case ID.
 5. Desktop and mobile Chromium render the tested flows without visible Evidence First answer leaks.
 6. The desktop category rail and active-case workflow controls remain clickable without being blocked by sticky right-side panels or the fixed navigation.
-7. More than 50 generated cases and localStorage-to-IndexedDB migration remain covered by repository-level smoke checks.
+7. Desktop investigation headers remain visible while Pixel 7 records become labeled cards and the document stays free of required horizontal page overflow.
+8. More than 50 generated cases and localStorage-to-IndexedDB migration remain covered by repository-level smoke checks.
 
 ## Latest handoff
 
-The latest focused display change completes Phase 3 without altering investigation behavior or persistence. `src/displayPhaseThree.css` now lowers ambient and repeated container glow, shortens oversized decorative treatment, reserves stronger emphasis for selected and focus states, and formalizes primary, secondary, quiet, informational, warning, destructive, disabled, hover, focus, and selected presentation. `scripts/display-phase-three-smoke-check.mjs` and the full desktop/mobile browser suite protect this boundary while Evidence First, Luna gating, generated-case persistence, and the single Connections → System Access Lane remain unchanged.
+The latest focused display change completes Phase 4 without altering investigation behavior or persistence. `src/displayPhaseFour.css` keeps the desktop table intact, turns phone-width records into labeled cards, stacks compact-phone labels, and preserves thumb-friendly record actions. `scripts/display-phase-four-smoke-check.mjs` plus the desktop/mobile Playwright suite protect the no-horizontal-scroll boundary while Evidence First, Luna gating, generated-case persistence, and the single Connections → System Access Lane remain unchanged.
 
 Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report
 
@@ -131,4 +134,4 @@ npm run build
 
 ## Test status
 
-`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, Luna single-module smoke, review-package smoke, remaining-module depth, navigation direct-collapse, Academy Progress package-flow, summary direct-collapse, workspace case-state hook, workspace action-controller, display-handoff, Display Phase 1 global-shell, Display Phase 2 workflow-rail, Display Phase 3 hierarchy-and-glow, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for all three built-in cases, generated cases, core modules, System Access Lane, persistence, Luna lock behavior, and the active-case workflow surface.
+`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, Luna single-module smoke, review-package smoke, remaining-module depth, navigation direct-collapse, Academy Progress package-flow, summary direct-collapse, workspace case-state hook, workspace action-controller, display-handoff, Display Phase 1 global-shell, Display Phase 2 workflow-rail, Display Phase 3 hierarchy-and-glow, Display Phase 4 responsive-record, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for all three built-in cases, generated cases, core modules, System Access Lane, persistence, Luna lock behavior, the active-case workflow surface, and responsive record presentation.
