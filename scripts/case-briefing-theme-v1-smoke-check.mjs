@@ -9,6 +9,8 @@ const routeStyles = fs.readFileSync(path.join(rootDir, 'src/displayCaseBriefingR
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/case-briefing-browser.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_CASE_BRIEFING_THEME_V1.md'), 'utf8');
+const sourceOfTruth = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'), 'utf8');
+const readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8');
 const failures = [];
 
 function mustContain(fileLabel, content, text) {
@@ -92,6 +94,12 @@ mustContain('case-briefing-browser.spec.mjs', browser, 'Case briefing quick rout
 mustContain('case-briefing-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('Case Briefing handoff', handoff, 'agent/case-briefing-approved-theme-v1');
 mustContain('Case Briefing handoff', handoff, 'Customer 360 only');
+mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_CASE_BRIEFING_THEME_V1.md`');
+mustContain('Source of Truth', sourceOfTruth, '`src/displayCaseBriefingThemeV1.css`');
+mustContain('Source of Truth', sourceOfTruth, '`src/displayCaseBriefingRoutesV1.css`');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Customer 360 only**');
+mustContain('README', readme, 'The approved Case Briefing handoff lives in');
+mustContain('README', readme, 'The next isolated screen is **Customer 360 only**');
 
 for (const forbidden of [
   'generatedCaseRepository',
@@ -127,4 +135,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Case Briefing approved-theme v1 smoke check passed. The card-grid hierarchy, functional quick routes, Evidence First wording, responsive layout, direct text controls, and protected persistence boundaries remain intact.');
+console.log('Case Briefing approved-theme v1 smoke check passed. The card-grid hierarchy, functional quick routes, synchronized Customer 360 handoff, Evidence First wording, responsive layout, direct text controls, and protected persistence boundaries remain intact.');
