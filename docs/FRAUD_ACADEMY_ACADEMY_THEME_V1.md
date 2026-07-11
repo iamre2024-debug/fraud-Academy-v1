@@ -23,6 +23,7 @@ It provides:
 - Neutral achievement guidance tied to completed case work.
 - Functional routes to Workspace, Case Queue, and contextual Academy Progress.
 - Desktop, tablet, phone, and compact-phone layouts without required horizontal page scrolling.
+- A focused isolation layer that keeps unreplaced Workspace surfaces and generated-case controls out of the Academy screen without changing those features.
 
 ## Protected behavior
 
@@ -44,12 +45,13 @@ The Academy replacement must preserve:
 
 - `src/AcademyThemeV1Panel.jsx`
 - `src/displayAcademyThemeV1.css`
+- `src/displayAcademyThemeV1Safety.css`
 - `src/VisualNavigation.jsx`
 - `src/main.jsx`
 - `scripts/academy-theme-v1-smoke-check.mjs`
 - `tests/academy-browser.spec.mjs`
 
-The Academy panel must stay presentation- and navigation-focused. It must not call browser storage, write generated cases, build learner packages, calculate Luna scoring, or duplicate case-state ownership.
+The Academy panel must stay presentation- and navigation-focused. It must not call browser storage, write generated cases, build learner packages, calculate Luna scoring, or duplicate case-state ownership. The safety CSS may hide unreplaced surfaces only while `body[data-visual-tab="academy"]` is active and must not change their runtime behavior.
 
 ## Verification gate
 
@@ -61,6 +63,7 @@ Before merge, the exact implementation head must pass:
 - Desktop Chromium Academy browser coverage.
 - Pixel 7 Chromium Academy browser coverage.
 - Evidence First and Luna lock checks.
+- Academy isolation from unreplaced Workspace surfaces.
 - Viewport and horizontal-overflow checks.
 
 ## Next isolated screen
