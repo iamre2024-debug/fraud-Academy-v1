@@ -23,6 +23,7 @@ body,
 }
 
 body {
+  margin: 0;
   overflow-x: clip;
 }
 
@@ -71,6 +72,10 @@ body {
 
 .visual-os-frame :where(button, [role="button"], input:not([type="checkbox"]):not([type="radio"]), select) {
   min-height: 44px;
+}
+
+body[data-visual-tab="cases"] .cases-theme-v1-panel button {
+  min-height: 44px !important;
 }
 
 .visual-os-frame :where(button, [role="button"], input, select, textarea):focus-visible {
@@ -172,12 +177,13 @@ body {
   }
 
   body[data-visual-tab="workspace"] .visual-hero {
-    flex-wrap: nowrap;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center;
+    padding: 8px 10px !important;
+    gap: 6px;
   }
 
   body[data-visual-tab="workspace"] .workspace-shell-heading {
-    flex: 1 1 0;
     min-width: 0;
     gap: 6px;
   }
