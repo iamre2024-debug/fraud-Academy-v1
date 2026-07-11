@@ -10,6 +10,8 @@ const safetyStyles = fs.readFileSync(path.join(rootDir, 'src/displayProfileTheme
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/profile-browser.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_PROFILE_THEME_V1.md'), 'utf8');
+const sourceOfTruth = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'), 'utf8');
+const readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8');
 const packageJson = fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8');
 const workflow = fs.readFileSync(path.join(rootDir, '.github/workflows/build.yml'), 'utf8');
 const failures = [];
@@ -94,7 +96,14 @@ mustContain('profile-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('profile-browser.spec.mjs', browser, 'panelOverflow');
 mustContain('profile-browser.spec.mjs', browser, 'toBeLessThanOrEqual(4)');
 mustContain('Profile handoff', handoff, 'agent/profile-approved-theme-v1');
+mustContain('Profile handoff', handoff, 'Final verified Profile runtime head: `000c90b87984d41cd01a093a790457fb187ec7a3`');
+mustContain('Profile handoff', handoff, 'Profile runtime merge on `main`: `01e25967098594dbe67d4c523d12fe249e810564`');
 mustContain('Profile handoff', handoff, 'final responsive/mobile polish only');
+mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_PROFILE_THEME_V1.md`');
+mustContain('Source of Truth', sourceOfTruth, 'Decision & Luna, Academy, and Profile are the completed approved replacements');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **final responsive/mobile polish only**');
+mustContain('README', readme, 'docs/FRAUD_ACADEMY_PROFILE_THEME_V1.md');
+mustContain('README', readme, 'The next isolated step is **final responsive/mobile polish only**');
 mustContain('package.json', packageJson, 'profile-theme-v1-smoke-check');
 mustContain('build.yml', workflow, 'Profile approved-theme v1 smoke check');
 
