@@ -24,7 +24,17 @@ jobs:
         run: npm install
 
       - name: Full source-of-truth verification
-        run: npm run verify
+        shell: bash
+        run: |
+          set +e
+          npm run verify > verify.log 2>&1
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "Verification failed. Showing the final diagnostic lines:"
+            tail -n 120 verify.log
+            exit "$status"
+          fi
+          tail -n 40 verify.log
 
   browser:
     runs-on: ubuntu-latest
