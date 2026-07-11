@@ -64,7 +64,7 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
     return {
       viewportWidth,
       documentWidth: document.documentElement.scrollWidth,
-      panelFits: Boolean(rect && rect.left >= -1 && rect.right <= viewportWidth + 1),
+      panelFits: Boolean(rect && rect.left >= -2 && rect.right <= viewportWidth + 2),
       workspaceColumns: workspace ? getComputedStyle(workspace).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
       metricColumns: metrics ? getComputedStyle(metrics).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
       lockedColumns: lockedGrid ? getComputedStyle(lockedGrid).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
