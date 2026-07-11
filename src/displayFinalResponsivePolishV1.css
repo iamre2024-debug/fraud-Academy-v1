@@ -1,0 +1,186 @@
+/* Final cross-screen responsive and mobile safety pass.
+   Presentation only: no routes, persistence, case state, or investigation behavior. */
+
+html,
+body,
+#root {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+#root,
+#root * {
+  box-sizing: border-box;
+}
+
+body[data-visual-tab] .visual-os-shell,
+body[data-visual-tab] .visual-os-frame,
+body[data-visual-tab] .visual-react-nav-host,
+body[data-visual-tab] .visual-nav-panel,
+body[data-visual-tab] .dashboard-v1-shell,
+body[data-visual-tab] [data-cases-theme-v1="approved"],
+body[data-visual-tab] [data-profile-screen="approved-theme-v1"],
+body[data-visual-tab] [data-academy-screen="approved-theme-v1"],
+body[data-visual-tab] [data-workflow-stage],
+body[data-visual-tab] .customer-360-theme-v1,
+body[data-visual-tab] .investigation-tools-theme-v1,
+body[data-visual-tab] .timeline-theme-v1,
+body[data-visual-tab] .decision-theme-v1,
+body[data-visual-tab] .luna-theme-v1 {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body[data-visual-tab] :where(
+  .visual-os-frame,
+  .visual-nav-panel,
+  .dashboard-v1-shell,
+  [data-cases-theme-v1="approved"],
+  [data-profile-screen="approved-theme-v1"],
+  [data-academy-screen="approved-theme-v1"],
+  [data-workflow-stage],
+  .customer-360-theme-v1,
+  .investigation-tools-theme-v1,
+  .timeline-theme-v1,
+  .decision-theme-v1,
+  .luna-theme-v1
+) > * {
+  min-width: 0;
+}
+
+body[data-visual-tab] :where(h1, h2, h3, h4, h5, h6, p, span, strong, small, label, dd, dt, td, th) {
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab] :where(img, svg, canvas, video) {
+  max-width: 100%;
+  height: auto;
+}
+
+body[data-visual-tab] :where(button, input, select, textarea) {
+  max-width: 100%;
+}
+
+body[data-visual-tab] .visual-react-bottom-nav {
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
+
+body[data-visual-tab] :where(button, a, input, select, textarea):focus-visible {
+  outline-offset: 3px;
+}
+
+@media (max-width: 760px) {
+  body[data-visual-tab] .visual-os-shell {
+    width: 100%;
+    padding-inline: clamp(10px, 3.5vw, 18px);
+    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+
+  body[data-visual-tab] .visual-os-frame {
+    width: 100%;
+    margin-inline: auto;
+  }
+
+  body[data-visual-tab] :where(button, [role="button"], input, select, textarea) {
+    min-height: 44px;
+  }
+
+  body[data-visual-tab] :where(
+    .visual-nav-heading,
+    .dashboard-active-case,
+    .academy-practice-banner,
+    .profile-hero,
+    .profile-active-case-card,
+    .timeline-theme-v1-header,
+    .decision-theme-v1-header
+  ) {
+    min-width: 0;
+  }
+
+  body[data-visual-tab] :where(
+    .dashboard-case-title-row,
+    .dashboard-progress-row,
+    .academy-hero-actions,
+    .profile-hero-actions,
+    .timeline-theme-v1-actions,
+    .decision-theme-v1-actions
+  ) {
+    flex-wrap: wrap;
+  }
+
+  body[data-visual-tab] :where(table, .visual-table) {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  body[data-visual-tab] .visual-os-shell {
+    padding-inline: 10px;
+  }
+
+  body[data-visual-tab] .visual-react-bottom-nav {
+    gap: 4px;
+    padding-inline: 6px;
+  }
+
+  body[data-visual-tab] .visual-react-bottom-nav button {
+    min-width: 0;
+    padding-inline: 4px;
+  }
+
+  body[data-visual-tab] .visual-react-bottom-nav button span {
+    max-width: 100%;
+    font-size: 0.68rem;
+    line-height: 1.15;
+  }
+
+  body[data-visual-tab] :where(
+    .dashboard-quick-grid,
+    .dashboard-summary-grid,
+    .academy-stat-grid,
+    .academy-path-grid,
+    .profile-stat-grid,
+    .profile-goal-grid
+  ) > * {
+    min-width: 0;
+  }
+
+  body[data-visual-tab] :where(
+    .academy-hero-actions,
+    .profile-hero-actions,
+    .timeline-theme-v1-actions,
+    .decision-theme-v1-actions
+  ) > button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 350px) {
+  body[data-visual-tab] .visual-os-shell {
+    padding-inline: 8px;
+  }
+
+  body[data-visual-tab] .visual-react-bottom-nav button span {
+    font-size: 0.62rem;
+  }
+
+  body[data-visual-tab] :where(
+    .visual-nav-panel,
+    .dashboard-v1-shell,
+    [data-cases-theme-v1="approved"],
+    [data-profile-screen="approved-theme-v1"],
+    [data-academy-screen="approved-theme-v1"]
+  ) {
+    border-radius: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-visual-tab] *,
+  body[data-visual-tab] *::before,
+  body[data-visual-tab] *::after {
+    scroll-behavior: auto !important;
+  }
+}
