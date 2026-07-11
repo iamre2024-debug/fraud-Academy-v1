@@ -2,17 +2,17 @@
 
 ## Status
 
-This handoff records the final cross-screen responsive/mobile polish candidate after every isolated approved-theme v1 screen redesign.
+The locked Fraud Academy display redesign is complete. Every isolated approved-theme v1 screen and the final cross-screen responsive/mobile release pass are merged and verified.
 
-- Runtime branch: `agent/final-responsive-polish-reconciled`
+- Final runtime branch: `agent/final-responsive-polish-reconciled`
+- Final runtime pull request: `#55`
 - Authoritative base audited before work: `main` at `915887f9fd5a204fc0aeacf5b281dbda717ecdd9`
-- Preceding completed screen: Profile
-- Profile runtime pull request: `#47`
-- Profile verified runtime head: `000c90b87984d41cd01a093a790457fb187ec7a3`
-- Profile runtime merge: `01e25967098594dbe67d4c523d12fe249e810564`
-- Profile Source of Truth synchronization: `915887f9fd5a204fc0aeacf5b281dbda717ecdd9`
-- Scope: final responsive/mobile polish only
-- Completion condition: all listed screens complete, full verification passes, and no additional redesign work remains
+- Verified final runtime head: `b4666c0c659520225d38e4408cc964b058bb401f`
+- Final verification: GitHub Actions `Fraud Academy Verify` run `#448`
+- Runtime merge commit: `f769d80e4b87d6d3e89095026df0bffd0355b6d7`
+- Deployment status on the runtime merge: Vercel success
+- Remaining redesign screens: none
+- Exact next redesign starting point: none
 
 ## Authority chain
 
@@ -27,9 +27,9 @@ Use these sources together:
 
 The display sources control layout, hierarchy, responsive behavior, accessibility, and screen presentation. The repository Source of Truth controls architecture, Evidence First, persistence, storage, routes, notes, reports, case behavior, and protected implementation boundaries.
 
-## Completed screen order
+## Completed locked order
 
-The runtime has completed the locked order:
+The merged runtime completed the required sequence without starting a later screen before the current screen passed:
 
 1. Dashboard
 2. Cases
@@ -41,67 +41,74 @@ The runtime has completed the locked order:
 8. Decision and Luna
 9. Academy
 10. Profile
+11. Final responsive/mobile polish
 
-This final step does not redesign or reorder those screens. It normalizes responsive safety across the completed runtime.
+No additional display module is authorized under this completed redesign scope.
 
-## Isolated scope
+## Final responsive ownership
 
-`src/displayFinalResponsivePolishV1.css` is the only new runtime presentation layer in this step. It loads after every approved screen theme so it can provide cross-screen safety without changing screen ownership.
+`src/displayFinalResponsivePolishV1.css` is the final imported presentation layer. It provides cross-screen responsive safety without replacing screen-specific ownership or changing investigation behavior.
 
-The polish layer provides:
+The final pass provides:
 
 - document and frame width containment;
 - safe wrapping for long case identifiers, record values, and labels;
 - responsive media sizing;
 - 44-pixel minimum interactive targets;
 - visible keyboard focus;
-- mobile safe-area padding;
-- compact-phone, standard-phone, large-phone/small-tablet, tablet, laptop, and wide-screen spacing calibration;
-- improved workspace header controls on mobile;
+- device safe-area padding;
+- compact-phone, standard-phone, large-phone/small-tablet, tablet, laptop, and wide-screen calibration;
+- compact Workspace header controls on mobile;
 - bottom-navigation touch spacing;
 - responsive action stacking;
 - reduced-motion support;
+- vertical-only workflow jumps that do not shift the page sideways;
+- visible approved-surface overflow checks during workflow stage changes;
 - no required horizontal page scrolling.
 
 ## Protected behavior
 
-The following remain unchanged:
+The completed redesign preserves:
 
 - Evidence First and neutral pre-submission wording;
-- Luna remains locked until a learner package is saved;
+- Luna locked until a learner package is saved;
 - all built-in and unlimited generated cases;
-- `src/data/generatedCaseRepository.js` as the IndexedDB-first persistence boundary;
-- localStorage migration and fallback behavior;
-- every storage key;
-- active-case switching;
-- case-scoped notes, pinned evidence, reviewed tools, reports, report packets, decision drafts, and review packages;
+- `src/data/generatedCaseRepository.js` as the IndexedDB-first generated-case persistence boundary;
+- localStorage migration and safe fallback behavior;
+- every existing storage key;
+- active-case switching and immediate generated-case opening;
+- case-scoped notes, pinned evidence, reviewed tools, reports, report packets, decision drafts, and learner packages;
 - all existing routes and investigation actions;
-- Dashboard, Cases, Workspace, and Academy as the only four permanent global destinations;
+- Dashboard, Cases, Workspace, and Academy as the four permanent global destinations;
 - Profile and Academy Progress as contextual routes;
 - Help and Settings behavior;
 - the single Connections → System Access Lane;
-- parked standalone System Access portals remain retired;
+- parked standalone System Access portals remaining retired;
 - fictional training-safe wording.
 
 The final polish layer does not call storage, generate cases, build learner packages, calculate Luna scoring, create fixed overlays, or add a required horizontal scroller.
 
-## Verification gate
+## Completed verification gate
 
-The final branch head must pass all of these gates before merge:
+GitHub Actions run `#448` passed the complete required gate on final head `b4666c0c659520225d38e4408cc964b058bb401f`:
 
 1. complete named `npm run verify` chain;
 2. production build;
-3. focused final responsive/mobile polish static guard;
-4. all existing screen-specific desktop Chromium checks;
-5. all existing screen-specific Pixel 7 Chromium checks;
-6. final cross-screen audit at 350, 412, 640, 768, 1024, and 1440 pixels;
-7. Dashboard, Cases, Workspace, Academy, and Profile global-surface width checks;
-8. Workspace Case Briefing, Investigate, Timeline, Determination, and Debrief width checks;
-9. compact-phone global-navigation touch-target checks;
-10. safe-area, focus, reduced-motion, and media-containment guards;
-11. unchanged generated-case and case-scoped persistence checks;
-12. Evidence First and Luna-lock checks.
+3. Evidence First wording guard;
+4. generated-case repository and unlimited-case guards;
+5. Luna lock and learner-package guards;
+6. all screen-specific approved-theme static checks;
+7. all existing desktop Chromium checks;
+8. all existing Pixel 7 Chromium checks;
+9. final cross-screen audit at 350, 412, 640, 768, 1024, and 1440 pixels;
+10. Dashboard, Cases, Workspace, Academy, and Profile global-surface width checks;
+11. Workspace Case Briefing, Investigate, Timeline, Determination, and Debrief width checks;
+12. compact-phone global-navigation touch-target checks;
+13. safe-area, focus, reduced-motion, and media-containment guards;
+14. visible approved-surface containment during workflow stage jumps;
+15. unchanged generated-case and case-scoped persistence behavior;
+16. no required horizontal page scrolling.
 
-## Exact next starting point
+## Completion rule
 
-After the final branch passes, merges, and the repository handoff is synchronized, report the display redesign complete and make no further changes. Future product work must begin under a new approved scope rather than silently extending this redesign sequence.
+The Fraud Academy display redesign is finished. Do not make further changes under this task. Future product or display work must start from current `main` under a new, explicitly approved scope.
