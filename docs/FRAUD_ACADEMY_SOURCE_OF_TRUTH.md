@@ -30,6 +30,8 @@ The runtime global navigation now uses Dashboard, Cases, Workspace, and Academy.
 
 The active case now exposes the approved seven-stage workflow rail: Case Briefing, Investigate, Timeline, Summary, Indicators, Determination, and Debrief. The existing category rail remains inside Investigate, and all pre-submission status language stays neutral.
 
+Display Phase 3 adds a presentation-only hierarchy and glow layer that reduces default saturation, reserves stronger emphasis for selected and focused controls, formalizes warning/locked/disabled states, and leaves all investigation behavior and persistence boundaries unchanged.
+
 ## Investigation doctrine
 
 ### Evidence First
@@ -133,6 +135,7 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 - `src/ActiveCaseWorkflowRail.jsx` owns the seven-stage active-case workflow, accessible current-step state, and neutral stage status copy. Case Briefing scrolls to the allegation/system-alert summary, Investigate returns to the category rail, Timeline and Summary open their existing tools, Indicators opens the neutral Evidence Center, Determination preserves the locked Submit Decision checklist, and Debrief routes to the locked/unlocked Luna panel.
 - `src/displayPhaseOne.css` owns the four-column global navigation override, accessible header-control surfaces, contextual Academy Progress shortcut, and reduced-motion presentation behavior. It must not absorb later workflow-rail, glow-calibration, or mobile-record work.
 - `src/displayPhaseTwo.css` owns only the active-case workflow rail layout, active/focus/status presentation, and compact responsive wrapping. It must not perform the Phase 3 glow calibration or Phase 4 mobile record conversion.
+- `src/displayPhaseThree.css` owns the presentation-only hierarchy, restrained glow, shared surfaces, selected states, keyboard focus, warning emphasis, locked presentation, and disabled controls. It must not hide core content, alter component props, perform mobile record conversion, or touch persistence.
 - `src/visualWorkspaceModel.js` owns workspace constants, storage keys, row builders, and Case Report packet construction so `src/VisualWorkspace.jsx` can keep shrinking into focused React modules without changing the screenshot-driven shell.
 - `src/useVisualWorkspaceCaseState.js` owns the six case-scoped browser-persistence slices for tray items, notes, reviewed tools, decision drafts, learner packages, and Case Report packets. Keep generated-case persistence separate behind `src/data/generatedCaseRepository.js`.
 - `src/useVisualWorkspaceActions.js` owns pinning, note saving, reviewed-tool updates, neutral Case Report packet creation, decision-draft updates, checklist handling, and learner-package submission. Keep Luna package events and Evidence First wording inside this focused action boundary rather than rebuilding them inline in `src/VisualWorkspace.jsx`.
@@ -167,9 +170,9 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 - The single Connections → System Access Lane stays available, but the parked ten-module System Access portal must not be revived.
 - Desktop category and workflow controls must remain pointer-accessible and must not be covered by sticky right-side investigation panels or the fixed bottom navigation.
 - Display changes must not introduce required horizontal page scrolling. Dense mobile records should become cards, drawers, or another touch-friendly presentation during the dedicated responsive phase.
-- `npm run verify` must preserve the Evidence First wording check, functional smoke guard, visual three-case smoke guard, generated-case repository smoke guard, Luna single-module smoke guard, review-package behavior smoke check, remaining-module depth guard, Navigation direct-collapse guard, Academy Progress package-flow guard, Case Summary direct-collapse guard, workspace case-state hook guard, workspace-action controller guard, display-handoff guard, Display Phase 1 global-shell guard, Display Phase 2 workflow-rail guard, and production build.
+- `npm run verify` must preserve the Evidence First wording check, functional smoke guard, visual three-case smoke guard, generated-case repository smoke guard, Luna single-module smoke guard, review-package behavior smoke check, remaining-module depth guard, Navigation direct-collapse guard, Academy Progress package-flow guard, Case Summary direct-collapse guard, workspace case-state hook guard, workspace-action controller guard, display-handoff guard, Display Phase 1 global-shell guard, Display Phase 2 workflow-rail guard, Display Phase 3 hierarchy guard, and production build.
 - `.github/workflows/build.yml` must also run Playwright against desktop and mobile Chromium for all three built-in cases, generated-case immediate open and persistence, the completed core modules, Connections → System Access Lane, Luna’s pre-submission lock, and the active-case workflow surface.
 
 ## Next safe display item
 
-After Display Phase 2 passes its full verify and browser gates, begin only Phase 3 from `docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md`: calibrate hierarchy and glow without changing workflow behavior, mobile record presentation, Evidence First, Luna gating, generated-case persistence, or the System Access boundary.
+After Display Phase 3 passes its full verify and browser gates, begin only Phase 4 from `docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md`: convert dense mobile records to touch-friendly no-horizontal-scroll presentation without changing workflow behavior, Evidence First, Luna gating, generated-case persistence, or the System Access boundary.
