@@ -17,6 +17,7 @@ const forbiddenLockedCopy = /(?:\/100|Strong package|Solid package|Developing pa
 
 async function seedReadyCase(page) {
   await page.addInitScript(({ activeCaseId, completedTools }) => {
+    if (sessionStorage.getItem('fraud-academy-decision-luna-test-seeded') === 'yes') return;
     localStorage.setItem('fraud-academy-completed-tools-v1', JSON.stringify({ [activeCaseId]: completedTools }));
     localStorage.setItem('fraud-academy-visual-tray-v1', JSON.stringify({ [activeCaseId]: ['TRAINING-ID-1001', 'EVT-1014'] }));
     localStorage.setItem('fraud-academy-notes-v1', JSON.stringify({
@@ -25,6 +26,7 @@ async function seedReadyCase(page) {
     localStorage.setItem('fraud-academy-case-report-packets-v1', JSON.stringify({ [activeCaseId]: [] }));
     localStorage.removeItem('fraud-academy-review-packages-v1');
     localStorage.removeItem('fraud-academy-decision-drafts-v1');
+    sessionStorage.setItem('fraud-academy-decision-luna-test-seeded', 'yes');
   }, { activeCaseId: caseId, completedTools: requiredTools });
 }
 
