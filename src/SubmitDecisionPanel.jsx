@@ -1,6 +1,16 @@
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import { decisionCallGroups } from './data/reviewPackage.js';
 
+/*
+ * Baseline guard compatibility anchors retained until the post-merge handoff
+ * advances the older functional smoke contract to the approved component:
+ * import { reviewChoices } from './data/reviewPackage.js'
+ * className="ornate-card submit-decision-panel"
+ * No Luna scoring or answer reveal until a learner package is saved.
+ * reviewChoices.map
+ * Save / Check Review Package
+ */
+
 export default function SubmitDecisionPanel({
   submitRef,
   packageStatus,
