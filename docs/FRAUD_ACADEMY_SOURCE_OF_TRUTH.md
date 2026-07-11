@@ -125,7 +125,7 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 
 ## Current v1.0 implementation anchors
 
-- The screenshot-driven visual shell is the active transitional app entrypoint. Keep it intact until each focused display phase in `docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md` passes verification and browser coverage.
+- The screenshot-driven visual shell is the active app entrypoint and remains transitional. Keep it intact until each focused display phase in `docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md` passes verification and browser coverage.
 - `src/VisualApp.jsx` coordinates the active case, live case catalog, and visual navigation tab through React state so case switching, generated-case opening, Tool Map, Open Evidence Center, and Submit Decision routing do not depend on DOM repair scripts.
 - `src/VisualShellHeader.jsx` owns the ornate app header and active case strip, including the Case Queue dropdown. Preserve its working case-switch behavior during the future header-control phase.
 - `src/visualWorkspaceModel.js` owns workspace constants, storage keys, row builders, and Case Report packet construction so `src/VisualWorkspace.jsx` can keep shrinking into focused React modules without changing the screenshot-driven shell.
