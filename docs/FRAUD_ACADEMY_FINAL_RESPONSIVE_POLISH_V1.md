@@ -2,17 +2,18 @@
 
 ## Status
 
-This handoff records the final cross-screen responsive/mobile polish candidate after every isolated approved-theme v1 screen redesign.
+This handoff records the completed final cross-screen responsive/mobile polish after every isolated approved-theme v1 screen redesign.
 
 - Runtime branch: `agent/final-responsive-polish-reconciled`
 - Authoritative base audited before work: `main` at `915887f9fd5a204fc0aeacf5b281dbda717ecdd9`
-- Preceding completed screen: Profile
-- Profile runtime pull request: `#47`
-- Profile verified runtime head: `000c90b87984d41cd01a093a790457fb187ec7a3`
-- Profile runtime merge: `01e25967098594dbe67d4c523d12fe249e810564`
-- Profile Source of Truth synchronization: `915887f9fd5a204fc0aeacf5b281dbda717ecdd9`
+- Final verified runtime head: `b4666c0c659520225d38e4408cc964b058bb401f`
+- Runtime pull request: `#55`
+- Runtime merge on `main`: `f769d80e4b87d6d3e89095026df0bffd0355b6d7`
+- Final verification: GitHub Actions `Fraud Academy Verify` run `#448` passed the complete named smoke chain, production build, desktop Chromium, Pixel 7 Chromium, and the six-range cross-screen responsive audit
+- Handoff synchronization branch: `agent/final-responsive-polish-handoff-sync`
 - Scope: final responsive/mobile polish only
-- Completion condition: all listed screens complete, full verification passes, and no additional redesign work remains
+- Completion state: **all listed screens complete**
+- Remaining redesign work: none
 
 ## Authority chain
 
@@ -29,7 +30,7 @@ The display sources control layout, hierarchy, responsive behavior, accessibilit
 
 ## Completed screen order
 
-The runtime has completed the locked order:
+The locked display redesign order is complete:
 
 1. Dashboard
 2. Cases
@@ -41,14 +42,15 @@ The runtime has completed the locked order:
 8. Decision and Luna
 9. Academy
 10. Profile
+11. Final responsive/mobile polish
 
-This final step does not redesign or reorder those screens. It normalizes responsive safety across the completed runtime.
+No screen remains in this redesign sequence.
 
-## Isolated scope
+## Final responsive scope
 
-`src/displayFinalResponsivePolishV1.css` is the only new runtime presentation layer in this step. It loads after every approved screen theme so it can provide cross-screen safety without changing screen ownership.
+`src/displayFinalResponsivePolishV1.css` is the final cross-screen presentation layer. It loads after every approved screen theme and provides responsive safety without changing screen ownership.
 
-The polish layer provides:
+The completed polish layer provides:
 
 - document and frame width containment;
 - safe wrapping for long case identifiers, record values, and labels;
@@ -61,6 +63,7 @@ The polish layer provides:
 - bottom-navigation touch spacing;
 - responsive action stacking;
 - reduced-motion support;
+- stable vertical workflow jumps without horizontal drift;
 - no required horizontal page scrolling.
 
 ## Protected behavior
@@ -83,11 +86,11 @@ The following remain unchanged:
 - parked standalone System Access portals remain retired;
 - fictional training-safe wording.
 
-The final polish layer does not call storage, generate cases, build learner packages, calculate Luna scoring, create fixed overlays, or add a required horizontal scroller.
+The final polish does not generate cases, replace persistence, build learner packages, calculate Luna scoring, expose answer guidance, create fixed overlays, or add a required horizontal scroller.
 
-## Verification gate
+## Completed verification
 
-The final branch head must pass all of these gates before merge:
+The exact final runtime head passed:
 
 1. complete named `npm run verify` chain;
 2. production build;
@@ -96,12 +99,13 @@ The final branch head must pass all of these gates before merge:
 5. all existing screen-specific Pixel 7 Chromium checks;
 6. final cross-screen audit at 350, 412, 640, 768, 1024, and 1440 pixels;
 7. Dashboard, Cases, Workspace, Academy, and Profile global-surface width checks;
-8. Workspace Case Briefing, Investigate, Timeline, Determination, and Debrief width checks;
-9. compact-phone global-navigation touch-target checks;
-10. safe-area, focus, reduced-motion, and media-containment guards;
-11. unchanged generated-case and case-scoped persistence checks;
-12. Evidence First and Luna-lock checks.
+8. visible approved-surface containment during workflow stage jumps;
+9. Workspace Case Briefing, Investigate, Timeline, Determination, and Debrief width checks;
+10. compact-phone global-navigation touch-target checks;
+11. safe-area, focus, reduced-motion, and media-containment guards;
+12. unchanged generated-case and case-scoped persistence checks;
+13. Evidence First and Luna-lock checks.
 
-## Exact next starting point
+## Final repository state
 
-After the final branch passes, merges, and the repository handoff is synchronized, report the display redesign complete and make no further changes. Future product work must begin under a new approved scope rather than silently extending this redesign sequence.
+The display redesign is complete and verified. There is no next screen and no next redesign starting point. Future product or visual work must begin under a new approved scope and a fresh repository audit. Do not continue changing the completed display sequence automatically.
