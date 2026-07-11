@@ -56,13 +56,20 @@ export default function LunaPostSubmissionPanel({
 
   useEffect(() => {
     const refresh = () => setVersion((current) => current + 1);
+    let packageRefreshTimer = null;
+    const refreshAfterPackageSaved = () => {
+      if (packageRefreshTimer !== null) window.clearTimeout(packageRefreshTimer);
+      packageRefreshTimer = window.setTimeout(refresh, 0);
+    };
+
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
-    window.addEventListener('fraud-academy:package-saved', refresh);
+    window.addEventListener('fraud-academy:package-saved', refreshAfterPackageSaved);
     return () => {
       window.removeEventListener('storage', refresh);
       window.removeEventListener('focus', refresh);
-      window.removeEventListener('fraud-academy:package-saved', refresh);
+      window.removeEventListener('fraud-academy:package-saved', refreshAfterPackageSaved);
+      if (packageRefreshTimer !== null) window.clearTimeout(packageRefreshTimer);
     };
   }, []);
 
