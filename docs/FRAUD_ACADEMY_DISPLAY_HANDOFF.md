@@ -17,7 +17,7 @@ Historical PR #2, stale branches, archived design notes, and retired DOM patches
 
 The current screenshot-driven visual shell remains the active runtime until a focused display phase replaces a specific surface and passes the full verification and browser gates. Do not perform a broad theme rewrite, replace working investigation behavior, or mix several display phases into one pull request.
 
-Display Phase 1 replaced only the global navigation and header-control surface. Display Phase 2 added only the active-case workflow rail. Display Phase 3 calibrates hierarchy, glow, and interaction states without changing component behavior, persistence, or dense record layouts. Responsive record presentation, investigation panels, review flow, Luna panel, and generated-case controls stay on the existing verified runtime until their own focused phases pass.
+Display Phase 1 replaced only the global navigation and header-control surface. Display Phase 2 added only the active-case workflow rail. Display Phase 3 calibrated hierarchy, glow, and interaction states without changing component behavior or persistence. Display Phase 4 converts dense investigation records into labeled, touch-friendly mobile cards while preserving the desktop table, record data, investigation actions, and storage boundaries.
 
 ## Approved global structure target
 
@@ -99,6 +99,8 @@ Mobile rules:
 
 The Phase 2 rail wraps from seven columns to four and then two columns, avoiding required horizontal page scrolling while keeping every stage directly reachable.
 
+The Phase 4 runtime keeps semantic desktop tables above 760 pixels and converts each record into a labeled card at phone widths. Column labels are supplied through `data-field`, the desktop header is hidden only on mobile, action buttons remain at least 44 pixels tall, and compact-phone labels stack at 420 pixels without adding a horizontal scroller.
+
 ## Architecture and safety boundaries
 
 Every display phase must preserve all of the following:
@@ -162,12 +164,25 @@ Completed in the focused hierarchy-and-glow change:
 
 ### Phase 4 - Responsive record presentation
 
+Completed in the focused responsive-record change:
+
+- Added semantic table, row, column-header, and cell roles to the existing investigation record surface.
+- Added stable `data-field` labels and record IDs without changing the row data or investigation actions.
+- Added `src/displayPhaseFour.css` after the verified Phase 1 through Phase 3 layers.
+- Kept the desktop table presentation intact while converting records into labeled cards at 760 pixels and below.
+- Stacked labels and values on compact phones, preserved 44-pixel action targets, and avoided required horizontal scrolling.
+- Added a neutral empty-search state without changing search behavior.
+- Extended Playwright coverage across Desktop Chrome and Pixel 7 for desktop headers, mobile labels, card layout, no page overflow, and the Evidence First lock.
+- `scripts/display-phase-four-smoke-check.mjs` guards semantic anchors, style wiring, browser coverage, no-horizontal-scroller rules, and persistence/behavior boundaries.
+
+### Phase 5 - Final Bible and release-readiness audit
+
 Next isolated item:
 
-- Replace mobile table overflow with record cards, drawers, or another no-horizontal-scroll pattern.
-- Validate compact phone through wide desktop behavior.
-- Extend Playwright coverage for the changed surfaces.
-- Do not combine investigation logic, persistence changes, or System Access expansion.
+- Compare the exact merged display tree against Fraud Academy Bible v2.1, Fraud Academy Display Bible v1.0, this handoff, and the live Source of Truth.
+- Run the full named verification suite and desktop/mobile browser jobs on the exact merge candidate.
+- Confirm all three built-in cases plus a generated case preserve routes, storage, Evidence First, Luna gating, and System Access boundaries.
+- Record any remaining display gaps without introducing a new redesign or unrelated feature work.
 
 ## Required verification for every display pull request
 
@@ -189,4 +204,4 @@ A display pull request is not complete until it confirms:
 
 ## Next safe item
 
-After Phase 3 merges and its exact tree passes the full verify and browser jobs, the next isolated display item is Phase 4: responsive record presentation only. Replace dense mobile record overflow without changing generated-case storage, investigation behavior, Evidence First, Luna gating, or the single System Access boundary.
+After Phase 4 merges and its exact tree passes the full verify and browser jobs, begin only Phase 5: the final Bible and release-readiness audit. Do not combine the audit with a new theme rewrite, persistence migration, investigation behavior change, or System Access expansion.
