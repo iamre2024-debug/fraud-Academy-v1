@@ -6,6 +6,7 @@ This handoff records the isolated approved-theme v1 redesign for the **Timeline 
 
 - Branch: `agent/timeline-approved-theme-v1`
 - Base audited before work: `main` at `5bbc875ad460f36762b98294f95017a80c9e2a7d`
+- Verified runtime merge on `main`: `25b5d19bc687003b5df72f4e95748d78b2eff590`
 - Preceding completed screen group: Investigation tools
 - Next isolated screen after this change passes and merges: **Decision & Luna only**
 

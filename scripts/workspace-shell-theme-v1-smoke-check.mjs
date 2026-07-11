@@ -80,10 +80,10 @@ mustContain('workspace-shell-browser.spec.mjs', browser, 'approved Workspace she
 mustContain('workspace-shell-browser.spec.mjs', browser, '.workspace-shell-heading');
 mustContain('Workspace shell handoff', handoff, 'agent/workspace-shell-approved-theme-v1');
 mustContain('Workspace shell handoff', handoff, 'Case Briefing');
-mustContain('Source of Truth', sourceOfTruth, 'Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, and Investigation tools are the completed approved replacements');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Timeline only**');
-mustContain('README', readme, 'The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, and Investigation tools theme v1 replacements are merged');
-mustContain('README', readme, 'The next isolated screen is **Timeline only**');
+mustContain('Source of Truth', sourceOfTruth, 'Dashboard, Cases, the Workspace shell, Case Briefing, Customer 360, Investigation tools, and Timeline are the completed approved replacements');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Decision & Luna only**');
+mustContain('README', readme, 'The approved Dashboard, Cases, Workspace shell, Case Briefing, Customer 360, Investigation tools, and Timeline theme v1 replacements are merged');
+mustContain('README', readme, 'The next isolated screen is **Decision & Luna only**');
 
 for (const forbidden of [
   'generatedCaseRepository',

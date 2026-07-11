@@ -91,8 +91,8 @@ mustContain('timeline-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('timeline-browser.spec.mjs', browser, 'data-timeline-screen="approved-theme-v1"');
 mustContain('Timeline handoff', handoff, 'agent/timeline-approved-theme-v1');
 mustContain('Timeline handoff', handoff, 'Decision & Luna only');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Timeline only**');
-mustContain('README', readme, 'The next isolated screen is **Timeline only**');
+mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **Decision & Luna only**');
+mustContain('README', readme, 'The next isolated screen is **Decision & Luna only**');
 mustContain('package.json', packageJson, 'timeline-theme-v1-smoke-check');
 mustContain('build.yml', workflow, 'Timeline approved-theme v1 smoke check');
 
@@ -126,4 +126,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Timeline approved-theme v1 smoke check passed. Case-scoped event ordering, source links, search, filtering, event actions, responsive safety, Evidence First wording, Luna locking, and protected persistence boundaries remain intact.');
+console.log('Timeline approved-theme v1 smoke check passed. Case-scoped event ordering, source links, search, filtering, event actions, responsive safety, Evidence First wording, Luna locking, protected persistence boundaries, and the Decision & Luna-only handoff remain intact.');
