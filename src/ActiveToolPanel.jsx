@@ -8,6 +8,10 @@ function lineBreaks(value) {
 }
 
 function purposeFor(tool) {
+  if (tool === 'Customer 360') {
+    return 'Review the customer profile, account relationship, contact points, and case-linked identity context before interpreting activity.';
+  }
+
   if (tool === 'Device Intelligence') {
     return 'Device IDs help separate repeated known devices from new devices. Repeated device names keep the same fictional Device ID for this customer.';
   }
@@ -45,6 +49,7 @@ export default function ActiveToolPanel({
     : displayData.rows.filter((row) => !normalizedQuery || row.detail.toLowerCase().includes(normalizedQuery));
   const selectedId = selectedRecordId || activeRow?.id;
   const displayActiveRow = displayRows.find((row) => row.id === selectedId) ?? displayRows[0];
+  const isCustomer360 = tool === 'Customer 360';
 
   useEffect(() => {
     setSelectedRecordId('');
@@ -64,8 +69,14 @@ export default function ActiveToolPanel({
   }
 
   return (
-    <section className="ornate-card activity-panel">
-      <div className="activity-heading"><h2>▣ {activeCategory.label}</h2><select className="tool-select" value={tool} onChange={(event) => openTool(event.target.value)}>{activeCategory.tools.map((item) => <option key={item}>{item}</option>)}</select><span className="panel-cat">🐈‍⬛</span></div>
+    <section className={`ornate-card activity-panel${isCustomer360 ? ' customer-360-panel' : ''}`} data-tool={tool}>
+      <div className="activity-heading">
+        <div>
+          <span className="tool-context-label">{activeCategory.label}</span>
+          <h2>{isCustomer360 ? 'Customer 360' : tool}</h2>
+        </div>
+        <select className="tool-select" value={tool} onChange={(event) => openTool(event.target.value)} aria-label="Choose investigation tool">{activeCategory.tools.map((item) => <option key={item}>{item}</option>)}</select>
+      </div>
       <div className="tool-purpose-card"><strong>{tool}</strong><DirectCollapsibleText lines={2}>{purposeFor(tool)}</DirectCollapsibleText><div className="tool-flow-chips">{workflows.map((item) => <span key={item}>{item}</span>)}</div><button type="button" className="decision-route-mini" onClick={jumpDecision}>Open Submit Decision</button></div>
       <div className="workspace-search-row"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search records, history, device, IP, merchant, document..."/><span>{displayRows.length} of {displayData.rows.length} shown</span></div>
       <div className="activity-table"><div className="activity-row table-head">{displayData.columns.map((item) => <span key={item}>{item}</span>)}</div>{displayRows.map((row) => <div key={row.id} className={`activity-row ${displayActiveRow?.id === row.id ? 'expanded' : ''}`}>{row.values.map((value, index) => <span key={`${row.id}-${index}`}>{lineBreaks(value)}</span>)}<div className="row-action-group"><button type="button" className="row-expand-button" onClick={() => expandRecord(row.id)}>Expand</button><button type="button" className="row-pin-button" onClick={() => pin(row.pin)}>📌</button></div></div>)}</div>
