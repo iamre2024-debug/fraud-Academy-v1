@@ -2,21 +2,21 @@
 
 ## Status
 
-This handoff records the final cross-screen responsive/mobile polish candidate after every isolated approved-theme v1 screen redesign.
+The locked Fraud Academy display redesign is complete. Every isolated approved-theme v1 screen and the final cross-screen responsive/mobile polish passed its required verification gate and merged into `main`.
 
 - Runtime branch: `agent/final-responsive-polish-reconciled`
 - Authoritative base audited before work: `main` at `915887f9fd5a204fc0aeacf5b281dbda717ecdd9`
-- Preceding completed screen: Profile
-- Profile runtime pull request: `#47`
-- Profile verified runtime head: `000c90b87984d41cd01a093a790457fb187ec7a3`
-- Profile runtime merge: `01e25967098594dbe67d4c523d12fe249e810564`
-- Profile Source of Truth synchronization: `915887f9fd5a204fc0aeacf5b281dbda717ecdd9`
-- Scope: final responsive/mobile polish only
-- Completion condition: all listed screens complete, full verification passes, and no additional redesign work remains
+- Runtime pull request: `#55`
+- Final verified runtime head: `b4666c0c659520225d38e4408cc964b058bb401f`
+- Runtime merge on `main`: `f769d80e4b87d6d3e89095026df0bffd0355b6d7`
+- Final verification: GitHub Actions `Fraud Academy Verify` run `#448` passed the complete named smoke chain, production build, desktop Chromium, Pixel 7 Chromium, and the six-range responsive browser audit
+- Deployment status on the merge commit: Vercel check passed
+- Completion synchronization branch: `agent/final-display-redesign-completion-sync`
+- Completion condition: all listed screens complete, final responsive/mobile verification passed, and no additional display-redesign work remains
 
 ## Authority chain
 
-Use these sources together:
+The completed redesign used these sources together:
 
 1. Fraud Academy Bible v2.1
 2. Fraud Academy Display Bible v1.0 - New Design Exploration
@@ -25,11 +25,11 @@ Use these sources together:
 5. Approved mobile reference
 6. `docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md`
 
-The display sources control layout, hierarchy, responsive behavior, accessibility, and screen presentation. The repository Source of Truth controls architecture, Evidence First, persistence, storage, routes, notes, reports, case behavior, and protected implementation boundaries.
+The display sources controlled layout, hierarchy, responsive behavior, accessibility, and screen presentation. The repository Source of Truth continued to control architecture, Evidence First, persistence, storage, routes, notes, reports, case behavior, and protected implementation boundaries.
 
-## Completed screen order
+## Completed locked order
 
-The runtime has completed the locked order:
+The completed and verified order is:
 
 1. Dashboard
 2. Cases
@@ -41,31 +41,33 @@ The runtime has completed the locked order:
 8. Decision and Luna
 9. Academy
 10. Profile
+11. Final responsive/mobile polish
 
-This final step does not redesign or reorder those screens. It normalizes responsive safety across the completed runtime.
+No screen was intentionally combined with the next screen in the locked order. Each runtime milestone used a focused branch or pull request and passed desktop and mobile verification before the sequence advanced.
 
-## Isolated scope
+## Final responsive scope
 
-`src/displayFinalResponsivePolishV1.css` is the only new runtime presentation layer in this step. It loads after every approved screen theme so it can provide cross-screen safety without changing screen ownership.
+`src/displayFinalResponsivePolishV1.css` is the presentation-only cross-screen safety layer. It loads after the approved screen themes and provides:
 
-The polish layer provides:
-
-- document and frame width containment;
-- safe wrapping for long case identifiers, record values, and labels;
+- document, frame, and visible-surface width containment;
+- safe wrapping for long case identifiers, evidence values, and labels;
 - responsive media sizing;
 - 44-pixel minimum interactive targets;
 - visible keyboard focus;
 - mobile safe-area padding;
 - compact-phone, standard-phone, large-phone/small-tablet, tablet, laptop, and wide-screen spacing calibration;
-- improved workspace header controls on mobile;
-- bottom-navigation touch spacing;
+- compact mobile Workspace-header controls;
+- contained four-item bottom navigation;
+- vertically aligned workflow jumps across mobile widths;
 - responsive action stacking;
 - reduced-motion support;
 - no required horizontal page scrolling.
 
+The final browser matrix covers 350, 412, 640, 768, 1024, and 1440-pixel widths across the approved global surfaces and key Workspace workflow stages.
+
 ## Protected behavior
 
-The following remain unchanged:
+The redesign preserved:
 
 - Evidence First and neutral pre-submission wording;
 - Luna remains locked until a learner package is saved;
@@ -83,25 +85,26 @@ The following remain unchanged:
 - parked standalone System Access portals remain retired;
 - fictional training-safe wording.
 
-The final polish layer does not call storage, generate cases, build learner packages, calculate Luna scoring, create fixed overlays, or add a required horizontal scroller.
+The final polish does not call persistence, generate cases, build learner packages, calculate Luna scoring, add a second navigation model, or introduce a required horizontal scroller.
 
-## Verification gate
+## Completed verification
 
-The final branch head must pass all of these gates before merge:
+The final verified head passed:
 
-1. complete named `npm run verify` chain;
+1. the complete named `npm run verify` chain;
 2. production build;
-3. focused final responsive/mobile polish static guard;
-4. all existing screen-specific desktop Chromium checks;
-5. all existing screen-specific Pixel 7 Chromium checks;
-6. final cross-screen audit at 350, 412, 640, 768, 1024, and 1440 pixels;
-7. Dashboard, Cases, Workspace, Academy, and Profile global-surface width checks;
-8. Workspace Case Briefing, Investigate, Timeline, Determination, and Debrief width checks;
-9. compact-phone global-navigation touch-target checks;
-10. safe-area, focus, reduced-motion, and media-containment guards;
-11. unchanged generated-case and case-scoped persistence checks;
-12. Evidence First and Luna-lock checks.
+3. the focused final responsive/mobile static guard;
+4. every existing approved-screen static guard;
+5. every existing desktop Chromium browser test;
+6. every existing Pixel 7 Chromium browser test;
+7. the six-range cross-screen audit at 350, 412, 640, 768, 1024, and 1440 pixels;
+8. Dashboard, Cases, Workspace, Academy, Profile, and contextual route width checks;
+9. Case Briefing, Investigate, Timeline, Determination, and Debrief workflow-stage checks;
+10. compact-phone global-navigation and touch-target checks;
+11. safe-area, focus, reduced-motion, media-containment, and visible-approved-surface guards;
+12. generated-case and case-scoped persistence checks;
+13. Evidence First and Luna-lock checks.
 
 ## Exact next starting point
 
-After the final branch passes, merges, and the repository handoff is synchronized, report the display redesign complete and make no further changes. Future product work must begin under a new approved scope rather than silently extending this redesign sequence.
+There is no next screen in the approved display-redesign sequence. Do not make further display changes under this completed scope. Any future product, visual, architecture, or feature work must begin with a newly approved scope, a fresh audit of current `main`, and a separate safe branch or pull request.
