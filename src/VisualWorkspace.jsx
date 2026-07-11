@@ -7,16 +7,17 @@ import BottomInvestigationGrid from './BottomInvestigationGrid.jsx';
 import CaseSummaryCard from './CaseSummaryCard.jsx';
 import CategoryTileRail from './CategoryTileRail.jsx';
 import Customer360Panel from './Customer360Panel.jsx';
+import InvestigationToolPanel from './InvestigationToolPanel.jsx';
 import SubmitDecisionPanel from './SubmitDecisionPanel.jsx';
 import useVisualWorkspaceActions from './useVisualWorkspaceActions.js';
 import useVisualWorkspaceCaseState from './useVisualWorkspaceCaseState.js';
 import VisualShellHeader from './VisualShellHeader.jsx';
 import {
-  categories,
-  rowsFor,
-} from './visualWorkspaceModel.js';
-
-const workspaceTools = categories.flatMap((category) => category.tools);
+  groupForTool,
+  investigationToolGroups,
+  workspaceTools,
+} from './investigationToolGroups.js';
+import { rowsFor } from './visualWorkspaceModel.js';
 
 function stageForTool(toolName) {
   if (toolName === 'Timeline') return 'timeline';
@@ -49,7 +50,9 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setPackagesByCase,
     setPacketsByCase,
   } = useVisualWorkspaceCaseState(activeCase);
-  const activeCategory = categories.find((item) => item.key === categoryKey) ?? categories[1];
+  const activeCategory = groupForTool(tool)
+    ?? investigationToolGroups.find((item) => item.key === categoryKey)
+    ?? investigationToolGroups[1];
   const data = rowsFor(tool, activeCase, reportPackets);
   const rows = useMemo(() => data.rows.filter((row) => !query || row.detail.toLowerCase().includes(query.toLowerCase())), [data.rows, query]);
   const activeRow = rows.find((row) => row.id === expandedId) ?? rows[0];
@@ -120,7 +123,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   }
 
   function openTool(nextTool, nextStage = stageForTool(nextTool)) {
-    const nextCategory = categories.find((item) => item.tools.includes(nextTool)) ?? categories[1];
+    const nextCategory = groupForTool(nextTool) ?? investigationToolGroups[1];
     onNavigate('workspace');
     setActiveStage(nextStage);
     setCategoryKey(nextCategory.key);
@@ -236,7 +239,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
         <section className="workflow-investigate-stage" data-workflow-stage="investigate" aria-label="Investigate stage categories">
           <CategoryTileRail
-            categories={categories}
+            categories={investigationToolGroups}
             categoryKey={categoryKey}
             currentCompleted={currentCompleted}
             onNavigate={onNavigate}
@@ -250,8 +253,10 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
         <div className="workflow-active-tool-stage" data-active-workflow-stage={activeStage}>
           {tool === 'Customer 360' ? (
             <Customer360Panel {...activeToolProps} />
-          ) : (
+          ) : ['Timeline', 'Case Report'].includes(tool) ? (
             <ActiveToolPanel {...activeToolProps} />
+          ) : (
+            <InvestigationToolPanel {...activeToolProps} />
           )}
         </div>
 

@@ -36,11 +36,11 @@ mustContain('displayPhaseFour.css', styles, 'box-sizing: border-box;');
 mustContain('displayPhaseFour.css', styles, '@media (max-width: 420px)');
 mustContain('main.jsx', entrypoint, "import './displayPhaseFour.css';");
 
-mustContain('browser-smoke.spec.mjs', browser, 'responsive records become labeled mobile cards without record-surface overflow');
-mustContain('browser-smoke.spec.mjs', browser, 'panelFits: withinViewport(panel)');
+mustContain('browser-smoke.spec.mjs', browser, 'responsive investigation records stay inside the viewport');
+mustContain('browser-smoke.spec.mjs', browser, 'panelFits: withinViewport(panelElement)');
 mustContain('browser-smoke.spec.mjs', browser, 'recordOverflow: record.scrollWidth - record.clientWidth');
 mustContain('browser-smoke.spec.mjs', browser, "testInfo.project.name === 'mobile-chromium'");
-mustContain('browser-smoke.spec.mjs', browser, "getComputedStyle(element, '::before').content");
+mustContain('browser-smoke.spec.mjs', browser, 'fieldColumns: fieldGrid ? getComputedStyle(fieldGrid).gridTemplateColumns');
 
 mustContain('Display Handoff', displayHandoff, 'Completed in the focused responsive-record change:');
 mustContain('Source of Truth', sourceOfTruth, '`src/displayPhaseFour.css`');
@@ -67,4 +67,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Display Phase 4 smoke check passed. Dense records become labeled mobile cards without record-surface overflow, while desktop tables and protected investigation behavior remain intact.');
+console.log('Display Phase 4 smoke check passed. Legacy dense records retain labeled mobile-card behavior, approved Investigation-tool records stay within the viewport, and protected investigation behavior remains intact.');
