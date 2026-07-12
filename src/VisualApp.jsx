@@ -13,7 +13,7 @@ const enrichedBaseCases = enrichTrainingCases(baseCases);
 
 export default function VisualApp() {
   const [caseCatalog, setCaseCatalog] = useState(enrichedBaseCases);
-  const [activeTab, setActiveTab] = useState('workspace');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [activeCaseId, setActiveCaseId] = useState(() => enrichedBaseCases[0]?.id ?? '');
   const activeCase = caseCatalog.find((item) => item.id === activeCaseId) ?? caseCatalog[0];
 
