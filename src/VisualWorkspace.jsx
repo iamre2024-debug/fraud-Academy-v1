@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from 'react';
 import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import ActiveCaseWorkflowRail from './ActiveCaseWorkflowRail.jsx';
-import ActiveToolPanel from './ActiveToolPanel.jsx';
 import BottomInvestigationGrid from './BottomInvestigationGrid.jsx';
 import CaseSummaryCard from './CaseSummaryCard.jsx';
 import CategoryTileRail from './CategoryTileRail.jsx';
@@ -22,8 +21,6 @@ import { rowsFor } from './visualWorkspaceModel.js';
 
 function stageForTool(toolName) {
   if (toolName === 'Timeline') return 'timeline';
-  if (toolName === 'Case Report') return 'summary';
-  if (['Evidence Center', 'Document Viewer', 'Link Analysis'].includes(toolName)) return 'indicators';
   return 'investigate';
 }
 
@@ -34,6 +31,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   const [query, setQuery] = useState('');
   const [expandedId, setExpandedId] = useState('');
   const [noteDraft, setNoteDraft] = useState('');
+  const [mobileToolOpen, setMobileToolOpen] = useState(false);
   const submitRef = useRef(null);
 
   const activeCase = cases.find((item) => item.id === activeCaseId) ?? cases[0];
@@ -101,10 +99,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       label: currentCompleted.includes('Timeline') ? 'Reviewed' : 'Open',
       state: currentCompleted.includes('Timeline') ? 'complete' : 'open',
     },
-    summary: {
-      label: currentCompleted.includes('Case Report') ? 'Reviewed' : 'Open',
-      state: currentCompleted.includes('Case Report') ? 'complete' : 'open',
-    },
     indicators: {
       label: collectedIndicators ? `${collectedIndicators} collected` : 'Open',
       state: collectedIndicators ? 'in-progress' : 'open',
@@ -146,7 +140,16 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setTool(nextTool);
     setQuery('');
     setExpandedId('');
-    scrollToWorkspace('.activity-panel');
+    setMobileToolOpen(true);
+    scrollToWorkspace('.workflow-active-tool-stage');
+  }
+
+  function returnToToolMenu() {
+    setMobileToolOpen(false);
+    setActiveStage('investigate');
+    setQuery('');
+    setExpandedId('');
+    scrollToWorkspace('[data-workflow-stage="investigate"]');
   }
 
   function changeCase(nextCaseId) {
@@ -156,10 +159,12 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setTool('Login History');
     setQuery('');
     setExpandedId('');
+    setMobileToolOpen(false);
   }
 
   function jumpDecision() {
     onNavigate('workspace');
+    setMobileToolOpen(false);
     setActiveStage('determination');
     window.setTimeout(() => {
       resetWorkspaceInlineScroll();
@@ -170,18 +175,21 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
   function openNotes() {
     onNavigate('workspace');
+    setMobileToolOpen(false);
     setActiveStage('indicators');
     scrollToWorkspace('.notebook-card', 80);
   }
 
   function openMoreTools() {
     onNavigate('workspace');
+    setMobileToolOpen(false);
     setActiveStage('investigate');
     scrollToWorkspace('[data-workflow-stage="investigate"]', 80);
   }
 
   function selectWorkflowStage(nextStage) {
     onNavigate('workspace');
+    setMobileToolOpen(false);
     setActiveStage(nextStage);
 
     if (nextStage === 'briefing') {
@@ -196,12 +204,8 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       openTool('Timeline', 'timeline');
       return;
     }
-    if (nextStage === 'summary') {
-      openTool('Case Report', 'summary');
-      return;
-    }
     if (nextStage === 'indicators') {
-      openTool('Evidence Center', 'indicators');
+      scrollToWorkspace('[data-workflow-stage="indicators"]');
       return;
     }
     if (nextStage === 'determination') {
@@ -209,6 +213,15 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       return;
     }
     scrollToWorkspace('.luna-visual-panel', 80);
+  }
+
+  function selectToolFromMenu(nextTool) {
+    const nextCategory = groupForTool(nextTool) ?? investigationToolGroups[1];
+    setCategoryKey(nextCategory.key);
+    setTool(nextTool);
+    setExpandedId('');
+    setQuery('');
+    setMobileToolOpen(true);
   }
 
   const activeToolProps = {
@@ -232,7 +245,10 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
   return (
     <main className="visual-os-shell">
-      <section className="visual-os-frame">
+      <section
+        className="visual-os-frame"
+        data-mobile-tool-open={mobileToolOpen ? 'true' : 'false'}
+      >
         <VisualShellHeader
           activeCase={activeCase}
           cases={cases}
@@ -263,20 +279,28 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
             categoryKey={categoryKey}
             currentCompleted={currentCompleted}
             onNavigate={onNavigate}
-            onInvestigate={() => setActiveStage('investigate')}
+            onInvestigate={() => {
+              setActiveStage('investigate');
+              setMobileToolOpen(false);
+            }}
             setCategoryKey={setCategoryKey}
-            setTool={setTool}
+            setTool={selectToolFromMenu}
             setExpandedId={setExpandedId}
           />
         </section>
 
         <div className="workflow-active-tool-stage" data-active-workflow-stage={activeStage}>
+          <header className="mobile-tool-page-header">
+            <button type="button" onClick={returnToToolMenu} aria-label="Back to investigation tools">‹ Back to Tools</button>
+            <div>
+              <span>{activeCase.id}</span>
+              <strong>{tool}</strong>
+            </div>
+          </header>
           {tool === 'Customer 360' ? (
             <Customer360Panel {...activeToolProps} />
           ) : tool === 'Timeline' ? (
             <TimelinePanel {...activeToolProps} />
-          ) : tool === 'Case Report' ? (
-            <ActiveToolPanel {...activeToolProps} />
           ) : (
             <InvestigationToolPanel {...activeToolProps} />
           )}
