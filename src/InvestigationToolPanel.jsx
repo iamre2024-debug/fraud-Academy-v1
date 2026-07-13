@@ -1,87 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import { buildCoreToolRecords } from './data/coreToolRecords.js';
-import { workflows } from './visualWorkspaceModel.js';
 
 const toolDetails = {
-  'Identity Intelligence': {
-    purpose: 'Review identity records, values, history, and linked customer objects without drawing an early conclusion.',
-    question: 'Which identity records belong to this customer, and how have those records changed over time?',
-  },
-  'Login History': {
-    purpose: 'Review recorded login attempts, results, devices, locations, and authentication methods tied to the case.',
-    question: 'What access attempts and results are recorded for the active case?',
-  },
-  'Session History': {
-    purpose: 'Review recorded sessions and the events that occurred inside those sessions.',
-    question: 'Which actions occurred within the observed sessions, and how are the events connected?',
-  },
-  'Device Intelligence': {
-    purpose: 'Compare fictional device identifiers, browsers, sessions, methods, locations, and network records.',
-    question: 'Which devices appear in the case activity, and where do those devices repeat?',
-  },
-  'IP Intelligence': {
-    purpose: 'Review network locations and the sessions, devices, methods, and times connected to each address.',
-    question: 'Which network locations and sessions are tied to the observed activity?',
-  },
-  'Transaction History': {
-    purpose: 'Review the transaction records in scope before comparing them with other financial and customer evidence.',
-    question: 'What transactions are in scope, and what details are recorded for each item?',
-  },
-  'Financial Intelligence': {
-    purpose: 'Review account and financial context supplied by the fictional training packet.',
-    question: 'What financial context is available for the active case?',
-  },
-  'Payment Verification': {
-    purpose: 'Review neutral payment-object and verification records without treating a status as a final case decision.',
-    question: 'What payment objects and verification states are recorded for this case?',
-  },
-  'Business 360': {
-    purpose: 'Review the business relationship, status, observed activity, and case context in one neutral record set.',
-    question: 'Which business relationships and entities are connected to the active case?',
-  },
-  'Business Intelligence': {
-    purpose: 'Review business records, values, observation dates, and context supplied by the case packet.',
-    question: 'What business-verification records are available for review?',
-  },
-  'Employee Profile': {
-    purpose: 'Review employee identity, role, employer, status, timing, and related case context.',
-    question: 'Which employee facts are available, and how do they connect to the case?',
-  },
-  'Payroll History': {
-    purpose: 'Review payroll periods, employers, amounts, channels, statuses, and contextual details.',
-    question: 'What payroll activity is recorded for the active case?',
-  },
-  'Evidence Center': {
-    purpose: 'Review evidence records, sources, receipt status, linked objects, and neutral summaries.',
-    question: 'Which evidence items are available, pending, or linked to the case?',
-  },
-  'Document Viewer': {
-    purpose: 'Review document titles, categories, status, fields, update dates, and available previews.',
-    question: 'Which documents are available, and what information does each document contain?',
-  },
-  'Link Analysis': {
-    purpose: 'Review connections between customer, access, identity, device, network, and case objects.',
-    question: 'Which identifiers and records connect across the active case?',
-  },
-  'System Access Lane': {
-    purpose: 'Review neutral internal, vendor, API, and permissioned third-party access records tied to case objects.',
-    question: 'Which approved system-access records touch the active case objects?',
-  },
+  'Identity Intelligence': 'Review identity records, values, history, and linked customer objects without drawing an early conclusion.',
+  'Login History': 'Review recorded login attempts, results, devices, locations, and authentication methods tied to the case.',
+  'Session History': 'Review recorded sessions and the events that occurred inside those sessions.',
+  'Device Intelligence': 'Compare fictional device identifiers, browsers, sessions, methods, locations, and network records.',
+  'IP Intelligence': 'Review network locations and the sessions, devices, methods, and times connected to each address.',
+  'Transaction History': 'Review the transaction records in scope before comparing them with other financial and customer evidence.',
+  'Financial Intelligence': 'Review account and financial context supplied by the fictional training packet.',
+  'Payment Verification': 'Review neutral payment-object and verification records without treating a status as a final case decision.',
+  'Business 360': 'Review the business relationship, status, observed activity, and case context in one neutral record set.',
+  'Business Intelligence': 'Review business records, values, observation dates, and context supplied by the case packet.',
+  'Employee Profile': 'Review employee identity, role, employer, status, timing, and related case context.',
+  'Payroll History': 'Review payroll periods, employers, amounts, channels, statuses, and contextual details.',
+  'Evidence Center': 'Review evidence records, sources, receipt status, linked objects, and neutral summaries.',
+  'Document Viewer': 'Review document titles, categories, status, fields, update dates, and available previews.',
+  'Link Analysis': 'Review connections between customer, access, identity, device, network, and case objects.',
+  'System Access Lane': 'Review neutral internal, vendor, API, and permissioned third-party access records tied to case objects.',
 };
 
-function detailFor(tool, activeCategory) {
-  return toolDetails[tool] ?? {
-    purpose: `Review the available ${activeCategory.label.toLowerCase()} records while the final decision remains locked.`,
-    question: `What records are available inside ${tool}?`,
-  };
-}
-
 function fieldPairs(columns, values) {
-  return columns.map((column, index) => ({
-    label: column,
-    value: values[index] ?? 'Not recorded',
-  }));
+  return columns.map((column, index) => ({ label: column, value: values[index] ?? 'Not recorded' }));
 }
 
 function searchableText(row) {
@@ -101,7 +42,6 @@ export default function InvestigationToolPanel({
   setExpandedId,
   pin,
   saveNote,
-  saveCaseReportPacket,
   markReviewed,
   currentCompleted,
   jumpDecision,
@@ -118,9 +58,7 @@ export default function InvestigationToolPanel({
     () => displayActiveRow ? fieldPairs(displayData.columns, displayActiveRow.values) : [],
     [displayActiveRow, displayData.columns],
   );
-  const toolDetail = detailFor(tool, activeCategory);
   const reviewed = currentCompleted.includes(tool);
-  const reportRow = displayActiveRow ?? activeRow;
 
   useEffect(() => {
     setSelectedRecordId('');
@@ -132,12 +70,8 @@ export default function InvestigationToolPanel({
   }
 
   function saveDisplayedNote() {
-    if (!reportRow) return;
-    saveNote(`Expanded ${tool} record ${reportRow.id}: ${reportRow.detail}`, 'Expanded record');
-  }
-
-  function saveDisplayedReportPacket() {
-    if (reportRow) saveCaseReportPacket(reportRow);
+    if (!displayActiveRow) return;
+    saveNote(`Expanded ${tool} record ${displayActiveRow.id}: ${displayActiveRow.detail}`, 'Expanded record');
   }
 
   return (
@@ -150,7 +84,7 @@ export default function InvestigationToolPanel({
         <div>
           <p className="investigation-tool-eyebrow">{activeCategory.label} · Evidence First</p>
           <h2>{tool}</h2>
-          <p>{toolDetail.purpose}</p>
+          <p>{toolDetails[tool] ?? `Review the available ${activeCategory.label.toLowerCase()} records.`}</p>
         </div>
         <div className="investigation-tool-header-actions">
           <span>{activeCase.id}</span>
@@ -158,18 +92,9 @@ export default function InvestigationToolPanel({
         </div>
       </header>
 
-      <section className="investigation-tool-question" aria-labelledby="investigation-tool-question-heading">
-        <div aria-hidden="true">?</div>
-        <div>
-          <p>Working question</p>
-          <h3 id="investigation-tool-question-heading">{toolDetail.question}</h3>
-          <span>Review the records, expand the useful details, and save only the evidence needed for the case package.</span>
-        </div>
-      </section>
-
       <section className="investigation-tool-controls" aria-label="Investigation tool controls">
         <label>
-          <span>Current tool group</span>
+          <span>Current tool</span>
           <select
             className="tool-select"
             value={tool}
@@ -179,11 +104,6 @@ export default function InvestigationToolPanel({
             {activeCategory.tools.map((item) => <option key={item}>{item}</option>)}
           </select>
         </label>
-        <div className="investigation-tool-flow" aria-label="Evidence workflow">
-          {workflows.map((item, index) => (
-            <span key={item} className={index <= 5 ? 'current-flow' : ''}>{index + 1}. {item}</span>
-          ))}
-        </div>
       </section>
 
       <section className="investigation-tool-metrics" aria-label={`${tool} review summary`}>
@@ -279,7 +199,7 @@ export default function InvestigationToolPanel({
                   <span>History</span>
                   <h4>Record history</h4>
                   <DirectCollapsibleText lines={3} mobileLines={4}>
-                    {displayActiveRow.id} is open inside {tool} for {activeCase.id}. Compare the recorded timing and values with the active case packet.
+                    {displayActiveRow.id} is open inside {tool} for {activeCase.id}. Review the recorded timing and values with the active case packet.
                   </DirectCollapsibleText>
                 </article>
                 <article>
@@ -289,18 +209,10 @@ export default function InvestigationToolPanel({
                     {displayActiveRow.label}: {displayActiveRow.pin}. Active customer object: {activeCase.person} · {activeCase.trainingId}.
                   </DirectCollapsibleText>
                 </article>
-                <article>
-                  <span>Generate Report</span>
-                  <h4>Neutral report packet</h4>
-                  <DirectCollapsibleText lines={3} mobileLines={4}>
-                    Source tool: {tool}. Record summary: {displayActiveRow.detail}.
-                  </DirectCollapsibleText>
-                </article>
               </div>
 
               <div className="investigation-tool-detail-actions">
                 <button type="button" onClick={saveDisplayedNote}>Save expanded note</button>
-                <button type="button" onClick={saveDisplayedReportPacket}>Save neutral report packet</button>
               </div>
             </>
           ) : (
@@ -311,7 +223,6 @@ export default function InvestigationToolPanel({
 
       <nav className="investigation-tool-next-routes" aria-label="Investigation record next routes">
         <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
-        <button type="button" onClick={() => openTool('Case Report')}>Open Case Report</button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
 
