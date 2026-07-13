@@ -1,0 +1,8 @@
+/* Case Report was retired from the live Fraud Academy workflow. */
+
+.investigation-tool-next-routes button:nth-child(2),
+.case-report-packet-panel,
+[data-tool-name="Case Report"],
+[data-active-workflow-stage="summary"] {
+  display: none !important;
+}
