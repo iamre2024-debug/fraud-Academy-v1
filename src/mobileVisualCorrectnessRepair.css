@@ -1,0 +1,435 @@
+/* Mobile visual-correctness repair
+   The approved phone experience is a separate app shell, not a compressed desktop canvas. */
+
+@media (max-width: 767px) {
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background: #f5f1ff;
+  }
+
+  .visual-os-shell,
+  .visual-os-frame {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  /* Dashboard becomes the phone home screen. */
+  body[data-visual-tab="dashboard"] .dashboard-theme-v1 {
+    gap: 14px !important;
+    padding: 14px 14px 96px !important;
+  }
+
+  body[data-visual-tab="dashboard"] .dashboard-theme-v1 .visual-nav-heading {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 2px 12px !important;
+    border-bottom: 0 !important;
+  }
+
+  body[data-visual-tab="dashboard"] .dashboard-theme-v1 .visual-nav-heading h2 {
+    font-size: 1.2rem !important;
+  }
+
+  body[data-visual-tab="dashboard"] .dashboard-theme-v1 .visual-nav-heading span {
+    display: none;
+  }
+
+  .dashboard-welcome-card {
+    min-height: 112px;
+    padding: 16px !important;
+    border-radius: 22px !important;
+  }
+
+  .dashboard-welcome-card h3 {
+    font-size: 1.55rem !important;
+  }
+
+  .dashboard-welcome-card p {
+    font-size: 0.88rem;
+    line-height: 1.35;
+  }
+
+  .dashboard-agent-mark {
+    width: 58px !important;
+    height: 58px !important;
+    border-radius: 19px !important;
+    font-size: 1.7rem !important;
+  }
+
+  .dashboard-active-case {
+    padding: 16px !important;
+    border-radius: 22px !important;
+  }
+
+  .dashboard-case-title-row {
+    display: grid !important;
+    gap: 8px !important;
+  }
+
+  .dashboard-progress-row {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 8px !important;
+    margin-top: 14px !important;
+  }
+
+  .dashboard-progress-row > span:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .dashboard-primary-action {
+    min-height: 48px;
+    margin-top: 14px !important;
+  }
+
+  .dashboard-quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .dashboard-quick-grid button {
+    display: grid !important;
+    align-content: start;
+    min-height: 118px !important;
+    padding: 14px !important;
+    border-radius: 18px !important;
+  }
+
+  .dashboard-quick-icon {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .dashboard-summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .dashboard-summary-grid article {
+    min-width: 0;
+    padding: 12px 8px !important;
+    text-align: center;
+  }
+
+  .dashboard-summary-grid strong {
+    font-size: 1.25rem !important;
+  }
+
+  .dashboard-summary-grid span {
+    font-size: 0.7rem !important;
+  }
+
+  .dashboard-luna-card {
+    align-items: flex-start !important;
+    padding: 15px !important;
+  }
+
+  /* The workspace is screen based on phones. Only the active stage is visible. */
+  body[data-visual-tab="workspace"] .visual-os-frame > [data-workflow-stage],
+  body[data-visual-tab="workspace"] .workflow-investigate-stage,
+  body[data-visual-tab="workspace"] .workflow-active-tool-stage {
+    display: none !important;
+  }
+
+  body[data-visual-tab="workspace"] .visual-os-frame:has([data-workflow-stage-button="briefing"][aria-current="step"]) > [data-workflow-stage="briefing"],
+  body[data-visual-tab="workspace"] .visual-os-frame:has([data-workflow-stage-button="investigate"][aria-current="step"]) > .workflow-investigate-stage,
+  body[data-visual-tab="workspace"] .visual-os-frame:has([data-workflow-stage-button="investigate"][aria-current="step"]) > .workflow-active-tool-stage,
+  body[data-visual-tab="workspace"] .visual-os-frame:has([data-workflow-stage-button="timeline"][aria-current="step"]) > .workflow-active-tool-stage,
+  body[data-visual-tab="workspace"] .visual-os-frame:has([data-workflow-stage-button="summary"][aria-current="step"]) > .workflow-active-tool-stage,
+  body[data-visual-tab="workspace"] .visual-os-frame:has([data-workflow-stage-button="indicators"][aria-current="step"]) > [data-workflow-stage="indicators"],
+  body[data-visual-tab="workspace"] .visual-os-frame:has([data-workflow-stage-button="determination"][aria-current="step"]) > [data-workflow-stage="determination"] {
+    display: block !important;
+  }
+
+  body[data-visual-tab="workspace"] .visual-hero {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    min-height: 58px !important;
+    padding: 8px 12px !important;
+    border-radius: 0 !important;
+    background: rgba(250, 247, 255, 0.97) !important;
+    box-shadow: 0 4px 18px rgba(74, 54, 128, 0.1) !important;
+    backdrop-filter: blur(16px);
+  }
+
+  body[data-visual-tab="workspace"] .hero-cat,
+  body[data-visual-tab="workspace"] .hero-bat,
+  body[data-visual-tab="workspace"] .hero-jewel,
+  body[data-visual-tab="workspace"] .visual-case-strip {
+    display: none !important;
+  }
+
+  body[data-visual-tab="workspace"] .hero-title-wrap h1 {
+    font-size: 1rem !important;
+    color: #2b2150 !important;
+    text-shadow: none !important;
+  }
+
+  body[data-visual-tab="workspace"] .hero-title-wrap > span {
+    display: none !important;
+  }
+
+  body[data-visual-tab="workspace"] .visual-header-controls strong {
+    display: none !important;
+  }
+
+  body[data-visual-tab="workspace"] .visual-header-controls button {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    padding: 0 !important;
+    border-radius: 13px !important;
+  }
+
+  .active-case-workflow {
+    position: sticky;
+    top: 58px;
+    z-index: 24;
+    margin: 0 !important;
+    padding: 8px 10px !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(86, 63, 145, 0.12) !important;
+    border-radius: 0 !important;
+    background: rgba(250, 247, 255, 0.98) !important;
+    box-shadow: none !important;
+  }
+
+  .active-case-workflow-heading {
+    display: none !important;
+  }
+
+  .active-case-workflow-list {
+    display: flex !important;
+    gap: 6px !important;
+    overflow-x: auto;
+    padding: 0 0 2px !important;
+    scrollbar-width: none;
+  }
+
+  .active-case-workflow-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .active-case-workflow-list li {
+    flex: 0 0 auto;
+  }
+
+  .active-case-workflow-list button {
+    display: grid !important;
+    grid-template-columns: auto auto !important;
+    min-width: 92px !important;
+    min-height: 50px !important;
+    padding: 7px 9px !important;
+    border-radius: 14px !important;
+  }
+
+  .active-case-workflow-list button strong {
+    font-size: 0.72rem !important;
+  }
+
+  .active-case-workflow-list button small {
+    font-size: 0.62rem !important;
+  }
+
+  .workflow-stage-number {
+    display: none !important;
+  }
+
+  /* Investigation tools become a single-column event review screen. */
+  .investigation-tools-theme-v1 {
+    margin: 0 !important;
+    padding: 14px 14px 100px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .investigation-tool-header {
+    display: grid !important;
+    gap: 10px !important;
+    padding: 0 0 12px !important;
+  }
+
+  .investigation-tool-header h2 {
+    font-size: 1.45rem !important;
+  }
+
+  .investigation-tool-header-actions {
+    display: none !important;
+  }
+
+  /* Remove live-investigation tips and coaching. */
+  .investigation-tool-question,
+  .investigation-tool-flow,
+  .investigation-tool-metrics {
+    display: none !important;
+  }
+
+  .investigation-tool-controls {
+    display: block !important;
+    margin-bottom: 10px;
+  }
+
+  .investigation-tool-controls label,
+  .investigation-tool-search-row label {
+    width: 100%;
+  }
+
+  .investigation-tool-search-row {
+    display: grid !important;
+    gap: 6px !important;
+  }
+
+  .investigation-tool-search-row input,
+  .investigation-tool-controls select {
+    width: 100% !important;
+    min-height: 46px;
+    font-size: 16px !important;
+  }
+
+  .investigation-tool-workspace {
+    display: block !important;
+  }
+
+  .investigation-tool-section-heading {
+    align-items: end !important;
+  }
+
+  .investigation-tool-record-list {
+    display: grid !important;
+    gap: 10px !important;
+  }
+
+  .investigation-tool-record-card {
+    padding: 14px !important;
+    border-radius: 18px !important;
+  }
+
+  .investigation-tool-record-card dl {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .investigation-tool-record-card dl > div {
+    display: grid !important;
+    grid-template-columns: minmax(88px, 0.42fr) minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+  }
+
+  .investigation-tool-record-actions button {
+    min-height: 44px;
+  }
+
+  .investigation-tool-detail {
+    margin-top: 12px !important;
+    padding: 15px !important;
+    border-radius: 20px !important;
+  }
+
+  .investigation-tool-field-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .investigation-tool-review-lanes {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Routine records do not generate individual reports. */
+  .investigation-tool-review-lanes article:nth-child(3),
+  .investigation-tool-detail-actions button:nth-child(2) {
+    display: none !important;
+  }
+
+  [data-tool-name="Identity Intelligence"] .investigation-tool-review-lanes article:nth-child(3),
+  [data-tool-name="Identity Intelligence"] .investigation-tool-detail-actions button:nth-child(2),
+  [data-tool-name="Business Intelligence"] .investigation-tool-review-lanes article:nth-child(3),
+  [data-tool-name="Business Intelligence"] .investigation-tool-detail-actions button:nth-child(2),
+  [data-tool-name="Link Analysis"] .investigation-tool-review-lanes article:nth-child(3),
+  [data-tool-name="Link Analysis"] .investigation-tool-detail-actions button:nth-child(2),
+  [data-tool-name="Evidence Center"] .investigation-tool-review-lanes article:nth-child(3),
+  [data-tool-name="Evidence Center"] .investigation-tool-detail-actions button:nth-child(2) {
+    display: block !important;
+  }
+
+  .investigation-tool-next-routes {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .investigation-tool-review-bar {
+    position: sticky;
+    bottom: 72px;
+    z-index: 18;
+    display: grid !important;
+    gap: 10px !important;
+    margin: 16px -14px -100px !important;
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom)) !important;
+    background: rgba(250, 247, 255, 0.98) !important;
+    box-shadow: 0 -8px 22px rgba(74, 54, 128, 0.1) !important;
+  }
+
+  .investigation-tool-review-bar > div span {
+    display: none !important;
+  }
+
+  .visual-react-bottom-nav {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 50 !important;
+    width: 100% !important;
+    min-height: 68px;
+    padding: 7px 8px calc(7px + env(safe-area-inset-bottom)) !important;
+    border-radius: 0 !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    box-shadow: 0 -8px 24px rgba(67, 46, 119, 0.12) !important;
+    backdrop-filter: blur(16px);
+  }
+
+  .visual-react-bottom-nav button {
+    min-width: 0 !important;
+    min-height: 50px !important;
+    padding: 5px 4px !important;
+    border-radius: 14px !important;
+    font-size: 0.7rem !important;
+  }
+}
+
+@media (max-width: 389px) {
+  .dashboard-quick-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-quick-grid button {
+    min-height: 82px !important;
+  }
+
+  .dashboard-summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .active-case-workflow-list button {
+    min-width: 82px !important;
+  }
+}

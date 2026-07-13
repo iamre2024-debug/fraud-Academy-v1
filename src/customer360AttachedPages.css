@@ -1,0 +1,441 @@
+/* Customer 360 attached pages and mobile record-detail tightening */
+
+.customer-360-page-menu {
+  display: grid;
+  gap: 10px;
+}
+
+.customer-360-page-menu > button {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 74px;
+  padding: 12px 14px;
+  border: 1px solid rgba(104, 78, 164, 0.16);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  text-align: left;
+  box-shadow: 0 8px 20px rgba(82, 57, 140, 0.06);
+}
+
+.customer-360-page-menu > button > span {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: #efe8ff;
+  color: #5c3ca5;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.customer-360-page-menu strong,
+.customer-360-page-menu small {
+  display: block;
+}
+
+.customer-360-page-menu strong {
+  color: #2c2346;
+  font-size: 0.96rem;
+}
+
+.customer-360-page-menu small {
+  margin-top: 3px;
+  color: #756b87;
+  line-height: 1.3;
+}
+
+.customer-360-page-menu em {
+  color: #7658b8;
+  font-size: 1.35rem;
+  font-style: normal;
+}
+
+.customer-360-page-header {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.customer-360-page-header h2,
+.customer-360-page-header p {
+  margin: 0;
+}
+
+.customer-360-page-header p {
+  color: #756b87;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.customer-360-page-header h2 {
+  margin-top: 2px;
+  color: #2c2346;
+  font-size: 1.35rem;
+}
+
+.customer-360-back {
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(104, 78, 164, 0.18);
+  border-radius: 14px;
+  background: white;
+  color: #5c3ca5;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.customer-360-page-fields {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid rgba(104, 78, 164, 0.14);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.customer-360-page-fields > div {
+  display: grid;
+  grid-template-columns: minmax(115px, 0.38fr) minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(104, 78, 164, 0.1);
+}
+
+.customer-360-page-fields > div:last-child {
+  border-bottom: 0;
+}
+
+.customer-360-page-fields dt {
+  color: #766b88;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.customer-360-page-fields dd {
+  min-width: 0;
+  margin: 0;
+  color: #2d2544;
+  font-size: 0.9rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.customer-360-page-event-list,
+.customer-360-page-record-list {
+  display: grid;
+  gap: 12px;
+}
+
+.customer-360-page-event,
+.customer-360-page-record-list > article {
+  overflow: hidden;
+  border: 1px solid rgba(104, 78, 164, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 20px rgba(82, 57, 140, 0.05);
+}
+
+.customer-360-page-event {
+  padding: 15px;
+}
+
+.customer-360-page-event header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.customer-360-page-event header span {
+  color: #766b88;
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.customer-360-page-event p {
+  margin: 10px 0 12px;
+  color: #4b435d;
+  line-height: 1.45;
+}
+
+.customer-360-page-event dl {
+  display: grid;
+  gap: 7px;
+  margin: 0 0 12px;
+}
+
+.customer-360-page-event dl > div {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.customer-360-page-event dt {
+  color: #766b88;
+  font-size: 0.75rem;
+}
+
+.customer-360-page-event dd {
+  margin: 0;
+  color: #2d2544;
+  font-size: 0.84rem;
+}
+
+.customer-360-page-event > div,
+.customer-360-record-detail > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.customer-360-page-event button,
+.customer-360-record-detail button {
+  min-height: 42px;
+  border-radius: 12px;
+}
+
+.customer-360-page-search {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.customer-360-page-search span {
+  color: #6f6482;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.customer-360-page-search input {
+  min-height: 46px;
+  border: 1px solid rgba(104, 78, 164, 0.18);
+  border-radius: 14px;
+  padding: 0 13px;
+  background: white;
+  font-size: 16px;
+}
+
+.customer-360-record-open {
+  display: grid;
+  grid-template-columns: minmax(72px, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 62px;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.customer-360-record-open span {
+  color: #7658b8;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.customer-360-record-open strong {
+  min-width: 0;
+  color: #2d2544;
+}
+
+.customer-360-record-open em {
+  color: #7658b8;
+  font-size: 0.76rem;
+  font-style: normal;
+}
+
+.customer-360-record-detail {
+  display: grid;
+  gap: 12px;
+  padding: 0 14px 14px;
+  color: #4b435d;
+  line-height: 1.45;
+}
+
+.customer-360-page-empty {
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #6f6482;
+  text-align: center;
+}
+
+@media (max-width: 767px) {
+  .customer-360-theme-v1 {
+    margin: 0 !important;
+    padding: 14px 14px 98px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .customer-360-header {
+    display: grid !important;
+    gap: 10px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .customer-360-header-actions {
+    display: none !important;
+  }
+
+  .customer-360-identity-band {
+    display: grid !important;
+    grid-template-columns: 54px minmax(0, 1fr) !important;
+    gap: 10px !important;
+    padding: 14px !important;
+    border-radius: 18px !important;
+  }
+
+  .customer-360-avatar {
+    width: 50px !important;
+    height: 50px !important;
+  }
+
+  .customer-360-identity-copy h3 {
+    font-size: 1.12rem !important;
+  }
+
+  .customer-360-identity-copy p {
+    font-size: 0.78rem !important;
+  }
+
+  .customer-360-identity-metrics {
+    grid-column: 1 / -1;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+  }
+
+  .customer-360-identity-metrics article {
+    min-width: 0;
+    padding: 10px 7px !important;
+    text-align: center;
+  }
+
+  .customer-360-identity-metrics span {
+    font-size: 0.64rem !important;
+  }
+
+  .customer-360-identity-metrics strong {
+    font-size: 0.83rem !important;
+  }
+
+  .customer-360-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .customer-360-actions button {
+    min-height: 44px;
+  }
+
+  .customer-360-page-menu {
+    margin-top: 12px;
+  }
+
+  .customer-360-page-fields > div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 13px 14px;
+  }
+
+  .customer-360-page-fields dt {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .customer-360-page-fields dd {
+    font-size: 0.9rem;
+  }
+
+  .customer-360-attached-page {
+    min-height: calc(100dvh - 68px);
+  }
+
+  .customer-360-review-bar {
+    position: sticky;
+    bottom: 68px;
+    z-index: 15;
+    display: grid !important;
+    gap: 8px !important;
+    margin: 16px -14px -98px !important;
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom)) !important;
+    background: rgba(250, 247, 255, 0.98) !important;
+    box-shadow: 0 -8px 22px rgba(74, 54, 128, 0.1) !important;
+  }
+
+  .customer-360-review-bar span {
+    display: none !important;
+  }
+
+  /* Tighten expanded record details across investigation tools. */
+  .investigation-tool-detail {
+    padding: 14px !important;
+  }
+
+  .investigation-tool-detail-heading {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px !important;
+  }
+
+  .investigation-tool-field-grid {
+    display: grid !important;
+    gap: 0 !important;
+    overflow: hidden;
+    border: 1px solid rgba(104, 78, 164, 0.12);
+    border-radius: 16px;
+  }
+
+  .investigation-tool-field-grid > div {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 4px !important;
+    padding: 12px 13px !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(104, 78, 164, 0.1) !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+  }
+
+  .investigation-tool-field-grid > div:last-child {
+    border-bottom: 0 !important;
+  }
+
+  .investigation-tool-field-grid dt {
+    font-size: 0.68rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .investigation-tool-field-grid dd {
+    margin: 0 !important;
+    font-size: 0.9rem !important;
+    line-height: 1.4 !important;
+  }
+
+  .investigation-tool-review-lanes {
+    gap: 8px !important;
+  }
+
+  .investigation-tool-review-lanes article {
+    padding: 12px 13px !important;
+    border-radius: 15px !important;
+  }
+
+  .investigation-tool-detail-actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+}

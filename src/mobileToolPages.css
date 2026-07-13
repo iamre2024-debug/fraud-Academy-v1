@@ -1,0 +1,98 @@
+@media (max-width: 767px) {
+  body[data-visual-tab="workspace"] .visual-os-frame[data-mobile-tool-open="false"] > .workflow-active-tool-stage {
+    display: none !important;
+  }
+
+  body[data-visual-tab="workspace"] .visual-os-frame[data-mobile-tool-open="true"] > .workflow-investigate-stage,
+  body[data-visual-tab="workspace"] .visual-os-frame[data-mobile-tool-open="true"] > .active-case-workflow {
+    display: none !important;
+  }
+
+  body[data-visual-tab="workspace"] .visual-os-frame[data-mobile-tool-open="true"] > .workflow-active-tool-stage {
+    display: block !important;
+    width: 100% !important;
+    min-height: calc(100dvh - 58px);
+    padding: 0 0 84px !important;
+    background: #f8f5ff;
+  }
+
+  .mobile-tool-page-header {
+    position: sticky;
+    top: 58px;
+    z-index: 28;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    min-height: 62px;
+    padding: 9px 14px;
+    border-bottom: 1px solid rgba(89, 64, 148, 0.14);
+    background: rgba(252, 249, 255, 0.98);
+    box-shadow: 0 5px 16px rgba(68, 43, 121, 0.08);
+    backdrop-filter: blur(16px);
+  }
+
+  .mobile-tool-page-header > button {
+    min-height: 42px;
+    padding: 0 12px;
+    border: 1px solid rgba(91, 65, 151, 0.2);
+    border-radius: 14px;
+    background: #ffffff;
+    color: #4c367f;
+    font-weight: 800;
+  }
+
+  .mobile-tool-page-header > div {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .mobile-tool-page-header span {
+    color: #8877ad;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .mobile-tool-page-header strong {
+    overflow: hidden;
+    color: #2f244f;
+    font-size: 1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .workflow-active-tool-stage > .activity-panel,
+  .workflow-active-tool-stage > .customer-360-theme-v1,
+  .workflow-active-tool-stage > .timeline-theme-v1 {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .workflow-active-tool-stage .investigation-tool-header,
+  .workflow-active-tool-stage .customer-360-header,
+  .workflow-active-tool-stage .timeline-header {
+    padding-top: 14px !important;
+  }
+
+  .workflow-active-tool-stage .investigation-tool-controls,
+  .workflow-active-tool-stage .customer-360-tool-row {
+    margin-top: 0 !important;
+  }
+
+  .workflow-active-tool-stage .investigation-tool-next-routes {
+    display: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .mobile-tool-page-header {
+    display: none;
+  }
+}
