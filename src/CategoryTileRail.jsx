@@ -13,11 +13,11 @@ export default function CategoryTileRail({
       <div className="investigation-tool-groups-theme-v1" data-investigation-tool-groups="approved-theme-v1">
         <header className="visual-section-heading investigation-tool-groups-heading">
           <div>
-            <p>Contextual investigation tools</p>
-            <h2>Choose the next evidence question</h2>
-            <small>Open one focused group at a time. Timeline and Case Report stay in the active-case workflow.</small>
+            <p>Investigation tools</p>
+            <h2>Choose a tool group</h2>
+            <small>Open one group at a time. Each tool opens on its own page on mobile.</small>
           </div>
-          <button type="button" onClick={() => onNavigate('academy')}>Open Tool Map</button>
+          <button type="button" onClick={() => onNavigate('academy')}>Tool Guide</button>
         </header>
         <div className="visual-category-row">
           {categories.map((item) => {
@@ -42,7 +42,7 @@ export default function CategoryTileRail({
                 <span>{item.icon}</span>
                 <span className="investigation-category-copy">
                   <strong>{item.label}</strong>
-                  <small>{item.question}</small>
+                  <small>{item.tools.length} tools</small>
                 </span>
                 <em>{reviewedCount}/{item.tools.length}</em>
                 <small className="category-status-copy">{status}</small>
