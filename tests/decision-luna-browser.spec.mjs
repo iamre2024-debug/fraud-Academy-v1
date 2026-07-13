@@ -9,7 +9,6 @@ const requiredTools = [
   'Transaction History',
   'Evidence Center',
   'Link Analysis',
-  'Case Report',
 ];
 const learnerChoice = 'Request more information from customer';
 const rationale = 'The reviewed records support another information request because the current package documents the timeline, linked activity, and remaining evidence gap.';
@@ -46,7 +45,7 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
   await expect(decision.getByRole('heading', { name: 'Submit Decision', exact: true })).toBeVisible();
   await expect(decision.getByText('Evidence First protection', { exact: true })).toBeVisible();
   await expect(decision.locator('.decision-status-grid article')).toHaveCount(4);
-  await expect(decision.getByText('8/8', { exact: true })).toBeVisible();
+  await expect(decision.getByText('7/7', { exact: true })).toBeVisible();
 
   const lockedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="locked"]');
   await expect(lockedLuna).toBeAttached();

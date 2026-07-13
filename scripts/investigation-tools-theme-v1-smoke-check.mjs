@@ -31,11 +31,10 @@ for (const anchor of [
   'Expanded record',
   'Record history',
   'Connected objects',
-  'Neutral report packet',
+  'Evidence packet',
   'Save expanded note',
-  'Save neutral report packet',
+  'Save evidence packet',
   'Open Timeline',
-  'Open Case Report',
   'Open Submit Decision',
   'It does not determine the case outcome.',
 ]) {
@@ -51,14 +50,13 @@ for (const anchor of [
   'Links & Related Cases',
   'System Access Lane',
   'workflowReviewGroup',
-  "tools: ['Timeline', 'Case Report']",
+  "tools: ['Timeline']",
   'groupForTool',
 ]) {
   mustContain('investigationToolGroups.js', groups, anchor);
 }
 
 for (const anchor of [
-  "import ActiveToolPanel from './ActiveToolPanel.jsx'",
   "import InvestigationToolPanel from './InvestigationToolPanel.jsx'",
   "import TimelinePanel from './TimelinePanel.jsx'",
   "from './investigationToolGroups.js'",
@@ -66,8 +64,6 @@ for (const anchor of [
   "tool === 'Customer 360'",
   "tool === 'Timeline'",
   '<TimelinePanel {...activeToolProps} />',
-  "tool === 'Case Report'",
-  '<ActiveToolPanel {...activeToolProps} />',
   '<InvestigationToolPanel {...activeToolProps} />',
   'rowsFor(tool, activeCase, reportPackets)',
 ]) {

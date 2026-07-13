@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from 'react';
 import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import ActiveCaseWorkflowRail from './ActiveCaseWorkflowRail.jsx';
-import ActiveToolPanel from './ActiveToolPanel.jsx';
 import BottomInvestigationGrid from './BottomInvestigationGrid.jsx';
 import CaseSummaryCard from './CaseSummaryCard.jsx';
 import CategoryTileRail from './CategoryTileRail.jsx';
@@ -22,7 +21,6 @@ import { rowsFor } from './visualWorkspaceModel.js';
 
 function stageForTool(toolName) {
   if (toolName === 'Timeline') return 'timeline';
-  if (toolName === 'Case Report') return 'summary';
   if (['Evidence Center', 'Document Viewer', 'Link Analysis'].includes(toolName)) return 'indicators';
   return 'investigate';
 }
@@ -34,6 +32,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   const [query, setQuery] = useState('');
   const [expandedId, setExpandedId] = useState('');
   const [noteDraft, setNoteDraft] = useState('');
+  const [mobileToolPage, setMobileToolPage] = useState(false);
   const submitRef = useRef(null);
 
   const activeCase = cases.find((item) => item.id === activeCaseId) ?? cases[0];
@@ -101,10 +100,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       label: currentCompleted.includes('Timeline') ? 'Reviewed' : 'Open',
       state: currentCompleted.includes('Timeline') ? 'complete' : 'open',
     },
-    summary: {
-      label: currentCompleted.includes('Case Report') ? 'Reviewed' : 'Open',
-      state: currentCompleted.includes('Case Report') ? 'complete' : 'open',
-    },
     indicators: {
       label: collectedIndicators ? `${collectedIndicators} collected` : 'Open',
       state: collectedIndicators ? 'in-progress' : 'open',
@@ -144,8 +139,10 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setActiveStage(nextStage);
     setCategoryKey(nextCategory.key);
     setTool(nextTool);
+    setMobileToolPage(true);
     setQuery('');
     setExpandedId('');
+    setMobileToolPage(false);
     scrollToWorkspace('.activity-panel');
   }
 
@@ -161,6 +158,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   function jumpDecision() {
     onNavigate('workspace');
     setActiveStage('determination');
+    setMobileToolPage(false);
     window.setTimeout(() => {
       resetWorkspaceInlineScroll();
       submitRef.current?.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' });
@@ -171,12 +169,14 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   function openNotes() {
     onNavigate('workspace');
     setActiveStage('indicators');
+    setMobileToolPage(false);
     scrollToWorkspace('.notebook-card', 80);
   }
 
   function openMoreTools() {
     onNavigate('workspace');
     setActiveStage('investigate');
+    setMobileToolPage(false);
     scrollToWorkspace('[data-workflow-stage="investigate"]', 80);
   }
 
@@ -185,19 +185,17 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setActiveStage(nextStage);
 
     if (nextStage === 'briefing') {
+      setMobileToolPage(false);
       scrollToWorkspace('[data-workflow-stage="briefing"]');
       return;
     }
     if (nextStage === 'investigate') {
+      setMobileToolPage(false);
       scrollToWorkspace('[data-workflow-stage="investigate"]');
       return;
     }
     if (nextStage === 'timeline') {
       openTool('Timeline', 'timeline');
-      return;
-    }
-    if (nextStage === 'summary') {
-      openTool('Case Report', 'summary');
       return;
     }
     if (nextStage === 'indicators') {
@@ -208,7 +206,14 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       jumpDecision();
       return;
     }
+    setMobileToolPage(false);
     scrollToWorkspace('.luna-visual-panel', 80);
+  }
+
+  function returnToToolMenu() {
+    setMobileToolPage(false);
+    setActiveStage('investigate');
+    scrollToWorkspace('[data-workflow-stage="investigate"]');
   }
 
   const activeToolProps = {
@@ -232,7 +237,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
   return (
     <main className="visual-os-shell">
-      <section className="visual-os-frame">
+      <section className="visual-os-frame" data-mobile-tool-page={mobileToolPage ? 'true' : 'false'}>
         <VisualShellHeader
           activeCase={activeCase}
           cases={cases}
@@ -245,6 +250,11 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
           stageStatus={stageStatus}
           onStageSelect={selectWorkflowStage}
         />
+
+        <div className="mobile-tool-page-bar" aria-label="Mobile tool navigation">
+          <button type="button" onClick={returnToToolMenu}>‹ All tools</button>
+          <span>{tool}</span>
+        </div>
 
         <div data-workflow-stage="briefing">
           <CaseSummaryCard
@@ -267,6 +277,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
             setCategoryKey={setCategoryKey}
             setTool={setTool}
             setExpandedId={setExpandedId}
+            onToolOpen={openTool}
           />
         </section>
 
@@ -275,8 +286,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
             <Customer360Panel {...activeToolProps} />
           ) : tool === 'Timeline' ? (
             <TimelinePanel {...activeToolProps} />
-          ) : tool === 'Case Report' ? (
-            <ActiveToolPanel {...activeToolProps} />
           ) : (
             <InvestigationToolPanel {...activeToolProps} />
           )}

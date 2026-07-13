@@ -7,14 +7,6 @@ function documentStatusClass(status = '') {
 export default function CaseSummaryCard({ activeCase, pin, openTool, jumpDecision, openNotes, openMoreTools }) {
   const intake = activeCase.intake ?? {};
   const documents = activeCase.documents ?? [];
-  const focusAreas = activeCase.briefingQuestions?.length
-    ? activeCase.briefingQuestions
-    : [
-      'What opened this case?',
-      'Which records should be compared first?',
-      'What evidence should be documented before a determination?',
-    ];
-
   const beginInvestigation = () => openTool('Customer 360', 'investigate');
   const openNotebook = () => (openNotes ? openNotes() : openTool('Evidence Center', 'indicators'));
   const showMoreTools = () => (openMoreTools ? openMoreTools() : openTool('Customer 360', 'investigate'));
@@ -87,24 +79,9 @@ export default function CaseSummaryCard({ activeCase, pin, openTool, jumpDecisio
             <article><span>Documents</span><strong>{documents.length}</strong></article>
           </section>
 
-          <article className="case-briefing-card case-briefing-focus-card">
-            <div className="case-briefing-card-heading">
-              <span aria-hidden="true">03</span>
-              <div>
-                <p>Investigator prompts</p>
-                <h3>Key focus areas</h3>
-              </div>
-            </div>
-            <ol>
-              {focusAreas.slice(0, 4).map((question, index) => (
-                <li key={`${activeCase.id}-focus-${index}`}><span>{index + 1}</span><p>{question}</p></li>
-              ))}
-            </ol>
-          </article>
-
           <article className="case-briefing-card case-briefing-luna-card">
             <div className="case-briefing-card-heading">
-              <span aria-hidden="true">L</span>
+              <span aria-hidden="true">03</span>
               <div>
                 <p>Process support only</p>
                 <h3>Luna Briefing Assistant</h3>
@@ -143,7 +120,6 @@ export default function CaseSummaryCard({ activeCase, pin, openTool, jumpDecisio
           <button type="button" onClick={beginInvestigation}><span aria-hidden="true">⌂</span>Workspace</button>
           <button type="button" onClick={() => openTool('Timeline', 'timeline')}><span aria-hidden="true">◷</span>Timeline</button>
           <button type="button" onClick={openNotebook}><span aria-hidden="true">✎</span>Notes</button>
-          <button type="button" onClick={() => openTool('Case Report')}><span aria-hidden="true">▤</span>Reports</button>
           <button type="button" onClick={showMoreTools}><span aria-hidden="true">＋</span>More Tools</button>
           <button type="button" className="case-briefing-primary-action" onClick={beginInvestigation}>Begin Investigation <span aria-hidden="true">→</span></button>
         </nav>

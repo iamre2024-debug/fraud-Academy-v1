@@ -15,7 +15,7 @@ test('approved Workspace shell is compact, functional, and responsive', async ({
   await expect(page.locator('.visual-case-strip')).toContainText(firstCaseId);
 
   const workflow = page.getByRole('navigation', { name: 'Active case workflow' });
-  await expect(workflow.getByRole('button')).toHaveCount(7);
+  await expect(workflow.getByRole('button')).toHaveCount(6);
   await expect(workflow.getByRole('button', { name: /Case Briefing/ })).toHaveAttribute('aria-current', 'step');
 
   const layout = await page.evaluate(() => {
@@ -49,7 +49,7 @@ test('approved Workspace shell is compact, functional, and responsive', async ({
   if (testInfo.project.name === 'mobile-chromium') {
     expect(layout.workflowColumns).toBe(2);
   } else {
-    expect(layout.workflowColumns).toBe(7);
+    expect(layout.workflowColumns).toBe(6);
   }
 
   await page.getByRole('button', { name: 'Open Help' }).click();

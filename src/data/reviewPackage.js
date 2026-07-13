@@ -64,7 +64,6 @@ export const requiredReviewTools = [
   'Transaction History',
   'Evidence Center',
   'Link Analysis',
-  'Case Report',
 ];
 
 export const minimumRationaleWords = 12;
@@ -101,7 +100,7 @@ export function getReviewPackageStatus({ completedTools = [], tray = [], notes =
   }
 
   messages.push(packageInputSummary);
-  messages.push(reportPacketCount ? `${reportPacketCount} structured Case Report packet(s) saved into the draft.` : 'Structured Case Report packets are optional, but expanded records can now be saved into the draft.');
+  messages.push(reportPacketCount ? `${reportPacketCount} evidence packet(s) saved into the draft.` : 'Evidence packets are optional, but expanded records can be saved into the draft.');
   messages.push(packetFeed.message);
 
   return {
@@ -144,14 +143,14 @@ export function buildReviewPackage({ caseId, agentId, draft, completedTools = []
 }
 
 function buildPackageInputSummary({ completedTools = [], tray = [], notes = [], reportPackets = [] }) {
-  return `Package input preview: ${completedTools.length} reviewed tool(s), ${tray.length} pinned object(s), ${notes.length} note(s), and ${reportPackets.length} Case Report packet(s) will snapshot into Submit Decision.`;
+  return `Package input preview: ${completedTools.length} reviewed tool(s), ${tray.length} pinned object(s), ${notes.length} note(s), and ${reportPackets.length} evidence packet(s) will snapshot into Submit Decision.`;
 }
 
 function buildPacketFeed(reportPackets = []) {
   if (!reportPackets.length) {
     return {
       items: [],
-      message: 'Case Report packet feed: no structured packets are attached yet.',
+      message: 'Evidence packet feed: no structured packets are attached yet.',
     };
   }
 
@@ -168,7 +167,7 @@ function buildPacketFeed(reportPackets = []) {
 
   return {
     items,
-    message: `Case Report packet feed: ${visibleItems.join(' · ')}${suffix}.`,
+    message: `Evidence packet feed: ${visibleItems.join(' · ')}${suffix}.`,
   };
 }
 

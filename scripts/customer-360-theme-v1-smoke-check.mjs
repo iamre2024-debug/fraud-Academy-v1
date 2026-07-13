@@ -51,7 +51,6 @@ for (const anchor of [
   "import Customer360Panel from './Customer360Panel.jsx'",
   "tool === 'Customer 360'",
   '<Customer360Panel {...activeToolProps} />',
-  '<ActiveToolPanel {...activeToolProps} />',
   'rowsFor(tool, activeCase, reportPackets)',
 ]) {
   mustContain('VisualWorkspace.jsx', workspace, anchor);

@@ -4,6 +4,8 @@ const secondCase = { id: 'FA-CB-24007', person: 'Jordan Ellis' };
 const forbiddenPreSubmissionCopy = /\b(?:fraud score|red flags?|green flags?|correct answer|AI recommendations?|fraudulent|legitimate|suggested first tool|investigator question)\b/i;
 
 async function openTimeline(page) {
+  const allTools = page.getByRole('button', { name: 'All tools', exact: true });
+  if (await allTools.isVisible().catch(() => false)) await allTools.click();
   const workflow = page.locator('.active-case-workflow');
   await workflow.getByRole('button', { name: /Timeline/ }).click();
   const timeline = page.locator('[data-timeline-screen="approved-theme-v1"]');
@@ -96,7 +98,7 @@ test('approved Timeline preserves sequence review, evidence actions, and respons
   await expect(page.locator('.tray-card')).toContainText('Pinned');
   await detail.getByRole('button', { name: 'Save timeline note', exact: true }).click();
   await expect(page.locator('.notebook-card')).toContainText('Timeline event');
-  await detail.getByRole('button', { name: 'Save neutral report packet', exact: true }).click();
+  await detail.getByRole('button', { name: 'Save evidence packet', exact: true }).click();
   await expect(page.locator('.case-report-packet-panel')).toContainText('1 saved');
 
   await timeline.getByRole('button', { name: 'Mark Timeline reviewed', exact: true }).click();
@@ -105,13 +107,6 @@ test('approved Timeline preserves sequence review, evidence actions, and respons
   const nextRoutes = timeline.getByRole('navigation', { name: 'Timeline next routes' });
   await nextRoutes.getByRole('button', { name: 'Open Evidence Center', exact: true }).click();
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Evidence Center');
-
-  const timelineAgain = await openTimeline(page);
-  await timelineAgain.getByRole('navigation', { name: 'Timeline next routes' })
-    .getByRole('button', { name: 'Open Case Report', exact: true })
-    .click();
-  await expect(page.locator('[data-timeline-screen="approved-theme-v1"]')).toHaveCount(0);
-  await expect(page.locator('.workflow-active-tool-stage .activity-panel')).toContainText('Case Report');
 
   const timelineForDecision = await openTimeline(page);
   await timelineForDecision.getByRole('navigation', { name: 'Timeline next routes' })

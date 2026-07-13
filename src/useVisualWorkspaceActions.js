@@ -77,7 +77,7 @@ export default function useVisualWorkspaceActions({
         [activeCase.id]: [packet, ...deduped].slice(0, 30),
       };
     });
-    saveNote(`Case Report packet saved from ${tool}: ${row.id}.`, 'Case report packet');
+    saveNote(`Evidence packet saved from ${tool}: ${row.id}.`, 'Evidence packet');
   }
 
   function updateDecision(field, value) {

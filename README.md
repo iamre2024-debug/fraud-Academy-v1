@@ -86,6 +86,10 @@ Use these files before making architecture, UI, navigation, responsive, tool, sc
 
 ## Locked direction
 
+### Current cleanup override
+
+The post-redesign cleanup removes the visible Case Report and Investigator Prompts surfaces, keeps saved evidence packets for the determination package, gives focused phone tools their own page with an **All tools** back action, and requires generated cases to have populated records across the investigation tools.
+
 - One Case. One Workspace. One Investigation.
 - Every tool answers one investigator question.
 - Evidence First: no fraud/non-fraud answer, fraud score, red flags, green flags, AI recommendation, or decision hint before the investigation is complete.

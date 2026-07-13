@@ -12,7 +12,6 @@ const remainingModules = [
   'Evidence Center',
   'Link Analysis',
   'Timeline',
-  'Case Report',
 ];
 
 function fail(message) {
@@ -21,9 +20,7 @@ function fail(message) {
 
 for (const activeCase of cases) {
   for (const tool of remainingModules) {
-    const fallbackData = tool === 'Case Report'
-      ? { rows: [{ id: 'PKT-SMOKE', label: 'Report packet', values: ['PKT-SMOKE', 'Saved packet', 'Neutral packet summary', 'Saved', activeCase.id, 'Evidence Center', 'Pin'], pin: 'PKT-SMOKE', detail: 'Saved packet' }] }
-      : { rows: [] };
+    const fallbackData = { rows: [] };
     const data = buildCoreToolRecords(tool, activeCase, fallbackData);
     if (!data || !Array.isArray(data.columns) || data.columns.length !== 7) {
       fail(`${activeCase.id} ${tool}: expected a seven-column investigation record set.`);
@@ -56,14 +53,6 @@ for (const anchor of ['Payment link', 'Evidence link', 'Business link', 'Digital
 const timelineText = JSON.stringify(buildCoreToolRecords('Timeline', creditReview, { rows: [] }));
 for (const anchor of ['Login History', 'Transaction History', 'Payment Verification', 'Evidence Center']) {
   if (!timelineText.includes(anchor)) fail(`Timeline is missing ${anchor} records.`);
-}
-
-const reportData = buildCoreToolRecords('Case Report', creditReview, {
-  rows: [{ id: 'PKT-SMOKE', label: 'Report packet', values: ['PKT-SMOKE', 'Saved packet', 'Neutral packet summary', 'Saved', creditReview.id, 'Evidence Center', 'Pin'], pin: 'PKT-SMOKE', detail: 'Saved packet' }],
-});
-const reportText = JSON.stringify(reportData);
-for (const anchor of ['Payment verification', 'Business intelligence', 'Evidence summary', 'Timeline summary', 'PKT-SMOKE']) {
-  if (!reportText.includes(anchor)) fail(`Case Report is missing ${anchor}.`);
 }
 
 const lunaLocked = buildLunaDebrief({ activeCase: creditReview, reviewPackage: null });
@@ -105,4 +94,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Remaining module depth smoke check passed for all built-in cases, training-safe payment wording, neutral links and timeline records, saved Case Report packets, Luna submission locks, neutral tool wording, and the IndexedDB repository boundary.');
+console.log('Remaining module depth smoke check passed for all built-in cases, training-safe payment wording, neutral links and timeline records, evidence packets, Luna submission locks, neutral tool wording, and the IndexedDB repository boundary.');

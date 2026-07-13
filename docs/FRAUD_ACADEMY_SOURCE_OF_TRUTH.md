@@ -12,6 +12,16 @@ The purpose is to teach investigators how to investigate, think critically, conn
 
 One Case. One Workspace. One Investigation.
 
+### Post-redesign cleanup override — July 13, 2026
+
+This user-approved cleanup supersedes earlier references to a visible Case Report screen or Investigator Prompts card:
+
+- Do not show Investigator Prompts or Key Focus Areas in Case Briefing.
+- Do not show Case Report, Reports, or Reports & Progress as a user-facing route or shortcut.
+- Keep saved, case-scoped evidence-packet data for Submit Decision; call it an Evidence Packet in the interface.
+- On phone widths, focused investigation tools open as their own page with an **All tools** back action.
+- Every newly generated case populates customer, access, financial, business, evidence, document, link, and timeline records so the workspace never looks name-only.
+
 The Case Workspace is the heart of the app. The learner should feel like they are working a realistic bank, fintech, payroll, payment, or credit investigation from inside a polished fraud command center.
 
 ## Design authority and migration contract

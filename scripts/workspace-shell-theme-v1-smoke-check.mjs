@@ -37,7 +37,6 @@ for (const stage of [
   'Case Briefing',
   'Investigate',
   'Timeline',
-  'Summary',
   'Indicators',
   'Determination',
   'Debrief',

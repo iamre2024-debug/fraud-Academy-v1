@@ -34,7 +34,7 @@ mustNotContain('VisualNavigation.jsx global navigation', navigationBlock?.[1] ??
 mustNotContain('VisualNavigation.jsx global navigation', navigationBlock?.[1] ?? '', "key: 'profile'");
 mustContain('VisualNavigation.jsx', navigation, "progress: {");
 mustContain('VisualNavigation.jsx', navigation, "profile: {");
-mustContain('VisualNavigation.jsx', navigation, '<strong>Reports & Progress</strong>');
+mustContain('VisualNavigation.jsx', navigation, '<strong>Progress</strong>');
 mustContain('VisualNavigation.jsx', navigation, "import AcademyThemeV1Panel from './AcademyThemeV1Panel.jsx';");
 mustContain('VisualNavigation.jsx', navigation, "import ProfileThemeV1Panel from './ProfileThemeV1Panel.jsx';");
 mustContain('VisualNavigation.jsx', navigation, '<AcademyThemeV1Panel');

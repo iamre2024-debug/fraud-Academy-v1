@@ -12,10 +12,10 @@ export const categories = [
   { key: 'business', label: 'Business', icon: '⌂', tools: ['Business 360', 'Business Intelligence', 'Employee Profile', 'Payroll History'] },
   { key: 'evidence', label: 'Evidence', icon: '▰', tools: ['Evidence Center', 'Document Viewer'] },
   { key: 'connections', label: 'Connections', icon: '⌘', tools: ['Link Analysis', 'System Access Lane'] },
-  { key: 'investigation', label: 'Investigation', icon: '⌕', tools: ['Timeline', 'Case Report'] },
+  { key: 'investigation', label: 'Investigation', icon: '⌕', tools: ['Timeline'] },
 ];
 
-export const workflows = ['Record', 'Expand', 'Search', 'History', 'Link Analysis', 'Generate Report', 'Timeline', 'Case Report'];
+export const workflows = ['Record', 'Expand', 'Search', 'History', 'Link Analysis', 'Save Evidence', 'Timeline'];
 
 export const storageKeys = {
   tray: 'fraud-academy-visual-tray-v1',
@@ -48,10 +48,56 @@ function makeRow(id, values, pin = id, label = 'Record') {
   return { id, values: normalized, pin, label, detail: normalized.join(' ') };
 }
 
+function generatedRecordFallbacks(activeCase) {
+  const prefix = activeCase.id;
+  const observed = activeCase.opened ?? 'Generated case day';
+  const destination = activeCase.customer?.contact?.address ?? 'Training destination record';
+  const documentRows = (activeCase.documents ?? []).map((item, index) => ({
+    id: item.id ?? `${prefix}-DOC-${index + 1}`,
+    status: item.status ?? 'Available',
+    title: item.name ?? item.title ?? 'Training case document',
+    category: 'Case packet',
+    updated: observed,
+    fields: item.detail ?? 'Training-safe document fields',
+    preview: 'Open record for detail',
+  }));
+
+  return {
+    financial: {
+      transactions: [
+        {
+          id: `${prefix}-TXN-1`, posted: observed, time: 'Recorded in training packet', merchant: activeCase.transactionInfo ?? 'Training merchant', amount: activeCase.amount ?? 'Not recorded', channel: 'Scenario record', instrument: 'Fictional payment object', status: 'Recorded',
+        },
+      ],
+      financialIntel: [
+        { id: `${prefix}-FIN-1`, type: 'Account context', value: activeCase.customer?.relationship?.[0]?.value ?? 'Generated relationship record', observed, context: 'Available for evidence review' },
+        { id: `${prefix}-FIN-2`, type: 'Claim amount', value: activeCase.amount ?? 'Not recorded', observed, context: 'Linked to active training case' },
+      ],
+      paymentVerification: [
+        { id: `${prefix}-PAY-1`, type: 'Destination ID', object: `DST-${prefix.slice(-8)}`, status: 'Available for review', lastSeen: observed, context: destination },
+      ],
+    },
+    business: {
+      business360: [{ id: `${prefix}-BUS-1`, entity: 'Generated training entity', relationship: 'Case packet relationship', status: 'Available for review', observed, context: activeCase.type }],
+      businessIntel: [{ id: `${prefix}-BIZ-1`, type: 'Business context', value: 'Generated business record', observed, context: 'Training-safe fictional data' }],
+      employeeProfile: [{ id: `${prefix}-EMP-1`, name: activeCase.person, role: 'Training profile', employer: 'Generated training entity', status: 'Available for review', lastSeen: observed, context: 'Fictional employee context' }],
+      payrollHistory: [{ id: `${prefix}-PAYROLL-1`, period: 'Generated review period', employer: 'Generated training entity', amount: activeCase.amount ?? 'Not recorded', channel: 'Scenario record', status: 'Available for review', context: 'Fictional payroll context' }],
+    },
+    evidence: {
+      evidence: [
+        { id: `${prefix}-EVD-1`, status: 'Available', name: 'Generated intake record', source: 'Scenario Engine', received: observed, linkedObject: activeCase.claimId ?? prefix, summary: activeCase.allegation ?? activeCase.queueReason },
+        { id: `${prefix}-EVD-2`, status: 'Available', name: 'Generated access record', source: 'Scenario Engine', received: observed, linkedObject: activeCase.loginHistory?.[0]?.deviceId ?? prefix, summary: 'Training-safe access and device context for neutral review.' },
+      ],
+      documents: documentRows.length ? documentRows : [{ id: `${prefix}-DOC-1`, status: 'Available', title: 'Generated case packet', category: 'Case packet', updated: observed, fields: 'Training-safe intake and record fields', preview: 'Open record for detail' }],
+    },
+  };
+}
+
 export function rowsFor(tool, activeCase, reportPackets = []) {
-  const financial = financialRecordsByCase[activeCase.id] ?? { transactions: [], financialIntel: [], paymentVerification: [] };
-  const business = businessRecordsByCase[activeCase.id] ?? { business360: [], businessIntel: [], employeeProfile: [], payrollHistory: [] };
-  const evidence = evidenceRecordsByCase[activeCase.id] ?? { evidence: [], documents: [] };
+  const generated = generatedRecordFallbacks(activeCase);
+  const financial = financialRecordsByCase[activeCase.id] ?? generated.financial;
+  const business = businessRecordsByCase[activeCase.id] ?? generated.business;
+  const evidence = evidenceRecordsByCase[activeCase.id] ?? generated.evidence;
 
   if (tool === 'Customer 360') {
     const relationship = activeCase.customer?.relationship ?? [];
@@ -226,7 +272,7 @@ export function buildPacket(row, tool, activeCase) {
     section: `${tool} packet`,
     title: String(row.values[2] ?? row.values[1] ?? row.id).replace(/\n/g, ' · '),
     summary: row.detail,
-    state: 'Saved to Case Report draft',
+    state: 'Saved to evidence packet',
     savedAt,
   };
 }
