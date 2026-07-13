@@ -34,7 +34,7 @@ import './displayProfileThemeV1.css';
 import './displayProfileThemeV1Safety.css';
 import './displayFinalResponsivePolishV1.css';
 import './mobileVisualCorrectnessRepair.css';
-import './caseReportRemoval.css';
+import './customer360AttachedPages.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
