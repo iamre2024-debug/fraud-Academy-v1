@@ -35,6 +35,7 @@ import './displayProfileThemeV1Safety.css';
 import './displayFinalResponsivePolishV1.css';
 import './mobileVisualCorrectnessRepair.css';
 import './customer360AttachedPages.css';
+import './mobileToolPages.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
