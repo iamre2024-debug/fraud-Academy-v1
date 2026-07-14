@@ -42,6 +42,7 @@ import './businessIntelligencePanel.css';
 import './paymentVerificationPanel.css';
 import './loginHistoryPanel.css';
 import './customer360AttachedPages.css';
+import './standaloneDecisionAndPaymentLayout.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
