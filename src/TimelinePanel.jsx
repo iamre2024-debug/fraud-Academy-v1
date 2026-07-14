@@ -26,7 +26,6 @@ export default function TimelinePanel({
   setExpandedId,
   pin,
   saveNote,
-  saveCaseReportPacket,
   markReviewed,
   currentCompleted,
   openTool,
@@ -67,10 +66,6 @@ export default function TimelinePanel({
   function saveTimelineNote() {
     if (!selectedEvent) return;
     saveNote(`Timeline event ${selectedEvent.id}: ${selectedEvent.detail}`, 'Timeline event');
-  }
-
-  function saveTimelinePacket() {
-    if (selectedEvent) saveCaseReportPacket(selectedEvent);
   }
 
   return (
@@ -205,13 +200,12 @@ export default function TimelinePanel({
                 <p>Sequence review</p>
                 <h4>Verify this event against its source record</h4>
                 <DirectCollapsibleText lines={3} mobileLines={4}>
-                  Compare {selectedEvent.id} with {String(selectedEvent.values[3] ?? 'the recorded source')}, linked object {String(selectedEvent.values[4] ?? 'not recorded')}, pinned evidence, and the Case Report draft.
+                  Compare {selectedEvent.id} with {String(selectedEvent.values[3] ?? 'the recorded source')}, linked object {String(selectedEvent.values[4] ?? 'not recorded')}, and pinned evidence.
                 </DirectCollapsibleText>
               </section>
 
               <div className="timeline-detail-actions">
                 <button type="button" onClick={saveTimelineNote}>Save timeline note</button>
-                <button type="button" onClick={saveTimelinePacket}>Save neutral report packet</button>
               </div>
             </>
           ) : (
@@ -222,7 +216,6 @@ export default function TimelinePanel({
 
       <nav className="timeline-next-routes" aria-label="Timeline next routes">
         <button type="button" onClick={() => openTool('Evidence Center', 'indicators')}>Open Evidence Center</button>
-        <button type="button" onClick={() => openTool('Case Report', 'summary')}>Open Case Report</button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
 
