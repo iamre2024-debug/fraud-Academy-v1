@@ -21,7 +21,7 @@ import { rowsFor } from './visualWorkspaceModel.js';
 
 function stageForTool(toolName) {
   if (toolName === 'Timeline') return 'timeline';
-  if (['Evidence Center', 'Document Viewer', 'Link Analysis'].includes(toolName)) return 'indicators';
+  if (['Evidence Center', 'Document Request', 'Link Analysis'].includes(toolName)) return 'indicators';
   return 'investigate';
 }
 
