@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import { buildCoreToolRecords } from './data/coreToolRecords.js';
+import { getBusiness360Workspace, getEmployeeProfiles, getPayrollHistory, getTransactionHistory } from './data/businessPayrollWorkspace.js';
 import { getDeviceProfiles } from './data/deviceRecords.js';
 import { evidenceRecordsByCase } from './data/evidenceRecords.js';
 import { financialRecordsByCase } from './data/financialRecords.js';
@@ -1118,6 +1119,171 @@ function IdentityIntelWorkspace({
   );
 }
 
+function TransactionHistoryWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
+  const records = useMemo(() => getTransactionHistory(activeCase), [activeCase]);
+  const [merchantSearch, setMerchantSearch] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [account, setAccount] = useState('All accounts');
+  const [channel, setChannel] = useState('All channels');
+  const [direction, setDirection] = useState('All activity');
+  const [selectedId, setSelectedId] = useState('');
+  const accounts = ['All accounts', ...new Set(records.map((record) => record.instrument))];
+  const channels = ['All channels', ...new Set(records.map((record) => record.channel))];
+  const filteredRecords = records.filter((record) => {
+    const date = new Date(record.posted);
+    return (!merchantSearch || `${record.id} ${record.merchant} ${record.category} ${record.instrument}`.toLowerCase().includes(merchantSearch.toLowerCase()))
+      && (account === 'All accounts' || record.instrument === account)
+      && (channel === 'All channels' || record.channel === channel)
+      && (direction === 'All activity' || record.direction === direction)
+      && (!fromDate || date >= new Date(`${fromDate}T00:00:00`))
+      && (!toDate || date <= new Date(`${toDate}T23:59:59`));
+  });
+  const activeRecord = filteredRecords.find((record) => record.id === selectedId) ?? filteredRecords[0] ?? records[0];
+  const total = filteredRecords.reduce((sum, record) => sum + record.amountValue, 0);
+
+  useEffect(() => {
+    setMerchantSearch('');
+    setFromDate('');
+    setToDate('');
+    setAccount('All accounts');
+    setChannel('All channels');
+    setDirection('All activity');
+    setSelectedId('');
+  }, [activeCase.id]);
+
+  function saveTransactionNote(message) {
+    saveNote(`Transaction History: ${message}`, 'Transaction history');
+  }
+
+  return (
+    <>
+      <section className="transaction-history-findbar" aria-label="Transaction History filters">
+        <div><p>Banking activity</p><h3>30-day training activity view. Filter merchant, date, account, amount context, channel, or debit and credit activity.</h3></div>
+        <label><span>Merchant or transaction</span><input value={merchantSearch} onChange={(event) => setMerchantSearch(event.target.value)} placeholder="Merchant, transaction ID, category, or account" aria-label="Search Transaction History" /></label>
+        <label><span>From date</span><input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} aria-label="Transaction History from date" /></label>
+        <label><span>To date</span><input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} aria-label="Transaction History to date" /></label>
+      </section>
+
+      <section className="transaction-history-filter-row" aria-label="Transaction History quick filters">
+        <select value={channel} onChange={(event) => setChannel(event.target.value)} aria-label="Transaction channel filter">{channels.map((item) => <option key={item}>{item}</option>)}</select>
+        <select value={direction} onChange={(event) => setDirection(event.target.value)} aria-label="Transaction debit credit filter"><option>All activity</option><option>Debit</option><option>Non-monetary</option></select>
+        <span>{filteredRecords.length} of {records.length} activity records shown</span>
+      </section>
+
+      <section className="transaction-history-summary" aria-label="Transaction History summary">
+        <article><span>Activity window</span><strong>30 days</strong></article>
+        <article><span>Records shown</span><strong>{filteredRecords.length}</strong></article>
+        <article><span>Debit activity shown</span><strong>${total.toFixed(2)}</strong></article>
+        <article><span>Accounts / cards</span><strong>{accounts.length - 1}</strong></article>
+      </section>
+
+      <div className="transaction-history-account-rail" aria-label="Transaction account and card rail">
+        {accounts.map((item) => <button key={item} type="button" className={account === item ? 'active' : ''} onClick={() => setAccount(item)}>{item}</button>)}
+      </div>
+
+      {activeRecord ? <div className="transaction-history-workspace">
+        <section className="transaction-history-list" aria-label="Transaction History activity feed">
+          <header><p>Activity feed</p><h3>Choose a transaction to expand</h3></header>
+          {filteredRecords.map((record) => <button key={record.id} type="button" className={record.id === activeRecord.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-transaction-history-record={record.id}>
+            <span>{record.posted} at {record.time}</span><strong>{record.merchant}</strong><small>{record.amount} | {record.channel} | {record.instrument}</small>
+          </button>)}
+          {!filteredRecords.length && <div className="investigation-tool-empty" role="status">No activity records match these filters.</div>}
+        </section>
+
+        <section className="transaction-history-detail" aria-label="Transaction detail drawer">
+          <header><div><p>Transaction detail drawer</p><h3>{activeRecord.id} | {activeRecord.merchant}</h3><span>{activeRecord.posted} at {activeRecord.time}</span></div><button type="button" onClick={() => pin(activeRecord.id)}>Pin transaction</button></header>
+          <dl>{[
+            ['Amount', activeRecord.amount], ['Direction', activeRecord.direction], ['Account / card', activeRecord.instrument], ['Channel', activeRecord.channel], ['Category', activeRecord.category], ['Card entry mode', activeRecord.entryMode], ['Location', activeRecord.location], ['Status', activeRecord.status],
+          ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+          <article className="transaction-history-context"><span>Recorded context</span><p>{activeRecord.context}</p></article>
+          <div className="transaction-history-actions"><button type="button" onClick={() => saveTransactionNote(`${activeRecord.id} reviewed with ${activeRecord.entryMode} and ${activeRecord.instrument}.`)}>Save transaction note</button><button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button></div>
+        </section>
+
+        <aside className="transaction-history-evidence" aria-label="Transaction related evidence">
+          <header><p>Related evidence</p><h3>Objects and documents</h3></header>
+          <article><span>Related records</span><strong>{activeRecord.relatedRecords.join(' | ')}</strong></article>
+          <article><span>Related documents</span><strong>{activeRecord.relatedDocuments.join(' | ') || 'No document linked in current packet'}</strong></article>
+          <button type="button" onClick={() => openTool('Evidence Center')}>Open Evidence Center</button>
+        </aside>
+      </div> : <div className="investigation-tool-empty" role="status">No transaction records are available for this case.</div>}
+
+      <nav className="investigation-tool-next-routes" aria-label="Transaction History next routes"><button type="button" onClick={() => openTool('Financial Intelligence')}>Open Financial Intelligence</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Evidence Center')}>Open Evidence Center</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <footer className="investigation-tool-review-bar"><div><strong>Transaction History review</strong><span>Review the activity feed, transaction details, linked records, and documents before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Transaction History')}>{reviewed ? '✓ Transaction History reviewed' : 'Mark Transaction History reviewed'}</button></footer>
+    </>
+  );
+}
+
+function Business360Workspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
+  const workspace = useMemo(() => getBusiness360Workspace(activeCase), [activeCase]);
+  const [selectedId, setSelectedId] = useState('');
+  const activeRelationship = workspace.relationships.find((record) => record.id === selectedId) ?? workspace.relationships[0];
+  useEffect(() => setSelectedId(''), [activeCase.id]);
+
+  return (
+    <>
+      <section className="business-360-profile" aria-label="Business 360 profile">
+        <header><div><p>Business and KYB profile</p><h3>{workspace.profile.entity}</h3><span>Fictional training business context. Review evidence without assigning a case outcome.</span></div><button type="button" onClick={() => pin(workspace.profile.entity)}>Pin business</button></header>
+        <dl>{[
+          ['Entity type', workspace.profile.entityType], ['Registration', workspace.profile.registration], ['Masked EIN', workspace.profile.ein], ['Owner', workspace.profile.owner], ['Officer', workspace.profile.officer], ['Registered agent', workspace.profile.registeredAgent], ['Business address', workspace.profile.address], ['Filing date', workspace.profile.filingDate], ['Business standing', workspace.profile.standing], ['Revenue / cash-flow context', workspace.profile.revenue], ['Business contact', workspace.profile.contact], ['Relationship', workspace.profile.relationship],
+        ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+      </section>
+
+      <div className="business-360-workspace">
+        <section className="business-360-relationships" aria-label="Business relationships"><header><p>Relationships</p><h3>Choose a business object</h3></header>{workspace.relationships.map((record) => <button key={record.id} type="button" className={record.id === activeRelationship?.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-business-360-record={record.id}><span>{record.id} | {record.status}</span><strong>{record.entity}</strong><small>{record.relationship}</small></button>)}</section>
+        {activeRelationship ? <section className="business-360-detail" aria-label="Business relationship detail"><header><div><p>Selected relationship</p><h3>{activeRelationship.entity}</h3><span>{activeRelationship.observed}</span></div><button type="button" onClick={() => pin(activeRelationship.entity)}>Pin relationship</button></header><dl>{[['Relationship', activeRelationship.relationship], ['Status', activeRelationship.status], ['Observed', activeRelationship.observed], ['Case context', activeRelationship.context]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><button type="button" onClick={() => saveNote(`Business 360: ${activeRelationship.id} reviewed for ${activeCase.id}.`, 'Business 360')}>Save business note</button></section> : <div className="investigation-tool-empty" role="status">No business relationship is recorded for this case.</div>}
+        <aside className="business-360-evidence" aria-label="Business 360 evidence"><header><p>Evidence Explorer</p><h3>Business records to compare</h3></header>{workspace.intelligence.map((record) => <article key={record.id}><span>{record.type}</span><strong>{record.value}</strong><small>{record.id} | {record.observed}</small></article>)}<button type="button" onClick={() => openTool('Evidence Center')}>Open Evidence Center</button></aside>
+      </div>
+      <nav className="investigation-tool-next-routes" aria-label="Business 360 next routes"><button type="button" onClick={() => openTool('Business Intelligence')}>Open Business Intelligence</button><button type="button" onClick={() => openTool('Employee Profile')}>Open Employee Profile</button><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <footer className="investigation-tool-review-bar"><div><strong>Business 360 review</strong><span>Review the fictional business profile, relationship records, and linked evidence before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Business 360')}>{reviewed ? '✓ Business 360 reviewed' : 'Mark Business 360 reviewed'}</button></footer>
+    </>
+  );
+}
+
+function EmployeeProfileWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
+  const records = useMemo(() => getEmployeeProfiles(activeCase), [activeCase]);
+  const [selectedId, setSelectedId] = useState('');
+  const activeRecord = records.find((record) => record.id === selectedId) ?? records[0];
+  useEffect(() => setSelectedId(''), [activeCase.id]);
+
+  return (
+    <>
+      <section className="employee-profile-summary" aria-label="Employee Profile summary">{[['Employee records', records.length], ['Employers', new Set(records.map((record) => record.employer)).size], ['Payroll links', records.reduce((count, record) => count + record.linkedPayroll.length, 0)], ['Active case', activeCase.id]].map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}</section>
+      {activeRecord ? <div className="employee-profile-workspace">
+        <section className="employee-profile-list" aria-label="Employee Profile records"><header><p>Employee records</p><h3>Choose an employee or contact</h3></header>{records.map((record) => <button key={record.id} type="button" className={record.id === activeRecord.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-employee-profile-record={record.id}><span>{record.id} | {record.status}</span><strong>{record.name}</strong><small>{record.role} | {record.employer}</small></button>)}</section>
+        <section className="employee-profile-detail" aria-label="Employee Profile detail"><header><div><p>Employee profile</p><h3>{activeRecord.name}</h3><span>{activeRecord.role} | {activeRecord.employer}</span></div><button type="button" onClick={() => pin(`${activeRecord.id} | ${activeRecord.name}`)}>Pin employee</button></header><dl>{[['Employee ID', activeRecord.id], ['Employer', activeRecord.employer], ['Role', activeRecord.role], ['Department', activeRecord.department], ['Status', activeRecord.status], ['Hire date', activeRecord.hireDate], ['Employment timeline', activeRecord.employmentTimeline], ['Official contact / callback', activeRecord.officialContact], ['Direct deposit context', activeRecord.directDeposit], ['Linked payroll records', activeRecord.linkedPayroll.join(' | ') || 'None recorded']].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><button type="button" onClick={() => saveNote(`Employee Profile: ${activeRecord.id} reviewed for ${activeCase.id}.`, 'Employee profile')}>Save employee note</button></section>
+        <aside className="employee-profile-evidence" aria-label="Employee payroll evidence"><header><p>Payroll connection</p><h3>Next evidence to review</h3></header><p>Compare the employee record, employer relationship, direct-deposit context, and any payroll change request before documenting a case decision.</p><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button></aside>
+      </div> : <div className="investigation-tool-empty" role="status">No employee records are available for this case.</div>}
+      <nav className="investigation-tool-next-routes" aria-label="Employee Profile next routes"><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={() => openTool('Evidence Center')}>Open Evidence Center</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <footer className="investigation-tool-review-bar"><div><strong>Employee Profile review</strong><span>Review employee and employer facts, official contact details, and linked payroll context before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Employee Profile')}>{reviewed ? '✓ Employee Profile reviewed' : 'Mark Employee Profile reviewed'}</button></footer>
+    </>
+  );
+}
+
+function PayrollHistoryWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
+  const records = useMemo(() => getPayrollHistory(activeCase), [activeCase]);
+  const [employer, setEmployer] = useState('All employers');
+  const [selectedId, setSelectedId] = useState('');
+  const employers = ['All employers', ...new Set(records.map((record) => record.employer))];
+  const filteredRecords = records.filter((record) => employer === 'All employers' || record.employer === employer);
+  const activeRecord = filteredRecords.find((record) => record.id === selectedId) ?? filteredRecords[0] ?? records[0];
+  useEffect(() => { setEmployer('All employers'); setSelectedId(''); }, [activeCase.id]);
+
+  return (
+    <>
+      <section className="payroll-history-findbar" aria-label="Payroll History filters"><div><p>Payroll and direct deposit</p><h3>Review each fictional payroll run, destination context, change record, callback status, and related employee evidence.</h3></div><label><span>Employer</span><select value={employer} onChange={(event) => setEmployer(event.target.value)} aria-label="Payroll History employer filter">{employers.map((item) => <option key={item}>{item}</option>)}</select></label><span>{filteredRecords.length} of {records.length} payroll records shown</span></section>
+      <section className="payroll-history-summary" aria-label="Payroll History summary">{[['Payroll records', records.length], ['Employers', employers.length - 1], ['Direct deposit records', records.filter((record) => /direct deposit/i.test(record.channel)).length], ['Linked employee records', new Set(records.flatMap((record) => record.relatedRecords.filter((item) => item.startsWith('EMP-')))).size]].map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}</section>
+      {activeRecord ? <div className="payroll-history-workspace">
+        <section className="payroll-history-list" aria-label="Payroll History records"><header><p>Payroll runs</p><h3>Choose a payroll record</h3></header>{filteredRecords.map((record) => <button key={record.id} type="button" className={record.id === activeRecord.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-payroll-history-record={record.id}><span>{record.period} | {record.runStatus}</span><strong>{record.employee}</strong><small>{record.amount} | {record.employer}</small></button>)}</section>
+        <section className="payroll-history-detail" aria-label="Payroll History detail"><header><div><p>Payroll run detail</p><h3>{activeRecord.id} | {activeRecord.period}</h3><span>{activeRecord.employer} | {activeRecord.amount}</span></div><button type="button" onClick={() => pin(activeRecord.id)}>Pin payroll record</button></header><dl>{[['Employee', activeRecord.employee], ['Employer', activeRecord.employer], ['Payroll amount', activeRecord.amount], ['Channel', activeRecord.channel], ['Run status', activeRecord.runStatus], ['Destination', activeRecord.destination], ['Prior destination', activeRecord.priorDestination], ['Effective date', activeRecord.effectiveDate], ['Change request', activeRecord.changeRequest], ['Admin activity', activeRecord.adminActivity], ['Trusted callback', activeRecord.callback], ['Related records', activeRecord.relatedRecords.join(' | ')]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><button type="button" onClick={() => saveNote(`Payroll History: ${activeRecord.id} reviewed for ${activeCase.id}.`, 'Payroll history')}>Save payroll note</button></section>
+        <aside className="payroll-history-controls" aria-label="Payroll related controls"><header><p>Related review</p><h3>Compare payroll evidence</h3></header><p>{activeRecord.context}</p><button type="button" onClick={() => openTool('Employee Profile')}>Open Employee Profile</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Document Request')}>Open Document Request</button></aside>
+      </div> : <div className="investigation-tool-empty" role="status">No payroll records match this filter.</div>}
+      <nav className="investigation-tool-next-routes" aria-label="Payroll History next routes"><button type="button" onClick={() => openTool('Employee Profile')}>Open Employee Profile</button><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <footer className="investigation-tool-review-bar"><div><strong>Payroll History review</strong><span>Review the payroll run, destination context, change request, callback status, and linked employee records before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Payroll History')}>{reviewed ? '✓ Payroll History reviewed' : 'Mark Payroll History reviewed'}</button></footer>
+    </>
+  );
+}
+
 function PaymentVerificationWorkspace({
   activeCase,
   query,
@@ -1433,6 +1599,46 @@ export default function InvestigationToolPanel({
           openTool={openTool}
           jumpDecision={jumpDecision}
         />
+      ) : tool === 'Transaction History' ? (
+        <TransactionHistoryWorkspace
+          activeCase={activeCase}
+          pin={pin}
+          saveNote={saveNote}
+          markReviewed={markReviewed}
+          reviewed={reviewed}
+          openTool={openTool}
+          jumpDecision={jumpDecision}
+        />
+      ) : tool === 'Business 360' ? (
+        <Business360Workspace
+          activeCase={activeCase}
+          pin={pin}
+          saveNote={saveNote}
+          markReviewed={markReviewed}
+          reviewed={reviewed}
+          openTool={openTool}
+          jumpDecision={jumpDecision}
+        />
+      ) : tool === 'Employee Profile' ? (
+        <EmployeeProfileWorkspace
+          activeCase={activeCase}
+          pin={pin}
+          saveNote={saveNote}
+          markReviewed={markReviewed}
+          reviewed={reviewed}
+          openTool={openTool}
+          jumpDecision={jumpDecision}
+        />
+      ) : tool === 'Payroll History' ? (
+        <PayrollHistoryWorkspace
+          activeCase={activeCase}
+          pin={pin}
+          saveNote={saveNote}
+          markReviewed={markReviewed}
+          reviewed={reviewed}
+          openTool={openTool}
+          jumpDecision={jumpDecision}
+        />
       ) : tool === 'Login History' ? (
         <LoginHistoryWorkspace
           activeCase={activeCase}
@@ -1623,6 +1829,7 @@ export default function InvestigationToolPanel({
       </div>
 
       <nav className="investigation-tool-next-routes" aria-label="Investigation record next routes">
+        {(tool === 'Evidence Center' || tool === 'Financial Intelligence') && <button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button>}
         <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
