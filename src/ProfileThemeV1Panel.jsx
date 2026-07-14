@@ -14,7 +14,7 @@ const skillDefinitions = [
   {
     key: 'evidence',
     label: 'Evidence documentation',
-    detail: 'Build notes, pinned-object context, and neutral report packets.',
+    detail: 'Build notes and pinned-object context.',
     icon: 'EV',
   },
   {
@@ -32,9 +32,9 @@ function clampPercent(value) {
 function buildSkillProgress(snapshot) {
   return {
     identity: clampPercent(snapshot.reviewed * 6 + snapshot.notes * 4),
-    digital: clampPercent(snapshot.reviewed * 5 + snapshot.packets * 12),
-    evidence: clampPercent(snapshot.notes * 16 + snapshot.packets * 28 + snapshot.reviewed * 2),
-    decision: clampPercent(snapshot.packages * 45 + snapshot.packets * 18 + snapshot.notes * 7),
+    digital: clampPercent(snapshot.reviewed * 6 + snapshot.notes * 5),
+    evidence: clampPercent(snapshot.notes * 20 + snapshot.reviewed * 4),
+    decision: clampPercent(snapshot.packages * 50 + snapshot.notes * 8),
   };
 }
 
@@ -49,7 +49,7 @@ function getUnlockedBadges(snapshot) {
   return {
     evidenceFirst: true,
     recordReviewer: snapshot.reviewed >= 4,
-    caseDocumenter: snapshot.notes >= 1 || snapshot.packets >= 1,
+    caseDocumenter: snapshot.notes >= 1,
     packageBuilder: snapshot.packages >= 1,
   };
 }
@@ -62,12 +62,10 @@ export default function ProfileThemeV1Panel({ activeCaseId, cases, snapshot, onN
   const completedCases = Object.values(snapshot.packagesByCase ?? {}).filter((items) => Array.isArray(items) && items.length > 0).length;
   const activeReviewed = snapshot.completedByCase?.[activeCase?.id]?.length ?? 0;
   const activeNotes = snapshot.notesByCase?.[activeCase?.id]?.length ?? 0;
-  const activePackets = snapshot.packetsByCase?.[activeCase?.id]?.length ?? 0;
   const activePackages = snapshot.packagesByCase?.[activeCase?.id]?.length ?? 0;
   const goals = [
     { label: 'Review required tools', current: Math.min(activeReviewed, 8), target: 8, action: 'Open Workspace', route: 'workspace' },
     { label: 'Document investigation notes', current: Math.min(activeNotes, 3), target: 3, action: 'Open Workspace', route: 'workspace' },
-    { label: 'Generate a neutral report packet', current: Math.min(activePackets, 1), target: 1, action: 'Open Workspace', route: 'workspace' },
     { label: 'Save the learner package', current: Math.min(activePackages, 1), target: 1, action: 'View Progress', route: 'progress' },
   ];
 
@@ -134,7 +132,7 @@ export default function ProfileThemeV1Panel({ activeCaseId, cases, snapshot, onN
             <div className="profile-badge-grid">
               <article className={badges.evidenceFirst ? 'unlocked' : 'locked'}><span>EF</span><strong>Evidence First</strong><small>Core standard</small></article>
               <article className={badges.recordReviewer ? 'unlocked' : 'locked'}><span>RR</span><strong>Record Reviewer</strong><small>{badges.recordReviewer ? 'Unlocked' : 'Review 4 tools'}</small></article>
-              <article className={badges.caseDocumenter ? 'unlocked' : 'locked'}><span>CD</span><strong>Case Documenter</strong><small>{badges.caseDocumenter ? 'Unlocked' : 'Save a note or packet'}</small></article>
+              <article className={badges.caseDocumenter ? 'unlocked' : 'locked'}><span>CD</span><strong>Case Documenter</strong><small>{badges.caseDocumenter ? 'Unlocked' : 'Save a note'}</small></article>
               <article className={badges.packageBuilder ? 'unlocked' : 'locked'}><span>PB</span><strong>Package Builder</strong><small>{badges.packageBuilder ? 'Unlocked' : 'Save a learner package'}</small></article>
             </div>
           </section>
@@ -143,7 +141,6 @@ export default function ProfileThemeV1Panel({ activeCaseId, cases, snapshot, onN
             <span className="profile-kicker">Activity summary</span>
             <h4 id="profile-activity-title">Your saved work</h4>
             <dl>
-              <div><dt>Neutral report packets</dt><dd>{snapshot.packets}</dd></div>
               <div><dt>Submitted packages</dt><dd>{snapshot.packages}</dd></div>
               <div><dt>Active-case tools</dt><dd>{activeReviewed}</dd></div>
               <div><dt>Active-case notes</dt><dd>{activeNotes}</dd></div>
@@ -159,7 +156,7 @@ export default function ProfileThemeV1Panel({ activeCaseId, cases, snapshot, onN
             <span className="profile-kicker">Goals</span>
             <h4 id="profile-goals-title">Complete the active case package</h4>
           </div>
-          <p>Goals follow the current case and use the existing case-scoped notes, reviewed tools, packets, and learner-package snapshot.</p>
+          <p>Goals follow the current case and use the existing case-scoped notes, reviewed tools, and learner-package snapshot.</p>
         </div>
         <div className="profile-goal-grid">
           {goals.map((goal) => {
