@@ -48,6 +48,16 @@ for (const anchor of [
   'Verification Call Drawer',
   'Action Panel',
   'Investigator Notes',
+  'DeviceIntelligenceWorkspace',
+  'Search a Device ID, fingerprint, browser, session, profile, wallet, or location to reveal device intelligence.',
+  'Device Snapshot',
+  'Run a device lookup to reveal',
+  'Rooted / jailbroken',
+  'Emulator-like indicator',
+  'Shared device detection',
+  'Wallet usage',
+  'Normal behavior comparison',
+  'Device History',
 ]) {
   mustContain('InvestigationToolPanel.jsx', panel, anchor);
 }
@@ -113,6 +123,12 @@ for (const anchor of [
   '.payment-call-drawer',
   '.payment-action-panel',
   '.payment-notes-panel',
+  '.device-intel-findbar',
+  '.device-intel-snapshot',
+  '.device-intel-workspace',
+  '.device-history-panel',
+  '.device-related-panel',
+  '.device-notes-panel',
 ]) {
   mustContain('displayInvestigationToolsThemeV1.css', styles, anchor);
 }
