@@ -68,6 +68,15 @@ for (const anchor of [
   'Password reset timing',
   'Money movement link',
   'A successful MFA event is evidence of authentication activity, not a final conclusion about authorization.',
+  'SessionHistoryWorkspace',
+  'After login, what did the user do?',
+  'Recorded sessions',
+  'Normal logout',
+  'Session timeout',
+  'Pages viewed',
+  'Payee / token activity',
+  'Transfer / purchase path',
+  'Session Path',
 ]) {
   mustContain('InvestigationToolPanel.jsx', panel, anchor);
 }
@@ -147,6 +156,15 @@ for (const anchor of [
   '.login-session-panel',
   '.login-related-panel',
   '.login-notes-panel',
+  '.session-history-findbar',
+  '.session-history-summary',
+  '.session-history-workspace',
+  '.session-record-list',
+  '.session-detail-panel',
+  '.session-activity-grid',
+  '.session-path-panel',
+  '.session-related-panel',
+  '.session-notes-panel',
 ]) {
   mustContain('displayInvestigationToolsThemeV1.css', styles, anchor);
 }
