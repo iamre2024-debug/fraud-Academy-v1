@@ -32,7 +32,7 @@ export const investigationToolGroups = [
     label: 'Evidence & Documents',
     icon: 'DOC',
     question: 'Which documents and evidence records are available, pending, or linked?',
-    tools: ['Evidence Center', 'Document Viewer'],
+    tools: ['Evidence Center', 'Document Request'],
   },
   {
     key: 'connections',
