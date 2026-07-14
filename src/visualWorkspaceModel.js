@@ -53,59 +53,85 @@ function generatedRecordFallbacks(activeCase) {
   const observed = activeCase.opened ?? 'Generated case day';
   const city = activeCase.intake?.customerLocation ?? activeCase.customer?.relationship?.find((item) => item.label === 'Normal login area')?.value ?? 'Training location';
   const contact = activeCase.customer?.contact ?? {};
-  const destination = contact.address ?? 'Training destination record';
+  const businessProfile = activeCase.businessProfile ?? {
+    name: `${activeCase.type} training entity`,
+    businessId: `TBI-${prefix.slice(-8)}`,
+    industry: 'Training business relationship',
+    address: `${city} training business address`,
+    phone: '(555) 020-0000',
+    email: 'operations@business.training.test',
+    contactName: 'Training business contact',
+    relationship: 'Case-linked merchant, employer, or payment relationship',
+    bankCode: `BC-${prefix.slice(-3)}`,
+    destinationId: `DST-${prefix.slice(-8)}`,
+  };
+  const destinationId = businessProfile.destinationId ?? `DST-${prefix.slice(-8)}`;
+  const bankCode = businessProfile.bankCode ?? `BC-${prefix.slice(-3)}`;
   const documentRows = (activeCase.documents ?? []).map((item, index) => ({
     id: item.id ?? `${prefix}-DOC-${index + 1}`,
     status: item.status ?? 'Available',
     title: item.name ?? item.title ?? 'Training case document',
     category: item.category ?? 'Evidence document',
     updated: item.updated ?? observed,
-    fields: item.detail ?? 'Training-safe document fields linked to the active case.',
-    preview: item.preview ?? 'Open document record for detail',
+    fields: item.fields ?? item.detail ?? 'Training-safe document fields linked to the active case.',
+    preview: item.preview ?? item.detail ?? 'Open document record for detail',
   }));
 
   return {
     financial: {
       transactions: [
-        { id: `${prefix}-TXN-1`, posted: observed, time: '9:18 AM', merchant: activeCase.transactionInfo ?? 'Training merchant', amount: activeCase.amount ?? 'Not recorded', channel: 'Scenario record', instrument: `Payment object ${prefix.slice(-6)}`, status: 'Posted record available' },
+        { id: `${prefix}-TXN-1`, posted: observed, time: '9:18 AM', merchant: activeCase.transactionInfo ?? businessProfile.name, amount: activeCase.amount ?? 'Not recorded', channel: 'Generated case activity', instrument: `Payment object ${destinationId}`, status: 'Recorded' },
+        { id: `${prefix}-TXN-2`, posted: observed, time: '9:06 AM', merchant: businessProfile.name, amount: '$0.00 setup event', channel: 'Payment setup', instrument: `${bankCode} · ${destinationId}`, status: 'Recorded' },
       ],
       financialIntel: [
-        { id: `${prefix}-FIN-1`, type: 'Account context', value: activeCase.customer?.relationship?.[0]?.value ?? 'Generated relationship record', observed, context: 'Relationship and activity context available for neutral comparison.' },
-        { id: `${prefix}-FIN-2`, type: 'Claim amount', value: activeCase.amount ?? 'Not recorded', observed, context: `Linked to ${activeCase.claimId ?? activeCase.id}.` },
+        { id: `${prefix}-FIN-1`, type: 'Account context', value: activeCase.customer?.relationship?.find((item) => item.label === 'Open products')?.value ?? 'Generated relationship record', observed, context: 'Product and relationship context available for neutral comparison.' },
+        { id: `${prefix}-FIN-2`, type: 'Case amount', value: activeCase.amount ?? 'Not recorded', observed, context: `Linked to ${activeCase.claimId ?? activeCase.id}.` },
+        { id: `${prefix}-FIN-3`, type: 'Payment relationship', value: `${bankCode} · ${destinationId}`, observed, context: `Connected to ${businessProfile.name} and the generated payment packet.` },
       ],
       paymentVerification: [
-        { id: `${prefix}-PAY-1`, type: 'Destination ID', object: `DST-${prefix.slice(-8)}`, status: 'Verification record available', lastSeen: observed, context: `${destination} · Bank Code BKC-${prefix.slice(-4)} · ownership fields available for review.` },
+        { id: `${prefix}-PAY-1`, type: 'Bank Code', object: bankCode, status: 'Tokenized training record', lastSeen: observed, context: `Linked to ${destinationId}, ${businessProfile.name}, and the generated setup event.` },
+        { id: `${prefix}-PAY-2`, type: 'Destination ID', object: destinationId, status: 'Verification record available', lastSeen: observed, context: `${businessProfile.address} · relationship and ownership fields available for review.` },
+        { id: `${prefix}-PAY-3`, type: 'Verification packet', object: `PV-${prefix.slice(-8)}`, status: 'Pending investigator review', lastSeen: observed, context: `Groups ${bankCode}, ${destinationId}, transaction activity, business context, and identity objects.` },
       ],
     },
     business: {
       business360: [
-        { id: `${prefix}-BUS-1`, entity: `${activeCase.type} training entity`, relationship: 'Linked through the active transaction or payment object', status: 'Entity record available', observed, context: `Fictional business profile associated with ${activeCase.claimId ?? prefix}.` },
+        { id: `${prefix}-BUS-1`, entity: businessProfile.name, relationship: businessProfile.relationship, status: 'Active fictional business record', observed, context: `${businessProfile.businessId} · ${businessProfile.industry}.` },
+        { id: `${prefix}-BUS-2`, entity: businessProfile.contactName, relationship: 'Business contact', status: 'Contact record available', observed, context: `${businessProfile.phone} · ${businessProfile.email}.` },
+        { id: `${prefix}-BUS-3`, entity: destinationId, relationship: 'Payment destination connected to the business relationship', status: 'Payment object recorded', observed, context: `${bankCode} · ${businessProfile.address}.` },
       ],
       businessIntel: [
-        { id: `${prefix}-BIZ-1`, type: 'Business registration', value: `${activeCase.type} training entity`, observed, context: `Training-safe registration, contact, and relationship details for ${city}.` },
-        { id: `${prefix}-BIZ-2`, type: 'Activity context', value: activeCase.transactionInfo ?? 'Generated business activity', observed, context: 'Related payment, transaction, and document objects are linked for review.' },
+        { id: `${prefix}-BIZ-1`, type: 'Legal business name', value: businessProfile.name, observed, context: `Training Business ID ${businessProfile.businessId} · active fictional record.` },
+        { id: `${prefix}-BIZ-2`, type: 'Industry', value: businessProfile.industry, observed, context: 'Training-safe industry and operating context.' },
+        { id: `${prefix}-BIZ-3`, type: 'Business address', value: businessProfile.address, observed, context: `Registered and operating address in the ${city} training area.` },
+        { id: `${prefix}-BIZ-4`, type: 'Business contact', value: `${businessProfile.phone} · ${businessProfile.email}`, observed, context: `${businessProfile.contactName} · case-linked contact record.` },
+        { id: `${prefix}-BIZ-5`, type: 'Payment relationship', value: `${bankCode} · ${destinationId}`, observed, context: 'Related payment, transaction, and document objects are linked for review.' },
       ],
       employeeProfile: [
-        { id: `${prefix}-EMP-1`, name: `${activeCase.type} training contact`, role: 'Case-linked business contact', employer: `${activeCase.type} training entity`, status: 'Profile record available', lastSeen: observed, context: `${contact.email ?? 'Training email'} · ${contact.phone ?? 'Training phone'}.` },
+        { id: `${prefix}-EMP-1`, name: businessProfile.contactName, role: activeCase.type === 'Credit Risk Review' ? 'Employer or payroll contact' : 'Merchant or business contact', employer: businessProfile.name, status: 'Profile record available', lastSeen: observed, context: `${businessProfile.phone} · ${businessProfile.email} · ${businessProfile.businessId}.` },
+        { id: `${prefix}-EMP-2`, name: activeCase.person, role: activeCase.type === 'Credit Risk Review' ? 'Listed employee or applicant' : 'Customer profile holder', employer: activeCase.type === 'Credit Risk Review' ? businessProfile.name : 'Customer relationship', status: 'Relationship record available', lastSeen: observed, context: `${contact.email ?? 'Training email'} · ${contact.phone ?? 'Training phone'}.` },
       ],
       payrollHistory: [
-        { id: `${prefix}-PAYROLL-1`, period: 'Generated review period', employer: `${activeCase.type} training entity`, amount: activeCase.amount ?? 'Not recorded', channel: 'Scenario record', status: 'Payroll or payment context available', context: `Destination ID DST-${prefix.slice(-8)} and case-linked relationship available for review.` },
+        { id: `${prefix}-PAYROLL-1`, period: 'Generated current period', employer: businessProfile.name, amount: activeCase.type === 'Credit Risk Review' ? '$1,280.00' : 'Not applicable to current case type', channel: activeCase.type === 'Credit Risk Review' ? 'Direct deposit training record' : 'Merchant or payment relationship', status: activeCase.type === 'Credit Risk Review' ? 'Posted' : 'No payroll records in scope', context: `${destinationId} · ${businessProfile.businessId} · relationship available for review.` },
+        { id: `${prefix}-PAYROLL-2`, period: 'Generated prior period', employer: businessProfile.name, amount: activeCase.type === 'Credit Risk Review' ? '$1,240.00' : 'Not applicable to current case type', channel: activeCase.type === 'Credit Risk Review' ? 'Direct deposit training record' : 'Merchant or payment relationship', status: activeCase.type === 'Credit Risk Review' ? 'Posted' : 'No payroll records in scope', context: 'Prior-period context supplied without a case outcome label.' },
       ],
     },
     evidence: {
       evidence: [
         { id: `${prefix}-EVD-1`, type: 'Intake', status: 'Available', name: 'Generated intake record', source: 'Scenario Engine', received: observed, linkedObject: activeCase.claimId ?? prefix, summary: activeCase.allegation ?? activeCase.queueReason },
-        { id: `${prefix}-EVD-2`, type: 'Digital access', status: 'Available', name: 'Login, session, and IP record set', source: 'Scenario Engine', received: observed, linkedObject: activeCase.loginHistory?.[0]?.deviceId ?? prefix, summary: `${activeCase.loginHistory?.length ?? 0} login records with session, device, location, and IP context.` },
-        { id: `${prefix}-EVD-3`, type: 'Payment', status: 'Available', name: 'Payment verification record', source: 'Scenario Engine', received: observed, linkedObject: `DST-${prefix.slice(-8)}`, summary: 'Destination ID, Bank Code, and linked transaction context available for neutral review.' },
+        { id: `${prefix}-EVD-2`, type: 'Digital access', status: 'Available', name: 'Login, session, and IP record set', source: 'Scenario Engine', received: observed, linkedObject: activeCase.loginHistory?.[0]?.deviceId ?? prefix, summary: `${activeCase.loginHistory?.length ?? 0} login records with session, device, location, method, result, and IP context.` },
+        { id: `${prefix}-EVD-3`, type: 'Payment', status: 'Available', name: 'Payment verification record', source: 'Scenario Engine', received: observed, linkedObject: destinationId, summary: `${bankCode}, ${destinationId}, verification packet, and linked transaction context available for neutral review.` },
+        { id: `${prefix}-EVD-4`, type: 'Business', status: 'Available', name: 'Business relationship record', source: 'Scenario Engine', received: observed, linkedObject: businessProfile.businessId, summary: `${businessProfile.name}, registration, contact, address, and relationship fields available.` },
       ],
       documents: documentRows.length ? documentRows : [
-        { id: `${prefix}-DOC-1`, status: 'Available', title: 'Generated evidence packet', category: 'Evidence document', updated: observed, fields: `Claim ${activeCase.claimId ?? prefix} · ${activeCase.person} · ${activeCase.trainingId}`, preview: 'Intake, identity, access, payment, and business fields available.' },
+        { id: `${prefix}-DOC-1`, status: 'Available', title: 'Generated evidence packet', category: 'Evidence document', updated: observed, fields: `Claim ${activeCase.claimId ?? prefix} · ${activeCase.person} · ${activeCase.trainingId}`, preview: 'Intake, identity, access, payment, business, and document fields available.' },
       ],
     },
   };
 }
 
-export function rowsFor(tool, activeCase) {
+export function rowsFor(tool, activeCase, reportPackets = []) {
+  void reportPackets;
   const generated = generatedRecordFallbacks(activeCase);
   const financial = financialRecordsByCase[activeCase.id] ?? generated.financial;
   const business = businessRecordsByCase[activeCase.id] ?? generated.business;
