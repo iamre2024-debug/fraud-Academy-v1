@@ -143,7 +143,6 @@ export default function CaseSummaryCard({ activeCase, pin, openTool, jumpDecisio
           <button type="button" onClick={beginInvestigation}><span aria-hidden="true">⌂</span>Workspace</button>
           <button type="button" onClick={() => openTool('Timeline', 'timeline')}><span aria-hidden="true">◷</span>Timeline</button>
           <button type="button" onClick={openNotebook}><span aria-hidden="true">✎</span>Notes</button>
-          <button type="button" onClick={() => openTool('Case Report')}><span aria-hidden="true">▤</span>Reports</button>
           <button type="button" onClick={showMoreTools}><span aria-hidden="true">＋</span>More Tools</button>
           <button type="button" className="case-briefing-primary-action" onClick={beginInvestigation}>Begin Investigation <span aria-hidden="true">→</span></button>
         </nav>
