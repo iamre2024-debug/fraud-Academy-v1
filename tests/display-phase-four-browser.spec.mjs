@@ -1,21 +1,20 @@
 import { test, expect } from '@playwright/test';
 
-test('responsive records stay labeled and inside the mobile tool page', async ({ page }, testInfo) => {
+test('responsive login records stay labeled and inside the mobile tool page', async ({ page }, testInfo) => {
   await page.goto('/');
 
   const category = page.locator('[data-investigation-tool-groups="approved-theme-v1"] .visual-category-row button').filter({ hasText: 'Login, Device & IP' });
   await category.click();
-  const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
+  const panel = page.locator('[data-login-history-screen="event-review-v1"]');
   await expect(panel).toBeVisible();
-  await panel.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption({ label: 'Login History' });
 
-  const record = panel.locator('[data-investigation-record]').first();
+  const record = panel.locator('[data-login-record]').first();
   await expect(record).toBeVisible();
   await expect(record.locator('dl > div').first()).toBeVisible();
 
   const layout = await page.evaluate(() => {
-    const panelElement = document.querySelector('[data-investigation-tools-screen="approved-theme-v1"]');
-    const recordElement = document.querySelector('[data-investigation-record]');
+    const panelElement = document.querySelector('[data-login-history-screen="event-review-v1"]');
+    const recordElement = document.querySelector('[data-login-record]');
     const viewportWidth = window.innerWidth;
     const withinViewport = (element) => {
       const rect = element?.getBoundingClientRect();
