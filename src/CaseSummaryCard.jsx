@@ -148,6 +148,7 @@ export default function CaseSummaryCard({ activeCase, pin, openTool, jumpDecisio
         </nav>
 
         <nav className="case-briefing-utilities case-briefing-quick-routes" aria-label="Case briefing quick routes">
+          <button type="button" onClick={() => openTool('Transaction History')}>Transaction History</button>
           <button type="button" onClick={() => openTool('Identity Intel / People Search')}>Identity Intel</button>
           <button type="button" onClick={() => openTool('Login History')}>Login History</button>
           <button type="button" className="decision-jump-button" onClick={jumpDecision}>Submit Decision</button>
