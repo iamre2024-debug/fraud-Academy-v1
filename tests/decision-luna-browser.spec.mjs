@@ -36,7 +36,7 @@ async function openDecision(page) {
   return decision;
 }
 
-test('approved Decision and Luna preserve Evidence First, package submission, debrief routes, and responsive safety', async ({ page }, testInfo) => {
+test('standalone Decision and Luna preserve Evidence First, package submission, debrief routes, and responsive safety', async ({ page }) => {
   await seedReadyCase(page);
   await page.goto('/');
 
@@ -44,45 +44,36 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
   await expect(decision).toHaveAttribute('data-case-id', caseId);
   await expect(decision.getByRole('heading', { name: 'Submit Decision', exact: true })).toBeVisible();
   await expect(decision.getByText('Evidence First protection', { exact: true })).toBeVisible();
-  await expect(decision.locator('.decision-status-grid article')).toHaveCount(4);
-  await expect(decision.getByText('7/7', { exact: true })).toBeVisible();
+  await expect(decision.getByRole('button', { name: 'Back to investigation tools', exact: true })).toBeVisible();
+  await expect(decision.getByRole('heading', { name: 'Package readiness', exact: true })).toHaveCount(0);
+  await expect(page.locator('.decision-status-grid')).toHaveCount(0);
+  await expect(page.locator('.decision-v1-checklist')).toHaveCount(0);
+  await expect(page.locator('[data-workflow-stage="briefing"]')).toHaveCount(0);
+  await expect(page.locator('[data-workflow-stage="indicators"]')).toHaveCount(0);
 
   const lockedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="locked"]');
   await expect(lockedLuna).toBeAttached();
   await expect(lockedLuna).toContainText('Evidence First lock is active.');
-  await expect(lockedLuna.locator('.luna-v1-unlock-grid article')).toHaveCount(4);
   expect(await lockedLuna.innerText()).not.toMatch(forbiddenLockedCopy);
 
   const layout = await page.evaluate(() => {
     const panel = document.querySelector('[data-decision-screen="approved-theme-v1"]');
-    const workspace = document.querySelector('.decision-v1-workspace');
-    const metrics = document.querySelector('.decision-status-grid');
-    const lockedGrid = document.querySelector('.luna-v1-unlock-grid');
-    const viewportWidth = window.innerWidth;
+    const form = document.querySelector('.decision-standalone-form');
     const rect = panel?.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
     return {
       viewportWidth,
       documentWidth: document.documentElement.scrollWidth,
       panelOverflow: rect ? Math.max(0, -rect.left, rect.right - viewportWidth) : Number.POSITIVE_INFINITY,
-      workspaceColumns: workspace ? getComputedStyle(workspace).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      metricColumns: metrics ? getComputedStyle(metrics).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      lockedColumns: lockedGrid ? getComputedStyle(lockedGrid).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      formWidth: form?.getBoundingClientRect().width ?? 0,
       position: panel ? getComputedStyle(panel).position : '',
     };
   });
 
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
   expect(layout.panelOverflow).toBeLessThanOrEqual(4);
+  expect(layout.formWidth).toBeLessThanOrEqual(Math.min(760, layout.viewportWidth));
   expect(layout.position).toBe('static');
-  if (testInfo.project.name === 'mobile-chromium') {
-    expect(layout.workspaceColumns).toBe(1);
-    expect(layout.metricColumns).toBe(1);
-    expect(layout.lockedColumns).toBe(1);
-  } else {
-    expect(layout.workspaceColumns).toBe(2);
-    expect(layout.metricColumns).toBe(4);
-    expect(layout.lockedColumns).toBe(4);
-  }
 
   const choice = decision.getByRole('combobox', { name: 'Learner decision choice' });
   await choice.selectOption({ label: learnerChoice });
@@ -113,7 +104,7 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
     };
   });
   expect(debriefLayout.documentWidth).toBeLessThanOrEqual(debriefLayout.viewportWidth + 1);
-  expect(debriefLayout.columns).toBe(testInfo.project.name === 'mobile-chromium' ? 1 : 2);
+  expect(debriefLayout.columns).toBe(1);
 
   await luna.getByRole('button', { name: 'View Case Summary', exact: true }).click();
   await expect(page.locator('[data-case-briefing-screen="approved-theme-v1"]')).toBeVisible();
