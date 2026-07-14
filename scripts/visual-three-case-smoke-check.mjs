@@ -76,7 +76,7 @@ for (const item of cases) {
   requireCount(`${prefix} business relationship records`, business.business360?.length ?? 0, 1);
   requireCount(`${prefix} business intelligence records`, business.businessIntel?.length ?? 0, 1);
   requireCount(`${prefix} evidence center records`, evidence.evidence?.length ?? 0, 2);
-  requireCount(`${prefix} document viewer records`, evidence.documents?.length ?? 0, 2);
+  requireCount(`${prefix} document request records`, evidence.documents?.length ?? 0, 2);
   requireCount(`${prefix} system access records`, systemAccessRecordsByCase[item.id]?.length ?? 0, 2);
 
   for (const profile of deviceProfiles) {
