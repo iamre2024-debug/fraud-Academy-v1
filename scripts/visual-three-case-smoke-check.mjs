@@ -171,11 +171,10 @@ for (const required of [
 for (const required of [
   "import useVisualWorkspaceActions from './useVisualWorkspaceActions.js'",
   "from './visualWorkspaceModel.js'",
-  'rowsFor(tool, activeCase, reportPackets)',
+  'rowsFor(tool, activeCase)',
   'useVisualWorkspaceActions({',
   'function jumpDecision()',
   'submitRef.current?.scrollIntoView',
-  '<ActiveToolPanel',
   '<BottomInvestigationGrid',
   '<CaseSummaryCard',
   '<CategoryTileRail',
@@ -186,7 +185,6 @@ for (const required of [
 }
 
 for (const required of [
-  'buildPacket(row, tool, activeCase)',
   'getReviewPackageStatus({',
   'buildReviewPackage({',
   "window.dispatchEvent(new CustomEvent('fraud-academy:package-saved'",
@@ -215,7 +213,6 @@ for (const required of [
   '<small>Short summary</small>',
   "pin(activeCase.id)",
   "openTool('Identity Intelligence')",
-  "openTool('Case Report')",
   "openTool('Login History')",
   'decision-jump-button',
 ]) {
@@ -239,21 +236,8 @@ for (const required of [
   'className="ornate-card tray-card"',
   "openTool('Evidence Center')",
   'className="ornate-card notebook-card"',
-  'case-report-packet-panel',
 ]) {
   requireText('src/BottomInvestigationGrid.jsx', bottomInvestigationGrid, required, 'bottom investigation grid module anchor');
-}
-
-for (const required of [
-  'className="ornate-card activity-panel"',
-  'className="tool-select"',
-  'workflows.map',
-  'workspace-search-row',
-  'record-detail-panel',
-  'saveCaseReportPacket(activeRow)',
-  'markReviewed(tool)',
-]) {
-  requireText('src/ActiveToolPanel.jsx', activeToolPanel, required, 'active tool panel module anchor');
 }
 
 for (const required of [
@@ -271,7 +255,7 @@ for (const required of [
   'getSystemAccessRecords(activeCase.id)',
   "columns: ['Device ID'",
   'item.deviceId ?? `DEV-${item.id}`',
-  'export function rowsFor(tool, activeCase, reportPackets = [])',
+  'export function rowsFor(tool, activeCase)',
 ]) {
   requireText('src/visualWorkspaceModel.js', visualWorkspaceModel, required, 'three-case visual model anchor');
 }
