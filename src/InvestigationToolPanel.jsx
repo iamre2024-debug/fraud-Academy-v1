@@ -4,15 +4,16 @@ import { buildCoreToolRecords } from './data/coreToolRecords.js';
 import { getDeviceProfiles } from './data/deviceRecords.js';
 import { evidenceRecordsByCase } from './data/evidenceRecords.js';
 import { financialRecordsByCase } from './data/financialRecords.js';
+import { getIdentityIntelReport, matchesIdentityIntelSearch } from './data/identityIntelReport.js';
 import { getLoginRecords } from './data/loginRecords.js';
 import { getIpRecords } from './data/ipRecords.js';
 import { getSessionRecords } from './data/sessionRecords.js';
 import { workflows } from './visualWorkspaceModel.js';
 
 const toolDetails = {
-  'Identity Intelligence': {
-    purpose: 'Review identity records, values, history, and linked customer objects without drawing an early conclusion.',
-    question: 'Which identity records belong to this customer, and how have those records changed over time?',
+  'Identity Intel / People Search': {
+    purpose: 'Search fictional identity records by name, training ID, email, or phone before revealing the profile report.',
+    question: 'Does this identity history support who they claim to be?',
   },
   'Login History': {
     purpose: 'Review recorded login attempts, results, devices, locations, authentication, session behavior, and linked activity without drawing an early conclusion.',
@@ -994,6 +995,129 @@ function DocumentRequestWorkspace({
   );
 }
 
+function IdentityIntelWorkspace({
+  activeCase,
+  pin,
+  saveNote,
+  markReviewed,
+  reviewed,
+  openTool,
+  jumpDecision,
+}) {
+  const report = useMemo(() => getIdentityIntelReport(activeCase), [activeCase]);
+  const [searchDraft, setSearchDraft] = useState('');
+  const [submittedSearch, setSubmittedSearch] = useState('');
+  const [activeSectionId, setActiveSectionId] = useState('identity-summary');
+  const searchMatched = submittedSearch && matchesIdentityIntelSearch(report, submittedSearch);
+  const activeSection = report.sections.find((section) => section.id === activeSectionId) ?? report.sections[0];
+
+  useEffect(() => {
+    setSearchDraft('');
+    setSubmittedSearch('');
+    setActiveSectionId('identity-summary');
+  }, [activeCase.id]);
+
+  function runSearch() {
+    setSubmittedSearch(searchDraft.trim());
+  }
+
+  function saveIdentityNote(message) {
+    saveNote(`Identity Intel: ${message}`, 'Identity Intel');
+  }
+
+  return (
+    <>
+      <section className="identity-intel-search" aria-label="Identity Intel search">
+        <div>
+          <p>People Search</p>
+          <h3>Search a name, fictional Training ID, email, or phone to reveal the identity report.</h3>
+          <span>Fictional training data only. Identity information is evidence, not a case conclusion.</span>
+        </div>
+        <label>
+          <span>Name + DOB, Training ID, email, or phone</span>
+          <input
+            value={searchDraft}
+            onChange={(event) => setSearchDraft(event.target.value)}
+            onKeyDown={(event) => { if (event.key === 'Enter') runSearch(); }}
+            placeholder="Try: TRN-8842-19, Maya Sterling, or a training email"
+            aria-label="Search Identity Intel records"
+          />
+        </label>
+        <button type="button" onClick={runSearch} disabled={!searchDraft.trim()}>Run People Search</button>
+      </section>
+
+      {!submittedSearch && <section className="identity-intel-gate" aria-label="Identity report locked">
+        <strong>Identity report hidden until a search is run.</strong>
+        <span>Use a fictional profile value from the active case to reveal the report.</span>
+      </section>}
+
+      {submittedSearch && !searchMatched && <section className="identity-intel-gate" aria-label="No identity match">
+        <strong>No fictional identity match returned for this search.</strong>
+        <span>Try the active customer name, Training ID, email, or phone from Customer 360.</span>
+      </section>}
+
+      {searchMatched && <>
+        <section className="identity-intel-summary" aria-label="Identity Match Summary">
+          <header>
+            <div>
+              <p>Identity Match Summary</p>
+              <h3>{activeCase.person}</h3>
+              <span>{report.profile.profileId} · Fictional training profile</span>
+            </div>
+            <button type="button" onClick={() => pin(`${report.profile.profileId} · ${activeCase.person}`)}>Pin profile</button>
+          </header>
+          <dl>
+            {report.summary.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+          </dl>
+        </section>
+
+        <section className="identity-intel-counts" aria-label="Identity report counts">
+          {report.counts.map(([label, count]) => <article key={label}><strong>{count}</strong><span>{label}</span></article>)}
+        </section>
+
+        <div className="identity-intel-workspace">
+          <section className="identity-intel-sections" aria-label="Identity report sections">
+            <header><p>Full report</p><h3>Open a report section</h3></header>
+            {report.sections.map((section) => <button key={section.id} type="button" className={section.id === activeSection.id ? 'active' : ''} onClick={() => setActiveSectionId(section.id)}>{section.title}</button>)}
+          </section>
+
+          <section className="identity-intel-report" aria-label="Expanded identity report">
+            <header>
+              <div><p>Fictional report section</p><h3>{activeSection.title}</h3></div>
+              <button type="button" onClick={() => saveIdentityNote(`${activeSection.title} reviewed for ${report.profile.profileId}.`)}>Save section note</button>
+            </header>
+            <dl>{activeSection.fields.map((field) => <div key={field.label}><dt>{field.label}</dt><dd>{field.value}</dd></div>)}</dl>
+          </section>
+
+          <aside className="identity-intel-evidence" aria-label="Evidence Explorer">
+            <header><p>Evidence Explorer</p><h3>Case objects to compare</h3></header>
+            <div>
+              {(activeCase.identityRecords ?? []).map((item) => <article key={item.id}><span>{item.type}</span><strong>{item.value}</strong><small>{item.id} · {item.lastSeen}</small><button type="button" onClick={() => pin(`${item.id} · ${item.value}`)}>Pin</button></article>)}
+            </div>
+            <button type="button" onClick={() => saveIdentityNote(`Identity Match Summary ${report.profile.profileId} reviewed for ${activeCase.person}.`)}>Save match summary note</button>
+          </aside>
+        </div>
+      </>}
+
+      <nav className="investigation-tool-next-routes" aria-label="Identity Intel next routes">
+        <button type="button" onClick={() => openTool('Customer 360')}>Open Customer 360</button>
+        <button type="button" onClick={() => openTool('Evidence Center')}>Open Evidence Center</button>
+        <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
+      </nav>
+
+      <footer className="investigation-tool-review-bar">
+        <div>
+          <strong>Identity Intel / People Search review</strong>
+          <span>Run a search, review the fictional report, and compare it with case evidence before marking this tool reviewed.</span>
+        </div>
+        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} disabled={!searchMatched} onClick={() => markReviewed('Identity Intel / People Search')}>
+          {reviewed ? '✓ Identity Intel / People Search reviewed' : 'Mark Identity Intel / People Search reviewed'}
+        </button>
+      </footer>
+    </>
+  );
+}
+
 function PaymentVerificationWorkspace({
   activeCase,
   query,
@@ -1299,7 +1423,17 @@ export default function InvestigationToolPanel({
         </div>
       </section>
 
-      {tool === 'Login History' ? (
+      {tool === 'Identity Intel / People Search' ? (
+        <IdentityIntelWorkspace
+          activeCase={activeCase}
+          pin={pin}
+          saveNote={saveNote}
+          markReviewed={markReviewed}
+          reviewed={reviewed}
+          openTool={openTool}
+          jumpDecision={jumpDecision}
+        />
+      ) : tool === 'Login History' ? (
         <LoginHistoryWorkspace
           activeCase={activeCase}
           query={query}
