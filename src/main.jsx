@@ -36,6 +36,7 @@ import './displayFinalResponsivePolishV1.css';
 import './mobileToolCleanupV2.css';
 import './dedicatedToolSwitcher.css';
 import './pinnedReferenceTray.css';
+import './reportSectionNavigator.css';
 import './identityIntelligencePanel.css';
 import './businessIntelligencePanel.css';
 import './paymentVerificationPanel.css';
