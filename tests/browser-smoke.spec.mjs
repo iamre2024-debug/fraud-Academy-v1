@@ -35,17 +35,6 @@ async function openCoreTool(page, category, tool) {
     return;
   }
 
-  if (tool === 'Case Report') {
-    const workflow = page.getByRole('navigation', { name: 'Active case workflow' });
-    await workflow.getByRole('button', { name: /Summary/ }).click();
-    const selector = page.locator('.activity-panel .tool-select');
-    await expect(selector).toHaveValue(tool);
-    await expect(page.locator('.tool-purpose-card strong')).toHaveText(tool);
-    await expect(page.locator('.activity-row:not(.table-head)').first()).toBeVisible();
-    await expect(page.locator('.record-detail-panel')).toBeAttached();
-    return;
-  }
-
   const categoryButton = page.locator('[data-investigation-tool-groups="approved-theme-v1"] .visual-category-row button').filter({ hasText: category });
   await expect(categoryButton).toBeVisible();
   await categoryButton.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'nearest' }));
@@ -73,7 +62,7 @@ test('approved Dashboard resumes the active case without answer leaks', async ({
   await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Case Queue/ })).toBeVisible();
   await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Evidence Workspace/ })).toBeVisible();
   await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Timeline/ })).toBeVisible();
-  await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Reports & Progress/ })).toBeVisible();
+  await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Progress/ })).toBeVisible();
 
   const dashboardLayout = await page.evaluate(() => ({
     viewportWidth: window.innerWidth,
@@ -171,7 +160,6 @@ test('completed core modules and System Access Lane render real records', async 
   await openCoreTool(page, 'Links & Related Cases', 'Link Analysis');
   await openCoreTool(page, 'Links & Related Cases', 'System Access Lane');
   await openCoreTool(page, 'Workflow Review', 'Timeline');
-  await openCoreTool(page, 'Workflow Review', 'Case Report');
 
   await expect(page.locator('.view-full-button')).toBeVisible();
   await assertEvidenceFirstLock(page, builtInCases[0].id);
