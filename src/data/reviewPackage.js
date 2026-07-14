@@ -59,7 +59,7 @@ export const decisionCallGroups = [
 export const requiredReviewTools = [
   'Case Summary',
   'Customer 360',
-  'Identity Intelligence',
+  'Identity Intel / People Search',
   'Login History',
   'Transaction History',
   'Evidence Center',
