@@ -47,8 +47,8 @@ export const workflowReviewGroup = {
   key: 'workflow',
   label: 'Workflow Review',
   icon: 'FLOW',
-  question: 'How should reviewed records move into the timeline and case report?',
-  tools: ['Timeline', 'Case Report'],
+  question: 'How should reviewed records move into the timeline and decision workflow?',
+  tools: ['Timeline'],
 };
 
 export const workspaceTools = [
