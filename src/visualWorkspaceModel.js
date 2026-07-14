@@ -78,13 +78,19 @@ function generatedRecordFallbacks(activeCase) {
       ],
     },
     business: {
-      business360: [{ id: `${prefix}-BUS-1`, entity: `${activeCase.type} training entity`, relationship: 'Linked through the active transaction or payment object', status: 'Entity record available', observed, context: `Fictional business profile associated with ${activeCase.claimId ?? prefix}.` }],
+      business360: [
+        { id: `${prefix}-BUS-1`, entity: `${activeCase.type} training entity`, relationship: 'Linked through the active transaction or payment object', status: 'Entity record available', observed, context: `Fictional business profile associated with ${activeCase.claimId ?? prefix}.` },
+      ],
       businessIntel: [
         { id: `${prefix}-BIZ-1`, type: 'Business registration', value: `${activeCase.type} training entity`, observed, context: `Training-safe registration, contact, and relationship details for ${city}.` },
         { id: `${prefix}-BIZ-2`, type: 'Activity context', value: activeCase.transactionInfo ?? 'Generated business activity', observed, context: 'Related payment, transaction, and document objects are linked for review.' },
       ],
-      employeeProfile: [{ id: `${prefix}-EMP-1`, name: activeCase.person, role: 'Training profile contact', employer: `${activeCase.type} training entity`, status: 'Profile record available', lastSeen: observed, context: `${contact.email ?? 'Training email'} · ${contact.phone ?? 'Training phone'}.` }],
-      payrollHistory: [{ id: `${prefix}-PAYROLL-1`, period: 'Generated review period', employer: `${activeCase.type} training entity`, amount: activeCase.amount ?? 'Not recorded', channel: 'Scenario record', status: 'Payroll context available', context: `Destination ID DST-${prefix.slice(-8)} and employee relationship available for review.` }],
+      employeeProfile: [
+        { id: `${prefix}-EMP-1`, name: `${activeCase.type} training contact`, role: 'Case-linked business contact', employer: `${activeCase.type} training entity`, status: 'Profile record available', lastSeen: observed, context: `${contact.email ?? 'Training email'} · ${contact.phone ?? 'Training phone'}.` },
+      ],
+      payrollHistory: [
+        { id: `${prefix}-PAYROLL-1`, period: 'Generated review period', employer: `${activeCase.type} training entity`, amount: activeCase.amount ?? 'Not recorded', channel: 'Scenario record', status: 'Payroll or payment context available', context: `Destination ID DST-${prefix.slice(-8)} and case-linked relationship available for review.` },
+      ],
     },
     evidence: {
       evidence: [
@@ -92,7 +98,9 @@ function generatedRecordFallbacks(activeCase) {
         { id: `${prefix}-EVD-2`, type: 'Digital access', status: 'Available', name: 'Login, session, and IP record set', source: 'Scenario Engine', received: observed, linkedObject: activeCase.loginHistory?.[0]?.deviceId ?? prefix, summary: `${activeCase.loginHistory?.length ?? 0} login records with session, device, location, and IP context.` },
         { id: `${prefix}-EVD-3`, type: 'Payment', status: 'Available', name: 'Payment verification record', source: 'Scenario Engine', received: observed, linkedObject: `DST-${prefix.slice(-8)}`, summary: 'Destination ID, Bank Code, and linked transaction context available for neutral review.' },
       ],
-      documents: documentRows.length ? documentRows : [{ id: `${prefix}-DOC-1`, status: 'Available', title: 'Generated evidence packet', category: 'Evidence document', updated: observed, fields: `Claim ${activeCase.claimId ?? prefix} · ${activeCase.person} · ${activeCase.trainingId}`, preview: 'Intake, identity, access, payment, and business fields available.' }],
+      documents: documentRows.length ? documentRows : [
+        { id: `${prefix}-DOC-1`, status: 'Available', title: 'Generated evidence packet', category: 'Evidence document', updated: observed, fields: `Claim ${activeCase.claimId ?? prefix} · ${activeCase.person} · ${activeCase.trainingId}`, preview: 'Intake, identity, access, payment, and business fields available.' },
+      ],
     },
   };
 }
@@ -121,22 +129,9 @@ export function rowsFor(tool, activeCase) {
   }
 
   if (tool === 'Identity Intelligence') {
-    const contact = activeCase.customer?.contact ?? {};
-    const primaryDocument = evidence.documents?.[0];
-    const primaryLogin = logins[0];
-    const backgroundDetail = [
-      `Training ID ${activeCase.trainingId}`,
-      `${activeCase.person} · ${contact.phone ?? 'No phone recorded'} · ${contact.email ?? 'No email recorded'} · ${contact.address ?? 'No address recorded'}`,
-      `Relationship since ${activeCase.customer?.relationshipSince ?? 'not recorded'} · ${activeCase.customer?.segment ?? 'segment not recorded'}`,
-      `Document ${primaryDocument?.id ?? activeCase.documents?.[0]?.id ?? 'none'} · ${primaryDocument?.status ?? activeCase.documents?.[0]?.status ?? 'not recorded'}`,
-      `Login ${primaryLogin?.id ?? 'none'} · Session ${primaryLogin?.session ?? 'none'} · IP ${primaryLogin?.ip ?? 'none'} · ${primaryLogin?.location ?? 'location not recorded'}`,
-    ].join(' | ');
     return {
       columns: ['Record', 'Type', 'Value', 'Last Seen', 'History', 'Object', 'Action'],
-      rows: [
-        makeRow(`${activeCase.id}-BACKGROUND`, ['Background detail report', 'Background detail report', backgroundDetail, activeCase.opened, 'Identity, contact, relationship, document, login, session, and IP context gathered without outcome scoring.', activeCase.trainingId, 'Pin'], activeCase.trainingId, 'Background detail report'),
-        ...identityRecords.map((item) => makeRow(item.id, [item.id, item.type, item.value, item.lastSeen, item.history, activeCase.trainingId, 'Pin'], item.value, item.type)),
-      ],
+      rows: identityRecords.map((item) => makeRow(item.id, [item.id, item.type, item.value, item.lastSeen, item.history, activeCase.trainingId, 'Pin'], item.value, item.type)),
     };
   }
 
@@ -156,7 +151,9 @@ export function rowsFor(tool, activeCase) {
 
   if (tool === 'System Access Lane') {
     const records = getSystemAccessRecords(activeCase.id);
-    const generatedRecords = records.length ? records : [{ id: `${activeCase.id}-SYS-001`, lane: 'Generated system-access record', actor: 'Training scenario service', event: 'Case object access recorded for neutral review', object: activeCase.claimId ?? activeCase.id, observed: activeCase.openedAt ?? 'Recorded in training packet', status: 'Available for review', context: 'Fictional access context linked to the generated evidence packet.' }];
+    const generatedRecords = records.length ? records : [
+      { id: `${activeCase.id}-SYS-001`, lane: 'Generated system-access record', actor: 'Training scenario service', event: 'Case object access recorded for neutral review', object: activeCase.claimId ?? activeCase.id, observed: activeCase.openedAt ?? 'Recorded in training packet', status: 'Available for review', context: 'Fictional access context linked to the generated evidence packet.' },
+    ];
     return { columns: ['Record', 'Lane', 'Actor', 'Object', 'Observed', 'Status', 'Context'], rows: generatedRecords.map((item) => makeRow(item.id, [item.id, item.lane, item.actor, item.object, item.observed, item.status, `${item.event} · ${item.context}`], item.id, 'System access')) };
   }
 
