@@ -3,6 +3,7 @@ import path from 'node:path';
 import { trainingCases as baseCases } from '../src/data/cases.js';
 import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
 import { businessRecordsByCase } from '../src/data/businessRecords.js';
+import { getDeviceProfiles } from '../src/data/deviceRecords.js';
 import { evidenceRecordsByCase } from '../src/data/evidenceRecords.js';
 import { financialRecordsByCase } from '../src/data/financialRecords.js';
 import { systemAccessRecordsByCase } from '../src/data/systemAccessRecords.js';
@@ -58,14 +59,46 @@ for (const item of cases) {
   const financial = financialRecordsByCase[item.id] ?? {};
   const business = businessRecordsByCase[item.id] ?? {};
   const evidence = evidenceRecordsByCase[item.id] ?? {};
+  const deviceProfiles = getDeviceProfiles(item);
   requireCount(`${prefix} transaction records`, financial.transactions?.length ?? 0, 2);
   requireCount(`${prefix} financial intelligence records`, financial.financialIntel?.length ?? 0, 2);
   requireCount(`${prefix} payment verification records`, financial.paymentVerification?.length ?? 0, 2);
+  requireCount(`${prefix} device intelligence profiles`, deviceProfiles.length, 1);
   requireCount(`${prefix} business relationship records`, business.business360?.length ?? 0, 1);
   requireCount(`${prefix} business intelligence records`, business.businessIntel?.length ?? 0, 1);
   requireCount(`${prefix} evidence center records`, evidence.evidence?.length ?? 0, 2);
   requireCount(`${prefix} document viewer records`, evidence.documents?.length ?? 0, 2);
   requireCount(`${prefix} system access records`, systemAccessRecordsByCase[item.id]?.length ?? 0, 2);
+
+  for (const profile of deviceProfiles) {
+    for (const field of [
+      'id',
+      'deviceName',
+      'deviceType',
+      'operatingSystem',
+      'browser',
+      'deviceFingerprint',
+      'browserFingerprint',
+      'firstSeen',
+      'lastSeen',
+      'trustedStatus',
+      'rootedJailbroken',
+      'emulatorIndicator',
+      'vpnProxyIndicator',
+      'sharedDeviceDetection',
+      'linkedProfiles',
+      'walletUsage',
+      'normalBehavior',
+      'lookupResult',
+      'history',
+      'relatedRecords',
+      'investigatorUse',
+    ]) {
+      if (!profile[field] || (Array.isArray(profile[field]) && profile[field].length === 0)) {
+        failures.push(`${prefix} device profile ${profile.id} is missing required field ${field}.`);
+      }
+    }
+  }
 }
 
 const visualApp = read('src/VisualApp.jsx');
