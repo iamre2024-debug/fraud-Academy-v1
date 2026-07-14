@@ -345,7 +345,7 @@ export default function Customer360Panel({
         <button type="button" onClick={() => openTool('Login History')}>Login History</button>
         <button type="button" onClick={() => openTool('Device Intelligence')}>Device Intelligence</button>
         <button type="button" onClick={() => openTool('Evidence Center')}>Evidence Center</button>
-        <button type="button" onClick={() => openTool('Document Viewer')}>Document Viewer</button>
+        <button type="button" onClick={() => openTool('Document Request')}>Document Request</button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
 
