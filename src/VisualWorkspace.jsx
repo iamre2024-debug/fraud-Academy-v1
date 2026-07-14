@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from 'react';
 import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import ActiveCaseWorkflowRail from './ActiveCaseWorkflowRail.jsx';
-import ActiveToolPanel from './ActiveToolPanel.jsx';
 import BottomInvestigationGrid from './BottomInvestigationGrid.jsx';
 import CaseSummaryCard from './CaseSummaryCard.jsx';
 import CategoryTileRail from './CategoryTileRail.jsx';
@@ -22,7 +21,6 @@ import { rowsFor } from './visualWorkspaceModel.js';
 
 function stageForTool(toolName) {
   if (toolName === 'Timeline') return 'timeline';
-  if (toolName === 'Case Report') return 'summary';
   if (['Evidence Center', 'Document Viewer', 'Link Analysis'].includes(toolName)) return 'indicators';
   return 'investigate';
 }
@@ -43,18 +41,16 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     currentCompleted,
     decisionDraft,
     reviewPackages,
-    reportPackets,
     setTrayByCase,
     setNotesByCase,
     setCompletedByCase,
     setDecisionByCase,
     setPackagesByCase,
-    setPacketsByCase,
   } = useVisualWorkspaceCaseState(activeCase);
   const activeCategory = groupForTool(tool)
     ?? investigationToolGroups.find((item) => item.key === categoryKey)
     ?? investigationToolGroups[1];
-  const data = rowsFor(tool, activeCase, reportPackets);
+  const data = rowsFor(tool, activeCase);
   const rows = useMemo(() => data.rows.filter((row) => !query || row.detail.toLowerCase().includes(query.toLowerCase())), [data.rows, query]);
   const activeRow = rows.find((row) => row.id === expandedId) ?? rows[0];
   const {
@@ -62,7 +58,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     pin,
     saveNote,
     markReviewed,
-    saveCaseReportPacket,
     updateDecision,
     submitNote,
     submitDecision,
@@ -74,7 +69,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     notes,
     currentCompleted,
     decisionDraft,
-    reportPackets,
     noteDraft,
     setNoteDraft,
     setTrayByCase,
@@ -82,11 +76,10 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setCompletedByCase,
     setDecisionByCase,
     setPackagesByCase,
-    setPacketsByCase,
   });
 
   const reviewedWorkspaceTools = workspaceTools.filter((toolName) => currentCompleted.includes(toolName)).length;
-  const collectedIndicators = tray.length + notes.length + reportPackets.length;
+  const collectedIndicators = tray.length + notes.length;
   const hasReviewPackage = reviewPackages.length > 0;
   const stageStatus = {
     briefing: {
@@ -100,10 +93,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     timeline: {
       label: currentCompleted.includes('Timeline') ? 'Reviewed' : 'Open',
       state: currentCompleted.includes('Timeline') ? 'complete' : 'open',
-    },
-    summary: {
-      label: currentCompleted.includes('Case Report') ? 'Reviewed' : 'Open',
-      state: currentCompleted.includes('Case Report') ? 'complete' : 'open',
     },
     indicators: {
       label: collectedIndicators ? `${collectedIndicators} collected` : 'Open',
@@ -196,10 +185,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       openTool('Timeline', 'timeline');
       return;
     }
-    if (nextStage === 'summary') {
-      openTool('Case Report', 'summary');
-      return;
-    }
     if (nextStage === 'indicators') {
       openTool('Evidence Center', 'indicators');
       return;
@@ -224,7 +209,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setExpandedId,
     pin,
     saveNote,
-    saveCaseReportPacket,
     markReviewed,
     currentCompleted,
     jumpDecision,
@@ -275,8 +259,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
             <Customer360Panel {...activeToolProps} />
           ) : tool === 'Timeline' ? (
             <TimelinePanel {...activeToolProps} />
-          ) : tool === 'Case Report' ? (
-            <ActiveToolPanel {...activeToolProps} />
           ) : (
             <InvestigationToolPanel {...activeToolProps} />
           )}
@@ -290,7 +272,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
             noteDraft={noteDraft}
             setNoteDraft={setNoteDraft}
             submitNote={submitNote}
-            reportPackets={reportPackets}
             notes={notes}
           />
         </div>
