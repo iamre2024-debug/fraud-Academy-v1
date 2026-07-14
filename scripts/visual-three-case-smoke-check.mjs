@@ -5,6 +5,7 @@ import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
 import { businessRecordsByCase } from '../src/data/businessRecords.js';
 import { getDeviceProfiles } from '../src/data/deviceRecords.js';
 import { getLoginRecords } from '../src/data/loginRecords.js';
+import { getIpRecords } from '../src/data/ipRecords.js';
 import { getSessionRecords } from '../src/data/sessionRecords.js';
 import { evidenceRecordsByCase } from '../src/data/evidenceRecords.js';
 import { financialRecordsByCase } from '../src/data/financialRecords.js';
@@ -63,12 +64,14 @@ for (const item of cases) {
   const evidence = evidenceRecordsByCase[item.id] ?? {};
   const deviceProfiles = getDeviceProfiles(item);
   const loginRecords = getLoginRecords(item);
+  const ipRecords = getIpRecords(item);
   const sessionRecords = getSessionRecords(item);
   requireCount(`${prefix} transaction records`, financial.transactions?.length ?? 0, 2);
   requireCount(`${prefix} financial intelligence records`, financial.financialIntel?.length ?? 0, 2);
   requireCount(`${prefix} payment verification records`, financial.paymentVerification?.length ?? 0, 2);
   requireCount(`${prefix} device intelligence profiles`, deviceProfiles.length, 1);
   requireCount(`${prefix} enriched login records`, loginRecords.length, 4);
+  requireCount(`${prefix} IP intelligence records`, ipRecords.length, 2);
   requireCount(`${prefix} enriched session records`, sessionRecords.length, 4);
   requireCount(`${prefix} business relationship records`, business.business360?.length ?? 0, 1);
   requireCount(`${prefix} business intelligence records`, business.businessIntel?.length ?? 0, 1);
@@ -114,6 +117,18 @@ for (const item of cases) {
     ]) {
       if (!login[field] || (Array.isArray(login[field]) && login[field].length === 0)) {
         failures.push(`${prefix} login record ${login.id} is missing required field ${field}.`);
+      }
+    }
+  }
+
+  for (const ipRecord of ipRecords) {
+    for (const field of [
+      'id', 'ip', 'city', 'country', 'isp', 'networkType', 'residentialStatus', 'vpnProxyTor', 'firstSeen', 'lastSeen',
+      'historicalLocations', 'velocity', 'crossCasePresence', 'lookupResult', 'observedSessions', 'observedDevices',
+      'observedLogins', 'relatedRecords', 'investigatorUse',
+    ]) {
+      if (!ipRecord[field] || (Array.isArray(ipRecord[field]) && ipRecord[field].length === 0)) {
+        failures.push(`${prefix} IP record ${ipRecord.id} is missing required field ${field}.`);
       }
     }
   }
