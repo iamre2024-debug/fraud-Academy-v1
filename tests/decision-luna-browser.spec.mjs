@@ -36,7 +36,7 @@ async function openDecision(page) {
   return decision;
 }
 
-test('standalone Decision and Luna preserve Evidence First, package submission, debrief routes, and responsive safety', async ({ page }) => {
+test('standalone Decision and Luna preserve Evidence First, package submission, debrief routes, and responsive safety', async ({ page }, testInfo) => {
   await seedReadyCase(page);
   await page.goto('/');
 
@@ -104,7 +104,7 @@ test('standalone Decision and Luna preserve Evidence First, package submission, 
     };
   });
   expect(debriefLayout.documentWidth).toBeLessThanOrEqual(debriefLayout.viewportWidth + 1);
-  expect(debriefLayout.columns).toBe(1);
+  expect(debriefLayout.columns).toBe(testInfo.project.name === 'mobile-chromium' ? 1 : 2);
 
   await luna.getByRole('button', { name: 'View Case Summary', exact: true }).click();
   await expect(page.locator('[data-case-briefing-screen="approved-theme-v1"]')).toBeVisible();
