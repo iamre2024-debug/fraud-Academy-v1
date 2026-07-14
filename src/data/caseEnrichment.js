@@ -1,3 +1,5 @@
+import { buildIdentityProfile } from './identityProfiles.js';
+
 const deviceIds = {
   'FA-ATO-24018': { 'iPhone 16': 'DEV-MAYA-IP16-001', 'Chrome Mobile': 'DEV-MAYA-CHRM-002' },
   'FA-CB-24007': { 'Android phone': 'DEV-JORDAN-AND-001', 'Desktop Chrome': 'DEV-JORDAN-DSK-002' },
@@ -109,36 +111,72 @@ function dedupeStrings(values = []) {
 
 function addDeviceIds(caseId, rows = []) {
   const map = deviceIds[caseId] ?? {};
-  return rows.map((row) => ({ ...row, deviceId: row.deviceId ?? map[row.device] ?? `DEV-${String(row.device).toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 18)}` }));
+  return rows.map((row) => ({
+    ...row,
+    deviceId: row.deviceId ?? map[row.device] ?? `DEV-${String(row.device ?? 'UNKNOWN').toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 18)}`,
+  }));
+}
+
+function productFor(item) {
+  const type = String(item.type ?? '').toLowerCase();
+  if (type.includes('credit')) return 'Credit line';
+  if (type.includes('payroll')) return 'Payroll profile';
+  if (type.includes('business')) return 'Business checking';
+  if (type.includes('chargeback')) return 'Credit card';
+  return 'Checking · Debit card';
+}
+
+function ensureRelationship(item, relationship = []) {
+  const defaults = [
+    { label: 'Open products', value: productFor(item) },
+    { label: 'Last statement', value: item.opened ?? 'Generated review period' },
+    { label: 'Normal login area', value: item.intake?.customerLocation ?? item.customer?.contact?.address ?? 'Training location' },
+    { label: 'Payment profile', value: String(item.type ?? '').includes('Credit') ? 'External destination under review' : 'Card and account payment profile' },
+  ];
+  const seen = new Set();
+  return [...relationship, ...defaults].filter((entry) => {
+    if (!entry?.label || seen.has(entry.label)) return false;
+    seen.add(entry.label);
+    return true;
+  });
 }
 
 function enrichOneCase(item) {
-  const extra = caseIntake[item.id];
-  if (!extra) {
-    return {
-      ...item,
-      loginHistory: addDeviceIds(item.id, item.loginHistory ?? []),
-      links: dedupeStrings(item.links ?? []),
-      facts: dedupeStrings(item.facts ?? []),
-    };
-  }
-
-  return {
-    ...item,
-    claimId: item.claimId ?? extra.claimId,
-    transactionInfo: item.transactionInfo ?? extra.transactionInfo,
-    shortSummary: item.shortSummary ?? extra.shortSummary,
-    customer: {
-      ...item.customer,
-      relationship: [...(item.customer?.relationship ?? []), ...(extra.relationshipExtras ?? [])],
-      profileChanges: dedupeById([...(item.customer?.profileChanges ?? []), ...(extra.profileExtras ?? [])]),
+  const extra = caseIntake[item.id] ?? {};
+  const customer = {
+    relationshipSince: item.customer?.relationshipSince ?? (item.status === 'Generated' ? '2023' : 'Not recorded'),
+    segment: item.customer?.segment ?? 'Training customer profile',
+    contact: {
+      phone: '(555) 010-0000',
+      email: `${String(item.person ?? 'training.customer').toLowerCase().replace(/\s+/g, '.')}@training.example.test`,
+      address: `${item.intake?.customerLocation ?? 'Dallas, TX'} training address`,
+      preferredChannel: item.intake?.channel ?? 'Training workspace',
+      ...(item.customer?.contact ?? {}),
     },
+    relationship: ensureRelationship(item, [...(item.customer?.relationship ?? []), ...(extra.relationshipExtras ?? [])]),
+    profileChanges: dedupeById([...(item.customer?.profileChanges ?? []), ...(extra.profileExtras ?? [])]),
+  };
+
+  const enriched = {
+    ...item,
+    claimId: item.claimId ?? extra.claimId ?? `CLM-${String(item.id).replace(/^FA-/, '')}`,
+    transactionInfo: item.transactionInfo ?? extra.transactionInfo ?? 'Training transaction or payment context',
+    shortSummary: item.shortSummary ?? extra.shortSummary ?? item.allegation ?? item.queueReason,
+    customer,
     identityRecords: dedupeById([...(item.identityRecords ?? []), ...(extra.identityExtras ?? [])]),
     loginHistory: addDeviceIds(item.id, dedupeById([...(item.loginHistory ?? []), ...(extra.loginExtras ?? [])])),
     events: dedupeById([...(extra.eventExtras ?? []), ...(item.events ?? [])]),
     documents: dedupeById([...(item.documents ?? []), ...(extra.documentExtras ?? [])]),
     links: dedupeStrings([...(item.links ?? []), ...(extra.linkExtras ?? [])]),
-    facts: dedupeStrings([...(item.facts ?? []), item.id === 'FA-CR-24003' ? 'Only early history available' : 'Expanded relationship history available']),
+    facts: dedupeStrings([
+      ...(item.facts ?? []),
+      item.id === 'FA-CR-24003' ? 'Only early history available' : 'Expanded relationship history available',
+    ]),
+  };
+
+  return {
+    ...enriched,
+    identityProfile: item.identityProfile ?? buildIdentityProfile(enriched),
   };
 }
 
