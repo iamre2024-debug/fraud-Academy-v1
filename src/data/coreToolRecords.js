@@ -96,21 +96,5 @@ export function buildCoreToolRecords(tool, activeCase, fallbackData = { rows: []
     ],
   };
 
-  if (tool === 'Case Report') {
-    const savedPackets = (fallbackData.rows ?? []).filter((item) => item.label === 'Report packet');
-    return {
-      columns: ['Report', 'Section', 'Value', 'State', 'Case', 'Source', 'Action'],
-      rows: [
-        row('REP-OVERVIEW', ['REP-OVERVIEW', 'Case overview', activeCase.queueReason, 'Draft available', activeCase.id, 'Case Summary', 'Pin'], activeCase.id, 'Case report section'),
-        row('REP-CUSTOMER', ['REP-CUSTOMER', 'Customer summary', `${activeCase.person} · ${activeCase.trainingId}`, 'Draft available', activeCase.id, 'Customer 360', 'Pin'], activeCase.trainingId, 'Case report section'),
-        row('REP-PAYMENT', ['REP-PAYMENT', 'Payment verification', `${financial.paymentVerification.length} payment records available, including Bank Code and Destination ID objects when present`, 'Draft available', activeCase.id, 'Payment Verification', 'Pin'], activeCase.id, 'Case report section'),
-        row('REP-BUSINESS', ['REP-BUSINESS', 'Business intelligence', `${business.businessIntel.length} business records and ${business.business360.length} relationship records available`, 'Draft available', activeCase.id, 'Business Intelligence', 'Pin'], activeCase.id, 'Case report section'),
-        row('REP-EVIDENCE', ['REP-EVIDENCE', 'Evidence summary', `${evidence.evidence.length} evidence records and ${evidence.documents.length} documents available`, 'Draft available', activeCase.id, 'Evidence Center', 'Pin'], activeCase.id, 'Case report section'),
-        row('REP-TIMELINE', ['REP-TIMELINE', 'Timeline summary', `${events.length + logins.length + financial.transactions.length + financial.paymentVerification.length + evidence.evidence.length} timeline records available`, 'Draft available', activeCase.id, 'Timeline', 'Pin'], activeCase.id, 'Case report section'),
-        ...savedPackets,
-      ],
-    };
-  }
-
   return null;
 }
