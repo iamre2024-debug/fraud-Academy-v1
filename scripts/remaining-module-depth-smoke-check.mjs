@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { trainingCases as baseCases } from '../src/data/cases.js';
 import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
 import { buildCoreToolRecords } from '../src/data/coreToolRecords.js';
+import { financialRecordsByCase } from '../src/data/financialRecords.js';
 import { buildLunaDebrief } from '../src/data/lunaDebrief.js';
 
 const failures = [];
@@ -46,6 +47,33 @@ const paymentData = buildCoreToolRecords('Payment Verification', creditReview, {
 const paymentText = JSON.stringify(paymentData);
 if (!paymentText.includes('Bank Code') || !paymentText.includes('Destination ID')) {
   fail('Payment Verification must preserve Bank Code and Destination ID training-safe wording.');
+}
+for (const record of financialRecordsByCase['FA-CR-24003'].paymentVerification) {
+  for (const field of [
+    'bankName',
+    'accountType',
+    'accountHolder',
+    'ownerMatch',
+    'accountStatus',
+    'priorUse',
+    'firstSeen',
+    'verificationMethod',
+    'recoverability',
+    'bankCode',
+    'destinationId',
+    'oldDestination',
+    'newDestination',
+    'changeComparison',
+    'verificationOutcome',
+    'verificationLog',
+    'relatedRecords',
+    'actions',
+    'notes',
+  ]) {
+    if (!record[field] || (Array.isArray(record[field]) && record[field].length === 0)) {
+      fail(`Payment Verification record ${record.id} is missing required Bible v2 field: ${field}.`);
+    }
+  }
 }
 
 const linkText = JSON.stringify(buildCoreToolRecords('Link Analysis', creditReview, { rows: [] }));
