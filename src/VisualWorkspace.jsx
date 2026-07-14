@@ -99,7 +99,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     investigate: { label: `${reviewedWorkspaceTools}/${workspaceTools.length} reviewed`, state: reviewedWorkspaceTools === workspaceTools.length ? 'complete' : reviewedWorkspaceTools > 0 ? 'in-progress' : 'open' },
     timeline: { label: currentCompleted.includes('Timeline') ? 'Reviewed' : 'Open', state: currentCompleted.includes('Timeline') ? 'complete' : 'open' },
     indicators: { label: collectedIndicators ? `${collectedIndicators} collected` : 'Open', state: collectedIndicators ? 'in-progress' : 'open' },
-    determination: { label: hasReviewPackage ? 'Package saved' : packageStatus.ready ? 'Ready to save' : `${packageStatus.blockers.length} open`, state: hasReviewPackage ? 'complete' : packageStatus.ready ? 'ready' : 'locked' },
+    determination: { label: hasReviewPackage ? 'Package saved' : packageStatus.ready ? 'Ready to save' : 'Open', state: hasReviewPackage ? 'complete' : packageStatus.ready ? 'ready' : 'open' },
     debrief: { label: hasReviewPackage ? 'Available' : 'Locked', state: hasReviewPackage ? 'complete' : 'locked' },
   };
 
@@ -141,12 +141,12 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   function jumpDecision() {
     onNavigate('workspace');
     setActiveStage('determination');
-    setMobileToolPage(false);
+    setMobileToolPage(true);
     window.setTimeout(() => {
       resetWorkspaceInlineScroll();
-      submitRef.current?.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' });
-      resetWorkspaceInlineScroll();
-    }, 80);
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      submitRef.current?.focus?.();
+    }, 40);
   }
 
   function openNotes() {
@@ -200,44 +200,61 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     jumpDecision,
   };
 
+  const decisionPage = activeStage === 'determination';
+
   return (
     <main className="visual-os-shell">
-      <section className="visual-os-frame" data-mobile-tool-page={mobileToolPage ? 'true' : 'false'}>
+      <section className="visual-os-frame" data-mobile-tool-page={mobileToolPage ? 'true' : 'false'} data-standalone-stage={decisionPage ? 'determination' : 'workspace'}>
         <VisualShellHeader activeCase={activeCase} cases={cases} changeCase={changeCase} onNavigate={onNavigate} />
         <ActiveCaseWorkflowRail activeStage={activeStage} stageStatus={stageStatus} onStageSelect={selectWorkflowStage} />
         <PinnedReferenceTray tray={tray} openTool={openTool} removePin={removePin} />
 
-        <div className="mobile-tool-page-bar" aria-label="Mobile tool navigation">
-          <button type="button" onClick={returnToToolMenu}>‹ All tools</button>
-          <span>{tool}</span>
-        </div>
+        {decisionPage ? (
+          <div className="standalone-decision-shell" data-workflow-stage="determination">
+            <SubmitDecisionPanel
+              submitRef={submitRef}
+              packageStatus={packageStatus}
+              tray={tray}
+              notes={notes}
+              reviewPackages={reviewPackages}
+              decisionDraft={decisionDraft}
+              activeCase={activeCase}
+              updateDecision={updateDecision}
+              submitDecision={submitDecision}
+              onBack={returnToToolMenu}
+            />
+          </div>
+        ) : (
+          <>
+            <div className="mobile-tool-page-bar" aria-label="Mobile tool navigation">
+              <button type="button" onClick={returnToToolMenu}>‹ All tools</button>
+              <span>{tool}</span>
+            </div>
 
-        <div data-workflow-stage="briefing">
-          <CaseSummaryCard activeCase={activeCase} pin={pin} openTool={openTool} jumpDecision={jumpDecision} openNotes={openNotes} openMoreTools={openMoreTools} />
-        </div>
+            <div data-workflow-stage="briefing">
+              <CaseSummaryCard activeCase={activeCase} pin={pin} openTool={openTool} jumpDecision={jumpDecision} openNotes={openNotes} openMoreTools={openMoreTools} />
+            </div>
 
-        <section className="workflow-investigate-stage" data-workflow-stage="investigate" aria-label="Investigate stage categories">
-          <CategoryTileRail categories={investigationToolGroups} categoryKey={categoryKey} currentCompleted={currentCompleted} onNavigate={onNavigate} onInvestigate={() => setActiveStage('investigate')} setCategoryKey={setCategoryKey} setTool={setTool} setExpandedId={setExpandedId} onToolOpen={openTool} />
-        </section>
+            <section className="workflow-investigate-stage" data-workflow-stage="investigate" aria-label="Investigate stage categories">
+              <CategoryTileRail categories={investigationToolGroups} categoryKey={categoryKey} currentCompleted={currentCompleted} onNavigate={onNavigate} onInvestigate={() => setActiveStage('investigate')} setCategoryKey={setCategoryKey} setTool={setTool} setExpandedId={setExpandedId} onToolOpen={openTool} />
+            </section>
 
-        <div className="workflow-active-tool-stage" data-active-workflow-stage={activeStage}>
-          <DedicatedToolSwitcher activeCategory={activeCategory} tool={tool} openTool={openTool} />
-          {tool === 'Customer 360' ? <Customer360Panel {...activeToolProps} />
-            : tool === 'Identity Intelligence' ? <IdentityIntelligencePanel {...activeToolProps} />
-              : tool === 'Login History' ? <LoginHistoryPanel {...activeToolProps} />
-                : tool === 'Payment Verification' ? <PaymentVerificationPanel {...activeToolProps} />
-                  : tool === 'Business Intelligence' ? <BusinessIntelligencePanel {...activeToolProps} />
-                    : tool === 'Timeline' ? <TimelinePanel {...activeToolProps} />
-                      : <InvestigationToolPanel {...activeToolProps} />}
-        </div>
+            <div className="workflow-active-tool-stage" data-active-workflow-stage={activeStage}>
+              <DedicatedToolSwitcher activeCategory={activeCategory} tool={tool} openTool={openTool} />
+              {tool === 'Customer 360' ? <Customer360Panel {...activeToolProps} />
+                : tool === 'Identity Intelligence' ? <IdentityIntelligencePanel {...activeToolProps} />
+                  : tool === 'Login History' ? <LoginHistoryPanel {...activeToolProps} />
+                    : tool === 'Payment Verification' ? <PaymentVerificationPanel {...activeToolProps} />
+                      : tool === 'Business Intelligence' ? <BusinessIntelligencePanel {...activeToolProps} />
+                        : tool === 'Timeline' ? <TimelinePanel {...activeToolProps} />
+                          : <InvestigationToolPanel {...activeToolProps} />}
+            </div>
 
-        <div data-workflow-stage="indicators">
-          <BottomInvestigationGrid tray={tray} removePin={removePin} openTool={openTool} noteDraft={noteDraft} setNoteDraft={setNoteDraft} submitNote={submitNote} reportPackets={reportPackets} notes={notes} />
-        </div>
-
-        <div data-workflow-stage="determination">
-          <SubmitDecisionPanel submitRef={submitRef} packageStatus={packageStatus} tray={tray} notes={notes} reviewPackages={reviewPackages} decisionDraft={decisionDraft} activeCase={activeCase} updateDecision={updateDecision} submitDecision={submitDecision} />
-        </div>
+            <div data-workflow-stage="indicators">
+              <BottomInvestigationGrid tray={tray} removePin={removePin} openTool={openTool} noteDraft={noteDraft} setNoteDraft={setNoteDraft} submitNote={submitNote} reportPackets={reportPackets} notes={notes} />
+            </div>
+          </>
+        )}
         <nav className="visual-bottom-nav" aria-hidden="true" />
       </section>
     </main>
