@@ -19,8 +19,8 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   const groupRail = page.locator('[data-investigation-tool-groups="approved-theme-v1"]');
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   if (testInfo.project.name === 'mobile-chromium') {
-    await expect(page.getByRole('button', { name: 'All tools', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'All tools', exact: true }).click();
+    await expect(page.getByRole('button', { name: /All tools/ })).toBeVisible();
+    await page.getByRole('button', { name: /All tools/ }).click();
   }
 
   await expect(groupRail).toBeVisible();

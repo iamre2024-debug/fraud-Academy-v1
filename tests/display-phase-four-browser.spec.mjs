@@ -35,8 +35,8 @@ test('responsive records stay labeled and inside the mobile tool page', async ({
   expect(layout.recordOverflow).toBeLessThanOrEqual(1);
 
   if (testInfo.project.name === 'mobile-chromium') {
-    await expect(page.getByRole('button', { name: 'All tools', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'All tools', exact: true }).click();
+    await expect(page.getByRole('button', { name: /All tools/ })).toBeVisible();
+    await page.getByRole('button', { name: /All tools/ }).click();
     await expect(page.locator('[data-investigation-tool-groups="approved-theme-v1"]')).toBeVisible();
   }
 });

@@ -4,7 +4,7 @@ const secondCase = { id: 'FA-CB-24007', person: 'Jordan Ellis' };
 const forbiddenPreSubmissionCopy = /\b(?:fraud score|red flags?|green flags?|correct answer|AI recommendations?|fraudulent|legitimate|suggested first tool|investigator question)\b/i;
 
 async function openTimeline(page) {
-  const allTools = page.getByRole('button', { name: 'All tools', exact: true });
+  const allTools = page.getByRole('button', { name: /All tools/ });
   if (await allTools.isVisible().catch(() => false)) await allTools.click();
   const workflow = page.locator('.active-case-workflow');
   await workflow.getByRole('button', { name: /Timeline/ }).click();

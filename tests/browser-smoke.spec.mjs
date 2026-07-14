@@ -23,7 +23,7 @@ async function assertEvidenceFirstLock(page, expectedCaseId) {
 
 async function openCoreTool(page, category, tool) {
   await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
-  const allTools = page.getByRole('button', { name: 'All tools', exact: true });
+  const allTools = page.getByRole('button', { name: /All tools/ });
   if (await allTools.isVisible().catch(() => false)) await allTools.click();
 
   if (tool === 'Timeline') {

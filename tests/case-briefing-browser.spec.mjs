@@ -76,7 +76,7 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   await expect(workflow.getByRole('button', { name: /Investigate/ })).toHaveAttribute('aria-current', 'step');
   await expect(page.locator('.activity-panel')).toContainText('Customer 360');
 
-  const allTools = page.getByRole('button', { name: 'All tools', exact: true });
+  const allTools = page.getByRole('button', { name: /All tools/ });
   if (await allTools.isVisible().catch(() => false)) await allTools.click();
   await workflow.getByRole('button', { name: /Case Briefing/ }).click();
   await quickRoutes.getByRole('button', { name: 'Identity Intel', exact: true }).click();

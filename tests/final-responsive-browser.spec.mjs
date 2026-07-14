@@ -106,7 +106,7 @@ test('final responsive polish protects every completed global surface across com
     await assertViewportSafe(page, '.visual-os-frame', `Workspace ${viewport.width}`);
 
     for (const stage of ['briefing', 'investigate', 'timeline', 'determination', 'debrief']) {
-      const allTools = page.getByRole('button', { name: 'All tools', exact: true });
+      const allTools = page.getByRole('button', { name: /All tools/ });
       if (await allTools.isVisible().catch(() => false)) await allTools.click();
       await page.locator(`[data-workflow-stage-button="${stage}"]`).click();
       await assertViewportSafe(page, '.visual-os-frame', `Workspace ${stage} ${viewport.width}`);
