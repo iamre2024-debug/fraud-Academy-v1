@@ -89,7 +89,7 @@ const lunaUnlocked = buildLunaDebrief({
   activeCase: creditReview,
   reviewPackage: {
     id: 'PKG-SMOKE',
-    completedTools: ['Customer 360', 'Identity Intelligence', 'Login History', 'Transaction History', 'Payment Verification', 'Evidence Center'],
+    completedTools: ['Customer 360', 'Identity Intel / People Search', 'Login History', 'Transaction History', 'Payment Verification', 'Evidence Center'],
     pinnedEvidence: ['PAY-3301', 'PAY-3302'],
     noteSnapshot: ['Reviewed the system alert, Training ID, access history, and payment setup packet.'],
     reason: 'The saved package documents the system alert, identity setup, Payment Verification objects, access records, and evidence packet before post-submission coaching.',
