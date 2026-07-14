@@ -71,12 +71,13 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   await expect(briefing).toContainText('Cardholder reports recurring billing after cancellation.');
 
   const workflow = page.getByRole('navigation', { name: 'Active case workflow' });
+  const allTools = page.getByRole('button', { name: /All tools/ });
 
   await utilities.getByRole('button', { name: /Begin Investigation/ }).click();
+  if (testInfo.project.name === 'mobile-chromium') await allTools.click();
   await expect(workflow.getByRole('button', { name: /Investigate/ })).toHaveAttribute('aria-current', 'step');
   await expect(page.locator('.activity-panel')).toContainText('Customer 360');
 
-  const allTools = page.getByRole('button', { name: /All tools/ });
   if (await allTools.isVisible().catch(() => false)) await allTools.click();
   await workflow.getByRole('button', { name: /Case Briefing/ }).click();
   await quickRoutes.getByRole('button', { name: 'Identity Intel', exact: true }).click();

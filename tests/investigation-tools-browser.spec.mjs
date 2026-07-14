@@ -18,9 +18,13 @@ test('approved Investigation tools are contextual, functional, and responsive', 
 
   const groupRail = page.locator('[data-investigation-tool-groups="approved-theme-v1"]');
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
+  const allTools = page.getByRole('button', { name: /All tools/ });
+  const returnToToolsIfNeeded = async () => {
+    if (await allTools.isVisible().catch(() => false)) await allTools.click();
+  };
   if (testInfo.project.name === 'mobile-chromium') {
-    await expect(page.getByRole('button', { name: /All tools/ })).toBeVisible();
-    await page.getByRole('button', { name: /All tools/ }).click();
+    await expect(allTools).toBeVisible();
+    await allTools.click();
   }
 
   await expect(groupRail).toBeVisible();
@@ -107,12 +111,14 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await expect(page.locator('.case-report-packet-panel')).toContainText('1 saved');
 
   await groupRail.getByRole('button', { name: /Login, Device & IP/ }).click();
+  await returnToToolsIfNeeded();
   const toolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
   await expect(toolSelect).toHaveValue('Login History');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Login History');
   await expect(groupRail.getByRole('button', { name: /Login, Device & IP/ })).toHaveAttribute('aria-pressed', 'true');
 
   await groupRail.getByRole('button', { name: /Transactions & Financial/ }).click();
+  await returnToToolsIfNeeded();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Transaction History');
   await expect(toolPanel.getByRole('heading', { name: 'Transaction History', exact: true })).toBeVisible();
 
@@ -129,6 +135,7 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveCount(0);
   await expect(page.locator('.activity-panel')).toContainText('Timeline');
 
+  await returnToToolsIfNeeded();
   const selector = page.locator('.visual-case-switcher select');
   await selector.selectOption(secondCase.id);
   await expect(selector).toHaveValue(secondCase.id);

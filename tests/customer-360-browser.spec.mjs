@@ -85,6 +85,8 @@ test('approved Customer 360 is a complete Evidence First dossier', async ({ page
   await genericTool.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Customer 360');
   await expect(customer360).toBeVisible();
 
+  const allTools = page.getByRole('button', { name: /All tools/ });
+  if (await allTools.isVisible().catch(() => false)) await allTools.click();
   const selector = page.locator('.visual-case-switcher select');
   await selector.selectOption(secondCase.id);
   await expect(selector).toHaveValue(secondCase.id);
