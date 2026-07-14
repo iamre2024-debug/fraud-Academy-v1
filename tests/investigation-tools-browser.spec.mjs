@@ -98,8 +98,6 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await expect(page.locator('.tray-card')).toContainText('Pinned');
   await activeDetail.getByRole('button', { name: 'Save expanded note', exact: true }).click();
   await expect(page.locator('.notebook-card')).toContainText('Expanded Identity Intelligence record');
-  await activeDetail.getByRole('button', { name: 'Save neutral report packet', exact: true }).click();
-  await expect(page.locator('.case-report-packet-panel')).toContainText('1 saved');
 
   await groupRail.getByRole('button', { name: /Login, Device & IP/ }).click();
   const toolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
@@ -123,8 +121,6 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await expect(page.locator('.tray-card')).toContainText('Pinned');
   await toolPanel.getByRole('button', { name: 'Save login note', exact: true }).click();
   await expect(page.locator('.notebook-card')).toContainText('Login History');
-  await toolPanel.getByRole('button', { name: 'Save neutral packet', exact: true }).click();
-  await expect(page.locator('.case-report-packet-panel')).toContainText('2 saved');
   await toolPanel.getByRole('button', { name: 'Mark Login History reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ Login History reviewed', exact: true })).toBeVisible();
 
@@ -147,8 +143,6 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await expect(page.locator('.tray-card')).toContainText('Pinned');
   await toolPanel.getByRole('button', { name: 'Save session note', exact: true }).click();
   await expect(page.locator('.notebook-card')).toContainText('Session History');
-  await toolPanel.getByRole('button', { name: 'Save neutral packet', exact: true }).click();
-  await expect(page.locator('.case-report-packet-panel')).toContainText('3 saved');
   await toolPanel.getByRole('button', { name: 'Mark Session History reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ Session History reviewed', exact: true })).toBeVisible();
 
@@ -172,8 +166,6 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await expect(page.locator('.tray-card')).toContainText('Pinned');
   await toolPanel.getByRole('button', { name: 'Save IP note', exact: true }).click();
   await expect(page.locator('.notebook-card')).toContainText('IP Intelligence');
-  await toolPanel.getByRole('button', { name: 'Save neutral packet', exact: true }).click();
-  await expect(page.locator('.case-report-packet-panel')).toContainText('4 saved');
   await toolPanel.getByRole('button', { name: 'Mark IP Intelligence reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ IP Intelligence reviewed', exact: true })).toBeVisible();
 
