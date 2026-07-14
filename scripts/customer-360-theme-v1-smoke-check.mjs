@@ -44,7 +44,7 @@ for (const anchor of [
   'Login History',
   'Device Intelligence',
   'Evidence Center',
-  'Document Viewer',
+  'Document Request',
   'Open Submit Decision',
   "markReviewed('Customer 360')",
   'It does not determine the case outcome.',
