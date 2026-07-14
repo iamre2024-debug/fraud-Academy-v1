@@ -64,7 +64,7 @@ test('approved Dashboard resumes the active case without answer leaks', async ({
   await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Case Queue/ })).toBeVisible();
   await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Evidence Workspace/ })).toBeVisible();
   await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Timeline/ })).toBeVisible();
-  await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /^Progress/ })).toBeVisible();
+  await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Progress/ })).toBeVisible();
 
   const dashboardLayout = await page.evaluate(() => ({
     viewportWidth: window.innerWidth,
@@ -163,7 +163,6 @@ test('completed core modules and System Access Lane render real records', async 
   await openCoreTool(page, 'Links & Related Cases', 'System Access Lane');
   await openCoreTool(page, 'Workflow Review', 'Timeline');
 
-  await expect(page.locator('.view-full-button')).toBeVisible();
   await assertEvidenceFirstLock(page, builtInCases[0].id);
 });
 

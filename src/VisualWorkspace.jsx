@@ -139,10 +139,9 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setActiveStage(nextStage);
     setCategoryKey(nextCategory.key);
     setTool(nextTool);
-    setMobileToolPage(true);
+    setMobileToolPage(window.matchMedia('(max-width: 720px)').matches);
     setQuery('');
     setExpandedId('');
-    setMobileToolPage(false);
     scrollToWorkspace('.activity-panel');
   }
 

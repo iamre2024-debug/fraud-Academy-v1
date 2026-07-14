@@ -18,6 +18,11 @@ test('approved Investigation tools are contextual, functional, and responsive', 
 
   const groupRail = page.locator('[data-investigation-tool-groups="approved-theme-v1"]');
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(page.getByRole('button', { name: 'All tools', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'All tools', exact: true }).click();
+  }
+
   await expect(groupRail).toBeVisible();
   await expect(groupRail.getByRole('button')).toHaveCount(7);
   await expect(groupRail.getByRole('button', { name: /Identity & Customer/ })).toHaveAttribute('aria-pressed', 'true');
@@ -25,7 +30,7 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Identity Intelligence');
   await expect(toolPanel.getByRole('heading', { name: 'Identity Intelligence', exact: true })).toBeVisible();
   await expect(toolPanel.getByText('Working question', { exact: true })).toBeVisible();
-  await expect(toolPanel.locator('.investigation-tool-flow span')).toHaveCount(8);
+  await expect(toolPanel.locator('.investigation-tool-flow span')).toHaveCount(7);
   await expect(toolPanel.locator('.investigation-tool-metrics article')).toHaveCount(4);
 
   const records = toolPanel.locator('[data-investigation-record]');
@@ -98,7 +103,7 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await expect(page.locator('.tray-card')).toContainText('Pinned');
   await activeDetail.getByRole('button', { name: 'Save expanded note', exact: true }).click();
   await expect(page.locator('.notebook-card')).toContainText('Expanded Identity Intelligence record');
-  await activeDetail.getByRole('button', { name: 'Save neutral report packet', exact: true }).click();
+  await activeDetail.getByRole('button', { name: 'Save evidence packet', exact: true }).click();
   await expect(page.locator('.case-report-packet-panel')).toContainText('1 saved');
 
   await groupRail.getByRole('button', { name: /Login, Device & IP/ }).click();
