@@ -135,7 +135,7 @@ export default function CaseSummaryCard({ activeCase, pin, openTool, jumpDecisio
               ))}
               {!documents.length && <p className="case-briefing-empty">No documents are listed in this case packet yet.</p>}
             </div>
-            <button type="button" className="case-briefing-secondary-action" onClick={() => openTool('Document Viewer', 'investigate')}>Open Document Viewer</button>
+            <button type="button" className="case-briefing-secondary-action" onClick={() => openTool('Document Request', 'investigate')}>Open Document Request</button>
           </article>
         </div>
 
