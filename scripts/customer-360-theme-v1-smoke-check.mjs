@@ -41,7 +41,6 @@ for (const anchor of [
   'Device Intelligence',
   'Open Submit Decision',
   "markReviewed('Customer 360')",
-  'Save neutral dossier packet',
   'It does not determine the case outcome.',
 ]) {
   mustContain('Customer360Panel.jsx', panel, anchor);
@@ -51,8 +50,7 @@ for (const anchor of [
   "import Customer360Panel from './Customer360Panel.jsx'",
   "tool === 'Customer 360'",
   '<Customer360Panel {...activeToolProps} />',
-  '<ActiveToolPanel {...activeToolProps} />',
-  'rowsFor(tool, activeCase, reportPackets)',
+  'rowsFor(tool, activeCase)',
 ]) {
   mustContain('VisualWorkspace.jsx', workspace, anchor);
 }
