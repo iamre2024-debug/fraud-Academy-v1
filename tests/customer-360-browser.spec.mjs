@@ -97,9 +97,10 @@ test('approved Customer 360 is a complete Evidence First dossier', async ({ page
   await expect(customer360.getByRole('button', { name: '✓ Customer 360 reviewed', exact: true })).toBeVisible();
 
   await relatedTools.getByRole('button', { name: 'Identity Intel', exact: true }).click();
-  const genericTool = page.locator('.activity-panel');
-  await expect(genericTool).toContainText('Identity Intelligence');
-  await genericTool.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Customer 360');
+  const identityTool = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
+  await expect(identityTool).toHaveAttribute('data-tool-name', 'Identity Intel / People Search');
+  await expect(identityTool.getByText('Identity report hidden until a search is run.', { exact: true })).toBeVisible();
+  await identityTool.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Customer 360');
   await expect(customer360).toBeVisible();
 
   const selector = page.locator('.visual-case-switcher select');
