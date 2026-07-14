@@ -22,23 +22,29 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await expect(groupRail.getByRole('button')).toHaveCount(7);
   await expect(groupRail.getByRole('button', { name: /Identity & Customer/ })).toHaveAttribute('aria-pressed', 'true');
   await expect(toolPanel).toBeVisible();
-  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Identity Intelligence');
-  await expect(toolPanel.getByRole('heading', { name: 'Identity Intelligence', exact: true })).toBeVisible();
+  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Identity Intel / People Search');
+  await expect(toolPanel.getByRole('heading', { name: 'Identity Intel / People Search', exact: true })).toBeVisible();
   await expect(toolPanel.getByText('Working question', { exact: true })).toBeVisible();
   await expect(toolPanel.locator('.investigation-tool-flow span')).toHaveCount(8);
-  await expect(toolPanel.locator('.investigation-tool-metrics article')).toHaveCount(4);
+  await expect(toolPanel.getByText('Identity report hidden until a search is run.', { exact: true })).toBeVisible();
+  await expect(toolPanel.locator('.identity-intel-summary')).toHaveCount(0);
 
-  const records = toolPanel.locator('[data-investigation-record]');
-  await expect(records.first()).toBeVisible();
-  const recordCount = await records.count();
-  expect(recordCount).toBeGreaterThan(0);
+  const identitySearch = toolPanel.getByRole('textbox', { name: 'Search Identity Intel records' });
+  await identitySearch.fill('TRN-8842-19');
+  await toolPanel.getByRole('button', { name: 'Run People Search', exact: true }).click();
+  await expect(toolPanel.getByRole('heading', { name: 'Maya Sterling', exact: true })).toBeVisible();
+  await expect(toolPanel.locator('.identity-intel-summary dl > div')).toHaveCount(10);
+  await expect(toolPanel.locator('.identity-intel-counts article')).toHaveCount(12);
+  await expect(toolPanel.locator('.identity-intel-sections button')).toHaveCount(17);
+  await expect(toolPanel.getByRole('heading', { name: 'Identity Summary', exact: true })).toBeVisible();
+  await expect(toolPanel.getByRole('heading', { name: 'Case objects to compare', exact: true })).toBeVisible();
 
   const layout = await page.evaluate(() => {
     const groups = document.querySelector('.investigation-tool-groups-theme-v1 .visual-category-row');
-    const workspace = document.querySelector('.investigation-tool-workspace');
-    const recordsPanel = document.querySelector('.investigation-tool-records');
-    const detail = document.querySelector('.investigation-tool-detail');
-    const metrics = document.querySelector('.investigation-tool-metrics');
+    const workspace = document.querySelector('.identity-intel-workspace');
+    const recordsPanel = document.querySelector('.identity-intel-sections');
+    const detail = document.querySelector('.identity-intel-report');
+    const evidence = document.querySelector('.identity-intel-evidence');
     const toolPanelElement = document.querySelector('[data-investigation-tools-screen="approved-theme-v1"]');
     const viewportWidth = window.innerWidth;
     const rect = (element) => element?.getBoundingClientRect();
@@ -55,9 +61,9 @@ test('approved Investigation tools are contextual, functional, and responsive', 
       detailFits: fits(detail),
       groupColumns: groups ? getComputedStyle(groups).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
       workspaceColumns: workspace ? getComputedStyle(workspace).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      metricColumns: metrics ? getComputedStyle(metrics).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
       recordsTop: rect(recordsPanel)?.top ?? 0,
       detailTop: rect(detail)?.top ?? 0,
+      evidenceTop: rect(evidence)?.top ?? 0,
     };
   });
 
@@ -69,35 +75,22 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   if (testInfo.project.name === 'mobile-chromium') {
     expect(layout.groupColumns).toBe(2);
     expect(layout.workspaceColumns).toBe(1);
-    expect(layout.metricColumns).toBe(2);
     expect(layout.detailTop).toBeGreaterThan(layout.recordsTop + 20);
   } else {
     expect(layout.groupColumns).toBe(6);
-    expect(layout.workspaceColumns).toBe(2);
-    expect(layout.metricColumns).toBe(4);
+    expect(layout.workspaceColumns).toBe(3);
     expect(Math.abs(layout.recordsTop - layout.detailTop)).toBeLessThanOrEqual(2);
+    expect(Math.abs(layout.evidenceTop - layout.detailTop)).toBeLessThanOrEqual(2);
   }
 
-  const firstRecordId = await records.first().getAttribute('data-investigation-record');
-  expect(firstRecordId).toBeTruthy();
-  const search = toolPanel.getByRole('textbox', { name: 'Search Identity Intelligence records' });
-  await search.fill(firstRecordId);
-  await expect(toolPanel.locator('[data-investigation-record]')).toHaveCount(1);
-  await search.clear();
-
-  if (recordCount > 1) {
-    const secondRecord = toolPanel.locator('[data-investigation-record]').nth(1);
-    const secondRecordId = await secondRecord.getAttribute('data-investigation-record');
-    await secondRecord.getByRole('button', { name: 'Open record', exact: true }).click();
-    await expect(toolPanel.locator(`[data-investigation-record="${secondRecordId}"]`)).toHaveClass(/selected/);
-    await expect(toolPanel.locator('.investigation-tool-detail')).toContainText(secondRecordId);
-  }
-
-  const activeDetail = toolPanel.locator('.investigation-tool-detail');
-  await activeDetail.getByRole('button', { name: 'Pin record', exact: true }).click();
+  await toolPanel.getByRole('button', { name: 'Email History', exact: true }).click();
+  await expect(toolPanel.getByRole('heading', { name: 'Email History', exact: true })).toBeVisible();
+  await toolPanel.locator('.identity-intel-summary').getByRole('button', { name: 'Pin profile', exact: true }).click();
   await expect(page.locator('.tray-card')).toContainText('Pinned');
-  await activeDetail.getByRole('button', { name: 'Save expanded note', exact: true }).click();
-  await expect(page.locator('.notebook-card')).toContainText('Expanded Identity Intelligence record');
+  await toolPanel.getByRole('button', { name: 'Save section note', exact: true }).click();
+  await expect(page.locator('.notebook-card')).toContainText('Identity Intel');
+  await toolPanel.getByRole('button', { name: 'Mark Identity Intel / People Search reviewed', exact: true }).click();
+  await expect(toolPanel.getByRole('button', { name: '✓ Identity Intel / People Search reviewed', exact: true })).toBeVisible();
 
   await groupRail.getByRole('button', { name: /Login, Device & IP/ }).click();
   const toolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
