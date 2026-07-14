@@ -5,6 +5,7 @@ import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
 import { businessRecordsByCase } from '../src/data/businessRecords.js';
 import { getDeviceProfiles } from '../src/data/deviceRecords.js';
 import { getLoginRecords } from '../src/data/loginRecords.js';
+import { getSessionRecords } from '../src/data/sessionRecords.js';
 import { evidenceRecordsByCase } from '../src/data/evidenceRecords.js';
 import { financialRecordsByCase } from '../src/data/financialRecords.js';
 import { systemAccessRecordsByCase } from '../src/data/systemAccessRecords.js';
@@ -62,11 +63,13 @@ for (const item of cases) {
   const evidence = evidenceRecordsByCase[item.id] ?? {};
   const deviceProfiles = getDeviceProfiles(item);
   const loginRecords = getLoginRecords(item);
+  const sessionRecords = getSessionRecords(item);
   requireCount(`${prefix} transaction records`, financial.transactions?.length ?? 0, 2);
   requireCount(`${prefix} financial intelligence records`, financial.financialIntel?.length ?? 0, 2);
   requireCount(`${prefix} payment verification records`, financial.paymentVerification?.length ?? 0, 2);
   requireCount(`${prefix} device intelligence profiles`, deviceProfiles.length, 1);
   requireCount(`${prefix} enriched login records`, loginRecords.length, 4);
+  requireCount(`${prefix} enriched session records`, sessionRecords.length, 4);
   requireCount(`${prefix} business relationship records`, business.business360?.length ?? 0, 1);
   requireCount(`${prefix} business intelligence records`, business.businessIntel?.length ?? 0, 1);
   requireCount(`${prefix} evidence center records`, evidence.evidence?.length ?? 0, 2);
@@ -111,6 +114,17 @@ for (const item of cases) {
     ]) {
       if (!login[field] || (Array.isArray(login[field]) && login[field].length === 0)) {
         failures.push(`${prefix} login record ${login.id} is missing required field ${field}.`);
+      }
+    }
+  }
+
+  for (const session of sessionRecords) {
+    for (const field of [
+      'session', 'id', 'start', 'end', 'duration', 'logoutStatus', 'pagesViewed', 'securitySettings',
+      'profileActions', 'payeeTokenActivity', 'moneyMovement', 'sessionPath', 'relatedRecords', 'investigatorUse',
+    ]) {
+      if (!session[field] || (Array.isArray(session[field]) && session[field].length === 0)) {
+        failures.push(`${prefix} session record ${session.session} is missing required field ${field}.`);
       }
     }
   }
