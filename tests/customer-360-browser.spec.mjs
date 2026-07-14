@@ -73,7 +73,7 @@ test('approved Customer 360 presents real customer data in focused responsive pa
   await customer360.getByRole('button', { name: /Related Customer Records/ }).click();
   attachedPage = page.locator('[data-customer-360-page="related-records"]');
   const search = attachedPage.getByRole('textbox', { name: 'Search related customer records' });
-  await search.fill('phone');
+  await search.fill('Phone number unchanged');
   await expect(attachedPage.locator('.customer-360-page-record-list > article')).toHaveCount(1);
   await search.clear();
   await attachedPage.getByRole('button', { name: 'Back to Customer 360', exact: true }).click();
