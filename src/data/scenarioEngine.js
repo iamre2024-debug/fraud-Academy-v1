@@ -25,7 +25,7 @@ export const scenarioTemplates = [
     title: 'Recurring billing dispute',
     caseReason: 'Customer allegation involving merchant billing, cancellation evidence, prior transactions, and document requests.',
     investigatorQuestion: 'Does the billing pattern and available evidence support a defensible dispute package?',
-    requiredFamilies: ['Case Summary', 'Customer 360', 'Transaction History', 'Business 360', 'Business Intelligence', 'Evidence Center', 'Document Viewer'],
+    requiredFamilies: ['Case Summary', 'Customer 360', 'Transaction History', 'Business 360', 'Business Intelligence', 'Evidence Center', 'Document Request'],
     evidencePacket: ['customerIntake', 'merchantHistory', 'transactionHistory', 'billingCycleRecords', 'documentInventory', 'customerDocuments', 'timelineEvents', 'linkObjects'],
     safeVariationInputs: ['billing interval', 'merchant descriptor', 'cancellation document status', 'contact channel', 'prior charge count'],
   },
