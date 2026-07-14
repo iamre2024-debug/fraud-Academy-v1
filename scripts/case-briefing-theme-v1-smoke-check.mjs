@@ -41,7 +41,7 @@ for (const anchor of [
   'Login History',
   'Submit Decision',
   "openTool('Customer 360', 'investigate')",
-  "openTool('Identity Intelligence')",
+  "openTool('Identity Intel / People Search')",
   "openTool('Login History')",
   'decision-jump-button',
   '<small>Transaction / payee info</small>',
