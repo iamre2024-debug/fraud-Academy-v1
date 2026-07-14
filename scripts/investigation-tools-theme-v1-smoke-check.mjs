@@ -3,6 +3,7 @@ import path from 'node:path';
 
 const rootDir = process.cwd();
 const panel = fs.readFileSync(path.join(rootDir, 'src/InvestigationToolPanel.jsx'), 'utf8');
+const identityReport = fs.readFileSync(path.join(rootDir, 'src/data/identityIntelReport.js'), 'utf8');
 const groups = fs.readFileSync(path.join(rootDir, 'src/investigationToolGroups.js'), 'utf8');
 const workspace = fs.readFileSync(path.join(rootDir, 'src/VisualWorkspace.jsx'), 'utf8');
 const rail = fs.readFileSync(path.join(rootDir, 'src/CategoryTileRail.jsx'), 'utf8');
@@ -92,6 +93,14 @@ for (const anchor of [
   'Reviewer notes',
   'Save follow-up note',
   'Document Request review',
+  'IdentityIntelWorkspace',
+  'Run People Search',
+  'Identity report hidden until a search is run.',
+  'Identity Match Summary',
+  'Identity report counts',
+  'Evidence Explorer',
+  'Fictional training data only. Identity information is evidence, not a case conclusion.',
+  'Mark Identity Intel / People Search reviewed',
 ]) {
   mustContain('InvestigationToolPanel.jsx', panel, anchor);
 }
@@ -192,8 +201,34 @@ for (const anchor of [
   '.document-request-list',
   '.document-request-detail',
   '.document-request-summary',
+  '.identity-intel-search',
+  '.identity-intel-gate',
+  '.identity-intel-summary',
+  '.identity-intel-counts',
+  '.identity-intel-workspace',
+  '.identity-intel-sections',
+  '.identity-intel-report',
+  '.identity-intel-evidence',
 ]) {
   mustContain('displayInvestigationToolsThemeV1.css', styles, anchor);
+}
+
+for (const anchor of [
+  'getIdentityIntelReport',
+  'matchesIdentityIntelSearch',
+  'Name / DOB match',
+  'Watchlist / OFAC training result',
+  'Address History',
+  'Phone Numbers',
+  'Email History',
+  'Associates & Relatives',
+  'Employment History',
+  'Businesses & Ownership',
+  'Criminal Records (Training Only)',
+  'Social & Digital Presence',
+  'All records in this report are fictional training data',
+]) {
+  mustContain('identityIntelReport.js', identityReport, anchor);
 }
 
 mustContain('main.jsx', entrypoint, "import './displayInvestigationToolsThemeV1.css';");
