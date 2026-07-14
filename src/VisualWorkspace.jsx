@@ -3,11 +3,14 @@ import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import ActiveCaseWorkflowRail from './ActiveCaseWorkflowRail.jsx';
 import BottomInvestigationGrid from './BottomInvestigationGrid.jsx';
+import BusinessIntelligencePanel from './BusinessIntelligencePanel.jsx';
 import CaseSummaryCard from './CaseSummaryCard.jsx';
 import CategoryTileRail from './CategoryTileRail.jsx';
 import Customer360Panel from './Customer360Panel.jsx';
 import IdentityIntelligencePanel from './IdentityIntelligencePanel.jsx';
 import InvestigationToolPanel from './InvestigationToolPanel.jsx';
+import LoginHistoryPanel from './LoginHistoryPanel.jsx';
+import PaymentVerificationPanel from './PaymentVerificationPanel.jsx';
 import SubmitDecisionPanel from './SubmitDecisionPanel.jsx';
 import TimelinePanel from './TimelinePanel.jsx';
 import useVisualWorkspaceActions from './useVisualWorkspaceActions.js';
@@ -286,6 +289,12 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
             <Customer360Panel {...activeToolProps} />
           ) : tool === 'Identity Intelligence' ? (
             <IdentityIntelligencePanel {...activeToolProps} />
+          ) : tool === 'Login History' ? (
+            <LoginHistoryPanel {...activeToolProps} />
+          ) : tool === 'Payment Verification' ? (
+            <PaymentVerificationPanel {...activeToolProps} />
+          ) : tool === 'Business Intelligence' ? (
+            <BusinessIntelligencePanel {...activeToolProps} />
           ) : tool === 'Timeline' ? (
             <TimelinePanel {...activeToolProps} />
           ) : (
