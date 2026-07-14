@@ -4,7 +4,7 @@ const caseId = 'FA-ATO-24018';
 const requiredTools = [
   'Case Summary',
   'Customer 360',
-  'Identity Intelligence',
+  'Identity Intel / People Search',
   'Login History',
   'Transaction History',
   'Evidence Center',
