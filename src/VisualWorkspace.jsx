@@ -12,6 +12,7 @@ import IdentityIntelligencePanel from './IdentityIntelligencePanel.jsx';
 import InvestigationToolPanel from './InvestigationToolPanel.jsx';
 import LoginHistoryPanel from './LoginHistoryPanel.jsx';
 import PaymentVerificationPanel from './PaymentVerificationPanel.jsx';
+import PinnedReferenceTray from './PinnedReferenceTray.jsx';
 import SubmitDecisionPanel from './SubmitDecisionPanel.jsx';
 import TimelinePanel from './TimelinePanel.jsx';
 import useVisualWorkspaceActions from './useVisualWorkspaceActions.js';
@@ -64,6 +65,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   const {
     packageStatus,
     pin,
+    removePin,
     saveNote,
     markReviewed,
     saveCaseReportPacket,
@@ -93,39 +95,16 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   const collectedIndicators = tray.length + notes.length + reportPackets.length;
   const hasReviewPackage = reviewPackages.length > 0;
   const stageStatus = {
-    briefing: {
-      label: currentCompleted.includes('Case Summary') ? 'Reviewed' : 'Open',
-      state: currentCompleted.includes('Case Summary') ? 'complete' : 'open',
-    },
-    investigate: {
-      label: `${reviewedWorkspaceTools}/${workspaceTools.length} reviewed`,
-      state: reviewedWorkspaceTools === workspaceTools.length ? 'complete' : reviewedWorkspaceTools > 0 ? 'in-progress' : 'open',
-    },
-    timeline: {
-      label: currentCompleted.includes('Timeline') ? 'Reviewed' : 'Open',
-      state: currentCompleted.includes('Timeline') ? 'complete' : 'open',
-    },
-    indicators: {
-      label: collectedIndicators ? `${collectedIndicators} collected` : 'Open',
-      state: collectedIndicators ? 'in-progress' : 'open',
-    },
-    determination: {
-      label: hasReviewPackage ? 'Package saved' : packageStatus.ready ? 'Ready to save' : `${packageStatus.blockers.length} open`,
-      state: hasReviewPackage ? 'complete' : packageStatus.ready ? 'ready' : 'locked',
-    },
-    debrief: {
-      label: hasReviewPackage ? 'Available' : 'Locked',
-      state: hasReviewPackage ? 'complete' : 'locked',
-    },
+    briefing: { label: currentCompleted.includes('Case Summary') ? 'Reviewed' : 'Open', state: currentCompleted.includes('Case Summary') ? 'complete' : 'open' },
+    investigate: { label: `${reviewedWorkspaceTools}/${workspaceTools.length} reviewed`, state: reviewedWorkspaceTools === workspaceTools.length ? 'complete' : reviewedWorkspaceTools > 0 ? 'in-progress' : 'open' },
+    timeline: { label: currentCompleted.includes('Timeline') ? 'Reviewed' : 'Open', state: currentCompleted.includes('Timeline') ? 'complete' : 'open' },
+    indicators: { label: collectedIndicators ? `${collectedIndicators} collected` : 'Open', state: collectedIndicators ? 'in-progress' : 'open' },
+    determination: { label: hasReviewPackage ? 'Package saved' : packageStatus.ready ? 'Ready to save' : `${packageStatus.blockers.length} open`, state: hasReviewPackage ? 'complete' : packageStatus.ready ? 'ready' : 'locked' },
+    debrief: { label: hasReviewPackage ? 'Available' : 'Locked', state: hasReviewPackage ? 'complete' : 'locked' },
   };
 
   function resetWorkspaceInlineScroll() {
-    [
-      document.documentElement,
-      document.body,
-      document.getElementById('root'),
-      document.querySelector('.visual-os-frame'),
-    ].forEach((element) => {
+    [document.documentElement, document.body, document.getElementById('root'), document.querySelector('.visual-os-frame')].forEach((element) => {
       if (element) element.scrollLeft = 0;
     });
   }
@@ -187,29 +166,11 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   function selectWorkflowStage(nextStage) {
     onNavigate('workspace');
     setActiveStage(nextStage);
-
-    if (nextStage === 'briefing') {
-      setMobileToolPage(false);
-      scrollToWorkspace('[data-workflow-stage="briefing"]');
-      return;
-    }
-    if (nextStage === 'investigate') {
-      setMobileToolPage(false);
-      scrollToWorkspace('[data-workflow-stage="investigate"]');
-      return;
-    }
-    if (nextStage === 'timeline') {
-      openTool('Timeline', 'timeline');
-      return;
-    }
-    if (nextStage === 'indicators') {
-      openTool('Evidence Center', 'indicators');
-      return;
-    }
-    if (nextStage === 'determination') {
-      jumpDecision();
-      return;
-    }
+    if (nextStage === 'briefing') { setMobileToolPage(false); scrollToWorkspace('[data-workflow-stage="briefing"]'); return; }
+    if (nextStage === 'investigate') { setMobileToolPage(false); scrollToWorkspace('[data-workflow-stage="investigate"]'); return; }
+    if (nextStage === 'timeline') { openTool('Timeline', 'timeline'); return; }
+    if (nextStage === 'indicators') { openTool('Evidence Center', 'indicators'); return; }
+    if (nextStage === 'determination') { jumpDecision(); return; }
     setMobileToolPage(false);
     scrollToWorkspace('.luna-visual-panel', 80);
   }
@@ -242,18 +203,9 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   return (
     <main className="visual-os-shell">
       <section className="visual-os-frame" data-mobile-tool-page={mobileToolPage ? 'true' : 'false'}>
-        <VisualShellHeader
-          activeCase={activeCase}
-          cases={cases}
-          changeCase={changeCase}
-          onNavigate={onNavigate}
-        />
-
-        <ActiveCaseWorkflowRail
-          activeStage={activeStage}
-          stageStatus={stageStatus}
-          onStageSelect={selectWorkflowStage}
-        />
+        <VisualShellHeader activeCase={activeCase} cases={cases} changeCase={changeCase} onNavigate={onNavigate} />
+        <ActiveCaseWorkflowRail activeStage={activeStage} stageStatus={stageStatus} onStageSelect={selectWorkflowStage} />
+        <PinnedReferenceTray tray={tray} openTool={openTool} removePin={removePin} />
 
         <div className="mobile-tool-page-bar" aria-label="Mobile tool navigation">
           <button type="button" onClick={returnToToolMenu}>‹ All tools</button>
@@ -261,74 +213,30 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
         </div>
 
         <div data-workflow-stage="briefing">
-          <CaseSummaryCard
-            activeCase={activeCase}
-            pin={pin}
-            openTool={openTool}
-            jumpDecision={jumpDecision}
-            openNotes={openNotes}
-            openMoreTools={openMoreTools}
-          />
+          <CaseSummaryCard activeCase={activeCase} pin={pin} openTool={openTool} jumpDecision={jumpDecision} openNotes={openNotes} openMoreTools={openMoreTools} />
         </div>
 
         <section className="workflow-investigate-stage" data-workflow-stage="investigate" aria-label="Investigate stage categories">
-          <CategoryTileRail
-            categories={investigationToolGroups}
-            categoryKey={categoryKey}
-            currentCompleted={currentCompleted}
-            onNavigate={onNavigate}
-            onInvestigate={() => setActiveStage('investigate')}
-            setCategoryKey={setCategoryKey}
-            setTool={setTool}
-            setExpandedId={setExpandedId}
-            onToolOpen={openTool}
-          />
+          <CategoryTileRail categories={investigationToolGroups} categoryKey={categoryKey} currentCompleted={currentCompleted} onNavigate={onNavigate} onInvestigate={() => setActiveStage('investigate')} setCategoryKey={setCategoryKey} setTool={setTool} setExpandedId={setExpandedId} onToolOpen={openTool} />
         </section>
 
         <div className="workflow-active-tool-stage" data-active-workflow-stage={activeStage}>
           <DedicatedToolSwitcher activeCategory={activeCategory} tool={tool} openTool={openTool} />
-          {tool === 'Customer 360' ? (
-            <Customer360Panel {...activeToolProps} />
-          ) : tool === 'Identity Intelligence' ? (
-            <IdentityIntelligencePanel {...activeToolProps} />
-          ) : tool === 'Login History' ? (
-            <LoginHistoryPanel {...activeToolProps} />
-          ) : tool === 'Payment Verification' ? (
-            <PaymentVerificationPanel {...activeToolProps} />
-          ) : tool === 'Business Intelligence' ? (
-            <BusinessIntelligencePanel {...activeToolProps} />
-          ) : tool === 'Timeline' ? (
-            <TimelinePanel {...activeToolProps} />
-          ) : (
-            <InvestigationToolPanel {...activeToolProps} />
-          )}
+          {tool === 'Customer 360' ? <Customer360Panel {...activeToolProps} />
+            : tool === 'Identity Intelligence' ? <IdentityIntelligencePanel {...activeToolProps} />
+              : tool === 'Login History' ? <LoginHistoryPanel {...activeToolProps} />
+                : tool === 'Payment Verification' ? <PaymentVerificationPanel {...activeToolProps} />
+                  : tool === 'Business Intelligence' ? <BusinessIntelligencePanel {...activeToolProps} />
+                    : tool === 'Timeline' ? <TimelinePanel {...activeToolProps} />
+                      : <InvestigationToolPanel {...activeToolProps} />}
         </div>
 
         <div data-workflow-stage="indicators">
-          <BottomInvestigationGrid
-            tray={tray}
-            pin={pin}
-            openTool={openTool}
-            noteDraft={noteDraft}
-            setNoteDraft={setNoteDraft}
-            submitNote={submitNote}
-            reportPackets={reportPackets}
-            notes={notes}
-          />
+          <BottomInvestigationGrid tray={tray} removePin={removePin} openTool={openTool} noteDraft={noteDraft} setNoteDraft={setNoteDraft} submitNote={submitNote} reportPackets={reportPackets} notes={notes} />
         </div>
 
         <div data-workflow-stage="determination">
-          <SubmitDecisionPanel
-            submitRef={submitRef}
-            packageStatus={packageStatus}
-            tray={tray}
-            notes={notes}
-            reviewPackages={reviewPackages}
-            decisionDraft={decisionDraft}
-            activeCase={activeCase}
-            updateDecision={updateDecision}
-            submitDecision={submitDecision}
-          />
+          <SubmitDecisionPanel submitRef={submitRef} packageStatus={packageStatus} tray={tray} notes={notes} reviewPackages={reviewPackages} decisionDraft={decisionDraft} activeCase={activeCase} updateDecision={updateDecision} submitDecision={submitDecision} />
         </div>
         <nav className="visual-bottom-nav" aria-hidden="true" />
       </section>
