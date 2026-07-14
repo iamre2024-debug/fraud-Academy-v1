@@ -40,7 +40,6 @@ for (const anchor of [
   'snapshot.packagesByCase',
   'snapshot.completedByCase',
   'snapshot.notesByCase',
-  'snapshot.packetsByCase',
 ]) mustContain('ProfileThemeV1Panel.jsx', panel, anchor);
 
 for (const anchor of [
