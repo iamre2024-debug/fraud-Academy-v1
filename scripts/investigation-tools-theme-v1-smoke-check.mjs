@@ -77,6 +77,13 @@ for (const anchor of [
   'Payee / token activity',
   'Transfer / purchase path',
   'Session Path',
+  'IPIntelligenceWorkspace',
+  'Where did the connection originate, and has it been seen elsewhere?',
+  'Run an IP lookup to reveal',
+  'VPN / proxy / TOR',
+  'Residential status',
+  'Seen elsewhere',
+  'Location Sequence',
 ]) {
   mustContain('InvestigationToolPanel.jsx', panel, anchor);
 }
@@ -165,6 +172,15 @@ for (const anchor of [
   '.session-path-panel',
   '.session-related-panel',
   '.session-notes-panel',
+  '.ip-intel-findbar',
+  '.ip-intel-summary',
+  '.ip-intel-workspace',
+  '.ip-record-list',
+  '.ip-detail-panel',
+  '.ip-observation-panel',
+  '.ip-location-panel',
+  '.ip-related-panel',
+  '.ip-notes-panel',
 ]) {
   mustContain('displayInvestigationToolsThemeV1.css', styles, anchor);
 }
