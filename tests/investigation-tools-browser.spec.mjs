@@ -128,6 +128,30 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await toolPanel.getByRole('button', { name: 'Mark Login History reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ Login History reviewed', exact: true })).toBeVisible();
 
+  await toolSelect.selectOption('Session History');
+  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Session History');
+  await expect(toolPanel.getByRole('heading', { name: 'After login, what did the user do?', exact: true })).toBeVisible();
+  await expect(toolPanel.locator('.session-history-summary article')).toHaveCount(6);
+
+  const sessionRecords = toolPanel.locator('[data-session-history-record]');
+  await expect(sessionRecords.first()).toBeVisible();
+  const firstSessionId = await sessionRecords.first().getAttribute('data-session-history-record');
+  const sessionSearch = toolPanel.getByRole('textbox', { name: 'Search Session History records' });
+  await sessionSearch.fill(firstSessionId);
+  await expect(sessionRecords).toHaveCount(1);
+  await sessionSearch.clear();
+
+  await sessionRecords.first().click();
+  await expect(toolPanel.locator('.session-detail-panel')).toContainText(firstSessionId);
+  await toolPanel.getByRole('button', { name: 'Pin session', exact: true }).click();
+  await expect(page.locator('.tray-card')).toContainText('Pinned');
+  await toolPanel.getByRole('button', { name: 'Save session note', exact: true }).click();
+  await expect(page.locator('.notebook-card')).toContainText('Session History');
+  await toolPanel.getByRole('button', { name: 'Save neutral packet', exact: true }).click();
+  await expect(page.locator('.case-report-packet-panel')).toContainText('3 saved');
+  await toolPanel.getByRole('button', { name: 'Mark Session History reviewed', exact: true }).click();
+  await expect(toolPanel.getByRole('button', { name: '✓ Session History reviewed', exact: true })).toBeVisible();
+
   await groupRail.getByRole('button', { name: /Transactions & Financial/ }).click();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Transaction History');
   await expect(toolPanel.getByRole('heading', { name: 'Transaction History', exact: true })).toBeVisible();
