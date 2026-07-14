@@ -36,9 +36,15 @@ for (const anchor of [
   'Related Customer Records',
   'Claim-specific Customer 360 highlights',
   'Search this dossier',
+  'customer-360-tabs',
+  'Customer 360 dossier tabs',
+  'Devices & Access',
+  'Customer 360 Notes',
   'Identity Intel',
   'Login History',
   'Device Intelligence',
+  'Evidence Center',
+  'Document Viewer',
   'Open Submit Decision',
   "markReviewed('Customer 360')",
   'It does not determine the case outcome.',
@@ -59,6 +65,8 @@ for (const anchor of [
   'body[data-visual-tab="workspace"]',
   '.customer-360-theme-v1',
   '.customer-360-dossier-grid',
+  '.customer-360-tabs',
+  '.customer-360-note-list',
   '.customer-360-profile-log',
   '.customer-360-event-card',
   '.customer-360-review-bar',
@@ -73,6 +81,7 @@ for (const anchor of [
 mustContain('main.jsx', entrypoint, "import './displayCustomer360ThemeV1.css';");
 mustContain('customer-360-browser.spec.mjs', browser, 'approved Customer 360 is a complete Evidence First dossier');
 mustContain('customer-360-browser.spec.mjs', browser, 'mobile-chromium');
+mustContain('customer-360-browser.spec.mjs', browser, 'Customer 360 dossier tabs');
 mustContain('Customer 360 handoff', handoff, 'agent/customer-360-approved-theme-v1');
 mustContain('Customer 360 handoff', handoff, 'Investigation tools only');
 mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_CUSTOMER_360_THEME_V1.md`');
