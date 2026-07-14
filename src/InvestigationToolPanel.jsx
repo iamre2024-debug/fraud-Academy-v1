@@ -3,6 +3,7 @@ import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import { buildCoreToolRecords } from './data/coreToolRecords.js';
 import { getDeviceProfiles } from './data/deviceRecords.js';
 import { financialRecordsByCase } from './data/financialRecords.js';
+import { getLoginRecords } from './data/loginRecords.js';
 import { workflows } from './visualWorkspaceModel.js';
 
 const toolDetails = {
@@ -11,8 +12,8 @@ const toolDetails = {
     question: 'Which identity records belong to this customer, and how have those records changed over time?',
   },
   'Login History': {
-    purpose: 'Review recorded login attempts, results, devices, locations, and authentication methods tied to the case.',
-    question: 'What access attempts and results are recorded for the active case?',
+    purpose: 'Review recorded login attempts, results, devices, locations, authentication, session behavior, and linked activity without drawing an early conclusion.',
+    question: 'Who logged in, when, and from where?',
   },
   'Session History': {
     purpose: 'Review recorded sessions and the events that occurred inside those sessions.',
@@ -153,6 +154,184 @@ function deviceRecordSearchText(record) {
     ...(record.history ?? []),
     ...(record.relatedRecords ?? []),
   ].filter(Boolean).join(' ').toLowerCase();
+}
+
+function loginRecordSearchText(record) {
+  return [
+    record.id, record.time, record.result, record.method, record.mfaStatus, record.authChannel,
+    record.device, record.deviceId, record.browserSource, record.location, record.ip, record.session,
+    record.sessionDuration, record.sessionBehavior, record.passwordResetLink, record.profileChangeLink,
+    record.moneyMovementLink, record.riskContext, record.investigatorUse, ...(record.relatedRecords ?? []),
+  ].filter(Boolean).join(' ').toLowerCase();
+}
+
+function LoginHistoryWorkspace({
+  activeCase,
+  query,
+  setQuery,
+  pin,
+  saveNote,
+  saveCaseReportPacket,
+  markReviewed,
+  reviewed,
+  openTool,
+  jumpDecision,
+}) {
+  const [selectedLoginId, setSelectedLoginId] = useState('');
+  const records = getLoginRecords(activeCase);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredRecords = records.filter((record) => !normalizedQuery || loginRecordSearchText(record).includes(normalizedQuery));
+  const activeRecord = filteredRecords.find((record) => record.id === selectedLoginId) ?? filteredRecords[0] ?? records[0];
+  const successfulCount = records.filter((record) => /successful/i.test(record.result)).length;
+  const deniedCount = records.filter((record) => /(failed|denied)/i.test(record.result)).length;
+  const uniqueDevices = new Set(records.map((record) => record.deviceId ?? record.device)).size;
+  const uniqueNetworks = new Set(records.map((record) => `${record.ip} ${record.location}`)).size;
+  const mfaCount = records.filter((record) => !/(not recorded|no additional)/i.test(record.mfaStatus)).length;
+
+  useEffect(() => {
+    setSelectedLoginId('');
+  }, [activeCase.id]);
+
+  function saveLoginNote(message) {
+    saveNote(`Login History: ${message}`, 'Login history');
+  }
+
+  function saveLoginPacket() {
+    if (!activeRecord) return;
+    saveCaseReportPacket({
+      id: activeRecord.id,
+      label: 'Login history',
+      pin: activeRecord.session,
+      detail: `${activeRecord.time} · ${activeRecord.result} · ${activeRecord.deviceId ?? activeRecord.device} · ${activeRecord.ip}`,
+      values: [activeRecord.id, activeRecord.time, activeRecord.result, activeRecord.mfaStatus, activeRecord.deviceId ?? activeRecord.device, activeRecord.ip, activeRecord.session],
+    });
+  }
+
+  return (
+    <>
+      <section className="login-history-findbar" aria-label="Find login history information">
+        <div>
+          <p>Login records</p>
+          <h3>Every recorded login is available below. Search a Login ID, Session ID, device, IP, location, MFA result, or linked activity to narrow the view.</h3>
+        </div>
+        <label>
+          <span>Search Login History</span>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Try: SES-7781, Dallas, MFA, password reset, Mobile Safari..."
+            aria-label="Search Login History records"
+          />
+        </label>
+        <span aria-live="polite">{filteredRecords.length} of {records.length} records shown</span>
+      </section>
+
+      <section className="login-history-summary" aria-label="Login history summary">
+        {[
+          ['Recorded logins', records.length],
+          ['Successful', successfulCount],
+          ['Failed / denied', deniedCount],
+          ['Unique devices', uniqueDevices],
+          ['Networks / locations', uniqueNetworks],
+          ['MFA events', mfaCount],
+        ].map(([label, value]) => (
+          <article key={label}><span>{label}</span><strong>{value}</strong></article>
+        ))}
+      </section>
+
+      {activeRecord ? (
+        <>
+          <div className="login-history-workspace">
+            <section className="login-record-list" aria-label="Login history records">
+              <header>
+                <p>Recorded logins</p>
+                <h3>Choose a login to expand</h3>
+              </header>
+              {filteredRecords.map((record) => (
+                <button
+                  key={record.id}
+                  type="button"
+                  className={record.id === activeRecord.id ? 'active' : ''}
+                  onClick={() => setSelectedLoginId(record.id)}
+                  data-login-history-record={record.id}
+                >
+                  <span>{record.time} · {record.result}</span>
+                  <strong>{record.deviceId ?? record.device}</strong>
+                  <small>{record.location} · {record.ip} · {record.session}</small>
+                </button>
+              ))}
+              {!filteredRecords.length && (
+                <div className="investigation-tool-empty" role="status">No recorded logins match this search.</div>
+              )}
+            </section>
+
+            <section className="login-detail-panel" aria-label="Expanded login history detail">
+              <header>
+                <div>
+                  <p>Expanded login</p>
+                  <h3>{activeRecord.id} · {activeRecord.result}</h3>
+                  <span>{activeRecord.time} · {activeRecord.location}</span>
+                </div>
+                <button type="button" onClick={() => pin(activeRecord.session)}>Pin session</button>
+              </header>
+
+              <dl className="login-detail-grid">
+                {[
+                  ['Login time', activeRecord.time], ['Result', activeRecord.result], ['Method', activeRecord.method], ['MFA status', activeRecord.mfaStatus],
+                  ['Authentication channel', activeRecord.authChannel], ['Device ID', activeRecord.deviceId ?? activeRecord.device], ['Device / browser', activeRecord.browserSource],
+                  ['IP address', activeRecord.ip], ['Location', activeRecord.location], ['Session ID', activeRecord.session], ['Session duration', activeRecord.sessionDuration],
+                  ['Login context', activeRecord.riskContext],
+                ].map(([label, value]) => (
+                  <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+                ))}
+              </dl>
+
+              <section className="login-session-panel" aria-label="Session and linked activity">
+                <article><span>Session behavior</span><strong>{activeRecord.sessionBehavior}</strong></article>
+                <article><span>Password reset timing</span><strong>{activeRecord.passwordResetLink}</strong></article>
+                <article><span>Profile change link</span><strong>{activeRecord.profileChangeLink}</strong></article>
+                <article><span>Money movement link</span><strong>{activeRecord.moneyMovementLink}</strong></article>
+              </section>
+            </section>
+          </div>
+
+          <section className="login-history-lower-grid" aria-label="Login history related evidence">
+            <article className="login-related-panel">
+              <header><p>Related Records</p><h3>Evidence to cross-reference</h3></header>
+              <div>{(activeRecord.relatedRecords ?? []).map((item) => <span key={item}>{item}</span>)}</div>
+            </article>
+            <article className="login-notes-panel">
+              <header><p>Investigator Notes</p><h3>Evidence-first reminder</h3></header>
+              <p>{activeRecord.investigatorUse} A successful MFA event is evidence of authentication activity, not a final conclusion about authorization.</p>
+              <div>
+                <button type="button" onClick={() => saveLoginNote(`${activeRecord.id} reviewed: ${activeRecord.sessionBehavior}`)}>Save login note</button>
+                <button type="button" onClick={saveLoginPacket}>Save neutral packet</button>
+              </div>
+            </article>
+          </section>
+        </>
+      ) : (
+        <div className="investigation-tool-empty" role="status">No login history records are available for this case.</div>
+      )}
+
+      <nav className="investigation-tool-next-routes" aria-label="Login history next routes">
+        <button type="button" onClick={() => openTool('Session History')}>Open Session History</button>
+        <button type="button" onClick={() => openTool('Device Intelligence')}>Open Device Intelligence</button>
+        <button type="button" onClick={() => openTool('IP Intelligence')}>Open IP Intelligence</button>
+        <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
+      </nav>
+
+      <footer className="investigation-tool-review-bar">
+        <div>
+          <strong>Login History review</strong>
+          <span>Mark reviewed after checking the login result, authentication, device, IP/location, session behavior, and linked case activity.</span>
+        </div>
+        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Login History')}>
+          {reviewed ? '✓ Login History reviewed' : 'Mark Login History reviewed'}
+        </button>
+      </footer>
+    </>
+  );
 }
 
 function DeviceIntelligenceWorkspace({
@@ -703,7 +882,20 @@ export default function InvestigationToolPanel({
         </div>
       </section>
 
-      {tool === 'Payment Verification' ? (
+      {tool === 'Login History' ? (
+        <LoginHistoryWorkspace
+          activeCase={activeCase}
+          query={query}
+          setQuery={setQuery}
+          pin={pin}
+          saveNote={saveNote}
+          saveCaseReportPacket={saveCaseReportPacket}
+          markReviewed={markReviewed}
+          reviewed={reviewed}
+          openTool={openTool}
+          jumpDecision={jumpDecision}
+        />
+      ) : tool === 'Payment Verification' ? (
         <PaymentVerificationWorkspace
           activeCase={activeCase}
           query={query}
