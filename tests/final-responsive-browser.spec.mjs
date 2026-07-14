@@ -5,6 +5,10 @@ const approvedSurfaceSelector = [
   '[data-cases-theme-v1="approved"]',
   '[data-case-briefing-screen="approved-theme-v1"]',
   '[data-customer-360-screen="approved-theme-v1"]',
+  '[data-identity-intelligence-screen="lookup-report-v1"]',
+  '[data-login-history-screen="event-review-v1"]',
+  '[data-payment-verification-screen="lookup-packet-v1"]',
+  '[data-business-intelligence-screen="lookup-report-v1"]',
   '[data-investigation-tools-screen="approved-theme-v1"]',
   '[data-timeline-screen="approved-theme-v1"]',
   '[data-decision-screen="approved-theme-v1"]',
@@ -33,6 +37,7 @@ async function assertViewportSafe(page, rootSelector, label) {
       .map((element) => ({
         name: element.getAttribute('data-react-navigation-panel')
           || element.getAttribute('data-case-id')
+          || element.getAttribute('data-tool-name')
           || element.getAttribute('data-active-tool')
           || element.className
           || element.tagName,
