@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import { buildCoreToolRecords } from './data/coreToolRecords.js';
 import { getDeviceProfiles } from './data/deviceRecords.js';
+import { evidenceRecordsByCase } from './data/evidenceRecords.js';
 import { financialRecordsByCase } from './data/financialRecords.js';
 import { getLoginRecords } from './data/loginRecords.js';
 import { getIpRecords } from './data/ipRecords.js';
@@ -61,9 +62,9 @@ const toolDetails = {
     purpose: 'Review evidence records, sources, receipt status, linked objects, and neutral summaries.',
     question: 'Which evidence items are available, pending, or linked to the case?',
   },
-  'Document Viewer': {
-    purpose: 'Review document titles, categories, status, fields, update dates, and available previews.',
-    question: 'Which documents are available, and what information does each document contain?',
+  'Document Request': {
+    purpose: 'Track fictional case documents that were requested, received, missing, or awaiting review without treating the request status as a case outcome.',
+    question: 'What documents were requested, received, missing, or pending review for this case?',
   },
   'Link Analysis': {
     purpose: 'Review connections between customer, access, identity, device, network, and case objects.',
@@ -814,6 +815,185 @@ function DeviceIntelligenceWorkspace({
   );
 }
 
+const documentRequestStatuses = ['All', 'Requested', 'Received', 'Pending Review', 'Approved', 'Rejected', 'Expired', 'Missing', 'Exception Approved'];
+
+function documentRequestStatus(status = '') {
+  if (status === 'Available') return 'Pending Review';
+  return documentRequestStatuses.includes(status) ? status : 'Pending Review';
+}
+
+function buildDocumentRequests(activeCase) {
+  const evidence = evidenceRecordsByCase[activeCase.id] ?? { documents: [] };
+  return (evidence.documents ?? []).map((document) => {
+    const status = documentRequestStatus(document.status);
+    const isOptional = /optional/i.test(document.category);
+    const received = ['Received', 'Approved', 'Pending Review'].includes(status) ? document.updated : 'Not received';
+    return {
+      id: document.id,
+      documentType: document.title,
+      category: document.category,
+      status,
+      reason: status === 'Requested'
+        ? 'Requested to complete the fictional case packet.'
+        : status === 'Missing'
+          ? 'Optional supporting document is not included in the current packet.'
+          : 'Available for case-document review and comparison.',
+      requirement: isOptional ? 'Optional' : 'Required',
+      dueDate: status === 'Requested' ? 'Follow up date not supplied' : 'Not applicable',
+      authenticity: status === 'Approved' ? 'Approved in training packet' : 'Not reviewed',
+      reviewerNotes: document.preview,
+      linkedCase: activeCase.id,
+      linkedTool: 'Evidence Center',
+      receivedDate: received,
+      fields: document.fields,
+    };
+  });
+}
+
+function documentRequestSearchText(request) {
+  return Object.values(request).filter(Boolean).join(' ').toLowerCase();
+}
+
+function DocumentRequestWorkspace({
+  activeCase,
+  query,
+  setQuery,
+  pin,
+  saveNote,
+  markReviewed,
+  reviewed,
+  openTool,
+  jumpDecision,
+}) {
+  const [selectedRequestId, setSelectedRequestId] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const requests = buildDocumentRequests(activeCase);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredRequests = requests.filter((request) => (
+    (statusFilter === 'All' || request.status === statusFilter)
+    && (!normalizedQuery || documentRequestSearchText(request).includes(normalizedQuery))
+  ));
+  const activeRequest = filteredRequests.find((request) => request.id === selectedRequestId) ?? filteredRequests[0] ?? requests[0];
+  const counts = documentRequestStatuses.slice(1).map((status) => [status, requests.filter((request) => request.status === status).length]);
+
+  useEffect(() => {
+    setSelectedRequestId('');
+    setStatusFilter('All');
+  }, [activeCase.id]);
+
+  function saveRequestNote(message) {
+    saveNote(`Document Request: ${message}`, 'Document request');
+  }
+
+  return (
+    <>
+      <section className="document-request-findbar" aria-label="Find document request information">
+        <div>
+          <p>Document request workflow</p>
+          <h3>Review requested, received, missing, and pending documents for the active fictional case.</h3>
+        </div>
+        <label>
+          <span>Search Document Request</span>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Try: affidavit, cancellation, required, missing, Evidence Center..."
+            aria-label="Search Document Request records"
+          />
+        </label>
+        <span aria-live="polite">{filteredRequests.length} of {requests.length} requests shown</span>
+      </section>
+
+      <section className="document-request-statuses" aria-label="Document request statuses">
+        {documentRequestStatuses.map((status) => {
+          const count = status === 'All' ? requests.length : requests.filter((request) => request.status === status).length;
+          return <button key={status} type="button" className={statusFilter === status ? 'active' : ''} onClick={() => setStatusFilter(status)}>{status}<strong>{count}</strong></button>;
+        })}
+      </section>
+
+      {activeRequest ? (
+        <div className="document-request-workspace">
+          <section className="document-request-list" aria-label="Document request records">
+            <header>
+              <p>Request queue</p>
+              <h3>Choose a document request</h3>
+            </header>
+            {filteredRequests.map((request) => (
+              <button
+                key={request.id}
+                type="button"
+                className={request.id === activeRequest.id ? 'active' : ''}
+                onClick={() => setSelectedRequestId(request.id)}
+                data-document-request={request.id}
+              >
+                <span>{request.status}</span>
+                <strong>{request.documentType}</strong>
+                <small>{request.requirement} · {request.receivedDate}</small>
+              </button>
+            ))}
+            {!filteredRequests.length && <div className="investigation-tool-empty" role="status">No document requests match this filter or search.</div>}
+          </section>
+
+          <section className="document-request-detail" aria-label="Expanded document request detail">
+            <header>
+              <div>
+                <p>Request detail</p>
+                <h3>{activeRequest.id} · {activeRequest.documentType}</h3>
+                <span>{activeRequest.status}</span>
+              </div>
+              <button type="button" onClick={() => pin(`${activeRequest.id} · ${activeRequest.documentType}`)}>Pin request</button>
+            </header>
+            <dl>
+              {[
+                ['Document type', activeRequest.documentType],
+                ['Reason requested', activeRequest.reason],
+                ['Required / optional', activeRequest.requirement],
+                ['Due date', activeRequest.dueDate],
+                ['Status', activeRequest.status],
+                ['Authenticity flag', activeRequest.authenticity],
+                ['Linked case', activeRequest.linkedCase],
+                ['Linked tool', activeRequest.linkedTool],
+                ['Received date', activeRequest.receivedDate],
+              ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+            </dl>
+            <article className="document-request-notes">
+              <span>Reviewer notes</span>
+              <p>{activeRequest.reviewerNotes}</p>
+              <small>{activeRequest.fields}</small>
+            </article>
+            <div className="document-request-actions">
+              <button type="button" onClick={() => saveRequestNote(`${activeRequest.id} follow-up recorded for ${activeRequest.status}.`)}>Save follow-up note</button>
+              <button type="button" onClick={() => openTool('Evidence Center')}>Open Evidence Center</button>
+            </div>
+          </section>
+        </div>
+      ) : (
+        <div className="investigation-tool-empty" role="status">No document requests are available for this case.</div>
+      )}
+
+      <section className="document-request-summary" aria-label="Document request workflow summary">
+        {counts.filter(([, count]) => count > 0).map(([status, count]) => <article key={status}><span>{status}</span><strong>{count}</strong></article>)}
+      </section>
+
+      <nav className="investigation-tool-next-routes" aria-label="Document request next routes">
+        <button type="button" onClick={() => openTool('Evidence Center')}>Open Evidence Center</button>
+        <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
+        <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
+      </nav>
+
+      <footer className="investigation-tool-review-bar">
+        <div>
+          <strong>Document Request review</strong>
+          <span>Review completion records workflow progress only. It does not determine the case outcome.</span>
+        </div>
+        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Document Request')}>
+          {reviewed ? '✓ Document Request reviewed' : 'Mark Document Request reviewed'}
+        </button>
+      </footer>
+    </>
+  );
+}
+
 function PaymentVerificationWorkspace({
   activeCase,
   query,
@@ -1156,6 +1336,18 @@ export default function InvestigationToolPanel({
         />
       ) : tool === 'Payment Verification' ? (
         <PaymentVerificationWorkspace
+          activeCase={activeCase}
+          query={query}
+          setQuery={setQuery}
+          pin={pin}
+          saveNote={saveNote}
+          markReviewed={markReviewed}
+          reviewed={reviewed}
+          openTool={openTool}
+          jumpDecision={jumpDecision}
+        />
+      ) : tool === 'Document Request' ? (
+        <DocumentRequestWorkspace
           activeCase={activeCase}
           query={query}
           setQuery={setQuery}
