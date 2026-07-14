@@ -9,7 +9,6 @@ const requiredTools = [
   'Transaction History',
   'Evidence Center',
   'Link Analysis',
-  'Case Report',
 ];
 const learnerChoice = 'Request more information from customer';
 const rationale = 'The reviewed records support another information request because the current package documents the timeline, linked activity, and remaining evidence gap.';
@@ -23,7 +22,6 @@ async function seedReadyCase(page) {
     localStorage.setItem('fraud-academy-notes-v1', JSON.stringify({
       [activeCaseId]: ['Jul 11 · Investigation note · Reviewed the access sequence and documented the remaining customer-information gap.'],
     }));
-    localStorage.setItem('fraud-academy-case-report-packets-v1', JSON.stringify({ [activeCaseId]: [] }));
     localStorage.removeItem('fraud-academy-review-packages-v1');
     localStorage.removeItem('fraud-academy-decision-drafts-v1');
     sessionStorage.setItem('fraud-academy-decision-luna-test-seeded', 'yes');
@@ -45,7 +43,7 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
   await expect(decision).toHaveAttribute('data-case-id', caseId);
   await expect(decision.getByRole('heading', { name: 'Submit Decision', exact: true })).toBeVisible();
   await expect(decision.getByText('Evidence First protection', { exact: true })).toBeVisible();
-  await expect(decision.locator('.decision-status-grid article')).toHaveCount(4);
+  await expect(decision.locator('.decision-status-grid article')).toHaveCount(3);
   await expect(decision.getByText('8/8', { exact: true })).toBeVisible();
 
   const lockedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="locked"]');
@@ -81,7 +79,7 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
     expect(layout.lockedColumns).toBe(1);
   } else {
     expect(layout.workspaceColumns).toBe(2);
-    expect(layout.metricColumns).toBe(4);
+    expect(layout.metricColumns).toBe(3);
     expect(layout.lockedColumns).toBe(4);
   }
 
