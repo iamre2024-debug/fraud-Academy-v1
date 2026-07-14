@@ -341,7 +341,7 @@ export default function Customer360Panel({
       </section>
 
       <nav className="customer-360-actions" aria-label="Customer 360 related tools">
-        <button type="button" onClick={() => openTool('Identity Intelligence')}>Identity Intel</button>
+        <button type="button" onClick={() => openTool('Identity Intel / People Search')}>Identity Intel</button>
         <button type="button" onClick={() => openTool('Login History')}>Login History</button>
         <button type="button" onClick={() => openTool('Device Intelligence')}>Device Intelligence</button>
         <button type="button" onClick={() => openTool('Evidence Center')}>Evidence Center</button>
