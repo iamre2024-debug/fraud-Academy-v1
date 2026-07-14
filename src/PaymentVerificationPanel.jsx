@@ -61,8 +61,8 @@ export default function PaymentVerificationPanel({
   const profile = useMemo(() => buildPaymentVerificationProfile(activeCase), [activeCase]);
   const sections = useMemo(() => packetSections(profile), [profile]);
   const rows = useMemo(() => resultRows(profile), [profile]);
-  const [primary, setPrimary] = useState('');
-  const [secondary, setSecondary] = useState('');
+  const [destinationId, setDestinationId] = useState('');
+  const [bankCode, setBankCode] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [searched, setSearched] = useState(false);
   const [matched, setMatched] = useState(false);
@@ -70,8 +70,8 @@ export default function PaymentVerificationPanel({
   const reviewed = currentCompleted.includes('Payment Verification');
 
   useEffect(() => {
-    setPrimary('');
-    setSecondary('');
+    setDestinationId('');
+    setBankCode('');
     setOwnerName('');
     setSearched(false);
     setMatched(false);
@@ -80,8 +80,8 @@ export default function PaymentVerificationPanel({
 
   function runLookup(event) {
     event.preventDefault();
-    const found = normalize(primary) === normalize(profile.primaryObject)
-      && normalize(secondary) === normalize(profile.secondaryObject)
+    const found = normalize(destinationId) === normalize(profile.destinationId)
+      && normalize(bankCode) === normalize(profile.bankCode)
       && normalize(ownerName) === normalize(profile.ownershipName);
     setSearched(true);
     setMatched(found);
@@ -89,8 +89,8 @@ export default function PaymentVerificationPanel({
   }
 
   function clearLookup() {
-    setPrimary('');
-    setSecondary('');
+    setDestinationId('');
+    setBankCode('');
     setOwnerName('');
     setSearched(false);
     setMatched(false);
@@ -101,17 +101,17 @@ export default function PaymentVerificationPanel({
     saveCaseReportPacket({
       id: `${activeCase.id}-PAYMENT-VERIFICATION`,
       label: 'Payment Verification packet',
-      pin: profile.secondaryObject,
+      pin: profile.destinationId,
       values: [
         `${activeCase.id}-PAYMENT-VERIFICATION`,
         'Payment Verification packet',
-        `${profile.primaryObject} · ${profile.secondaryObject}`,
+        `${profile.destinationId} · ${profile.bankCode}`,
         profile.verificationStatus,
         profile.ownershipComparison,
         activeCase.id,
         'Save',
       ],
-      detail: `Payment Verification packet for ${profile.primaryObject} and ${profile.secondaryObject}. ${sections.length} neutral verification sections reviewed.`,
+      detail: `Payment Verification packet for ${profile.destinationId} and ${profile.bankCode}. ${sections.length} neutral verification sections reviewed.`,
     });
   }
 
@@ -136,20 +136,33 @@ export default function PaymentVerificationPanel({
         <span className="payment-intro-moon" aria-hidden="true">☾</span>
       </section>
 
+      <section className="payment-lookup-source" aria-label="Find Payment Verification lookup values">
+        <div>
+          <p>Need the lookup values?</p>
+          <h3>Find the Destination ID and Bank Code first</h3>
+          <span>The Destination ID appears in Financial Intelligence and payment setup records. The Bank Code appears in the linked payment or account record. Pin them, then return here.</span>
+        </div>
+        <div>
+          <button type="button" onClick={() => openTool('Financial Intelligence')}>Open Financial Intelligence</button>
+          <button type="button" onClick={() => openTool('Transaction History')}>Open Transactions</button>
+          <button type="button" onClick={() => openTool('Customer 360')}>Open Customer 360</button>
+        </div>
+      </section>
+
       <form className="payment-lookup-card" onSubmit={runLookup}>
-        <header><span aria-hidden="true">⌕</span><h3>Verification Object Lookup</h3></header>
+        <header><span aria-hidden="true">⌕</span><h3>Search Payment Information</h3></header>
         <div className="payment-lookup-fields">
           <label>
-            <span>{profile.objectLabels[0]}</span>
-            <input value={primary} onChange={(event) => setPrimary(event.target.value)} placeholder={`Enter ${profile.objectLabels[0]}`} autoComplete="off" />
+            <span>Destination ID <small>(training bank account number)</small></span>
+            <input value={destinationId} onChange={(event) => setDestinationId(event.target.value)} placeholder="Enter Destination ID" autoComplete="off" aria-label="Destination ID" />
           </label>
           <label>
-            <span>{profile.objectLabels[1]}</span>
-            <input value={secondary} onChange={(event) => setSecondary(event.target.value)} placeholder={`Enter ${profile.objectLabels[1]}`} autoComplete="off" />
+            <span>Bank Code <small>(training routing number)</small></span>
+            <input value={bankCode} onChange={(event) => setBankCode(event.target.value)} placeholder="Enter Bank Code" autoComplete="off" aria-label="Bank Code" />
           </label>
           <label>
             <span>Account owner name</span>
-            <input value={ownerName} onChange={(event) => setOwnerName(event.target.value)} placeholder="Enter customer or business owner name" autoComplete="off" />
+            <input value={ownerName} onChange={(event) => setOwnerName(event.target.value)} placeholder="Enter customer or business owner name" autoComplete="off" aria-label="Account owner name" />
           </label>
         </div>
         <div className="payment-lookup-actions">
@@ -198,7 +211,7 @@ export default function PaymentVerificationPanel({
           <footer>
             <span>Last updated: {activeCase.opened}</span>
             <div>
-              <button type="button" onClick={() => pin(`${profile.primaryObject} · ${profile.secondaryObject} · ${profile.ownershipName}`, { id: `${activeCase.id}-payment`, sourceTool: 'Payment Verification' })}>📌 Pin result</button>
+              <button type="button" onClick={() => pin(`${profile.destinationId} · ${profile.bankCode} · ${profile.ownershipName}`, { id: `${activeCase.id}-payment`, sourceTool: 'Payment Verification' })}>📌 Pin result</button>
               <button type="button" onClick={() => setShowPacket((current) => !current)}>{showPacket ? 'Hide details' : 'Open full details'}</button>
             </div>
           </footer>
@@ -207,7 +220,7 @@ export default function PaymentVerificationPanel({
 
       {matched && showPacket && (
         <section className="payment-full-packet" data-payment-full-packet>
-          <header><div><p>Payment Verification</p><h3>Full Verification Packet</h3><span>{profile.primaryObject} · {profile.secondaryObject} · fictional training sources</span></div></header>
+          <header><div><p>Payment Verification</p><h3>Full Verification Packet</h3><span>{profile.destinationId} · {profile.bankCode} · fictional training sources</span></div></header>
           <ReportSectionNavigator sections={sections} className="payment-packet-sections" sectionAttribute="data-payment-packet-section" renderItems={(items) => <VerificationList items={items} />} />
           <nav className="payment-related-tools" aria-label="Payment verification related tools">
             <button type="button" onClick={() => openTool('Transaction History')}>Transactions</button>
@@ -217,7 +230,7 @@ export default function PaymentVerificationPanel({
             <button type="button" onClick={() => openTool('Document Viewer')}>Documents</button>
           </nav>
           <div className="payment-packet-actions">
-            <button type="button" onClick={() => saveNote(`Payment Verification packet reviewed for ${profile.primaryObject} · ${profile.secondaryObject}.`, 'Payment verification')}>Save note</button>
+            <button type="button" onClick={() => saveNote(`Payment Verification packet reviewed for ${profile.destinationId} · ${profile.bankCode}.`, 'Payment verification')}>Save note</button>
             <button type="button" onClick={savePacket}>Save to evidence</button>
             <button type="button" onClick={() => markReviewed('Payment Verification')}>{reviewed ? '✓ Reviewed' : 'Mark reviewed'}</button>
           </div>
