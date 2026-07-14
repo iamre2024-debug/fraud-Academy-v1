@@ -1,7 +1,17 @@
+import { useEffect, useState } from 'react';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import { workflows } from './visualWorkspaceModel.js';
 
 const unavailable = 'Not available in the current training packet';
+
+const dossierTabs = [
+  { id: 'overview', label: 'Overview', sections: ['identity', 'case'] },
+  { id: 'accounts', label: 'Accounts', sections: ['products', 'relationship'] },
+  { id: 'devices', label: 'Devices & Access', sections: ['security'] },
+  { id: 'contact', label: 'Contact History', sections: ['contact', 'contact-log'] },
+  { id: 'history', label: 'Profile History', sections: ['prior-claims'] },
+  { id: 'notes', label: 'Notes', sections: [] },
+];
 
 function relationshipValue(activeCase, label, fallback = unavailable) {
   const match = activeCase.customer?.relationship?.find((item) => item.label === label);
@@ -123,6 +133,7 @@ function buildDossierSections(activeCase) {
         ['Physical address', contact.address ?? unavailable],
         ['Preferred contact', contact.preferredChannel ?? activeCase.intake?.channel ?? unavailable],
         ['Language', 'English'],
+        ['Last verified date', activeCase.customer?.profileChanges?.[0]?.date ?? unavailable],
         ['Contact verification', 'Review the profile-change log and callback records'],
         ['Recent contact changes', `${(activeCase.customer?.profileChanges ?? []).length} profile events available`],
         ['MFA / alert contact use', authenticationMethods.join(' · ') || unavailable],
@@ -139,9 +150,11 @@ function buildDossierSections(activeCase) {
         ['Debit / credit products', activeCase.customer?.segment ?? unavailable],
         ['Loan / payroll products', activeCase.type?.includes('Credit') ? 'Credit relationship under review' : unavailable],
         ['Digital banking profile', relationshipValue(activeCase, 'Payment profile')],
+        ['Account open date', customerSince],
+        ['Product age', relationshipLength(customerSince)],
         ['Current exposure', activeCase.amount ?? unavailable],
         ['Credit limit', activeCase.type?.includes('Credit') ? activeCase.amount ?? unavailable : unavailable],
-        ['NSF / overdraft / payment standing', 'Open the Financial Investigation records for account-level detail'],
+        ['NSF / overdraft / payment standing', 'Review in the dedicated Financial Investigation workspace'],
       ],
     },
     {
@@ -151,7 +164,7 @@ function buildDossierSections(activeCase) {
       subtitle: 'Normal customer patterns available for comparison',
       fields: [
         ['Number of listed products', relationshipValue(activeCase, 'Open products').split('·').length],
-        ['Normal deposit behavior', 'Open Financial Investigation for case-level records'],
+        ['Normal deposit behavior', 'Review in the dedicated Financial Investigation workspace'],
         ['Normal spending behavior', activeCase.transactionInfo ?? unavailable],
         ['Normal login location', relationshipValue(activeCase, 'Normal login area')],
         ['Trusted / observed devices', knownDevices.join(' · ') || unavailable],
@@ -171,9 +184,11 @@ function buildDossierSections(activeCase) {
         ['Successful login records', `${loginHistory.filter((item) => item.result === 'Successful').length} in the packet`],
         ['Failed login records', `${loginHistory.filter((item) => item.result !== 'Successful').length} in the packet`],
         ['Observed devices', knownDevices.join(' · ') || unavailable],
+        ['New devices', knownDevices.length > 1 ? `${knownDevices.length - 1} additional observed device${knownDevices.length === 2 ? '' : 's'}` : 'No additional device listed'],
         ['Observed locations', knownLocations.join(' · ') || unavailable],
-        ['Alerts / lockouts', 'Open the related access tools for event detail'],
-        ['Wallet / recovery contacts', 'Open the related case tools when available'],
+        ['Alerts / lockouts', loginHistory.some((item) => item.result !== 'Successful') ? 'Review unsuccessful login records' : 'No unsuccessful login record listed'],
+        ['Wallet enrollment', relationshipValue(activeCase, 'Wallet enrollment')],
+        ['Recovery phone / email', contact.phone || contact.email ? 'Review listed contact methods and profile history' : unavailable],
       ],
     },
     {
@@ -251,6 +266,18 @@ function DossierCard({ section, normalizedQuery }) {
   );
 }
 
+function profileEventMetadata(event, activeCase) {
+  const linkedLogin = (activeCase.loginHistory ?? []).find((item) => String(item.time ?? item.date ?? '').includes(String(event.date ?? '')));
+  return [
+    ['Old value', event.oldValue ?? 'Not supplied in the current packet'],
+    ['New value', event.newValue ?? event.detail ?? 'Not supplied in the current packet'],
+    ['Channel', event.channel ?? 'Profile service'],
+    ['Source', event.source ?? 'Not supplied'],
+    ['User / device / session', linkedLogin ? `${linkedLogin.device ?? 'Device not listed'} · ${linkedLogin.session ?? 'Session not listed'}` : 'Open related access records'],
+    ['IP / MFA method', linkedLogin ? `${linkedLogin.ip ?? 'IP not listed'} · ${linkedLogin.method ?? 'Method not listed'}` : 'Open related login records'],
+  ];
+}
+
 export default function Customer360Panel({
   activeCategory,
   activeCase,
@@ -266,13 +293,23 @@ export default function Customer360Panel({
   markReviewed,
   currentCompleted,
   jumpDecision,
+  notes = [],
 }) {
+  const [activeTab, setActiveTab] = useState('overview');
   const normalizedQuery = query.trim().toLowerCase();
   const sections = buildDossierSections(activeCase);
   const claimContext = claimSpecificContext(activeCase);
   const profileChanges = (activeCase.customer?.profileChanges ?? []).filter((item) => matchesQuery(`${item.id} ${item.date} ${item.item} ${item.detail} ${item.source}`, normalizedQuery));
   const visibleSections = sections.filter((section) => !normalizedQuery || matchesQuery(`${section.title} ${section.subtitle} ${section.fields.flat().join(' ')}`, normalizedQuery));
   const visibleRows = rows.filter((row) => matchesQuery(`${row.id} ${row.label} ${row.detail}`, normalizedQuery));
+  const selectedTab = dossierTabs.find((item) => item.id === activeTab) ?? dossierTabs[0];
+  const tabSections = sections.filter((section) => (
+    normalizedQuery || selectedTab.sections.includes(section.id)
+  ) && (!normalizedQuery || matchesQuery(`${section.title} ${section.subtitle} ${section.fields.flat().join(' ')}`, normalizedQuery)));
+
+  useEffect(() => {
+    setActiveTab('overview');
+  }, [activeCase.id]);
 
   return (
     <section className="ornate-card activity-panel customer-360-theme-v1" data-customer-360-screen="approved-theme-v1">
@@ -307,7 +344,24 @@ export default function Customer360Panel({
         <button type="button" onClick={() => openTool('Identity Intelligence')}>Identity Intel</button>
         <button type="button" onClick={() => openTool('Login History')}>Login History</button>
         <button type="button" onClick={() => openTool('Device Intelligence')}>Device Intelligence</button>
+        <button type="button" onClick={() => openTool('Evidence Center')}>Evidence Center</button>
+        <button type="button" onClick={() => openTool('Document Viewer')}>Document Viewer</button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
+      </nav>
+
+      <nav className="customer-360-tabs" aria-label="Customer 360 dossier tabs" role="tablist">
+        {dossierTabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            className={activeTab === tab.id ? 'active' : ''}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </nav>
 
       <div className="customer-360-tool-row">
@@ -332,10 +386,10 @@ export default function Customer360Panel({
             aria-label="Search Customer 360 dossier"
           />
         </label>
-        <span aria-live="polite">{visibleSections.length} dossier sections · {profileChanges.length} profile events</span>
+        <span aria-live="polite">{visibleSections.length} matching dossier sections · {profileChanges.length} profile events</span>
       </div>
 
-      <section className="customer-360-claim-context" aria-label="Claim-specific Customer 360 highlights">
+      {(activeTab === 'overview' || normalizedQuery) && <section className="customer-360-claim-context" aria-label="Claim-specific Customer 360 highlights">
         <header className="customer-360-card-heading">
           <span aria-hidden="true">FOCUS</span>
           <div>
@@ -348,16 +402,16 @@ export default function Customer360Panel({
             <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
           ))}
         </dl>
-      </section>
+      </section>}
 
       <section className="customer-360-dossier-grid" aria-label="Customer 360 dossier sections">
-        {sections.map((section) => <DossierCard key={section.id} section={section} normalizedQuery={normalizedQuery} />)}
+        {tabSections.map((section) => <DossierCard key={section.id} section={section} normalizedQuery={normalizedQuery} />)}
         {normalizedQuery && visibleSections.length === 0 && (
           <div className="customer-360-empty" role="status">No dossier fields match this search. Clear or revise the search to continue.</div>
         )}
       </section>
 
-      <section className="customer-360-profile-log" aria-labelledby="customer-360-profile-log-heading">
+      {(activeTab === 'history' || normalizedQuery) && <section className="customer-360-profile-log" aria-labelledby="customer-360-profile-log-heading">
         <header className="customer-360-section-heading">
           <div>
             <p>Permanent dossier history</p>
@@ -372,14 +426,7 @@ export default function Customer360Panel({
               <div className="customer-360-event-copy">
                 <h4>{event.item}</h4>
                 <DirectCollapsibleText lines={2} mobileLines={3}>{event.detail}</DirectCollapsibleText>
-                <dl>
-                  <div><dt>Old value</dt><dd>Not supplied</dd></div>
-                  <div><dt>New value</dt><dd>See event detail</dd></div>
-                  <div><dt>Channel / source</dt><dd>{event.source}</dd></div>
-                  <div><dt>User / device / session</dt><dd>Open linked access tools</dd></div>
-                  <div><dt>MFA method</dt><dd>Open MFA or login records</dd></div>
-                  <div><dt>Notes</dt><dd>{event.id}</dd></div>
-                </dl>
+                <dl>{profileEventMetadata(event, activeCase).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
               </div>
               <div className="customer-360-event-actions">
                 <button type="button" onClick={() => pin(`${event.id} · ${event.item}`)}>Pin</button>
@@ -389,9 +436,9 @@ export default function Customer360Panel({
           ))}
           {!profileChanges.length && <div className="customer-360-empty" role="status">No profile events match this search.</div>}
         </div>
-      </section>
+      </section>}
 
-      <section className="customer-360-related-records" aria-labelledby="customer-360-related-records-heading">
+      {(activeTab === 'devices' || normalizedQuery) && <section className="customer-360-related-records" aria-labelledby="customer-360-related-records-heading">
         <header className="customer-360-section-heading">
           <div>
             <p>Searchable case objects</p>
@@ -413,7 +460,21 @@ export default function Customer360Panel({
           ))}
           {!visibleRows.length && <div className="customer-360-empty" role="status">No related customer records match this search.</div>}
         </div>
-      </section>
+      </section>}
+
+      {activeTab === 'notes' && !normalizedQuery && <section className="customer-360-related-records customer-360-notes" aria-labelledby="customer-360-notes-heading">
+        <header className="customer-360-section-heading">
+          <div>
+            <p>Case-scoped documentation</p>
+            <h3 id="customer-360-notes-heading">Customer 360 Notes</h3>
+          </div>
+          <span>{notes.length} saved</span>
+        </header>
+        <div className="customer-360-note-list">
+          {notes.length ? notes.map((note, index) => <article key={`${note}-${index}`}>{note}</article>) : <div className="customer-360-empty" role="status">No notes have been saved for this case yet.</div>}
+        </div>
+        <button type="button" className="customer-360-primary" onClick={() => saveNote(`Customer 360 dossier reviewed for ${activeCase.person}.`, 'Customer 360 dossier')}>Save dossier note</button>
+      </section>}
 
       <footer className="customer-360-review-bar">
         <div>
