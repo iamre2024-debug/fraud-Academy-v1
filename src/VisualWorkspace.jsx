@@ -6,6 +6,7 @@ import BottomInvestigationGrid from './BottomInvestigationGrid.jsx';
 import CaseSummaryCard from './CaseSummaryCard.jsx';
 import CategoryTileRail from './CategoryTileRail.jsx';
 import Customer360Panel from './Customer360Panel.jsx';
+import IdentityIntelligencePanel from './IdentityIntelligencePanel.jsx';
 import InvestigationToolPanel from './InvestigationToolPanel.jsx';
 import SubmitDecisionPanel from './SubmitDecisionPanel.jsx';
 import TimelinePanel from './TimelinePanel.jsx';
@@ -283,6 +284,8 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
         <div className="workflow-active-tool-stage" data-active-workflow-stage={activeStage}>
           {tool === 'Customer 360' ? (
             <Customer360Panel {...activeToolProps} />
+          ) : tool === 'Identity Intelligence' ? (
+            <IdentityIntelligencePanel {...activeToolProps} />
           ) : tool === 'Timeline' ? (
             <TimelinePanel {...activeToolProps} />
           ) : (
