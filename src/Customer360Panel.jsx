@@ -263,7 +263,6 @@ export default function Customer360Panel({
   setExpandedId,
   pin,
   saveNote,
-  saveCaseReportPacket,
   markReviewed,
   currentCompleted,
   jumpDecision,
@@ -274,12 +273,6 @@ export default function Customer360Panel({
   const profileChanges = (activeCase.customer?.profileChanges ?? []).filter((item) => matchesQuery(`${item.id} ${item.date} ${item.item} ${item.detail} ${item.source}`, normalizedQuery));
   const visibleSections = sections.filter((section) => !normalizedQuery || matchesQuery(`${section.title} ${section.subtitle} ${section.fields.flat().join(' ')}`, normalizedQuery));
   const visibleRows = rows.filter((row) => matchesQuery(`${row.id} ${row.label} ${row.detail}`, normalizedQuery));
-  const reportRow = activeRow ?? visibleRows[0] ?? {
-    id: `${activeCase.id}-C360`,
-    label: 'Customer 360 dossier',
-    pin: `${activeCase.person} · ${activeCase.trainingId}`,
-    detail: `Customer 360 dossier reviewed for ${activeCase.id}.`,
-  };
 
   return (
     <section className="ornate-card activity-panel customer-360-theme-v1" data-customer-360-screen="approved-theme-v1">
@@ -428,7 +421,6 @@ export default function Customer360Panel({
           <span>Marking this dossier reviewed records process completion only. It does not determine the case outcome.</span>
         </div>
         <div>
-          <button type="button" onClick={() => saveCaseReportPacket(reportRow)}>Save neutral dossier packet</button>
           <button type="button" className="customer-360-primary" onClick={() => markReviewed('Customer 360')}>
             {currentCompleted.includes('Customer 360') ? '✓ Customer 360 reviewed' : 'Mark Customer 360 reviewed'}
           </button>
