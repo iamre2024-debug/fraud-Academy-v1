@@ -212,7 +212,7 @@ for (const required of [
   '<small>Transaction / payee info</small>',
   '<small>Short summary</small>',
   "pin(activeCase.id)",
-  "openTool('Identity Intelligence')",
+  "openTool('Identity Intel / People Search')",
   "openTool('Login History')",
   'decision-jump-button',
 ]) {
