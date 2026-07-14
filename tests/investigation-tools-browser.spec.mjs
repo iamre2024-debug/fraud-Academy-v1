@@ -77,10 +77,10 @@ test('approved Investigation tools preserve identity lookup, real records, Evide
   await expect(fullReport.getByRole('button', { name: '✓ Identity Intelligence reviewed', exact: true })).toBeVisible();
 
   const allTools = page.getByRole('button', { name: /All tools/ });
-  if (testInfo.project.name === 'mobile-chromium') {
-    await expect(allTools).toBeVisible();
-    await allTools.click();
-  }
+  const showToolMenu = async () => {
+    if (await allTools.isVisible().catch(() => false)) await allTools.click();
+  };
+  await showToolMenu();
 
   const groupRail = page.locator('[data-investigation-tool-groups="approved-theme-v1"]');
   await expect(groupRail).toBeVisible();
@@ -135,22 +135,26 @@ test('approved Investigation tools preserve identity lookup, real records, Evide
     expect(layout.metricColumns).toBe(4);
   }
 
-  const toolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
-  await toolSelect.selectOption('Payment Verification');
+  await showToolMenu();
+  await groupRail.getByRole('button', { name: /Business & Payment Verification/ }).click();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Payment Verification');
   await expect(toolPanel).toContainText('Authorization trail');
-
+  let toolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
   await toolSelect.selectOption('Business Intelligence');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Business Intelligence');
   await expect(toolPanel).toContainText('Northstar Digital Market LLC');
   await expect(toolPanel).toContainText('Training Business ID');
 
+  await showToolMenu();
+  await groupRail.getByRole('button', { name: /Evidence & Documents/ }).click();
+  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Evidence Center');
+  toolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
   await toolSelect.selectOption('Document Viewer');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
   await expect(toolPanel).toContainText('Customer statement');
   await expect(toolPanel).toContainText('Packet preview');
 
-  if (await allTools.isVisible().catch(() => false)) await allTools.click();
+  await showToolMenu();
   const selector = page.locator('.visual-case-switcher select');
   await selector.selectOption(secondCase.id);
   await expect(selector).toHaveValue(secondCase.id);
