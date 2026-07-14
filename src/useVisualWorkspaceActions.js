@@ -1,7 +1,6 @@
 import { buildReviewPackage, getReviewPackageStatus } from './data/reviewPackage.js';
 import {
   AGENT_ID,
-  buildPacket,
   defaultDecisionDraft,
 } from './visualWorkspaceModel.js';
 
@@ -13,7 +12,6 @@ export default function useVisualWorkspaceActions({
   notes,
   currentCompleted,
   decisionDraft,
-  reportPackets,
   noteDraft,
   setNoteDraft,
   setTrayByCase,
@@ -21,14 +19,12 @@ export default function useVisualWorkspaceActions({
   setCompletedByCase,
   setDecisionByCase,
   setPackagesByCase,
-  setPacketsByCase,
 }) {
   const packageStatus = getReviewPackageStatus({
     completedTools: currentCompleted,
     tray,
     notes,
     draft: decisionDraft,
-    reportPackets,
   });
 
   function pin(value) {
@@ -63,21 +59,7 @@ export default function useVisualWorkspaceActions({
         [activeCase.id]: [...new Set([...caseTools, toolName])],
       };
     });
-    saveNote(`${toolName}: reviewed and neutral report generated.`, 'Tool review');
-  }
-
-  function saveCaseReportPacket(row = activeRow) {
-    if (!row) return;
-    const packet = buildPacket(row, tool, activeCase);
-    setPacketsByCase((current) => {
-      const casePackets = current[activeCase.id] ?? [];
-      const deduped = casePackets.filter((item) => item.key !== packet.key);
-      return {
-        ...current,
-        [activeCase.id]: [packet, ...deduped].slice(0, 30),
-      };
-    });
-    saveNote(`Case Report packet saved from ${tool}: ${row.id}.`, 'Case report packet');
+    saveNote(`${toolName}: reviewed.`, 'Tool review');
   }
 
   function updateDecision(field, value) {
@@ -103,7 +85,6 @@ export default function useVisualWorkspaceActions({
       tray,
       notes,
       draft: decisionDraft,
-      reportPackets,
     });
 
     if (!status.ready) {
@@ -118,7 +99,6 @@ export default function useVisualWorkspaceActions({
       completedTools: currentCompleted,
       tray,
       notes,
-      reportPackets,
       packageStatus: status,
     });
 
@@ -141,7 +121,6 @@ export default function useVisualWorkspaceActions({
     pin,
     saveNote,
     markReviewed,
-    saveCaseReportPacket,
     updateDecision,
     submitNote,
     submitDecision,
