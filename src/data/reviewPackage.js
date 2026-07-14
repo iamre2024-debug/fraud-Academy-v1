@@ -64,20 +64,17 @@ export const requiredReviewTools = [
   'Transaction History',
   'Evidence Center',
   'Link Analysis',
-  'Case Report',
 ];
 
 export const minimumRationaleWords = 12;
 
-export function getReviewPackageStatus({ completedTools = [], tray = [], notes = [], draft = {}, reportPackets = [] }) {
+export function getReviewPackageStatus({ completedTools = [], tray = [], notes = [], draft = {} }) {
   const missingTools = requiredReviewTools.filter((tool) => !completedTools.includes(tool));
   const blockers = [];
   const messages = [];
-  const reportPacketCount = reportPackets.length;
   const rationaleWordCount = wordCount(draft.reason);
   const hasRationale = Boolean(draft.reason?.trim());
-  const packageInputSummary = buildPackageInputSummary({ completedTools, tray, notes, reportPackets });
-  const packetFeed = buildPacketFeed(reportPackets);
+  const packageInputSummary = buildPackageInputSummary({ completedTools, tray, notes });
 
   if (missingTools.length) blockers.push(`review required tools: ${missingTools.join(', ')}`);
   if (!tray.length) blockers.push('pin at least one object');
@@ -101,8 +98,6 @@ export function getReviewPackageStatus({ completedTools = [], tray = [], notes =
   }
 
   messages.push(packageInputSummary);
-  messages.push(reportPacketCount ? `${reportPacketCount} structured Case Report packet(s) saved into the draft.` : 'Structured Case Report packets are optional, but expanded records can now be saved into the draft.');
-  messages.push(packetFeed.message);
 
   return {
     reviewedRequired: requiredReviewTools.length - missingTools.length,
@@ -110,16 +105,14 @@ export function getReviewPackageStatus({ completedTools = [], tray = [], notes =
     missingTools,
     blockers,
     messages,
-    reportPacketCount,
     rationaleWordCount,
     minimumRationaleWords,
     packageInputSummary,
-    caseReportPacketFeed: packetFeed.items,
     ready: missingTools.length === 0 && tray.length > 0 && notes.length > 0 && Boolean(draft.choice) && reviewChoices.includes(draft.choice) && hasRationale && rationaleWordCount >= minimumRationaleWords,
   };
 }
 
-export function buildReviewPackage({ caseId, agentId, draft, completedTools = [], tray = [], notes = [], reportPackets = [], packageStatus }) {
+export function buildReviewPackage({ caseId, agentId, draft, completedTools = [], tray = [], notes = [], packageStatus }) {
   return {
     id: `${caseId}-${Date.now()}`,
     caseId,
@@ -131,45 +124,17 @@ export function buildReviewPackage({ caseId, agentId, draft, completedTools = []
     completedTools: [...completedTools],
     pinnedEvidence: [...tray],
     noteSnapshot: notes.slice(0, 8),
-    caseReportPackets: reportPackets.slice(0, 12),
-    caseReportPacketFeed: packageStatus?.caseReportPacketFeed ?? buildPacketFeed(reportPackets).items,
-    packageInputSummary: packageStatus?.packageInputSummary ?? buildPackageInputSummary({ completedTools, tray, notes, reportPackets }),
+    packageInputSummary: packageStatus?.packageInputSummary ?? buildPackageInputSummary({ completedTools, tray, notes }),
     reviewedRequired: packageStatus?.reviewedRequired ?? 0,
     totalRequired: packageStatus?.totalRequired ?? requiredReviewTools.length,
     missingTools: packageStatus?.missingTools ?? [],
     blockers: packageStatus?.blockers ?? [],
-    reportPacketCount: packageStatus?.reportPacketCount ?? reportPackets.length,
     savedAt: new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
   };
 }
 
-function buildPackageInputSummary({ completedTools = [], tray = [], notes = [], reportPackets = [] }) {
-  return `Package input preview: ${completedTools.length} reviewed tool(s), ${tray.length} pinned object(s), ${notes.length} note(s), and ${reportPackets.length} Case Report packet(s) will snapshot into Submit Decision.`;
-}
-
-function buildPacketFeed(reportPackets = []) {
-  if (!reportPackets.length) {
-    return {
-      items: [],
-      message: 'Case Report packet feed: no structured packets are attached yet.',
-    };
-  }
-
-  const items = reportPackets.slice(0, 12).map((packet) => ({
-    id: packet.id,
-    section: packet.section,
-    sourceTool: packet.sourceTool,
-    recordId: packet.recordId,
-    title: packet.title,
-  }));
-  const visibleItems = items.slice(0, 4).map((packet) => `${packet.section} from ${packet.sourceTool} (${packet.recordId})`);
-  const extraCount = Math.max(0, reportPackets.length - visibleItems.length);
-  const suffix = extraCount ? ` · +${extraCount} more` : '';
-
-  return {
-    items,
-    message: `Case Report packet feed: ${visibleItems.join(' · ')}${suffix}.`,
-  };
+function buildPackageInputSummary({ completedTools = [], tray = [], notes = [] }) {
+  return `Package input preview: ${completedTools.length} reviewed tool(s), ${tray.length} pinned object(s), and ${notes.length} note(s) will snapshot into Submit Decision.`;
 }
 
 function wordCount(text = '') {
