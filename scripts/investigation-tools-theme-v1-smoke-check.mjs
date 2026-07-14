@@ -58,6 +58,16 @@ for (const anchor of [
   'Wallet usage',
   'Normal behavior comparison',
   'Device History',
+  'LoginHistoryWorkspace',
+  'Every recorded login is available below.',
+  'Recorded logins',
+  'Failed / denied',
+  'MFA events',
+  'Authentication channel',
+  'Session behavior',
+  'Password reset timing',
+  'Money movement link',
+  'A successful MFA event is evidence of authentication activity, not a final conclusion about authorization.',
 ]) {
   mustContain('InvestigationToolPanel.jsx', panel, anchor);
 }
@@ -129,6 +139,14 @@ for (const anchor of [
   '.device-history-panel',
   '.device-related-panel',
   '.device-notes-panel',
+  '.login-history-findbar',
+  '.login-history-summary',
+  '.login-history-workspace',
+  '.login-record-list',
+  '.login-detail-panel',
+  '.login-session-panel',
+  '.login-related-panel',
+  '.login-notes-panel',
 ]) {
   mustContain('displayInvestigationToolsThemeV1.css', styles, anchor);
 }
