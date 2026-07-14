@@ -13,7 +13,6 @@ const remainingModules = [
   'Evidence Center',
   'Link Analysis',
   'Timeline',
-  'Case Report',
 ];
 
 function fail(message) {
@@ -22,10 +21,7 @@ function fail(message) {
 
 for (const activeCase of cases) {
   for (const tool of remainingModules) {
-    const fallbackData = tool === 'Case Report'
-      ? { rows: [{ id: 'PKT-SMOKE', label: 'Report packet', values: ['PKT-SMOKE', 'Saved packet', 'Neutral packet summary', 'Saved', activeCase.id, 'Evidence Center', 'Pin'], pin: 'PKT-SMOKE', detail: 'Saved packet' }] }
-      : { rows: [] };
-    const data = buildCoreToolRecords(tool, activeCase, fallbackData);
+    const data = buildCoreToolRecords(tool, activeCase, { rows: [] });
     if (!data || !Array.isArray(data.columns) || data.columns.length !== 7) {
       fail(`${activeCase.id} ${tool}: expected a seven-column investigation record set.`);
       continue;
@@ -86,14 +82,6 @@ for (const anchor of ['Login History', 'Transaction History', 'Payment Verificat
   if (!timelineText.includes(anchor)) fail(`Timeline is missing ${anchor} records.`);
 }
 
-const reportData = buildCoreToolRecords('Case Report', creditReview, {
-  rows: [{ id: 'PKT-SMOKE', label: 'Report packet', values: ['PKT-SMOKE', 'Saved packet', 'Neutral packet summary', 'Saved', creditReview.id, 'Evidence Center', 'Pin'], pin: 'PKT-SMOKE', detail: 'Saved packet' }],
-});
-const reportText = JSON.stringify(reportData);
-for (const anchor of ['Payment verification', 'Business intelligence', 'Evidence summary', 'Timeline summary', 'PKT-SMOKE']) {
-  if (!reportText.includes(anchor)) fail(`Case Report is missing ${anchor}.`);
-}
-
 const lunaLocked = buildLunaDebrief({ activeCase: creditReview, reviewPackage: null });
 if (lunaLocked !== null) fail('Luna must return no debrief before a learner package is saved.');
 
@@ -104,7 +92,6 @@ const lunaUnlocked = buildLunaDebrief({
     completedTools: ['Customer 360', 'Identity Intelligence', 'Login History', 'Transaction History', 'Payment Verification', 'Evidence Center'],
     pinnedEvidence: ['PAY-3301', 'PAY-3302'],
     noteSnapshot: ['Reviewed the system alert, Training ID, access history, and payment setup packet.'],
-    caseReportPackets: [{ section: 'Payment Verification', recordId: 'PAY-3301', title: 'Bank Code object', summary: 'Packet includes Bank Code and Destination ID verification records.' }],
     reason: 'The saved package documents the system alert, identity setup, Payment Verification objects, access records, and evidence packet before post-submission coaching.',
     confidence: 'Medium',
   },
@@ -133,4 +120,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Remaining module depth smoke check passed for all built-in cases, training-safe payment wording, neutral links and timeline records, saved Case Report packets, Luna submission locks, neutral tool wording, and the IndexedDB repository boundary.');
+console.log('Remaining module depth smoke check passed for all built-in cases, training-safe payment wording, neutral links and timeline records, pin-and-note evidence support, Luna submission locks, neutral tool wording, and the IndexedDB repository boundary.');
