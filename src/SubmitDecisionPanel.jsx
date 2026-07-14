@@ -62,7 +62,6 @@ export default function SubmitDecisionPanel({
         <article><span>Required tools</span><strong>{packageStatus.reviewedRequired}/{packageStatus.totalRequired}</strong></article>
         <article><span>Pinned objects</span><strong>{tray.length}</strong></article>
         <article><span>Investigation notes</span><strong>{notes.length}</strong></article>
-        <article><span>Report packets</span><strong>{packageStatus.reportPacketCount}</strong></article>
       </section>
 
       <div className="decision-v1-workspace">
