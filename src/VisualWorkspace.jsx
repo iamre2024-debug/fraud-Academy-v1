@@ -7,6 +7,7 @@ import BusinessIntelligencePanel from './BusinessIntelligencePanel.jsx';
 import CaseSummaryCard from './CaseSummaryCard.jsx';
 import CategoryTileRail from './CategoryTileRail.jsx';
 import Customer360Panel from './Customer360Panel.jsx';
+import DedicatedToolSwitcher from './DedicatedToolSwitcher.jsx';
 import IdentityIntelligencePanel from './IdentityIntelligencePanel.jsx';
 import InvestigationToolPanel from './InvestigationToolPanel.jsx';
 import LoginHistoryPanel from './LoginHistoryPanel.jsx';
@@ -285,6 +286,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
         </section>
 
         <div className="workflow-active-tool-stage" data-active-workflow-stage={activeStage}>
+          <DedicatedToolSwitcher activeCategory={activeCategory} tool={tool} openTool={openTool} />
           {tool === 'Customer 360' ? (
             <Customer360Panel {...activeToolProps} />
           ) : tool === 'Identity Intelligence' ? (
