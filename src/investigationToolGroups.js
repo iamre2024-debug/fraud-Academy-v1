@@ -4,7 +4,7 @@ export const investigationToolGroups = [
     label: 'Identity & Customer',
     icon: 'ID',
     question: 'Who is the customer, and which identity records are available for review?',
-    tools: ['Customer 360', 'Identity Intelligence'],
+    tools: ['Customer 360', 'Identity Intel / People Search'],
   },
   {
     key: 'digital',
