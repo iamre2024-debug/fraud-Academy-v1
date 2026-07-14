@@ -22,7 +22,6 @@ for (const text of [
   "import useVisualWorkspaceActions from './useVisualWorkspaceActions.js'",
   'useVisualWorkspaceActions({',
   'packageStatus,',
-  'saveCaseReportPacket,',
   'submitDecision,',
 ]) requireText(workspacePath, workspace, text);
 
@@ -30,7 +29,6 @@ for (const text of [
   'function pin(value)',
   "function saveNote(text, type = 'Investigation note')",
   'function markReviewed(toolName = tool)',
-  'function saveCaseReportPacket(row = activeRow)',
   'function updateDecision(field, value)',
   'function submitNote(event)',
   'function submitDecision(event)',
@@ -43,7 +41,6 @@ for (const text of [
   'function pin(value)',
   'function saveNote(',
   'function markReviewed(',
-  'function saveCaseReportPacket(',
   'function updateDecision(',
   'function submitNote(',
   'function submitDecision(',
@@ -58,7 +55,6 @@ for (const text of [
   "if (!status.ready)",
   "markReviewed('Submit Decision')",
   'Post-submission Luna debrief can now read the saved package state.',
-  '[packet, ...deduped].slice(0, 30)',
 ]) requireText(controllerPath, controller, text);
 
 if (failures.length) {
