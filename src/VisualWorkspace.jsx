@@ -212,6 +212,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     markReviewed,
     currentCompleted,
     jumpDecision,
+    notes,
   };
 
   return (
