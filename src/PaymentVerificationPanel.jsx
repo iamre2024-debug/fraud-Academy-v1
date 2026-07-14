@@ -1,0 +1,190 @@
+import { useEffect, useMemo, useState } from 'react';
+import { buildPaymentVerificationProfile } from './data/paymentVerificationProfiles.js';
+
+function normalize(value) {
+  return String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function VerificationList({ items = [] }) {
+  return (
+    <div className="payment-verification-list">
+      {items.map((item, index) => (
+        <article key={`${item.value}-${index}`}>
+          <strong>{item.value}</strong>
+          <span>{item.detail}</span>
+        </article>
+      ))}
+      {!items.length && <p>No separate record was supplied by the fictional verification source.</p>}
+    </div>
+  );
+}
+
+function packetSections(profile) {
+  return [
+    { id: 'objects', title: 'Payment Objects', subtitle: 'Bank Code, Destination ID, instrument, or merchant-payment objects', items: profile.objectSummary },
+    { id: 'ownership', title: 'Ownership Comparison', subtitle: 'Customer, employee, business, and destination-owner fields', items: [{ value: profile.ownershipName, detail: profile.ownershipComparison }] },
+    { id: 'type', title: 'Account and Destination Type', subtitle: 'Traditional bank, card, fintech, prepaid, merchant, or other payment context', items: [{ value: profile.accountType, detail: profile.verificationStatus }] },
+    { id: 'history', title: 'Verification History', subtitle: 'Neutral verification events and prior setup records', items: profile.verificationHistory },
+    { id: 'payment-records', title: 'Verification Records', subtitle: 'Record-level status, timing, and linked objects', items: profile.paymentRecords },
+    { id: 'transactions', title: 'Linked Transactions and Activity', subtitle: 'Activity connected to the payment objects', items: profile.transactions },
+    { id: 'payroll', title: 'Prior Payroll Use', subtitle: 'Payroll destination history when supplied by the case packet', items: profile.priorPayrollUse },
+    { id: 'people', title: 'Customer, Employee, and Account Relationships', subtitle: 'Neutral people and relationship records', items: profile.peopleRelationships },
+    { id: 'shared', title: 'Shared or Joint Use', subtitle: 'Joint owner, shared destination, or authorized-user context when supplied', items: profile.sharedUse },
+    { id: 'documents', title: 'Supporting Documents', subtitle: 'Documents linked to payment verification', items: profile.documents },
+  ];
+}
+
+export default function PaymentVerificationPanel({
+  activeCase,
+  openTool,
+  pin,
+  saveNote,
+  saveCaseReportPacket,
+  markReviewed,
+  currentCompleted,
+  jumpDecision,
+}) {
+  const profile = useMemo(() => buildPaymentVerificationProfile(activeCase), [activeCase]);
+  const sections = useMemo(() => packetSections(profile), [profile]);
+  const [primary, setPrimary] = useState('');
+  const [secondary, setSecondary] = useState('');
+  const [searched, setSearched] = useState(false);
+  const [matched, setMatched] = useState(false);
+  const [showPacket, setShowPacket] = useState(false);
+  const reviewed = currentCompleted.includes('Payment Verification');
+
+  useEffect(() => {
+    setPrimary('');
+    setSecondary('');
+    setSearched(false);
+    setMatched(false);
+    setShowPacket(false);
+  }, [activeCase.id]);
+
+  function runLookup(event) {
+    event.preventDefault();
+    const found = normalize(primary) === normalize(profile.primaryObject)
+      && normalize(secondary) === normalize(profile.secondaryObject);
+    setSearched(true);
+    setMatched(found);
+    setShowPacket(false);
+  }
+
+  function clearLookup() {
+    setPrimary('');
+    setSecondary('');
+    setSearched(false);
+    setMatched(false);
+    setShowPacket(false);
+  }
+
+  function savePacket() {
+    saveCaseReportPacket({
+      id: `${activeCase.id}-PAYMENT-VERIFICATION`,
+      label: 'Payment Verification packet',
+      pin: profile.secondaryObject,
+      values: [
+        `${activeCase.id}-PAYMENT-VERIFICATION`,
+        'Payment Verification packet',
+        `${profile.primaryObject} · ${profile.secondaryObject}`,
+        profile.verificationStatus,
+        profile.ownershipComparison,
+        activeCase.id,
+        'Save',
+      ],
+      detail: `Payment Verification packet for ${profile.primaryObject} and ${profile.secondaryObject}. ${sections.length} neutral verification sections reviewed.`,
+    });
+  }
+
+  return (
+    <section className="ornate-card activity-panel payment-verification-panel" data-payment-verification-screen="lookup-packet-v1" data-tool-name="Payment Verification">
+      <header className="payment-verification-header">
+        <div>
+          <p>Payment Verification · Evidence First</p>
+          <h2>Verification Object Lookup</h2>
+          <span>Search the fictional payment objects first, then open the ownership and verification packet.</span>
+        </div>
+        <div>
+          <strong>{activeCase.id}</strong>
+          <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
+        </div>
+      </header>
+
+      <form className="payment-lookup-card" onSubmit={runLookup}>
+        <div className="payment-lookup-fields">
+          <label>
+            <span>{profile.objectLabels[0]}</span>
+            <input value={primary} onChange={(event) => setPrimary(event.target.value)} placeholder={`Enter ${profile.objectLabels[0]}`} autoComplete="off" />
+          </label>
+          <label>
+            <span>{profile.objectLabels[1]}</span>
+            <input value={secondary} onChange={(event) => setSecondary(event.target.value)} placeholder={`Enter ${profile.objectLabels[1]}`} autoComplete="off" />
+          </label>
+        </div>
+        <p>Use values from the transaction, business, payroll, or case packet. All account identifiers are fictional training objects.</p>
+        <div className="payment-lookup-actions">
+          <button type="submit">Run Verification Lookup</button>
+          <button type="button" onClick={clearLookup}>Clear Lookup</button>
+        </div>
+      </form>
+
+      {searched && (
+        <section className={`payment-lookup-result ${matched ? 'matched' : 'not-matched'}`} aria-live="polite">
+          <header>
+            <div><p>Lookup result</p><h3>{matched ? 'Verification Match Summary' : 'No matching payment packet found'}</h3></div>
+            <span>{matched ? '1 packet' : '0 packets'}</span>
+          </header>
+          <p>{matched ? 'One fictional verification packet matched both payment objects.' : 'No fictional verification packet matched both objects. Check the values from the related case tools.'}</p>
+          {matched && (
+            <>
+              <dl>
+                <div><dt>{profile.objectLabels[0]}</dt><dd>{profile.primaryObject}</dd></div>
+                <div><dt>{profile.objectLabels[1]}</dt><dd>{profile.secondaryObject}</dd></div>
+                <div><dt>Ownership name</dt><dd>{profile.ownershipName}</dd></div>
+                <div><dt>Account / destination type</dt><dd>{profile.accountType}</dd></div>
+                <div><dt>Verification status</dt><dd>{profile.verificationStatus}</dd></div>
+                <div><dt>Ownership comparison</dt><dd>{profile.ownershipComparison}</dd></div>
+              </dl>
+              <button type="button" className="payment-view-packet" onClick={() => setShowPacket(true)}>View Full Verification Packet</button>
+            </>
+          )}
+        </section>
+      )}
+
+      {matched && showPacket && (
+        <section className="payment-full-packet" data-payment-full-packet>
+          <header>
+            <div><p>Payment Verification</p><h3>Full Verification Packet</h3><span>{profile.primaryObject} · {profile.secondaryObject} · fictional training sources</span></div>
+            <button type="button" onClick={() => pin(`${profile.primaryObject} · ${profile.secondaryObject}`)}>Pin payment objects</button>
+          </header>
+          <section className="payment-packet-summary">
+            <article><span>Packet sections</span><strong>{sections.length}</strong></article>
+            <article><span>Verification records</span><strong>{profile.paymentRecords.length}</strong></article>
+            <article><span>Linked activity</span><strong>{profile.transactions.length}</strong></article>
+            <article><span>Documents</span><strong>{profile.documents.length}</strong></article>
+          </section>
+          <div className="payment-packet-sections">
+            {sections.map((section) => (
+              <section key={section.id} data-payment-packet-section={section.id}>
+                <header><p>{section.subtitle}</p><h4>{section.title}</h4></header>
+                <VerificationList items={section.items} />
+              </section>
+            ))}
+          </div>
+          <nav className="payment-related-tools" aria-label="Payment verification related tools">
+            <button type="button" onClick={() => openTool('Transaction History')}>Open Transactions</button>
+            <button type="button" onClick={() => openTool('Business Intelligence')}>Open Business Intelligence</button>
+            <button type="button" onClick={() => openTool('Employee Profile')}>Open Employee Profile</button>
+            <button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button>
+            <button type="button" onClick={() => openTool('Document Viewer')}>Open Documents</button>
+          </nav>
+          <div className="payment-packet-actions">
+            <button type="button" onClick={() => saveNote(`Payment Verification packet reviewed for ${profile.primaryObject} · ${profile.secondaryObject}.`, 'Payment verification')}>Save verification note</button>
+            <button type="button" onClick={savePacket}>Save packet to evidence</button>
+            <button type="button" onClick={() => markReviewed('Payment Verification')}>{reviewed ? '✓ Payment Verification reviewed' : 'Mark Payment Verification reviewed'}</button>
+          </div>
+        </section>
+      )}
+    </section>
+  );
+}
