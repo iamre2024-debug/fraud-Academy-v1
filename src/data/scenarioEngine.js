@@ -15,8 +15,8 @@ export const scenarioTemplates = [
     title: 'Digital access dispute',
     caseReason: 'Customer allegation with recent login, device, IP, card, and profile activity available for review.',
     investigatorQuestion: 'Can access behavior verify or challenge the customer story?',
-    requiredFamilies: ['Case Summary', 'Customer 360', 'Login History', 'Device Intelligence', 'IP Intelligence', 'Transaction History', 'Evidence Center', 'Link Analysis'],
-    evidencePacket: ['customerIntake', 'profileHistory', 'loginHistory', 'sessionEvents', 'deviceRecords', 'ipRecords', 'transactionHistory', 'documentInventory', 'linkObjects'],
+    requiredFamilies: ['Case Summary', 'Customer 360', 'Identity Intelligence', 'Login History', 'Session History', 'Device Intelligence', 'IP Intelligence', 'Transaction History', 'Payment Verification', 'Evidence Center', 'Document Viewer', 'Link Analysis', 'Timeline'],
+    evidencePacket: ['customerIntake', 'profileHistory', 'identityBackground', 'loginHistory', 'sessionEvents', 'deviceRecords', 'ipRecords', 'transactionHistory', 'paymentVerification', 'documentInventory', 'linkObjects'],
     safeVariationInputs: ['customer location', 'stated device', 'merchant channel', 'login method', 'document status'],
   },
   {
@@ -25,8 +25,8 @@ export const scenarioTemplates = [
     title: 'Recurring billing dispute',
     caseReason: 'Customer allegation involving merchant billing, cancellation evidence, prior transactions, and document requests.',
     investigatorQuestion: 'Does the billing pattern and available evidence support a defensible dispute package?',
-    requiredFamilies: ['Case Summary', 'Customer 360', 'Transaction History', 'Business 360', 'Business Intelligence', 'Evidence Center', 'Document Viewer', 'Case Report'],
-    evidencePacket: ['customerIntake', 'merchantHistory', 'transactionHistory', 'billingCycleRecords', 'documentInventory', 'customerDocuments', 'timelineEvents', 'linkObjects'],
+    requiredFamilies: ['Case Summary', 'Customer 360', 'Identity Intelligence', 'Transaction History', 'Payment Verification', 'Business 360', 'Business Intelligence', 'Evidence Center', 'Document Viewer', 'Link Analysis', 'Timeline'],
+    evidencePacket: ['customerIntake', 'identityBackground', 'merchantHistory', 'transactionHistory', 'paymentVerification', 'billingCycleRecords', 'documentInventory', 'customerDocuments', 'timelineEvents', 'linkObjects'],
     safeVariationInputs: ['billing interval', 'merchant descriptor', 'cancellation document status', 'contact channel', 'prior charge count'],
   },
   {
@@ -35,8 +35,8 @@ export const scenarioTemplates = [
     title: 'New account credit behavior review',
     caseReason: 'System alert involving new profile activity, payment verification, limit usage, identity records, and account behavior.',
     investigatorQuestion: 'Does identity, payment, and account activity support the next documented review step?',
-    requiredFamilies: ['Case Summary', 'Customer 360', 'Identity Intelligence', 'Payment Verification', 'Financial Intelligence', 'Login History', 'Evidence Center', 'Case Report'],
-    evidencePacket: ['systemAlert', 'identityRecords', 'profileHistory', 'paymentVerification', 'financialContext', 'loginHistory', 'documentInventory', 'timelineEvents'],
+    requiredFamilies: ['Case Summary', 'Customer 360', 'Identity Intelligence', 'Login History', 'Session History', 'IP Intelligence', 'Payment Verification', 'Financial Intelligence', 'Business Intelligence', 'Evidence Center', 'Document Viewer', 'Link Analysis', 'Timeline'],
+    evidencePacket: ['systemAlert', 'identityRecords', 'identityBackground', 'profileHistory', 'paymentVerification', 'financialContext', 'loginHistory', 'sessionEvents', 'ipRecords', 'businessContext', 'documentInventory', 'timelineEvents'],
     safeVariationInputs: ['account age', 'payment object age', 'requested amount', 'login pattern', 'verification packet status'],
   },
   {
@@ -45,8 +45,8 @@ export const scenarioTemplates = [
     title: 'Employee payroll destination review',
     caseReason: 'System alert or employer inquiry involving employee profile, payroll history, destination records, and business relationship context.',
     investigatorQuestion: 'Is the employee, employer, payroll, and destination relationship documented enough for review?',
-    requiredFamilies: ['Case Summary', 'Business 360', 'Employee Profile', 'Payroll History', 'Payment Verification', 'Identity Intelligence', 'Evidence Center', 'Link Analysis'],
-    evidencePacket: ['businessProfile', 'employeeProfile', 'payrollHistory', 'destinationRecords', 'identityRecords', 'documentInventory', 'timelineEvents', 'linkObjects'],
+    requiredFamilies: ['Case Summary', 'Customer 360', 'Identity Intelligence', 'Login History', 'Session History', 'IP Intelligence', 'Business 360', 'Business Intelligence', 'Employee Profile', 'Payroll History', 'Payment Verification', 'Evidence Center', 'Document Viewer', 'Link Analysis', 'Timeline'],
+    evidencePacket: ['businessProfile', 'businessContext', 'employeeProfile', 'payrollHistory', 'destinationRecords', 'identityRecords', 'identityBackground', 'loginHistory', 'sessionEvents', 'ipRecords', 'documentInventory', 'timelineEvents', 'linkObjects'],
     safeVariationInputs: ['employer tenure', 'payroll cadence', 'destination update timing', 'employee contact channel', 'verification status'],
   },
 ];
