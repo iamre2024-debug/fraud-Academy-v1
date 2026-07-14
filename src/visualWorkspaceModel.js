@@ -10,7 +10,7 @@ export const categories = [
   { key: 'digital', label: 'Digital Activity', icon: '⌁', tools: ['Login History', 'Session History', 'Device Intelligence', 'IP Intelligence'] },
   { key: 'financial', label: 'Financial', icon: '$', tools: ['Transaction History', 'Financial Intelligence', 'Payment Verification'] },
   { key: 'business', label: 'Business', icon: '⌂', tools: ['Business 360', 'Business Intelligence', 'Employee Profile', 'Payroll History'] },
-  { key: 'evidence', label: 'Evidence', icon: '▰', tools: ['Evidence Center', 'Document Viewer'] },
+  { key: 'evidence', label: 'Evidence', icon: '▰', tools: ['Evidence Center', 'Document Request'] },
   { key: 'connections', label: 'Connections', icon: '⌘', tools: ['Link Analysis', 'System Access Lane'] },
   { key: 'investigation', label: 'Investigation', icon: '⌕', tools: ['Timeline'] },
 ];
@@ -153,10 +153,10 @@ export function rowsFor(tool, activeCase) {
     };
   }
 
-  if (tool === 'Document Viewer') {
+  if (tool === 'Document Request') {
     return {
-      columns: ['Document', 'Status', 'Title', 'Category', 'Updated', 'Fields', 'Preview'],
-      rows: evidence.documents.map((item) => makeRow(item.id, [item.id, item.status, item.title, item.category, item.updated, item.fields, item.preview], item.id, 'Document')),
+      columns: ['Request', 'Status', 'Document Type', 'Required', 'Due Date', 'Linked Tool', 'Reviewer Notes'],
+      rows: evidence.documents.map((item) => makeRow(item.id, [item.id, item.status, item.title, item.category.includes('Optional') ? 'Optional' : 'Required', 'Not set', 'Evidence Center', item.preview], item.id, 'Document request')),
     };
   }
 
