@@ -152,6 +152,31 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await toolPanel.getByRole('button', { name: 'Mark Session History reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ Session History reviewed', exact: true })).toBeVisible();
 
+  await toolSelect.selectOption('IP Intelligence');
+  await expect(toolPanel).toHaveAttribute('data-tool-name', 'IP Intelligence');
+  await expect(toolPanel.getByRole('heading', { name: 'Where did the connection originate, and has it been seen elsewhere?', exact: true })).toBeVisible();
+  await expect(toolPanel.locator('.ip-intel-summary article')).toHaveCount(6);
+  await expect(toolPanel.getByText('Run an IP lookup to reveal', { exact: true }).first()).toBeVisible();
+
+  const ipRecords = toolPanel.locator('[data-ip-intelligence-record]');
+  await expect(ipRecords.first()).toBeVisible();
+  const firstIpRecordId = await ipRecords.first().getAttribute('data-ip-intelligence-record');
+  const ipSearch = toolPanel.getByRole('textbox', { name: 'Search IP Intelligence records' });
+  await ipSearch.fill(firstIpRecordId.replace('IP-', ''));
+  await expect(ipRecords).toHaveCount(1);
+  await expect(toolPanel.getByText('Run an IP lookup to reveal', { exact: true })).toHaveCount(0);
+
+  await ipRecords.first().click();
+  await expect(toolPanel.locator('.ip-detail-panel')).toContainText(firstIpRecordId.replace('IP-', ''));
+  await toolPanel.getByRole('button', { name: 'Pin IP address', exact: true }).click();
+  await expect(page.locator('.tray-card')).toContainText('Pinned');
+  await toolPanel.getByRole('button', { name: 'Save IP note', exact: true }).click();
+  await expect(page.locator('.notebook-card')).toContainText('IP Intelligence');
+  await toolPanel.getByRole('button', { name: 'Save neutral packet', exact: true }).click();
+  await expect(page.locator('.case-report-packet-panel')).toContainText('4 saved');
+  await toolPanel.getByRole('button', { name: 'Mark IP Intelligence reviewed', exact: true }).click();
+  await expect(toolPanel.getByRole('button', { name: '✓ IP Intelligence reviewed', exact: true })).toBeVisible();
+
   await groupRail.getByRole('button', { name: /Transactions & Financial/ }).click();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Transaction History');
   await expect(toolPanel.getByRole('heading', { name: 'Transaction History', exact: true })).toBeVisible();
