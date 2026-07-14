@@ -5,6 +5,18 @@ import {
   defaultDecisionDraft,
 } from './visualWorkspaceModel.js';
 
+function normalizeExistingPin(item, activeCase) {
+  if (typeof item !== 'string') return item;
+  return {
+    id: `legacy-${activeCase.id}-${item}`,
+    label: item,
+    value: item,
+    sourceTool: item === activeCase.trainingId ? 'Customer 360' : '',
+    caseId: activeCase.id,
+    pinnedAt: 0,
+  };
+}
+
 export default function useVisualWorkspaceActions({
   activeCase,
   tool,
@@ -31,11 +43,32 @@ export default function useVisualWorkspaceActions({
     reportPackets,
   });
 
-  function pin(value) {
+  function pin(value, options = {}) {
     if (!value) return;
+    const label = typeof value === 'string' ? value : value.label ?? value.value ?? value.id;
+    const sourceTool = options.sourceTool ?? value.sourceTool ?? tool;
+    const pinId = options.id ?? value.id ?? `${sourceTool}:${label}`;
+    const nextPin = {
+      id: pinId,
+      label,
+      value: typeof value === 'string' ? value : value.value ?? label,
+      sourceTool,
+      recordId: options.recordId ?? value.recordId ?? activeRow?.id ?? '',
+      caseId: activeCase.id,
+      pinnedAt: Date.now(),
+    };
+
     setTrayByCase((current) => {
-      const caseTray = current[activeCase.id] ?? [activeCase.trainingId];
-      return { ...current, [activeCase.id]: [...new Set([...caseTray, value])] };
+      const caseTray = (current[activeCase.id] ?? [activeCase.trainingId]).map((item) => normalizeExistingPin(item, activeCase));
+      const withoutExisting = caseTray.filter((item) => item.id !== pinId && item.label !== label);
+      return { ...current, [activeCase.id]: [nextPin, ...withoutExisting].slice(0, 25) };
+    });
+  }
+
+  function removePin(pinId) {
+    setTrayByCase((current) => {
+      const caseTray = (current[activeCase.id] ?? []).map((item) => normalizeExistingPin(item, activeCase));
+      return { ...current, [activeCase.id]: caseTray.filter((item) => item.id !== pinId) };
     });
   }
 
@@ -77,7 +110,7 @@ export default function useVisualWorkspaceActions({
         [activeCase.id]: [packet, ...deduped].slice(0, 30),
       };
     });
-    saveNote(`Case Report packet saved from ${tool}: ${row.id}.`, 'Case report packet');
+    saveNote(`Evidence packet saved from ${tool}: ${row.id}.`, 'Evidence packet');
   }
 
   function updateDecision(field, value) {
@@ -139,6 +172,7 @@ export default function useVisualWorkspaceActions({
   return {
     packageStatus,
     pin,
+    removePin,
     saveNote,
     markReviewed,
     saveCaseReportPacket,

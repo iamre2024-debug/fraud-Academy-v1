@@ -37,6 +37,8 @@ const {
   getGeneratedCaseRepository,
   listGeneratedCases,
 } = await import('../src/data/generatedCaseRepository.js');
+const { enrichTrainingCases } = await import('../src/data/caseEnrichment.js');
+const { rowsFor } = await import('../src/visualWorkspaceModel.js');
 
 const failures = [];
 const repository = await getGeneratedCaseRepository();
@@ -73,10 +75,34 @@ const combinedIds = combined.map((item) => item.id);
 if (combinedIds.filter((id) => id === saved[0].id).length !== 1) failures.push('combineCaseCatalog duplicated an existing case ID.');
 if (!combinedIds.includes('BUILT-IN-CASE')) failures.push('combineCaseCatalog removed a built-in case.');
 
+const investigatorTools = [
+  'Customer 360', 'Identity Intelligence', 'Login History', 'Session History', 'Device Intelligence', 'IP Intelligence',
+  'Transaction History', 'Financial Intelligence', 'Payment Verification', 'Business 360', 'Business Intelligence',
+  'Employee Profile', 'Payroll History', 'Evidence Center', 'Document Viewer', 'Link Analysis', 'System Access Lane', 'Timeline',
+];
+
+for (const generatedCase of enrichTrainingCases(created.slice(0, 3))) {
+  for (const tool of investigatorTools) {
+    if (!rowsFor(tool, generatedCase, []).rows?.length) failures.push(`${generatedCase.id} has no usable ${tool} records.`);
+  }
+
+  const profile = generatedCase.identityProfile;
+  if (!profile?.dob || !profile?.age) failures.push(`${generatedCase.id} is missing DOB or age for Identity Intelligence search.`);
+  if ((profile?.nameHistory?.length ?? 0) < 2) failures.push(`${generatedCase.id} has incomplete name history.`);
+  if ((profile?.addresses?.length ?? 0) < 2) failures.push(`${generatedCase.id} has incomplete address history.`);
+  if ((profile?.phones?.length ?? 0) < 2) failures.push(`${generatedCase.id} has incomplete phone history.`);
+  if ((profile?.emails?.length ?? 0) < 2) failures.push(`${generatedCase.id} has incomplete email history.`);
+  if (!(profile?.associates?.length)) failures.push(`${generatedCase.id} has no associate records.`);
+  if (!(profile?.financialSummary?.length)) failures.push(`${generatedCase.id} has no financial relationship summary.`);
+  if (!(profile?.additionalSources?.length)) failures.push(`${generatedCase.id} has no linked data-source summary.`);
+  if (!generatedCase.customer?.relationship?.some((item) => item.label === 'Open products' && item.value)) failures.push(`${generatedCase.id} has no Open products relationship.`);
+  if (!generatedCase.customer?.contact?.phone || !generatedCase.customer?.contact?.email || !generatedCase.customer?.contact?.address) failures.push(`${generatedCase.id} has incomplete Customer 360 contact data.`);
+}
+
 if (failures.length) {
   console.error('Generated case smoke check failed:');
   for (const failure of failures) console.error(`- ${failure}`);
   process.exit(1);
 }
 
-console.log('Generated case smoke check passed. The repository adapter preserves legacy cases and keeps more than 50 unique Evidence First cases.');
+console.log('Generated case smoke check passed. The repository preserves unlimited unique Evidence First cases and enriches each case with usable tool records, Customer 360 data, and a complete Identity Intelligence lookup profile.');

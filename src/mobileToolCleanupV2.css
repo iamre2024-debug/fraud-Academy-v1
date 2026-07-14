@@ -1,0 +1,179 @@
+/* Mobile tool cleanup v2: readable category cards, shorter records, and browser-safe spacing. */
+@media (max-width: 720px) {
+  body[data-visual-tab="workspace"] .visual-os-frame {
+    padding-bottom: calc(124px + env(safe-area-inset-bottom));
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-groups-theme-v1 {
+    gap: 10px;
+    padding: 14px;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-groups-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-groups-heading > button {
+    width: 100%;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-groups-theme-v1 .visual-category-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-groups-theme-v1 .visual-category-row > button {
+    min-height: 92px;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    grid-template-rows: auto 1fr;
+    align-content: start;
+    gap: 6px 8px;
+    padding: 11px;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-category-copy {
+    align-self: center;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-category-copy strong {
+    font-size: 0.78rem;
+    line-height: 1.18;
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-category-copy small,
+  body[data-visual-tab="workspace"] .investigation-tool-groups-theme-v1 .category-status-copy,
+  body[data-visual-tab="workspace"] .investigation-tool-groups-theme-v1 .category-progress-track {
+    display: none;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-groups-theme-v1 .visual-category-row em {
+    align-self: start;
+    padding: 4px 6px;
+    font-size: 0.62rem;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tools-theme-v1 {
+    gap: 11px;
+    padding: 14px;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-header {
+    display: grid;
+    gap: 10px;
+    padding-bottom: 12px;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-header-actions {
+    justify-content: stretch;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-header-actions > span {
+    flex: 0 0 auto;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-header-actions button {
+    flex: 1 1 auto;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-question {
+    padding: 12px;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-question > div:first-child {
+    width: 42px;
+    height: 42px;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-question h3 {
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-flow {
+    display: none;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-metrics article:nth-child(n + 3) {
+    display: none;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-search-row {
+    align-items: end;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-record-list {
+    gap: 10px;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-record-card {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-record-card > header > div {
+    min-width: 0;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-record-card > header h4 {
+    font-size: 0.9rem;
+  }
+
+  body[data-visual-tab="workspace"] [data-tool-name="Login History"] .investigation-tool-record-card > header h4 {
+    font-size: 0;
+  }
+
+  body[data-visual-tab="workspace"] [data-tool-name="Login History"] .investigation-tool-record-card > header h4::after {
+    content: "Login event";
+    font-size: 0.9rem;
+  }
+
+  body[data-visual-tab="workspace"] [data-tool-name="Login History"] .investigation-tool-record-card dl > div:first-child {
+    display: none;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-record-card dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-record-card dl > div {
+    min-height: 0;
+    padding: 9px 10px;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-record-actions {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-record-actions button:last-child {
+    min-width: 82px;
+  }
+
+  body[data-visual-tab="workspace"] .investigation-tool-detail {
+    margin-top: 4px;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-theme-v1 {
+    padding-bottom: calc(124px + env(safe-area-inset-bottom));
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-theme-v1 section,
+  body[data-visual-tab="workspace"] .customer-360-theme-v1 article {
+    scroll-margin-top: 72px;
+  }
+}
+
+@media (max-width: 380px) {
+  body[data-visual-tab="workspace"] .investigation-tool-groups-theme-v1 .visual-category-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

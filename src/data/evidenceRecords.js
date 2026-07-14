@@ -9,7 +9,7 @@ export const evidenceRecordsByCase = {
     documents: [
       { id: 'DOC-441', title: 'Customer statement', category: 'Customer document', status: 'Received', updated: 'Jul 8, 2026', preview: 'Packet preview: customer reports they did not authorize the transaction, gives a personal timeline, and states their location for comparison with access records.', fields: 'Case ID, customer allegation, contact channel, stated location, stated device, disputed transaction reference' },
       { id: 'DOC-442', title: 'Affidavit request', category: 'Requested document', status: 'Requested', updated: 'Jul 8, 2026', preview: 'Packet preview: affidavit request is prepared for customer completion and remains a documentation item, not a pre-submission outcome signal.', fields: 'Customer attestation, transaction ID, date sent, completion status, signature placeholder' },
-      { id: 'DOC-443', title: 'Police report tracker', category: 'Optional document', status: 'Missing', updated: 'Not received', preview: 'Packet preview: optional tracker records whether a supplemental police report is provided and where it would attach to the case report.', fields: 'Report number, agency, received date, upload channel, linked case object' },
+      { id: 'DOC-443', title: 'Police report tracker', category: 'Optional document', status: 'Missing', updated: 'Not received', preview: 'Packet preview: optional tracker records whether a supplemental police report is provided and where it would attach to the evidence packet.', fields: 'Report number, agency, received date, upload channel, linked case object' },
     ],
   },
   'FA-CB-24007': {

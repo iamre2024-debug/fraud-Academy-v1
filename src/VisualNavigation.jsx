@@ -269,7 +269,7 @@ function DashboardPanel({ activeCaseId, cases, snapshot, onNavigate, onOpenCase 
         </button>
         <button type="button" onClick={() => onNavigate('progress')}>
           <span className="dashboard-quick-icon">▱</span>
-          <span><strong>Reports & Progress</strong><small>{snapshot.packets} packets · {snapshot.packages} packages</small></span>
+          <span><strong>Progress</strong><small>{snapshot.packets} packets · {snapshot.packages} packages</small></span>
         </button>
       </div>
 

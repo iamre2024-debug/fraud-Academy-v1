@@ -98,7 +98,6 @@ for (const required of [
   'useVisualWorkspaceActions({',
   'function jumpDecision()',
   'submitRef.current?.scrollIntoView',
-  '<ActiveToolPanel',
   '<BottomInvestigationGrid',
   '<CaseSummaryCard',
   '<CategoryTileRail',
@@ -138,7 +137,6 @@ for (const required of [
   '<small>Short summary</small>',
   "pin(activeCase.id)",
   "openTool('Identity Intelligence')",
-  "openTool('Case Report')",
   "openTool('Login History')",
   'decision-jump-button',
 ]) {

@@ -290,8 +290,8 @@ export default function InvestigationToolPanel({
                   </DirectCollapsibleText>
                 </article>
                 <article>
-                  <span>Generate Report</span>
-                  <h4>Neutral report packet</h4>
+                  <span>Save evidence</span>
+                  <h4>Evidence packet</h4>
                   <DirectCollapsibleText lines={3} mobileLines={4}>
                     Source tool: {tool}. Record summary: {displayActiveRow.detail}.
                   </DirectCollapsibleText>
@@ -300,7 +300,7 @@ export default function InvestigationToolPanel({
 
               <div className="investigation-tool-detail-actions">
                 <button type="button" onClick={saveDisplayedNote}>Save expanded note</button>
-                <button type="button" onClick={saveDisplayedReportPacket}>Save neutral report packet</button>
+                <button type="button" onClick={saveDisplayedReportPacket}>Save evidence packet</button>
               </div>
             </>
           ) : (
@@ -311,7 +311,6 @@ export default function InvestigationToolPanel({
 
       <nav className="investigation-tool-next-routes" aria-label="Investigation record next routes">
         <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
-        <button type="button" onClick={() => openTool('Case Report')}>Open Case Report</button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
 

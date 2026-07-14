@@ -33,6 +33,16 @@ import './displayAcademyThemeV1Safety.css';
 import './displayProfileThemeV1.css';
 import './displayProfileThemeV1Safety.css';
 import './displayFinalResponsivePolishV1.css';
+import './mobileToolCleanupV2.css';
+import './dedicatedToolSwitcher.css';
+import './pinnedReferenceTray.css';
+import './reportSectionNavigator.css';
+import './identityIntelligencePanel.css';
+import './businessIntelligencePanel.css';
+import './paymentVerificationPanel.css';
+import './loginHistoryPanel.css';
+import './customer360AttachedPages.css';
+import './standaloneDecisionAndPaymentLayout.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

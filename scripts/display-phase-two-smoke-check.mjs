@@ -25,8 +25,8 @@ if (!stageBlock) {
 } else {
   const keys = [...stageBlock[1].matchAll(/key: '([^']+)'/g)].map((match) => match[1]);
   const labels = [...stageBlock[1].matchAll(/label: '([^']+)'/g)].map((match) => match[1]);
-  const expectedKeys = ['briefing', 'investigate', 'timeline', 'summary', 'indicators', 'determination', 'debrief'];
-  const expectedLabels = ['Case Briefing', 'Investigate', 'Timeline', 'Summary', 'Indicators', 'Determination', 'Debrief'];
+  const expectedKeys = ['briefing', 'investigate', 'timeline', 'indicators', 'determination', 'debrief'];
+  const expectedLabels = ['Case Briefing', 'Investigate', 'Timeline', 'Indicators', 'Determination', 'Debrief'];
   if (JSON.stringify(keys) !== JSON.stringify(expectedKeys)) {
     failures.push(`Workflow stage keys must be exactly ${expectedKeys.join(', ')}; found ${keys.join(', ') || 'none'}.`);
   }
@@ -46,7 +46,6 @@ mustContain('VisualWorkspace.jsx', workspace, 'data-workflow-stage="investigate"
 mustContain('VisualWorkspace.jsx', workspace, 'data-workflow-stage="indicators"');
 mustContain('VisualWorkspace.jsx', workspace, 'data-workflow-stage="determination"');
 mustContain('VisualWorkspace.jsx', workspace, "openTool('Timeline', 'timeline')");
-mustContain('VisualWorkspace.jsx', workspace, "openTool('Case Report', 'summary')");
 mustContain('VisualWorkspace.jsx', workspace, "openTool('Evidence Center', 'indicators')");
 mustContain('VisualWorkspace.jsx', workspace, "scrollToWorkspace('.luna-visual-panel', 80)");
 mustContain('VisualWorkspace.jsx', workspace, "label: hasReviewPackage ? 'Available' : 'Locked'");
@@ -54,7 +53,7 @@ mustContain('VisualWorkspace.jsx', workspace, 'packageStatus.ready');
 mustContain('CategoryTileRail.jsx', categoryRail, 'onInvestigate');
 mustContain('CategoryTileRail.jsx', categoryRail, 'onInvestigate?.();');
 mustContain('displayPhaseTwo.css', styles, '.active-case-workflow-list');
-mustContain('displayPhaseTwo.css', styles, 'grid-template-columns: repeat(7, minmax(0, 1fr));');
+mustContain('displayPhaseTwo.css', styles, 'grid-template-columns: repeat(6, minmax(0, 1fr));');
 mustContain('displayPhaseTwo.css', styles, '@media (max-width: 620px)');
 mustContain('main.jsx', entrypoint, "import './displayPhaseTwo.css';");
 mustContain('Source of Truth', sourceOfTruth, '`src/ActiveCaseWorkflowRail.jsx`');
@@ -75,4 +74,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Display Phase 2 smoke check passed. The seven neutral stages are wired, the category rail stays inside Investigate, determination remains package-gated, and Debrief stays locked until a saved package exists.');
+console.log('Display Phase 2 smoke check passed. The six neutral stages are wired, the category rail stays inside Investigate, determination remains package-gated, and Debrief stays locked until a saved package exists.');

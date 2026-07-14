@@ -4,6 +4,7 @@ export default function CategoryTileRail({
   currentCompleted,
   onNavigate,
   onInvestigate,
+  onToolOpen,
   setCategoryKey,
   setTool,
   setExpandedId,
@@ -15,7 +16,7 @@ export default function CategoryTileRail({
           <div>
             <p>Contextual investigation tools</p>
             <h2>Choose the next evidence question</h2>
-            <small>Open one focused group at a time. Timeline and Case Report stay in the active-case workflow.</small>
+            <small>Open one focused group at a time. Timeline stays in the active-case workflow.</small>
           </div>
           <button type="button" onClick={() => onNavigate('academy')}>Open Tool Map</button>
         </header>
@@ -37,6 +38,7 @@ export default function CategoryTileRail({
                   setCategoryKey(item.key);
                   setTool(item.tools[0]);
                   setExpandedId('');
+                  onToolOpen?.(item.tools[0], 'investigate');
                 }}
               >
                 <span>{item.icon}</span>

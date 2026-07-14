@@ -1,10 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   defaultDecisionDraft,
   readStorage,
   storageKeys,
   writeStorage,
 } from './visualWorkspaceModel.js';
+
+function normalizeTray(items = [], activeCase) {
+  return items.map((item, index) => {
+    if (typeof item !== 'string') return item;
+    return {
+      id: `legacy-${activeCase.id}-${index}-${item}`,
+      label: item,
+      value: item,
+      sourceTool: item === activeCase.trainingId ? 'Customer 360' : '',
+      caseId: activeCase.id,
+      pinnedAt: 0,
+    };
+  });
+}
 
 export default function useVisualWorkspaceCaseState(activeCase) {
   const [trayByCase, setTrayByCase] = useState(() => readStorage(storageKeys.tray, {}));
@@ -22,9 +36,10 @@ export default function useVisualWorkspaceCaseState(activeCase) {
   useEffect(() => writeStorage(storageKeys.reportPackets, packetsByCase), [packetsByCase]);
 
   const caseId = activeCase.id;
+  const tray = useMemo(() => normalizeTray(trayByCase[caseId] ?? [activeCase.trainingId], activeCase), [trayByCase, caseId, activeCase]);
 
   return {
-    tray: trayByCase[caseId] ?? [activeCase.trainingId],
+    tray,
     notes: notesByCase[caseId] ?? [],
     currentCompleted: completedByCase[caseId] ?? ['Case Summary'],
     decisionDraft: decisionByCase[caseId] ?? defaultDecisionDraft,

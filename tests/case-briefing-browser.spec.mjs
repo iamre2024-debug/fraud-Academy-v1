@@ -11,13 +11,12 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   await expect(briefing).toBeVisible();
   await expect(briefing.getByRole('heading', { name: 'Case Briefing', exact: true })).toBeVisible();
   await expect(briefing.getByRole('heading', { name: 'Briefing summary', exact: true })).toBeVisible();
-  await expect(briefing.getByRole('heading', { name: 'Key focus areas', exact: true })).toBeVisible();
   await expect(briefing.getByRole('heading', { name: 'Luna Briefing Assistant', exact: true })).toBeVisible();
   await expect(briefing.getByRole('heading', { name: 'Recent documents', exact: true })).toBeVisible();
 
   const utilities = briefing.getByRole('navigation', { name: 'Case briefing utilities' });
   const quickRoutes = briefing.getByRole('navigation', { name: 'Case briefing quick routes' });
-  await expect(utilities.getByRole('button')).toHaveCount(6);
+  await expect(utilities.getByRole('button')).toHaveCount(5);
   await expect(quickRoutes.getByRole('button')).toHaveCount(3);
 
   const layout = await page.evaluate(() => {
@@ -72,19 +71,24 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   await expect(briefing).toContainText('Cardholder reports recurring billing after cancellation.');
 
   const workflow = page.getByRole('navigation', { name: 'Active case workflow' });
+  const allTools = page.getByRole('button', { name: /All tools/ });
 
   await utilities.getByRole('button', { name: /Begin Investigation/ }).click();
+  if (testInfo.project.name === 'mobile-chromium') await allTools.click();
   await expect(workflow.getByRole('button', { name: /Investigate/ })).toHaveAttribute('aria-current', 'step');
   await expect(page.locator('.activity-panel')).toContainText('Customer 360');
 
+  if (await allTools.isVisible().catch(() => false)) await allTools.click();
   await workflow.getByRole('button', { name: /Case Briefing/ }).click();
   await quickRoutes.getByRole('button', { name: 'Identity Intel', exact: true }).click();
   await expect(page.locator('.activity-panel')).toContainText('Identity Intelligence');
 
+  if (await allTools.isVisible().catch(() => false)) await allTools.click();
   await workflow.getByRole('button', { name: /Case Briefing/ }).click();
   await quickRoutes.getByRole('button', { name: 'Login History', exact: true }).click();
   await expect(page.locator('.activity-panel')).toContainText('Login History');
 
+  if (await allTools.isVisible().catch(() => false)) await allTools.click();
   await workflow.getByRole('button', { name: /Case Briefing/ }).click();
   await quickRoutes.getByRole('button', { name: 'Submit Decision', exact: true }).click();
   await expect(workflow.getByRole('button', { name: /Determination/ })).toHaveAttribute('aria-current', 'step');

@@ -13,7 +13,7 @@ export const financialRecordsByCase = {
     paymentVerification: [
       { id: 'PAY-1001', type: 'Payment instrument', object: 'Debit card ending 4410', status: 'Active', lastSeen: 'Jul 8, 2026', context: 'Payment packet includes instrument state, transaction reference TXN-1001, and card-present comparison records for neutral documentation.' },
       { id: 'PAY-1002', type: 'Destination object', object: 'Merchant processor token MPT-7784', status: 'Recorded', lastSeen: 'Jul 8, 2026', context: 'Destination packet ties the tokenized merchant processor object to authorization timing and merchant context without assigning an outcome.' },
-      { id: 'PAY-1003', type: 'Authorization trail', object: 'AUTH-74218-CNP', status: 'Available', lastSeen: 'Jul 8, 2026', context: 'Authorization packet can be compared with login session, device, IP, and transaction timeline before case report drafting.' },
+      { id: 'PAY-1003', type: 'Authorization trail', object: 'AUTH-74218-CNP', status: 'Available', lastSeen: 'Jul 8, 2026', context: 'Authorization packet can be compared with login session, device, IP, and transaction timeline before evidence is saved.' },
     ],
   },
   'FA-CB-24007': {
@@ -30,7 +30,7 @@ export const financialRecordsByCase = {
     paymentVerification: [
       { id: 'PAY-2201', type: 'Payment instrument', object: 'Credit card ending 8841', status: 'Active', lastSeen: 'Jul 8, 2026', context: 'Payment packet groups the instrument, current transaction, and prior-cycle merchant charges for billing-pattern documentation.' },
       { id: 'PAY-2202', type: 'Merchant billing object', object: 'Subscription billing token SBT-2207', status: 'Recorded', lastSeen: 'Jul 8, 2026', context: 'Merchant billing packet connects descriptor, token, statement period, and requested cancellation evidence without deciding the claim.' },
-      { id: 'PAY-2203', type: 'Dispute packet', object: 'Billing dispute packet CB-24007', status: 'Open', lastSeen: 'Jul 8, 2026', context: 'Dispute packet links customer form, recurring transactions, and requested document status for the case report draft.' },
+      { id: 'PAY-2203', type: 'Dispute packet', object: 'Billing dispute packet CB-24007', status: 'Open', lastSeen: 'Jul 8, 2026', context: 'Dispute packet links customer form, recurring transactions, and requested document status for the evidence package.' },
     ],
   },
   'FA-CR-24003': {
