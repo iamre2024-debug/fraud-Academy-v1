@@ -65,7 +65,7 @@ export function buildCoreToolRecords(tool, activeCase, fallbackData = { rows: []
       )),
       ...evidence.documents.map((item) => row(
         item.id,
-        [item.id, item.category, item.status, 'Document Viewer', item.updated, activeCase.id, item.preview],
+        [item.id, item.category, item.status, 'Document Request', item.updated, activeCase.id, item.preview],
         item.id,
         'Evidence document',
       )),
