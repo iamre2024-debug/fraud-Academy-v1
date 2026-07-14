@@ -102,17 +102,23 @@ test('investigation tools preserve full lookup workflows, real records, Evidence
 
   const paymentPanel = page.locator('[data-payment-verification-screen="lookup-packet-v1"]');
   await expect(paymentPanel).toBeVisible();
-  await expect(paymentPanel.getByRole('heading', { name: 'Verification Object Lookup', exact: true })).toBeVisible();
-  await paymentPanel.getByLabel('Payment instrument', { exact: true }).fill('Debit card ending 4410');
-  await paymentPanel.getByLabel('Processor destination', { exact: true }).fill('Merchant processor token MPT-7784');
-  await paymentPanel.getByRole('button', { name: 'Run Verification Lookup', exact: true }).click();
-  await expect(paymentPanel.getByRole('heading', { name: 'Verification Match Summary', exact: true })).toBeVisible();
-  await paymentPanel.getByRole('button', { name: 'View Full Verification Packet', exact: true }).click();
+  await expect(paymentPanel.getByRole('heading', { name: 'Search Payment Information', exact: true })).toBeVisible();
+  const lookupSources = paymentPanel.getByRole('region', { name: 'Find Payment Verification lookup values' });
+  await expect(lookupSources.getByRole('button', { name: 'Open Financial Intelligence', exact: true })).toBeVisible();
+  await expect(lookupSources.getByRole('button', { name: 'Open Transactions', exact: true })).toBeVisible();
+  await expect(lookupSources.getByRole('button', { name: 'Open Customer 360', exact: true })).toBeVisible();
+  await paymentPanel.getByLabel('Destination ID', { exact: true }).fill('DST-4410-7784');
+  await paymentPanel.getByLabel('Bank Code', { exact: true }).fill('BC-110-ATO');
+  await paymentPanel.getByLabel('Account owner name', { exact: true }).fill('Maya Sterling');
+  await paymentPanel.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(paymentPanel.getByRole('heading', { name: 'Verification Results', exact: true })).toBeVisible();
+  await expect(paymentPanel).toContainText('Yes · Name match');
+  await paymentPanel.getByRole('button', { name: 'Open full details', exact: true }).click();
   const paymentPacket = paymentPanel.locator('[data-payment-full-packet]');
-  await expect(paymentPacket.locator('[data-payment-packet-section]')).toHaveCount(10);
+  await expect(paymentPacket).toBeVisible();
   await expect(paymentPacket).toContainText('Ownership Comparison');
   await expect(paymentPacket).toContainText('Prior Payroll Use');
-  await expect(paymentPacket).toContainText('Traditional bank debit card');
+  await expect(paymentPacket).toContainText('Traditional bank checking destination');
   await assertSurfaceFits(page, '[data-payment-verification-screen="lookup-packet-v1"]', 'Payment Verification');
 
   await page.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Business Intelligence');
