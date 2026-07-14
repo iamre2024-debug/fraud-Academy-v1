@@ -173,7 +173,6 @@ function LoginHistoryWorkspace({
   setQuery,
   pin,
   saveNote,
-  saveCaseReportPacket,
   markReviewed,
   reviewed,
   openTool,
@@ -196,17 +195,6 @@ function LoginHistoryWorkspace({
 
   function saveLoginNote(message) {
     saveNote(`Login History: ${message}`, 'Login history');
-  }
-
-  function saveLoginPacket() {
-    if (!activeRecord) return;
-    saveCaseReportPacket({
-      id: activeRecord.id,
-      label: 'Login history',
-      pin: activeRecord.session,
-      detail: `${activeRecord.time} · ${activeRecord.result} · ${activeRecord.deviceId ?? activeRecord.device} · ${activeRecord.ip}`,
-      values: [activeRecord.id, activeRecord.time, activeRecord.result, activeRecord.mfaStatus, activeRecord.deviceId ?? activeRecord.device, activeRecord.ip, activeRecord.session],
-    });
   }
 
   return (
@@ -307,7 +295,6 @@ function LoginHistoryWorkspace({
               <p>{activeRecord.investigatorUse} A successful MFA event is evidence of authentication activity, not a final conclusion about authorization.</p>
               <div>
                 <button type="button" onClick={() => saveLoginNote(`${activeRecord.id} reviewed: ${activeRecord.sessionBehavior}`)}>Save login note</button>
-                <button type="button" onClick={saveLoginPacket}>Save neutral packet</button>
               </div>
             </article>
           </section>
@@ -360,7 +347,6 @@ function IPIntelligenceWorkspace({
   setQuery,
   pin,
   saveNote,
-  saveCaseReportPacket,
   markReviewed,
   reviewed,
   openTool,
@@ -385,25 +371,6 @@ function IPIntelligenceWorkspace({
 
   function saveIpNote(message) {
     saveNote(`IP Intelligence: ${message}`, 'IP intelligence');
-  }
-
-  function saveIpPacket() {
-    if (!activeRecord) return;
-    saveCaseReportPacket({
-      id: activeRecord.id,
-      label: 'IP intelligence',
-      pin: activeRecord.ip,
-      detail: `${activeRecord.ip} · ${lookupHasRun ? activeRecord.lookupResult : 'lookup not run'}`,
-      values: [
-        activeRecord.id,
-        activeRecord.ip,
-        lookupHasRun ? activeRecord.city : 'Lookup not run',
-        lookupHasRun ? activeRecord.country : 'Lookup not run',
-        lookupHasRun ? activeRecord.isp : 'Lookup not run',
-        lookupHasRun ? activeRecord.networkType : 'Lookup not run',
-        lookupHasRun ? activeRecord.vpnProxyTor : 'Lookup not run',
-      ],
-    });
   }
 
   return (
@@ -489,7 +456,6 @@ function IPIntelligenceWorkspace({
               <p>{activeRecord.investigatorUse}</p>
               <div>
                 <button type="button" onClick={() => saveIpNote(`${activeRecord.ip} reviewed: ${lookupHasRun ? activeRecord.lookupResult : 'lookup not run'}`)}>Save IP note</button>
-                <button type="button" onClick={saveIpPacket}>Save neutral packet</button>
               </div>
             </article>
           </section>
@@ -521,7 +487,6 @@ function SessionHistoryWorkspace({
   setQuery,
   pin,
   saveNote,
-  saveCaseReportPacket,
   markReviewed,
   reviewed,
   openTool,
@@ -543,17 +508,6 @@ function SessionHistoryWorkspace({
 
   function saveSessionNote(message) {
     saveNote(`Session History: ${message}`, 'Session history');
-  }
-
-  function saveSessionPacket() {
-    if (!activeRecord) return;
-    saveCaseReportPacket({
-      id: activeRecord.session,
-      label: 'Session history',
-      pin: activeRecord.session,
-      detail: `${activeRecord.start} to ${activeRecord.end} · ${activeRecord.duration} · ${activeRecord.logoutStatus}`,
-      values: [activeRecord.session, activeRecord.start, activeRecord.end, activeRecord.duration, activeRecord.logoutStatus, activeRecord.deviceId ?? activeRecord.device, activeRecord.ip],
-    });
   }
 
   return (
@@ -640,7 +594,6 @@ function SessionHistoryWorkspace({
               <p>{activeRecord.investigatorUse} Read the session path with Login History, Customer 360, financial records, and Timeline before documenting a decision.</p>
               <div>
                 <button type="button" onClick={() => saveSessionNote(`${activeRecord.session} reviewed: ${activeRecord.sessionPath.join(' / ')}`)}>Save session note</button>
-                <button type="button" onClick={saveSessionPacket}>Save neutral packet</button>
               </div>
             </article>
           </section>
@@ -671,7 +624,6 @@ function DeviceIntelligenceWorkspace({
   setQuery,
   pin,
   saveNote,
-  saveCaseReportPacket,
   markReviewed,
   reviewed,
   openTool,
@@ -694,25 +646,6 @@ function DeviceIntelligenceWorkspace({
 
   function saveDeviceNote(message) {
     saveNote(`Device Intelligence: ${message}`, 'Device intelligence');
-  }
-
-  function saveDevicePacket() {
-    if (!activeRecord) return;
-    saveCaseReportPacket({
-      id: activeRecord.id,
-      label: 'Device intelligence',
-      pin: activeRecord.id,
-      detail: `${activeRecord.deviceName} · ${activeRecord.lookupResult} · ${activeRecord.normalBehavior}`,
-      values: [
-        activeRecord.id,
-        activeRecord.deviceName,
-        activeRecord.deviceFingerprint,
-        activeRecord.trustedStatus,
-        activeRecord.firstSeen,
-        activeRecord.lastSeen,
-        activeRecord.lookupResult,
-      ],
-    });
   }
 
   return (
@@ -854,7 +787,6 @@ function DeviceIntelligenceWorkspace({
               <p>Device Intelligence reveals lookup results only after search. Compare the device with Login History, Session History, IP Intelligence, and the customer story before deciding.</p>
               <div>
                 <button type="button" onClick={() => saveDeviceNote(`${activeRecord.id} reviewed: ${activeRecord.normalBehavior}`)}>Save device note</button>
-                <button type="button" onClick={saveDevicePacket}>Save neutral packet</button>
               </div>
             </article>
           </section>
@@ -888,7 +820,6 @@ function PaymentVerificationWorkspace({
   setQuery,
   pin,
   saveNote,
-  saveCaseReportPacket,
   markReviewed,
   reviewed,
   openTool,
@@ -907,25 +838,6 @@ function PaymentVerificationWorkspace({
 
   function savePaymentNote(message) {
     saveNote(`Payment Verification: ${message}`, 'Payment verification');
-  }
-
-  function savePaymentPacket() {
-    if (!activeRecord) return;
-    saveCaseReportPacket({
-      id: activeRecord.id,
-      label: 'Payment verification',
-      pin: activeRecord.object,
-      detail: `${activeRecord.object} · ${activeRecord.ownerMatch} · ${activeRecord.accountStatus} · ${activeRecord.verificationOutcome}`,
-      values: [
-        activeRecord.id,
-        activeRecord.type,
-        activeRecord.object,
-        activeRecord.ownerMatch,
-        activeRecord.accountStatus,
-        activeRecord.bankCode,
-        activeRecord.destinationId,
-      ],
-    });
   }
 
   return (
@@ -1087,7 +999,6 @@ function PaymentVerificationWorkspace({
               <p>{activeRecord.notes}</p>
               <div>
                 <button type="button" onClick={() => savePaymentNote(`${activeRecord.id} reviewed: ${activeRecord.notes}`)}>Save verification note</button>
-                <button type="button" onClick={savePaymentPacket}>Save neutral packet</button>
               </div>
             </article>
           </section>
@@ -1128,7 +1039,6 @@ export default function InvestigationToolPanel({
   setExpandedId,
   pin,
   saveNote,
-  saveCaseReportPacket,
   markReviewed,
   currentCompleted,
   jumpDecision,
@@ -1161,10 +1071,6 @@ export default function InvestigationToolPanel({
   function saveDisplayedNote() {
     if (!reportRow) return;
     saveNote(`Expanded ${tool} record ${reportRow.id}: ${reportRow.detail}`, 'Expanded record');
-  }
-
-  function saveDisplayedReportPacket() {
-    if (reportRow) saveCaseReportPacket(reportRow);
   }
 
   return (
@@ -1220,7 +1126,6 @@ export default function InvestigationToolPanel({
           setQuery={setQuery}
           pin={pin}
           saveNote={saveNote}
-          saveCaseReportPacket={saveCaseReportPacket}
           markReviewed={markReviewed}
           reviewed={reviewed}
           openTool={openTool}
@@ -1233,7 +1138,6 @@ export default function InvestigationToolPanel({
           setQuery={setQuery}
           pin={pin}
           saveNote={saveNote}
-          saveCaseReportPacket={saveCaseReportPacket}
           markReviewed={markReviewed}
           reviewed={reviewed}
           openTool={openTool}
@@ -1245,7 +1149,6 @@ export default function InvestigationToolPanel({
           setQuery={setQuery}
           pin={pin}
           saveNote={saveNote}
-          saveCaseReportPacket={saveCaseReportPacket}
           markReviewed={markReviewed}
           reviewed={reviewed}
           openTool={openTool}
@@ -1258,7 +1161,6 @@ export default function InvestigationToolPanel({
           setQuery={setQuery}
           pin={pin}
           saveNote={saveNote}
-          saveCaseReportPacket={saveCaseReportPacket}
           markReviewed={markReviewed}
           reviewed={reviewed}
           openTool={openTool}
@@ -1271,7 +1173,6 @@ export default function InvestigationToolPanel({
           setQuery={setQuery}
           pin={pin}
           saveNote={saveNote}
-          saveCaseReportPacket={saveCaseReportPacket}
           markReviewed={markReviewed}
           reviewed={reviewed}
           openTool={openTool}
@@ -1383,18 +1284,10 @@ export default function InvestigationToolPanel({
                     {displayActiveRow.label}: {displayActiveRow.pin}. Active customer object: {activeCase.person} · {activeCase.trainingId}.
                   </DirectCollapsibleText>
                 </article>
-                <article>
-                  <span>Generate Report</span>
-                  <h4>Neutral report packet</h4>
-                  <DirectCollapsibleText lines={3} mobileLines={4}>
-                    Source tool: {tool}. Record summary: {displayActiveRow.detail}.
-                  </DirectCollapsibleText>
-                </article>
               </div>
 
               <div className="investigation-tool-detail-actions">
                 <button type="button" onClick={saveDisplayedNote}>Save expanded note</button>
-                <button type="button" onClick={saveDisplayedReportPacket}>Save neutral report packet</button>
               </div>
             </>
           ) : (
@@ -1405,7 +1298,6 @@ export default function InvestigationToolPanel({
 
       <nav className="investigation-tool-next-routes" aria-label="Investigation record next routes">
         <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
-        <button type="button" onClick={() => openTool('Case Report')}>Open Case Report</button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
 
