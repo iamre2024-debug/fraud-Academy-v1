@@ -3,10 +3,13 @@ import path from 'node:path';
 
 const rootDir = process.cwd();
 const panel = fs.readFileSync(path.join(rootDir, 'src/InvestigationToolPanel.jsx'), 'utf8');
+const identityPanel = fs.readFileSync(path.join(rootDir, 'src/IdentityIntelligencePanel.jsx'), 'utf8');
 const groups = fs.readFileSync(path.join(rootDir, 'src/investigationToolGroups.js'), 'utf8');
 const workspace = fs.readFileSync(path.join(rootDir, 'src/VisualWorkspace.jsx'), 'utf8');
+const model = fs.readFileSync(path.join(rootDir, 'src/visualWorkspaceModel.js'), 'utf8');
 const rail = fs.readFileSync(path.join(rootDir, 'src/CategoryTileRail.jsx'), 'utf8');
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayInvestigationToolsThemeV1.css'), 'utf8');
+const identityStyles = fs.readFileSync(path.join(rootDir, 'src/identityIntelligencePanel.css'), 'utf8');
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/investigation-tools-browser.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_INVESTIGATION_TOOLS_THEME_V1.md'), 'utf8');
@@ -15,7 +18,7 @@ const readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8');
 const failures = [];
 
 function mustContain(fileLabel, content, text) {
-  if (!content.includes(text)) failures.push(`${fileLabel} is missing required Investigation tools v1 anchor: ${text}`);
+  if (!content.includes(text)) failures.push(`${fileLabel} is missing required Investigation tools anchor: ${text}`);
 }
 
 function mustNotContain(fileLabel, content, text) {
@@ -37,8 +40,32 @@ for (const anchor of [
   'Open Timeline',
   'Open Submit Decision',
   'It does not determine the case outcome.',
+]) mustContain('InvestigationToolPanel.jsx', panel, anchor);
+
+for (const anchor of [
+  'data-identity-intelligence-screen="lookup-report-v1"',
+  'Background Profile Search',
+  'Training ID + Name',
+  'Training ID + DOB',
+  'Run Search',
+  'Identity Match Summary',
+  'View Full Profile Report',
+  'Full Profile Report',
+  'Address history',
+  'Associates and household links',
+  'Linked identity and access records',
+  'Save report to evidence packet',
+]) mustContain('IdentityIntelligencePanel.jsx', identityPanel, anchor);
+
+for (const forbidden of [
+  'Background detail report',
+  'fraud score',
+  'Red flag',
+  'Green flag',
+  'AI recommendation',
 ]) {
-  mustContain('InvestigationToolPanel.jsx', panel, anchor);
+  mustNotContain('IdentityIntelligencePanel.jsx', identityPanel, forbidden);
+  mustNotContain('visualWorkspaceModel.js', model, forbidden);
 }
 
 for (const anchor of [
@@ -52,23 +79,22 @@ for (const anchor of [
   'workflowReviewGroup',
   "tools: ['Timeline']",
   'groupForTool',
-]) {
-  mustContain('investigationToolGroups.js', groups, anchor);
-}
+]) mustContain('investigationToolGroups.js', groups, anchor);
 
 for (const anchor of [
+  "import IdentityIntelligencePanel from './IdentityIntelligencePanel.jsx'",
   "import InvestigationToolPanel from './InvestigationToolPanel.jsx'",
   "import TimelinePanel from './TimelinePanel.jsx'",
   "from './investigationToolGroups.js'",
   'categories={investigationToolGroups}',
   "tool === 'Customer 360'",
+  "tool === 'Identity Intelligence'",
+  '<IdentityIntelligencePanel {...activeToolProps} />',
   "tool === 'Timeline'",
   '<TimelinePanel {...activeToolProps} />',
   '<InvestigationToolPanel {...activeToolProps} />',
   'rowsFor(tool, activeCase, reportPackets)',
-]) {
-  mustContain('VisualWorkspace.jsx', workspace, anchor);
-}
+]) mustContain('VisualWorkspace.jsx', workspace, anchor);
 
 for (const anchor of [
   'investigation-tool-groups-theme-v1',
@@ -77,9 +103,7 @@ for (const anchor of [
   'Choose the next evidence question',
   'investigation-category-copy',
   'category-progress-track',
-]) {
-  mustContain('CategoryTileRail.jsx', rail, anchor);
-}
+]) mustContain('CategoryTileRail.jsx', rail, anchor);
 
 for (const anchor of [
   'body[data-visual-tab="workspace"]',
@@ -93,17 +117,25 @@ for (const anchor of [
   '@media (max-width: 720px)',
   '@media (max-width: 430px)',
   '@media (max-width: 350px)',
-]) {
-  mustContain('displayInvestigationToolsThemeV1.css', styles, anchor);
-}
+]) mustContain('displayInvestigationToolsThemeV1.css', styles, anchor);
+
+for (const anchor of [
+  '.identity-search-card',
+  '.identity-search-fields',
+  '.identity-search-result',
+  '.identity-full-report',
+  '.identity-report-sections',
+  '@media (max-width: 720px)',
+]) mustContain('identityIntelligencePanel.css', identityStyles, anchor);
 
 mustContain('main.jsx', entrypoint, "import './displayInvestigationToolsThemeV1.css';");
-mustContain('investigation-tools-browser.spec.mjs', browser, 'approved Investigation tools are contextual, functional, and responsive');
+mustContain('main.jsx', entrypoint, "import './identityIntelligencePanel.css';");
+mustContain('investigation-tools-browser.spec.mjs', browser, 'approved Investigation tools preserve identity lookup, real records, Evidence First, and responsive layouts');
 mustContain('investigation-tools-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('Investigation tools handoff', handoff, 'agent/investigation-tools-approved-theme-v1');
 mustContain('Investigation tools handoff', handoff, 'Timeline only');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **final responsive/mobile polish only**');
-mustContain('README', readme, 'The next isolated step is **final responsive/mobile polish only**');
+mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_INVESTIGATION_TOOLS_THEME_V1.md`');
+mustContain('README', readme, 'The approved Investigation tools handoff lives in');
 
 for (const forbidden of [
   'generatedCaseRepository',
@@ -112,7 +144,9 @@ for (const forbidden of [
   'position: fixed',
 ]) {
   mustNotContain('displayInvestigationToolsThemeV1.css', styles, forbidden);
+  mustNotContain('identityIntelligencePanel.css', identityStyles, forbidden);
   mustNotContain('InvestigationToolPanel.jsx', panel, forbidden);
+  mustNotContain('IdentityIntelligencePanel.jsx', identityPanel, forbidden);
   mustNotContain('investigationToolGroups.js', groups, forbidden);
 }
 
@@ -126,13 +160,14 @@ for (const forbidden of [
   'fraud score',
 ]) {
   mustNotContain('InvestigationToolPanel.jsx visible copy', panel, forbidden);
+  mustNotContain('IdentityIntelligencePanel.jsx visible copy', identityPanel, forbidden);
   mustNotContain('CategoryTileRail.jsx visible copy', rail, forbidden);
 }
 
 if (failures.length) {
-  console.error('Investigation tools approved-theme v1 smoke check failed. Repair these focused tool-workspace anchors before shipping:');
+  console.error('Investigation tools smoke check failed. Repair these focused tool-workspace anchors before shipping:');
   for (const failure of failures) console.error(`- ${failure}`);
   process.exit(1);
 }
 
-console.log('Investigation tools approved-theme v1 smoke check passed. Contextual grouping, focused record review, search, notes, report packets, review progress, workflow routes, responsive safety, Evidence First wording, protected persistence boundaries, and the synchronized Decision and Luna handoff remain intact.');
+console.log('Investigation tools smoke check passed. Identity lookup and full profile reporting, contextual grouping, record review, evidence actions, responsive safety, Evidence First wording, and protected persistence boundaries remain intact.');
