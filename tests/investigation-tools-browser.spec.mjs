@@ -106,6 +106,27 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await expect(toolSelect).toHaveValue('Login History');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Login History');
   await expect(groupRail.getByRole('button', { name: /Login, Device & IP/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(toolPanel.getByText('Every recorded login is available below.', { exact: false })).toBeVisible();
+  await expect(toolPanel.locator('.login-history-summary article')).toHaveCount(6);
+
+  const loginRecords = toolPanel.locator('[data-login-history-record]');
+  await expect(loginRecords.first()).toBeVisible();
+  const firstLoginId = await loginRecords.first().getAttribute('data-login-history-record');
+  const loginSearch = toolPanel.getByRole('textbox', { name: 'Search Login History records' });
+  await loginSearch.fill(firstLoginId);
+  await expect(loginRecords).toHaveCount(1);
+  await loginSearch.clear();
+
+  await loginRecords.first().click();
+  await expect(toolPanel.locator('.login-detail-panel')).toContainText(firstLoginId);
+  await toolPanel.getByRole('button', { name: 'Pin session', exact: true }).click();
+  await expect(page.locator('.tray-card')).toContainText('Pinned');
+  await toolPanel.getByRole('button', { name: 'Save login note', exact: true }).click();
+  await expect(page.locator('.notebook-card')).toContainText('Login History');
+  await toolPanel.getByRole('button', { name: 'Save neutral packet', exact: true }).click();
+  await expect(page.locator('.case-report-packet-panel')).toContainText('2 saved');
+  await toolPanel.getByRole('button', { name: 'Mark Login History reviewed', exact: true }).click();
+  await expect(toolPanel.getByRole('button', { name: '✓ Login History reviewed', exact: true })).toBeVisible();
 
   await groupRail.getByRole('button', { name: /Transactions & Financial/ }).click();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Transaction History');
@@ -118,7 +139,7 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await toolPanel.getByRole('button', { name: 'Mark Payment Verification reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ Payment Verification reviewed', exact: true })).toBeVisible();
 
-  await toolPanel.getByRole('navigation', { name: 'Investigation record next routes' })
+  await toolPanel.getByRole('navigation', { name: 'Payment verification next routes' })
     .getByRole('button', { name: 'Open Timeline', exact: true })
     .click();
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveCount(0);
