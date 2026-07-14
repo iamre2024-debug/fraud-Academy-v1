@@ -81,6 +81,17 @@ for (const anchor of [
   'Residential status',
   'Seen elsewhere',
   'Location Sequence',
+  'DocumentRequestWorkspace',
+  'Document request workflow',
+  'Search Document Request',
+  'Document request statuses',
+  'Request queue',
+  'Reason requested',
+  'Required / optional',
+  'Authenticity flag',
+  'Reviewer notes',
+  'Save follow-up note',
+  'Document Request review',
 ]) {
   mustContain('InvestigationToolPanel.jsx', panel, anchor);
 }
@@ -175,6 +186,12 @@ for (const anchor of [
   '.ip-location-panel',
   '.ip-related-panel',
   '.ip-notes-panel',
+  '.document-request-findbar',
+  '.document-request-statuses',
+  '.document-request-workspace',
+  '.document-request-list',
+  '.document-request-detail',
+  '.document-request-summary',
 ]) {
   mustContain('displayInvestigationToolsThemeV1.css', styles, anchor);
 }
