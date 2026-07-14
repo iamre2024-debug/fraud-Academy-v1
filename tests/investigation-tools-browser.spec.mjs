@@ -33,6 +33,10 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await expect(toolPanel).toBeVisible();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Identity Intelligence');
   await expect(toolPanel.getByRole('heading', { name: 'Identity Intelligence', exact: true })).toBeVisible();
+  await expect(toolPanel.getByText('Background detail report', { exact: true }).first()).toBeVisible();
+  await expect(toolPanel).toContainText('Training ID');
+  await expect(toolPanel).toContainText('Session');
+  await expect(page.getByText('Case Report', { exact: true })).toHaveCount(0);
   await expect(toolPanel.getByText('Working question', { exact: true })).toBeVisible();
   await expect(toolPanel.locator('.investigation-tool-flow span')).toHaveCount(7);
   await expect(toolPanel.locator('.investigation-tool-metrics article')).toHaveCount(4);
