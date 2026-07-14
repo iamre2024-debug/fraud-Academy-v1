@@ -79,7 +79,7 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
 
   await workflow.getByRole('button', { name: /Case Briefing/ }).click();
   await quickRoutes.getByRole('button', { name: 'Identity Intel', exact: true }).click();
-  await expect(page.locator('.activity-panel')).toContainText('Identity Intelligence');
+  await expect(page.locator('.activity-panel')).toContainText('Identity Intel / People Search');
 
   await workflow.getByRole('button', { name: /Case Briefing/ }).click();
   await quickRoutes.getByRole('button', { name: 'Login History', exact: true }).click();
