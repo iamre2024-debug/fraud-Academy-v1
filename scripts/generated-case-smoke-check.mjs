@@ -37,6 +37,8 @@ const {
   getGeneratedCaseRepository,
   listGeneratedCases,
 } = await import('../src/data/generatedCaseRepository.js');
+const { enrichTrainingCases } = await import('../src/data/caseEnrichment.js');
+const { rowsFor } = await import('../src/visualWorkspaceModel.js');
 
 const failures = [];
 const repository = await getGeneratedCaseRepository();
@@ -73,10 +75,24 @@ const combinedIds = combined.map((item) => item.id);
 if (combinedIds.filter((id) => id === saved[0].id).length !== 1) failures.push('combineCaseCatalog duplicated an existing case ID.');
 if (!combinedIds.includes('BUILT-IN-CASE')) failures.push('combineCaseCatalog removed a built-in case.');
 
+const investigatorTools = [
+  'Customer 360', 'Identity Intelligence', 'Login History', 'Session History', 'Device Intelligence', 'IP Intelligence',
+  'Transaction History', 'Financial Intelligence', 'Payment Verification', 'Business 360', 'Business Intelligence',
+  'Employee Profile', 'Payroll History', 'Evidence Center', 'Document Viewer', 'Link Analysis', 'System Access Lane', 'Timeline',
+];
+
+for (const generatedCase of enrichTrainingCases(created.slice(0, 3))) {
+  for (const tool of investigatorTools) {
+    if (!rowsFor(tool, generatedCase, []).rows?.length) {
+      failures.push(`${generatedCase.id} has no usable ${tool} records.`);
+    }
+  }
+}
+
 if (failures.length) {
   console.error('Generated case smoke check failed:');
   for (const failure of failures) console.error(`- ${failure}`);
   process.exit(1);
 }
 
-console.log('Generated case smoke check passed. The repository adapter preserves legacy cases and keeps more than 50 unique Evidence First cases.');
+console.log('Generated case smoke check passed. The repository adapter preserves legacy cases, keeps more than 50 unique Evidence First cases, and gives generated cases usable records across every investigator tool.');

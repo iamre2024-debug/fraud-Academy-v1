@@ -219,9 +219,21 @@ export function rowsFor(tool, activeCase, reportPackets = []) {
 
   if (tool === 'System Access Lane') {
     const records = getSystemAccessRecords(activeCase.id);
+    const generatedRecords = records.length ? records : [
+      {
+        id: `${activeCase.id}-SYS-001`,
+        lane: 'Generated system-access record',
+        actor: 'Training scenario service',
+        event: 'Case object access recorded for neutral review',
+        object: activeCase.claimId ?? activeCase.id,
+        observed: activeCase.openedAt ?? 'Recorded in training packet',
+        status: 'Available for review',
+        context: 'Fictional access context linked to the generated case packet.',
+      },
+    ];
     return {
       columns: ['Record', 'Lane', 'Actor', 'Object', 'Observed', 'Status', 'Context'],
-      rows: records.map((item) => makeRow(
+      rows: generatedRecords.map((item) => makeRow(
         item.id,
         [item.id, item.lane, item.actor, item.object, item.observed, item.status, `${item.event} · ${item.context}`],
         item.id,
