@@ -6,7 +6,7 @@ import { getSystemAccessRecords } from './data/systemAccessRecords.js';
 export const AGENT_ID = 'AGT-TRAIN-001';
 
 export const categories = [
-  { key: 'identity', label: 'Identity', icon: '▣', tools: ['Customer 360', 'Identity Intelligence'] },
+  { key: 'identity', label: 'Identity', icon: '▣', tools: ['Customer 360', 'Identity Intel / People Search'] },
   { key: 'digital', label: 'Digital Activity', icon: '⌁', tools: ['Login History', 'Session History', 'Device Intelligence', 'IP Intelligence'] },
   { key: 'financial', label: 'Financial', icon: '$', tools: ['Transaction History', 'Financial Intelligence', 'Payment Verification'] },
   { key: 'business', label: 'Business', icon: '⌂', tools: ['Business 360', 'Business Intelligence', 'Employee Profile', 'Payroll History'] },
@@ -66,7 +66,7 @@ export function rowsFor(tool, activeCase) {
     };
   }
 
-  if (tool === 'Identity Intelligence') {
+  if (tool === 'Identity Intel / People Search') {
     return {
       columns: ['Record', 'Type', 'Value', 'Last Seen', 'History', 'Object', 'Action'],
       rows: activeCase.identityRecords.map((item) => makeRow(item.id, [item.id, item.type, item.value, item.lastSeen, item.history, activeCase.trainingId, 'Pin'], item.value, item.type)),
