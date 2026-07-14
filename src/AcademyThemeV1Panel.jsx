@@ -26,7 +26,7 @@ const learningPaths = [
     number: '04',
     title: 'Case quality and submission',
     description: 'Turn reviewed evidence into a documented packet and save the learner decision only when readiness passes.',
-    steps: ['Case report', 'Submit package'],
+    steps: ['Submit package'],
     label: 'Case quality',
   },
 ];
@@ -40,7 +40,7 @@ const libraryTopics = [
 
 const achievementSteps = [
   ['Review required tools', 'Complete the case-specific required-tool set.'],
-  ['Document the evidence', 'Save pinned objects, notes, and neutral report packets.'],
+  ['Document the evidence', 'Save pinned objects and notes.'],
   ['Submit the package', 'Unlock the case-scoped Luna debrief and progress snapshot.'],
 ];
 
