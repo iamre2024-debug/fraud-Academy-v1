@@ -38,6 +38,16 @@ for (const anchor of [
   'Open Case Report',
   'Open Submit Decision',
   'It does not determine the case outcome.',
+  'PaymentVerificationWorkspace',
+  'Find the answer here',
+  'Search Bank Code, Destination ID, account holder, status, match result, prior use, recovery, or action.',
+  'Account Snapshot',
+  'Old / prior account',
+  'New destination',
+  'Payroll / vendor change comparison',
+  'Verification Call Drawer',
+  'Action Panel',
+  'Investigator Notes',
 ]) {
   mustContain('InvestigationToolPanel.jsx', panel, anchor);
 }
@@ -97,6 +107,12 @@ for (const anchor of [
   '@media (max-width: 720px)',
   '@media (max-width: 430px)',
   '@media (max-width: 350px)',
+  '.payment-verification-findbar',
+  '.payment-verification-snapshot',
+  '.payment-verification-workspace',
+  '.payment-call-drawer',
+  '.payment-action-panel',
+  '.payment-notes-panel',
 ]) {
   mustContain('displayInvestigationToolsThemeV1.css', styles, anchor);
 }
