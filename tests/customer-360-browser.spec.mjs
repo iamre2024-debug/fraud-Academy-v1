@@ -14,25 +14,42 @@ test('approved Customer 360 is a complete Evidence First dossier', async ({ page
   await expect(customer360).toBeVisible();
   await expect(customer360.getByRole('heading', { name: 'Customer 360', exact: true })).toBeVisible();
   await expect(customer360.getByRole('heading', { name: 'Customer Identity Snapshot', exact: true })).toBeVisible();
-  await expect(customer360.getByRole('heading', { name: 'Contact Information', exact: true })).toBeVisible();
+  await expect(customer360.getByRole('heading', { name: 'Current Case Snapshot', exact: true })).toBeVisible();
+
+  const tabs = customer360.getByRole('tablist', { name: 'Customer 360 dossier tabs' });
+  await tabs.getByRole('tab', { name: 'Accounts', exact: true }).click();
   await expect(customer360.getByRole('heading', { name: 'Products & Accounts', exact: true })).toBeVisible();
   await expect(customer360.getByRole('heading', { name: 'Relationship Overview', exact: true })).toBeVisible();
+
+  await tabs.getByRole('tab', { name: 'Devices & Access', exact: true }).click();
   await expect(customer360.getByRole('heading', { name: 'Security & Access Summary', exact: true })).toBeVisible();
-  await expect(customer360.getByRole('heading', { name: 'Current Case Snapshot', exact: true })).toBeVisible();
+
+  await tabs.getByRole('tab', { name: 'Contact History', exact: true }).click();
+  await expect(customer360.getByRole('heading', { name: 'Contact Information', exact: true })).toBeVisible();
   await expect(customer360.getByRole('heading', { name: 'Recent Customer Contact', exact: true })).toBeVisible();
+
+  await tabs.getByRole('tab', { name: 'Profile History', exact: true }).click();
   await expect(customer360.getByRole('heading', { name: 'Prior Claims / Disputes', exact: true })).toBeVisible();
   await expect(customer360.getByRole('heading', { name: 'Profile Change Event Log', exact: true })).toBeVisible();
+
+  await tabs.getByRole('tab', { name: 'Devices & Access', exact: true }).click();
   await expect(customer360.getByRole('heading', { name: 'Related Customer Records', exact: true })).toBeVisible();
 
+  await tabs.getByRole('tab', { name: 'Notes', exact: true }).click();
+  await expect(customer360.getByRole('heading', { name: 'Customer 360 Notes', exact: true })).toBeVisible();
+
   const relatedTools = customer360.getByRole('navigation', { name: 'Customer 360 related tools' });
-  await expect(relatedTools.getByRole('button')).toHaveCount(4);
-  await expect(customer360.locator('[data-dossier-section]')).toHaveCount(8);
+  await expect(relatedTools.getByRole('button')).toHaveCount(6);
+
+  await tabs.getByRole('tab', { name: 'Profile History', exact: true }).click();
   await expect(customer360.locator('[data-profile-event]')).toHaveCount(7);
+
+  await tabs.getByRole('tab', { name: 'Overview', exact: true }).click();
 
   const layout = await page.evaluate(() => {
     const panel = document.querySelector('[data-customer-360-screen="approved-theme-v1"]');
     const identity = document.querySelector('[data-dossier-section="identity"]');
-    const contact = document.querySelector('[data-dossier-section="contact"]');
+    const caseSnapshot = document.querySelector('[data-dossier-section="case"]');
     const actions = document.querySelector('.customer-360-actions');
     const fieldGrid = document.querySelector('.customer-360-field-grid');
     const viewportWidth = window.innerWidth;
@@ -47,9 +64,9 @@ test('approved Customer 360 is a complete Evidence First dossier', async ({ page
       documentWidth: document.documentElement.scrollWidth,
       panelFits: fits(panel),
       identityFits: fits(identity),
-      contactFits: fits(contact),
+      caseFits: fits(caseSnapshot),
       identityTop: rect(identity)?.top ?? 0,
-      contactTop: rect(contact)?.top ?? 0,
+      caseTop: rect(caseSnapshot)?.top ?? 0,
       actionColumns: actions ? getComputedStyle(actions).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
       fieldColumns: fieldGrid ? getComputedStyle(fieldGrid).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
     };
@@ -58,15 +75,15 @@ test('approved Customer 360 is a complete Evidence First dossier', async ({ page
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
   expect(layout.panelFits).toBe(true);
   expect(layout.identityFits).toBe(true);
-  expect(layout.contactFits).toBe(true);
+  expect(layout.caseFits).toBe(true);
 
   if (testInfo.project.name === 'mobile-chromium') {
-    expect(Math.abs(layout.identityTop - layout.contactTop)).toBeGreaterThan(20);
-    expect(layout.actionColumns).toBe(1);
+    expect(Math.abs(layout.identityTop - layout.caseTop)).toBeGreaterThan(20);
+    expect(layout.actionColumns).toBe(2);
     expect(layout.fieldColumns).toBe(1);
   } else {
-    expect(Math.abs(layout.identityTop - layout.contactTop)).toBeLessThanOrEqual(2);
-    expect(layout.actionColumns).toBe(4);
+    expect(Math.abs(layout.identityTop - layout.caseTop)).toBeLessThanOrEqual(2);
+    expect(layout.actionColumns).toBe(6);
     expect(layout.fieldColumns).toBe(2);
   }
 
