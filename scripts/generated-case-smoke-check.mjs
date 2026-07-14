@@ -83,10 +83,20 @@ const investigatorTools = [
 
 for (const generatedCase of enrichTrainingCases(created.slice(0, 3))) {
   for (const tool of investigatorTools) {
-    if (!rowsFor(tool, generatedCase, []).rows?.length) {
-      failures.push(`${generatedCase.id} has no usable ${tool} records.`);
-    }
+    if (!rowsFor(tool, generatedCase, []).rows?.length) failures.push(`${generatedCase.id} has no usable ${tool} records.`);
   }
+
+  const profile = generatedCase.identityProfile;
+  if (!profile?.dob || !profile?.age) failures.push(`${generatedCase.id} is missing DOB or age for Identity Intelligence search.`);
+  if ((profile?.nameHistory?.length ?? 0) < 2) failures.push(`${generatedCase.id} has incomplete name history.`);
+  if ((profile?.addresses?.length ?? 0) < 2) failures.push(`${generatedCase.id} has incomplete address history.`);
+  if ((profile?.phones?.length ?? 0) < 2) failures.push(`${generatedCase.id} has incomplete phone history.`);
+  if ((profile?.emails?.length ?? 0) < 2) failures.push(`${generatedCase.id} has incomplete email history.`);
+  if (!(profile?.associates?.length)) failures.push(`${generatedCase.id} has no associate records.`);
+  if (!(profile?.financialSummary?.length)) failures.push(`${generatedCase.id} has no financial relationship summary.`);
+  if (!(profile?.additionalSources?.length)) failures.push(`${generatedCase.id} has no linked data-source summary.`);
+  if (!generatedCase.customer?.relationship?.some((item) => item.label === 'Open products' && item.value)) failures.push(`${generatedCase.id} has no Open products relationship.`);
+  if (!generatedCase.customer?.contact?.phone || !generatedCase.customer?.contact?.email || !generatedCase.customer?.contact?.address) failures.push(`${generatedCase.id} has incomplete Customer 360 contact data.`);
 }
 
 if (failures.length) {
@@ -95,4 +105,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Generated case smoke check passed. The repository adapter preserves legacy cases, keeps more than 50 unique Evidence First cases, and gives generated cases usable records across every investigator tool.');
+console.log('Generated case smoke check passed. The repository preserves unlimited unique Evidence First cases and enriches each case with usable tool records, Customer 360 data, and a complete Identity Intelligence lookup profile.');
