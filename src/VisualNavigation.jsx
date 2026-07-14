@@ -22,7 +22,7 @@ const tabCopy = {
   academy: {
     eyebrow: 'Fraud Academy',
     title: 'Learning path',
-    text: 'Practice evidence-first investigation habits: open records, expand details, search, connect objects, generate reports, document, then submit.',
+    text: 'Practice evidence-first investigation habits: open records, expand details, search, connect objects, document, then submit.',
     icon: '▱',
   },
   progress: {
@@ -50,7 +50,6 @@ const storageKeys = {
   completed: 'fraud-academy-completed-tools-v1',
   notes: 'fraud-academy-notes-v1',
   packages: 'fraud-academy-review-packages-v1',
-  packets: 'fraud-academy-case-report-packets-v1',
 };
 
 function readJson(key, fallback) {
@@ -71,17 +70,14 @@ function buildSnapshot() {
   const completedByCase = readJson(storageKeys.completed, {});
   const notesByCase = readJson(storageKeys.notes, {});
   const packagesByCase = readJson(storageKeys.packages, {});
-  const packetsByCase = readJson(storageKeys.packets, {});
 
   return {
     reviewed: countValuesByCase(completedByCase),
     notes: countValuesByCase(notesByCase),
     packages: countValuesByCase(packagesByCase),
-    packets: countValuesByCase(packetsByCase),
     completedByCase,
     notesByCase,
     packagesByCase,
-    packetsByCase,
   };
 }
 
@@ -269,7 +265,7 @@ function DashboardPanel({ activeCaseId, cases, snapshot, onNavigate, onOpenCase 
         </button>
         <button type="button" onClick={() => onNavigate('progress')}>
           <span className="dashboard-quick-icon">▱</span>
-          <span><strong>Reports & Progress</strong><small>{snapshot.packets} packets · {snapshot.packages} packages</small></span>
+          <span><strong>Progress</strong><small>{snapshot.packages} packages</small></span>
         </button>
       </div>
 
