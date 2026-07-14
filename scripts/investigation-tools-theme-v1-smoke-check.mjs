@@ -3,6 +3,7 @@ import path from 'node:path';
 
 const rootDir = process.cwd();
 const panel = fs.readFileSync(path.join(rootDir, 'src/InvestigationToolPanel.jsx'), 'utf8');
+const businessPayrollWorkspace = fs.readFileSync(path.join(rootDir, 'src/data/businessPayrollWorkspace.js'), 'utf8');
 const identityReport = fs.readFileSync(path.join(rootDir, 'src/data/identityIntelReport.js'), 'utf8');
 const groups = fs.readFileSync(path.join(rootDir, 'src/investigationToolGroups.js'), 'utf8');
 const workspace = fs.readFileSync(path.join(rootDir, 'src/VisualWorkspace.jsx'), 'utf8');
@@ -101,6 +102,21 @@ for (const anchor of [
   'Evidence Explorer',
   'Fictional training data only. Identity information is evidence, not a case conclusion.',
   'Mark Identity Intel / People Search reviewed',
+  'TransactionHistoryWorkspace',
+  '30-day training activity view',
+  'Transaction detail drawer',
+  'Transaction account and card rail',
+  'Save transaction note',
+  'Business360Workspace',
+  'Business and KYB profile',
+  'Business 360 review',
+  'EmployeeProfileWorkspace',
+  'Official contact / callback',
+  'Employee Profile review',
+  'PayrollHistoryWorkspace',
+  'Payroll and direct deposit',
+  'Trusted callback',
+  'Payroll History review',
 ]) {
   mustContain('InvestigationToolPanel.jsx', panel, anchor);
 }
@@ -209,8 +225,30 @@ for (const anchor of [
   '.identity-intel-sections',
   '.identity-intel-report',
   '.identity-intel-evidence',
+  '.transaction-history-findbar',
+  '.transaction-history-account-rail',
+  '.transaction-history-workspace',
+  '.transaction-history-detail',
+  '.business-360-profile',
+  '.business-360-workspace',
+  '.employee-profile-summary',
+  '.employee-profile-workspace',
+  '.payroll-history-findbar',
+  '.payroll-history-workspace',
 ]) {
   mustContain('displayInvestigationToolsThemeV1.css', styles, anchor);
+}
+
+for (const anchor of [
+  'getTransactionHistory',
+  'getBusiness360Workspace',
+  'getEmployeeProfiles',
+  'getPayrollHistory',
+  'Card not present',
+  'Fictional destination ending',
+  'Training payroll callback channel',
+]) {
+  mustContain('businessPayrollWorkspace.js', businessPayrollWorkspace, anchor);
 }
 
 for (const anchor of [
