@@ -6,7 +6,7 @@ const forbiddenProfileCopy = /(?:Correct answer|Fraud score|Red flag|Green flag|
 async function seedProfileActivity(page) {
   await page.addInitScript(({ activeCaseId }) => {
     localStorage.setItem('fraud-academy-completed-tools-v1', JSON.stringify({
-      [activeCaseId]: ['Case Summary', 'Customer 360', 'Identity Intelligence', 'Login History'],
+      [activeCaseId]: ['Case Summary', 'Customer 360', 'Identity Intel / People Search', 'Login History'],
     }));
     localStorage.setItem('fraud-academy-notes-v1', JSON.stringify({
       [activeCaseId]: ['Profile test note'],
