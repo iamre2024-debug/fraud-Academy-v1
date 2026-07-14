@@ -11,7 +11,6 @@ const storageKeys = {
   completed: 'fraud-academy-completed-tools-v1',
   tray: 'fraud-academy-visual-tray-v1',
   notes: 'fraud-academy-notes-v1',
-  packets: 'fraud-academy-case-report-packets-v1',
 };
 
 function readJson(key, fallback) {
@@ -87,14 +86,12 @@ export default function LunaPostSubmissionPanel({
     const completedByCase = readJson(storageKeys.completed, {});
     const trayByCase = readJson(storageKeys.tray, {});
     const notesByCase = readJson(storageKeys.notes, {});
-    const packetsByCase = readJson(storageKeys.packets, {});
     const storedPackage = (packagesByCase[activeCase.id] ?? [])[0] ?? null;
     const reviewPackage = submittedPackage?.caseId === activeCase.id ? submittedPackage : storedPackage;
     const completedTools = completedByCase[activeCase.id] ?? [];
     const tray = trayByCase[activeCase.id] ?? [];
     const notes = notesByCase[activeCase.id] ?? [];
-    const reportPackets = packetsByCase[activeCase.id] ?? [];
-    const debrief = buildLunaDebrief({ activeCase, reviewPackage, completedTools, tray, notes, reportPackets });
+    const debrief = buildLunaDebrief({ activeCase, reviewPackage, completedTools, tray, notes });
     return { reviewPackage, debrief };
   }, [activeCase, submittedPackage, version]);
 
@@ -168,7 +165,6 @@ export default function LunaPostSubmissionPanel({
               <div className="luna-v1-package-facts">
                 <span>{state.reviewPackage.pinnedEvidence.length} pinned</span>
                 <span>{state.reviewPackage.noteSnapshot.length} notes</span>
-                <span>{state.reviewPackage.reportPacketCount} packets</span>
               </div>
             </section>
 
