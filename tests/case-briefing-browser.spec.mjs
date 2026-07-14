@@ -18,7 +18,7 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   const utilities = briefing.getByRole('navigation', { name: 'Case briefing utilities' });
   const quickRoutes = briefing.getByRole('navigation', { name: 'Case briefing quick routes' });
   await expect(utilities.getByRole('button')).toHaveCount(6);
-  await expect(quickRoutes.getByRole('button')).toHaveCount(3);
+  await expect(quickRoutes.getByRole('button')).toHaveCount(4);
 
   const layout = await page.evaluate(() => {
     const briefingElement = document.querySelector('[data-case-briefing-screen="approved-theme-v1"]');
@@ -76,6 +76,10 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   await utilities.getByRole('button', { name: /Begin Investigation/ }).click();
   await expect(workflow.getByRole('button', { name: /Investigate/ })).toHaveAttribute('aria-current', 'step');
   await expect(page.locator('.activity-panel')).toContainText('Customer 360');
+
+  await workflow.getByRole('button', { name: /Case Briefing/ }).click();
+  await quickRoutes.getByRole('button', { name: 'Transaction History', exact: true }).click();
+  await expect(page.locator('.activity-panel')).toContainText('Transaction History');
 
   await workflow.getByRole('button', { name: /Case Briefing/ }).click();
   await quickRoutes.getByRole('button', { name: 'Identity Intel', exact: true }).click();
