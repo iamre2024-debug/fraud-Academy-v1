@@ -4,6 +4,7 @@ import { buildCoreToolRecords } from './data/coreToolRecords.js';
 import { getDeviceProfiles } from './data/deviceRecords.js';
 import { financialRecordsByCase } from './data/financialRecords.js';
 import { getLoginRecords } from './data/loginRecords.js';
+import { getIpRecords } from './data/ipRecords.js';
 import { getSessionRecords } from './data/sessionRecords.js';
 import { workflows } from './visualWorkspaceModel.js';
 
@@ -25,8 +26,8 @@ const toolDetails = {
     question: 'Which devices appear in the case activity, and where do those devices repeat?',
   },
   'IP Intelligence': {
-    purpose: 'Review network locations and the sessions, devices, methods, and times connected to each address.',
-    question: 'Which network locations and sessions are tied to the observed activity?',
+    purpose: 'Look up fictional network and location evidence, then compare it with recorded sessions and devices without drawing an early conclusion.',
+    question: 'Where did the connection originate, and has it been seen elsewhere?',
   },
   'Transaction History': {
     purpose: 'Review the transaction records in scope before comparing them with other financial and customer evidence.',
@@ -342,6 +343,176 @@ function sessionRecordSearchText(record) {
     ...(record.pagesViewed ?? []), ...(record.securitySettings ?? []), ...(record.profileActions ?? []),
     ...(record.payeeTokenActivity ?? []), ...(record.moneyMovement ?? []), ...(record.sessionPath ?? []), ...(record.relatedRecords ?? []),
   ].filter(Boolean).join(' ').toLowerCase();
+}
+
+function ipRecordSearchText(record) {
+  return [
+    record.id, record.ip, record.city, record.country, record.isp, record.networkType, record.residentialStatus,
+    record.vpnProxyTor, record.firstSeen, record.lastSeen, record.velocity, record.crossCasePresence, record.lookupResult,
+    ...(record.historicalLocations ?? []), ...(record.observedSessions ?? []), ...(record.observedDevices ?? []),
+    ...(record.observedLogins ?? []), ...(record.relatedRecords ?? []),
+  ].filter(Boolean).join(' ').toLowerCase();
+}
+
+function IPIntelligenceWorkspace({
+  activeCase,
+  query,
+  setQuery,
+  pin,
+  saveNote,
+  saveCaseReportPacket,
+  markReviewed,
+  reviewed,
+  openTool,
+  jumpDecision,
+}) {
+  const [selectedIpId, setSelectedIpId] = useState('');
+  const records = getIpRecords(activeCase);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredRecords = records.filter((record) => !normalizedQuery || ipRecordSearchText(record).includes(normalizedQuery));
+  const activeRecord = filteredRecords.find((record) => record.id === selectedIpId) ?? filteredRecords[0] ?? records[0];
+  const lookupHasRun = normalizedQuery.length > 0;
+  const sessionCount = records.reduce((count, record) => count + record.observedSessions.length, 0);
+  const deviceCount = new Set(records.flatMap((record) => record.observedDevices)).size;
+
+  useEffect(() => {
+    setSelectedIpId('');
+  }, [activeCase.id]);
+
+  function hiddenUntilLookup(value) {
+    return lookupHasRun ? value : 'Run an IP lookup to reveal';
+  }
+
+  function saveIpNote(message) {
+    saveNote(`IP Intelligence: ${message}`, 'IP intelligence');
+  }
+
+  function saveIpPacket() {
+    if (!activeRecord) return;
+    saveCaseReportPacket({
+      id: activeRecord.id,
+      label: 'IP intelligence',
+      pin: activeRecord.ip,
+      detail: `${activeRecord.ip} · ${lookupHasRun ? activeRecord.lookupResult : 'lookup not run'}`,
+      values: [
+        activeRecord.id,
+        activeRecord.ip,
+        lookupHasRun ? activeRecord.city : 'Lookup not run',
+        lookupHasRun ? activeRecord.country : 'Lookup not run',
+        lookupHasRun ? activeRecord.isp : 'Lookup not run',
+        lookupHasRun ? activeRecord.networkType : 'Lookup not run',
+        lookupHasRun ? activeRecord.vpnProxyTor : 'Lookup not run',
+      ],
+    });
+  }
+
+  return (
+    <>
+      <section className="ip-intel-findbar" aria-label="Find IP intelligence information">
+        <div>
+          <p>IP lookup</p>
+          <h3>Search an IP, city, ISP, network type, session, device, or location to reveal network intelligence.</h3>
+        </div>
+        <label>
+          <span>Search IP Intelligence</span>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Try: 198.51.100.42, residential, ISP, Arlington, proxy..."
+            aria-label="Search IP Intelligence records"
+          />
+        </label>
+        <span aria-live="polite">{lookupHasRun ? `${filteredRecords.length} of ${records.length} records shown` : 'Lookup required'}</span>
+      </section>
+
+      <section className="ip-intel-summary" aria-label="IP intelligence summary">
+        {[
+          ['Raw IP records', records.length], ['Linked sessions', sessionCount], ['Observed devices', deviceCount],
+          ['Lookup state', lookupHasRun ? 'Complete' : 'Required'], ['Related logins', records.reduce((count, record) => count + record.observedLogins.length, 0)], ['Active case', activeCase.id],
+        ].map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}
+      </section>
+
+      {activeRecord ? (
+        <>
+          <div className="ip-intel-workspace">
+            <section className="ip-record-list" aria-label="IP intelligence records">
+              <header><p>Raw IP records</p><h3>Choose an IP to look up</h3></header>
+              {(lookupHasRun ? filteredRecords : records).map((record) => (
+                <button
+                  key={record.id}
+                  type="button"
+                  className={record.id === activeRecord.id ? 'active' : ''}
+                  onClick={() => setSelectedIpId(record.id)}
+                  data-ip-intelligence-record={record.id}
+                >
+                  <span>{record.id}</span>
+                  <strong>{record.ip}</strong>
+                  <small>{record.observedSessions.length} session{record.observedSessions.length === 1 ? '' : 's'} · {lookupHasRun ? record.lookupResult : 'lookup needed'}</small>
+                </button>
+              ))}
+              {lookupHasRun && !filteredRecords.length && <div className="investigation-tool-empty" role="status">No IP intelligence records match this lookup.</div>}
+            </section>
+
+            <section className="ip-detail-panel" aria-label="Expanded IP intelligence detail">
+              <header>
+                <div><p>Network lookup</p><h3>{activeRecord.ip}</h3><span>{hiddenUntilLookup(activeRecord.lookupResult)}</span></div>
+                <button type="button" onClick={() => pin(activeRecord.ip)}>Pin IP address</button>
+              </header>
+              <dl className="ip-detail-grid">
+                {[
+                  ['City / country', `${activeRecord.city}, ${activeRecord.country}`], ['ISP', activeRecord.isp], ['Network type', activeRecord.networkType],
+                  ['Residential status', activeRecord.residentialStatus], ['VPN / proxy / TOR', activeRecord.vpnProxyTor], ['First seen', activeRecord.firstSeen],
+                  ['Last seen', activeRecord.lastSeen], ['Velocity', activeRecord.velocity], ['Seen elsewhere', activeRecord.crossCasePresence],
+                ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{hiddenUntilLookup(value)}</dd></div>)}
+              </dl>
+              <section className="ip-observation-panel" aria-label="Observed IP records">
+                <article><span>Recorded sessions</span><strong>{activeRecord.observedSessions.join(' · ')}</strong></article>
+                <article><span>Recorded devices</span><strong>{activeRecord.observedDevices.join(' · ')}</strong></article>
+                <article><span>Location history</span><strong>{hiddenUntilLookup(activeRecord.historicalLocations.join(' · '))}</strong></article>
+              </section>
+            </section>
+          </div>
+
+          <section className="ip-intel-lower-grid" aria-label="IP intelligence history and related evidence">
+            <article className="ip-location-panel">
+              <header><p>Location Sequence</p><h3>Evidence to compare</h3></header>
+              <div>
+                {activeRecord.observedLogins.map((login, index) => <span key={login}>{login} · {activeRecord.observedSessions[index] ?? 'Session recorded'} · {hiddenUntilLookup(activeRecord.historicalLocations[index] ?? activeRecord.historicalLocations[0])}</span>)}
+              </div>
+            </article>
+            <article className="ip-related-panel">
+              <header><p>Related Records</p><h3>Cross-reference points</h3></header>
+              <div>{activeRecord.relatedRecords.map((item) => <span key={item}>{item}</span>)}</div>
+            </article>
+            <article className="ip-notes-panel">
+              <header><p>Investigator Notes</p><h3>Evidence-first reminder</h3></header>
+              <p>{activeRecord.investigatorUse}</p>
+              <div>
+                <button type="button" onClick={() => saveIpNote(`${activeRecord.ip} reviewed: ${lookupHasRun ? activeRecord.lookupResult : 'lookup not run'}`)}>Save IP note</button>
+                <button type="button" onClick={saveIpPacket}>Save neutral packet</button>
+              </div>
+            </article>
+          </section>
+        </>
+      ) : <div className="investigation-tool-empty" role="status">No IP intelligence records are available for this case.</div>}
+
+      <nav className="investigation-tool-next-routes" aria-label="IP intelligence next routes">
+        <button type="button" onClick={() => openTool('Login History')}>Open Login History</button>
+        <button type="button" onClick={() => openTool('Session History')}>Open Session History</button>
+        <button type="button" onClick={() => openTool('Device Intelligence')}>Open Device Intelligence</button>
+        <button type="button" onClick={() => openTool('Customer 360')}>Open Customer 360</button>
+        <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
+        <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
+      </nav>
+
+      <footer className="investigation-tool-review-bar">
+        <div><strong>IP Intelligence review</strong><span>Mark reviewed after running the lookup, checking network context, and comparing it to the linked login, session, device, and timeline evidence.</span></div>
+        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('IP Intelligence')}>
+          {reviewed ? '✓ IP Intelligence reviewed' : 'Mark IP Intelligence reviewed'}
+        </button>
+      </footer>
+    </>
+  );
 }
 
 function SessionHistoryWorkspace({
@@ -1066,6 +1237,19 @@ export default function InvestigationToolPanel({
           markReviewed={markReviewed}
           reviewed={reviewed}
           openTool={openTool}
+        />
+      ) : tool === 'IP Intelligence' ? (
+        <IPIntelligenceWorkspace
+          activeCase={activeCase}
+          query={query}
+          setQuery={setQuery}
+          pin={pin}
+          saveNote={saveNote}
+          saveCaseReportPacket={saveCaseReportPacket}
+          markReviewed={markReviewed}
+          reviewed={reviewed}
+          openTool={openTool}
+          jumpDecision={jumpDecision}
         />
       ) : tool === 'Payment Verification' ? (
         <PaymentVerificationWorkspace
