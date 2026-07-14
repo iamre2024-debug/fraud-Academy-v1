@@ -1,201 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import { buildBusinessProfile } from './data/businessProfiles.js';
+import ReportSectionNavigator from './ReportSectionNavigator.jsx';
 
-function normalize(value) {
-  return String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
-}
+function normalize(value) { return String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' '); }
+function BusinessReportList({ items = [] }) { return <div className="business-report-list">{items.map((item,index)=><article key={`${item.value}-${index}`}><strong>{item.value}</strong><span>{item.detail}</span></article>)}{!items.length&&<p>No separate record was supplied by the fictional business source.</p>}</div>; }
+function sectionsFor(profile){return[
+{id:'profile',title:'Business Profile',subtitle:'Registration, entity, address, and contact records',items:profile.profileSummary},{id:'operations',title:'Business Operations',subtitle:'Industry and operating context from the case packet',items:profile.operations},{id:'relationships',title:'Business Relationships',subtitle:'Merchant, employer, processor, and payment relationships',items:profile.relationships},{id:'contacts',title:'Contacts and Employee Records',subtitle:'Training-only business and employee contact sources',items:profile.contacts},{id:'payments',title:'Payment Relationships',subtitle:'Bank Code, Destination ID, instrument, and verification links',items:profile.paymentRelationships},{id:'payroll',title:'Payroll History',subtitle:'Payroll records when the business relationship includes them',items:profile.payroll},{id:'public',title:'Public Records Snapshot',subtitle:'Neutral fictional registration and source availability',items:profile.publicRecords},{id:'documents',title:'Supporting Documents',subtitle:'Documents connected to the business relationship',items:profile.documents},{id:'timeline',title:'Related Timeline Events',subtitle:'Case events that reference business, transaction, or payment objects',items:profile.timeline},];}
 
-function BusinessReportList({ items = [] }) {
-  return (
-    <div className="business-report-list">
-      {items.map((item, index) => (
-        <article key={`${item.value}-${index}`}>
-          <strong>{item.value}</strong>
-          <span>{item.detail}</span>
-        </article>
-      ))}
-      {!items.length && <p>No separate record was supplied by the fictional business source.</p>}
-    </div>
-  );
-}
-
-function sectionsFor(profile) {
-  return [
-    { id: 'profile', title: 'Business Profile', subtitle: 'Registration, entity, address, and contact records', items: profile.profileSummary },
-    { id: 'operations', title: 'Business Operations', subtitle: 'Industry and operating context from the case packet', items: profile.operations },
-    { id: 'relationships', title: 'Business Relationships', subtitle: 'Merchant, employer, processor, and payment relationships', items: profile.relationships },
-    { id: 'contacts', title: 'Contacts and Employee Records', subtitle: 'Training-only business and employee contact sources', items: profile.contacts },
-    { id: 'payments', title: 'Payment Relationships', subtitle: 'Bank Code, Destination ID, instrument, and verification links', items: profile.paymentRelationships },
-    { id: 'payroll', title: 'Payroll History', subtitle: 'Payroll records when the business relationship includes them', items: profile.payroll },
-    { id: 'public', title: 'Public Records Snapshot', subtitle: 'Neutral fictional registration and source availability', items: profile.publicRecords },
-    { id: 'documents', title: 'Supporting Documents', subtitle: 'Documents connected to the business relationship', items: profile.documents },
-    { id: 'timeline', title: 'Related Timeline Events', subtitle: 'Case events that reference business, transaction, or payment objects', items: profile.timeline },
-  ];
-}
-
-export default function BusinessIntelligencePanel({
-  activeCase,
-  openTool,
-  pin,
-  saveNote,
-  saveCaseReportPacket,
-  markReviewed,
-  currentCompleted,
-  jumpDecision,
-}) {
-  const [searchMode, setSearchMode] = useState('businessId');
-  const [businessName, setBusinessName] = useState('');
-  const [secondary, setSecondary] = useState('');
-  const [searched, setSearched] = useState(false);
-  const [matched, setMatched] = useState(false);
-  const [showReport, setShowReport] = useState(false);
-  const profile = useMemo(() => buildBusinessProfile(activeCase), [activeCase]);
-  const sections = useMemo(() => sectionsFor(profile), [profile]);
-  const reviewed = currentCompleted.includes('Business Intelligence');
-
-  useEffect(() => {
-    setBusinessName('');
-    setSecondary('');
-    setSearched(false);
-    setMatched(false);
-    setShowReport(false);
-  }, [activeCase.id]);
-
-  const modeDetails = {
-    businessId: { label: 'Training Business ID', placeholder: 'Enter Training Business ID', expected: profile.businessId },
-    phone: { label: 'Business phone', placeholder: 'Enter business phone', expected: profile.phone },
-    address: { label: 'Business address', placeholder: 'Enter business address', expected: profile.address },
-  };
-  const mode = modeDetails[searchMode];
-
-  function runSearch(event) {
-    event.preventDefault();
-    const found = normalize(businessName) === normalize(profile.name)
-      && normalize(secondary) === normalize(mode.expected);
-    setSearched(true);
-    setMatched(found);
-    setShowReport(false);
-  }
-
-  function clearSearch() {
-    setBusinessName('');
-    setSecondary('');
-    setSearched(false);
-    setMatched(false);
-    setShowReport(false);
-  }
-
-  function saveReport() {
-    saveCaseReportPacket({
-      id: `${activeCase.id}-BUSINESS-REPORT`,
-      label: 'Business Intelligence full report',
-      pin: profile.businessId,
-      values: [
-        `${activeCase.id}-BUSINESS-REPORT`,
-        'Full business report',
-        profile.name,
-        profile.businessId,
-        `${sections.length} report sections`,
-        activeCase.id,
-        'Save',
-      ],
-      detail: `Business Intelligence full report for ${profile.name}. Training Business ID ${profile.businessId}. ${sections.length} neutral source sections reviewed.`,
-    });
-  }
-
-  return (
-    <section className="ornate-card activity-panel business-intelligence-panel" data-business-intelligence-screen="lookup-report-v1" data-tool-name="Business Intelligence">
-      <header className="business-intelligence-header">
-        <div>
-          <p>Business Intelligence · Evidence First</p>
-          <h2>Business Search</h2>
-          <span>Search the fictional business source before opening the full KYB-style training report.</span>
-        </div>
-        <div>
-          <strong>{activeCase.id}</strong>
-          <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
-        </div>
-      </header>
-
-      <form className="business-search-card" onSubmit={runSearch}>
-        <fieldset>
-          <legend>Choose search method</legend>
-          <label><input type="radio" name="business-search-mode" checked={searchMode === 'businessId'} onChange={() => { setSearchMode('businessId'); setSecondary(''); }} /> Business name + Training Business ID</label>
-          <label><input type="radio" name="business-search-mode" checked={searchMode === 'phone'} onChange={() => { setSearchMode('phone'); setSecondary(''); }} /> Business name + phone</label>
-          <label><input type="radio" name="business-search-mode" checked={searchMode === 'address'} onChange={() => { setSearchMode('address'); setSecondary(''); }} /> Business name + address</label>
-        </fieldset>
-
-        <div className="business-search-fields">
-          <label>
-            <span>Business name</span>
-            <input value={businessName} onChange={(event) => setBusinessName(event.target.value)} placeholder="Enter legal business name" autoComplete="off" />
-          </label>
-          <label>
-            <span>{mode.label}</span>
-            <input value={secondary} onChange={(event) => setSecondary(event.target.value)} placeholder={mode.placeholder} autoComplete="off" />
-          </label>
-        </div>
-        <p>Use values gathered from Business 360, Payment Verification, Employee Profile, or the case packet.</p>
-        <div className="business-search-actions">
-          <button type="submit">Run Business Search</button>
-          <button type="button" onClick={clearSearch}>Clear Search</button>
-        </div>
-      </form>
-
-      {searched && (
-        <section className={`business-search-result ${matched ? 'matched' : 'not-matched'}`} aria-live="polite">
-          <header><div><p>Search result</p><h3>{matched ? 'Business Match Summary' : 'No matching business found'}</h3></div><span>{matched ? '1 business' : '0 businesses'}</span></header>
-          <p>{matched ? 'One fictional business profile matched both search fields.' : 'No fictional business profile matched both search fields. Check the legal name and secondary field.'}</p>
-          {matched && (
-            <>
-              <dl>
-                <div><dt>Legal business name</dt><dd>{profile.name}</dd></div>
-                <div><dt>Training Business ID</dt><dd>{profile.businessId}</dd></div>
-                <div><dt>Status</dt><dd>{profile.status}</dd></div>
-                <div><dt>Entity / industry</dt><dd>{profile.entityType} · {profile.industry}</dd></div>
-                <div><dt>Address</dt><dd>{profile.address}</dd></div>
-                <div><dt>Contact</dt><dd>{profile.phone} · {profile.email}</dd></div>
-              </dl>
-              <button type="button" className="business-view-report" onClick={() => setShowReport(true)}>View Full Business Report</button>
-            </>
-          )}
-        </section>
-      )}
-
-      {matched && showReport && (
-        <section className="business-full-report" data-business-full-report>
-          <header>
-            <div><p>Business Intelligence</p><h3>Full Business Report</h3><span>{profile.name} · {profile.businessId} · fictional training sources</span></div>
-            <button type="button" onClick={() => pin(`${profile.businessId} · ${profile.name}`)}>Pin business</button>
-          </header>
-          <section className="business-report-summary">
-            <article><span>Report sections</span><strong>{sections.length}</strong></article>
-            <article><span>Relationships</span><strong>{profile.relationships.length}</strong></article>
-            <article><span>Contacts</span><strong>{profile.contacts.length}</strong></article>
-            <article><span>Documents</span><strong>{profile.documents.length}</strong></article>
-          </section>
-          <div className="business-report-sections">
-            {sections.map((section) => (
-              <section key={section.id} data-business-report-section={section.id}>
-                <header><p>{section.subtitle}</p><h4>{section.title}</h4></header>
-                <BusinessReportList items={section.items} />
-              </section>
-            ))}
-          </div>
-          <nav className="business-related-tools" aria-label="Business report related tools">
-            <button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button>
-            <button type="button" onClick={() => openTool('Employee Profile')}>Open Employee Profile</button>
-            <button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button>
-            <button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button>
-            <button type="button" onClick={() => openTool('Document Viewer')}>Open Documents</button>
-          </nav>
-          <div className="business-report-actions">
-            <button type="button" onClick={() => saveNote(`Business Intelligence report reviewed for ${profile.name} · ${profile.businessId}.`, 'Business report')}>Save report note</button>
-            <button type="button" onClick={saveReport}>Save report to evidence packet</button>
-            <button type="button" onClick={() => markReviewed('Business Intelligence')}>{reviewed ? '✓ Business Intelligence reviewed' : 'Mark Business Intelligence reviewed'}</button>
-          </div>
-        </section>
-      )}
-    </section>
-  );
-}
+export default function BusinessIntelligencePanel({activeCase,openTool,pin,saveNote,saveCaseReportPacket,markReviewed,currentCompleted,jumpDecision}){
+const[searchMode,setSearchMode]=useState('businessId');const[businessName,setBusinessName]=useState('');const[secondary,setSecondary]=useState('');const[searched,setSearched]=useState(false);const[matched,setMatched]=useState(false);const[showReport,setShowReport]=useState(false);const profile=useMemo(()=>buildBusinessProfile(activeCase),[activeCase]);const sections=useMemo(()=>sectionsFor(profile),[profile]);const reviewed=currentCompleted.includes('Business Intelligence');
+useEffect(()=>{setBusinessName('');setSecondary('');setSearched(false);setMatched(false);setShowReport(false);},[activeCase.id]);
+const modeDetails={businessId:{label:'Training Business ID',placeholder:'Enter Training Business ID',expected:profile.businessId},phone:{label:'Business phone',placeholder:'Enter business phone',expected:profile.phone},address:{label:'Business address',placeholder:'Enter business address',expected:profile.address}};const mode=modeDetails[searchMode];
+function runSearch(event){event.preventDefault();const found=normalize(businessName)===normalize(profile.name)&&normalize(secondary)===normalize(mode.expected);setSearched(true);setMatched(found);setShowReport(false);}
+function clearSearch(){setBusinessName('');setSecondary('');setSearched(false);setMatched(false);setShowReport(false);}
+function saveReport(){saveCaseReportPacket({id:`${activeCase.id}-BUSINESS-REPORT`,label:'Business Intelligence full report',pin:profile.businessId,values:[`${activeCase.id}-BUSINESS-REPORT`,'Full business report',profile.name,profile.businessId,`${sections.length} report sections`,activeCase.id,'Save'],detail:`Business Intelligence full report for ${profile.name}. Training Business ID ${profile.businessId}. ${sections.length} neutral source sections reviewed.`});}
+return <section className="ornate-card activity-panel business-intelligence-panel" data-business-intelligence-screen="lookup-report-v1" data-tool-name="Business Intelligence">
+<header className="business-intelligence-header"><div><p>Business Intelligence · Evidence First</p><h2>Business Search</h2><span>Search the fictional business source before opening the full KYB-style training report.</span></div><div><strong>{activeCase.id}</strong><button type="button" onClick={jumpDecision}>Open Submit Decision</button></div></header>
+<form className="business-search-card" onSubmit={runSearch}><fieldset><legend>Choose search method</legend><label><input type="radio" name="business-search-mode" checked={searchMode==='businessId'} onChange={()=>{setSearchMode('businessId');setSecondary('');}}/> Business name + Training Business ID</label><label><input type="radio" name="business-search-mode" checked={searchMode==='phone'} onChange={()=>{setSearchMode('phone');setSecondary('');}}/> Business name + phone</label><label><input type="radio" name="business-search-mode" checked={searchMode==='address'} onChange={()=>{setSearchMode('address');setSecondary('');}}/> Business name + address</label></fieldset><div className="business-search-fields"><label><span>Business name</span><input value={businessName} onChange={e=>setBusinessName(e.target.value)} placeholder="Enter legal business name" autoComplete="off"/></label><label><span>{mode.label}</span><input value={secondary} onChange={e=>setSecondary(e.target.value)} placeholder={mode.placeholder} autoComplete="off"/></label></div><p>Use values gathered from Business 360, Payment Verification, Employee Profile, or the case packet.</p><div className="business-search-actions"><button type="submit">Run Business Search</button><button type="button" onClick={clearSearch}>Clear Search</button></div></form>
+{searched&&<section className={`business-search-result ${matched?'matched':'not-matched'}`} aria-live="polite"><header><div><p>Search result</p><h3>{matched?'Business Match Summary':'No matching business found'}</h3></div><span>{matched?'1 business':'0 businesses'}</span></header><p>{matched?'One fictional business profile matched both search fields.':'No fictional business profile matched both search fields. Check the legal name and secondary field.'}</p>{matched&&<><dl><div><dt>Legal business name</dt><dd>{profile.name}</dd></div><div><dt>Training Business ID</dt><dd>{profile.businessId}</dd></div><div><dt>Status</dt><dd>{profile.status}</dd></div><div><dt>Entity / industry</dt><dd>{profile.entityType} · {profile.industry}</dd></div><div><dt>Address</dt><dd>{profile.address}</dd></div><div><dt>Contact</dt><dd>{profile.phone} · {profile.email}</dd></div></dl><button type="button" className="business-view-report" onClick={()=>setShowReport(true)}>View Full Business Report</button></>}</section>}
+{matched&&showReport&&<section className="business-full-report" data-business-full-report><header><div><p>Business Intelligence</p><h3>Full Business Report</h3><span>{profile.name} · {profile.businessId} · fictional training sources</span></div><button type="button" onClick={()=>pin(`${profile.businessId} · ${profile.name}`,{id:`${activeCase.id}-business`,sourceTool:'Business Intelligence'})}>Pin business</button></header><section className="business-report-summary"><article><span>Report sections</span><strong>{sections.length}</strong></article><article><span>Relationships</span><strong>{profile.relationships.length}</strong></article><article><span>Contacts</span><strong>{profile.contacts.length}</strong></article><article><span>Documents</span><strong>{profile.documents.length}</strong></article></section><ReportSectionNavigator sections={sections} className="business-report-sections" sectionAttribute="data-business-report-section" renderItems={items=><BusinessReportList items={items}/>}/><nav className="business-related-tools" aria-label="Business report related tools"><button type="button" onClick={()=>openTool('Business 360')}>Open Business 360</button><button type="button" onClick={()=>openTool('Employee Profile')}>Open Employee Profile</button><button type="button" onClick={()=>openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={()=>openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={()=>openTool('Document Viewer')}>Open Documents</button></nav><div className="business-report-actions"><button type="button" onClick={()=>saveNote(`Business Intelligence report reviewed for ${profile.name} · ${profile.businessId}.`,'Business report')}>Save report note</button><button type="button" onClick={saveReport}>Save report to evidence packet</button><button type="button" onClick={()=>markReviewed('Business Intelligence')}>{reviewed?'✓ Business Intelligence reviewed':'Mark Business Intelligence reviewed'}</button></div></section>}
+</section>;}
