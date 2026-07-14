@@ -15,7 +15,7 @@ export default function CategoryTileRail({
           <div>
             <p>Contextual investigation tools</p>
             <h2>Choose the next evidence question</h2>
-            <small>Open one focused group at a time. Timeline and Case Report stay in the active-case workflow.</small>
+            <small>Open one focused group at a time. Timeline stays in the active-case workflow.</small>
           </div>
           <button type="button" onClick={() => onNavigate('academy')}>Open Tool Map</button>
         </header>
