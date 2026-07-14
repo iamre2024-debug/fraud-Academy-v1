@@ -35,6 +35,9 @@ import './displayProfileThemeV1Safety.css';
 import './displayFinalResponsivePolishV1.css';
 import './mobileToolCleanupV2.css';
 import './identityIntelligencePanel.css';
+import './businessIntelligencePanel.css';
+import './paymentVerificationPanel.css';
+import './loginHistoryPanel.css';
 import './customer360AttachedPages.css';
 
 createRoot(document.getElementById('root')).render(
