@@ -12,10 +12,10 @@ export const categories = [
   { key: 'business', label: 'Business', icon: '⌂', tools: ['Business 360', 'Business Intelligence', 'Employee Profile', 'Payroll History'] },
   { key: 'evidence', label: 'Evidence', icon: '▰', tools: ['Evidence Center', 'Document Viewer'] },
   { key: 'connections', label: 'Connections', icon: '⌘', tools: ['Link Analysis', 'System Access Lane'] },
-  { key: 'investigation', label: 'Investigation', icon: '⌕', tools: ['Timeline', 'Case Report'] },
+  { key: 'investigation', label: 'Investigation', icon: '⌕', tools: ['Timeline'] },
 ];
 
-export const workflows = ['Record', 'Expand', 'Search', 'History', 'Link Analysis', 'Generate Report', 'Timeline', 'Case Report'];
+export const workflows = ['Record', 'Expand', 'Search', 'History', 'Link Analysis', 'Pin Evidence', 'Timeline', 'Submit Decision'];
 
 export const storageKeys = {
   tray: 'fraud-academy-visual-tray-v1',
@@ -23,7 +23,6 @@ export const storageKeys = {
   completed: 'fraud-academy-completed-tools-v1',
   decisions: 'fraud-academy-decision-drafts-v1',
   packages: 'fraud-academy-review-packages-v1',
-  reportPackets: 'fraud-academy-case-report-packets-v1',
 };
 
 export const defaultDecisionDraft = { choice: '', confidence: 'Medium', reason: '' };
@@ -48,7 +47,7 @@ function makeRow(id, values, pin = id, label = 'Record') {
   return { id, values: normalized, pin, label, detail: normalized.join(' ') };
 }
 
-export function rowsFor(tool, activeCase, reportPackets = []) {
+export function rowsFor(tool, activeCase) {
   const financial = financialRecordsByCase[activeCase.id] ?? { transactions: [], financialIntel: [], paymentVerification: [] };
   const business = businessRecordsByCase[activeCase.id] ?? { business360: [], businessIntel: [], employeeProfile: [], payrollHistory: [] };
   const evidence = evidenceRecordsByCase[activeCase.id] ?? { evidence: [], documents: [] };
@@ -195,38 +194,8 @@ export function rowsFor(tool, activeCase, reportPackets = []) {
     };
   }
 
-  if (tool === 'Case Report') {
-    return {
-      columns: ['Report', 'Section', 'Value', 'State', 'Case', 'Source', 'Action'],
-      rows: [
-        makeRow('REP-CASE', ['REP-CASE', 'Case reason', activeCase.allegation, 'Draft available', activeCase.id, 'Case Summary', 'Pin'], activeCase.id, 'Report section'),
-        makeRow('REP-CLAIM', ['REP-CLAIM', 'Claim intake', `${activeCase.claimId ?? activeCase.id} · ${activeCase.amount} · ${activeCase.transactionInfo ?? activeCase.type}`, 'Draft available', activeCase.id, 'Case Summary', 'Pin'], activeCase.id, 'Report section'),
-        makeRow('REP-CUSTOMER', ['REP-CUSTOMER', 'Customer', `${activeCase.person} · ${activeCase.trainingId}`, 'Snapshot available', activeCase.id, 'Customer 360', 'Pin'], activeCase.trainingId, 'Report section'),
-        makeRow('REP-DIGITAL', ['REP-DIGITAL', 'Digital activity', `${activeCase.loginHistory.length} login records and ${activeCase.events.length} events`, 'Review available', activeCase.id, 'Digital Activity', 'Pin'], activeCase.id, 'Report section'),
-        ...reportPackets.map((packet) => makeRow(packet.id, [packet.id, packet.section, `${packet.title} · ${packet.summary}`, packet.state, activeCase.id, packet.sourceTool, 'Pin'], packet.id, 'Report packet')),
-        makeRow('REP-LOCK', ['REP-LOCK', 'Submit Decision', 'Luna debrief and scoring stay locked until learner package submission.', 'Locked', activeCase.id, 'Submit Decision', 'Pin'], activeCase.id, 'Report section'),
-      ],
-    };
-  }
-
   return {
     columns: ['Event', 'Time', 'Result', 'Device', 'IP', 'Location', 'Method'],
     rows: activeCase.loginHistory.map((item) => makeRow(item.id, [item.id, item.time, item.result, item.device, item.ip, item.location, item.method], item.ip, 'IP')),
-  };
-}
-
-export function buildPacket(row, tool, activeCase) {
-  const savedAt = new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  return {
-    id: `PKT-${Date.now()}`,
-    key: `${tool}:${row.id}`,
-    caseId: activeCase.id,
-    recordId: row.id,
-    sourceTool: tool,
-    section: `${tool} packet`,
-    title: String(row.values[2] ?? row.values[1] ?? row.id).replace(/\n/g, ' · '),
-    summary: row.detail,
-    state: 'Saved to Case Report draft',
-    savedAt,
   };
 }
