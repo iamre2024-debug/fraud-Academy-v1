@@ -165,6 +165,17 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await groupRail.getByRole('button', { name: /Transactions & Financial/ }).click();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Transaction History');
   await expect(toolPanel.getByRole('heading', { name: 'Transaction History', exact: true })).toBeVisible();
+  await expect(toolPanel.locator('.transaction-history-summary article')).toHaveCount(4);
+  const transactionSearch = toolPanel.getByRole('textbox', { name: 'Search Transaction History' });
+  await transactionSearch.fill('Northstar');
+  await expect(toolPanel.locator('[data-transaction-history-record]')).toHaveCount(1);
+  await transactionSearch.clear();
+  await toolPanel.locator('[data-transaction-history-record]').first().click();
+  await toolPanel.getByRole('button', { name: 'Pin transaction', exact: true }).click();
+  await toolPanel.getByRole('button', { name: 'Save transaction note', exact: true }).click();
+  await expect(page.locator('.notebook-card')).toContainText('Transaction History');
+  await toolPanel.getByRole('button', { name: 'Mark Transaction History reviewed', exact: true }).click();
+  await expect(toolPanel.getByRole('button', { name: '✓ Transaction History reviewed', exact: true })).toBeVisible();
 
   await groupRail.getByRole('button', { name: /Business & Payment Verification/ }).click();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Payment Verification');
@@ -172,6 +183,26 @@ test('approved Investigation tools are contextual, functional, and responsive', 
 
   await toolPanel.getByRole('button', { name: 'Mark Payment Verification reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ Payment Verification reviewed', exact: true })).toBeVisible();
+
+  await toolSelect.selectOption('Business 360');
+  await expect(toolPanel.locator('.business-360-profile')).toBeVisible();
+  await expect(toolPanel.locator('[data-business-360-record]').first()).toBeVisible();
+  await toolPanel.getByRole('button', { name: 'Mark Business 360 reviewed', exact: true }).click();
+
+  await toolSelect.selectOption('Employee Profile');
+  await expect(toolPanel.locator('.employee-profile-summary article')).toHaveCount(4);
+  await toolPanel.getByRole('button', { name: 'Pin employee', exact: true }).click();
+  await toolPanel.getByRole('button', { name: 'Save employee note', exact: true }).click();
+  await toolPanel.getByRole('button', { name: 'Mark Employee Profile reviewed', exact: true }).click();
+
+  await toolSelect.selectOption('Payroll History');
+  await expect(toolPanel.locator('.payroll-history-summary article')).toHaveCount(4);
+  await toolPanel.locator('[data-payroll-history-record]').first().click();
+  await toolPanel.getByRole('button', { name: 'Pin payroll record', exact: true }).click();
+  await toolPanel.getByRole('button', { name: 'Save payroll note', exact: true }).click();
+  await toolPanel.getByRole('button', { name: 'Mark Payroll History reviewed', exact: true }).click();
+
+  await toolSelect.selectOption('Payment Verification');
 
   await toolPanel.getByRole('navigation', { name: 'Payment verification next routes' })
     .getByRole('button', { name: 'Open Timeline', exact: true })
