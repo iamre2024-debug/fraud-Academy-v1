@@ -16,6 +16,7 @@ const identityStyles = fs.readFileSync(path.join(rootDir, 'src/identityIntellige
 const businessStyles = fs.readFileSync(path.join(rootDir, 'src/businessIntelligencePanel.css'), 'utf8');
 const paymentStyles = fs.readFileSync(path.join(rootDir, 'src/paymentVerificationPanel.css'), 'utf8');
 const loginStyles = fs.readFileSync(path.join(rootDir, 'src/loginHistoryPanel.css'), 'utf8');
+const layoutPatch = fs.readFileSync(path.join(rootDir, 'src/standaloneDecisionAndPaymentLayout.css'), 'utf8');
 const switcher = fs.readFileSync(path.join(rootDir, 'src/DedicatedToolSwitcher.jsx'), 'utf8');
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/investigation-tools-browser.spec.mjs'), 'utf8');
@@ -75,10 +76,19 @@ for (const anchor of [
 
 for (const anchor of [
   'data-payment-verification-screen="lookup-packet-v1"',
-  'Verification Object Lookup',
-  'Run Verification Lookup',
-  'Verification Match Summary',
-  'View Full Verification Packet',
+  'Search Payment Information',
+  'Find Payment Verification lookup values',
+  'Open Financial Intelligence',
+  'Open Transactions',
+  'Open Customer 360',
+  'Destination ID',
+  'training bank account number',
+  'Bank Code',
+  'training routing number',
+  'Account owner name',
+  'Verification Results',
+  'Yes · Name match',
+  'Open full details',
   'Full Verification Packet',
   'Ownership Comparison',
   'Prior Payroll Use',
@@ -97,13 +107,7 @@ for (const anchor of [
   'Open IP Intelligence',
 ]) mustContain('LoginHistoryPanel.jsx', loginPanel, anchor);
 
-for (const forbidden of [
-  'Background detail report',
-  'fraud score',
-  'Red flag',
-  'Green flag',
-  'AI recommendation',
-]) {
+for (const forbidden of ['Background detail report', 'fraud score', 'Red flag', 'Green flag', 'AI recommendation']) {
   for (const [label, content] of [
     ['IdentityIntelligencePanel.jsx', identityPanel],
     ['BusinessIntelligencePanel.jsx', businessPanel],
@@ -177,6 +181,7 @@ for (const [label, content, anchors] of [
   ['businessIntelligencePanel.css', businessStyles, ['.business-search-card', '.business-full-report', '@media(max-width:720px)']],
   ['paymentVerificationPanel.css', paymentStyles, ['.payment-lookup-card', '.payment-full-packet', '@media(max-width:720px)']],
   ['loginHistoryPanel.css', loginStyles, ['.login-filter-card', '.login-history-workspace', '@media(max-width:720px)']],
+  ['standaloneDecisionAndPaymentLayout.css', layoutPatch, ['.payment-lookup-source', '.payment-lookup-fields label>span small', '@media(max-width:720px)']],
 ]) for (const anchor of anchors) mustContain(label, content, anchor);
 
 for (const cssImport of [
@@ -185,10 +190,13 @@ for (const cssImport of [
   "import './paymentVerificationPanel.css';",
   "import './loginHistoryPanel.css';",
   "import './dedicatedToolSwitcher.css';",
+  "import './standaloneDecisionAndPaymentLayout.css';",
 ]) mustContain('main.jsx', entrypoint, cssImport);
 
 mustContain('investigation-tools-browser.spec.mjs', browser, 'investigation tools preserve full lookup workflows, real records, Evidence First, and mobile layouts');
-mustContain('investigation-tools-browser.spec.mjs', browser, 'mobile-chromium');
+mustContain('investigation-tools-browser.spec.mjs', browser, 'Destination ID');
+mustContain('investigation-tools-browser.spec.mjs', browser, 'Bank Code');
+mustContain('investigation-tools-browser.spec.mjs', browser, 'Find Payment Verification lookup values');
 mustContain('Investigation tools handoff', handoff, 'agent/investigation-tools-approved-theme-v1');
 mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_INVESTIGATION_TOOLS_THEME_V1.md`');
 mustContain('README', readme, 'The approved Investigation tools handoff lives in');
@@ -214,4 +222,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Investigation tools smoke check passed. Identity and business searches, payment verification packets, filtered login/session review, generic record tools, responsive safety, Evidence First wording, and protected persistence boundaries remain intact.');
+console.log('Investigation tools smoke check passed. Payment Verification exposes where to find Destination ID and Bank Code, while identity, business, login, generic records, responsive safety, and Evidence First boundaries remain intact.');
