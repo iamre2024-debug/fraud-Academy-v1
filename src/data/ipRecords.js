@@ -1,3 +1,5 @@
+import { fullAccessTimestamp, hasCreatedSession, stableAccessNumber, uniqueAccessValues } from './accessHistoryUtils.js';
+
 const ipLookupDetails = {
   '198.51.100.42': { city: 'Dallas', country: 'United States', isp: 'Lone Star Fiber training network', networkType: 'Residential broadband', residentialStatus: 'Residential connection', vpnProxyTor: 'No VPN, proxy, or TOR indicator', firstSeen: 'Jan 18, 2026', lastSeen: 'Jul 8, 2026 10:42 AM', historicalLocations: ['Dallas, TX', 'Irving, TX'], velocity: '1 recorded session in the active 24-hour window', crossCasePresence: 'No other training profile match recorded', lookupResult: 'Known network context available' },
   '198.51.100.11': { city: 'Dallas', country: 'United States', isp: 'Metro Mobile Broadband training network', networkType: 'Mobile carrier network', residentialStatus: 'Carrier network', vpnProxyTor: 'No VPN, proxy, or TOR indicator', firstSeen: 'May 22, 2026', lastSeen: 'Jul 8, 2026 8:13 AM', historicalLocations: ['Dallas, TX'], velocity: '1 recorded session in the active 24-hour window', crossCasePresence: 'No other training profile match recorded', lookupResult: 'Known secondary network context available' },
@@ -14,11 +16,35 @@ const ipLookupDetails = {
   '192.0.2.21': { city: 'Arlington', country: 'United States', isp: 'Arlington Wireless training network', networkType: 'Mobile carrier network', residentialStatus: 'Carrier network', vpnProxyTor: 'No VPN, proxy, or TOR indicator', firstSeen: 'Jul 7, 2026 5:05 PM', lastSeen: 'Jul 7, 2026 5:18 PM', historicalLocations: ['Arlington, TX'], velocity: '2 recorded setup sessions in 13 minutes', crossCasePresence: 'No other training profile match recorded', lookupResult: 'Early-account network context available' },
 };
 
-function defaultDetails(ip) {
+function defaultDetails(activeCase, ip, logins) {
+  const seed = stableAccessNumber(`${activeCase.id}-${ip}`);
+  const locations = uniqueAccessValues(logins.map((login) => login.location));
+  const city = String(locations[0] ?? activeCase.intake?.customerLocation ?? 'Training city').split(',')[0].trim();
+  const networkTypes = ['Residential broadband', 'Mobile carrier network', 'Business broadband', 'Hosting network'];
+  const networkType = networkTypes[seed % networkTypes.length];
+  const ispNames = ['Northstar Fiber training network', 'Metro Mobile training network', 'Regional Business Net training network', 'Cloud Transit training network'];
+  const vpnProxyTor = seed % 7 === 0
+    ? 'Proxy indicator returned by fictional lookup'
+    : seed % 5 === 0
+      ? 'VPN endpoint indicator returned by fictional lookup'
+      : 'No VPN, proxy, or TOR indicator returned';
+  const sortedTimestamps = logins
+    .map((login) => fullAccessTimestamp(activeCase, login.time))
+    .sort((left, right) => Date.parse(left.replace('·', '')) - Date.parse(right.replace('·', '')));
+  const crossCaseCount = seed % 4;
   return {
-    city: 'Lookup needed', country: 'Lookup needed', isp: 'Lookup needed', networkType: 'Lookup needed', residentialStatus: 'Lookup needed',
-    vpnProxyTor: 'Lookup needed', firstSeen: 'Lookup needed', lastSeen: 'Lookup needed', historicalLocations: ['Lookup needed'],
-    velocity: 'Lookup needed', crossCasePresence: 'Lookup needed', lookupResult: `Network lookup for ${ip} needed`,
+    city,
+    country: 'United States',
+    isp: ispNames[seed % ispNames.length],
+    networkType,
+    residentialStatus: networkType === 'Residential broadband' ? 'Residential connection' : networkType === 'Mobile carrier network' ? 'Carrier connection' : networkType === 'Business broadband' ? 'Business connection' : 'Non-residential hosting connection',
+    vpnProxyTor,
+    firstSeen: sortedTimestamps[0] ?? activeCase.issueStartDate ?? activeCase.opened ?? 'Not recorded',
+    lastSeen: sortedTimestamps.at(-1) ?? activeCase.reportedDate ?? activeCase.opened ?? 'Not recorded',
+    historicalLocations: locations.length ? locations : [city],
+    velocity: `${logins.length} authentication event${logins.length === 1 ? '' : 's'} returned for this IP in the training history`,
+    crossCasePresence: crossCaseCount ? `${crossCaseCount} other fictional training profile match${crossCaseCount === 1 ? '' : 'es'} returned` : 'No other fictional training profile match returned',
+    lookupResult: `Network history returned for ${ip}`,
   };
 }
 
@@ -31,9 +57,9 @@ export function getIpRecords(activeCase) {
   }
 
   return [...grouped.entries()].map(([ip, logins]) => {
-    const detail = ipLookupDetails[ip] ?? defaultDetails(ip);
-    const sessions = logins.map((login) => login.session);
-    const devices = [...new Set(logins.map((login) => login.deviceId ?? login.device))];
+    const detail = ipLookupDetails[ip] ?? defaultDetails(activeCase, ip, logins);
+    const sessions = uniqueAccessValues(logins.filter(hasCreatedSession).map((login) => login.session));
+    const devices = uniqueAccessValues(logins.map((login) => login.deviceId ?? login.device));
     return {
       id: `IP-${ip}`,
       ip,
@@ -41,7 +67,8 @@ export function getIpRecords(activeCase) {
       observedSessions: sessions,
       observedDevices: devices,
       observedLogins: logins.map((login) => login.id),
-      relatedRecords: logins.flatMap((login) => [login.id, login.session, login.deviceId ?? login.device]),
+      observedLoginEvents: logins.map((login) => ({ id: login.id, time: fullAccessTimestamp(activeCase, login.time), result: login.result, session: hasCreatedSession(login) ? login.session : 'No session created', device: login.deviceId ?? login.device, location: login.location })),
+      relatedRecords: uniqueAccessValues(logins.flatMap((login) => [login.id, hasCreatedSession(login) ? login.session : null, login.deviceId ?? login.device])),
       investigatorUse: 'Use the lookup to compare network context with Login History, Session History, Device Intelligence, and the customer baseline. Network data is supporting evidence, not a standalone decision maker.',
     };
   });

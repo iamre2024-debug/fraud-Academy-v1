@@ -1,11 +1,13 @@
+import { accessDate, accessTime, fullAccessTimestamp, hasCreatedSession } from './accessHistoryUtils.js';
+
 const loginDetailsById = {
   'LOG-1008': {
     mfaStatus: 'Biometric completed', authChannel: 'Mobile app', browserSource: 'Bank app / Mobile Safari webview', sessionDuration: '15 minutes recorded',
     sessionBehavior: 'Profile email and card controls viewed in this session.', passwordResetLink: 'No password reset recorded in case window', profileChangeLink: 'PCH-1001 · PCH-1002', moneyMovementLink: 'EVT-1014 · Card purchase posted after session activity', investigatorUse: 'Compare this session sequence with the customer statement and transaction timing.',
   },
   'LOG-1005': {
-    mfaStatus: 'No additional MFA event recorded', authChannel: 'Mobile browser', browserSource: 'Chrome Mobile', sessionDuration: '9 minutes recorded',
-    sessionBehavior: 'Balance review and routine account navigation recorded.', passwordResetLink: 'No password reset recorded in case window', profileChangeLink: 'No profile change linked', moneyMovementLink: 'No money movement linked', investigatorUse: 'Use as a secondary-device comparison point before interpreting the disputed activity.',
+    mfaStatus: 'SMS code completed', authChannel: 'Mobile web', browserSource: 'Chrome Mobile', operatingSystem: 'Android 15', sessionDuration: '19 minutes recorded', logoutStatus: 'Normal logout recorded',
+    sessionBehavior: 'Security and profile-maintenance activity is available in linked Session History.', passwordResetLink: 'No password reset recorded in case window', profileChangeLink: 'PCH-1001 · PCH-1002', moneyMovementLink: 'No money movement linked', investigatorUse: 'Use this authentication event with the failed-attempt sequence and open Session History for post-login actions.',
   },
   'LOG-0998': {
     mfaStatus: 'Biometric completed', authChannel: 'Mobile app', browserSource: 'Bank app / Mobile Safari webview', sessionDuration: '7 minutes recorded',
@@ -61,13 +63,27 @@ const loginDetailsById = {
   },
 };
 
+function inferredOperatingSystem(login = {}) {
+  const text = `${login.device ?? ''} ${login.browserSource ?? ''}`.toLowerCase();
+  if (/iphone|safari/.test(text)) return 'iOS 18';
+  if (/android|chrome mobile/.test(text)) return 'Android 15';
+  if (/desktop chrome|desktop browser/.test(text)) return 'Windows 11';
+  return 'Not recorded in supplied login packet';
+}
+
 function defaultDetails(login) {
+  const sessionCreated = hasCreatedSession(login);
   return {
-    mfaStatus: 'Not recorded in supplied login packet',
+    eventType: /locked/i.test(login.result) ? 'Account lockout' : /failed|denied/i.test(login.result) ? 'Failed authentication' : 'Interactive login',
+    mfaStatus: sessionCreated ? 'Not recorded in supplied login packet' : 'MFA not reached',
     authChannel: 'Recorded login channel',
     browserSource: login.device,
-    sessionDuration: 'Not recorded',
-    sessionBehavior: 'Compare this login with linked session and case activity.',
+    operatingSystem: inferredOperatingSystem(login),
+    sessionDuration: sessionCreated ? 'Not recorded' : 'No session created',
+    logoutStatus: sessionCreated ? 'Not recorded' : 'No session created',
+    failedAttemptCount: /failed|denied/i.test(login.result) ? 1 : 0,
+    accountLockout: /locked/i.test(login.result) ? 'Temporary lockout recorded' : 'No lockout recorded',
+    sessionBehavior: sessionCreated ? 'Open linked Session History for post-login actions.' : 'No authenticated session was created.',
     passwordResetLink: 'No linked password reset recorded',
     profileChangeLink: 'No linked profile change recorded',
     moneyMovementLink: 'No linked money movement recorded',
@@ -76,13 +92,37 @@ function defaultDetails(login) {
 }
 
 export function getLoginRecords(activeCase) {
+  const profileChanges = activeCase.customer?.profileChanges ?? [];
   return (activeCase.loginHistory ?? []).map((login) => {
-    const detail = loginDetailsById[login.id] ?? defaultDetails(login);
+    const detail = { ...defaultDetails(login), ...(loginDetailsById[login.id] ?? {}), ...login };
+    const timestamp = fullAccessTimestamp(activeCase, login.time);
+    const matchingProfileChanges = hasCreatedSession(login)
+      ? profileChanges.filter((event) => event.session === login.session)
+      : [];
+    const profileChangeLink = matchingProfileChanges.length
+      ? matchingProfileChanges.map((event) => event.id).join(' · ')
+      : 'No linked profile change recorded';
+    const sessionReference = hasCreatedSession(login) ? login.session : 'No session created';
     return {
-      ...login,
       ...detail,
+      timestamp,
+      date: accessDate(activeCase, timestamp),
+      timeOfDay: accessTime(activeCase, timestamp),
+      profileChangeLink,
+      sessionReference,
+      loginContext: `${login.result} · ${login.location} · ${login.deviceId ?? login.device}`,
       riskContext: `${login.result} · ${login.location} · ${login.deviceId ?? login.device}`,
-      relatedRecords: [login.session, login.deviceId ?? login.device, `IP-${login.ip}`, detail.profileChangeLink, detail.moneyMovementLink].filter(Boolean),
+      relatedRecords: [
+        hasCreatedSession(login) ? login.session : null,
+        login.deviceId ?? login.device,
+        login.ip ? `IP-${login.ip}` : null,
+        ...matchingProfileChanges.map((event) => event.id),
+      ].filter(Boolean),
     };
+  }).sort((left, right) => {
+    const leftTime = Date.parse(left.timestamp.replace('·', ''));
+    const rightTime = Date.parse(right.timestamp.replace('·', ''));
+    if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) return 0;
+    return rightTime - leftTime;
   });
 }

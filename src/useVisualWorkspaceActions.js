@@ -97,6 +97,27 @@ export default function useVisualWorkspaceActions({
     }));
   }
 
+  function updateDecisionIndicator(indicatorId, field, value) {
+    setDecisionByCase((current) => {
+      const currentDraft = current[activeCase.id] ?? defaultDecisionDraft;
+      const currentIndicators = currentDraft.indicators ?? {};
+      const currentIndicator = currentIndicators[indicatorId] ?? { selected: false, proof: '', explanation: '' };
+      return {
+        ...current,
+        [activeCase.id]: {
+          ...currentDraft,
+          indicators: {
+            ...currentIndicators,
+            [indicatorId]: {
+              ...currentIndicator,
+              [field]: value,
+            },
+          },
+        },
+      };
+    });
+  }
+
   function submitNote(event) {
     event.preventDefault();
     saveNote(noteDraft, 'Investigation note');
@@ -150,6 +171,7 @@ export default function useVisualWorkspaceActions({
     saveNote,
     markReviewed,
     updateDecision,
+    updateDecisionIndicator,
     submitNote,
     submitDecision,
     recordAction,

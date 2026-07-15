@@ -42,7 +42,7 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(toolPanel.getByRole('button', { name: '✓ Document Request reviewed', exact: true })).toBeVisible();
 
   await toolPanel.getByRole('navigation', { name: 'Document request next routes' })
-    .getByRole('button', { name: 'Open Evidence Center', exact: true })
+    .getByRole('button', { name: 'Open Document Viewer', exact: true })
     .click();
-  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Evidence Center');
+  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
 });

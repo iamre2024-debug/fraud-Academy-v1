@@ -47,10 +47,25 @@ async function openCoreTool(page, category, tool) {
   await expect(selector).toHaveValue(tool);
   await expect(panel).toHaveAttribute('data-tool-name', tool);
   await expect(panel.getByRole('heading', { name: tool, exact: true })).toBeVisible();
+
+  if (tool === 'KYB Review') {
+    await panel.getByRole('button', { name: 'Use legal name', exact: true }).click();
+    await panel.getByRole('button', { name: 'Search business', exact: true }).click();
+    await expect(panel.locator('.kyb-profile-header')).toBeVisible();
+  }
+
   const specializedSelectors = {
     'Payment Verification': {
       record: '[data-payment-verification-record]',
       detail: '.payment-detail-panel',
+    },
+    'Document Viewer': {
+      record: '[data-document-record]',
+      detail: '.document-preview-workspace',
+    },
+    'KYB Review': {
+      record: '[data-kyb-review-record]',
+      detail: '.kyb-record-detail',
     },
   };
   const selectors = specializedSelectors[tool] ?? {
@@ -70,7 +85,7 @@ test('approved Dashboard resumes the active case without answer leaks', async ({
   await expect(page.getByRole('heading', { name: 'Investigator dashboard' })).toBeVisible();
   await expect(page.locator('.dashboard-active-case')).toContainText(builtInCases[0].id);
   await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Case Queue/ })).toBeVisible();
-  await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Evidence Workspace/ })).toBeVisible();
+  await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Document Workspace/ })).toBeVisible();
   await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Timeline/ })).toBeVisible();
   await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Progress/ })).toBeVisible();
 
@@ -174,10 +189,13 @@ test('all three built-in cases open from the queue without answer leaks', async 
 
 test('completed core modules and System Access Lane render real records', async ({ page }) => {
   await page.goto('/');
+  const caseSelector = page.locator('.visual-case-switcher select');
+  await caseSelector.selectOption(builtInCases[2].id);
+  await expect(caseSelector).toHaveValue(builtInCases[2].id);
 
   await openCoreTool(page, 'Business & Payment Verification', 'Payment Verification');
-  await openCoreTool(page, 'Business & Payment Verification', 'Business Intelligence');
-  await openCoreTool(page, 'Evidence & Documents', 'Evidence Center');
+  await openCoreTool(page, 'Business & Payment Verification', 'KYB Review');
+  await openCoreTool(page, 'Documents & Requests', 'Document Viewer');
   await openCoreTool(page, 'Links & Related Cases', 'Link Analysis');
   await openCoreTool(page, 'Links & Related Cases', 'System Access Lane');
   await openCoreTool(page, 'Workflow Review', 'Timeline');
@@ -185,7 +203,7 @@ test('completed core modules and System Access Lane render real records', async 
   await expect(page.locator('[data-timeline-screen="approved-theme-v1"]')
     .getByRole('button', { name: /(?:Mark Timeline reviewed|✓ Timeline reviewed)/ }))
     .toBeVisible();
-  await assertEvidenceFirstLock(page, builtInCases[0].id);
+  await assertEvidenceFirstLock(page, builtInCases[2].id);
 });
 
 test('responsive investigation records stay inside the viewport', async ({ page }, testInfo) => {
@@ -261,7 +279,7 @@ test('generated cases persist through reload and remain Evidence First', async (
     expect(generatedIds).not.toContain(generatedId);
     generatedIds.push(generatedId);
     await expect(page.locator('.visual-case-strip')).toContainText('Generated');
-    await expect(page.locator('[data-login-history-record]').first()).toBeVisible();
+    await expect(page.locator('[data-customer-360-screen="approved-theme-v1"], [data-investigation-tools-screen="approved-theme-v1"], [data-timeline-screen="approved-theme-v1"]').first()).toBeVisible();
     await assertEvidenceFirstLock(page, generatedId);
   }
 

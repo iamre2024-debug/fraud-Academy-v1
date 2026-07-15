@@ -1,5 +1,3 @@
-import { requiredReviewTools } from './reviewPackage.js';
-
 const debriefGuides = {
   'FA-ATO-24018': {
     theme: 'Account access and purchase timeline',
@@ -88,6 +86,12 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
   const pinnedEvidence = reviewPackage.pinnedEvidence?.length ? reviewPackage.pinnedEvidence : tray;
   const noteSnapshot = reviewPackage.noteSnapshot?.length ? reviewPackage.noteSnapshot : notes;
   const rationale = reviewPackage.reason ?? '';
+  const decisionIndicators = reviewPackage.decisionIndicators ?? [];
+  const caseTruth = activeCase.caseTruth ?? null;
+  const acceptedDeterminations = caseTruth?.acceptedDeterminations?.length
+    ? caseTruth.acceptedDeterminations
+    : caseTruth?.correctDetermination ? [caseTruth.correctDetermination] : [];
+  const determinationMatched = caseTruth ? acceptedDeterminations.includes(reviewPackage.choice) : null;
 
   const haystack = [
     activeCase.type,
@@ -95,48 +99,126 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
     ...packageTools,
     ...pinnedEvidence,
     ...noteSnapshot,
+    ...decisionIndicators.flatMap((item) => [item.proof, item.explanation]),
     rationale,
   ].join(' ').toLowerCase();
 
-  const coveredRequired = requiredReviewTools.filter((tool) => packageTools.includes(tool)).length;
+  const coveredRequired = reviewPackage.reviewedRequired ?? packageTools.length;
+  const totalRequired = reviewPackage.totalRequired ?? Math.max(coveredRequired, 1);
+  const notesQuality = scoreNotesQuality(noteSnapshot);
   const focusCoverage = guide.focusAreas.map((area) => ({
     ...area,
     covered: area.keywords.some((keyword) => haystack.includes(keyword.toLowerCase())),
   }));
 
-  const toolScore = Math.round((coveredRequired / requiredReviewTools.length) * 34);
-  const pinScore = Math.min(20, pinnedEvidence.length * 5);
-  const noteScore = Math.min(22, noteSnapshot.length * 4 + (wordCount(rationale) >= 20 ? 6 : 0));
-  const focusScore = Math.round((focusCoverage.filter((area) => area.covered).length / focusCoverage.length) * 18);
-  const confidenceScore = reviewPackage.confidence === 'High' ? 6 : reviewPackage.confidence === 'Medium' ? 4 : 2;
-  const score = Math.min(100, toolScore + pinScore + noteScore + focusScore + confidenceScore);
+  const toolScore = Math.round((coveredRequired / totalRequired) * 24);
+  const pinScore = Math.min(12, pinnedEvidence.length * 3);
+  const noteScore = notesQuality.points;
+  const focusScore = Math.round((focusCoverage.filter((area) => area.covered).length / focusCoverage.length) * 14);
+  const confidenceScore = reviewPackage.confidence === 'High' ? 4 : reviewPackage.confidence === 'Medium' ? 3 : 2;
+  const indicatorScore = Math.min(10, decisionIndicators.filter((item) => item.proof && item.explanation).length * 3);
+  const determinationScore = caseTruth ? (determinationMatched ? 20 : 0) : 10;
+  const score = Math.min(100, toolScore + pinScore + noteScore + focusScore + confidenceScore + indicatorScore + determinationScore);
   const followUps = focusCoverage.filter((area) => !area.covered).map((area) => area.label);
+  if (caseTruth && !determinationMatched) followUps.unshift(`Compare the submitted determination with the scenario truth: ${caseTruth.correctDetermination}.`);
+  if (notesQuality.points < 9) followUps.unshift(notesQuality.nextStep);
 
   return {
     theme: guide.theme,
     coachIntro: guide.coachIntro,
     score,
     scoreLabel: score >= 86 ? 'Strong package' : score >= 70 ? 'Solid package' : score >= 54 ? 'Developing package' : 'Needs more support',
-    strengths: buildStrengths({ coveredRequired, pinnedEvidence, noteSnapshot, rationale, focusCoverage }),
+    strengths: buildStrengths({ coveredRequired, pinnedEvidence, notesQuality, rationale, focusCoverage, decisionIndicators, determinationMatched }),
     followUps: followUps.length ? followUps : ['No required focus gaps detected in this saved package.'],
+    notesQuality,
+    determinationMatched,
+    truthReveal: caseTruth ? {
+      classification: caseTruth.classification,
+      correctDetermination: caseTruth.correctDetermination,
+      acceptedDeterminations,
+      rationale: caseTruth.rationale,
+    } : null,
     breakdown: [
-      { label: 'Required tool coverage', value: `${coveredRequired}/${requiredReviewTools.length}`, points: toolScore },
+      { label: 'Required tool coverage', value: `${coveredRequired}/${totalRequired}`, points: toolScore },
       { label: 'Pinned evidence support', value: `${pinnedEvidence.length} object(s)`, points: pinScore },
-      { label: 'Notebook and rationale depth', value: `${noteSnapshot.length} note(s)`, points: noteScore },
+      { label: 'Quality of notes', value: notesQuality.summary, points: noteScore },
       { label: 'Case focus coverage', value: `${focusCoverage.filter((area) => area.covered).length}/${focusCoverage.length}`, points: focusScore },
+      { label: 'Weighted flag documentation', value: `${decisionIndicators.length} proven flag(s)`, points: indicatorScore },
+      { label: 'Scenario determination', value: caseTruth ? (determinationMatched ? 'Matched' : 'Did not match') : 'Base-case calibration', points: determinationScore },
       { label: 'Confidence calibration', value: reviewPackage.confidence, points: confidenceScore },
     ],
   };
 }
 
-function buildStrengths({ coveredRequired, pinnedEvidence, noteSnapshot, rationale, focusCoverage }) {
+export function scoreNotesQuality(notes = []) {
+  const analyzedNotes = notes.map(analyzeNote);
+  const substantiveNotes = analyzedNotes.filter((note) => note.substantive);
+  const evidenceReferences = substantiveNotes.filter((note) => note.hasEvidenceReference).length;
+  const reasonedNotes = substantiveNotes.filter((note) => note.hasReasoning).length;
+  const comparisonNotes = substantiveNotes.filter((note) => note.hasComparison).length;
+  const sourceTypes = new Set(substantiveNotes.map((note) => note.type.toLowerCase()).filter(Boolean));
+
+  const substancePoints = Math.min(4, substantiveNotes.length * 2);
+  const evidencePoints = Math.min(4, evidenceReferences * 2);
+  const reasoningPoints = Math.min(4, reasonedNotes * 2);
+  const comparisonPoints = Math.min(2, comparisonNotes * 2);
+  const sourcePoints = Math.min(2, Math.max(0, sourceTypes.size - 1));
+  const points = substancePoints + evidencePoints + reasoningPoints + comparisonPoints + sourcePoints;
+  const label = points >= 13 ? 'Strong' : points >= 9 ? 'Supported' : points >= 5 ? 'Developing' : 'Needs evidence';
+
+  let nextStep = 'Improve note quality by citing an exact record and explaining how it supports or contradicts the case theory.';
+  if (!substantiveNotes.length) nextStep = 'Add a substantive investigation note; automatic tool-review entries do not count as evidence analysis.';
+  else if (!evidenceReferences) nextStep = 'Add exact record IDs, amounts, or timestamps to the investigation notes.';
+  else if (!reasonedNotes) nextStep = 'Explain what the cited evidence supports, contradicts, or leaves unresolved.';
+  else if (!comparisonNotes) nextStep = 'Compare evidence across tools or place the cited records into timeline order.';
+
+  return {
+    points,
+    maxPoints: 16,
+    label,
+    summary: `${label} - ${substantiveNotes.length}/${notes.length} substantive`,
+    totalNotes: notes.length,
+    substantiveCount: substantiveNotes.length,
+    evidenceReferenceCount: evidenceReferences,
+    reasoningCount: reasonedNotes,
+    comparisonCount: comparisonNotes,
+    nextStep,
+  };
+}
+
+function analyzeNote(note = '') {
+  const parts = String(note).split(/\s+\u00b7\s+/);
+  const type = parts.length >= 3 ? parts[1].trim() : 'Investigation note';
+  const body = (parts.length >= 3 ? parts.slice(2).join(' ') : String(note)).trim();
+  const words = wordCount(body);
+  const automaticType = /^(?:tool review|decision checklist|decision package)$/i.test(type);
+  const genericReview = /^(?:[\w /&-]+:\s*)?reviewed\.?$/i.test(body);
+  const hasEvidenceReference = /\b[A-Z]{2,}(?:-[A-Z0-9]+)+\b/.test(body)
+    || /\$\s?\d[\d,]*(?:\.\d{2})?/.test(body)
+    || /\b\d{1,2}:\d{2}\s?(?:AM|PM)\b/i.test(body);
+  const hasReasoning = /\b(?:because|based on|supports?|contradicts?|consistent|inconsistent|indicates?|therefore|explains?|unresolved|does not match|matches?)\b/i.test(body);
+  const hasComparison = /\b(?:compare|compared|versus|before|after|prior|sequence|timeline|across|linked?|same (?:device|ip|session|account))\b/i.test(body);
+
+  return {
+    type,
+    body,
+    substantive: !automaticType && !genericReview && words >= 8,
+    hasEvidenceReference,
+    hasReasoning,
+    hasComparison,
+  };
+}
+
+function buildStrengths({ coveredRequired, pinnedEvidence, notesQuality, rationale, focusCoverage, decisionIndicators, determinationMatched }) {
   const strengths = [];
 
   if (coveredRequired >= 6) strengths.push('The package covers most required investigation tools before debrief.');
   if (pinnedEvidence.length >= 2) strengths.push('Pinned evidence gives the rationale concrete records to stand on.');
-  if (noteSnapshot.length >= 2) strengths.push('Notebook activity shows the learner documented work instead of relying on memory.');
+  if (notesQuality.points >= 9) strengths.push(`Notebook quality is ${notesQuality.label.toLowerCase()} and connects evidence to investigator reasoning.`);
   if (wordCount(rationale) >= 20) strengths.push('The rationale has enough substance for coaching review.');
   if (focusCoverage.some((area) => area.covered)) strengths.push('At least one case-specific focus area is visible in the saved package.');
+  if (decisionIndicators.length) strengths.push('The selected case flags include proof and an investigator explanation.');
+  if (determinationMatched) strengths.push('The submitted determination matches the hidden scenario truth.');
 
   return strengths.length ? strengths : ['The package was saved, but Luna needs more documented support to coach from.'];
 }

@@ -11,19 +11,30 @@ import {
 } from '../src/data/reviewPackage.js';
 
 const requiredToolSet = [...requiredReviewTools];
+const accountTakeoverCase = { claimTypeId: 'account-takeover', requiredTools: requiredToolSet };
+const accountTakeoverChoice = 'Insufficient Evidence';
+const accountTakeoverIndicators = {
+  'ato-new-device': {
+    selected: true,
+    proof: 'LOG-SMOKE-001 and DEV-SMOKE-001',
+    explanation: 'The first-seen device record is tied to the reported fraud period.',
+  },
+};
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
 function buildStatus(overrides = {}) {
   return getReviewPackageStatus({
+    activeCase: accountTakeoverCase,
     completedTools: requiredToolSet,
     tray: ['TRAINING-ID-001'],
     notes: ['Investigation note · Smoke test note tied to the active case.'],
     draft: {
-      choice: reviewChoices[0],
+      choice: accountTakeoverChoice,
       confidence: 'Medium',
       reason: 'The learner reviewed required tools and documented the evidence trail before saving this package.',
+      indicators: accountTakeoverIndicators,
     },
     ...overrides,
   });
@@ -35,16 +46,16 @@ assert(reviewChoices.includes('Route for credit risk underwriting review'), 'Dec
 assert(reviewChoices.includes('Route for chargeback representment review'), 'Decision calls should include chargeback representment routing.');
 assert(decisionCallGroups.length >= 4, 'Decision call groups should organize outcome, information, routing, and closure calls.');
 
-const invalidChoiceStatus = buildStatus({ draft: { choice: 'Unsupported decision value', confidence: 'Medium', reason: 'The learner reviewed required tools and documented the evidence trail before saving this package.' } });
+const invalidChoiceStatus = buildStatus({ draft: { choice: 'Unsupported decision value', confidence: 'Medium', reason: 'The learner reviewed required tools and documented the evidence trail before saving this package.', indicators: accountTakeoverIndicators } });
 assert(!invalidChoiceStatus.ready, 'Package should stay locked when the learner choice is not in the current decision list.');
 assert(invalidChoiceStatus.blockers.some((blocker) => blocker.includes('valid learner choice')), 'Invalid learner choice should be named as a blocker.');
 
-const missingToolStatus = buildStatus({ completedTools: requiredToolSet.filter((tool) => tool !== 'Evidence Center') });
+const missingToolStatus = buildStatus({ completedTools: requiredToolSet.filter((tool) => tool !== 'Document Viewer') });
 assert(!missingToolStatus.ready, 'Package should stay locked when a required tool is missing.');
-assert(missingToolStatus.missingTools.includes('Evidence Center'), 'Missing required tool should be named in the package status.');
+assert(missingToolStatus.missingTools.includes('Document Viewer'), 'Missing required tool should be named in the package status.');
 assert(missingToolStatus.messages.some((message) => message.includes('Review package locked')), 'Locked package should explain neutral blockers.');
 
-const shortRationaleStatus = buildStatus({ draft: { choice: reviewChoices[0], confidence: 'High', reason: 'Too short.' } });
+const shortRationaleStatus = buildStatus({ draft: { choice: accountTakeoverChoice, confidence: 'High', reason: 'Too short.', indicators: accountTakeoverIndicators } });
 assert(!shortRationaleStatus.ready, 'Package should stay locked when rationale is too short.');
 assert(shortRationaleStatus.rationaleWordCount < minimumRationaleWords, 'Short rationale count should be tracked.');
 assert(shortRationaleStatus.blockers.some((blocker) => blocker.includes(`${minimumRationaleWords}`)), 'Rationale blocker should include the minimum word count.');
@@ -52,10 +63,23 @@ assert(shortRationaleStatus.blockers.some((blocker) => blocker.includes(`${minim
 const readyStatus = buildStatus();
 assert(readyStatus.ready, 'Package should be ready when all required inputs are present.');
 assert(readyStatus.packageInputSummary.includes('pinned object'), 'Input summary should describe pinned evidence.');
+assert(readyStatus.indicatorSummary.selectedCount === 1, 'Package readiness should count selected case flags.');
+assert(readyStatus.indicatorSummary.incompleteIndicators.length === 0, 'Selected flags with proof and explanation should be complete.');
+
+const missingProofStatus = buildStatus({
+  draft: {
+    choice: accountTakeoverChoice,
+    confidence: 'Medium',
+    reason: 'The learner reviewed required tools and documented the evidence trail before saving this package.',
+    indicators: { 'ato-new-device': { selected: true, proof: '', explanation: '' } },
+  },
+});
+assert(!missingProofStatus.ready, 'A selected flag should block submission until proof and explanation are entered.');
+assert(missingProofStatus.blockers.some((blocker) => blocker.includes('proof and explanation')), 'Missing flag proof should be named as a blocker.');
 
 const chargebackCase = {
   claimTypeId: 'non-fraud-chargeback',
-  requiredTools: ['Case Summary', 'Customer 360', 'Transaction History', 'Business 360', 'Evidence Center', 'Document Request'],
+  requiredTools: ['Case Summary', 'Customer 360', 'Transaction History', 'Business 360', 'Document Viewer', 'Document Request'],
 };
 const chargebackChoices = getReviewChoices(chargebackCase);
 assert(getRequiredReviewTools(chargebackCase).length === chargebackCase.requiredTools.length, 'Chargeback package should use its own required tools.');
@@ -66,7 +90,7 @@ assert(!chargebackChoices.includes('Support Credit Request'), 'Chargeback packag
 const creditCase = {
   claimTypeId: 'credit-risk',
   lane: 'Credit decision review',
-  requiredTools: ['Case Summary', 'Customer 360', 'Identity Intel / People Search', 'Payment Verification', 'Financial Intelligence', 'Evidence Center'],
+  requiredTools: ['Case Summary', 'Customer 360', 'Identity Intel / People Search', 'Payment Verification', 'Financial Investigation', 'Document Viewer'],
   creditDecision: {
     outcomes: ['Support Credit Request', 'Do Not Support Credit Request', 'More Information Needed', 'Escalate Senior Review'],
   },
@@ -80,11 +104,23 @@ const creditStatus = getReviewPackageStatus({
     choice: 'Support Credit Request',
     confidence: 'Medium',
     reason: 'The learner reviewed income, employment, payment, and document records before recording the credit package.',
+    indicators: {
+      'credit-stable-income': {
+        selected: true,
+        proof: 'PAYROLL-SMOKE-001 and PAYSTUB-SMOKE-001',
+        explanation: 'Recurring payroll and the paystub consistently support the stated income.',
+      },
+    },
   },
 });
 assert(creditStatus.ready, 'Credit package should validate against credit-specific tools and choices.');
 assert(getDecisionCallGroups(creditCase).some((group) => group.label === 'Credit decision calls'), 'Credit package should use a credit decision rail.');
 assert(!creditStatus.requiredTools.includes('Login History'), 'Credit package should not require an unrelated login-history review.');
+
+const payrollGroups = getDecisionCallGroups({ claimTypeId: 'payroll-direct-deposit' });
+const emailGroups = getDecisionCallGroups({ claimTypeId: 'email-bec' });
+assert(payrollGroups[0].options.includes('Hold') && payrollGroups[0].options.includes('Release'), 'Business Payroll ATO should use Hold and Release as primary determinations.');
+assert(emailGroups[0].options.includes('Hold') && emailGroups[0].options.includes('Release'), 'Email Fraud / BEC should use Hold and Release as primary determinations.');
 
 const savedPackage = buildReviewPackage({
   caseId: 'FA-SMOKE-0001',
@@ -94,6 +130,13 @@ const savedPackage = buildReviewPackage({
     choice: 'Support Credit Request',
     confidence: 'Medium',
     reason: 'The learner reviewed required tools and documented the evidence trail before saving this package.',
+    indicators: {
+      'credit-stable-income': {
+        selected: true,
+        proof: 'PAYROLL-SMOKE-001',
+        explanation: 'The payroll record supports the documented income source.',
+      },
+    },
   },
   completedTools: creditCase.requiredTools,
   tray: ['TRAINING-ID-001'],
@@ -104,5 +147,6 @@ const savedPackage = buildReviewPackage({
 assert(savedPackage.reviewedRequired === creditCase.requiredTools.length, 'Saved package should snapshot required tool coverage.');
 assert(savedPackage.lane === 'Credit decision review', 'Saved package should retain the case lane.');
 assert(savedPackage.blockers.length === 0, 'Saved ready package should not retain blockers.');
+assert(savedPackage.decisionIndicators.length === 1, 'Saved package should snapshot proven weighted flags.');
 
 console.log('Review package smoke check passed. Expanded decision calls, locked blockers, rationale depth, pinned evidence, notes, and saved package snapshots are working.');

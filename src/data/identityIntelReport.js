@@ -1,8 +1,22 @@
-const identityProfiles = {
-  'FA-ATO-24018': { dob: 'Feb 14, 1988', profileId: 'PRF-8842', confidence: 'Profile fields matched in the fictional training packet', applicationHistory: 'One active consumer relationship', watchlist: 'No fictional training watchlist record returned' },
-  'FA-CB-24007': { dob: 'Nov 3, 1991', profileId: 'PRF-5510', confidence: 'Profile fields matched in the fictional training packet', applicationHistory: 'One active cardholder relationship', watchlist: 'No fictional training watchlist record returned' },
-  'FA-CR-24003': { dob: 'Jun 22, 1995', profileId: 'PRF-2044', confidence: 'Limited early-history profile match in the fictional training packet', applicationHistory: 'One new credit relationship', watchlist: 'No fictional training watchlist record returned' },
+import { getCustomer360Dossier, getCustomerIdentityFacts } from './customer360Dossier.js';
+
+const builtInProfiles = {
+  'FA-ATO-24018': { profileId: 'PRF-8842', confidence: 'Profile name, DOB, Training ID, phone, email, and address matched in the fictional packet', applicationHistory: 'Consumer deposit relationship opened in 2018', employer: 'Cedar Health Services', watchlist: 'No fictional training watchlist record returned' },
+  'FA-CB-24007': { profileId: 'PRF-5510', confidence: 'Profile name, DOB, Training ID, phone, email, and address matched in the fictional packet', applicationHistory: 'Cardholder relationship opened in 2021', employer: 'Fort Worth Creative Studio', watchlist: 'No fictional training watchlist record returned' },
+  'FA-CR-24003': { profileId: 'PRF-2044', confidence: 'New-profile fields matched with limited relationship history', applicationHistory: 'New consumer credit relationship opened in 2026', employer: 'Avery Training Consulting', watchlist: 'No fictional training watchlist record returned' },
 };
+
+const firstNames = ['Elena', 'Marcus', 'Nina', 'Caleb', 'Tessa', 'Andre', 'Monica', 'Darius'];
+const vehicleModels = ['2021 Honda Accord', '2020 Toyota RAV4', '2022 Ford Escape', '2019 Nissan Altima'];
+const carriers = ['Northline Mobile', 'Cedar Wireless', 'Metro Training Telecom'];
+
+function stableNumber(value = '') {
+  return [...String(value)].reduce((total, character) => total + character.charCodeAt(0), 0);
+}
+
+function pick(values, seed, offset = 0) {
+  return values[(seed + offset) % values.length];
+}
 
 function mask(value = '') {
   const text = String(value);
@@ -13,66 +27,106 @@ function records(fields) {
   return fields.map(([label, value]) => ({ label, value }));
 }
 
-export function getIdentityIntelReport(activeCase) {
-  const profile = identityProfiles[activeCase.id] ?? {
-    dob: 'Training DOB not supplied',
-    profileId: `PRF-${String(activeCase.trainingId ?? '0000').slice(-4)}`,
-    confidence: 'Fictional profile match available for review',
-    applicationHistory: 'Current case relationship only',
+function yearFromRelationship(value) {
+  const year = Number.parseInt(String(value), 10);
+  return Number.isFinite(year) ? year : 2026;
+}
+
+function reportProfile(activeCase, identity) {
+  const seed = stableNumber(activeCase.id);
+  return builtInProfiles[activeCase.id] ?? {
+    profileId: `PRF-${String(seed).slice(-4).padStart(4, '0')}`,
+    confidence: 'Fictional name, DOB, Training ID, and contact fields matched for training review',
+    applicationHistory: `${activeCase.scenarioTitle ?? activeCase.type} application or relationship record`,
+    employer: activeCase.profile?.employer ?? `${pick(firstNames, seed)} Training Services`,
     watchlist: 'No fictional training watchlist record returned',
+    dob: identity.dob,
   };
+}
+
+export function getIdentityIntelReport(activeCase) {
+  const seed = stableNumber(activeCase.id);
+  const identity = getCustomerIdentityFacts(activeCase);
+  const customerDossier = getCustomer360Dossier(activeCase);
+  const profile = { ...reportProfile(activeCase, identity), dob: identity.dob };
   const contact = activeCase.customer?.contact ?? {};
-  const address = contact.address ?? activeCase.intake?.customerLocation ?? 'Training address not supplied';
+  const address = customerDossier.contact.physicalAddress ?? contact.address ?? activeCase.intake?.customerLocation ?? 'Training address not supplied';
+  const city = activeCase.intake?.customerLocation ?? activeCase.profile?.city ?? 'Training city';
   const firstName = String(activeCase.person ?? 'Training').split(' ')[0];
   const lastName = String(activeCase.person ?? 'Profile').split(' ').slice(-1)[0];
-  const email = contact.email ?? activeCase.identityRecords?.find((item) => item.type === 'Email')?.value ?? 'Not recorded';
-  const phone = contact.phone ?? activeCase.identityRecords?.find((item) => item.type === 'Phone')?.value ?? 'Not recorded';
+  const email = contact.email ?? activeCase.identityRecords?.find((item) => /email/i.test(item.type))?.value ?? `${firstName.toLowerCase()}.${lastName.toLowerCase()}@training.example.test`;
+  const phone = contact.phone ?? activeCase.identityRecords?.find((item) => /phone/i.test(item.type))?.value ?? `(555) 010-${String(seed).slice(-4).padStart(4, '0')}`;
   const devices = [...new Set((activeCase.loginHistory ?? []).map((item) => item.deviceId ?? item.device).filter(Boolean))];
   const locations = [...new Set((activeCase.loginHistory ?? []).map((item) => item.location).filter(Boolean))];
-  const businessName = activeCase.type?.includes('Credit') ? `${lastName} Training Ventures` : 'No business relationship returned';
+  const relationshipYear = yearFromRelationship(activeCase.customer?.relationshipSince);
+  const businessCase = /business|payroll|vendor|bec|wire|credit|bust/i.test(`${activeCase.claimTypeId} ${activeCase.type} ${activeCase.lane}`);
+  const businessName = activeCase.profile?.business ?? (businessCase ? `${lastName} Training Services LLC` : 'No business ownership record returned');
+  const businessFound = !businessName.startsWith('No ');
+  const previousAddress = `${120 + (seed % 700)} Archive Street, ${city} (training)`;
+  const spouse = seed % 3 === 0 ? `${pick(firstNames, seed, 2)} ${lastName}` : 'No spouse record returned';
+  const propertyCount = seed % 4 === 0 ? 2 : 1;
+  const bankruptcyFound = seed % 11 === 0;
+  const lienFound = seed % 13 === 0;
+  const licenseFound = seed % 3 !== 0;
+  const historicalEmail = `${firstName.toLowerCase()}.${String(seed).slice(-3)}@archive.training.example.test`;
 
   return {
     profile,
+    searchIds: [activeCase.trainingId, profile.profileId, mask(activeCase.trainingId)],
+    searchName: activeCase.person,
+    searchDob: profile.dob,
     searchKeys: [activeCase.person, activeCase.trainingId, email, phone, profile.dob, profile.profileId],
     summary: [
       ['Name / DOB match', `${activeCase.person} · ${profile.dob}`],
       ['Masked ID', mask(activeCase.trainingId)],
-      ['Address stability', `${address} · current training profile address`],
-      ['Phone age', 'Training history available from current relationship packet'],
-      ['Email age', 'Training history available from current relationship packet'],
+      ['Address stability', `${address} · ${Math.max(0, 2026 - relationshipYear)}-year relationship reference`],
+      ['Phone age', `First seen ${relationshipYear} · ${pick(carriers, seed)}`],
+      ['Email age', `First seen ${relationshipYear} · established training domain`],
       ['Identity confidence', profile.confidence],
-      ['Linked profiles', 'One active fictional profile'],
+      ['Linked profiles', 'One active fictional customer profile'],
       ['Application history', profile.applicationHistory],
       ['Watchlist / OFAC training result', profile.watchlist],
-      ['Public record summary', 'Fictional public-record rows available below'],
+      ['Public record summary', `${propertyCount} property record${propertyCount === 1 ? '' : 's'} · ${licenseFound ? 'license record available' : 'no professional license returned'}`],
     ],
     counts: [
-      ['Addresses', 2], ['Phones', 1], ['Emails', 2], ['Associates', 3], ['Businesses', businessName.startsWith('No ') ? 0 : 1], ['Properties', 1], ['Vehicles', 1], ['Licenses', 1], ['Public records', 2], ['Bankruptcies', 0], ['Liens / judgments', 0], ['Social / digital', 2],
+      ['Addresses', 2], ['Phones', 1], ['Emails', 2], ['Associates', 4], ['Businesses', businessFound ? 1 : 0], ['Properties', propertyCount], ['Vehicles', 1], ['Licenses', licenseFound ? 1 : 0], ['Public records', 2], ['Bankruptcies', bankruptcyFound ? 1 : 0], ['Liens / judgments', lienFound ? 1 : 0], ['Social / digital', Math.max(2, devices.length)],
     ],
     sections: [
-      { id: 'identity-summary', title: 'Identity Summary', fields: records([['Full name', activeCase.person], ['DOB', profile.dob], ['Profile ID', profile.profileId], ['Training ID', mask(activeCase.trainingId)], ['Primary address', address], ['Identity confidence', profile.confidence]]) },
-      { id: 'address-history', title: 'Address History', fields: records([['Current address', address], ['Previous address', `${locations[0] ?? 'Training location'} prior address record`], ['Move date', 'Not supplied in current packet'], ['Address stability', 'Current fictional address is tied to the active profile'], ['Linked applications', profile.applicationHistory], ['Mail-drop indicator', 'No fictional indicator returned']]) },
-      { id: 'phone-numbers', title: 'Phone Numbers', fields: records([['Primary phone', phone], ['Carrier', 'Training mobile carrier'], ['First seen', activeCase.customer?.relationshipSince ?? 'Not supplied'], ['Last seen', activeCase.opened], ['Ownership confidence', 'Fictional profile match available'], ['OTP delivery history', 'Review Login History for authentication records']]) },
-      { id: 'email-history', title: 'Email History', fields: records([['Primary email', email], ['Business email', `contact@${lastName.toLowerCase()}-training.example.test`], ['Historical emails', 'No additional fictional email listed'], ['First seen', activeCase.customer?.relationshipSince ?? 'Not supplied'], ['Last seen', activeCase.opened], ['Breach indicators', 'No fictional indicator returned'], ['Disposable email check', 'Training domain record']]) },
-      { id: 'associates', title: 'Associates & Relatives', fields: records([['Mother', 'Fictional relative record not returned'], ['Father', 'Fictional relative record not returned'], ['Spouse', 'No spouse record returned'], ['Children', 'No child record returned'], ['Business associates', businessName.startsWith('No ') ? 'No business associate returned' : `${lastName} Training Ventures officer`], ['Known roommates', 'No shared-residence record returned'], ['Shared addresses', address], ['Shared phone numbers', 'No shared phone record returned'], ['Emergency contacts', 'Not supplied in current packet']]) },
-      { id: 'employment', title: 'Employment History', fields: records([['Current employer', 'Training employer record not supplied'], ['Position', 'Not supplied'], ['Hire date', 'Not supplied'], ['Previous employers', 'No prior employer record returned'], ['Employment timeline', 'No employment timeline supplied'], ['Estimated income range', 'Not supplied'], ['Business owner', businessName.startsWith('No ') ? 'No business owner record returned' : activeCase.person], ['Officer positions', businessName.startsWith('No ') ? 'None returned' : 'Training officer record'], ['Payroll relationships', 'Review Payroll History when available']]) },
-      { id: 'business-records', title: 'Businesses & Ownership', fields: records([['Business name', businessName], ['Entity type', businessName.startsWith('No ') ? 'No entity returned' : 'Training limited liability company'], ['SOS status', businessName.startsWith('No ') ? 'No state filing returned' : 'Active training record'], ['EIN', businessName.startsWith('No ') ? 'Not supplied' : '••-••••8421'], ['Owner', businessName.startsWith('No ') ? 'Not supplied' : activeCase.person], ['Officer', businessName.startsWith('No ') ? 'Not supplied' : activeCase.person], ['Registered agent', businessName.startsWith('No ') ? 'Not supplied' : 'Training registered agent'], ['Business address', businessName.startsWith('No ') ? 'Not supplied' : address], ['State filing date', businessName.startsWith('No ') ? 'Not supplied' : 'Training filing date'], ['Business standing', businessName.startsWith('No ') ? 'No entity returned' : 'Active training record']]) },
-      { id: 'licenses', title: 'Licenses / Certifications', fields: records([['License number', 'LIC-••••-190'], ['License type', 'Training record'], ['Status', 'No action recorded'], ['Expiration', 'Not supplied'], ['Issuing agency', 'Training licensing source'], ['Disciplinary actions', 'No fictional disciplinary action returned']]) },
-      { id: 'properties', title: 'Properties', fields: records([['Current residence', address], ['Purchase date', 'Not supplied'], ['Purchase price', 'Not supplied'], ['Estimated value', 'Not supplied'], ['Mortgage holder', 'Not supplied'], ['Tax assessment', 'Not supplied'], ['Rental properties', 'No rental property record returned'], ['Commercial properties', 'No commercial property record returned']]) },
-      { id: 'vehicles', title: 'Vehicles', fields: records([['Vehicle', 'Training vehicle record'], ['VIN', '•••••••••••4821'], ['Registration', locations[0] ?? 'Training location'], ['Title status', 'No title issue returned'], ['Lien holder', 'Not supplied'], ['Plate history', 'No historical plate record returned']]) },
-      { id: 'credit-summary', title: 'Credit Summary', fields: records([['Credit relationship', activeCase.customer?.segment ?? 'Not supplied'], ['Account standing', activeCase.status ?? 'Not supplied'], ['Current exposure', activeCase.amount ?? 'Not supplied'], ['Application history', profile.applicationHistory], ['Financial context', 'Open Financial Investigation when available']]) },
-      { id: 'bankruptcies', title: 'Bankruptcies', fields: records([['Chapter', 'No fictional bankruptcy record returned'], ['Filed', 'Not applicable'], ['Discharged', 'Not applicable'], ['Case number', 'Not applicable'], ['Court', 'Not applicable'], ['Status', 'No record returned']]) },
-      { id: 'liens-judgments', title: 'Liens / Judgments', fields: records([['Federal', 'No record returned'], ['State', 'No record returned'], ['Civil', 'No record returned'], ['Tax', 'No record returned'], ['Satisfied', 'No record returned'], ['Outstanding', 'No record returned']]) },
-      { id: 'criminal', title: 'Criminal Records (Training Only)', fields: records([['Record found', 'No fictional record returned'], ['Jurisdiction', 'Not applicable'], ['Offense type', 'Not applicable'], ['Disposition', 'Not applicable'], ['Sentence', 'Not applicable'], ['Case number', 'Not applicable']]) },
-      { id: 'public-records', title: 'Public Records', fields: records([['Marriage', 'No record returned'], ['Divorce', 'No record returned'], ['Court filings', 'No record returned'], ['Civil cases', 'No record returned'], ['Professional discipline', 'No record returned'], ['Voter registration', locations[0] ?? 'Training location']]) },
-      { id: 'social-digital', title: 'Social & Digital Presence', fields: records([['Known devices', devices.join(' · ') || 'No device record returned'], ['Known locations', locations.join(' · ') || 'No location record returned'], ['Digital profile links', activeCase.identityRecords?.map((item) => item.id).join(' · ') || 'No profile links returned'], ['Application activity', profile.applicationHistory]]) },
-      { id: 'additional-sources', title: 'Additional Data Sources', fields: records([['Current case', activeCase.id], ['Claim lane', activeCase.type], ['Source note', 'All records in this report are fictional training data'], ['Related tools', 'Customer 360 · Evidence Center · Login History · Device Intelligence']]) },
+      { id: 'identity-summary', title: 'Identity Summary', fields: records([['Full name', activeCase.person], ['DOB', profile.dob], ['Profile ID', profile.profileId], ['Training ID', mask(activeCase.trainingId)], ['Primary address', address], ['Verification status', identity.verificationStatus], ['Identity confidence', profile.confidence]]) },
+      { id: 'address-history', title: 'Address History', fields: records([['Current address', address], ['Previous address', previousAddress], ['Move date', `${pick(['Mar', 'Jun', 'Sep', 'Nov'], seed)} ${relationshipYear + 1}`], ['Address stability', `Current address appears across ${Math.max(1, 2026 - relationshipYear)} years of fictional relationship data`], ['Linked applications', profile.applicationHistory], ['Unit / apartment indicator', seed % 2 ? 'Single-unit residential record' : 'Unit number verified'], ['Mail-drop indicator', 'No fictional mail-drop indicator returned']]) },
+      { id: 'phone-numbers', title: 'Phone Numbers', fields: records([['Primary phone', phone], ['Carrier', pick(carriers, seed)], ['Line type', 'Mobile'], ['First seen', `Jul ${relationshipYear}`], ['Last seen', activeCase.reportedDate ?? activeCase.opened], ['Ownership confidence', `Name and address matched fictional carrier profile ${profile.profileId}`], ['Linked profiles', profile.profileId], ['Recent changes', (activeCase.customer?.profileChanges ?? []).filter((item) => /phone/i.test(`${item.eventType} ${item.item}`)).map((item) => `${item.date}: ${item.item}`).join(' · ') || 'No phone-value change returned'], ['OTP delivery history', 'Review Login History and profile-maintenance records']]) },
+      { id: 'email-history', title: 'Email History', fields: records([['Primary email', email], ['Business email', businessFound ? `contact@${lastName.toLowerCase()}-training.example.test` : 'No business email returned'], ['Historical emails', historicalEmail], ['First seen', `Jul ${relationshipYear}`], ['Last seen', activeCase.reportedDate ?? activeCase.opened], ['Domain type', 'Established fictional training domain'], ['Linked profiles', profile.profileId], ['Recent changes', (activeCase.customer?.profileChanges ?? []).filter((item) => /email/i.test(`${item.eventType} ${item.item}`)).map((item) => `${item.date}: ${item.item}`).join(' · ') || 'No email-value change returned'], ['Breach indicators', 'No fictional breach indicator returned'], ['Disposable email check', 'Not disposable in the fictional training source']]) },
+      { id: 'associates', title: 'Associates & Relatives', fields: records([['Mother', `${pick(firstNames, seed)} ${lastName}`], ['Father', `${pick(firstNames, seed, 1)} ${lastName}`], ['Spouse', spouse], ['Children', seed % 2 ? 'One fictional household relationship' : 'No child record returned'], ['Business associates', businessFound ? `${pick(firstNames, seed, 3)} ${lastName} · registered officer` : 'No business associate returned'], ['Known roommates', seed % 5 === 0 ? `${pick(firstNames, seed, 4)} Reed` : 'No roommate record returned'], ['Shared addresses', previousAddress], ['Shared phone numbers', 'No shared phone record returned'], ['Emergency contacts', `${pick(firstNames, seed, 5)} ${lastName}`]]) },
+      { id: 'employment', title: 'Employment History', fields: records([['Current employer', profile.employer], ['Position', activeCase.profile?.entityRole ?? 'Operations specialist'], ['Hire date', `${pick(['Jan', 'Apr', 'Aug', 'Oct'], seed)} ${2017 + (seed % 7)}`], ['Previous employers', `${pick(firstNames, seed, 6)} Training Group`], ['Employment timeline', `${2013 + (seed % 5)}-${2019 + (seed % 4)} previous · current employer thereafter`], ['Estimated income range', `$${45 + (seed % 35)},000-$${65 + (seed % 40)},000`], ['Business owner', businessFound ? activeCase.person : 'No business-owner record returned'], ['Officer positions', businessFound ? `${businessName} · member/manager` : 'No officer position returned'], ['Payroll relationships', /payroll/i.test(`${activeCase.claimTypeId} ${activeCase.type}`) ? activeCase.scenarioTitle : 'No payroll relationship in the current identity source']]) },
+      { id: 'business-records', title: 'Businesses & Ownership', fields: records([['Business name', businessName], ['Entity type', businessFound ? 'Training limited liability company' : 'No entity returned'], ['SOS status', businessFound ? 'Active fictional state filing' : 'No state filing returned'], ['EIN masked', businessFound ? `••-•••${String(seed).slice(-4).padStart(4, '0')}` : 'Not applicable'], ['Owner', businessFound ? activeCase.person : 'Not applicable'], ['Officer', businessFound ? activeCase.person : 'Not applicable'], ['Registered agent', businessFound ? `${pick(firstNames, seed, 7)} Training Agent` : 'Not applicable'], ['Business address', businessFound ? address : 'Not applicable'], ['State filing date', businessFound ? `May ${2018 + (seed % 7)}` : 'Not applicable'], ['Business standing', businessFound ? 'Active fictional record' : 'No entity returned']]) },
+      { id: 'licenses', title: 'Professional Licenses', fields: records([['License number', licenseFound ? `LIC-••••-${String(seed).slice(-3).padStart(3, '0')}` : 'No professional license returned'], ['License type', licenseFound ? 'Fictional occupational license' : 'Not applicable'], ['Status', licenseFound ? 'Active' : 'Not applicable'], ['Expiration', licenseFound ? `Dec 31, ${2027 + (seed % 3)}` : 'Not applicable'], ['Issuing agency', licenseFound ? 'Training State Licensing Board' : 'Not applicable'], ['Disciplinary actions', 'No fictional disciplinary action returned']]) },
+      { id: 'properties', title: 'Property Records', fields: records([['Current residence', address], ['Purchase date', `Aug ${2018 + (seed % 5)}`], ['Purchase price', `$${180 + (seed % 170)},000`], ['Estimated value', `$${240 + (seed % 210)},000`], ['Mortgage holder', 'Training Community Mortgage'], ['Tax assessment', `$${220 + (seed % 190)},000`], ['Rental properties', propertyCount > 1 ? previousAddress : 'No rental property returned'], ['Commercial properties', businessFound && seed % 2 === 0 ? `${businessName} office parcel` : 'No commercial property returned']]) },
+      { id: 'vehicles', title: 'Vehicle Records', fields: records([['Vehicle', pick(vehicleModels, seed)], ['VIN masked', `•••••••••••${String(seed).slice(-4).padStart(4, '0')}`], ['Registration', city], ['Title status', 'Clear fictional title record'], ['Lien holder', seed % 2 ? 'Training Auto Finance' : 'No lien holder returned'], ['Plate history', `TX-TRN-${String(seed).slice(-3).padStart(3, '0')} · one current plate`]]) },
+      { id: 'credit-summary', title: 'Credit & Financial Summary', fields: records([['Credit relationship', activeCase.customer?.segment ?? 'Training relationship'], ['Account standing', identity.accountStanding], ['Current exposure', activeCase.amount ?? 'Not supplied'], ['Application history', profile.applicationHistory], ['Estimated income range', `$${45 + (seed % 35)},000-$${65 + (seed % 40)},000`], ['Financial context', 'Open Financial Investigation for account-level evidence']]) },
+      { id: 'bankruptcies', title: 'Bankruptcy Records', fields: records([['Chapter', bankruptcyFound ? 'Chapter 7 fictional training record' : 'No fictional bankruptcy record returned'], ['Filed', bankruptcyFound ? 'Mar 2020' : 'Not applicable'], ['Discharged', bankruptcyFound ? 'Aug 2020' : 'Not applicable'], ['Case number', bankruptcyFound ? `BK-TRN-${String(seed).slice(-5)}` : 'Not applicable'], ['Court', bankruptcyFound ? 'Training District Court' : 'Not applicable'], ['Status', bankruptcyFound ? 'Discharged' : 'No record returned']]) },
+      { id: 'liens-judgments', title: 'Liens / Judgments', fields: records([['Federal', 'No record returned'], ['State', lienFound ? 'One satisfied fictional state lien' : 'No record returned'], ['Civil', 'No record returned'], ['Tax', lienFound ? 'Training tax lien · satisfied' : 'No record returned'], ['Satisfied', lienFound ? 'Yes · 2022' : 'No record returned'], ['Outstanding', 'No outstanding fictional record returned']]) },
+      { id: 'criminal', title: 'Criminal Records (Training Only)', fields: records([['Record found', 'No fictional criminal record returned'], ['Jurisdiction', 'Not applicable'], ['Offense type', 'Not applicable'], ['Disposition', 'Not applicable'], ['Sentence', 'Not applicable'], ['Case number', 'Not applicable']]) },
+      { id: 'public-records', title: 'Public Records', fields: records([['Marriage', spouse.startsWith('No ') ? 'No marriage record returned' : `Fictional marriage record · ${spouse}`], ['Divorce', 'No divorce record returned'], ['Court filings', bankruptcyFound ? 'Bankruptcy filing listed in separate section' : 'No court filing returned'], ['Civil cases', 'No civil case returned'], ['Professional discipline', 'No fictional professional discipline returned'], ['Voter registration', `${city} · fictional active registration`]]) },
+      { id: 'social-digital', title: 'Social & Digital Presence', fields: records([['Known devices', devices.join(' · ') || 'No device object returned'], ['Known locations', locations.join(' · ') || city], ['Digital profile links', activeCase.identityRecords?.map((item) => item.id).join(' · ') || profile.profileId], ['Email domain history', `${email.split('@')[1]} · established fictional training domain`], ['Application activity', profile.applicationHistory]]) },
+      { id: 'additional-sources', title: 'Additional Data Sources', fields: records([['Current case', activeCase.id], ['Claim lane', activeCase.lane ?? activeCase.type], ['Scenario', activeCase.scenarioTitle ?? activeCase.subtype ?? activeCase.type], ['Source note', 'All records in this report are fictional training data'], ['Related tools', 'Customer 360 · Document Viewer · Login History · Device Intelligence']]) },
     ],
   };
 }
 
-export function matchesIdentityIntelSearch(report, value) {
-  const query = String(value ?? '').trim().toLowerCase();
-  if (!query) return false;
-  return report.searchKeys.some((key) => String(key ?? '').toLowerCase().includes(query));
+function normalize(value) {
+  return String(value ?? '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+export function matchesIdentityIntelSearch(report, criteria) {
+  if (typeof criteria === 'string') {
+    const query = String(criteria).trim().toLowerCase();
+    return Boolean(query && report.searchKeys.some((key) => String(key ?? '').toLowerCase().includes(query)));
+  }
+  if (criteria?.mode === 'id') {
+    const query = normalize(criteria.id);
+    return Boolean(query && report.searchIds.some((value) => normalize(value).includes(query)));
+  }
+  const name = normalize(criteria?.name);
+  const dob = normalize(criteria?.dob);
+  return Boolean(name && dob && normalize(report.searchName).includes(name) && normalize(report.searchDob) === dob);
 }

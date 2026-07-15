@@ -40,6 +40,12 @@ const {
 } = await import('../src/data/generatedCaseRepository.js');
 const { coreClaimTypes } = await import('../src/data/claimRegistry.js');
 const { createGeneratedCase } = await import('../src/data/generatedCases.js');
+const { getCustomer360Dossier } = await import('../src/data/customer360Dossier.js');
+const { getIdentityIntelReport } = await import('../src/data/identityIntelReport.js');
+const { getLoginRecords } = await import('../src/data/loginRecords.js');
+const { getSessionRecords } = await import('../src/data/sessionRecords.js');
+const { getIpRecords } = await import('../src/data/ipRecords.js');
+const { buildAccessHistoryReport } = await import('../src/data/accessHistoryReports.js');
 
 const failures = [];
 const repository = await getGeneratedCaseRepository();
@@ -92,8 +98,41 @@ for (const [index, claimType] of coreClaimTypes.entries()) {
   if (!generated.statement?.value || !generated.intakeAnswers?.length || !generated.caseBriefing?.summary) {
     failures.push(`${claimType.label} is missing its complete Case Briefing intake packet.`);
   }
+  if (!generated.assignedInvestigator || !generated.assignedDate || !generated.dueDate) {
+    failures.push(`${claimType.label} is missing universal Case Briefing ownership or deadline details.`);
+  }
+  if (generated.parties?.length < 2 || generated.parties.some((party) => !party.role || !party.name || !party.relationship || !party.source)) {
+    failures.push(`${claimType.label} is missing complete Case Briefing party records.`);
+  }
+  const briefingRows = generated.briefingDetails?.rows ?? [];
+  if (!generated.briefingDetails?.title || briefingRows.length < 6 || briefingRows.some((row) => !row.label || !row.value)) {
+    failures.push(`${claimType.label} is missing structured lane-specific Case Briefing details.`);
+  }
   if (!generated.requiredTools?.length || !generated.availableTools?.length || !generated.documents?.length || !generated.toolResults?.evidence?.length) {
     failures.push(`${claimType.label} is missing required investigation packet data.`);
+  }
+  if (generated.customer?.profileChanges?.length < 3 || generated.customer.profileChanges.some((event) => !event.eventType || !event.oldValue || !event.newValue || !event.session || !event.notes)) {
+    failures.push(`${claimType.label} is missing complete generated profile-maintenance history.`);
+  }
+  const customerDossier = getCustomer360Dossier(generated);
+  const identityReport = getIdentityIntelReport(generated);
+  const loginRecords = getLoginRecords(generated);
+  const sessionRecords = getSessionRecords(generated);
+  const ipRecords = getIpRecords(generated);
+  const usesAccessHistory = generated.availableTools.includes('Login History');
+  if (!customerDossier.products.length || customerDossier.recentContacts.length < 2) failures.push(`${claimType.label} is missing generated Customer 360 depth.`);
+  if (identityReport.sections.length < 17 || identityReport.sections.some((section) => !section.fields.length)) failures.push(`${claimType.label} is missing generated Identity Intel field depth.`);
+  if (usesAccessHistory) {
+    if (!loginRecords.some((record) => /successful/i.test(record.result)) || !loginRecords.some((record) => /failed|locked/i.test(record.result))) failures.push(`${claimType.label} is missing varied generated authentication outcomes.`);
+    if (loginRecords.some((record) => !record.timestamp || !record.eventType || !record.operatingSystem || record.failedAttemptCount === undefined)) failures.push(`${claimType.label} is missing complete generated Login History fields.`);
+    if (sessionRecords.length < 2 || sessionRecords.some((record) => /not recorded/i.test(`${record.end} ${record.duration} ${record.pagesViewed.join(' ')}`))) failures.push(`${claimType.label} is missing complete generated Session History paths.`);
+    if (!ipRecords.length || ipRecords.some((record) => /lookup needed/i.test(`${record.city} ${record.isp} ${record.networkType} ${record.vpnProxyTor}`))) failures.push(`${claimType.label} is missing generated IP Intelligence lookup depth.`);
+    for (const reportType of ['login', 'session', 'ip']) {
+      const report = buildAccessHistoryReport(generated, reportType);
+      if (!report.pages.length || !report.fields.length || report.folder !== 'System Reports') failures.push(`${claimType.label} is missing the ${reportType} access-history report.`);
+    }
+  } else if (loginRecords.length || sessionRecords.length || ipRecords.length) {
+    failures.push(`${claimType.label} generated access-history records outside its selected scenario lane.`);
   }
   if (claimType.chargeback && !generated.chargebackDecision?.reasonCode) {
     failures.push(`${claimType.label} is missing chargeback reason-code packet details.`);
@@ -102,6 +141,9 @@ for (const [index, claimType] of coreClaimTypes.entries()) {
     failures.push(`${claimType.label} is missing credit decision rail details.`);
   }
 }
+
+const atoClaim = coreClaimTypes.find((claimType) => claimType.id === 'account-takeover');
+if (!atoClaim?.requiredTools.includes('Session History') || !atoClaim?.requiredTools.includes('IP Intelligence')) failures.push('Account Takeover must require Session History and IP Intelligence review.');
 
 const focusedCase = createGeneratedCase({
   index: 980001,

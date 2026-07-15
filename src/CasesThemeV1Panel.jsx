@@ -239,7 +239,7 @@ export default function CasesThemeV1Panel({
         <div>
           <p>Fraud Academy</p>
           <h2>Case Queue</h2>
-          <span>Find the right training case, preview the allegation, and open the evidence workspace without losing progress.</span>
+          <span>Find the right training case, preview the allegation, and open the investigation workspace without losing progress.</span>
         </div>
         <div className="cases-theme-v1-mark" aria-hidden="true">▣</div>
       </header>

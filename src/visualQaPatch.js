@@ -28,8 +28,8 @@ function wireTrayEvidenceButton() {
 
   if (!button || button.dataset.qaWired === 'true') return;
   button.dataset.qaWired = 'true';
-  button.textContent = '✦ Open Evidence Center ›';
-  button.setAttribute('aria-label', 'Open Evidence Center category');
+  button.textContent = '✦ Open Document Viewer ›';
+  button.setAttribute('aria-label', 'Open Document Viewer category');
   button.addEventListener('click', () => {
     navigate('workspace');
     window.setTimeout(() => {

@@ -38,20 +38,35 @@ export default function CaseSummaryCard({
   const evidenceAreas = activeCase.caseBriefing?.evidenceAreas ?? activeCase.evidenceAreas ?? [];
   const chargebackDetails = activeCase.chargebackDecision;
   const facts = displayFacts(activeCase);
+  const assignedInvestigator = activeCase.assignedInvestigator ?? activeCase.caseBriefing?.assignedInvestigator ?? 'Training queue · unassigned';
+  const assignedDate = activeCase.assignedDate ?? activeCase.caseBriefing?.assignedDate ?? activeCase.reportedDate ?? activeCase.opened;
+  const assignmentTeam = activeCase.assignmentTeam ?? activeCase.caseBriefing?.assignmentTeam ?? 'Fraud investigation';
+  const dueDate = activeCase.dueDate ?? activeCase.caseBriefing?.dueDate ?? 'Review deadline not supplied';
+  const parties = activeCase.parties ?? activeCase.caseBriefing?.parties ?? [];
+  const briefingDetails = activeCase.briefingDetails ?? activeCase.caseBriefing?.details ?? { eyebrow: 'Structured case details', title: 'Account details', rows: [] };
+  const availableToolNames = new Set(activeCase.availableTools ?? []);
+  const firstInvestigationTool = availableToolNames.has('Customer 360')
+    ? 'Customer 360'
+    : activeCase.requiredTools?.find((item) => item !== 'Case Summary' && availableToolNames.has(item))
+      ?? activeCase.availableTools?.find((item) => !['Timeline', 'System Access Lane'].includes(item));
+  const quickRoutes = [...new Set([...(activeCase.requiredTools ?? []), ...(activeCase.availableTools ?? [])])]
+    .filter((item) => item !== 'Case Summary' && item !== 'Customer 360' && availableToolNames.has(item))
+    .slice(0, 3);
 
   function recordBriefingAction(action, detail) {
     recordAction?.(action, detail, 'Case Briefing');
   }
 
   function beginInvestigation() {
-    recordBriefingAction('Began investigation', 'Opened Customer 360 from Case Briefing.');
-    openTool('Customer 360', 'investigate');
+    if (!firstInvestigationTool) return;
+    recordBriefingAction('Began investigation', `Opened ${firstInvestigationTool} from Case Briefing.`);
+    openTool(firstInvestigationTool, 'investigate');
   }
 
   function openNotebook() {
     recordBriefingAction('Opened notes', 'Opened the case notebook from Case Briefing.');
     if (openNotes) openNotes();
-    else openTool('Evidence Center', 'indicators');
+    else openTool('Document Viewer', 'indicators');
   }
 
   function showMoreTools() {
@@ -63,16 +78,6 @@ export default function CaseSummaryCard({
   function openRoute(toolName, stage) {
     recordBriefingAction('Opened evidence area', `${toolName} opened from Case Briefing.`);
     openTool(toolName, stage);
-  }
-
-  function openIdentityIntel() {
-    recordBriefingAction('Opened evidence area', 'Identity Intel / People Search opened from Case Briefing.');
-    openTool('Identity Intel / People Search');
-  }
-
-  function openLoginHistory() {
-    recordBriefingAction('Opened evidence area', 'Login History opened from Case Briefing.');
-    openTool('Login History');
   }
 
   return (
@@ -133,6 +138,8 @@ export default function CaseSummaryCard({
             <dl className="case-briefing-intake-grid">
               <div><dt>Intake channel</dt><dd>{intake.channel ?? 'Case queue'}</dd></div>
               <div><dt>Reported / opened</dt><dd>{activeCase.reportedDate ?? intake.contactTime ?? activeCase.opened}</dd></div>
+              <div><dt>Assigned</dt><dd>{assignedDate}</dd></div>
+              <div><dt>Review due</dt><dd>{dueDate}</dd></div>
               <div><dt>Customer location</dt><dd>{intake.customerLocation ?? 'Not provided'}</dd></div>
               <div><dt>Stated device</dt><dd>{intake.statedDevice ?? 'Not provided'}</dd></div>
             </dl>
@@ -141,7 +148,9 @@ export default function CaseSummaryCard({
           <section className="case-briefing-metrics" aria-label="Case at a glance">
             <article><span>Claim amount</span><strong>{activeCase.amount}</strong></article>
             <article><span>Queue status</span><strong>{activeCase.status ?? 'Open'}</strong></article>
-            <article><span>Opened</span><strong>{activeCase.opened}</strong></article>
+            <article><span>Priority</span><strong>{activeCase.priority ?? 'Standard'}</strong></article>
+            <article data-briefing-owner="true"><span>Assigned investigator</span><strong>{assignedInvestigator}</strong><small>{assignmentTeam}</small></article>
+            <article data-briefing-due-date="true"><span>Due date</span><strong>{dueDate}</strong></article>
             <article><span>Documents</span><strong>{documents.length}</strong></article>
           </section>
 
@@ -189,9 +198,43 @@ export default function CaseSummaryCard({
             </dl>
           </article>
 
-          <article className="case-briefing-card case-briefing-focus-card">
+          <article className="case-briefing-card case-briefing-parties-card" data-case-briefing-parties="true">
             <div className="case-briefing-card-heading">
               <span aria-hidden="true">06</span>
+              <div>
+                <p>People and organizations</p>
+                <h3>Case parties</h3>
+              </div>
+            </div>
+            <div className="case-briefing-party-list">
+              {parties.map((party) => (
+                <article key={party.id ?? `${party.role}-${party.name}`}>
+                  <span>{party.role}</span>
+                  <strong>{party.name}</strong>
+                  <p>{party.relationship}</p>
+                  <small>Source: {party.source}</small>
+                </article>
+              ))}
+              {!parties.length && <p className="case-briefing-empty">No separate party records are included in this case packet yet.</p>}
+            </div>
+          </article>
+
+          <article className="case-briefing-card case-briefing-detail-card" data-case-briefing-details="true">
+            <div className="case-briefing-card-heading">
+              <span aria-hidden="true">07</span>
+              <div>
+                <p>{briefingDetails.eyebrow}</p>
+                <h3>{briefingDetails.title}</h3>
+              </div>
+            </div>
+            <dl className="case-briefing-facts-grid case-briefing-detail-grid">
+              {(briefingDetails.rows ?? []).slice(0, 8).map((row) => <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}
+            </dl>
+          </article>
+
+          <article className="case-briefing-card case-briefing-focus-card">
+            <div className="case-briefing-card-heading">
+              <span aria-hidden="true">08</span>
               <div>
                 <p>Investigator prompts</p>
                 <h3>Key focus areas</h3>
@@ -206,7 +249,7 @@ export default function CaseSummaryCard({
 
           <article className="case-briefing-card case-briefing-evidence-card">
             <div className="case-briefing-card-heading">
-              <span aria-hidden="true">07</span>
+              <span aria-hidden="true">09</span>
               <div>
                 <p>Available evidence areas</p>
                 <h3>Records in this packet</h3>
@@ -236,7 +279,7 @@ export default function CaseSummaryCard({
 
           <article className="case-briefing-card case-briefing-documents-card">
             <div className="case-briefing-card-heading">
-              <span aria-hidden="true">08</span>
+              <span aria-hidden="true">10</span>
               <div>
                 <p>Case packet</p>
                 <h3>Recent documents</h3>
@@ -251,13 +294,16 @@ export default function CaseSummaryCard({
               ))}
               {!documents.length && <p className="case-briefing-empty">No documents are listed in this case packet yet.</p>}
             </div>
-            <button type="button" className="case-briefing-secondary-action" onClick={() => openRoute('Document Request', 'investigate')}>Open Document Request</button>
+            <div className="case-briefing-document-actions">
+              <button type="button" className="case-briefing-secondary-action" onClick={() => openRoute('Document Viewer', 'indicators')}>Open Document Viewer</button>
+              <button type="button" className="case-briefing-secondary-action" onClick={() => openRoute('Document Request', 'investigate')}>Open Document Request</button>
+            </div>
           </article>
 
           {chargebackDetails && (
             <article className="case-briefing-card case-briefing-chargeback-card">
               <div className="case-briefing-card-heading">
-                <span aria-hidden="true">09</span>
+                <span aria-hidden="true">11</span>
                 <div>
                   <p>Chargeback review rail</p>
                   <h3>Reason code and packet details</h3>
@@ -277,7 +323,7 @@ export default function CaseSummaryCard({
           {activeCase.creditDecision && (
             <article className="case-briefing-card case-briefing-credit-card">
               <div className="case-briefing-card-heading">
-                <span aria-hidden="true">10</span>
+                <span aria-hidden="true">12</span>
                 <div>
                   <p>Credit review rail</p>
                   <h3>Credit case details</h3>
@@ -319,9 +365,11 @@ export default function CaseSummaryCard({
         </nav>
 
         <nav className="case-briefing-utilities case-briefing-quick-routes" aria-label="Case briefing quick routes">
-          <button type="button" onClick={() => openRoute('Transaction History')}>Transaction History</button>
-          <button type="button" onClick={openIdentityIntel}>Identity Intel</button>
-          <button type="button" onClick={openLoginHistory}>Login History</button>
+          {quickRoutes.map((toolName) => (
+            <button key={toolName} type="button" onClick={() => openRoute(toolName)}>
+              {toolName === 'Identity Intel / People Search' ? 'Identity Intel' : toolName}
+            </button>
+          ))}
           <button type="button" className="decision-jump-button" onClick={() => { recordBriefingAction('Opened determination', 'Opened Submit Decision from Case Briefing.'); jumpDecision(); }}>Submit Decision</button>
         </nav>
       </div>

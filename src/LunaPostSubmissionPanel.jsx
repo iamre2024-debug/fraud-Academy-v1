@@ -37,7 +37,7 @@ export default function LunaPostSubmissionPanel({
 
   useEffect(() => {
     const frame = document.querySelector('.visual-os-frame');
-    const anchor = document.querySelector('.submit-decision-panel');
+    const anchor = document.querySelector('.decision-luna-portal-anchor');
     if (!frame || !anchor) return undefined;
 
     let lunaHost = frame.querySelector('.luna-post-submission-host');
@@ -96,6 +96,9 @@ export default function LunaPostSubmissionPanel({
   }, [activeCase, submittedPackage, version]);
 
   const locked = !state.reviewPackage || !state.debrief;
+  const stepNumbers = state.debrief?.truthReveal
+    ? { strengths: '04', followUps: '05', breakdown: '06' }
+    : { strengths: '03', followUps: '04', breakdown: '05' };
   const panel = (
     <section
       className={`ornate-card luna-visual-panel luna-theme-v1 ${locked ? 'locked' : 'unlocked'}`}
@@ -131,7 +134,7 @@ export default function LunaPostSubmissionPanel({
             <article><span>1</span><div><strong>Review required tools</strong><p>Complete the protected investigation checklist.</p></div></article>
             <article><span>2</span><div><strong>Build evidence support</strong><p>Pin records and preserve investigation notes.</p></div></article>
             <article><span>3</span><div><strong>Write your rationale</strong><p>Choose a decision route and explain the evidence.</p></div></article>
-            <article><span>4</span><div><strong>Save learner package</strong><p>Submission unlocks the case-scoped debrief.</p></div></article>
+            <article><span>4</span><div><strong>Submit decision package</strong><p>Submission unlocks the case-scoped debrief.</p></div></article>
           </div>
         </div>
       ) : (
@@ -151,7 +154,7 @@ export default function LunaPostSubmissionPanel({
 
           <div className="luna-debrief-grid luna-v1-debrief-grid">
             <section className="luna-v1-card luna-v1-user-reasoning">
-              <header><span aria-hidden="true">01</span><div><p>Learner reasoning</p><h3>Your submitted determination</h3></div></header>
+              <header><span className="luna-v1-step-index" aria-hidden="true">01</span><div><p>Learner reasoning</p><h3>Your submitted determination</h3></div></header>
               <dl>
                 <div><dt>Decision</dt><dd>{state.reviewPackage.choice}</dd></div>
                 <div><dt>Confidence</dt><dd>{state.reviewPackage.confidence}</dd></div>
@@ -160,16 +163,29 @@ export default function LunaPostSubmissionPanel({
             </section>
 
             <section className="luna-v1-card luna-v1-senior-review">
-              <header><span aria-hidden="true">02</span><div><p>Senior review</p><h3>How Luna read the package</h3></div></header>
+              <header><span className="luna-v1-step-index" aria-hidden="true">02</span><div><p>Senior review</p><h3>How Luna read the package</h3></div></header>
               <DirectCollapsibleText as="p" lines={4} mobileLines={5}>{state.debrief.coachIntro}</DirectCollapsibleText>
               <div className="luna-v1-package-facts">
                 <span>{state.reviewPackage.pinnedEvidence.length} pinned</span>
-                <span>{state.reviewPackage.noteSnapshot.length} notes</span>
+                <span>{state.reviewPackage.noteSnapshot.length} notes - {state.debrief.notesQuality.label}</span>
+                <span>{state.reviewPackage.indicatorSummary?.redPoints ?? 0} red weight</span>
+                <span>{state.reviewPackage.indicatorSummary?.greenPoints ?? 0} green weight</span>
               </div>
             </section>
 
-            <section className="luna-v1-card luna-v1-strengths">
-              <header><span aria-hidden="true">03</span><div><p>Strong investigation choices</p><h3>What your package did well</h3></div></header>
+            {state.debrief.truthReveal && (
+              <section className="luna-v1-card luna-v1-truth-review">
+                <header><span className="luna-v1-step-index" aria-hidden="true">03</span><div><p>Scenario reveal</p><h3>Truth and expected determination</h3></div></header>
+                <dl>
+                  <div><dt>Expected determination</dt><dd>{state.debrief.truthReveal.correctDetermination}</dd></div>
+                  <div><dt>Learner match</dt><dd>{state.debrief.determinationMatched ? 'Matched' : 'Did not match'}</dd></div>
+                </dl>
+                <DirectCollapsibleText as="p" lines={5} mobileLines={6}>{state.debrief.truthReveal.classification}</DirectCollapsibleText>
+              </section>
+            )}
+
+            <section className="luna-v1-card luna-v1-strengths" data-debrief-step={stepNumbers.strengths}>
+              <header><span className="luna-v1-step-index" aria-hidden="true">{stepNumbers.strengths}</span><div><p>Strong investigation choices</p><h3>What your package did well</h3></div></header>
               <div className="luna-v1-list">
                 {state.debrief.strengths.map((item) => (
                   <DirectCollapsibleText key={item} as="p" lines={3} mobileLines={4}>✓ {item}</DirectCollapsibleText>
@@ -177,8 +193,8 @@ export default function LunaPostSubmissionPanel({
               </div>
             </section>
 
-            <section className="luna-v1-card luna-v1-followups">
-              <header><span aria-hidden="true">04</span><div><p>Evidence to revisit</p><h3>Next coaching focus</h3></div></header>
+            <section className="luna-v1-card luna-v1-followups" data-debrief-step={stepNumbers.followUps}>
+              <header><span className="luna-v1-step-index" aria-hidden="true">{stepNumbers.followUps}</span><div><p>Evidence to revisit</p><h3>Next coaching focus</h3></div></header>
               <div className="luna-v1-list">
                 {state.debrief.followUps.map((item) => (
                   <DirectCollapsibleText key={item} as="p" lines={3} mobileLines={4}>⌁ {item}</DirectCollapsibleText>
@@ -186,8 +202,8 @@ export default function LunaPostSubmissionPanel({
               </div>
             </section>
 
-            <section className="luna-v1-card luna-v1-breakdown">
-              <header><span aria-hidden="true">05</span><div><p>Learning outcome</p><h3>Decision-quality breakdown</h3></div></header>
+            <section className="luna-v1-card luna-v1-breakdown" data-debrief-step={stepNumbers.breakdown}>
+              <header><span className="luna-v1-step-index" aria-hidden="true">{stepNumbers.breakdown}</span><div><p>Learning outcome</p><h3>Decision-quality breakdown</h3></div></header>
               <div className="luna-breakdown-card">
                 {state.debrief.breakdown.map((item) => (
                   <div key={item.label}>

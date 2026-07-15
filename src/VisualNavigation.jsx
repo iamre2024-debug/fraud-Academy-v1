@@ -257,7 +257,7 @@ function DashboardPanel({ activeCaseId, cases, snapshot, onNavigate, onOpenCase 
         </button>
         <button type="button" onClick={() => onNavigate('workspace')}>
           <span className="dashboard-quick-icon">◈</span>
-          <span><strong>Evidence Workspace</strong><small>{snapshot.reviewed} tools reviewed</small></span>
+          <span><strong>Document Workspace</strong><small>{snapshot.reviewed} tools reviewed</small></span>
         </button>
         <button type="button" onClick={() => onNavigate('workspace')}>
           <span className="dashboard-quick-icon">◷</span>

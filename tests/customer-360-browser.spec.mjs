@@ -15,11 +15,17 @@ test('approved Customer 360 is a complete Evidence First dossier', async ({ page
   await expect(customer360.getByRole('heading', { name: 'Customer 360', exact: true })).toBeVisible();
   await expect(customer360.getByRole('heading', { name: 'Customer Identity Snapshot', exact: true })).toBeVisible();
   await expect(customer360.getByRole('heading', { name: 'Current Case Snapshot', exact: true })).toBeVisible();
+  await expect(customer360.getByRole('heading', { name: 'Baseline before the claim', exact: true })).toBeVisible();
+  await expect(customer360.getByRole('heading', { name: 'Process coaching', exact: true })).toBeVisible();
+  await expect(customer360.getByRole('heading', { name: 'Latest case files', exact: true })).toBeVisible();
+  await expect(customer360.getByText('Suggested Next Step', { exact: true })).toBeVisible();
 
   const tabs = customer360.getByRole('tablist', { name: 'Customer 360 dossier tabs' });
   await tabs.getByRole('tab', { name: 'Accounts', exact: true }).click();
   await expect(customer360.getByRole('heading', { name: 'Products & Accounts', exact: true })).toBeVisible();
   await expect(customer360.getByRole('heading', { name: 'Relationship Overview', exact: true })).toBeVisible();
+  await expect(customer360.getByRole('heading', { name: 'Accounts & Products', exact: true })).toBeVisible();
+  await expect(customer360.locator('.customer-360-structured-records article')).toHaveCount(3);
 
   await tabs.getByRole('tab', { name: 'Devices & Access', exact: true }).click();
   await expect(customer360.getByRole('heading', { name: 'Security & Access Summary', exact: true })).toBeVisible();
@@ -27,9 +33,11 @@ test('approved Customer 360 is a complete Evidence First dossier', async ({ page
   await tabs.getByRole('tab', { name: 'Contact History', exact: true }).click();
   await expect(customer360.getByRole('heading', { name: 'Contact Information', exact: true })).toBeVisible();
   await expect(customer360.getByRole('heading', { name: 'Recent Customer Contact', exact: true })).toBeVisible();
+  await expect(customer360.getByRole('heading', { name: 'Recent Customer Contact Log', exact: true })).toBeVisible();
 
   await tabs.getByRole('tab', { name: 'Profile History', exact: true }).click();
   await expect(customer360.getByRole('heading', { name: 'Prior Claims / Disputes', exact: true })).toBeVisible();
+  await expect(customer360.getByRole('heading', { name: 'Prior Claims & Disputes Records', exact: true })).toBeVisible();
   await expect(customer360.getByRole('heading', { name: 'Profile Change Event Log', exact: true })).toBeVisible();
 
   await tabs.getByRole('tab', { name: 'Devices & Access', exact: true }).click();
@@ -44,6 +52,12 @@ test('approved Customer 360 is a complete Evidence First dossier', async ({ page
 
   await tabs.getByRole('tab', { name: 'Profile History', exact: true }).click();
   await expect(customer360.locator('[data-profile-event]')).toHaveCount(7);
+  await expect(customer360.locator('[data-profile-event]').first()).toContainText('Old value');
+  await expect(customer360.locator('[data-profile-event]').first()).toContainText('New value');
+  await expect(customer360.locator('[data-profile-event]').first()).toContainText('Device / session');
+  const profileDownload = page.waitForEvent('download');
+  await customer360.getByRole('button', { name: 'Export Profile Change Report', exact: true }).click();
+  expect((await profileDownload).suggestedFilename()).toBe('FA-ATO-24018-profile-change-report.txt');
 
   await tabs.getByRole('tab', { name: 'Overview', exact: true }).click();
 

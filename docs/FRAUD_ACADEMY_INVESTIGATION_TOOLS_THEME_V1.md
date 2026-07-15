@@ -28,10 +28,10 @@ This step redesigns the contextual deep-tool experience while leaving Timeline, 
 The approved contextual groups are:
 
 1. Identity & Customer
-2. Login, Device & IP
+2. Login, Session, Device & IP
 3. Transactions & Financial
 4. Business & Payment Verification
-5. Evidence & Documents
+5. Documents & Requests
 6. Links & Related Cases
 
 `src/investigationToolGroups.js` owns this approved grouping. The single Connections path continues to expose `System Access Lane`; parked standalone access portals are not revived.
@@ -44,13 +44,12 @@ The approved contextual groups are:
 - Device Intelligence
 - IP Intelligence
 - Transaction History
-- Financial Intelligence
+- Financial Investigation
 - Payment Verification
 - Business 360
-- Business Intelligence
+- KYB Review
 - Employee Profile
 - Payroll History
-- Evidence Center
 - Document Viewer
 - Link Analysis
 - System Access Lane
@@ -73,6 +72,17 @@ Each deep tool now presents:
 - direct routes to Timeline, Case Report, and locked Submit Decision.
 
 The redesign changes presentation and hierarchy only. It does not replace record builders, tool data, action controllers, or persistence.
+
+## Access-history completion
+
+Login History, Session History, and IP Intelligence now form one evidence chain while keeping distinct responsibilities:
+
+- Login History owns authentication events only, including exact date and time, event type, result, failed-attempt count, lockout state, method, MFA, channel, device, browser, operating system, IP, location, and session reference. Result, method, device, and date filters narrow the record set.
+- Session History starts only from successful authentication and owns the recorded post-login path, profile activity, payment or money activity, security settings, linked record IDs, duration, and logout or timeout state. Logout, activity, device, and date filters narrow the record set.
+- IP Intelligence requires an exact IP lookup before detail is shown. A completed lookup returns location, provider, network type, residential status, VPN/proxy/TOR observations, first and last seen dates, historical locations, velocity, cross-case presence, and linked authentication/session events.
+- Built-in and unlimited generated cases receive the same complete access-history structure, including failed authentication and scenario-appropriate session activity.
+- Each tool generates its own neutral system report. Generated Login Timeline, Session History, and IP Intelligence reports are saved under **Document Viewer → System Reports** and can be downloaded from the originating tool.
+- These investigation tools present records and connections only. Red/green checklist weighting and the determination remain in Submit Decision.
 
 ## Protected behavior
 

@@ -12,7 +12,7 @@ const businessProfiles = {
     filingDate: 'Not supplied',
     standing: 'Scope limited to merchant relationship',
     revenue: 'Not supplied in current packet',
-    contact: 'Merchant response channel available through Evidence Center',
+    contact: 'Merchant response channel available through Document Viewer',
   },
   'FA-CB-24007': {
     entityType: 'Subscription merchant',
@@ -85,8 +85,20 @@ export function getTransactionHistory(activeCase) {
 
 export function getBusiness360Workspace(activeCase) {
   const records = getBusinessRecords(activeCase);
-  const profile = activeCase.businessProfile ?? businessProfiles[activeCase.id] ?? businessProfiles['FA-CR-24003'];
   const primary = records.business360?.[0] ?? { entity: 'No business entity recorded', id: 'BIZ-NONE', relationship: 'No relationship recorded', status: 'Not supplied', observed: 'Not supplied', context: 'No current business record.' };
+  const profile = activeCase.businessProfile ?? businessProfiles[activeCase.id] ?? {
+    entityType: activeCase.profile?.entityType ?? 'Generated training entity',
+    registration: `Generated fictional registration for ${primary.entity}`,
+    ein: `**-***${String(activeCase.id ?? '0000').replace(/\D/g, '').slice(-4).padStart(4, '0')}`,
+    owner: activeCase.person ?? 'Training owner record',
+    officer: activeCase.profile?.entityRole ?? 'Training controlling-party record',
+    registeredAgent: 'Generated training registered-agent record',
+    address: activeCase.customer?.contact?.address ?? `${activeCase.intake?.customerLocation ?? 'Training location'} business address`,
+    filingDate: activeCase.opened ?? 'Training date',
+    standing: 'Fictional business record available',
+    revenue: `Case-specific activity available for ${activeCase.amount ?? 'the current review'}`,
+    contact: activeCase.customer?.contact?.phone ?? 'Training business contact record',
+  };
   return {
     profile: {
       entity: primary.entity,

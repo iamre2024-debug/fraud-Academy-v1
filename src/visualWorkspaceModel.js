@@ -1,4 +1,6 @@
-import { getBusinessRecords, getEvidenceRecords, getFinancialRecords } from './data/caseToolData.js';
+import { getBusinessRecords, getFinancialRecords } from './data/caseToolData.js';
+import { getCaseDocuments } from './data/documentRecords.js';
+import { getMerchantIntelligence } from './data/merchantIntelligenceRecords.js';
 import { getSystemAccessRecords } from './data/systemAccessRecords.js';
 
 export const AGENT_ID = 'AGT-TRAIN-001';
@@ -6,9 +8,10 @@ export const AGENT_ID = 'AGT-TRAIN-001';
 export const categories = [
   { key: 'identity', label: 'Identity', icon: '▣', tools: ['Customer 360', 'Identity Intel / People Search'] },
   { key: 'digital', label: 'Digital Activity', icon: '⌁', tools: ['Login History', 'Session History', 'Device Intelligence', 'IP Intelligence'] },
-  { key: 'financial', label: 'Financial', icon: '$', tools: ['Transaction History', 'Financial Intelligence', 'Payment Verification'] },
-  { key: 'business', label: 'Business', icon: '⌂', tools: ['Business 360', 'Business Intelligence', 'Employee Profile', 'Payroll History'] },
-  { key: 'evidence', label: 'Evidence', icon: '▰', tools: ['Evidence Center', 'Document Request'] },
+  { key: 'financial', label: 'Financial', icon: '$', tools: ['Transaction History', 'Financial Investigation', 'Payment Verification'] },
+  { key: 'merchant', label: 'Merchant', icon: 'MCC', tools: ['Merchant Intelligence'] },
+  { key: 'business', label: 'Business', icon: '⌂', tools: ['Business 360', 'KYB Review', 'Employee Profile', 'Payroll History'] },
+  { key: 'evidence', label: 'Evidence', icon: '▰', tools: ['Document Viewer', 'Document Request'] },
   { key: 'connections', label: 'Connections', icon: '⌘', tools: ['Link Analysis', 'System Access Lane'] },
   { key: 'investigation', label: 'Investigation', icon: '⌕', tools: ['Timeline'] },
 ];
@@ -24,7 +27,7 @@ export const storageKeys = {
   actions: 'fraud-academy-action-log-v1',
 };
 
-export const defaultDecisionDraft = { choice: '', confidence: 'Medium', reason: '' };
+export const defaultDecisionDraft = { choice: '', confidence: 'Medium', reason: '', indicators: {} };
 
 export function readStorage(key, fallback) {
   if (typeof window === 'undefined') return fallback;
@@ -49,7 +52,7 @@ function makeRow(id, values, pin = id, label = 'Record') {
 export function rowsFor(tool, activeCase) {
   const financial = getFinancialRecords(activeCase);
   const business = getBusinessRecords(activeCase);
-  const evidence = getEvidenceRecords(activeCase);
+  const documents = getCaseDocuments(activeCase);
 
   if (tool === 'Customer 360') {
     const relationship = activeCase.customer?.relationship ?? [];
@@ -60,7 +63,7 @@ export function rowsFor(tool, activeCase) {
         makeRow('C360-REL', ['C360-REL', 'Relationship since', activeCase.customer?.relationshipSince, activeCase.opened, 'Customer relationship snapshot', activeCase.trainingId, 'Pin'], activeCase.trainingId, 'Customer profile'),
         makeRow('C360-SEG', ['C360-SEG', 'Segment', activeCase.customer?.segment, activeCase.opened, 'Product relationship context', activeCase.id, 'Pin'], activeCase.customer?.segment, 'Customer segment'),
         ...relationship.map((item, index) => makeRow(`C360-REL-${index + 1}`, [`C360-REL-${index + 1}`, item.label, item.value, activeCase.opened, 'Relationship detail', activeCase.id, 'Pin'], item.value, item.label)),
-        ...profileChanges.map((item) => makeRow(item.id, [item.id, item.item, item.detail, item.date, item.source, activeCase.id, 'Pin'], item.id, 'Profile change')),
+        ...profileChanges.map((item) => makeRow(item.id, [item.id, item.eventType ?? item.item, `${item.oldValue ?? 'Not recorded'} → ${item.newValue ?? item.detail}`, `${item.date}${item.time ? ` · ${item.time}` : ''}`, item.source, item.session ?? activeCase.id, 'Pin'], item.id, 'Profile change')),
       ],
     };
   }
@@ -103,10 +106,18 @@ export function rowsFor(tool, activeCase) {
     };
   }
 
-  if (tool === 'Financial Intelligence') {
+  if (tool === 'Financial Investigation') {
     return {
       columns: ['Record', 'Type', 'Value', 'Observed', 'Context', 'Case', 'Action'],
-      rows: financial.financialIntel.map((item) => makeRow(item.id, [item.id, item.type, item.value, item.observed, item.context, activeCase.id, 'Pin'], item.id, 'Financial intelligence')),
+      rows: financial.financialIntel.map((item) => makeRow(item.id, [item.id, item.type, item.value, item.observed, item.context, activeCase.id, 'Pin'], item.id, 'Financial investigation')),
+    };
+  }
+
+  if (tool === 'Merchant Intelligence') {
+    const merchant = getMerchantIntelligence(activeCase);
+    return {
+      columns: ['Record', 'Section', 'Title', 'Status', 'Observed', 'Summary', 'Related Records'],
+      rows: merchant.records.map((item) => makeRow(item.id, [item.id, item.section, item.title, item.status, item.observed, item.summary, item.relatedRecords.join(', ') || 'None'], item.id, 'Merchant evidence')),
     };
   }
 
@@ -124,10 +135,10 @@ export function rowsFor(tool, activeCase) {
     };
   }
 
-  if (tool === 'Business Intelligence') {
+  if (tool === 'KYB Review') {
     return {
       columns: ['Record', 'Type', 'Value', 'Observed', 'Context', 'Case', 'Action'],
-      rows: business.businessIntel.map((item) => makeRow(item.id, [item.id, item.type, item.value, item.observed, item.context, activeCase.id, 'Pin'], item.id, 'Business intelligence')),
+      rows: business.businessIntel.map((item) => makeRow(item.id, [item.id, item.type, item.value, item.observed, item.context, activeCase.id, 'Pin'], item.id, 'KYB record')),
     };
   }
 
@@ -145,17 +156,17 @@ export function rowsFor(tool, activeCase) {
     };
   }
 
-  if (tool === 'Evidence Center') {
+  if (tool === 'Document Viewer') {
     return {
-      columns: ['Record', 'Status', 'Evidence', 'Source', 'Received', 'Linked Object', 'Summary'],
-      rows: evidence.evidence.map((item) => makeRow(item.id, [item.id, item.status, item.name, item.source, item.received, item.linkedObject, item.summary], item.id, 'Evidence')),
+      columns: ['Document', 'Folder', 'Status', 'Source', 'Received', 'Reference', 'Summary'],
+      rows: documents.map((item) => makeRow(item.id, [item.id, item.folder, item.status, item.source, item.received, item.reference, item.summary], item.id, 'Document')),
     };
   }
 
   if (tool === 'Document Request') {
     return {
       columns: ['Request', 'Status', 'Document Type', 'Required', 'Due Date', 'Linked Tool', 'Reviewer Notes'],
-      rows: evidence.documents.map((item) => makeRow(item.id, [item.id, item.status, item.title, item.category.includes('Optional') ? 'Optional' : 'Required', 'Not set', 'Evidence Center', item.preview], item.id, 'Document request')),
+      rows: documents.map((item) => makeRow(item.id, [item.id, item.requestStatus, item.title, /optional/i.test(item.folder) ? 'Optional' : 'Required', 'Not set', 'Document Viewer', item.summary], item.id, 'Document request')),
     };
   }
 

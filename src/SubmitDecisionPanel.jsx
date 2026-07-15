@@ -1,4 +1,5 @@
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
+import DecisionFlagChecklist from './DecisionFlagChecklist.jsx';
 import { getDecisionCallGroups, reviewChoices } from './data/reviewPackage.js';
 
 export default function SubmitDecisionPanel({
@@ -10,6 +11,7 @@ export default function SubmitDecisionPanel({
   decisionDraft,
   activeCase,
   updateDecision,
+  updateDecisionIndicator,
   submitDecision,
 }) {
   const latestPackage = reviewPackages[0] ?? null;
@@ -18,7 +20,7 @@ export default function SubmitDecisionPanel({
     100,
     Math.round((packageStatus.rationaleWordCount / packageStatus.minimumRationaleWords) * 100),
   );
-  const submitLabel = packageStatus.ready ? 'Save learner package' : 'Check package readiness';
+  const submitLabel = packageStatus.ready ? 'Submit Decision' : 'Check decision readiness';
   const decisionGroups = getDecisionCallGroups(activeCase);
   const selectionGroups = decisionGroups.length ? decisionGroups : [{ label: 'Learner choices', options: reviewChoices }];
 
@@ -33,7 +35,7 @@ export default function SubmitDecisionPanel({
         <div>
           <p className="decision-v1-eyebrow">Determination · Evidence First</p>
           <h2>Submit Decision</h2>
-          <p>Build a defensible learner package from the evidence you reviewed, the records you pinned, and the reasoning you documented.</p>
+          <p>Complete the case-specific weighted checklist, prove every selected flag, and record the determination supported by the evidence.</p>
         </div>
         <div className="decision-v1-header-status">
           <span>{activeCase.id}</span>
@@ -54,61 +56,51 @@ export default function SubmitDecisionPanel({
         <article><span>Required tools</span><strong>{packageStatus.reviewedRequired}/{packageStatus.totalRequired}</strong></article>
         <article><span>Pinned objects</span><strong>{tray.length}</strong></article>
         <article><span>Investigation notes</span><strong>{notes.length}</strong></article>
+        <article><span>Proven flags</span><strong>{packageStatus.indicatorSummary.selectedCount}</strong></article>
       </section>
 
+      <DecisionFlagChecklist
+        activeCase={activeCase}
+        tray={tray}
+        decisionDraft={decisionDraft}
+        indicatorSummary={packageStatus.indicatorSummary}
+        updateDecisionIndicator={updateDecisionIndicator}
+      />
+
       <div className="decision-v1-workspace">
-        <section className="decision-v1-checklist" aria-labelledby="decision-checklist-heading">
-          <header>
-            <div>
-              <p>Final evidence check</p>
-              <h3 id="decision-checklist-heading">Package readiness</h3>
-            </div>
-            <span>{packageStatus.blockers.length ? `${packageStatus.blockers.length} open` : 'Complete'}</span>
-          </header>
-
-          <div className="decision-checklist" aria-live="polite">
-            {packageStatus.messages.map((message, index) => (
-              <article key={message} data-checklist-message={index === 0 ? 'primary' : 'supporting'}>
-                <span aria-hidden="true">{index === 0 && packageStatus.ready ? '✓' : '•'}</span>
-                <DirectCollapsibleText minLength={88}>{message}</DirectCollapsibleText>
-              </article>
-            ))}
-          </div>
-
-          <div className="decision-v1-support-summary">
-            <div>
-              <span>Rationale progress</span>
-              <strong>{packageStatus.rationaleWordCount}/{packageStatus.minimumRationaleWords} words</strong>
-            </div>
-            <div className="decision-v1-progress" aria-hidden="true"><b style={{ width: `${rationaleProgress}%` }} /></div>
-            <p>{packageStatus.packageInputSummary}</p>
-          </div>
-        </section>
-
         <form className="decision-form decision-v1-form" onSubmit={submitDecision}>
           <header>
-            <p>Your determination</p>
-            <h3>Document the learner decision</h3>
-            <span>Choose the lane-appropriate action, calibrate confidence, and explain how the evidence supports your reasoning.</span>
+            <p>Determination</p>
+            <h3>Make the case decision</h3>
+            <span>Choose the lane-appropriate action below, then explain how the proven flags and supporting evidence justify it.</span>
           </header>
 
-          <label>
-            <span>Learner choice</span>
-            <select
-              value={decisionDraft.choice}
-              onChange={(event) => updateDecision('choice', event.target.value)}
-              aria-label="Learner decision choice"
-            >
-              <option value="">Select a decision or review route...</option>
+          <fieldset className="decision-choice-fieldset">
+            <legend>Determination choice</legend>
+            <div className="decision-choice-groups">
               {selectionGroups.map((group) => (
-                <optgroup key={group.label} label={group.label}>
-                  {group.options.map((item) => <option key={item} value={item}>{item}</option>)}
-                </optgroup>
+                <section key={group.label} className="decision-choice-group" aria-label={group.label}>
+                  <h4>{group.label}</h4>
+                  <div>
+                    {group.options.map((item) => (
+                      <label key={item} data-choice-selected={decisionDraft.choice === item ? 'true' : 'false'}>
+                        <input
+                          type="radio"
+                          name={`decision-choice-${activeCase.id}`}
+                          value={item}
+                          checked={decisionDraft.choice === item}
+                          onChange={(event) => updateDecision('choice', event.target.value)}
+                        />
+                        <span>{item}</span>
+                      </label>
+                    ))}
+                  </div>
+                </section>
               ))}
-            </select>
-          </label>
+            </div>
+          </fieldset>
 
-          <label>
+          <label className="decision-confidence">
             <span>Confidence</span>
             <select
               value={decisionDraft.confidence}
@@ -136,6 +128,34 @@ export default function SubmitDecisionPanel({
             {submitLabel}
           </button>
         </form>
+
+        <section className="decision-v1-checklist" aria-labelledby="decision-checklist-heading">
+          <header>
+            <div>
+              <p>Final evidence check</p>
+              <h3 id="decision-checklist-heading">Decision readiness</h3>
+            </div>
+            <span>{packageStatus.blockers.length ? `${packageStatus.blockers.length} open` : 'Complete'}</span>
+          </header>
+
+          <div className="decision-checklist" aria-live="polite">
+            {packageStatus.messages.map((message, index) => (
+              <article key={message} data-checklist-message={index === 0 ? 'primary' : 'supporting'}>
+                <span aria-hidden="true">{index === 0 && packageStatus.ready ? '✓' : '•'}</span>
+                <DirectCollapsibleText minLength={88}>{message}</DirectCollapsibleText>
+              </article>
+            ))}
+          </div>
+
+          <div className="decision-v1-support-summary">
+            <div>
+              <span>Rationale progress</span>
+              <strong>{packageStatus.rationaleWordCount}/{packageStatus.minimumRationaleWords} words</strong>
+            </div>
+            <div className="decision-v1-progress" aria-hidden="true"><b style={{ width: `${rationaleProgress}%` }} /></div>
+            <p>{packageStatus.packageInputSummary}</p>
+          </div>
+        </section>
       </div>
 
       {latestPackage && (
@@ -143,7 +163,7 @@ export default function SubmitDecisionPanel({
           <div aria-hidden="true">✓</div>
           <div>
             <p>Submission confirmation</p>
-            <h3>Learner package saved for {latestPackage.caseId}</h3>
+            <h3>Decision submitted for {latestPackage.caseId}</h3>
             <span>{latestPackage.choice} · {latestPackage.confidence} confidence · saved {latestPackage.savedAt}</span>
           </div>
           <strong>Luna debrief unlocked</strong>

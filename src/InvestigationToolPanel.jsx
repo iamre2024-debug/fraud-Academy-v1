@@ -1,22 +1,29 @@
 import { useEffect, useMemo, useState } from 'react';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
+import DocumentViewerWorkspace from './DocumentViewerWorkspace.jsx';
+import MerchantIntelligenceWorkspace from './MerchantIntelligenceWorkspace.jsx';
+import { accessReportExportText, generateAccessHistoryReport, generatedAccessReportTypes } from './data/accessHistoryReports.js';
 import { buildCoreToolRecords } from './data/coreToolRecords.js';
 import { getBusiness360Workspace, getEmployeeProfiles, getPayrollHistory, getTransactionHistory } from './data/businessPayrollWorkspace.js';
 import { getDeviceProfiles } from './data/deviceRecords.js';
-import { getEvidenceRecords, getFinancialRecords } from './data/caseToolData.js';
+import { getFinancialRecords } from './data/caseToolData.js';
+import { getCaseDocuments } from './data/documentRecords.js';
+import { financialInvestigationTabs, financialRecordSearchText, getFinancialInvestigation } from './data/financialInvestigationRecords.js';
 import { getIdentityIntelReport, matchesIdentityIntelSearch } from './data/identityIntelReport.js';
 import { getLoginRecords } from './data/loginRecords.js';
 import { getIpRecords } from './data/ipRecords.js';
+import { getKybReview, kybRecordSearchText, kybReviewTabs, matchesKybReviewLookup } from './data/kybReviewRecords.js';
+import { generateKybReviewReport, hasGeneratedKybReport, kybReportExportText } from './data/kybReviewReport.js';
 import { getSessionRecords } from './data/sessionRecords.js';
 import { workflows } from './visualWorkspaceModel.js';
 
 const toolDetails = {
   'Identity Intel / People Search': {
-    purpose: 'Search fictional identity records by name, training ID, email, or phone before revealing the profile report.',
+    purpose: 'Search fictional identity records by Training ID or Name + DOB, review the match summary, then open the full profile report.',
     question: 'Does this identity history support who they claim to be?',
   },
   'Login History': {
-    purpose: 'Review recorded login attempts, results, devices, locations, authentication, session behavior, and linked activity without drawing an early conclusion.',
+    purpose: 'Review authentication attempts, results, methods, devices, locations, MFA, and session references without mixing in post-login activity or drawing an early conclusion.',
     question: 'Who logged in, when, and from where?',
   },
   'Session History': {
@@ -35,9 +42,13 @@ const toolDetails = {
     purpose: 'Review the transaction records in scope before comparing them with other financial and customer evidence.',
     question: 'What transactions are in scope, and what details are recorded for each item?',
   },
-  'Financial Intelligence': {
-    purpose: 'Review account and financial context supplied by the fictional training packet.',
-    question: 'What financial context is available for the active case?',
+  'Merchant Intelligence': {
+    purpose: 'Review merchant identity, category, customer history, authorization, fulfillment, disputes, refunds, subscription or marketplace activity, and reason-code evidence in one claim-specific workspace.',
+    question: 'Is this a customer issue, merchant issue, fraud issue, or dispute issue?',
+  },
+  'Financial Investigation': {
+    purpose: 'Use a direct money command center to compare balances, deposits, spending, cash, digital payments, linked accounts, merchants, behavior, and funds flow.',
+    question: 'Does the money make sense?',
   },
   'Payment Verification': {
     purpose: 'Review neutral payment-object and verification records without treating a status as a final case decision.',
@@ -47,9 +58,9 @@ const toolDetails = {
     purpose: 'Review the business relationship, status, observed activity, and case context in one neutral record set.',
     question: 'Which business relationships and entities are connected to the active case?',
   },
-  'Business Intelligence': {
-    purpose: 'Review business records, values, observation dates, and context supplied by the case packet.',
-    question: 'What business-verification records are available for review?',
+  'KYB Review': {
+    purpose: 'Look up a fictional business and compare registration, owners, online presence, bank ownership, revenue, payroll, and source documents.',
+    question: 'Do the business identity and operating records connect across independent sources?',
   },
   'Employee Profile': {
     purpose: 'Review employee identity, role, employer, status, timing, and related case context.',
@@ -59,9 +70,9 @@ const toolDetails = {
     purpose: 'Review payroll periods, employers, amounts, channels, statuses, and contextual details.',
     question: 'What payroll activity is recorded for the active case?',
   },
-  'Evidence Center': {
-    purpose: 'Review evidence records, sources, receipt status, linked objects, and neutral summaries.',
-    question: 'Which evidence items are available, pending, or linked to the case?',
+  'Document Viewer': {
+    purpose: 'Open fictional case documents, review complete pages and extracted fields, compare records, and preserve source details without drawing an early conclusion.',
+    question: 'Which documents are available, what does each page contain, and which fields can be verified against other records?',
   },
   'Document Request': {
     purpose: 'Track fictional case documents that were requested, received, missing, or awaiting review without treating the request status as a case outcome.',
@@ -76,6 +87,28 @@ const toolDetails = {
     question: 'Which approved system-access records touch the active case objects?',
   },
 };
+
+function downloadAccessReport(report) {
+  if (typeof window === 'undefined') return;
+  const blob = new Blob([accessReportExportText(report)], { type: 'text/plain;charset=utf-8' });
+  const url = window.URL.createObjectURL(blob);
+  const link = window.document.createElement('a');
+  link.href = url;
+  link.download = `${report.id}.txt`;
+  link.click();
+  window.URL.revokeObjectURL(url);
+}
+
+function downloadKybReport(report) {
+  if (typeof window === 'undefined') return;
+  const blob = new Blob([kybReportExportText(report)], { type: 'text/plain;charset=utf-8' });
+  const url = window.URL.createObjectURL(blob);
+  const link = window.document.createElement('a');
+  link.href = url;
+  link.download = `${report.id}.txt`;
+  link.click();
+  window.URL.revokeObjectURL(url);
+}
 
 function detailFor(tool, activeCategory) {
   return toolDetails[tool] ?? {
@@ -162,10 +195,10 @@ function deviceRecordSearchText(record) {
 
 function loginRecordSearchText(record) {
   return [
-    record.id, record.time, record.result, record.method, record.mfaStatus, record.authChannel,
-    record.device, record.deviceId, record.browserSource, record.location, record.ip, record.session,
-    record.sessionDuration, record.sessionBehavior, record.passwordResetLink, record.profileChangeLink,
-    record.moneyMovementLink, record.riskContext, record.investigatorUse, ...(record.relatedRecords ?? []),
+    record.id, record.timestamp, record.date, record.timeOfDay, record.eventType, record.result, record.method, record.mfaStatus, record.authChannel,
+    record.device, record.deviceId, record.browserSource, record.operatingSystem, record.location, record.ip, record.sessionReference,
+    record.failedAttemptCount, record.accountLockout, record.passwordResetLink, record.profileChangeLink,
+    record.loginContext, record.investigatorUse, ...(record.relatedRecords ?? []),
   ].filter(Boolean).join(' ').toLowerCase();
 }
 
@@ -181,22 +214,50 @@ function LoginHistoryWorkspace({
   jumpDecision,
 }) {
   const [selectedLoginId, setSelectedLoginId] = useState('');
+  const [resultFilter, setResultFilter] = useState('All results');
+  const [methodFilter, setMethodFilter] = useState('All methods');
+  const [deviceFilter, setDeviceFilter] = useState('All devices');
+  const [dateFilter, setDateFilter] = useState('All dates');
+  const [reportGenerated, setReportGenerated] = useState(() => generatedAccessReportTypes(activeCase.id).includes('login'));
   const records = getLoginRecords(activeCase);
   const normalizedQuery = query.trim().toLowerCase();
-  const filteredRecords = records.filter((record) => !normalizedQuery || loginRecordSearchText(record).includes(normalizedQuery));
-  const activeRecord = filteredRecords.find((record) => record.id === selectedLoginId) ?? filteredRecords[0] ?? records[0];
+  const resultOptions = ['All results', ...new Set(records.map((record) => record.result))];
+  const methodOptions = ['All methods', ...new Set(records.map((record) => record.method))];
+  const deviceOptions = ['All devices', ...new Set(records.map((record) => record.deviceId ?? record.device))];
+  const dateOptions = ['All dates', ...new Set(records.map((record) => record.date))];
+  const filteredRecords = records.filter((record) => (
+    (!normalizedQuery || loginRecordSearchText(record).includes(normalizedQuery))
+    && (resultFilter === 'All results' || record.result === resultFilter)
+    && (methodFilter === 'All methods' || record.method === methodFilter)
+    && (deviceFilter === 'All devices' || (record.deviceId ?? record.device) === deviceFilter)
+    && (dateFilter === 'All dates' || record.date === dateFilter)
+  ));
+  const loginFiltersClear = !normalizedQuery && resultFilter === 'All results' && methodFilter === 'All methods' && deviceFilter === 'All devices' && dateFilter === 'All dates';
+  const activeRecord = filteredRecords.find((record) => record.id === selectedLoginId) ?? filteredRecords[0] ?? (loginFiltersClear ? records[0] : null);
   const successfulCount = records.filter((record) => /successful/i.test(record.result)).length;
   const deniedCount = records.filter((record) => /(failed|denied)/i.test(record.result)).length;
+  const lockoutCount = records.filter((record) => /locked/i.test(record.result)).length;
   const uniqueDevices = new Set(records.map((record) => record.deviceId ?? record.device)).size;
-  const uniqueNetworks = new Set(records.map((record) => `${record.ip} ${record.location}`)).size;
-  const mfaCount = records.filter((record) => !/(not recorded|no additional)/i.test(record.mfaStatus)).length;
+  const mfaCount = records.filter((record) => /completed|delivered|approved/i.test(record.mfaStatus)).length;
 
   useEffect(() => {
     setSelectedLoginId('');
+    setResultFilter('All results');
+    setMethodFilter('All methods');
+    setDeviceFilter('All devices');
+    setDateFilter('All dates');
+    setReportGenerated(generatedAccessReportTypes(activeCase.id).includes('login'));
   }, [activeCase.id]);
 
   function saveLoginNote(message) {
     saveNote(`Login History: ${message}`, 'Login history');
+  }
+
+  function generateLoginReport() {
+    const report = generateAccessHistoryReport(activeCase, 'login');
+    downloadAccessReport(report);
+    setReportGenerated(true);
+    saveLoginNote(`${report.title} generated and added to Document Viewer.`);
   }
 
   return (
@@ -218,14 +279,22 @@ function LoginHistoryWorkspace({
         <span aria-live="polite">{filteredRecords.length} of {records.length} records shown</span>
       </section>
 
+      <section className="access-history-filters login-history-filters" aria-label="Filter Login History">
+        <label><span>Result</span><select value={resultFilter} onChange={(event) => setResultFilter(event.target.value)} aria-label="Filter Login History by result">{resultOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <label><span>Method</span><select value={methodFilter} onChange={(event) => setMethodFilter(event.target.value)} aria-label="Filter Login History by method">{methodOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <label><span>Device</span><select value={deviceFilter} onChange={(event) => setDeviceFilter(event.target.value)} aria-label="Filter Login History by device">{deviceOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <label><span>Date</span><select value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} aria-label="Filter Login History by date">{dateOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <button type="button" onClick={() => { setQuery(''); setResultFilter('All results'); setMethodFilter('All methods'); setDeviceFilter('All devices'); setDateFilter('All dates'); }}>Clear filters</button>
+      </section>
+
       <section className="login-history-summary" aria-label="Login history summary">
         {[
-          ['Recorded logins', records.length],
+          ['Authentication events', records.length],
           ['Successful', successfulCount],
           ['Failed / denied', deniedCount],
+          ['Account lockouts', lockoutCount],
           ['Unique devices', uniqueDevices],
-          ['Networks / locations', uniqueNetworks],
-          ['MFA events', mfaCount],
+          ['MFA completed', mfaCount],
         ].map(([label, value]) => (
           <article key={label}><span>{label}</span><strong>{value}</strong></article>
         ))}
@@ -247,9 +316,9 @@ function LoginHistoryWorkspace({
                   onClick={() => setSelectedLoginId(record.id)}
                   data-login-history-record={record.id}
                 >
-                  <span>{record.time} · {record.result}</span>
+                  <span>{record.timestamp} · {record.result}</span>
                   <strong>{record.deviceId ?? record.device}</strong>
-                  <small>{record.location} · {record.ip} · {record.session}</small>
+                  <small>{record.eventType} · {record.location} · {record.ip} · {record.sessionReference}</small>
                 </button>
               ))}
               {!filteredRecords.length && (
@@ -260,29 +329,29 @@ function LoginHistoryWorkspace({
             <section className="login-detail-panel" aria-label="Expanded login history detail">
               <header>
                 <div>
-                  <p>Expanded login</p>
+                  <p>Expanded authentication event</p>
                   <h3>{activeRecord.id} · {activeRecord.result}</h3>
-                  <span>{activeRecord.time} · {activeRecord.location}</span>
+                  <span>{activeRecord.timestamp} · {activeRecord.location}</span>
                 </div>
-                <button type="button" onClick={() => pin(activeRecord.session)}>Pin session</button>
+                <button type="button" onClick={() => pin(activeRecord.id)}>Pin login event</button>
               </header>
 
               <dl className="login-detail-grid">
                 {[
-                  ['Login time', activeRecord.time], ['Result', activeRecord.result], ['Method', activeRecord.method], ['MFA status', activeRecord.mfaStatus],
+                  ['Date / time', activeRecord.timestamp], ['Event type', activeRecord.eventType], ['Result', activeRecord.result], ['Failed-attempt count', activeRecord.failedAttemptCount],
+                  ['Account lockout', activeRecord.accountLockout], ['Method', activeRecord.method], ['MFA status', activeRecord.mfaStatus],
                   ['Authentication channel', activeRecord.authChannel], ['Device ID', activeRecord.deviceId ?? activeRecord.device], ['Device / browser', activeRecord.browserSource],
-                  ['IP address', activeRecord.ip], ['Location', activeRecord.location], ['Session ID', activeRecord.session], ['Session duration', activeRecord.sessionDuration],
-                  ['Login context', activeRecord.riskContext],
+                  ['Operating system', activeRecord.operatingSystem], ['IP address', activeRecord.ip], ['Location', activeRecord.location], ['Session reference', activeRecord.sessionReference],
                 ].map(([label, value]) => (
                   <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
                 ))}
               </dl>
 
               <section className="login-session-panel" aria-label="Session and linked activity">
-                <article><span>Session behavior</span><strong>{activeRecord.sessionBehavior}</strong></article>
+                <article><span>Session availability</span><strong>{activeRecord.sessionReference === 'No session created' ? 'Authentication did not create a session' : `Open ${activeRecord.sessionReference} in Session History`}</strong></article>
                 <article><span>Password reset timing</span><strong>{activeRecord.passwordResetLink}</strong></article>
                 <article><span>Profile change link</span><strong>{activeRecord.profileChangeLink}</strong></article>
-                <article><span>Money movement link</span><strong>{activeRecord.moneyMovementLink}</strong></article>
+                <article><span>Authentication scope</span><strong>Post-login pages and actions are kept in Session History.</strong></article>
               </section>
             </section>
           </div>
@@ -296,7 +365,9 @@ function LoginHistoryWorkspace({
               <header><p>Investigator Notes</p><h3>Evidence-first reminder</h3></header>
               <p>{activeRecord.investigatorUse} A successful MFA event is evidence of authentication activity, not a final conclusion about authorization.</p>
               <div>
-                <button type="button" onClick={() => saveLoginNote(`${activeRecord.id} reviewed: ${activeRecord.sessionBehavior}`)}>Save login note</button>
+                <button type="button" onClick={() => saveLoginNote(`${activeRecord.id} reviewed: ${activeRecord.timestamp} · ${activeRecord.eventType} · ${activeRecord.result} · ${activeRecord.deviceId ?? activeRecord.device} · ${activeRecord.ip}`)}>Save login note</button>
+                <button type="button" onClick={generateLoginReport}>{reportGenerated ? 'Regenerate Login Timeline Report' : 'Generate Login Timeline Report'}</button>
+                {reportGenerated && <button type="button" onClick={() => openTool('Document Viewer')}>Open report in Document Viewer</button>}
               </div>
             </article>
           </section>
@@ -315,7 +386,7 @@ function LoginHistoryWorkspace({
       <footer className="investigation-tool-review-bar">
         <div>
           <strong>Login History review</strong>
-          <span>Mark reviewed after checking the login result, authentication, device, IP/location, session behavior, and linked case activity.</span>
+          <span>Mark reviewed after checking authentication results, failed-attempt and lockout history, method, MFA, device, IP/location, and session references.</span>
         </div>
         <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Login History')}>
           {reviewed ? '✓ Login History reviewed' : 'Mark Login History reviewed'}
@@ -355,24 +426,42 @@ function IPIntelligenceWorkspace({
   jumpDecision,
 }) {
   const [selectedIpId, setSelectedIpId] = useState('');
+  const [submittedIp, setSubmittedIp] = useState('');
+  const [reportGenerated, setReportGenerated] = useState(() => generatedAccessReportTypes(activeCase.id).includes('ip'));
   const records = getIpRecords(activeCase);
-  const normalizedQuery = query.trim().toLowerCase();
-  const filteredRecords = records.filter((record) => !normalizedQuery || ipRecordSearchText(record).includes(normalizedQuery));
-  const activeRecord = filteredRecords.find((record) => record.id === selectedIpId) ?? filteredRecords[0] ?? records[0];
-  const lookupHasRun = normalizedQuery.length > 0;
+  const normalizedSubmittedIp = submittedIp.trim().replace(/^IP-/i, '').toLowerCase();
+  const activeRecord = normalizedSubmittedIp
+    ? records.find((record) => record.ip.toLowerCase() === normalizedSubmittedIp && (!selectedIpId || record.id === selectedIpId))
+      ?? records.find((record) => record.ip.toLowerCase() === normalizedSubmittedIp)
+      ?? null
+    : null;
+  const lookupHasRun = normalizedSubmittedIp.length > 0;
+  const lookupMatched = Boolean(activeRecord);
   const sessionCount = records.reduce((count, record) => count + record.observedSessions.length, 0);
   const deviceCount = new Set(records.flatMap((record) => record.observedDevices)).size;
 
   useEffect(() => {
     setSelectedIpId('');
+    setSubmittedIp('');
+    setReportGenerated(generatedAccessReportTypes(activeCase.id).includes('ip'));
   }, [activeCase.id]);
 
-  function hiddenUntilLookup(value) {
-    return lookupHasRun ? value : 'Run an IP lookup to reveal';
+  function runIpLookup() {
+    const clean = query.trim().replace(/^IP-/i, '');
+    setSubmittedIp(clean);
+    const matched = records.find((record) => record.ip.toLowerCase() === clean.toLowerCase());
+    setSelectedIpId(matched?.id ?? '');
   }
 
   function saveIpNote(message) {
     saveNote(`IP Intelligence: ${message}`, 'IP intelligence');
+  }
+
+  function generateIpReport() {
+    const report = generateAccessHistoryReport(activeCase, 'ip');
+    downloadAccessReport(report);
+    setReportGenerated(true);
+    saveIpNote(`${report.title} generated and added to Document Viewer.`);
   }
 
   return (
@@ -380,73 +469,84 @@ function IPIntelligenceWorkspace({
       <section className="ip-intel-findbar" aria-label="Find IP intelligence information">
         <div>
           <p>IP lookup</p>
-          <h3>Search an IP, city, ISP, network type, session, device, or location to reveal network intelligence.</h3>
+          <h3>Enter one of the raw IP addresses below, then run the lookup to reveal its network and history records.</h3>
         </div>
         <label>
           <span>Search IP Intelligence</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Try: 198.51.100.42, residential, ISP, Arlington, proxy..."
+            onKeyDown={(event) => { if (event.key === 'Enter') runIpLookup(); }}
+            placeholder="Try: 198.51.100.42"
             aria-label="Search IP Intelligence records"
           />
         </label>
-        <span aria-live="polite">{lookupHasRun ? `${filteredRecords.length} of ${records.length} records shown` : 'Lookup required'}</span>
+        <button type="button" className="ip-lookup-action" onClick={runIpLookup} disabled={!query.trim()}>Run IP Lookup</button>
+        <span aria-live="polite">{lookupMatched ? 'Lookup complete' : lookupHasRun ? 'No exact IP match' : 'Lookup required'}</span>
       </section>
 
       <section className="ip-intel-summary" aria-label="IP intelligence summary">
         {[
           ['Raw IP records', records.length], ['Linked sessions', sessionCount], ['Observed devices', deviceCount],
-          ['Lookup state', lookupHasRun ? 'Complete' : 'Required'], ['Related logins', records.reduce((count, record) => count + record.observedLogins.length, 0)], ['Active case', activeCase.id],
+          ['Lookup state', lookupMatched ? 'Complete' : lookupHasRun ? 'No match' : 'Required'], ['Related logins', records.reduce((count, record) => count + record.observedLogins.length, 0)], ['Active case', activeCase.id],
         ].map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}
       </section>
 
-      {activeRecord ? (
+      {records.length ? (
         <>
           <div className="ip-intel-workspace">
             <section className="ip-record-list" aria-label="IP intelligence records">
               <header><p>Raw IP records</p><h3>Choose an IP to look up</h3></header>
-              {(lookupHasRun ? filteredRecords : records).map((record) => (
+              {records.map((record) => (
                 <button
                   key={record.id}
                   type="button"
-                  className={record.id === activeRecord.id ? 'active' : ''}
-                  onClick={() => setSelectedIpId(record.id)}
+                  className={record.id === activeRecord?.id ? 'active' : ''}
+                  onClick={() => { setQuery(record.ip); setSubmittedIp(''); setSelectedIpId(record.id); }}
                   data-ip-intelligence-record={record.id}
                 >
                   <span>{record.id}</span>
                   <strong>{record.ip}</strong>
-                  <small>{record.observedSessions.length} session{record.observedSessions.length === 1 ? '' : 's'} · {lookupHasRun ? record.lookupResult : 'lookup needed'}</small>
+                  <small>{record.observedLogins.length} authentication event{record.observedLogins.length === 1 ? '' : 's'} · {record.observedSessions.length} session{record.observedSessions.length === 1 ? '' : 's'} · {record.id === activeRecord?.id ? 'lookup complete' : 'lookup required'}</small>
                 </button>
               ))}
-              {lookupHasRun && !filteredRecords.length && <div className="investigation-tool-empty" role="status">No IP intelligence records match this lookup.</div>}
             </section>
 
             <section className="ip-detail-panel" aria-label="Expanded IP intelligence detail">
-              <header>
-                <div><p>Network lookup</p><h3>{activeRecord.ip}</h3><span>{hiddenUntilLookup(activeRecord.lookupResult)}</span></div>
-                <button type="button" onClick={() => pin(activeRecord.ip)}>Pin IP address</button>
-              </header>
-              <dl className="ip-detail-grid">
-                {[
-                  ['City / country', `${activeRecord.city}, ${activeRecord.country}`], ['ISP', activeRecord.isp], ['Network type', activeRecord.networkType],
-                  ['Residential status', activeRecord.residentialStatus], ['VPN / proxy / TOR', activeRecord.vpnProxyTor], ['First seen', activeRecord.firstSeen],
-                  ['Last seen', activeRecord.lastSeen], ['Velocity', activeRecord.velocity], ['Seen elsewhere', activeRecord.crossCasePresence],
-                ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{hiddenUntilLookup(value)}</dd></div>)}
-              </dl>
-              <section className="ip-observation-panel" aria-label="Observed IP records">
-                <article><span>Recorded sessions</span><strong>{activeRecord.observedSessions.join(' · ')}</strong></article>
-                <article><span>Recorded devices</span><strong>{activeRecord.observedDevices.join(' · ')}</strong></article>
-                <article><span>Location history</span><strong>{hiddenUntilLookup(activeRecord.historicalLocations.join(' · '))}</strong></article>
-              </section>
+              {activeRecord ? (
+                <>
+                  <header>
+                    <div><p>Network lookup</p><h3>{activeRecord.ip}</h3><span>{activeRecord.lookupResult}</span></div>
+                    <button type="button" onClick={() => pin(activeRecord.ip)}>Pin IP address</button>
+                  </header>
+                  <dl className="ip-detail-grid">
+                    {[
+                      ['City / country', `${activeRecord.city}, ${activeRecord.country}`], ['ISP', activeRecord.isp], ['Network type', activeRecord.networkType],
+                      ['Residential status', activeRecord.residentialStatus], ['VPN / proxy / TOR', activeRecord.vpnProxyTor], ['First seen', activeRecord.firstSeen],
+                      ['Last seen', activeRecord.lastSeen], ['Velocity', activeRecord.velocity], ['Seen elsewhere', activeRecord.crossCasePresence],
+                    ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+                  </dl>
+                  <section className="ip-observation-panel" aria-label="Observed IP records">
+                    <article><span>Recorded sessions</span><strong>{activeRecord.observedSessions.join(' · ') || 'No authenticated session recorded'}</strong></article>
+                    <article><span>Recorded devices</span><strong>{activeRecord.observedDevices.join(' · ')}</strong></article>
+                    <article><span>Location history</span><strong>{activeRecord.historicalLocations.join(' · ')}</strong></article>
+                  </section>
+                </>
+              ) : (
+                <div className="investigation-tool-empty ip-lookup-empty" role="status">
+                  <span>{lookupHasRun ? 'No exact match' : 'Lookup required'}</span>
+                  <h3>{lookupHasRun ? `No network record matched ${submittedIp}.` : 'Choose a raw IP and run the lookup.'}</h3>
+                  <p>Network type, origin, historical use, VPN/proxy/TOR data, velocity, and cross-profile presence remain hidden until an exact fictional IP lookup succeeds.</p>
+                </div>
+              )}
             </section>
           </div>
 
-          <section className="ip-intel-lower-grid" aria-label="IP intelligence history and related evidence">
+          {activeRecord && <section className="ip-intel-lower-grid" aria-label="IP intelligence history and related evidence">
             <article className="ip-location-panel">
               <header><p>Location Sequence</p><h3>Evidence to compare</h3></header>
               <div>
-                {activeRecord.observedLogins.map((login, index) => <span key={login}>{login} · {activeRecord.observedSessions[index] ?? 'Session recorded'} · {hiddenUntilLookup(activeRecord.historicalLocations[index] ?? activeRecord.historicalLocations[0])}</span>)}
+                {activeRecord.observedLoginEvents.map((login) => <span key={login.id}>{login.time} · {login.id} · {login.result} · {login.session} · {login.location}</span>)}
               </div>
             </article>
             <article className="ip-related-panel">
@@ -457,10 +557,12 @@ function IPIntelligenceWorkspace({
               <header><p>Investigator Notes</p><h3>Evidence-first reminder</h3></header>
               <p>{activeRecord.investigatorUse}</p>
               <div>
-                <button type="button" onClick={() => saveIpNote(`${activeRecord.ip} reviewed: ${lookupHasRun ? activeRecord.lookupResult : 'lookup not run'}`)}>Save IP note</button>
+                <button type="button" onClick={() => saveIpNote(`${activeRecord.ip} reviewed: ${activeRecord.lookupResult}`)}>Save IP note</button>
+                <button type="button" onClick={generateIpReport}>{reportGenerated ? 'Regenerate IP Intelligence Report' : 'Generate IP Intelligence Report'}</button>
+                {reportGenerated && <button type="button" onClick={() => openTool('Document Viewer')}>Open report in Document Viewer</button>}
               </div>
             </article>
-          </section>
+          </section>}
         </>
       ) : <div className="investigation-tool-empty" role="status">No IP intelligence records are available for this case.</div>}
 
@@ -475,7 +577,7 @@ function IPIntelligenceWorkspace({
 
       <footer className="investigation-tool-review-bar">
         <div><strong>IP Intelligence review</strong><span>Mark reviewed after running the lookup, checking network context, and comparing it to the linked login, session, device, and timeline evidence.</span></div>
-        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('IP Intelligence')}>
+        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} disabled={!lookupMatched} onClick={() => markReviewed('IP Intelligence')}>
           {reviewed ? '✓ IP Intelligence reviewed' : 'Mark IP Intelligence reviewed'}
         </button>
       </footer>
@@ -494,22 +596,51 @@ function SessionHistoryWorkspace({
   openTool,
 }) {
   const [selectedSessionId, setSelectedSessionId] = useState('');
+  const [logoutFilter, setLogoutFilter] = useState('All logout states');
+  const [activityFilter, setActivityFilter] = useState('All activity');
+  const [deviceFilter, setDeviceFilter] = useState('All devices');
+  const [dateFilter, setDateFilter] = useState('All dates');
+  const [reportGenerated, setReportGenerated] = useState(() => generatedAccessReportTypes(activeCase.id).includes('session'));
   const records = getSessionRecords(activeCase);
   const normalizedQuery = query.trim().toLowerCase();
-  const filteredRecords = records.filter((record) => !normalizedQuery || sessionRecordSearchText(record).includes(normalizedQuery));
-  const activeRecord = filteredRecords.find((record) => record.session === selectedSessionId) ?? filteredRecords[0] ?? records[0];
+  const logoutOptions = ['All logout states', ...new Set(records.map((record) => record.logoutStatus))];
+  const activityOptions = ['All activity', ...new Set(records.flatMap((record) => record.activityTypes ?? []))];
+  const deviceOptions = ['All devices', ...new Set(records.map((record) => record.deviceId ?? record.device))];
+  const dateOptions = ['All dates', ...new Set(records.map((record) => record.date))];
+  const filteredRecords = records.filter((record) => (
+    (!normalizedQuery || sessionRecordSearchText(record).includes(normalizedQuery))
+    && (logoutFilter === 'All logout states' || record.logoutStatus === logoutFilter)
+    && (activityFilter === 'All activity' || record.activityTypes?.includes(activityFilter))
+    && (deviceFilter === 'All devices' || (record.deviceId ?? record.device) === deviceFilter)
+    && (dateFilter === 'All dates' || record.date === dateFilter)
+  ));
+  const sessionFiltersClear = !normalizedQuery && logoutFilter === 'All logout states' && activityFilter === 'All activity' && deviceFilter === 'All devices' && dateFilter === 'All dates';
+  const activeRecord = filteredRecords.find((record) => record.session === selectedSessionId) ?? filteredRecords[0] ?? (sessionFiltersClear ? records[0] : null);
   const loggedOutCount = records.filter((record) => /normal logout/i.test(record.logoutStatus)).length;
-  const profileActivityCount = records.filter((record) => !record.profileActions.every((item) => /no profile/i.test(item))).length;
-  const moneyMovementCount = records.filter((record) => !record.moneyMovement.every((item) => /no money/i.test(item))).length;
+  const timeoutCount = records.filter((record) => /timeout/i.test(record.logoutStatus)).length;
+  const profileActivityCount = records.filter((record) => record.hasProfileActivity).length;
+  const moneyMovementCount = records.filter((record) => record.hasMoneyActivity).length;
   const uniqueDevices = new Set(records.map((record) => record.deviceId ?? record.device)).size;
   const uniqueIps = new Set(records.map((record) => record.ip)).size;
 
   useEffect(() => {
     setSelectedSessionId('');
+    setLogoutFilter('All logout states');
+    setActivityFilter('All activity');
+    setDeviceFilter('All devices');
+    setDateFilter('All dates');
+    setReportGenerated(generatedAccessReportTypes(activeCase.id).includes('session'));
   }, [activeCase.id]);
 
   function saveSessionNote(message) {
     saveNote(`Session History: ${message}`, 'Session history');
+  }
+
+  function generateSessionReport() {
+    const report = generateAccessHistoryReport(activeCase, 'session');
+    downloadAccessReport(report);
+    setReportGenerated(true);
+    saveSessionNote(`${report.title} generated and added to Document Viewer.`);
   }
 
   return (
@@ -531,9 +662,17 @@ function SessionHistoryWorkspace({
         <span aria-live="polite">{filteredRecords.length} of {records.length} records shown</span>
       </section>
 
+      <section className="access-history-filters session-history-filters" aria-label="Filter Session History">
+        <label><span>Logout state</span><select value={logoutFilter} onChange={(event) => setLogoutFilter(event.target.value)} aria-label="Filter Session History by logout state">{logoutOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <label><span>Activity</span><select value={activityFilter} onChange={(event) => setActivityFilter(event.target.value)} aria-label="Filter Session History by activity">{activityOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <label><span>Device</span><select value={deviceFilter} onChange={(event) => setDeviceFilter(event.target.value)} aria-label="Filter Session History by device">{deviceOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <label><span>Date</span><select value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} aria-label="Filter Session History by date">{dateOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <button type="button" onClick={() => { setQuery(''); setLogoutFilter('All logout states'); setActivityFilter('All activity'); setDeviceFilter('All devices'); setDateFilter('All dates'); }}>Clear filters</button>
+      </section>
+
       <section className="session-history-summary" aria-label="Session history summary">
         {[
-          ['Recorded sessions', records.length], ['Normal logout', loggedOutCount], ['Session timeout', records.length - loggedOutCount],
+          ['Recorded sessions', records.length], ['Normal logout', loggedOutCount], ['Session timeout', timeoutCount],
           ['Profile activity', profileActivityCount], ['Money activity', moneyMovementCount], ['Devices / IPs', `${uniqueDevices} / ${uniqueIps}`],
         ].map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}
       </section>
@@ -596,6 +735,8 @@ function SessionHistoryWorkspace({
               <p>{activeRecord.investigatorUse} Read the session path with Login History, Customer 360, financial records, and Timeline before documenting a decision.</p>
               <div>
                 <button type="button" onClick={() => saveSessionNote(`${activeRecord.session} reviewed: ${activeRecord.sessionPath.join(' / ')}`)}>Save session note</button>
+                <button type="button" onClick={generateSessionReport}>{reportGenerated ? 'Regenerate Session History Report' : 'Generate Session History Report'}</button>
+                {reportGenerated && <button type="button" onClick={() => openTool('Document Viewer')}>Open report in Document Viewer</button>}
               </div>
             </article>
           </section>
@@ -824,15 +965,14 @@ function documentRequestStatus(status = '') {
 }
 
 function buildDocumentRequests(activeCase) {
-  const evidence = getEvidenceRecords(activeCase);
-  return (evidence.documents ?? []).map((document) => {
-    const status = documentRequestStatus(document.status);
-    const isOptional = /optional/i.test(document.category);
-    const received = ['Received', 'Approved', 'Pending Review'].includes(status) ? document.updated : 'Not received';
+  return getCaseDocuments(activeCase).map((document) => {
+    const status = documentRequestStatus(document.requestStatus ?? document.status);
+    const isOptional = /optional/i.test(document.folder ?? document.type);
+    const received = ['Received', 'Approved', 'Pending Review'].includes(status) ? document.received : 'Not received';
     return {
       id: document.id,
       documentType: document.title,
-      category: document.category,
+      category: document.folder,
       status,
       reason: status === 'Requested'
         ? 'Requested to complete the fictional case packet.'
@@ -841,12 +981,12 @@ function buildDocumentRequests(activeCase) {
           : 'Available for case-document review and comparison.',
       requirement: isOptional ? 'Optional' : 'Required',
       dueDate: status === 'Requested' ? 'Follow up date not supplied' : 'Not applicable',
-      authenticity: status === 'Approved' ? 'Approved in training packet' : 'Not reviewed',
-      reviewerNotes: document.preview,
+      authenticity: document.authenticity,
+      reviewerNotes: document.summary,
       linkedCase: activeCase.id,
-      linkedTool: 'Evidence Center',
+      linkedTool: 'Document Viewer',
       receivedDate: received,
-      fields: document.fields,
+      fields: document.fields.map(([label, value]) => `${label}: ${value}`).join(' | '),
     };
   });
 }
@@ -898,7 +1038,7 @@ function DocumentRequestWorkspace({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Try: affidavit, cancellation, required, missing, Evidence Center..."
+            placeholder="Try: affidavit, cancellation, required, missing, Document Viewer..."
             aria-label="Search Document Request records"
           />
         </label>
@@ -964,7 +1104,7 @@ function DocumentRequestWorkspace({
             </article>
             <div className="document-request-actions">
               <button type="button" onClick={() => saveRequestNote(`${activeRequest.id} follow-up recorded for ${activeRequest.status}.`)}>Save follow-up note</button>
-              <button type="button" onClick={() => openTool('Evidence Center')}>Open Evidence Center</button>
+              <button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button>
             </div>
           </section>
         </div>
@@ -977,7 +1117,7 @@ function DocumentRequestWorkspace({
       </section>
 
       <nav className="investigation-tool-next-routes" aria-label="Document request next routes">
-        <button type="button" onClick={() => openTool('Evidence Center')}>Open Evidence Center</button>
+        <button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button>
         <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
@@ -1005,24 +1145,63 @@ function IdentityIntelWorkspace({
   jumpDecision,
 }) {
   const report = useMemo(() => getIdentityIntelReport(activeCase), [activeCase]);
-  const [searchDraft, setSearchDraft] = useState('');
-  const [submittedSearch, setSubmittedSearch] = useState('');
+  const [searchMode, setSearchMode] = useState('id');
+  const [idDraft, setIdDraft] = useState('');
+  const [nameDraft, setNameDraft] = useState('');
+  const [dobDraft, setDobDraft] = useState('');
+  const [submittedSearch, setSubmittedSearch] = useState(null);
+  const [searchHistory, setSearchHistory] = useState([]);
+  const [reportOpen, setReportOpen] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState('identity-summary');
   const searchMatched = submittedSearch && matchesIdentityIntelSearch(report, submittedSearch);
+  const searchReady = searchMode === 'id' ? Boolean(idDraft.trim()) : Boolean(nameDraft.trim() && dobDraft.trim());
   const activeSection = report.sections.find((section) => section.id === activeSectionId) ?? report.sections[0];
 
   useEffect(() => {
-    setSearchDraft('');
-    setSubmittedSearch('');
+    setSearchMode('id');
+    setIdDraft('');
+    setNameDraft('');
+    setDobDraft('');
+    setSubmittedSearch(null);
+    setSearchHistory([]);
+    setReportOpen(false);
     setActiveSectionId('identity-summary');
   }, [activeCase.id]);
 
   function runSearch() {
-    setSubmittedSearch(searchDraft.trim());
+    if (!searchReady) return;
+    const criteria = searchMode === 'id'
+      ? { mode: 'id', id: idDraft.trim() }
+      : { mode: 'name-dob', name: nameDraft.trim(), dob: dobDraft.trim() };
+    const label = criteria.mode === 'id' ? `Training ID: ${criteria.id}` : `${criteria.name} · ${criteria.dob}`;
+    setSubmittedSearch(criteria);
+    setSearchHistory((current) => [label, ...current.filter((item) => item !== label)].slice(0, 4));
+    setReportOpen(false);
+    setActiveSectionId('identity-summary');
   }
 
   function saveIdentityNote(message) {
     saveNote(`Identity Intel: ${message}`, 'Identity Intel');
+  }
+
+  function exportIdentityReport() {
+    const lines = [
+      'Fraud Academy - Identity Search Report',
+      `Case: ${activeCase.id}`,
+      `Profile: ${report.profile.profileId}`,
+      `Subject: ${activeCase.person}`,
+      'Fictional training data only',
+      '',
+      ...report.summary.map(([label, value]) => `${label}: ${value}`),
+      '',
+      ...report.sections.flatMap((section) => [section.title, ...section.fields.map((field) => `${field.label}: ${field.value}`), '']),
+    ];
+    const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${activeCase.id}-identity-search-report.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -1030,20 +1209,17 @@ function IdentityIntelWorkspace({
       <section className="identity-intel-search" aria-label="Identity Intel search">
         <div>
           <p>People Search</p>
-          <h3>Search a name, fictional Training ID, email, or phone to reveal the identity report.</h3>
+          <h3>Search by fictional Training ID or by Name + DOB.</h3>
           <span>Fictional training data only. Identity information is evidence, not a case conclusion.</span>
         </div>
-        <label>
-          <span>Name + DOB, Training ID, email, or phone</span>
-          <input
-            value={searchDraft}
-            onChange={(event) => setSearchDraft(event.target.value)}
-            onKeyDown={(event) => { if (event.key === 'Enter') runSearch(); }}
-            placeholder="Try: TRN-8842-19, Maya Sterling, or a training email"
-            aria-label="Search Identity Intel records"
-          />
-        </label>
-        <button type="button" onClick={runSearch} disabled={!searchDraft.trim()}>Run People Search</button>
+        <div className="identity-intel-search-fields">
+          <label><span>Search method</span><select value={searchMode} onChange={(event) => setSearchMode(event.target.value)} aria-label="Choose People Search method"><option value="id">SSN / Training ID</option><option value="name-dob">Name + DOB</option></select></label>
+          {searchMode === 'id' ? <label><span>Fictional Training ID</span><input value={idDraft} onChange={(event) => setIdDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') runSearch(); }} placeholder="TRN-8842-19" aria-label="Search Identity Intel by Training ID" /></label> : <>
+            <label><span>Full name</span><input value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') runSearch(); }} placeholder="Maya Sterling" aria-label="Search Identity Intel by name" /></label>
+            <label><span>Date of birth</span><input value={dobDraft} onChange={(event) => setDobDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') runSearch(); }} placeholder="Feb 14, 1988" aria-label="Search Identity Intel by date of birth" /></label>
+          </>}
+        </div>
+        <button type="button" onClick={runSearch} disabled={!searchReady}>Run People Search</button>
       </section>
 
       {!submittedSearch && <section className="identity-intel-gate" aria-label="Identity report locked">
@@ -1053,7 +1229,7 @@ function IdentityIntelWorkspace({
 
       {submittedSearch && !searchMatched && <section className="identity-intel-gate" aria-label="No identity match">
         <strong>No fictional identity match returned for this search.</strong>
-        <span>Try the active customer name, Training ID, email, or phone from Customer 360.</span>
+        <span>Use the fictional Training ID, or pair the customer name with the exact training DOB from Customer 360.</span>
       </section>}
 
       {searchMatched && <>
@@ -1064,7 +1240,7 @@ function IdentityIntelWorkspace({
               <h3>{activeCase.person}</h3>
               <span>{report.profile.profileId} · Fictional training profile</span>
             </div>
-            <button type="button" onClick={() => pin(`${report.profile.profileId} · ${activeCase.person}`)}>Pin profile</button>
+            <div className="identity-intel-summary-actions"><button type="button" onClick={() => pin(`${report.profile.profileId} · ${activeCase.person}`)}>Pin profile</button><button type="button" onClick={() => saveIdentityNote(`Identity Match Summary ${report.profile.profileId} reviewed for ${activeCase.person}.`)}>Save summary note</button><button type="button" className="investigation-tool-primary" onClick={() => setReportOpen(true)}>{reportOpen ? 'Full Profile Report Open' : 'View Full Profile Report'}</button></div>
           </header>
           <dl>
             {report.summary.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
@@ -1075,10 +1251,13 @@ function IdentityIntelWorkspace({
           {report.counts.map(([label, count]) => <article key={label}><strong>{count}</strong><span>{label}</span></article>)}
         </section>
 
-        <div className="identity-intel-workspace">
-          <section className="identity-intel-sections" aria-label="Identity report sections">
-            <header><p>Full report</p><h3>Open a report section</h3></header>
-            {report.sections.map((section) => <button key={section.id} type="button" className={section.id === activeSection.id ? 'active' : ''} onClick={() => setActiveSectionId(section.id)}>{section.title}</button>)}
+        {!reportOpen && <section className="identity-intel-gate" aria-label="Full identity report closed"><strong>Identity Match Summary returned.</strong><span>Review the match and count bubbles, then open the full fictional profile report.</span></section>}
+
+        {reportOpen && <div className="identity-intel-workspace">
+          <section className="identity-intel-sections identity-intel-source-panel" aria-label="People Search history and source records">
+            <header><p>Search & Sources</p><h3>Criteria and matched objects</h3></header>
+            <div className="identity-intel-search-history">{searchHistory.map((item, index) => <span key={`${item}-${index}`}><strong>{index ? 'Previous search' : 'Current search'}</strong>{item}</span>)}</div>
+            <div className="identity-intel-source-records">{(activeCase.identityRecords ?? []).map((item) => <article key={item.id}><span>{item.type}</span><strong>{item.value}</strong><small>{item.id} · {item.lastSeen}</small><button type="button" onClick={() => pin(`${item.id} · ${item.value}`)}>Pin</button></article>)}</div>
           </section>
 
           <section className="identity-intel-report" aria-label="Expanded identity report">
@@ -1090,18 +1269,16 @@ function IdentityIntelWorkspace({
           </section>
 
           <aside className="identity-intel-evidence" aria-label="Evidence Explorer">
-            <header><p>Evidence Explorer</p><h3>Case objects to compare</h3></header>
-            <div>
-              {(activeCase.identityRecords ?? []).map((item) => <article key={item.id}><span>{item.type}</span><strong>{item.value}</strong><small>{item.id} · {item.lastSeen}</small><button type="button" onClick={() => pin(`${item.id} · ${item.value}`)}>Pin</button></article>)}
-            </div>
-            <button type="button" onClick={() => saveIdentityNote(`Identity Match Summary ${report.profile.profileId} reviewed for ${activeCase.person}.`)}>Save match summary note</button>
+            <header><p>Evidence Explorer</p><h3>Open a full report section</h3></header>
+            <div className="identity-intel-section-buttons">{report.sections.map((section) => <button key={section.id} type="button" aria-label={section.title} className={section.id === activeSection.id ? 'active' : ''} onClick={() => setActiveSectionId(section.id)}><strong>{section.title}</strong><span>{section.fields.length} fields</span></button>)}</div>
+            <button type="button" onClick={exportIdentityReport}>Generate Identity Search Report</button>
           </aside>
-        </div>
+        </div>}
       </>}
 
       <nav className="investigation-tool-next-routes" aria-label="Identity Intel next routes">
         <button type="button" onClick={() => openTool('Customer 360')}>Open Customer 360</button>
-        <button type="button" onClick={() => openTool('Evidence Center')}>Open Evidence Center</button>
+        <button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
 
@@ -1110,7 +1287,7 @@ function IdentityIntelWorkspace({
           <strong>Identity Intel / People Search review</strong>
           <span>Run a search, review the fictional report, and compare it with case evidence before marking this tool reviewed.</span>
         </div>
-        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} disabled={!searchMatched} onClick={() => markReviewed('Identity Intel / People Search')}>
+        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} disabled={!searchMatched || !reportOpen} onClick={() => markReviewed('Identity Intel / People Search')}>
           {reviewed ? '✓ Identity Intel / People Search reviewed' : 'Mark Identity Intel / People Search reviewed'}
         </button>
       </footer>
@@ -1203,12 +1380,199 @@ function TransactionHistoryWorkspace({ activeCase, pin, saveNote, markReviewed, 
           <header><p>Related evidence</p><h3>Objects and documents</h3></header>
           <article><span>Related records</span><strong>{activeRecord.relatedRecords.join(' | ')}</strong></article>
           <article><span>Related documents</span><strong>{activeRecord.relatedDocuments.join(' | ') || 'No document linked in current packet'}</strong></article>
-          <button type="button" onClick={() => openTool('Evidence Center')}>Open Evidence Center</button>
+          <button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button>
         </aside>
       </div> : <div className="investigation-tool-empty" role="status">No transaction records are available for this case.</div>}
 
-      <nav className="investigation-tool-next-routes" aria-label="Transaction History next routes"><button type="button" onClick={() => openTool('Financial Intelligence')}>Open Financial Intelligence</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Evidence Center')}>Open Evidence Center</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <nav className="investigation-tool-next-routes" aria-label="Transaction History next routes"><button type="button" onClick={() => openTool('Financial Investigation')}>Open Financial Investigation</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
       <footer className="investigation-tool-review-bar"><div><strong>Transaction History review</strong><span>Review the activity feed, transaction details, linked records, and documents before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Transaction History')}>{reviewed ? '✓ Transaction History reviewed' : 'Mark Transaction History reviewed'}</button></footer>
+    </>
+  );
+}
+
+function FinancialInvestigationWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
+  const workspace = useMemo(() => getFinancialInvestigation(activeCase), [activeCase]);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [period, setPeriod] = useState('All periods');
+  const [recordQuery, setRecordQuery] = useState('');
+  const [selectedId, setSelectedId] = useState('');
+  const tab = financialInvestigationTabs.find((item) => item.id === activeTab) ?? financialInvestigationTabs[0];
+  const tabRecords = workspace.recordsByTab[activeTab] ?? [];
+  const periods = ['All periods', ...new Set(tabRecords.map((record) => record.period).filter(Boolean))];
+  const normalizedQuery = recordQuery.trim().toLowerCase();
+  const filteredRecords = tabRecords.filter((record) => (
+    (period === 'All periods' || record.period === period)
+    && (!normalizedQuery || financialRecordSearchText(record).includes(normalizedQuery))
+  ));
+  const activeRecord = filteredRecords.find((record) => record.id === selectedId) ?? filteredRecords[0] ?? tabRecords[0];
+  const maxComparison = Math.max(1, ...workspace.comparison.flatMap((item) => [item.baseline, item.current]));
+  const maxDeposit = Math.max(1, ...workspace.depositTrend.map((item) => item.value));
+
+  useEffect(() => {
+    setActiveTab('overview');
+    setPeriod('All periods');
+    setRecordQuery('');
+    setSelectedId('');
+  }, [activeCase.id]);
+
+  useEffect(() => {
+    setPeriod('All periods');
+    setSelectedId('');
+  }, [activeTab]);
+
+  function selectTab(tabId) {
+    setActiveTab(tabId);
+  }
+
+  function saveFinancialNote(record) {
+    saveNote(`Financial Investigation: ${record.id} - ${record.detail}`, 'Financial investigation');
+  }
+
+  return (
+    <>
+      <section className="financial-investigation-kpis" aria-label="Financial Investigation account metrics">
+        {workspace.kpis.map((item) => <article key={item.label}><span>{item.label}</span><strong>{item.value}</strong><small>{item.context}</small></article>)}
+      </section>
+
+      <section className="financial-account-strip" aria-label="Financial relationship snapshot">
+        <div><p>Account in review</p><h3>{workspace.profile.account}</h3><span>{workspace.profile.accountType} | {workspace.profile.accountAge} | {workspace.profile.accountStatus}</span></div>
+        <dl><div><dt>Relationship</dt><dd>{workspace.profile.relationshipLength}</dd></div><div><dt>Credit limit</dt><dd>{workspace.profile.creditLimit}</dd></div><div><dt>Overdraft</dt><dd>{workspace.profile.overdraft}</dd></div><div><dt>Recorded alert</dt><dd>{workspace.profile.alert}</dd></div></dl>
+      </section>
+
+      <nav className="financial-investigation-tabs" aria-label="Financial Investigation sections">
+        {financialInvestigationTabs.map((item) => <button key={item.id} type="button" className={activeTab === item.id ? 'active' : ''} aria-pressed={activeTab === item.id} onClick={() => selectTab(item.id)}>{item.label}</button>)}
+      </nav>
+
+      <section className="financial-investigation-findbar" aria-label="Financial Investigation filters">
+        <div><p>{tab.label}</p><h3>{tab.question}</h3></div>
+        <label><span>Search this section</span><input value={recordQuery} onChange={(event) => setRecordQuery(event.target.value)} placeholder="Record, amount, merchant, account, source, or destination" aria-label="Search Financial Investigation records" /></label>
+        <label><span>Comparison period</span><select value={period} onChange={(event) => setPeriod(event.target.value)} aria-label="Financial Investigation period filter">{periods.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <span>{filteredRecords.length} of {tabRecords.length} records shown</span>
+      </section>
+
+      {(activeTab === 'overview' || activeTab === 'trends') && (
+        <section className="financial-comparison-grid" aria-label="Financial behavior comparisons">
+          {workspace.comparison.map((item) => <article key={item.label}><header><strong>{item.label}</strong><span>{item.baseline} baseline | {item.current} current</span></header><div><i style={{ width: `${Math.max(3, (item.baseline / maxComparison) * 100)}%` }} /><b style={{ width: `${Math.max(3, (item.current / maxComparison) * 100)}%` }} /></div><p>{item.context}</p></article>)}
+        </section>
+      )}
+
+      {activeTab === 'deposits' && (
+        <section className="financial-deposit-trend" aria-label="Deposit trend">
+          <header><p>Deposit trend</p><h3>Recorded incoming funds by date</h3></header>
+          <div>{workspace.depositTrend.map((item) => <article key={`${item.label}-${item.title}`}><span>{item.label}</span><div><i style={{ height: `${Math.max(8, (item.value / maxDeposit) * 100)}%` }} /></div><strong>${item.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong><small>{item.title}</small></article>)}</div>
+        </section>
+      )}
+
+      <div className="financial-investigation-workspace">
+        <main className="financial-record-workspace">
+          <section className="financial-record-list" aria-label={`${tab.label} records`}>
+            <header><div><p>Evidence records</p><h3>{tab.label}</h3></div><span>{filteredRecords.length} shown</span></header>
+            {filteredRecords.map((record) => <button key={record.id} type="button" className={activeRecord?.id === record.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-financial-investigation-record={record.id}><span>{record.category} | {record.observed}</span><strong>{record.title}</strong><small>{record.value} | {record.status}</small></button>)}
+            {!filteredRecords.length && <div className="investigation-tool-empty" role="status">No financial records match these filters.</div>}
+          </section>
+
+          {activeRecord ? <section className="financial-record-detail" aria-label="Expanded financial record">
+            <header><div><p>Expanded evidence</p><h3>{activeRecord.id}</h3><span>{activeRecord.title} | {activeRecord.observed}</span></div><button type="button" onClick={() => pin(`${activeRecord.id} | ${activeRecord.title}`)}>Pin record</button></header>
+            <dl>{activeRecord.fields.map(([label, value]) => <div key={`${activeRecord.id}-${label}`}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+            <article><span>Recorded context</span><p>{activeRecord.detail}</p></article>
+            <div className="financial-related-records"><span>Related records</span><div>{activeRecord.relatedRecords.map((item) => <button key={item} type="button" onClick={() => pin(item)}>{item}</button>)}</div></div>
+            <button type="button" onClick={() => saveFinancialNote(activeRecord)}>Save evidence note</button>
+          </section> : <div className="investigation-tool-empty" role="status">Choose a financial record to open its details.</div>}
+        </main>
+
+        <aside className="financial-case-rail" aria-label="Financial Investigation case summary">
+          <header><p>Case money summary</p><h3>{activeCase.amount}</h3><span>{activeCase.claimType ?? activeCase.type}</span></header>
+          <section><p>Reviewed financial facts</p>{workspace.reviewedFacts.map((fact) => <article key={fact}>{fact}</article>)}</section>
+          <section><p>Record inventory</p><div>{financialInvestigationTabs.map((item) => <button key={item.id} type="button" onClick={() => selectTab(item.id)}><span>{item.label}</span><strong>{workspace.recordsByTab[item.id]?.length ?? 0}</strong></button>)}</div></section>
+          <nav><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button></nav>
+        </aside>
+      </div>
+
+      <nav className="investigation-tool-next-routes" aria-label="Financial Investigation next routes"><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <footer className="investigation-tool-review-bar"><div><strong>Financial Investigation review</strong><span>Mark reviewed after comparing the relevant money sections and saving the evidence needed for the case package.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Financial Investigation')}>{reviewed ? '✓ Financial Investigation reviewed' : 'Mark Financial Investigation reviewed'}</button></footer>
+    </>
+  );
+}
+
+function KYBReviewWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
+  const workspace = useMemo(() => getKybReview(activeCase), [activeCase]);
+  const [lookupValue, setLookupValue] = useState('');
+  const [confirmedLookup, setConfirmedLookup] = useState('');
+  const [lookupAttempted, setLookupAttempted] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [recordQuery, setRecordQuery] = useState('');
+  const [selectedId, setSelectedId] = useState('');
+  const [report, setReport] = useState(null);
+  const [reportGenerated, setReportGenerated] = useState(() => hasGeneratedKybReport(activeCase.id));
+  const searchMatched = matchesKybReviewLookup(workspace, confirmedLookup);
+  const tab = kybReviewTabs.find((item) => item.id === activeTab) ?? kybReviewTabs[0];
+  const tabRecords = workspace.recordsByTab[activeTab] ?? [];
+  const normalizedQuery = recordQuery.trim().toLowerCase();
+  const filteredRecords = searchMatched ? tabRecords.filter((record) => !normalizedQuery || kybRecordSearchText(record).includes(normalizedQuery)) : [];
+  const activeRecord = filteredRecords.find((record) => record.id === selectedId) ?? filteredRecords[0] ?? tabRecords[0];
+
+  useEffect(() => {
+    setLookupValue('');
+    setConfirmedLookup('');
+    setLookupAttempted(false);
+    setActiveTab('overview');
+    setRecordQuery('');
+    setSelectedId('');
+    setReport(null);
+    setReportGenerated(hasGeneratedKybReport(activeCase.id));
+  }, [activeCase.id]);
+
+  useEffect(() => {
+    setRecordQuery('');
+    setSelectedId('');
+  }, [activeTab]);
+
+  function runLookup(event) {
+    event.preventDefault();
+    setLookupAttempted(true);
+    setConfirmedLookup(lookupValue.trim());
+  }
+
+  function generateReport() {
+    const nextReport = generateKybReviewReport(activeCase);
+    setReport(nextReport);
+    setReportGenerated(true);
+    saveNote(`KYB Business Report generated for ${workspace.profile.legalName}.`, 'KYB Review');
+  }
+
+  return (
+    <>
+      <section className="kyb-lookup-panel" aria-label="KYB business lookup">
+        <div><p>Business lookup</p><h3>Find the exact entity before opening its KYB record</h3><span>Search by legal name, DBA, masked EIN, registration ID, or exact business address.</span></div>
+        <form onSubmit={runLookup}><label><span>Business identifier</span><input value={lookupValue} onChange={(event) => setLookupValue(event.target.value)} placeholder="Legal name, DBA, **-***1234, registration ID, or address" aria-label="Search KYB Review" /></label><button type="submit" disabled={!lookupValue.trim()}>Search business</button></form>
+        <article className="kyb-case-entity"><span>Business object attached to this training case</span><strong>{workspace.profile.dba}</strong><small>{workspace.profile.jurisdiction} | {workspace.profile.industry}</small><button type="button" onClick={() => setLookupValue(workspace.profile.legalName)}>Use legal name</button></article>
+      </section>
+
+      {lookupAttempted && !searchMatched && <div className="kyb-lookup-message" role="status"><strong>No exact fictional business match.</strong><span>Check the full legal name, DBA, masked EIN, registration ID, or complete address and search again.</span></div>}
+
+      {searchMatched && <>
+        <section className="kyb-profile-header" aria-label="Matched business profile">
+          <header><div><p>Exact business match</p><h3>{workspace.profile.legalName}</h3><span>{workspace.profile.dba} | {workspace.profile.entityType}</span></div><button type="button" onClick={() => pin(`${workspace.profile.registrationId} | ${workspace.profile.legalName}`)}>Pin business</button></header>
+          <dl>{[['Registration', workspace.profile.registrationId], ['Masked EIN', workspace.profile.ein], ['Jurisdiction', workspace.profile.jurisdiction], ['Standing', workspace.profile.standing], ['Formation', workspace.profile.formationDate], ['Address', workspace.profile.address], ['Phone', workspace.profile.phone], ['Website', workspace.profile.website]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+        </section>
+
+        <section className="kyb-review-kpis" aria-label="KYB record inventory"><article><span>Owner / UBO records</span><strong>{workspace.counts.owners}</strong><small>Identity records connected</small></article><article><span>Business links</span><strong>{workspace.counts.businessRecords}</strong><small>Business 360 records</small></article><article><span>Payment objects</span><strong>{workspace.counts.paymentObjects}</strong><small>Ownership records available</small></article><article><span>Documents & links</span><strong>{workspace.counts.documents}</strong><small>Source inventory</small></article></section>
+
+        <nav className="kyb-review-tabs" aria-label="KYB Review sections">{kybReviewTabs.map((item) => <button key={item.id} type="button" className={activeTab === item.id ? 'active' : ''} aria-pressed={activeTab === item.id} onClick={() => setActiveTab(item.id)}>{item.label}</button>)}</nav>
+
+        <section className="kyb-review-findbar" aria-label="KYB Review record filter"><div><p>{tab.label}</p><h3>{tab.question}</h3></div><label><span>Filter opened records</span><input value={recordQuery} onChange={(event) => setRecordQuery(event.target.value)} placeholder="Record, owner, identifier, source, or value" aria-label="Filter KYB Review records" /></label><span>{filteredRecords.length} of {tabRecords.length} shown</span></section>
+
+        <div className="kyb-review-workspace">
+          <section className="kyb-record-list" aria-label={`${tab.label} KYB records`}><header><div><p>Source records</p><h3>{tab.label}</h3></div><span>{filteredRecords.length} shown</span></header>{filteredRecords.map((record) => <button key={record.id} type="button" className={activeRecord?.id === record.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-kyb-review-record={record.id}><span>{record.category} | {record.observed}</span><strong>{record.title}</strong><small>{record.value}</small></button>)}{!filteredRecords.length && <div className="investigation-tool-empty" role="status">No KYB records match this filter.</div>}</section>
+
+          {activeRecord ? <section className="kyb-record-detail" aria-label="Expanded KYB record"><header><div><p>Expanded source record</p><h3>{activeRecord.id}</h3><span>{activeRecord.title}</span></div><button type="button" onClick={() => pin(`${activeRecord.id} | ${activeRecord.title}`)}>Pin record</button></header><dl>{activeRecord.fields.map(([label, value]) => <div key={`${activeRecord.id}-${label}`}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><article><span>Recorded context</span><p>{activeRecord.detail}</p></article><div className="kyb-related-records"><span>Related records</span><div>{activeRecord.relatedRecords.map((item) => <button key={item} type="button" onClick={() => pin(item)}>{item}</button>)}</div></div><button type="button" onClick={() => saveNote(`KYB Review: ${activeRecord.id} - ${activeRecord.detail}`, 'KYB Review')}>Save evidence note</button></section> : <div className="investigation-tool-empty" role="status">Choose a KYB source record to open its details.</div>}
+
+          <aside className="kyb-case-rail" aria-label="KYB Review case summary"><header><p>Business evidence summary</p><h3>{workspace.profile.dba}</h3><span>{activeCase.id}</span></header><section><p>Reviewed business facts</p>{workspace.reviewedFacts.map((fact) => <article key={fact}>{fact}</article>)}</section><section className="kyb-report-actions"><p>KYB Business Report</p><span>Generate a factual report from the opened fictional business records. The report appears in Document Viewer.</span><button type="button" onClick={generateReport}>{reportGenerated ? 'Regenerate report' : 'Generate report'}</button>{report && <button type="button" onClick={() => downloadKybReport(report)}>Export report</button>}{reportGenerated && <button type="button" onClick={() => openTool('Document Viewer')}>Open in Document Viewer</button>}</section><nav><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Financial Investigation')}>Open Financial Investigation</button></nav></aside>
+        </div>
+      </>}
+
+      <nav className="investigation-tool-next-routes" aria-label="KYB Review next routes"><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Identity Intel / People Search')}>Open Identity Intel</button><button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <footer className="investigation-tool-review-bar"><div><strong>KYB Review</strong><span>Complete an exact lookup and compare the relevant source records before marking this business review complete.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} disabled={!searchMatched} onClick={() => markReviewed('KYB Review')}>{reviewed ? '✓ KYB Review reviewed' : 'Mark KYB Review reviewed'}</button></footer>
     </>
   );
 }
@@ -1231,9 +1595,9 @@ function Business360Workspace({ activeCase, pin, saveNote, markReviewed, reviewe
       <div className="business-360-workspace">
         <section className="business-360-relationships" aria-label="Business relationships"><header><p>Relationships</p><h3>Choose a business object</h3></header>{workspace.relationships.map((record) => <button key={record.id} type="button" className={record.id === activeRelationship?.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-business-360-record={record.id}><span>{record.id} | {record.status}</span><strong>{record.entity}</strong><small>{record.relationship}</small></button>)}</section>
         {activeRelationship ? <section className="business-360-detail" aria-label="Business relationship detail"><header><div><p>Selected relationship</p><h3>{activeRelationship.entity}</h3><span>{activeRelationship.observed}</span></div><button type="button" onClick={() => pin(activeRelationship.entity)}>Pin relationship</button></header><dl>{[['Relationship', activeRelationship.relationship], ['Status', activeRelationship.status], ['Observed', activeRelationship.observed], ['Case context', activeRelationship.context]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><button type="button" onClick={() => saveNote(`Business 360: ${activeRelationship.id} reviewed for ${activeCase.id}.`, 'Business 360')}>Save business note</button></section> : <div className="investigation-tool-empty" role="status">No business relationship is recorded for this case.</div>}
-        <aside className="business-360-evidence" aria-label="Business 360 evidence"><header><p>Evidence Explorer</p><h3>Business records to compare</h3></header>{workspace.intelligence.map((record) => <article key={record.id}><span>{record.type}</span><strong>{record.value}</strong><small>{record.id} | {record.observed}</small></article>)}<button type="button" onClick={() => openTool('Evidence Center')}>Open Evidence Center</button></aside>
+        <aside className="business-360-evidence" aria-label="Business 360 evidence"><header><p>Evidence Explorer</p><h3>Business records to compare</h3></header>{workspace.intelligence.map((record) => <article key={record.id}><span>{record.type}</span><strong>{record.value}</strong><small>{record.id} | {record.observed}</small></article>)}<button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button></aside>
       </div>
-      <nav className="investigation-tool-next-routes" aria-label="Business 360 next routes"><button type="button" onClick={() => openTool('Business Intelligence')}>Open Business Intelligence</button><button type="button" onClick={() => openTool('Employee Profile')}>Open Employee Profile</button><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <nav className="investigation-tool-next-routes" aria-label="Business 360 next routes"><button type="button" onClick={() => openTool('KYB Review')}>Open KYB Review</button><button type="button" onClick={() => openTool('Employee Profile')}>Open Employee Profile</button><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
       <footer className="investigation-tool-review-bar"><div><strong>Business 360 review</strong><span>Review the fictional business profile, relationship records, and linked evidence before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Business 360')}>{reviewed ? '✓ Business 360 reviewed' : 'Mark Business 360 reviewed'}</button></footer>
     </>
   );
@@ -1253,7 +1617,7 @@ function EmployeeProfileWorkspace({ activeCase, pin, saveNote, markReviewed, rev
         <section className="employee-profile-detail" aria-label="Employee Profile detail"><header><div><p>Employee profile</p><h3>{activeRecord.name}</h3><span>{activeRecord.role} | {activeRecord.employer}</span></div><button type="button" onClick={() => pin(`${activeRecord.id} | ${activeRecord.name}`)}>Pin employee</button></header><dl>{[['Employee ID', activeRecord.id], ['Employer', activeRecord.employer], ['Role', activeRecord.role], ['Department', activeRecord.department], ['Status', activeRecord.status], ['Hire date', activeRecord.hireDate], ['Employment timeline', activeRecord.employmentTimeline], ['Official contact / callback', activeRecord.officialContact], ['Direct deposit context', activeRecord.directDeposit], ['Linked payroll records', activeRecord.linkedPayroll.join(' | ') || 'None recorded']].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><button type="button" onClick={() => saveNote(`Employee Profile: ${activeRecord.id} reviewed for ${activeCase.id}.`, 'Employee profile')}>Save employee note</button></section>
         <aside className="employee-profile-evidence" aria-label="Employee payroll evidence"><header><p>Payroll connection</p><h3>Next evidence to review</h3></header><p>Compare the employee record, employer relationship, direct-deposit context, and any payroll change request before documenting a case decision.</p><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button></aside>
       </div> : <div className="investigation-tool-empty" role="status">No employee records are available for this case.</div>}
-      <nav className="investigation-tool-next-routes" aria-label="Employee Profile next routes"><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={() => openTool('Evidence Center')}>Open Evidence Center</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <nav className="investigation-tool-next-routes" aria-label="Employee Profile next routes"><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
       <footer className="investigation-tool-review-bar"><div><strong>Employee Profile review</strong><span>Review employee and employer facts, official contact details, and linked payroll context before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Employee Profile')}>{reviewed ? '✓ Employee Profile reviewed' : 'Mark Employee Profile reviewed'}</button></footer>
     </>
   );
@@ -1477,7 +1841,7 @@ function PaymentVerificationWorkspace({
       )}
 
       <nav className="investigation-tool-next-routes" aria-label="Payment verification next routes">
-        <button type="button" onClick={() => openTool('Evidence Center')}>Open Evidence Center</button>
+        <button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button>
         <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
@@ -1608,8 +1972,38 @@ export default function InvestigationToolPanel({
           openTool={openTool}
           jumpDecision={jumpDecision}
         />
+      ) : tool === 'Merchant Intelligence' ? (
+        <MerchantIntelligenceWorkspace
+          activeCase={activeCase}
+          pin={pin}
+          saveNote={saveNote}
+          markReviewed={markReviewed}
+          reviewed={reviewed}
+          openTool={openTool}
+          jumpDecision={jumpDecision}
+        />
+      ) : tool === 'Financial Investigation' ? (
+        <FinancialInvestigationWorkspace
+          activeCase={activeCase}
+          pin={pin}
+          saveNote={saveNote}
+          markReviewed={markReviewed}
+          reviewed={reviewed}
+          openTool={openTool}
+          jumpDecision={jumpDecision}
+        />
       ) : tool === 'Business 360' ? (
         <Business360Workspace
+          activeCase={activeCase}
+          pin={pin}
+          saveNote={saveNote}
+          markReviewed={markReviewed}
+          reviewed={reviewed}
+          openTool={openTool}
+          jumpDecision={jumpDecision}
+        />
+      ) : tool === 'KYB Review' ? (
+        <KYBReviewWorkspace
           activeCase={activeCase}
           pin={pin}
           saveNote={saveNote}
@@ -1675,6 +2069,18 @@ export default function InvestigationToolPanel({
         />
       ) : tool === 'Payment Verification' ? (
         <PaymentVerificationWorkspace
+          activeCase={activeCase}
+          query={query}
+          setQuery={setQuery}
+          pin={pin}
+          saveNote={saveNote}
+          markReviewed={markReviewed}
+          reviewed={reviewed}
+          openTool={openTool}
+          jumpDecision={jumpDecision}
+        />
+      ) : tool === 'Document Viewer' ? (
+        <DocumentViewerWorkspace
           activeCase={activeCase}
           query={query}
           setQuery={setQuery}
@@ -1828,7 +2234,7 @@ export default function InvestigationToolPanel({
       </div>
 
       <nav className="investigation-tool-next-routes" aria-label="Investigation record next routes">
-        {(tool === 'Evidence Center' || tool === 'Financial Intelligence') && <button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button>}
+        {(tool === 'Document Viewer' || tool === 'Financial Investigation') && <button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button>}
         <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>

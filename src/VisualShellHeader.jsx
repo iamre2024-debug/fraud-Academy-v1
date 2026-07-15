@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import useResponsiveLayoutMode from './useResponsiveLayoutMode.js';
 
 const reducedMotionKey = 'fraud-academy-reduced-motion-v1';
+const layoutModes = ['auto', 'mobile', 'desktop'];
 
 function readReducedMotion() {
   if (typeof window === 'undefined') return false;
@@ -14,6 +16,12 @@ function readReducedMotion() {
 export default function VisualShellHeader({ activeCase, cases, changeCase, onNavigate }) {
   const [activeControl, setActiveControl] = useState('');
   const [reducedMotion, setReducedMotion] = useState(readReducedMotion);
+  const {
+    preference: layoutPreference,
+    detectedLayout,
+    resolvedLayout,
+    setPreference: setLayoutPreference,
+  } = useResponsiveLayoutMode();
 
   useEffect(() => {
     document.body.dataset.visualMotion = reducedMotion ? 'reduced' : 'standard';
@@ -68,6 +76,25 @@ export default function VisualShellHeader({ activeCase, cases, changeCase, onNav
           {activeControl === 'settings' && (
             <>
               <div className="header-control-heading"><span aria-hidden="true">⚙</span><div><p>Settings</p><h2>Workspace preferences</h2></div></div>
+              <div className="header-setting-row layout-setting-row">
+                <span className="layout-setting-copy">
+                  <strong>Layout mode</strong>
+                  <small>Detected {detectedLayout}; using {resolvedLayout} layout.</small>
+                </span>
+                <div className="layout-mode-control" role="group" aria-label="Layout mode">
+                  {layoutModes.map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      className={layoutPreference === mode ? 'active' : ''}
+                      aria-pressed={layoutPreference === mode}
+                      onClick={() => setLayoutPreference(mode)}
+                    >
+                      {mode[0].toUpperCase() + mode.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <label className="header-setting-row"><span><strong>Reduce motion</strong><small>Use immediate scrolling and limit interface animation.</small></span><input type="checkbox" checked={reducedMotion} onChange={(event) => setReducedMotion(event.target.checked)} /></label>
             </>
           )}

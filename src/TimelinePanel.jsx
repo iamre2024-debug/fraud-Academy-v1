@@ -216,7 +216,7 @@ export default function TimelinePanel({
 
       <nav className="timeline-next-routes" aria-label="Timeline next routes">
         <button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button>
-        <button type="button" onClick={() => openTool('Evidence Center', 'indicators')}>Open Evidence Center</button>
+        <button type="button" onClick={() => openTool('Document Viewer', 'indicators')}>Open Document Viewer</button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
 

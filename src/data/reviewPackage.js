@@ -1,3 +1,5 @@
+import { summarizeDecisionIndicators } from './decisionChecklist.js';
+
 export const reviewChoices = [
   'Approve claim / customer claim supported',
   'Deny claim / customer claim not supported',
@@ -62,11 +64,33 @@ export const requiredReviewTools = [
   'Identity Intel / People Search',
   'Login History',
   'Transaction History',
-  'Evidence Center',
+  'Document Viewer',
   'Link Analysis',
 ];
 
 export const minimumRationaleWords = 12;
+
+const fraudDeterminationGroups = [
+  {
+    label: 'Claim determination',
+    options: [
+      'Support Customer Claim',
+      'Do Not Support Customer Claim',
+      'Insufficient Evidence',
+      'Escalate Investigation',
+    ],
+  },
+  {
+    label: 'Referral route',
+    options: [
+      'Refer to AML',
+      'Refer to Credit Risk',
+      'Refer to Cyber Security',
+      'Refer to Disputes',
+      'Refer to Internal Review',
+    ],
+  },
+];
 
 function unique(values = []) {
   return [...new Set(values.filter(Boolean))];
@@ -114,14 +138,33 @@ export function getDecisionCallGroups(activeCase = {}) {
     ]);
   }
 
+  if (usesHoldReleaseDetermination(activeCase)) {
+    return uniqueGroups([
+      {
+        label: 'Operational determination',
+        options: ['Hold', 'Release'],
+      },
+      {
+        label: 'Verification and escalation',
+        options: [
+          'More Information Needed',
+          'Escalate Investigation',
+          'Refer to Cyber / ATO Review',
+          'Refer to Internal Review',
+        ],
+      },
+    ]);
+  }
+
   if (['fraud-chargeback', 'non-fraud-chargeback'].includes(activeCase?.claimTypeId)) {
     return uniqueGroups([
       {
         label: 'Chargeback determination calls',
         options: [
-          'Approve claim / customer claim supported',
-          'Deny claim / customer claim not supported',
-          'Partial approval / split liability review',
+          'Support Customer Claim',
+          'Do Not Support Customer Claim',
+          'Partial Credit',
+          'Insufficient Evidence',
         ],
       },
       {
@@ -161,25 +204,11 @@ export function getDecisionCallGroups(activeCase = {}) {
   }
 
   if (['payroll-direct-deposit', 'email-bec', 'ach-wire-check'].includes(activeCase?.claimTypeId)) {
-    return uniqueGroups([
-      {
-        label: 'Payment and instruction handling',
-        options: [
-          'Hold pending additional records',
-          'Request merchant or payee documentation',
-          'Route for payment verification review',
-          'No action yet / continue investigation',
-        ],
-      },
-      {
-        label: 'Escalation calls',
-        options: [
-          'Route for secondary fraud review',
-          'Escalate for insider / vendor / API / open banking review',
-          'Escalate for fraud ring / link analysis review',
-        ],
-      },
-    ]);
+    return fraudDeterminationGroups;
+  }
+
+  if (['account-takeover', 'first-party-fraud'].includes(activeCase?.claimTypeId)) {
+    return fraudDeterminationGroups;
   }
 
   return decisionCallGroups;
@@ -197,13 +226,18 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
   const messages = [];
   const rationaleWordCount = wordCount(draft.reason);
   const hasRationale = Boolean(draft.reason?.trim());
-  const packageInputSummary = buildPackageInputSummary({ completedTools, tray, notes });
+  const indicatorSummary = summarizeDecisionIndicators(activeCase, draft.indicators);
+  const packageInputSummary = buildPackageInputSummary({ completedTools, tray, notes, indicatorSummary });
+  const conflictsWithCriticalRed = indicatorSummary.overrideIndicators.length > 0 && isSupportiveDecision(draft.choice);
 
   if (missingTools.length) blockers.push(`review required tools: ${missingTools.join(', ')}`);
   if (!tray.length) blockers.push('pin at least one object');
   if (!notes.length) blockers.push('add at least one rationale note');
+  if (!indicatorSummary.selectedCount) blockers.push('select at least one case flag');
+  if (indicatorSummary.incompleteIndicators.length) blockers.push(`add proof and explanation for: ${indicatorSummary.incompleteIndicators.map((item) => item.prompt).join(' | ')}`);
   if (!draft.choice) blockers.push('select a learner choice');
   if (draft.choice && !validChoices.includes(draft.choice)) blockers.push('select a valid learner choice from the current decision call list');
+  if (conflictsWithCriticalRed) blockers.push('resolve the determination conflict with the documented critical red flag');
   if (!hasRationale) blockers.push('write the learner rationale');
   if (hasRationale && rationaleWordCount < minimumRationaleWords) blockers.push(`expand learner rationale to at least ${minimumRationaleWords} words`);
 
@@ -212,12 +246,15 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
     if (missingTools.length) messages.push(`Required tools still open: ${missingTools.join(', ')}.`);
     if (!tray.length) messages.push('Pin at least one case object into the Investigation Tray.');
     if (!notes.length) messages.push('Save at least one case rationale or investigation note.');
+    if (!indicatorSummary.selectedCount) messages.push('Select the case flags that apply based on the reviewed evidence.');
+    if (indicatorSummary.incompleteIndicators.length) messages.push('Every selected flag requires an exact proof reference and a short explanation.');
     if (!draft.choice) messages.push('Select the learner decision choice.');
     if (draft.choice && !validChoices.includes(draft.choice)) messages.push('The selected learner choice is no longer in the current decision call list.');
     if (!hasRationale) messages.push('Write the evidence-based learner rationale.');
     if (hasRationale && rationaleWordCount < minimumRationaleWords) messages.push(`Add more evidence detail to the learner rationale (${rationaleWordCount}/${minimumRationaleWords} words).`);
+    if (conflictsWithCriticalRed) messages.push('A critical red flag carries override weight. Select a non-supporting, hold, information, or escalation determination, or unmark the flag if the evidence does not prove it.');
   } else {
-    messages.push('Review package checklist is complete. Evidence First unlocks Luna only after saving this package.');
+    messages.push('The weighted flag checklist and review package are complete. Luna unlocks only after saving this package.');
   }
 
   messages.push(packageInputSummary);
@@ -233,7 +270,17 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
     rationaleWordCount,
     minimumRationaleWords,
     packageInputSummary,
-    ready: missingTools.length === 0 && tray.length > 0 && notes.length > 0 && Boolean(draft.choice) && validChoices.includes(draft.choice) && hasRationale && rationaleWordCount >= minimumRationaleWords,
+    indicatorSummary,
+    ready: missingTools.length === 0
+      && tray.length > 0
+      && notes.length > 0
+      && indicatorSummary.selectedCount > 0
+      && indicatorSummary.incompleteIndicators.length === 0
+      && Boolean(draft.choice)
+      && validChoices.includes(draft.choice)
+      && !conflictsWithCriticalRed
+      && hasRationale
+      && rationaleWordCount >= minimumRationaleWords,
   };
 }
 
@@ -258,14 +305,38 @@ export function buildReviewPackage({ caseId, agentId, activeCase, draft, complet
     totalRequired: packageStatus?.totalRequired ?? requiredTools.length,
     missingTools: packageStatus?.missingTools ?? [],
     blockers: packageStatus?.blockers ?? [],
+    decisionIndicators: packageStatus?.indicatorSummary?.selectedIndicators ?? [],
+    indicatorSummary: packageStatus?.indicatorSummary ? {
+      selectedCount: packageStatus.indicatorSummary.selectedCount,
+      redCount: packageStatus.indicatorSummary.redCount,
+      greenCount: packageStatus.indicatorSummary.greenCount,
+      redPoints: packageStatus.indicatorSummary.redPoints,
+      greenPoints: packageStatus.indicatorSummary.greenPoints,
+      criticalRedCount: packageStatus.indicatorSummary.criticalRedIndicators.length,
+    } : null,
     savedAt: new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
   };
 }
 
-function buildPackageInputSummary({ completedTools = [], tray = [], notes = [] }) {
-  return `Package input preview: ${completedTools.length} reviewed tool(s), ${tray.length} pinned object(s), and ${notes.length} note(s) will snapshot into Submit Decision.`;
+function buildPackageInputSummary({ completedTools = [], tray = [], notes = [], indicatorSummary }) {
+  return `Package input preview: ${completedTools.length} reviewed tool(s), ${tray.length} pinned object(s), ${notes.length} note(s), and ${indicatorSummary?.selectedCount ?? 0} proven flag(s) will snapshot into Submit Decision.`;
 }
 
 function wordCount(text = '') {
   return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function usesHoldReleaseDetermination(activeCase = {}) {
+  if (['email-bec', 'payroll-direct-deposit'].includes(activeCase.claimTypeId)) return true;
+  const context = [activeCase.lane, activeCase.subtype, activeCase.scenarioTitle, activeCase.type].filter(Boolean).join(' ');
+  return activeCase.claimTypeId === 'account-takeover' && /business.*payroll|payroll.*business/i.test(context);
+}
+
+function isSupportiveDecision(choice = '') {
+  return [
+    'Support Customer Claim',
+    'Support Credit Request',
+    'Approve Application',
+    'Release',
+  ].includes(choice);
 }

@@ -3,14 +3,25 @@ import path from 'node:path';
 
 const rootDir = process.cwd();
 const panel = fs.readFileSync(path.join(rootDir, 'src/InvestigationToolPanel.jsx'), 'utf8');
+const documentViewer = fs.readFileSync(path.join(rootDir, 'src/DocumentViewerWorkspace.jsx'), 'utf8');
+const documentRecords = fs.readFileSync(path.join(rootDir, 'src/data/documentRecords.js'), 'utf8');
 const businessPayrollWorkspace = fs.readFileSync(path.join(rootDir, 'src/data/businessPayrollWorkspace.js'), 'utf8');
 const identityReport = fs.readFileSync(path.join(rootDir, 'src/data/identityIntelReport.js'), 'utf8');
+const loginRecords = fs.readFileSync(path.join(rootDir, 'src/data/loginRecords.js'), 'utf8');
+const sessionRecords = fs.readFileSync(path.join(rootDir, 'src/data/sessionRecords.js'), 'utf8');
+const ipRecords = fs.readFileSync(path.join(rootDir, 'src/data/ipRecords.js'), 'utf8');
+const accessReports = fs.readFileSync(path.join(rootDir, 'src/data/accessHistoryReports.js'), 'utf8');
+const financialInvestigation = fs.readFileSync(path.join(rootDir, 'src/data/financialInvestigationRecords.js'), 'utf8');
+const kybReview = fs.readFileSync(path.join(rootDir, 'src/data/kybReviewRecords.js'), 'utf8');
+const kybReport = fs.readFileSync(path.join(rootDir, 'src/data/kybReviewReport.js'), 'utf8');
 const groups = fs.readFileSync(path.join(rootDir, 'src/investigationToolGroups.js'), 'utf8');
 const workspace = fs.readFileSync(path.join(rootDir, 'src/VisualWorkspace.jsx'), 'utf8');
 const rail = fs.readFileSync(path.join(rootDir, 'src/CategoryTileRail.jsx'), 'utf8');
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayInvestigationToolsThemeV1.css'), 'utf8');
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/investigation-tools-browser.spec.mjs'), 'utf8');
+const documentBrowser = fs.readFileSync(path.join(rootDir, 'tests/document-viewer-browser.spec.mjs'), 'utf8');
+const financialKybBrowser = fs.readFileSync(path.join(rootDir, 'tests/financial-kyb-browser.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_INVESTIGATION_TOOLS_THEME_V1.md'), 'utf8');
 const sourceOfTruth = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'), 'utf8');
 const readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8');
@@ -61,29 +72,42 @@ for (const anchor of [
   'Every recorded login is available below.',
   'Recorded logins',
   'Failed / denied',
-  'MFA events',
+  'Account lockouts',
+  'MFA completed',
+  'Filter Login History by result',
+  'Filter Login History by method',
+  'Event type',
+  'Failed-attempt count',
+  'Operating system',
   'Authentication channel',
-  'Session behavior',
+  'Session availability',
   'Password reset timing',
-  'Money movement link',
+  'Post-login pages and actions are kept in Session History.',
+  'Generate Login Timeline Report',
   'A successful MFA event is evidence of authentication activity, not a final conclusion about authorization.',
   'SessionHistoryWorkspace',
   'After login, what did the user do?',
   'Recorded sessions',
   'Normal logout',
   'Session timeout',
+  'Filter Session History by logout state',
+  'Filter Session History by activity',
   'Pages viewed',
   'Payee / token activity',
   'Transfer / purchase path',
   'Session Path',
+  'Generate Session History Report',
   'IPIntelligenceWorkspace',
   'Where did the connection originate, and has it been seen elsewhere?',
-  'Run an IP lookup to reveal',
+  'Run IP Lookup',
+  'No exact IP match',
   'VPN / proxy / TOR',
   'Residential status',
   'Seen elsewhere',
   'Location Sequence',
+  'Generate IP Intelligence Report',
   'DocumentRequestWorkspace',
+  'DocumentViewerWorkspace',
   'Document request workflow',
   'Search Document Request',
   'Document request statuses',
@@ -96,10 +120,16 @@ for (const anchor of [
   'Document Request review',
   'IdentityIntelWorkspace',
   'Run People Search',
+  'Choose People Search method',
+  'Search Identity Intel by Training ID',
+  'Search Identity Intel by name',
+  'Search Identity Intel by date of birth',
   'Identity report hidden until a search is run.',
   'Identity Match Summary',
+  'View Full Profile Report',
   'Identity report counts',
   'Evidence Explorer',
+  'Generate Identity Search Report',
   'Fictional training data only. Identity information is evidence, not a case conclusion.',
   'Mark Identity Intel / People Search reviewed',
   'TransactionHistoryWorkspace',
@@ -117,16 +147,22 @@ for (const anchor of [
   'Payroll and direct deposit',
   'Trusted callback',
   'Payroll History review',
+  'FinancialInvestigationWorkspace',
+  'Does the money make sense?',
+  'KYBReviewWorkspace',
+  'Search business',
+  'Generate report',
+  'Open in Document Viewer',
 ]) {
   mustContain('InvestigationToolPanel.jsx', panel, anchor);
 }
 
 for (const anchor of [
   'Identity & Customer',
-  'Login, Device & IP',
+  'Login, Session, Device & IP',
   'Transactions & Financial',
   'Business & Payment Verification',
-  'Evidence & Documents',
+  'Documents & Requests',
   'Links & Related Cases',
   'System Access Lane',
   'workflowReviewGroup',
@@ -140,12 +176,12 @@ for (const anchor of [
   "import InvestigationToolPanel from './InvestigationToolPanel.jsx'",
   "import TimelinePanel from './TimelinePanel.jsx'",
   "from './investigationToolGroups.js'",
-  'categories={investigationToolGroups}',
-  "tool === 'Customer 360'",
-  "tool === 'Timeline'",
+  'categories={visibleCategories}',
+  "activeTool === 'Customer 360'",
+  "activeTool === 'Timeline'",
   '<TimelinePanel {...activeToolProps} />',
   '<InvestigationToolPanel {...activeToolProps} />',
-  'rowsFor(tool, activeCase)',
+  'rowsFor(activeTool, activeCase)',
 ]) {
   mustContain('VisualWorkspace.jsx', workspace, anchor);
 }
@@ -217,6 +253,15 @@ for (const anchor of [
   '.document-request-list',
   '.document-request-detail',
   '.document-request-summary',
+  '.document-viewer-findbar',
+  '.document-folder-nav',
+  '.document-viewer-layout',
+  '.document-record-list',
+  '.document-preview-workspace',
+  '.document-page-stage',
+  '.document-page',
+  '.document-inspector',
+  '.document-compare-workspace',
   '.identity-intel-search',
   '.identity-intel-gate',
   '.identity-intel-summary',
@@ -235,8 +280,48 @@ for (const anchor of [
   '.employee-profile-workspace',
   '.payroll-history-findbar',
   '.payroll-history-workspace',
+  '.financial-investigation-kpis',
+  '.financial-investigation-tabs',
+  '.financial-investigation-workspace',
+  '.financial-record-detail',
+  '.financial-case-rail',
+  '.kyb-lookup-panel',
+  '.kyb-profile-header',
+  '.kyb-review-tabs',
+  '.kyb-review-workspace',
+  '.kyb-record-detail',
+  '.kyb-case-rail',
 ]) {
   mustContain('displayInvestigationToolsThemeV1.css', styles, anchor);
+}
+
+for (const anchor of [
+  'data-document-viewer-screen="approved-theme-v1"',
+  'Search Document Viewer records',
+  'Document folders',
+  'Document preview',
+  'Document page controls',
+  'Extracted fields',
+  'Document investigator note',
+  'Add to summary',
+  'Document comparison',
+  'Document Viewer next routes',
+  'Mark Document Viewer reviewed',
+]) {
+  mustContain('DocumentViewerWorkspace.jsx', documentViewer, anchor);
+}
+
+for (const anchor of [
+  'Driver License Review',
+  'Bank Statement',
+  'EIN Assignment Notice',
+  'Tax Return Transcript',
+  'Utility Bill - Proof of Address',
+  'Phone Ownership Report',
+  'getCaseDocuments',
+  'documentSearchText',
+]) {
+  mustContain('documentRecords.js', documentRecords, anchor);
 }
 
 for (const anchor of [
@@ -254,6 +339,11 @@ for (const anchor of [
 for (const anchor of [
   'getIdentityIntelReport',
   'matchesIdentityIntelSearch',
+  "from './customer360Dossier.js'",
+  'searchIds',
+  'searchName',
+  'searchDob',
+  "criteria?.mode === 'id'",
   'Name / DOB match',
   'Watchlist / OFAC training result',
   'Address History',
@@ -262,6 +352,12 @@ for (const anchor of [
   'Associates & Relatives',
   'Employment History',
   'Businesses & Ownership',
+  'Professional Licenses',
+  'Property Records',
+  'Vehicle Records',
+  'Bankruptcy Records',
+  'Liens / Judgments',
+  'Public Records',
   'Criminal Records (Training Only)',
   'Social & Digital Presence',
   'All records in this report are fictional training data',
@@ -269,9 +365,46 @@ for (const anchor of [
   mustContain('identityIntelReport.js', identityReport, anchor);
 }
 
+for (const anchor of ['fullAccessTimestamp', 'Failed authentication', 'Account lockout', 'operatingSystem', 'profileChangeLink', 'sessionReference']) {
+  mustContain('loginRecords.js', loginRecords, anchor);
+}
+
+for (const anchor of ['scenarioTemplate', 'hasCreatedSession', 'matchingProfileChanges', 'profileActions', 'activityTypes', 'Session timeout recorded']) {
+  mustContain('sessionRecords.js', sessionRecords, anchor);
+}
+
+for (const anchor of ['defaultDetails(activeCase, ip, logins)', 'vpnProxyTor', 'crossCasePresence', 'observedLoginEvents', 'hasCreatedSession']) {
+  mustContain('ipRecords.js', ipRecords, anchor);
+}
+
+for (const anchor of ['Login Timeline Report', 'Session History Report', 'IP Intelligence Report', 'generateAccessHistoryReport', 'getGeneratedAccessReportDocuments', 'Fictional data - not valid for real-world use']) {
+  mustContain('accessHistoryReports.js', accessReports, anchor);
+}
+
+mustContain('documentRecords.js', documentRecords, 'getGeneratedAccessReportDocuments');
+mustContain('documentRecords.js', documentRecords, 'getGeneratedKybReportDocuments');
+mustContain('displayInvestigationToolsThemeV1.css', styles, '.access-history-filters');
+mustContain('displayInvestigationToolsThemeV1.css', styles, '.ip-lookup-action');
+
+for (const anchor of ['financialInvestigationTabs', 'Account Overview', 'Deposit Analysis', 'Spending Analysis', 'Cash Activity', 'Digital Payments', 'Linked Accounts', 'Merchant Intelligence', 'Behavior Trends', 'Funds Flow', 'Mule / Cash-Out Pattern', 'getFinancialInvestigation', 'financialRecordSearchText']) {
+  mustContain('financialInvestigationRecords.js', financialInvestigation, anchor);
+}
+
+for (const anchor of ['kybReviewTabs', 'Owners & UBO', 'Bank Ownership', 'Revenue & Cash Flow', 'getKybReview', 'matchesKybReviewLookup']) {
+  mustContain('kybReviewRecords.js', kybReview, anchor);
+}
+
+for (const anchor of ['KYB Business Report', 'generateKybReviewReport', 'getGeneratedKybReportDocuments', 'does not determine the case outcome']) {
+  mustContain('kybReviewReport.js', kybReport, anchor);
+}
+
 mustContain('main.jsx', entrypoint, "import './displayInvestigationToolsThemeV1.css';");
 mustContain('investigation-tools-browser.spec.mjs', browser, 'approved Investigation tools are contextual, functional, and responsive');
 mustContain('investigation-tools-browser.spec.mjs', browser, 'mobile-chromium');
+mustContain('document-viewer-browser.spec.mjs', documentBrowser, 'six required document families');
+mustContain('document-viewer-browser.spec.mjs', documentBrowser, 'Document comparison');
+mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'Financial Investigation and KYB Review provide complete responsive workspaces');
+mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'System Reports 1');
 mustContain('Investigation tools handoff', handoff, 'agent/investigation-tools-approved-theme-v1');
 mustContain('Investigation tools handoff', handoff, 'Timeline only');
 mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **final responsive/mobile polish only**');

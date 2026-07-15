@@ -61,7 +61,7 @@ The current runtime behavior is:
 - Case Briefing scrolls to the allegation or system-alert summary.
 - Investigate returns to the category rail.
 - Timeline and Summary open their existing Timeline and Case Report tools.
-- Indicators opens the neutral Evidence Center while collected object counts remain descriptive only.
+- Indicators opens the neutral Document Viewer while collected object counts remain descriptive only.
 - Determination scrolls to the existing package-gated Submit Decision panel.
 - Debrief scrolls to Luna, which stays locked until a learner package exists.
 

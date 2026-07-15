@@ -101,8 +101,8 @@ test('approved Timeline preserves sequence review, evidence actions, and respons
   await expect(timeline.getByRole('button', { name: '✓ Timeline reviewed', exact: true })).toBeVisible();
 
   const nextRoutes = timeline.getByRole('navigation', { name: 'Timeline next routes' });
-  await nextRoutes.getByRole('button', { name: 'Open Evidence Center', exact: true }).click();
-  await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Evidence Center');
+  await nextRoutes.getByRole('button', { name: 'Open Document Viewer', exact: true }).click();
+  await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Document Viewer');
 
   const timelineForDecision = await openTimeline(page);
   await timelineForDecision.getByRole('navigation', { name: 'Timeline next routes' })

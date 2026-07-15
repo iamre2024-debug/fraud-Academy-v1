@@ -218,7 +218,7 @@ body[data-visual-tab="workspace"] .luna-v1-locked section span {
 
 body[data-visual-tab="workspace"] .decision-status-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -246,9 +246,293 @@ body[data-visual-tab="workspace"] .decision-status-grid strong {
   overflow-wrap: anywhere;
 }
 
+body[data-visual-tab="workspace"] .decision-flag-workspace {
+  margin-bottom: 18px;
+  border: 1px solid var(--decision-border);
+  border-radius: 20px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-header p,
+body[data-visual-tab="workspace"] .decision-flag-column > header p {
+  margin: 0 0 5px;
+  color: var(--decision-purple);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-header h3,
+body[data-visual-tab="workspace"] .decision-flag-column h4 {
+  margin: 0;
+  color: var(--decision-ink);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-header h3 {
+  font-size: 1.18rem;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-header > div:first-child > span {
+  display: block;
+  max-width: 820px;
+  margin-top: 7px;
+  color: var(--decision-muted);
+  line-height: 1.5;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-progress {
+  min-width: 112px;
+  border-radius: 14px;
+  background: var(--decision-lavender);
+  padding: 10px 13px;
+  text-align: center;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-progress strong,
+body[data-visual-tab="workspace"] .decision-flag-progress span {
+  display: block;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-progress strong {
+  color: var(--decision-purple-dark);
+  font-size: 1.45rem;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-progress span {
+  color: var(--decision-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-scoreboard {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-scoreboard article {
+  border: 1px solid #e1d8ed;
+  border-radius: 14px;
+  background: #fcfbff;
+  padding: 11px 13px;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-scoreboard article[data-summary-type="red"] {
+  border-color: #efd0da;
+  background: #fff7f9;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-scoreboard article[data-summary-type="green"] {
+  border-color: #c9e5da;
+  background: #f4fbf8;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-scoreboard span,
+body[data-visual-tab="workspace"] .decision-flag-scoreboard strong,
+body[data-visual-tab="workspace"] .decision-flag-scoreboard small {
+  display: block;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-scoreboard span,
+body[data-visual-tab="workspace"] .decision-flag-scoreboard small {
+  color: var(--decision-muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-scoreboard strong {
+  margin: 3px 0;
+  color: var(--decision-ink);
+  font-size: 1.28rem;
+}
+
+body[data-visual-tab="workspace"] .decision-critical-notice {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 14px;
+  border: 1px solid #e4aebd;
+  border-radius: 13px;
+  background: #fff4f7;
+  color: #773046;
+  padding: 11px 13px;
+}
+
+body[data-visual-tab="workspace"] .decision-critical-notice span {
+  color: #744f5c;
+  line-height: 1.4;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-column {
+  min-width: 0;
+  border: 1px solid #e3daee;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-column[data-flag-column="red"] {
+  border-color: #eccbd5;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-column[data-flag-column="green"] {
+  border-color: #c6e1d6;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-column > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  background: #faf8fd;
+  padding: 13px 14px;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-column[data-flag-column="red"] > header {
+  background: #fff5f7;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-column[data-flag-column="green"] > header {
+  background: #f2faf6;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-column h4 {
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-column > header > span {
+  color: var(--decision-muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-list {
+  display: grid;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-item {
+  border-top: 1px solid #ece5f2;
+  background: #ffffff;
+  padding: 13px 14px;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-item[data-selected="true"] {
+  background: #fcfaff;
+}
+
+body[data-visual-tab="workspace"] [data-flag-column="red"] .decision-flag-item[data-selected="true"] {
+  background: #fff9fa;
+}
+
+body[data-visual-tab="workspace"] [data-flag-column="green"] .decision-flag-item[data-selected="true"] {
+  background: #f8fcfa;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-item-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-item-heading label {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  color: var(--decision-ink);
+  font-weight: 800;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-item-heading input {
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--decision-purple);
+}
+
+body[data-visual-tab="workspace"] .decision-flag-item-heading strong {
+  border-radius: 999px;
+  background: var(--decision-lavender);
+  color: var(--decision-purple-dark);
+  padding: 5px 8px;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] [data-flag-weight="critical"] {
+  background: #8b3650 !important;
+  color: #ffffff !important;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-item > p {
+  margin: 7px 0 0 29px;
+  color: var(--decision-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-proof {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0 29px;
+  border-top: 1px solid #e8e0ef;
+  padding-top: 12px;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-proof label {
+  display: grid;
+  gap: 6px;
+  color: var(--decision-ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-proof input,
+body[data-visual-tab="workspace"] .decision-flag-proof textarea {
+  width: 100%;
+  border: 1px solid #cbb9e6;
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--decision-ink);
+  padding: 10px;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-proof textarea {
+  min-height: 82px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-proof small {
+  color: var(--decision-muted);
+  line-height: 1.4;
+}
+
 body[data-visual-tab="workspace"] .decision-v1-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(340px, 1.05fr);
+  grid-template-columns: minmax(360px, 1.12fr) minmax(280px, 0.88fr);
   gap: 18px;
   align-items: start;
 }
@@ -375,6 +659,7 @@ body[data-visual-tab="workspace"] .decision-v1-form {
 }
 
 body[data-visual-tab="workspace"] .decision-v1-form > header,
+body[data-visual-tab="workspace"] .decision-v1-form .decision-choice-fieldset,
 body[data-visual-tab="workspace"] .decision-v1-form .decision-rationale,
 body[data-visual-tab="workspace"] .decision-v1-form > button {
   grid-column: 1 / -1;
@@ -396,6 +681,74 @@ body[data-visual-tab="workspace"] .decision-v1-form label {
 
 body[data-visual-tab="workspace"] .decision-v1-form label > span {
   font-size: 0.82rem;
+}
+
+body[data-visual-tab="workspace"] .decision-choice-fieldset {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+body[data-visual-tab="workspace"] .decision-choice-fieldset > legend {
+  margin-bottom: 8px;
+  color: var(--decision-ink);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+body[data-visual-tab="workspace"] .decision-choice-groups {
+  display: grid;
+  gap: 12px;
+}
+
+body[data-visual-tab="workspace"] .decision-choice-group h4 {
+  margin: 0 0 7px;
+  color: var(--decision-muted);
+  font-size: 0.73rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .decision-choice-group > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body[data-visual-tab="workspace"] .decision-choice-group label {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 46px;
+  border: 1px solid #d9cde9;
+  border-radius: 11px;
+  background: #ffffff;
+  padding: 9px 10px;
+  cursor: pointer;
+}
+
+body[data-visual-tab="workspace"] .decision-choice-group label[data-choice-selected="true"] {
+  border-color: var(--decision-purple);
+  background: var(--decision-lavender);
+  box-shadow: 0 0 0 1px var(--decision-purple);
+}
+
+body[data-visual-tab="workspace"] .decision-choice-group input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--decision-purple);
+}
+
+body[data-visual-tab="workspace"] .decision-choice-group label > span {
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+body[data-visual-tab="workspace"] .decision-confidence {
+  grid-column: 1 / -1;
 }
 
 body[data-visual-tab="workspace"] .decision-v1-form select,
@@ -681,6 +1034,8 @@ body[data-visual-tab="workspace"] .luna-v1-breakdown .luna-breakdown-card {
 
 body[data-visual-tab="workspace"] .luna-v1-breakdown .luna-breakdown-card > div {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
   gap: 4px;
   border: 1px solid #dfd5ec;
   border-radius: 14px;
@@ -721,6 +1076,10 @@ body[data-visual-tab="workspace"] .luna-v1-routes {
     grid-template-columns: 1fr;
   }
 
+  body[data-visual-tab="workspace"] .decision-flag-columns {
+    grid-template-columns: 1fr;
+  }
+
   body[data-visual-tab="workspace"] .luna-v1-unlock-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -752,6 +1111,7 @@ body[data-visual-tab="workspace"] .luna-v1-routes {
   }
 
   body[data-visual-tab="workspace"] .decision-status-grid,
+  body[data-visual-tab="workspace"] .decision-flag-scoreboard,
   body[data-visual-tab="workspace"] .luna-v1-debrief-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -788,10 +1148,30 @@ body[data-visual-tab="workspace"] .luna-v1-routes {
 
   body[data-visual-tab="workspace"] .decision-v1-form,
   body[data-visual-tab="workspace"] .decision-status-grid,
+  body[data-visual-tab="workspace"] .decision-flag-scoreboard,
+  body[data-visual-tab="workspace"] .decision-choice-group > div,
   body[data-visual-tab="workspace"] .luna-v1-debrief-grid,
   body[data-visual-tab="workspace"] .luna-v1-unlock-grid,
   body[data-visual-tab="workspace"] .luna-v1-breakdown .luna-breakdown-card {
     grid-template-columns: 1fr;
+  }
+
+  body[data-visual-tab="workspace"] .decision-flag-header,
+  body[data-visual-tab="workspace"] .decision-critical-notice {
+    display: grid;
+  }
+
+  body[data-visual-tab="workspace"] .decision-flag-progress {
+    justify-self: start;
+  }
+
+  body[data-visual-tab="workspace"] .decision-flag-item-heading {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-visual-tab="workspace"] .decision-flag-item-heading strong {
+    justify-self: start;
+    margin-left: 29px;
   }
 
   body[data-visual-tab="workspace"] .decision-v1-form > header,

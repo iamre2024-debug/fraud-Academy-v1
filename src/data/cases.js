@@ -23,9 +23,9 @@ export const trainingCases = [
         { label: 'Payment profile', value: 'Card + one external destination' },
       ],
       profileChanges: [
-        { id: 'PCH-1001', date: 'Jul 8, 2026', item: 'Email viewed', detail: 'Profile email was visible during session activity; document the session ID, source screen, and linked case object before final drafting.', source: 'Session event' },
-        { id: 'PCH-1002', date: 'Jul 8, 2026', item: 'Card controls viewed', detail: 'Card details were accessed after a successful login; compare this profile-history entry with device, IP, and transaction records.', source: 'Digital activity' },
-        { id: 'PCH-1003', date: 'Jun 29, 2026', item: 'Phone number unchanged', detail: 'No phone update appears in the recent profile-history packet; preserve this as neutral customer-profile context.', source: 'Customer profile' },
+        { id: 'PCH-1001', date: 'Jul 8, 2026', time: '8:07 AM', eventType: 'Recovery email change', item: 'Recovery email updated', oldValue: 'm•••@training.example.test', newValue: 'm•••.recovery@training.example.test', channel: 'Mobile web', source: 'Profile maintenance', user: 'Customer credential', device: 'DEV-MAYA-CHRM-002', ip: '198.51.100.11', session: 'SES-7760', mfaMethod: 'Password', notes: 'Compare the maintenance event with the login, session, alert-delivery, and transaction sequence.', detail: 'Recovery email changed during a recorded mobile-web session. The event is evidence only and requires cross-tool comparison.' },
+        { id: 'PCH-1002', date: 'Jul 8, 2026', time: '8:09 AM', eventType: 'Alert preference change', item: 'Security alert delivery updated', oldValue: 'Primary email + mobile', newValue: 'Recovery email + mobile', channel: 'Mobile web', source: 'Profile maintenance', user: 'Customer credential', device: 'DEV-MAYA-CHRM-002', ip: '198.51.100.11', session: 'SES-7760', mfaMethod: 'Password', notes: 'Review whether notices were generated and delivered after this change.', detail: 'Security-alert routing changed in the same recorded session as the recovery-email update.' },
+        { id: 'PCH-1003', date: 'Jun 29, 2026', time: '3:14 PM', eventType: 'Contact verification', item: 'Mobile phone confirmed', oldValue: '(214) 555-0184', newValue: '(214) 555-0184', channel: 'Mobile app', source: 'Customer profile', user: 'Maya Sterling', device: 'DEV-MAYA-IP16-001', ip: '198.51.100.42', session: 'SES-CONF-1003', mfaMethod: 'Face ID', notes: 'Verification retained the existing value; no phone-number change was recorded.', detail: 'The mobile number was confirmed without changing the stored contact value.' },
       ],
     },
     identityRecords: [
@@ -36,7 +36,7 @@ export const trainingCases = [
     ],
     loginHistory: [
       { id: 'LOG-1008', time: '10:42 AM', method: 'Face ID', device: 'iPhone 16', location: 'Dallas, TX', ip: '198.51.100.42', session: 'SES-7781', result: 'Successful' },
-      { id: 'LOG-1005', time: '8:13 AM', method: 'Password', device: 'Chrome Mobile', location: 'Dallas, TX', ip: '198.51.100.11', session: 'SES-7760', result: 'Successful' },
+      { id: 'LOG-1005', time: '8:03 AM', eventType: 'Interactive login', method: 'Password', mfaStatus: 'SMS code completed', authChannel: 'Mobile web', operatingSystem: 'Android 15', browserSource: 'Chrome Mobile', device: 'Chrome Mobile', location: 'Dallas, TX', ip: '198.51.100.11', session: 'SES-7760', result: 'Successful', failedAttemptCount: 2, accountLockout: 'No lockout recorded', logoutStatus: 'Normal logout recorded' },
       { id: 'LOG-0998', time: 'Jun 30, 6:51 PM', method: 'Face ID', device: 'iPhone 16', location: 'Irving, TX', ip: '198.51.100.77', session: 'SES-7604', result: 'Successful' },
     ],
     facts: ['Customer statement received', 'Transaction posted', 'Recent login activity available', 'No final outcome shown'],
@@ -77,9 +77,9 @@ export const trainingCases = [
         { label: 'Payment profile', value: 'Autopay on file' },
       ],
       profileChanges: [
-        { id: 'PCH-2201', date: 'Jul 8, 2026', item: 'Dispute form submitted', detail: 'Customer selected recurring billing issue in the profile-history packet; preserve claim wording and requested cancellation evidence status.', source: 'Mobile app' },
-        { id: 'PCH-2202', date: 'Jul 2, 2026', item: 'Statement viewed', detail: 'Customer viewed the billing statement before the dispute; compare this event with merchant billing records and document packet status.', source: 'Session event' },
-        { id: 'PCH-2203', date: 'Jun 21, 2026', item: 'Contact details unchanged', detail: 'Recent profile history does not show email or phone updates; document only as neutral context for communication routing.', source: 'Customer profile' },
+        { id: 'PCH-2201', date: 'Jul 1, 2026', time: '8:12 AM', eventType: 'Statement preference change', item: 'Statement delivery preference updated', oldValue: 'Paper + email notice', newValue: 'Digital statement only', channel: 'Mobile app', source: 'Card profile maintenance', user: 'Jordan Ellis', device: 'DEV-JORDAN-AND-001', ip: '203.0.113.18', session: 'SES-STMT-2201', mfaMethod: 'Biometric', notes: 'This maintenance event predates the dispute and does not establish cancellation or authorization.', detail: 'The card profile changed from paper delivery with email notice to digital statement delivery.' },
+        { id: 'PCH-2202', date: 'Jun 24, 2026', time: '6:36 PM', eventType: 'Alert preference change', item: 'Billing alert threshold updated', oldValue: '$250.00', newValue: '$150.00', channel: 'Online banking', source: 'Card profile maintenance', user: 'Jordan Ellis', device: 'DEV-JORDAN-DSK-002', ip: '203.0.113.10', session: 'SES-ALRT-2202', mfaMethod: 'Password', notes: 'Compare alert delivery records with the disputed billing date.', detail: 'The amount threshold for billing alerts was lowered in an authenticated profile-maintenance session.' },
+        { id: 'PCH-2203', date: 'Jun 21, 2026', time: '11:14 AM', eventType: 'Contact verification', item: 'Phone and email confirmed', oldValue: '(817) 555-0149 · jordan.training@example.test', newValue: '(817) 555-0149 · jordan.training@example.test', channel: 'Online profile', source: 'Customer profile', user: 'Jordan Ellis', device: 'DEV-JORDAN-DSK-002', ip: '203.0.113.10', session: 'SES-4201', mfaMethod: 'Password', notes: 'Existing contact points were confirmed without a value change.', detail: 'The customer completed contact verification and retained the existing phone and email.' },
       ],
     },
     identityRecords: [
@@ -89,7 +89,7 @@ export const trainingCases = [
       { id: 'IDR-2204', type: 'Merchant link', value: 'Subscription merchant', lastSeen: 'Jul 8, 2026', history: 'Merchant appears in current and previous billing cycle records.' },
     ],
     loginHistory: [
-      { id: 'LOG-2204', time: '8:19 AM', method: 'Password', device: 'Android phone', location: 'Fort Worth, TX', ip: '203.0.113.24', session: 'SES-4412', result: 'Successful' },
+      { id: 'LOG-2204', time: '8:19 AM', eventType: 'Interactive login', method: 'Password', mfaStatus: 'SMS code completed', authChannel: 'Mobile app', operatingSystem: 'Android 15', browserSource: 'Mobile app / Chrome WebView', device: 'Android phone', location: 'Fort Worth, TX', ip: '203.0.113.24', session: 'SES-4412', result: 'Successful', failedAttemptCount: 1, accountLockout: 'No lockout recorded', logoutStatus: 'Normal logout recorded' },
       { id: 'LOG-2200', time: 'Jul 2, 4:02 PM', method: 'Biometric', device: 'Android phone', location: 'Fort Worth, TX', ip: '203.0.113.18', session: 'SES-4310', result: 'Successful' },
       { id: 'LOG-2191', time: 'Jun 21, 11:10 AM', method: 'Password', device: 'Desktop Chrome', location: 'Fort Worth, TX', ip: '203.0.113.10', session: 'SES-4201', result: 'Successful' },
     ],
@@ -130,9 +130,9 @@ export const trainingCases = [
         { label: 'Payment profile', value: 'New external destination' },
       ],
       profileChanges: [
-        { id: 'PCH-3301', date: 'Jul 8, 2026', item: 'Payment method added', detail: 'Bank Code and Destination ID were tokenized for training; compare this profile-history entry with Payment Verification packet objects.', source: 'Payment Verification' },
-        { id: 'PCH-3302', date: 'Jul 8, 2026', item: 'Limit usage request submitted', detail: 'Usage request was recorded after new account setup; document the sequence against financial records and account events.', source: 'Account event' },
-        { id: 'PCH-3303', date: 'Jul 7, 2026', item: 'Profile created', detail: 'New customer profile was opened for training review; compare initial session, identity records, and case queue reason.', source: 'Customer profile' },
+        { id: 'PCH-3301', date: 'Jul 8, 2026', time: '7:31 AM', eventType: 'External payment account add', item: 'Payment destination added', oldValue: 'No external destination', newValue: 'Destination ID ••••3011', channel: 'Mobile web', source: 'Payment profile maintenance', user: 'Avery Brooks', device: 'DEV-AVERY-SAF-001', ip: '192.0.2.44', session: 'SES-9299', mfaMethod: 'Password', notes: 'Compare ownership, prior use, alert delivery, and the subsequent account request.', detail: 'A tokenized external payment destination was added to the new credit profile.' },
+        { id: 'PCH-3302', date: 'Jul 7, 2026', time: '5:18 PM', eventType: 'Recovery contact enrollment', item: 'Recovery phone verified', oldValue: 'No recovery phone', newValue: '(682) 555-0167', channel: 'Mobile web', source: 'Digital onboarding', user: 'Avery Brooks', device: 'DEV-AVERY-SAF-001', ip: '192.0.2.21', session: 'SES-9100', mfaMethod: 'Email code', notes: 'New-account setup event; compare with Identity Intel and document verification.', detail: 'The recovery phone was enrolled and verified during initial profile setup.' },
+        { id: 'PCH-3303', date: 'Jul 7, 2026', time: '5:05 PM', eventType: 'Profile creation', item: 'Digital banking profile created', oldValue: 'No customer profile', newValue: 'PRF-2044', channel: 'Mobile web', source: 'Digital onboarding', user: 'Avery Brooks', device: 'DEV-AVERY-SAF-001', ip: '192.0.2.21', session: 'SES-9094', mfaMethod: 'Password setup', notes: 'Initial profile event. Limited history is available before this timestamp.', detail: 'A new digital banking profile was created for the fictional credit relationship.' },
       ],
     },
     identityRecords: [
@@ -142,8 +142,8 @@ export const trainingCases = [
       { id: 'IDR-3304', type: 'Payment object', value: 'Bank Code + Destination ID token', lastSeen: 'Jul 8, 2026', history: 'Token appears in payment verification records.' },
     ],
     loginHistory: [
-      { id: 'LOG-3314', time: '7:43 AM', method: 'Password', device: 'Mobile Safari', location: 'Arlington, TX', ip: '192.0.2.44', session: 'SES-9302', result: 'Successful' },
-      { id: 'LOG-3309', time: '7:36 AM', method: 'Password', device: 'Mobile Safari', location: 'Arlington, TX', ip: '192.0.2.44', session: 'SES-9299', result: 'Successful' },
+      { id: 'LOG-3314', time: '7:43 AM', eventType: 'Interactive login', method: 'Password', mfaStatus: 'No additional MFA event recorded', authChannel: 'Mobile web', operatingSystem: 'iOS 18', browserSource: 'Mobile Safari', device: 'Mobile Safari', location: 'Arlington, TX', ip: '192.0.2.44', session: 'SES-9302', result: 'Successful', failedAttemptCount: 0, accountLockout: 'No lockout recorded', logoutStatus: 'Session timeout recorded' },
+      { id: 'LOG-3309', time: '7:28 AM', eventType: 'Interactive login', method: 'Password', mfaStatus: 'No additional MFA event recorded', authChannel: 'Mobile web', operatingSystem: 'iOS 18', browserSource: 'Mobile Safari', device: 'Mobile Safari', location: 'Arlington, TX', ip: '192.0.2.44', session: 'SES-9299', result: 'Successful', failedAttemptCount: 0, accountLockout: 'No lockout recorded', logoutStatus: 'Normal logout recorded' },
       { id: 'LOG-3301', time: 'Jul 7, 5:18 PM', method: 'Email code', device: 'Mobile Safari', location: 'Arlington, TX', ip: '192.0.2.21', session: 'SES-9100', result: 'Successful' },
     ],
     facts: ['System alert received', 'Payment verification available', 'New account activity present', 'No final outcome shown'],
