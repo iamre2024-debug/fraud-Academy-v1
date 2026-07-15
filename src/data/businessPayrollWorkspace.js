@@ -1,5 +1,4 @@
-import { businessRecordsByCase } from './businessRecords.js';
-import { financialRecordsByCase } from './financialRecords.js';
+import { getBusinessRecords, getFinancialRecords } from './caseToolData.js';
 
 const businessProfiles = {
   'FA-ATO-24018': {
@@ -71,7 +70,7 @@ function transactionEntryMode(item) {
 }
 
 export function getTransactionHistory(activeCase) {
-  const financial = financialRecordsByCase[activeCase.id] ?? { transactions: [] };
+  const financial = getFinancialRecords(activeCase);
   return financial.transactions.map((item) => ({
     ...item,
     amountValue: amountValue(item.amount),
@@ -85,8 +84,8 @@ export function getTransactionHistory(activeCase) {
 }
 
 export function getBusiness360Workspace(activeCase) {
-  const records = businessRecordsByCase[activeCase.id] ?? { business360: [], businessIntel: [] };
-  const profile = businessProfiles[activeCase.id] ?? businessProfiles['FA-CR-24003'];
+  const records = getBusinessRecords(activeCase);
+  const profile = activeCase.businessProfile ?? businessProfiles[activeCase.id] ?? businessProfiles['FA-CR-24003'];
   const primary = records.business360?.[0] ?? { entity: 'No business entity recorded', id: 'BIZ-NONE', relationship: 'No relationship recorded', status: 'Not supplied', observed: 'Not supplied', context: 'No current business record.' };
   return {
     profile: {
@@ -102,7 +101,7 @@ export function getBusiness360Workspace(activeCase) {
 }
 
 export function getEmployeeProfiles(activeCase) {
-  const records = businessRecordsByCase[activeCase.id] ?? { employeeProfile: [], payrollHistory: [] };
+  const records = getBusinessRecords(activeCase);
   const payroll = records.payrollHistory ?? [];
   return (records.employeeProfile ?? []).map((item, index) => ({
     ...item,
@@ -116,7 +115,7 @@ export function getEmployeeProfiles(activeCase) {
 }
 
 export function getPayrollHistory(activeCase) {
-  const records = businessRecordsByCase[activeCase.id] ?? { payrollHistory: [], employeeProfile: [] };
+  const records = getBusinessRecords(activeCase);
   const employees = records.employeeProfile ?? [];
   return (records.payrollHistory ?? []).map((item, index) => ({
     ...item,

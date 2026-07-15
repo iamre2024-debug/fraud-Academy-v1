@@ -1,6 +1,4 @@
-import { financialRecordsByCase } from './data/financialRecords.js';
-import { businessRecordsByCase } from './data/businessRecords.js';
-import { evidenceRecordsByCase } from './data/evidenceRecords.js';
+import { getBusinessRecords, getEvidenceRecords, getFinancialRecords } from './data/caseToolData.js';
 import { getSystemAccessRecords } from './data/systemAccessRecords.js';
 
 export const AGENT_ID = 'AGT-TRAIN-001';
@@ -23,6 +21,7 @@ export const storageKeys = {
   completed: 'fraud-academy-completed-tools-v1',
   decisions: 'fraud-academy-decision-drafts-v1',
   packages: 'fraud-academy-review-packages-v1',
+  actions: 'fraud-academy-action-log-v1',
 };
 
 export const defaultDecisionDraft = { choice: '', confidence: 'Medium', reason: '' };
@@ -48,9 +47,9 @@ function makeRow(id, values, pin = id, label = 'Record') {
 }
 
 export function rowsFor(tool, activeCase) {
-  const financial = financialRecordsByCase[activeCase.id] ?? { transactions: [], financialIntel: [], paymentVerification: [] };
-  const business = businessRecordsByCase[activeCase.id] ?? { business360: [], businessIntel: [], employeeProfile: [], payrollHistory: [] };
-  const evidence = evidenceRecordsByCase[activeCase.id] ?? { evidence: [], documents: [] };
+  const financial = getFinancialRecords(activeCase);
+  const business = getBusinessRecords(activeCase);
+  const evidence = getEvidenceRecords(activeCase);
 
   if (tool === 'Customer 360') {
     const relationship = activeCase.customer?.relationship ?? [];

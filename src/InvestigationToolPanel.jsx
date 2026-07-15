@@ -3,8 +3,7 @@ import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import { buildCoreToolRecords } from './data/coreToolRecords.js';
 import { getBusiness360Workspace, getEmployeeProfiles, getPayrollHistory, getTransactionHistory } from './data/businessPayrollWorkspace.js';
 import { getDeviceProfiles } from './data/deviceRecords.js';
-import { evidenceRecordsByCase } from './data/evidenceRecords.js';
-import { financialRecordsByCase } from './data/financialRecords.js';
+import { getEvidenceRecords, getFinancialRecords } from './data/caseToolData.js';
 import { getIdentityIntelReport, matchesIdentityIntelSearch } from './data/identityIntelReport.js';
 import { getLoginRecords } from './data/loginRecords.js';
 import { getIpRecords } from './data/ipRecords.js';
@@ -825,7 +824,7 @@ function documentRequestStatus(status = '') {
 }
 
 function buildDocumentRequests(activeCase) {
-  const evidence = evidenceRecordsByCase[activeCase.id] ?? { documents: [] };
+  const evidence = getEvidenceRecords(activeCase);
   return (evidence.documents ?? []).map((document) => {
     const status = documentRequestStatus(document.status);
     const isOptional = /optional/i.test(document.category);
@@ -1296,7 +1295,7 @@ function PaymentVerificationWorkspace({
   jumpDecision,
 }) {
   const [selectedPaymentId, setSelectedPaymentId] = useState('');
-  const financial = financialRecordsByCase[activeCase.id] ?? { paymentVerification: [] };
+  const financial = getFinancialRecords(activeCase);
   const records = financial.paymentVerification ?? [];
   const normalizedQuery = query.trim().toLowerCase();
   const filteredRecords = records.filter((record) => !normalizedQuery || paymentRecordSearchText(record).includes(normalizedQuery));

@@ -70,6 +70,8 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   await expect(selector).toHaveValue(secondCase.id);
   await expect(briefing.getByText(secondCase.person, { exact: true }).first()).toBeVisible();
   await expect(briefing).toContainText('Cardholder reports recurring billing after cancellation.');
+  await expect(briefing.getByRole('heading', { name: 'Reason code and packet details', exact: true })).toBeVisible();
+  await expect(briefing).toContainText('Training canceled-service / recurring billing review');
 
   const workflow = page.getByRole('navigation', { name: 'Active case workflow' });
 

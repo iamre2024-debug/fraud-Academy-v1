@@ -94,6 +94,12 @@ const caseIntake = {
   },
 };
 
+const claimContext = {
+  'FA-ATO-24018': { claimTypeId: 'account-takeover', scenarioId: 'ato-phishing-wallet', subtype: 'CNP fraud', reportedDate: 'Jul 8, 2026', issueStartDate: 'Jul 8, 2026', statement: 'I did not authorize this card purchase and was home when the transaction occurred.' },
+  'FA-CB-24007': { claimTypeId: 'non-fraud-chargeback', scenarioId: 'ncb-recurring-cancellation', subtype: 'canceled service billed', reportedDate: 'Jul 8, 2026', issueStartDate: 'May 8, 2026', statement: 'I canceled the subscription and continued to see the same charge on my card statement.' },
+  'FA-CR-24003': { claimTypeId: 'credit-risk', scenarioId: 'cr-new-consumer', subtype: 'credit line increase', reportedDate: 'Jul 8, 2026', issueStartDate: 'Jul 7, 2026', statement: 'I recently opened the account and requested access to the available credit line.' },
+};
+
 function dedupeById(records = []) {
   const seen = new Set();
   return records.filter((record) => {
@@ -112,11 +118,63 @@ function addDeviceIds(caseId, rows = []) {
   return rows.map((row) => ({ ...row, deviceId: row.deviceId ?? map[row.device] ?? `DEV-${String(row.device).toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 18)}` }));
 }
 
+function buildClaimFields(item, context = {}) {
+  const claimType = getClaimTypeForCase({ ...item, claimTypeId: context.claimTypeId ?? item.claimTypeId });
+  const scenario = getScenario(claimType.id, context.scenarioId ?? item.scenarioId);
+  const reportedDate = item.reportedDate ?? context.reportedDate ?? item.opened;
+  const issueStartDate = item.issueStartDate ?? context.issueStartDate ?? reportedDate;
+  const statementValue = item.statement?.value ?? context.statement ?? item.allegation ?? scenario.statement;
+  const statementLabel = item.statement?.label ?? (/credit|application/i.test(claimType.id) ? 'Applicant statement' : 'Customer statement');
+  const intakeAnswers = item.intakeAnswers?.length
+    ? item.intakeAnswers
+    : claimType.intakePrompts.map((prompt, index) => ({
+      id: `${item.id}-INT-${index + 1}`,
+      prompt,
+      answer: index === 0 ? statementValue : index === 1 ? `Intake channel: ${item.intake?.channel ?? 'Case queue'}.` : 'Review the related fictional case records and document what is available or missing.',
+    }));
+
+  return {
+    claimTypeId: claimType.id,
+    type: claimType.label,
+    claimType: claimType.label,
+    lane: item.lane ?? claimType.lane,
+    subtype: item.subtype ?? context.subtype ?? scenario.subtype,
+    scenarioId: item.scenarioId ?? scenario.id,
+    scenarioTitle: item.scenarioTitle ?? scenario.title,
+    scenarioFamily: item.scenarioFamily ?? scenario.family ?? claimType.lane,
+    reportedDate,
+    issueStartDate,
+    amountExposure: item.amountExposure ?? item.amount,
+    statement: { label: statementLabel, value: statementValue, source: item.statement?.source ?? item.intake?.channel ?? 'Case queue' },
+    intakeAnswers,
+    caseBriefing: {
+      summary: item.caseBriefing?.summary ?? item.shortSummary ?? item.allegation ?? scenario.summary,
+      focusAreas: item.caseBriefing?.focusAreas ?? item.briefingQuestions ?? claimType.intakePrompts,
+      evidenceAreas: item.caseBriefing?.evidenceAreas ?? item.evidenceAreas ?? claimType.evidenceAreas,
+      scenarioTitle: item.caseBriefing?.scenarioTitle ?? scenario.title,
+    },
+    keyFacts: item.keyFacts ?? [
+      ['Lane', item.lane ?? claimType.lane], ['Subtype', item.subtype ?? context.subtype ?? scenario.subtype], ['Reported date', reportedDate], ['Issue start date', issueStartDate], ['Amount / exposure', item.amountExposure ?? item.amount], ['Scenario', item.scenarioTitle ?? scenario.title],
+    ],
+    productsAccounts: item.productsAccounts ?? [{ label: 'Product rail', value: claimType.taxonomy.productRail }, { label: 'Primary details', value: item.transactionInfo ?? scenario.transactionInfo }],
+    availableTools: item.availableTools ?? claimType.availableTools,
+    requiredTools: item.requiredTools ?? claimType.requiredTools,
+    evidenceAreas: item.evidenceAreas ?? claimType.evidenceAreas,
+    expectedEvidenceCategories: item.expectedEvidenceCategories ?? claimType.evidenceAreas,
+    taxonomyTags: item.taxonomyTags ?? claimType.taxonomy,
+    creditDecision: item.creditDecision ?? (claimType.credit ? { ...claimType.credit, family: item.scenarioFamily ?? scenario.family ?? 'Credit review' } : null),
+    chargebackDecision: item.chargebackDecision ?? (claimType.chargeback ? { ...claimType.chargeback } : null),
+    actionLog: item.actionLog ?? [{ id: `${item.id}-ACT-1`, time: `${reportedDate} · ${item.intake?.contactTime ?? 'Case opened'}`, action: 'Case packet available', detail: 'Case packet is ready for Evidence First investigation.', source: 'Case queue' }],
+  };
+}
+
 function enrichOneCase(item) {
   const extra = caseIntake[item.id];
+  const context = claimContext[item.id] ?? {};
   if (!extra) {
     return {
       ...item,
+      ...buildClaimFields(item, context),
       loginHistory: addDeviceIds(item.id, item.loginHistory ?? []),
       links: dedupeStrings(item.links ?? []),
       facts: dedupeStrings(item.facts ?? []),
@@ -125,6 +183,7 @@ function enrichOneCase(item) {
 
   return {
     ...item,
+    ...buildClaimFields(item, context),
     claimId: item.claimId ?? extra.claimId,
     transactionInfo: item.transactionInfo ?? extra.transactionInfo,
     shortSummary: item.shortSummary ?? extra.shortSummary,
@@ -145,3 +204,4 @@ function enrichOneCase(item) {
 export function enrichTrainingCases(cases = []) {
   return cases.map(enrichOneCase);
 }
+import { getClaimTypeForCase, getScenario } from './claimRegistry.js';

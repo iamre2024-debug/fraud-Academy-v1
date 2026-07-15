@@ -39,6 +39,7 @@ test('approved Customer 360 is a complete Evidence First dossier', async ({ page
   await expect(customer360.getByRole('heading', { name: 'Customer 360 Notes', exact: true })).toBeVisible();
 
   const relatedTools = customer360.getByRole('navigation', { name: 'Customer 360 related tools' });
+  const categoryRail = page.locator('[data-investigation-tool-groups="approved-theme-v1"]');
   await expect(relatedTools.getByRole('button')).toHaveCount(7);
 
   await tabs.getByRole('tab', { name: 'Profile History', exact: true }).click();
@@ -98,14 +99,14 @@ test('approved Customer 360 is a complete Evidence First dossier', async ({ page
 
   await relatedTools.getByRole('button', { name: 'Transaction History', exact: true }).click();
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Transaction History');
-  await page.locator('[data-investigation-tools-screen="approved-theme-v1"]').getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Customer 360');
+  await categoryRail.getByRole('button', { name: /Identity & Customer/ }).click();
   await expect(customer360).toBeVisible();
 
   await relatedTools.getByRole('button', { name: 'Identity Intel', exact: true }).click();
   const identityTool = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(identityTool).toHaveAttribute('data-tool-name', 'Identity Intel / People Search');
   await expect(identityTool.getByText('Identity report hidden until a search is run.', { exact: true })).toBeVisible();
-  await identityTool.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Customer 360');
+  await categoryRail.getByRole('button', { name: /Identity & Customer/ }).click();
   await expect(customer360).toBeVisible();
 
   const selector = page.locator('.visual-case-switcher select');

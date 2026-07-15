@@ -4,8 +4,8 @@ const caseId = 'FA-ATO-24018';
 const requiredTools = [
   'Case Summary',
   'Customer 360',
-  'Identity Intel / People Search',
   'Login History',
+  'Device Intelligence',
   'Transaction History',
   'Evidence Center',
   'Link Analysis',
@@ -44,7 +44,7 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
   await expect(decision.getByRole('heading', { name: 'Submit Decision', exact: true })).toBeVisible();
   await expect(decision.getByText('Evidence First protection', { exact: true })).toBeVisible();
   await expect(decision.locator('.decision-status-grid article')).toHaveCount(3);
-  await expect(decision.getByText('8/8', { exact: true })).toBeVisible();
+  await expect(decision.getByText('7/7', { exact: true })).toBeVisible();
 
   const lockedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="locked"]');
   await expect(lockedLuna).toBeAttached();
@@ -119,7 +119,7 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
 
   await page.reload();
   const persistedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');
-  await expect(persistedLuna).toBeAttached();
+  await expect(persistedLuna).toBeVisible();
   await expect(persistedLuna).toContainText(learnerChoice);
 
   await persistedLuna.getByRole('button', { name: 'Finish and Return to Queue', exact: true }).click();

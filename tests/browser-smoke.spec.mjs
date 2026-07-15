@@ -47,8 +47,18 @@ async function openCoreTool(page, category, tool) {
   await expect(selector).toHaveValue(tool);
   await expect(panel).toHaveAttribute('data-tool-name', tool);
   await expect(panel.getByRole('heading', { name: tool, exact: true })).toBeVisible();
-  await expect(panel.locator('[data-investigation-record]').first()).toBeVisible();
-  await expect(panel.locator('.investigation-tool-detail')).toBeAttached();
+  const specializedSelectors = {
+    'Payment Verification': {
+      record: '[data-payment-verification-record]',
+      detail: '.payment-detail-panel',
+    },
+  };
+  const selectors = specializedSelectors[tool] ?? {
+    record: '[data-investigation-record]',
+    detail: '.investigation-tool-detail',
+  };
+  await expect(panel.locator(selectors.record).first()).toBeVisible();
+  await expect(panel.locator(selectors.detail)).toBeAttached();
 }
 
 test('approved Dashboard resumes the active case without answer leaks', async ({ page }) => {
@@ -102,7 +112,8 @@ test('approved Cases queue supports neutral search, filters, preview, and respon
   const jordanItem = queue.locator('.case-queue-item').filter({ hasText: 'Jordan Ellis' });
   await jordanItem.getByRole('button', { name: /Preview/ }).click();
   await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Jordan Ellis');
-  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Chargeback Claim');
+  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Non-Fraud Chargeback Claim');
+  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Reason code guide');
 
   await queue.getByLabel('Search cases').fill('');
   await queue.getByRole('combobox', { name: 'Priority', exact: true }).selectOption('High');
@@ -135,6 +146,16 @@ test('approved Cases queue supports neutral search, filters, preview, and respon
     expect(layout.previewPosition).toBe('sticky');
   }
 
+  await expect(queue.getByLabel('Generate case claim type')).toBeVisible();
+  await expect(queue.getByLabel('Generate case scenario')).toBeVisible();
+  await expect(queue.getByLabel('Generate case count')).toBeVisible();
+  await queue.getByLabel('Generate case claim type').selectOption('credit-risk');
+  await queue.getByLabel('Generate case count').selectOption('5');
+  await queue.getByRole('button', { name: 'Generate cases', exact: true }).click();
+  await expect(queue.locator('[data-case-origin="generated"]')).toHaveCount(5);
+  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Credit Risk Review');
+  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Credit review details');
+
   await assertEvidenceFirstLock(page, builtInCases[0].id);
 });
 
@@ -161,7 +182,9 @@ test('completed core modules and System Access Lane render real records', async 
   await openCoreTool(page, 'Links & Related Cases', 'System Access Lane');
   await openCoreTool(page, 'Workflow Review', 'Timeline');
 
-  await expect(page.locator('.view-full-button')).toBeVisible();
+  await expect(page.locator('[data-timeline-screen="approved-theme-v1"]')
+    .getByRole('button', { name: /(?:Mark Timeline reviewed|✓ Timeline reviewed)/ }))
+    .toBeVisible();
   await assertEvidenceFirstLock(page, builtInCases[0].id);
 });
 
@@ -170,20 +193,20 @@ test('responsive investigation records stay inside the viewport', async ({ page 
   await openCoreTool(page, 'Business & Payment Verification', 'Payment Verification');
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  const recordList = panel.locator('.investigation-tool-records');
-  const detail = panel.locator('.investigation-tool-detail');
-  const firstRecord = panel.locator('[data-investigation-record]').first();
-  const firstField = firstRecord.locator('dl > div').first();
+  const recordList = panel.locator('.payment-record-list');
+  const detail = panel.locator('.payment-detail-panel');
+  const firstRecord = panel.locator('[data-payment-verification-record]').first();
+  const firstField = panel.locator('.payment-detail-grid > div').first();
 
   await expect(firstRecord).toBeVisible();
   await expect(firstField).toBeVisible();
 
   const layout = await page.evaluate(() => {
     const panelElement = document.querySelector('[data-investigation-tools-screen="approved-theme-v1"]');
-    const recordListElement = document.querySelector('.investigation-tool-records');
-    const detailElement = document.querySelector('.investigation-tool-detail');
-    const record = document.querySelector('[data-investigation-record]');
-    const fieldGrid = document.querySelector('[data-investigation-record] dl');
+    const recordListElement = document.querySelector('.payment-record-list');
+    const detailElement = document.querySelector('.payment-detail-panel');
+    const record = document.querySelector('[data-payment-verification-record]');
+    const fieldGrid = document.querySelector('.payment-detail-grid');
     const viewportWidth = window.innerWidth;
     const rect = (element) => element?.getBoundingClientRect();
     const withinViewport = (element) => {
@@ -234,11 +257,11 @@ test('generated cases persist through reload and remain Evidence First', async (
     await expect(generateButton).toBeEnabled();
     await expect.poll(() => selector.inputValue()).not.toBe(previousId);
     const generatedId = await selector.inputValue();
-    expect(generatedId).toMatch(/^FA-(?:ATO|CB|FPF|EMAIL|CR)-G\d{8}$/);
+    expect(generatedId).toMatch(/^FA-[A-Z]+-G\d{8}$/);
     expect(generatedIds).not.toContain(generatedId);
     generatedIds.push(generatedId);
     await expect(page.locator('.visual-case-strip')).toContainText('Generated');
-    await expect(page.locator('[data-investigation-record]').first()).toBeVisible();
+    await expect(page.locator('[data-login-history-record]').first()).toBeVisible();
     await assertEvidenceFirstLock(page, generatedId);
   }
 

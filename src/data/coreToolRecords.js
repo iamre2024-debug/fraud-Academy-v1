@@ -1,6 +1,4 @@
-import { financialRecordsByCase } from './financialRecords.js';
-import { businessRecordsByCase } from './businessRecords.js';
-import { evidenceRecordsByCase } from './evidenceRecords.js';
+import { getBusinessRecords, getEvidenceRecords, getFinancialRecords } from './caseToolData.js';
 
 function row(id, values, pin = id, label = 'Record') {
   const normalized = values.map((value) => value ?? 'Not recorded');
@@ -14,9 +12,9 @@ function joinIds(items = []) {
 export function buildCoreToolRecords(tool, activeCase, fallbackData = { rows: [] }) {
   const logins = activeCase.loginHistory ?? [];
   const events = activeCase.events ?? [];
-  const financial = financialRecordsByCase[activeCase.id] ?? { transactions: [], paymentVerification: [] };
-  const business = businessRecordsByCase[activeCase.id] ?? { businessIntel: [], business360: [] };
-  const evidence = evidenceRecordsByCase[activeCase.id] ?? { evidence: [], documents: [] };
+  const financial = getFinancialRecords(activeCase);
+  const business = getBusinessRecords(activeCase);
+  const evidence = getEvidenceRecords(activeCase);
 
   if (tool === 'Payment Verification') return {
     columns: ['Record', 'Payment Object / Bank Code / Destination ID', 'Status', 'Last Seen', 'Linked Transactions', 'Linked Digital Objects', 'Context'],

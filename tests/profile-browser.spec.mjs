@@ -37,7 +37,7 @@ test('approved Profile opens from the agent avatar and preserves neutral respons
   await expect(profile.locator('.profile-stat-grid article')).toHaveCount(4);
   await expect(profile.locator('.profile-skill-list article')).toHaveCount(4);
   await expect(profile.locator('.profile-badge-grid article')).toHaveCount(4);
-  await expect(profile.locator('.profile-goal-grid article')).toHaveCount(4);
+  await expect(profile.locator('.profile-goal-grid article')).toHaveCount(3);
   await expect(profile.getByText('4', { exact: true }).first()).toBeVisible();
   expect(await profile.innerText()).not.toMatch(forbiddenProfileCopy);
 

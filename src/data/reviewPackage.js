@@ -68,8 +68,131 @@ export const requiredReviewTools = [
 
 export const minimumRationaleWords = 12;
 
-export function getReviewPackageStatus({ completedTools = [], tray = [], notes = [], draft = {} }) {
-  const missingTools = requiredReviewTools.filter((tool) => !completedTools.includes(tool));
+function unique(values = []) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function uniqueGroups(groups = []) {
+  const seen = new Set();
+  return groups.map((group) => ({
+    ...group,
+    options: group.options.filter((option) => {
+      if (seen.has(option)) return false;
+      seen.add(option);
+      return true;
+    }),
+  })).filter((group) => group.options.length);
+}
+
+export function getRequiredReviewTools(activeCase = {}) {
+  const caseTools = Array.isArray(activeCase?.requiredTools) ? activeCase.requiredTools : [];
+  return unique(caseTools.length ? caseTools : requiredReviewTools);
+}
+
+export function getDecisionCallGroups(activeCase = {}) {
+  if (activeCase?.creditDecision) {
+    return uniqueGroups([
+      {
+        label: 'Credit decision calls',
+        options: activeCase.creditDecision.outcomes ?? [
+          'Support Credit Request',
+          'Do Not Support Credit Request',
+          'More Information Needed',
+          'Escalate Senior Review',
+        ],
+      },
+      {
+        label: 'Credit documentation and routing',
+        options: [
+          'Request income, employment, or cash-flow documentation',
+          'Hold pending verification',
+          'Route for identity verification review',
+          'Route for payment verification review',
+          'No action yet / continue investigation',
+        ],
+      },
+    ]);
+  }
+
+  if (['fraud-chargeback', 'non-fraud-chargeback'].includes(activeCase?.claimTypeId)) {
+    return uniqueGroups([
+      {
+        label: 'Chargeback determination calls',
+        options: [
+          'Approve claim / customer claim supported',
+          'Deny claim / customer claim not supported',
+          'Partial approval / split liability review',
+        ],
+      },
+      {
+        label: 'Chargeback evidence and routing',
+        options: [
+          'Request more information from customer',
+          'Request merchant or payee documentation',
+          'Hold pending additional records',
+          'Route for chargeback representment review',
+          'No action yet / continue investigation',
+        ],
+      },
+    ]);
+  }
+
+  if (activeCase?.claimTypeId === 'application-verification') {
+    return uniqueGroups([
+      {
+        label: 'Verification disposition calls',
+        options: [
+          'Complete application verification review',
+          'Unable to verify with current records',
+          'Request additional identity or address documentation',
+          'Hold pending verification',
+        ],
+      },
+      {
+        label: 'Verification routing',
+        options: [
+          'Route for identity verification review',
+          'Route for payment verification review',
+          'Route for secondary fraud review',
+          'No action yet / continue investigation',
+        ],
+      },
+    ]);
+  }
+
+  if (['payroll-direct-deposit', 'email-bec', 'ach-wire-check'].includes(activeCase?.claimTypeId)) {
+    return uniqueGroups([
+      {
+        label: 'Payment and instruction handling',
+        options: [
+          'Hold pending additional records',
+          'Request merchant or payee documentation',
+          'Route for payment verification review',
+          'No action yet / continue investigation',
+        ],
+      },
+      {
+        label: 'Escalation calls',
+        options: [
+          'Route for secondary fraud review',
+          'Escalate for insider / vendor / API / open banking review',
+          'Escalate for fraud ring / link analysis review',
+        ],
+      },
+    ]);
+  }
+
+  return decisionCallGroups;
+}
+
+export function getReviewChoices(activeCase = {}) {
+  return unique(getDecisionCallGroups(activeCase).flatMap((group) => group.options));
+}
+
+export function getReviewPackageStatus({ activeCase, completedTools = [], tray = [], notes = [], draft = {} }) {
+  const requiredTools = getRequiredReviewTools(activeCase);
+  const validChoices = getReviewChoices(activeCase);
+  const missingTools = requiredTools.filter((tool) => !completedTools.includes(tool));
   const blockers = [];
   const messages = [];
   const rationaleWordCount = wordCount(draft.reason);
@@ -80,7 +203,7 @@ export function getReviewPackageStatus({ completedTools = [], tray = [], notes =
   if (!tray.length) blockers.push('pin at least one object');
   if (!notes.length) blockers.push('add at least one rationale note');
   if (!draft.choice) blockers.push('select a learner choice');
-  if (draft.choice && !reviewChoices.includes(draft.choice)) blockers.push('select a valid learner choice from the current decision call list');
+  if (draft.choice && !validChoices.includes(draft.choice)) blockers.push('select a valid learner choice from the current decision call list');
   if (!hasRationale) blockers.push('write the learner rationale');
   if (hasRationale && rationaleWordCount < minimumRationaleWords) blockers.push(`expand learner rationale to at least ${minimumRationaleWords} words`);
 
@@ -90,7 +213,7 @@ export function getReviewPackageStatus({ completedTools = [], tray = [], notes =
     if (!tray.length) messages.push('Pin at least one case object into the Investigation Tray.');
     if (!notes.length) messages.push('Save at least one case rationale or investigation note.');
     if (!draft.choice) messages.push('Select the learner decision choice.');
-    if (draft.choice && !reviewChoices.includes(draft.choice)) messages.push('The selected learner choice is no longer in the current decision call list.');
+    if (draft.choice && !validChoices.includes(draft.choice)) messages.push('The selected learner choice is no longer in the current decision call list.');
     if (!hasRationale) messages.push('Write the evidence-based learner rationale.');
     if (hasRationale && rationaleWordCount < minimumRationaleWords) messages.push(`Add more evidence detail to the learner rationale (${rationaleWordCount}/${minimumRationaleWords} words).`);
   } else {
@@ -100,23 +223,29 @@ export function getReviewPackageStatus({ completedTools = [], tray = [], notes =
   messages.push(packageInputSummary);
 
   return {
-    reviewedRequired: requiredReviewTools.length - missingTools.length,
-    totalRequired: requiredReviewTools.length,
+    reviewedRequired: requiredTools.length - missingTools.length,
+    totalRequired: requiredTools.length,
+    requiredTools,
+    validChoices,
     missingTools,
     blockers,
     messages,
     rationaleWordCount,
     minimumRationaleWords,
     packageInputSummary,
-    ready: missingTools.length === 0 && tray.length > 0 && notes.length > 0 && Boolean(draft.choice) && reviewChoices.includes(draft.choice) && hasRationale && rationaleWordCount >= minimumRationaleWords,
+    ready: missingTools.length === 0 && tray.length > 0 && notes.length > 0 && Boolean(draft.choice) && validChoices.includes(draft.choice) && hasRationale && rationaleWordCount >= minimumRationaleWords,
   };
 }
 
-export function buildReviewPackage({ caseId, agentId, draft, completedTools = [], tray = [], notes = [], packageStatus }) {
+export function buildReviewPackage({ caseId, agentId, activeCase, draft, completedTools = [], tray = [], notes = [], packageStatus }) {
+  const requiredTools = packageStatus?.requiredTools ?? getRequiredReviewTools(activeCase);
   return {
     id: `${caseId}-${Date.now()}`,
     caseId,
     agentId,
+    claimTypeId: activeCase?.claimTypeId ?? null,
+    claimType: activeCase?.claimType ?? activeCase?.type ?? null,
+    lane: activeCase?.lane ?? null,
     choice: draft.choice,
     confidence: draft.confidence || 'Medium',
     reason: draft.reason,
@@ -126,7 +255,7 @@ export function buildReviewPackage({ caseId, agentId, draft, completedTools = []
     noteSnapshot: notes.slice(0, 8),
     packageInputSummary: packageStatus?.packageInputSummary ?? buildPackageInputSummary({ completedTools, tray, notes }),
     reviewedRequired: packageStatus?.reviewedRequired ?? 0,
-    totalRequired: packageStatus?.totalRequired ?? requiredReviewTools.length,
+    totalRequired: packageStatus?.totalRequired ?? requiredTools.length,
     missingTools: packageStatus?.missingTools ?? [],
     blockers: packageStatus?.blockers ?? [],
     savedAt: new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),

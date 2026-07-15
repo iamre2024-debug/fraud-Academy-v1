@@ -173,6 +173,34 @@ body[data-visual-tab="workspace"] .case-briefing-documents-card {
   grid-column: 1 / -1;
 }
 
+body[data-visual-tab="workspace"] .case-briefing-intake-card {
+  grid-column: span 7;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-statement-card {
+  grid-column: span 5;
+  background: linear-gradient(145deg, #fbf9ff 0%, #f7f2ff 100%);
+}
+
+body[data-visual-tab="workspace"] .case-briefing-facts-card {
+  grid-column: span 5;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-evidence-card {
+  grid-column: span 7;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-chargeback-card,
+body[data-visual-tab="workspace"] .case-briefing-credit-card,
+body[data-visual-tab="workspace"] .case-briefing-activity-card {
+  grid-column: 1 / -1;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-chargeback-card {
+  border-color: rgba(117, 81, 200, 0.16);
+  background: linear-gradient(145deg, #fbf9ff 0%, #f6f0ff 100%);
+}
+
 body[data-visual-tab="workspace"] .case-briefing-card-heading {
   display: flex;
   align-items: center;
@@ -282,6 +310,107 @@ body[data-visual-tab="workspace"] .case-briefing-intake-grid > div {
 body[data-visual-tab="workspace"] .case-briefing-intake-grid dt,
 body[data-visual-tab="workspace"] .case-briefing-intake-grid dd {
   margin: 0;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-intake-answer-list,
+body[data-visual-tab="workspace"] .case-briefing-activity-list {
+  display: grid;
+  gap: 8px;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-intake-answer-list article,
+body[data-visual-tab="workspace"] .case-briefing-activity-list > div {
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.1);
+  border-radius: 12px;
+  background: #faf8ff;
+  padding: 10px;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-intake-answer-list strong,
+body[data-visual-tab="workspace"] .case-briefing-activity-list strong {
+  display: block;
+  color: #2d235d;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-intake-answer-list p,
+body[data-visual-tab="workspace"] .case-briefing-statement-card > .direct-collapsible-text {
+  margin: 6px 0 0;
+  color: #5c5575;
+  font-size: 0.79rem;
+  line-height: 1.45;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-statement-card > small,
+body[data-visual-tab="workspace"] .case-briefing-activity-list span,
+body[data-visual-tab="workspace"] .case-briefing-activity-list small {
+  display: block;
+  margin-top: 5px;
+  color: #766d8c;
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-facts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-facts-grid > div {
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.1);
+  border-radius: 12px;
+  background: #faf8ff;
+  padding: 10px;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-facts-grid dt,
+body[data-visual-tab="workspace"] .case-briefing-facts-grid dd {
+  margin: 0;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-facts-grid dt {
+  color: #7a7094;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-facts-grid dd {
+  margin-top: 4px;
+  color: #30264f;
+  font-size: 0.78rem;
+  font-weight: 780;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-evidence-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-evidence-chips span {
+  border: 1px solid rgba(91, 62, 154, 0.12);
+  border-radius: 999px;
+  background: #f3edff;
+  color: #6543ad;
+  padding: 6px 9px;
+  font-size: 0.7rem;
+  font-weight: 780;
+  line-height: 1.25;
+}
+
+body[data-visual-tab="workspace"] .case-briefing-evidence-card > small {
+  display: block;
+  margin-top: 10px;
+  color: #756d8e;
+  font-size: 0.72rem;
+  line-height: 1.4;
 }
 
 body[data-visual-tab="workspace"] .case-briefing-intake-grid dt {
@@ -512,7 +641,11 @@ body[data-visual-tab="workspace"] .case-briefing-utilities .case-briefing-primar
 
 @media (max-width: 980px) {
   body[data-visual-tab="workspace"] .case-briefing-overview-card,
-  body[data-visual-tab="workspace"] .case-briefing-summary-card {
+  body[data-visual-tab="workspace"] .case-briefing-summary-card,
+  body[data-visual-tab="workspace"] .case-briefing-intake-card,
+  body[data-visual-tab="workspace"] .case-briefing-statement-card,
+  body[data-visual-tab="workspace"] .case-briefing-facts-card,
+  body[data-visual-tab="workspace"] .case-briefing-evidence-card {
     grid-column: 1 / -1;
   }
 
@@ -542,7 +675,10 @@ body[data-visual-tab="workspace"] .case-briefing-utilities .case-briefing-primar
   }
 
   body[data-visual-tab="workspace"] .case-briefing-focus-card,
-  body[data-visual-tab="workspace"] .case-briefing-luna-card {
+  body[data-visual-tab="workspace"] .case-briefing-luna-card,
+  body[data-visual-tab="workspace"] .case-briefing-chargeback-card,
+  body[data-visual-tab="workspace"] .case-briefing-credit-card,
+  body[data-visual-tab="workspace"] .case-briefing-activity-card {
     grid-column: 1 / -1;
   }
 
@@ -575,7 +711,8 @@ body[data-visual-tab="workspace"] .case-briefing-utilities .case-briefing-primar
   }
 
   body[data-visual-tab="workspace"] .case-summary-meta-grid,
-  body[data-visual-tab="workspace"] .case-briefing-intake-grid {
+  body[data-visual-tab="workspace"] .case-briefing-intake-grid,
+  body[data-visual-tab="workspace"] .case-briefing-facts-grid {
     grid-template-columns: 1fr;
   }
 

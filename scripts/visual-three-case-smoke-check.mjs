@@ -10,7 +10,7 @@ import { getSessionRecords } from '../src/data/sessionRecords.js';
 import { evidenceRecordsByCase } from '../src/data/evidenceRecords.js';
 import { financialRecordsByCase } from '../src/data/financialRecords.js';
 import { systemAccessRecordsByCase } from '../src/data/systemAccessRecords.js';
-import { reviewChoices, decisionCallGroups } from '../src/data/reviewPackage.js';
+import { decisionCallGroups, getDecisionCallGroups, reviewChoices } from '../src/data/reviewPackage.js';
 
 const rootDir = process.cwd();
 const cases = enrichTrainingCases(baseCases);
@@ -214,6 +214,7 @@ for (const required of [
   "pin(activeCase.id)",
   "openTool('Identity Intel / People Search')",
   "openTool('Login History')",
+  'case-briefing-chargeback-card',
   'decision-jump-button',
 ]) {
   requireText('src/CaseSummaryCard.jsx', caseSummaryCard, required, 'case summary card module anchor');
@@ -241,11 +242,13 @@ for (const required of [
 }
 
 for (const required of [
-  'reviewChoices.map',
+  'getDecisionCallGroups(activeCase)',
+  'selectionGroups.map',
   'packageStatus.messages.map',
-  'className="ornate-card submit-decision-panel"',
+  'className="ornate-card submit-decision-panel decision-theme-v1"',
   'activeCase.id',
-  'Save / Check Review Package',
+  'Save learner package',
+  'Check package readiness',
 ]) {
   requireText('src/SubmitDecisionPanel.jsx', submitDecisionPanel, required, 'Submit Decision panel module anchor');
 }
@@ -289,6 +292,17 @@ for (const choice of [
   'No action yet / continue investigation',
 ]) {
   if (!reviewChoices.includes(choice)) failures.push(`Submit Decision is missing learner choice: ${choice}`);
+}
+
+const builtInChargeback = cases.find((item) => item.claimTypeId === 'non-fraud-chargeback');
+const builtInCredit = cases.find((item) => item.claimTypeId === 'credit-risk');
+if (!builtInChargeback?.chargebackDecision?.reasonCode) failures.push('Built-in non-fraud chargeback case is missing Design Bible reason-code details.');
+if (!builtInCredit?.creditDecision?.deadline) failures.push('Built-in credit case is missing its credit decision rail.');
+if (!getDecisionCallGroups(builtInChargeback).some((group) => group.label === 'Chargeback determination calls')) {
+  failures.push('Chargeback cases should receive lane-specific decision calls.');
+}
+if (!getDecisionCallGroups(builtInCredit).some((group) => group.label === 'Credit decision calls')) {
+  failures.push('Credit cases should receive lane-specific decision calls.');
 }
 
 if (failures.length) {

@@ -19,8 +19,10 @@ export default function useVisualWorkspaceActions({
   setCompletedByCase,
   setDecisionByCase,
   setPackagesByCase,
+  setActionsByCase,
 }) {
   const packageStatus = getReviewPackageStatus({
+    activeCase,
     completedTools: currentCompleted,
     tray,
     notes,
@@ -33,6 +35,27 @@ export default function useVisualWorkspaceActions({
       const caseTray = current[activeCase.id] ?? [activeCase.trainingId];
       return { ...current, [activeCase.id]: [...new Set([...caseTray, value])] };
     });
+    recordAction('Pinned evidence', `${value} added to the Investigation Tray.`, tool);
+  }
+
+  function recordAction(action, detail, source = tool) {
+    const timestamp = new Date().toLocaleString([], {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const entry = {
+      id: `${activeCase.id}-ACT-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      time: timestamp,
+      action,
+      detail,
+      source,
+    };
+    setActionsByCase((current) => ({
+      ...current,
+      [activeCase.id]: [entry, ...(current[activeCase.id] ?? [])],
+    }));
   }
 
   function saveNote(text, type = 'Investigation note') {
@@ -49,6 +72,7 @@ export default function useVisualWorkspaceActions({
       ...current,
       [activeCase.id]: [noteLine, ...(current[activeCase.id] ?? [])],
     }));
+    recordAction('Saved note', `${type} added to the case notebook.`, type);
   }
 
   function markReviewed(toolName = tool) {
@@ -59,6 +83,7 @@ export default function useVisualWorkspaceActions({
         [activeCase.id]: [...new Set([...caseTools, toolName])],
       };
     });
+    recordAction('Marked tool reviewed', `${toolName} marked reviewed.`, toolName);
     saveNote(`${toolName}: reviewed.`, 'Tool review');
   }
 
@@ -81,6 +106,7 @@ export default function useVisualWorkspaceActions({
   function submitDecision(event) {
     event.preventDefault();
     const status = getReviewPackageStatus({
+      activeCase,
       completedTools: currentCompleted,
       tray,
       notes,
@@ -95,6 +121,7 @@ export default function useVisualWorkspaceActions({
     const reviewPackage = buildReviewPackage({
       caseId: activeCase.id,
       agentId: AGENT_ID,
+      activeCase,
       draft: decisionDraft,
       completedTools: currentCompleted,
       tray,
@@ -106,6 +133,7 @@ export default function useVisualWorkspaceActions({
       ...current,
       [activeCase.id]: [reviewPackage, ...(current[activeCase.id] ?? [])],
     }));
+    recordAction('Saved learner package', 'Submit Decision package saved; post-submission debrief is available.', 'Submit Decision');
     window.dispatchEvent(new CustomEvent('fraud-academy:package-saved', {
       detail: { caseId: activeCase.id, packageId: reviewPackage.id, reviewPackage },
     }));
@@ -124,5 +152,6 @@ export default function useVisualWorkspaceActions({
     updateDecision,
     submitNote,
     submitDecision,
+    recordAction,
   };
 }

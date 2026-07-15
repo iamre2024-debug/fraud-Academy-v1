@@ -41,11 +41,13 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     currentCompleted,
     decisionDraft,
     reviewPackages,
+    actionLog,
     setTrayByCase,
     setNotesByCase,
     setCompletedByCase,
     setDecisionByCase,
     setPackagesByCase,
+    setActionsByCase,
   } = useVisualWorkspaceCaseState(activeCase);
   const activeCategory = groupForTool(tool)
     ?? investigationToolGroups.find((item) => item.key === categoryKey)
@@ -61,6 +63,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     updateDecision,
     submitNote,
     submitDecision,
+    recordAction,
   } = useVisualWorkspaceActions({
     activeCase,
     tool,
@@ -76,6 +79,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setCompletedByCase,
     setDecisionByCase,
     setPackagesByCase,
+    setActionsByCase,
   });
 
   const reviewedWorkspaceTools = workspaceTools.filter((toolName) => currentCompleted.includes(toolName)).length;
@@ -169,6 +173,11 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     scrollToWorkspace('[data-workflow-stage="investigate"]', 80);
   }
 
+  function openCaseQueue() {
+    recordAction('Opened Case Queue', 'Returned to Case Queue from Case Briefing.', 'Case Briefing');
+    onNavigate('cases');
+  }
+
   function selectWorkflowStage(nextStage) {
     onNavigate('workspace');
     setActiveStage(nextStage);
@@ -239,6 +248,9 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
             jumpDecision={jumpDecision}
             openNotes={openNotes}
             openMoreTools={openMoreTools}
+            openQueue={openCaseQueue}
+            actionLog={actionLog}
+            recordAction={recordAction}
           />
         </div>
 

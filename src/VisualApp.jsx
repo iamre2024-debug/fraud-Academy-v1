@@ -7,7 +7,8 @@ import GeneratedCaseControls from './GeneratedCaseControls.jsx';
 import CasesThemeV1Panel from './CasesThemeV1Panel.jsx';
 import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
-import { combineCaseCatalog, listGeneratedCases } from './data/generatedCaseRepository.js';
+import { coreClaimTypes } from './data/claimRegistry.js';
+import { combineCaseCatalog, generateAndSaveCases, listGeneratedCases } from './data/generatedCaseRepository.js';
 
 const enrichedBaseCases = enrichTrainingCases(baseCases);
 
@@ -46,6 +47,16 @@ export default function VisualApp() {
   function handleGeneratedCase(nextCase) {
     setCaseCatalog((current) => enrichTrainingCases(combineCaseCatalog(baseCases, [nextCase, ...current.filter((item) => !baseCases.some((base) => base.id === item.id))])));
     openCase(nextCase.id);
+  }
+
+  async function handleGeneratedCases(config) {
+    const createdCases = await generateAndSaveCases(config);
+    setCaseCatalog((current) => enrichTrainingCases(combineCaseCatalog(
+      baseCases,
+      [...createdCases, ...current.filter((item) => !baseCases.some((base) => base.id === item.id))],
+    )));
+    if (createdCases.length === 1) openCase(createdCases[0].id);
+    return createdCases;
   }
 
   function returnToQueue() {
@@ -90,6 +101,8 @@ export default function VisualApp() {
         active={activeTab === 'cases'}
         activeCaseId={activeCaseId}
         cases={caseCatalog}
+        claimTypes={coreClaimTypes}
+        onGenerateCases={handleGeneratedCases}
         onOpenCase={openCase}
       />
       <VisualTextCollapse />

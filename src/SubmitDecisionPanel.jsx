@@ -1,15 +1,5 @@
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
-import { decisionCallGroups } from './data/reviewPackage.js';
-
-/*
- * Baseline guard compatibility anchors retained until the post-merge handoff
- * advances the older functional smoke contract to the approved component:
- * import { reviewChoices } from './data/reviewPackage.js'
- * className="ornate-card submit-decision-panel"
- * No Luna scoring or answer reveal until a learner package is saved.
- * reviewChoices.map
- * Save / Check Review Package
- */
+import { getDecisionCallGroups, reviewChoices } from './data/reviewPackage.js';
 
 export default function SubmitDecisionPanel({
   submitRef,
@@ -29,6 +19,8 @@ export default function SubmitDecisionPanel({
     Math.round((packageStatus.rationaleWordCount / packageStatus.minimumRationaleWords) * 100),
   );
   const submitLabel = packageStatus.ready ? 'Save learner package' : 'Check package readiness';
+  const decisionGroups = getDecisionCallGroups(activeCase);
+  const selectionGroups = decisionGroups.length ? decisionGroups : [{ label: 'Learner choices', options: reviewChoices }];
 
   return (
     <section
@@ -108,7 +100,7 @@ export default function SubmitDecisionPanel({
               aria-label="Learner decision choice"
             >
               <option value="">Select a decision or review route...</option>
-              {decisionCallGroups.map((group) => (
+              {selectionGroups.map((group) => (
                 <optgroup key={group.label} label={group.label}>
                   {group.options.map((item) => <option key={item} value={item}>{item}</option>)}
                 </optgroup>
