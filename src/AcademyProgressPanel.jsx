@@ -11,7 +11,6 @@ function getPackageMetrics(reviewPackage) {
       totalRequired: 0,
       pinnedEvidence: 0,
       notes: 0,
-      reportPackets: 0,
     };
   }
 
@@ -20,7 +19,6 @@ function getPackageMetrics(reviewPackage) {
     totalRequired: reviewPackage.totalRequired ?? reviewPackage.completedTools?.length ?? 0,
     pinnedEvidence: reviewPackage.pinnedEvidence?.length ?? 0,
     notes: reviewPackage.noteSnapshot?.length ?? 0,
-    reportPackets: reviewPackage.reportPacketCount ?? reviewPackage.caseReportPackets?.length ?? 0,
   };
 }
 
@@ -57,7 +55,6 @@ export default function AcademyProgressPanel({ cases, packagesByCase, onOpenCase
                     <small><b>{metrics.reviewedRequired}/{metrics.totalRequired}</b> required tools</small>
                     <small><b>{metrics.pinnedEvidence}</b> pinned objects</small>
                     <small><b>{metrics.notes}</b> saved notes</small>
-                    <small><b>{metrics.reportPackets}</b> report packets</small>
                     <small><b>{packages.length}</b> package{packages.length === 1 ? '' : 's'}</small>
                   </div>
                 )}

@@ -3,6 +3,7 @@ import path from 'node:path';
 
 const rootDir = process.cwd();
 const briefing = fs.readFileSync(path.join(rootDir, 'src/CaseSummaryCard.jsx'), 'utf8');
+const briefingDetails = fs.readFileSync(path.join(rootDir, 'src/data/caseBriefingDetails.js'), 'utf8');
 const workspace = fs.readFileSync(path.join(rootDir, 'src/VisualWorkspace.jsx'), 'utf8');
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayCaseBriefingThemeV1.css'), 'utf8');
 const routeStyles = fs.readFileSync(path.join(rootDir, 'src/displayCaseBriefingRoutesV1.css'), 'utf8');
@@ -27,24 +28,29 @@ for (const anchor of [
   'data-case-briefing-screen="approved-theme-v1"',
   'Case Briefing',
   'Briefing summary',
+  'Assigned investigator',
+  'Due date',
+  'Case parties',
+  'data-case-briefing-parties="true"',
+  'data-case-briefing-details="true"',
   'Key focus areas',
   'Luna Briefing Assistant',
   'Recent documents',
+  'Reason code and packet details',
+  'case-briefing-chargeback-card',
   'Workspace',
   'Timeline',
   'Notes',
-  'Reports',
   'More Tools',
   'Begin Investigation',
   'case-briefing-quick-routes',
   'Case briefing quick routes',
-  'Identity Intel',
-  'Login History',
   'Submit Decision',
-  "openTool('Customer 360', 'investigate')",
-  "openTool('Identity Intelligence')",
-  "openTool('Case Report')",
-  "openTool('Login History')",
+  'const firstInvestigationTool =',
+  'const quickRoutes = [...new Set(',
+  'openTool(firstInvestigationTool',
+  'quickRoutes.map((toolName)',
+  'openRoute(toolName)',
   'decision-jump-button',
   '<small>Transaction / payee info</small>',
   '<small>Short summary</small>',
@@ -52,6 +58,18 @@ for (const anchor of [
   '{activeCase.shortSummary ?? activeCase.queueReason}',
 ]) {
   mustContain('CaseSummaryCard.jsx', briefing, anchor);
+}
+
+for (const anchor of [
+  'buildCaseBriefingPacket',
+  'Account and transaction details',
+  'Transaction details',
+  'Payroll details',
+  'Payment instruction details',
+  'Credit details',
+  'Application details',
+]) {
+  mustContain('caseBriefingDetails.js', briefingDetails, anchor);
 }
 
 for (const anchor of [
@@ -69,6 +87,10 @@ for (const anchor of [
   '[data-workflow-stage="briefing"]',
   '.case-briefing-theme-v1',
   '.case-briefing-card-grid',
+  '.case-briefing-parties-card',
+  '.case-briefing-detail-card',
+  '.case-briefing-party-list',
+  '.case-briefing-chargeback-card',
   '.case-briefing-utilities',
   'grid-template-columns: repeat(12, minmax(0, 1fr))',
   '@media (max-width: 720px)',

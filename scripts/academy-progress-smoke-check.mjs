@@ -25,7 +25,6 @@ mustContain('AcademyProgressPanel.jsx', progress, 'Luna debrief is available for
 mustContain('AcademyProgressPanel.jsx', progress, 'reviewPackage.reviewedRequired');
 mustContain('AcademyProgressPanel.jsx', progress, 'reviewPackage.pinnedEvidence?.length');
 mustContain('AcademyProgressPanel.jsx', progress, 'reviewPackage.noteSnapshot?.length');
-mustContain('AcademyProgressPanel.jsx', progress, 'reviewPackage.reportPacketCount');
 mustContain('AcademyProgressPanel.jsx', progress, 'onClick={() => onOpenCase(item.id)}');
 mustContain('AcademyProgressPanel.jsx', progress, '<DirectCollapsibleText as="p" lines={2} mobileLines={2}>');
 

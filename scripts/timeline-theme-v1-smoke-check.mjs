@@ -36,9 +36,7 @@ for (const anchor of [
   'Expanded event',
   'Verify this event against its source record',
   'Save timeline note',
-  'Save neutral report packet',
-  'Open Evidence Center',
-  'Open Case Report',
+  'Open Document Viewer',
   'Open Submit Decision',
   "markReviewed('Timeline')",
   'It does not determine the case outcome.',
@@ -48,10 +46,8 @@ for (const anchor of [
 
 for (const anchor of [
   "import TimelinePanel from './TimelinePanel.jsx'",
-  "tool === 'Timeline'",
+  "activeTool === 'Timeline'",
   '<TimelinePanel {...activeToolProps} />',
-  "tool === 'Case Report'",
-  '<ActiveToolPanel {...activeToolProps} />',
   "openTool('Timeline', 'timeline')",
 ]) {
   mustContain('VisualWorkspace.jsx', workspace, anchor);
@@ -64,7 +60,7 @@ for (const anchor of [
   "'Login timeline'",
   "'Transaction timeline'",
   "'Payment timeline'",
-  "'Evidence timeline'",
+  "'Document timeline'",
 ]) {
   mustContain('coreToolRecords.js', records, anchor);
 }

@@ -46,7 +46,7 @@ Timeline now presents:
 - case-scoped timeline notes;
 - neutral report-packet saving;
 - reviewed-state tracking;
-- direct routes to Evidence Center, Case Report, and locked Submit Decision.
+- direct routes to Document Viewer, Case Report, and locked Submit Decision.
 
 The Timeline organizes available records and never determines the case outcome. It preserves the current row order from the established record builder instead of inventing or rewriting event chronology.
 
@@ -93,7 +93,7 @@ Do not merge until all of the following pass on the final branch head:
 7. built-in case switching;
 8. search and source filtering;
 9. event expansion, pin, note, neutral report packet, and reviewed-state actions;
-10. Evidence Center, Case Report, and Submit Decision routing;
+10. Document Viewer, Case Report, and Submit Decision routing;
 11. Luna pre-submission lock;
 12. viewport-width safety.
 

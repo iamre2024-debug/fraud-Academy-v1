@@ -1,7 +1,19 @@
+import { useEffect, useState } from 'react';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
+import { getCustomer360Dossier } from './data/customer360Dossier.js';
+import { getCaseDocuments } from './data/documentRecords.js';
 import { workflows } from './visualWorkspaceModel.js';
 
 const unavailable = 'Not available in the current training packet';
+
+const dossierTabs = [
+  { id: 'overview', label: 'Overview', sections: ['identity', 'case'] },
+  { id: 'accounts', label: 'Accounts', sections: ['products', 'relationship'] },
+  { id: 'devices', label: 'Devices & Access', sections: ['security'] },
+  { id: 'contact', label: 'Contact History', sections: ['contact', 'contact-log'] },
+  { id: 'history', label: 'Profile History', sections: ['prior-claims'] },
+  { id: 'notes', label: 'Notes', sections: [] },
+];
 
 function relationshipValue(activeCase, label, fallback = unavailable) {
   const match = activeCase.customer?.relationship?.find((item) => item.label === label);
@@ -24,71 +36,13 @@ function maskedTrainingId(value) {
   return text ? `••••-${text.slice(-4)}` : unavailable;
 }
 
-function claimSpecificContext(activeCase) {
-  const type = String(activeCase.type ?? '').toLowerCase();
-  const profileChanges = activeCase.customer?.profileChanges ?? [];
-  const logins = activeCase.loginHistory ?? [];
-  const documents = activeCase.documents ?? [];
-
-  if (type.includes('account takeover')) {
-    return {
-      title: 'Access and profile context',
-      subtitle: 'Neutral account-access facts tied to this case',
-      fields: [
-        ['Recent profile events', `${profileChanges.length} available`],
-        ['Observed devices', `${uniqueValues(logins.map((item) => item.device)).length} in the packet`],
-        ['Observed login areas', uniqueValues(logins.map((item) => item.location)).join(' · ') || unavailable],
-        ['Available alerts / documents', `${documents.length} document records`],
-      ],
-    };
-  }
-
-  if (type.includes('chargeback')) {
-    return {
-      title: 'Card and merchant context',
-      subtitle: 'Relationship facts available before merchant evidence review',
-      fields: [
-        ['Card / account products', relationshipValue(activeCase, 'Open products')],
-        ['Last statement', relationshipValue(activeCase, 'Last statement')],
-        ['Payment profile', relationshipValue(activeCase, 'Payment profile')],
-        ['Prior dispute context', activeCase.facts?.find((item) => /prior|merchant|billing/i.test(item)) ?? 'Review the related merchant and billing records'],
-      ],
-    };
-  }
-
-  if (type.includes('credit risk')) {
-    return {
-      title: 'Relationship and exposure context',
-      subtitle: 'Early account and payment facts for credit review',
-      fields: [
-        ['Relationship age', relationshipValue(activeCase, 'Relationship age', relationshipLength(activeCase.customer?.relationshipSince))],
-        ['Open products', relationshipValue(activeCase, 'Open products')],
-        ['Payment profile', relationshipValue(activeCase, 'Payment profile')],
-        ['History depth', activeCase.facts?.find((item) => /history/i.test(item)) ?? 'Review available account and payment records'],
-      ],
-    };
-  }
-
-  return {
-    title: 'Claim-specific relationship context',
-    subtitle: 'Facts supplied by the active fictional case packet',
-    fields: [
-      ['Claim lane', activeCase.type ?? unavailable],
-      ['Products', relationshipValue(activeCase, 'Open products')],
-      ['Normal access area', relationshipValue(activeCase, 'Normal login area')],
-      ['Available evidence', `${(activeCase.documents ?? []).length} document records`],
-    ],
-  };
-}
-
-function buildDossierSections(activeCase) {
+function buildDossierSections(activeCase, dossier, currentCompleted = []) {
   const contact = activeCase.customer?.contact ?? {};
   const loginHistory = activeCase.loginHistory ?? [];
   const documents = activeCase.documents ?? [];
   const receivedDocuments = documents.filter((item) => ['Received', 'Available'].includes(item.status));
   const knownDevices = uniqueValues(loginHistory.map((item) => item.device));
   const knownLocations = uniqueValues(loginHistory.map((item) => item.location));
-  const authenticationMethods = uniqueValues(loginHistory.map((item) => item.method));
   const customerSince = activeCase.customer?.relationshipSince ?? unavailable;
 
   return [
@@ -100,14 +54,15 @@ function buildDossierSections(activeCase) {
       fields: [
         ['Name', activeCase.person ?? unavailable],
         ['Customer ID', activeCase.trainingId ?? unavailable],
-        ['Masked member ID', maskedTrainingId(activeCase.trainingId)],
-        ['DOB / age', unavailable],
+        ['Masked member ID', dossier.identity.maskedMemberId ?? maskedTrainingId(activeCase.trainingId)],
+        ['DOB / age', `${dossier.identity.dob} · age ${dossier.identity.age}`],
         ['Customer since', customerSince],
         ['Relationship length', relationshipLength(customerSince)],
-        ['Primary state', activeCase.intake?.customerLocation ?? contact.address ?? unavailable],
+        ['Primary state', String(activeCase.intake?.customerLocation ?? contact.address ?? unavailable).split(' training')[0]],
+        ['Language', dossier.identity.language],
         ['Customer segment', activeCase.customer?.segment ?? unavailable],
-        ['Verification status', 'Training profile on file'],
-        ['Account standing', activeCase.status ?? unavailable],
+        ['Verification status', dossier.identity.verificationStatus],
+        ['Account standing', dossier.identity.accountStanding],
       ],
     },
     {
@@ -117,15 +72,15 @@ function buildDossierSections(activeCase) {
       subtitle: 'Contact points and recent verification context',
       fields: [
         ['Mobile phone', contact.phone ?? unavailable],
-        ['Home phone', unavailable],
+        ['Home phone', dossier.contact.homePhone],
         ['Email', contact.email ?? unavailable],
-        ['Mailing address', contact.address ?? unavailable],
-        ['Physical address', contact.address ?? unavailable],
+        ['Mailing address', dossier.contact.mailingAddress],
+        ['Physical address', dossier.contact.physicalAddress],
         ['Preferred contact', contact.preferredChannel ?? activeCase.intake?.channel ?? unavailable],
-        ['Language', 'English'],
-        ['Contact verification', 'Review the profile-change log and callback records'],
+        ['Last verified date', dossier.identity.lastVerified],
+        ['Contact verification', dossier.contact.verificationStatus],
         ['Recent contact changes', `${(activeCase.customer?.profileChanges ?? []).length} profile events available`],
-        ['MFA / alert contact use', authenticationMethods.join(' · ') || unavailable],
+        ['MFA / alert contact use', dossier.contact.alertUse],
       ],
     },
     {
@@ -134,14 +89,15 @@ function buildDossierSections(activeCase) {
       title: 'Products & Accounts',
       subtitle: 'Products, balances, limits, and standing supplied by the case',
       fields: [
-        ['Open products', relationshipValue(activeCase, 'Open products')],
-        ['Checking / savings', relationshipValue(activeCase, 'Open products')],
-        ['Debit / credit products', activeCase.customer?.segment ?? unavailable],
-        ['Loan / payroll products', activeCase.type?.includes('Credit') ? 'Credit relationship under review' : unavailable],
+        ['Product records', `${dossier.products.length} available below`],
+        ['Open products', dossier.products.map((item) => item.product).join(' · ')],
+        ['Masked accounts', dossier.products.map((item) => item.maskedNumber).join(' · ')],
+        ['Product statuses', dossier.products.map((item) => `${item.product}: ${item.status}`).join(' · ')],
         ['Digital banking profile', relationshipValue(activeCase, 'Payment profile')],
-        ['Current exposure', activeCase.amount ?? unavailable],
-        ['Credit limit', activeCase.type?.includes('Credit') ? activeCase.amount ?? unavailable : unavailable],
-        ['NSF / overdraft / payment standing', 'Open the Financial Investigation records for account-level detail'],
+        ['Oldest product opened', dossier.products[0]?.opened ?? customerSince],
+        ['Balances / exposure', dossier.products.map((item) => `${item.maskedNumber}: ${item.balance}`).join(' · ')],
+        ['Limits', dossier.products.map((item) => `${item.maskedNumber}: ${item.limit}`).join(' · ')],
+        ['NSF / overdraft / payment standing', dossier.products.map((item) => item.standing).join(' · ')],
       ],
     },
     {
@@ -151,12 +107,12 @@ function buildDossierSections(activeCase) {
       subtitle: 'Normal customer patterns available for comparison',
       fields: [
         ['Number of listed products', relationshipValue(activeCase, 'Open products').split('·').length],
-        ['Normal deposit behavior', 'Open Financial Investigation for case-level records'],
-        ['Normal spending behavior', activeCase.transactionInfo ?? unavailable],
+        ['Normal deposit behavior', dossier.relationship.normalDeposits],
+        ['Normal spending behavior', dossier.relationship.normalSpending],
         ['Normal login location', relationshipValue(activeCase, 'Normal login area')],
         ['Trusted / observed devices', knownDevices.join(' · ') || unavailable],
-        ['Household / authorized users', unavailable],
-        ['Business relationships', activeCase.type?.includes('Business') ? 'Business relationship packet available' : 'No business relationship listed'],
+        ['Household / authorized users', dossier.relationship.authorizedUsers],
+        ['Business relationships', dossier.relationship.businessRelationships],
         ['Payment profile', relationshipValue(activeCase, 'Payment profile')],
       ],
     },
@@ -166,14 +122,17 @@ function buildDossierSections(activeCase) {
       title: 'Security & Access Summary',
       subtitle: 'Neutral security facts, not a fraud conclusion',
       fields: [
-        ['MFA / login methods', authenticationMethods.join(' · ') || unavailable],
-        ['Password last changed', 'Open Password Reset History when available'],
+        ['MFA status', dossier.security.mfaStatus],
+        ['Password last changed', dossier.security.passwordChanged],
         ['Successful login records', `${loginHistory.filter((item) => item.result === 'Successful').length} in the packet`],
         ['Failed login records', `${loginHistory.filter((item) => item.result !== 'Successful').length} in the packet`],
-        ['Observed devices', knownDevices.join(' · ') || unavailable],
+        ['Trusted devices', dossier.security.trustedDevices],
+        ['New devices', knownDevices.length > 1 ? `${knownDevices.length - 1} additional observed device${knownDevices.length === 2 ? '' : 's'}` : 'No additional device listed'],
         ['Observed locations', knownLocations.join(' · ') || unavailable],
-        ['Alerts / lockouts', 'Open the related access tools for event detail'],
-        ['Wallet / recovery contacts', 'Open the related case tools when available'],
+        ['Lockouts', dossier.security.lockouts],
+        ['Security alerts', dossier.security.alerts],
+        ['Wallet enrollment', dossier.security.walletEnrollment],
+        ['Recovery phone / email', dossier.security.recoveryContact],
       ],
     },
     {
@@ -185,11 +144,17 @@ function buildDossierSections(activeCase) {
         ['Case ID', activeCase.id ?? unavailable],
         ['Claim ID', activeCase.claimId ?? unavailable],
         ['Claim type', activeCase.type ?? unavailable],
+        ['Lane / subtype', `${activeCase.lane ?? unavailable} · ${activeCase.subtype ?? unavailable}`],
         ['Priority', activeCase.priority ?? unavailable],
         ['Status', activeCase.status ?? unavailable],
-        ['Opened', activeCase.opened ?? unavailable],
+        ['Reported / issue start', `${activeCase.reportedDate ?? activeCase.opened ?? unavailable} · ${activeCase.issueStartDate ?? unavailable}`],
         ['Amount / exposure', activeCase.amount ?? unavailable],
-        ['Queue reason', activeCase.queueReason ?? unavailable],
+        ['Intake channel', activeCase.intake?.channel ?? unavailable],
+        ['Assigned investigator', activeCase.assignedInvestigator ?? 'Training queue · unassigned'],
+        ['Required tools', (activeCase.requiredTools ?? []).join(' · ') || unavailable],
+        ['Reviewed tools', currentCompleted.join(' · ') || 'No tools reviewed in this case yet'],
+        ['Intake summary', activeCase.caseBriefing?.summary ?? activeCase.allegation ?? unavailable],
+        ['Suggested next workspace', dossier.suggestedTool],
       ],
     },
     {
@@ -198,10 +163,11 @@ function buildDossierSections(activeCase) {
       title: 'Recent Customer Contact',
       subtitle: 'Intake, secure messages, callbacks, and document contact',
       fields: [
-        ['Intake channel', activeCase.intake?.channel ?? unavailable],
-        ['Contact time', activeCase.intake?.contactTime ?? unavailable],
-        ['Customer-reported location', activeCase.intake?.customerLocation ?? unavailable],
-        ['Stated device', activeCase.intake?.statedDevice ?? unavailable],
+        ['Contact records', `${dossier.recentContacts.length} available below`],
+        ['Latest contact', dossier.recentContacts[0]?.dateTime ?? unavailable],
+        ['Latest outcome', dossier.recentContacts[0]?.outcome ?? unavailable],
+        ['Customer statement', activeCase.statement?.value ?? activeCase.allegation ?? unavailable],
+        ['Intake agent notes', activeCase.intakeAnswers?.map((item) => item.answer).join(' · ') || 'Review the Case Briefing intake packet'],
         ['Documents received', receivedDocuments.map((item) => item.name).join(' · ') || 'No received document listed'],
         ['Documents pending', documents.filter((item) => !['Received', 'Available'].includes(item.status)).map((item) => item.name).join(' · ') || 'No pending document listed'],
       ],
@@ -212,11 +178,11 @@ function buildDossierSections(activeCase) {
       title: 'Prior Claims / Disputes',
       subtitle: 'Historical context provided by the current case packet',
       fields: [
-        ['Prior claim records', activeCase.facts?.find((item) => /prior claim|prior dispute/i.test(item)) ?? 'No separate prior-claim row supplied'],
-        ['Prior merchant / account history', activeCase.facts?.find((item) => /merchant|account/i.test(item)) ?? 'Review related tool records'],
-        ['Prior investigations', 'No separate prior-investigation packet supplied'],
+        ['Prior claim records', `${dossier.priorClaims.length} historical record${dossier.priorClaims.length === 1 ? '' : 's'}`],
+        ['Prior outcomes', dossier.priorClaims.map((item) => `${item.type}: ${item.outcome}`).join(' · ') || 'No prior claim supplied'],
+        ['Prior investigations', dossier.priorClaims.map((item) => item.id).join(' · ') || 'No prior investigation supplied'],
         ['Supporting documents', `${documents.length} current document records`],
-        ['Similar-claim context', 'Do not infer a pattern without opening supporting records'],
+        ['Similar-claim context', dossier.priorClaims.some((item) => item.similar === 'Yes') ? 'A similar historical record is available for review' : 'No similar historical claim is identified'],
       ],
     },
   ];
@@ -251,6 +217,20 @@ function DossierCard({ section, normalizedQuery }) {
   );
 }
 
+function profileEventMetadata(event) {
+  return [
+    ['Event type', event.eventType ?? 'Profile maintenance'],
+    ['Old value', event.oldValue ?? 'Not supplied in the current packet'],
+    ['New value', event.newValue ?? 'Not supplied in the current packet'],
+    ['Channel', event.channel ?? 'Profile service'],
+    ['Source', event.source ?? 'Not supplied'],
+    ['User / actor', event.user ?? 'Not supplied'],
+    ['Device / session', `${event.device ?? 'Device not listed'} · ${event.session ?? 'Session not listed'}`],
+    ['IP / MFA method', `${event.ip ?? 'IP not listed'} · ${event.mfaMethod ?? 'Method not listed'}`],
+    ['Event note', event.notes ?? 'No event-level note supplied'],
+  ];
+}
+
 export default function Customer360Panel({
   activeCategory,
   activeCase,
@@ -263,23 +243,65 @@ export default function Customer360Panel({
   setExpandedId,
   pin,
   saveNote,
-  saveCaseReportPacket,
   markReviewed,
   currentCompleted,
   jumpDecision,
+  notes = [],
 }) {
+  const [activeTab, setActiveTab] = useState('overview');
   const normalizedQuery = query.trim().toLowerCase();
-  const sections = buildDossierSections(activeCase);
-  const claimContext = claimSpecificContext(activeCase);
-  const profileChanges = (activeCase.customer?.profileChanges ?? []).filter((item) => matchesQuery(`${item.id} ${item.date} ${item.item} ${item.detail} ${item.source}`, normalizedQuery));
+  const dossier = getCustomer360Dossier(activeCase);
+  const documents = getCaseDocuments(activeCase);
+  const sections = buildDossierSections(activeCase, dossier, currentCompleted);
+  const claimContext = dossier.claimContext;
+  const profileChanges = (activeCase.customer?.profileChanges ?? []).filter((item) => matchesQuery(Object.values(item).join(' '), normalizedQuery));
   const visibleSections = sections.filter((section) => !normalizedQuery || matchesQuery(`${section.title} ${section.subtitle} ${section.fields.flat().join(' ')}`, normalizedQuery));
   const visibleRows = rows.filter((row) => matchesQuery(`${row.id} ${row.label} ${row.detail}`, normalizedQuery));
-  const reportRow = activeRow ?? visibleRows[0] ?? {
-    id: `${activeCase.id}-C360`,
-    label: 'Customer 360 dossier',
-    pin: `${activeCase.person} · ${activeCase.trainingId}`,
-    detail: `Customer 360 dossier reviewed for ${activeCase.id}.`,
-  };
+  const selectedTab = dossierTabs.find((item) => item.id === activeTab) ?? dossierTabs[0];
+  const tabSections = sections.filter((section) => (
+    normalizedQuery || selectedTab.sections.includes(section.id)
+  ) && (!normalizedQuery || matchesQuery(`${section.title} ${section.subtitle} ${section.fields.flat().join(' ')}`, normalizedQuery)));
+  const availableToolNames = new Set(activeCase.availableTools ?? []);
+  const relatedTools = [
+    'Transaction History',
+    'Merchant Intelligence',
+    'Identity Intel / People Search',
+    'Login History',
+    'Device Intelligence',
+    'Document Viewer',
+    'Document Request',
+    'Payment Verification',
+  ].filter((item) => availableToolNames.has(item)).slice(0, 6);
+
+  useEffect(() => {
+    setActiveTab('overview');
+  }, [activeCase.id]);
+
+  function exportProfileChangeReport() {
+    const lines = [
+      'Fraud Academy - Profile Change Report',
+      `Case: ${activeCase.id}`,
+      `Customer: ${activeCase.person}`,
+      'Fictional training data only',
+      '',
+      ...(activeCase.customer?.profileChanges ?? []).flatMap((event) => [
+        `${event.date}${event.time ? ` · ${event.time}` : ''} | ${event.eventType ?? 'Profile maintenance'} | ${event.item}`,
+        `Old value: ${event.oldValue ?? 'Not supplied'}`,
+        `New value: ${event.newValue ?? 'Not supplied'}`,
+        `Channel/source: ${event.channel ?? 'Not supplied'} | ${event.source ?? 'Not supplied'}`,
+        `Actor/device/session: ${event.user ?? 'Not supplied'} | ${event.device ?? 'Not supplied'} | ${event.session ?? 'Not supplied'}`,
+        `IP/MFA: ${event.ip ?? 'Not supplied'} | ${event.mfaMethod ?? 'Not supplied'}`,
+        `Notes: ${event.notes ?? event.detail ?? 'No note supplied'}`,
+        '',
+      ]),
+    ];
+    const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${activeCase.id}-profile-change-report.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <section className="ornate-card activity-panel customer-360-theme-v1" data-customer-360-screen="approved-theme-v1">
@@ -303,18 +325,32 @@ export default function Customer360Panel({
           <p>{activeCase.trainingId} · Customer since {activeCase.customer?.relationshipSince ?? 'not listed'} · {activeCase.intake?.customerLocation ?? 'Location not listed'}</p>
         </div>
         <div className="customer-360-identity-metrics">
-          <article><span>Relationship</span><strong>{relationshipLength(activeCase.customer?.relationshipSince)}</strong></article>
-          <article><span>Products</span><strong>{relationshipValue(activeCase, 'Open products')}</strong></article>
-          <article><span>Case exposure</span><strong>{activeCase.amount}</strong></article>
-          <article><span>Profile events</span><strong>{activeCase.customer?.profileChanges?.length ?? 0}</strong></article>
+          {dossier.atAGlance.map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}
         </div>
       </section>
 
       <nav className="customer-360-actions" aria-label="Customer 360 related tools">
-        <button type="button" onClick={() => openTool('Identity Intelligence')}>Identity Intel</button>
-        <button type="button" onClick={() => openTool('Login History')}>Login History</button>
-        <button type="button" onClick={() => openTool('Device Intelligence')}>Device Intelligence</button>
+        {relatedTools.map((toolName) => (
+          <button key={toolName} type="button" onClick={() => openTool(toolName)}>
+            {toolName === 'Identity Intel / People Search' ? 'Identity Intel' : toolName}
+          </button>
+        ))}
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
+      </nav>
+
+      <nav className="customer-360-tabs" aria-label="Customer 360 dossier tabs" role="tablist">
+        {dossierTabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            className={activeTab === tab.id ? 'active' : ''}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </nav>
 
       <div className="customer-360-tool-row">
@@ -339,10 +375,10 @@ export default function Customer360Panel({
             aria-label="Search Customer 360 dossier"
           />
         </label>
-        <span aria-live="polite">{visibleSections.length} dossier sections · {profileChanges.length} profile events</span>
+        <span aria-live="polite">{visibleSections.length} matching dossier sections · {profileChanges.length} profile events</span>
       </div>
 
-      <section className="customer-360-claim-context" aria-label="Claim-specific Customer 360 highlights">
+      {(activeTab === 'overview' || normalizedQuery) && <section className="customer-360-claim-context" aria-label="Claim-specific Customer 360 highlights">
         <header className="customer-360-card-heading">
           <span aria-hidden="true">FOCUS</span>
           <div>
@@ -355,38 +391,88 @@ export default function Customer360Panel({
             <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
           ))}
         </dl>
-      </section>
+      </section>}
+
+      {(activeTab === 'overview' || normalizedQuery) && <section className="customer-360-support-grid" aria-label="Customer 360 at a glance and next steps">
+        <article className="customer-360-support-card">
+          <p>At a Glance</p>
+          <h3>Baseline before the claim</h3>
+          <dl>{dossier.atAGlance.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+        </article>
+        <article className="customer-360-support-card customer-360-coaching-card">
+          <p>Luna Insights</p>
+          <h3>Process coaching</h3>
+          <DirectCollapsibleText lines={4} mobileLines={5}>{dossier.lunaInsight}</DirectCollapsibleText>
+        </article>
+        <article className="customer-360-support-card">
+          <p>Recent Documents</p>
+          <h3>Latest case files</h3>
+          <div className="customer-360-mini-list">{documents.slice(0, 3).map((document) => <span key={document.id}><strong>{document.title}</strong><small>{document.status} · {document.received}</small></span>)}</div>
+          <button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button>
+        </article>
+        <article className="customer-360-support-card customer-360-next-step">
+          <p>Suggested Next Step</p>
+          <h3>{dossier.suggestedTool}</h3>
+          <span>Continue into the required case workspace after reviewing the customer baseline.</span>
+          <button type="button" onClick={() => openTool(dossier.suggestedTool)}>Begin Investigation</button>
+        </article>
+      </section>}
 
       <section className="customer-360-dossier-grid" aria-label="Customer 360 dossier sections">
-        {sections.map((section) => <DossierCard key={section.id} section={section} normalizedQuery={normalizedQuery} />)}
+        {tabSections.map((section) => <DossierCard key={section.id} section={section} normalizedQuery={normalizedQuery} />)}
         {normalizedQuery && visibleSections.length === 0 && (
           <div className="customer-360-empty" role="status">No dossier fields match this search. Clear or revise the search to continue.</div>
         )}
       </section>
 
-      <section className="customer-360-profile-log" aria-labelledby="customer-360-profile-log-heading">
+      {(activeTab === 'accounts' || normalizedQuery) && <section className="customer-360-record-section" aria-labelledby="customer-360-product-records-heading">
+        <header className="customer-360-section-heading"><div><p>Account-level records</p><h3 id="customer-360-product-records-heading">Accounts & Products</h3></div><span>{dossier.products.length} records</span></header>
+        <div className="customer-360-structured-records">
+          {dossier.products.map((product) => <article key={product.id}>
+            <header><span>{product.id}</span><strong>{product.product} · {product.maskedNumber}</strong></header>
+            <dl>
+              <div><dt>Opened</dt><dd>{product.opened}</dd></div><div><dt>Status</dt><dd>{product.status}</dd></div><div><dt>Balance</dt><dd>{product.balance}</dd></div><div><dt>Limit</dt><dd>{product.limit}</dd></div><div><dt>Standing</dt><dd>{product.standing}</dd></div>
+            </dl>
+          </article>)}
+        </div>
+      </section>}
+
+      {(activeTab === 'contact' || normalizedQuery) && <section className="customer-360-record-section" aria-labelledby="customer-360-contact-records-heading">
+        <header className="customer-360-section-heading"><div><p>Calls, messages, notices, and callbacks</p><h3 id="customer-360-contact-records-heading">Recent Customer Contact Log</h3></div><span>{dossier.recentContacts.length} records</span></header>
+        <div className="customer-360-structured-records">
+          {dossier.recentContacts.map((contactRecord) => <article key={contactRecord.id}>
+            <header><span>{contactRecord.dateTime}</span><strong>{contactRecord.type}</strong></header>
+            <dl><div><dt>Channel</dt><dd>{contactRecord.channel}</dd></div><div><dt>Outcome</dt><dd>{contactRecord.outcome}</dd></div><div><dt>Agent / source</dt><dd>{contactRecord.agent}</dd></div><div><dt>Notes</dt><dd>{contactRecord.notes}</dd></div></dl>
+          </article>)}
+        </div>
+      </section>}
+
+      {(activeTab === 'history' || normalizedQuery) && <section className="customer-360-record-section" aria-labelledby="customer-360-prior-claims-heading">
+        <header className="customer-360-section-heading"><div><p>Historical claims and disputes</p><h3 id="customer-360-prior-claims-heading">Prior Claims & Disputes Records</h3></div><span>{dossier.priorClaims.length} records</span></header>
+        {dossier.priorClaims.length ? <div className="customer-360-structured-records">
+          {dossier.priorClaims.map((claim) => <article key={claim.id}>
+            <header><span>{claim.date} · {claim.id}</span><strong>{claim.type} · {claim.amount}</strong></header>
+            <dl><div><dt>Item</dt><dd>{claim.item}</dd></div><div><dt>Outcome</dt><dd>{claim.outcome}</dd></div><div><dt>Similar claim</dt><dd>{claim.similar}</dd></div><div><dt>Documents</dt><dd>{claim.documents}</dd></div><div><dt>Notes</dt><dd>{claim.notes}</dd></div></dl>
+          </article>)}
+        </div> : <div className="customer-360-empty">No prior claim or dispute record is supplied for this fictional profile.</div>}
+      </section>}
+
+      {(activeTab === 'history' || normalizedQuery) && <section className="customer-360-profile-log" aria-labelledby="customer-360-profile-log-heading">
         <header className="customer-360-section-heading">
           <div>
             <p>Permanent dossier history</p>
             <h3 id="customer-360-profile-log-heading">Profile Change Event Log</h3>
           </div>
-          <span>{profileChanges.length} shown</span>
+          <div className="customer-360-section-actions"><span>{profileChanges.length} shown</span><button type="button" onClick={exportProfileChangeReport}>Export Profile Change Report</button></div>
         </header>
         <div className="customer-360-event-list">
           {profileChanges.map((event) => (
             <article key={event.id} className="customer-360-event-card" data-profile-event={event.id}>
-              <div className="customer-360-event-time"><strong>{event.date}</strong><span>{event.source}</span></div>
+              <div className="customer-360-event-time"><strong>{event.date}</strong><span>{event.time ?? 'Time not supplied'}</span><span>{event.source}</span></div>
               <div className="customer-360-event-copy">
                 <h4>{event.item}</h4>
                 <DirectCollapsibleText lines={2} mobileLines={3}>{event.detail}</DirectCollapsibleText>
-                <dl>
-                  <div><dt>Old value</dt><dd>Not supplied</dd></div>
-                  <div><dt>New value</dt><dd>See event detail</dd></div>
-                  <div><dt>Channel / source</dt><dd>{event.source}</dd></div>
-                  <div><dt>User / device / session</dt><dd>Open linked access tools</dd></div>
-                  <div><dt>MFA method</dt><dd>Open MFA or login records</dd></div>
-                  <div><dt>Notes</dt><dd>{event.id}</dd></div>
-                </dl>
+                <dl>{profileEventMetadata(event).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
               </div>
               <div className="customer-360-event-actions">
                 <button type="button" onClick={() => pin(`${event.id} · ${event.item}`)}>Pin</button>
@@ -396,9 +482,9 @@ export default function Customer360Panel({
           ))}
           {!profileChanges.length && <div className="customer-360-empty" role="status">No profile events match this search.</div>}
         </div>
-      </section>
+      </section>}
 
-      <section className="customer-360-related-records" aria-labelledby="customer-360-related-records-heading">
+      {(activeTab === 'devices' || normalizedQuery) && <section className="customer-360-related-records" aria-labelledby="customer-360-related-records-heading">
         <header className="customer-360-section-heading">
           <div>
             <p>Searchable case objects</p>
@@ -420,7 +506,21 @@ export default function Customer360Panel({
           ))}
           {!visibleRows.length && <div className="customer-360-empty" role="status">No related customer records match this search.</div>}
         </div>
-      </section>
+      </section>}
+
+      {activeTab === 'notes' && !normalizedQuery && <section className="customer-360-related-records customer-360-notes" aria-labelledby="customer-360-notes-heading">
+        <header className="customer-360-section-heading">
+          <div>
+            <p>Case-scoped documentation</p>
+            <h3 id="customer-360-notes-heading">Customer 360 Notes</h3>
+          </div>
+          <span>{notes.length} saved</span>
+        </header>
+        <div className="customer-360-note-list">
+          {notes.length ? notes.map((note, index) => <article key={`${note}-${index}`}>{note}</article>) : <div className="customer-360-empty" role="status">No notes have been saved for this case yet.</div>}
+        </div>
+        <button type="button" className="customer-360-primary" onClick={() => saveNote(`Customer 360 dossier reviewed for ${activeCase.person}.`, 'Customer 360 dossier')}>Save dossier note</button>
+      </section>}
 
       <footer className="customer-360-review-bar">
         <div>
@@ -428,7 +528,6 @@ export default function Customer360Panel({
           <span>Marking this dossier reviewed records process completion only. It does not determine the case outcome.</span>
         </div>
         <div>
-          <button type="button" onClick={() => saveCaseReportPacket(reportRow)}>Save neutral dossier packet</button>
           <button type="button" className="customer-360-primary" onClick={() => markReviewed('Customer 360')}>
             {currentCompleted.includes('Customer 360') ? '✓ Customer 360 reviewed' : 'Mark Customer 360 reviewed'}
           </button>

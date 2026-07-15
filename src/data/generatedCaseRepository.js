@@ -162,22 +162,41 @@ export async function listGeneratedCases() {
   return repository.list();
 }
 
-export async function generateAndSaveCase() {
+function generatorConfig(config = {}) {
+  return {
+    claimTypeId: config.claimTypeId,
+    scenarioId: config.scenarioId,
+    difficulty: config.difficulty,
+    evidenceDepth: config.evidenceDepth,
+  };
+}
+
+export async function generateAndSaveCase(config = {}) {
   const repository = await getGeneratedCaseRepository();
   const now = Date.now();
   const savedSequence = await repository.getSequence();
   let seed = savedSequence >= now ? savedSequence + 1 : now;
   const existingIds = new Set((await repository.list()).map((item) => item.id));
-  let nextCase = { ...createGeneratedCase(seed), generatedAt: seed };
+  const options = generatorConfig(config);
+  let nextCase = { ...createGeneratedCase(seed, options), generatedAt: seed };
 
   while (existingIds.has(nextCase.id)) {
     seed += 1;
-    nextCase = { ...createGeneratedCase(seed), generatedAt: seed };
+    nextCase = { ...createGeneratedCase(seed, options), generatedAt: seed };
   }
 
   await repository.setSequence(seed);
   await repository.put(nextCase);
   return nextCase;
+}
+
+export async function generateAndSaveCases({ count = 1, ...config } = {}) {
+  const normalizedCount = Math.min(25, Math.max(1, Number.parseInt(count, 10) || 1));
+  const created = [];
+  for (let index = 0; index < normalizedCount; index += 1) {
+    created.push(await generateAndSaveCase(config));
+  }
+  return created;
 }
 
 export function combineCaseCatalog(baseCases = [], generatedCases = []) {

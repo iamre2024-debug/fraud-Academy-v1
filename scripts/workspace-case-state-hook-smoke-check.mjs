@@ -26,9 +26,8 @@ mustContain('useVisualWorkspaceCaseState.js', hook, 'tray: trayByCase[caseId] ??
 mustContain('useVisualWorkspaceCaseState.js', hook, "currentCompleted: completedByCase[caseId] ?? ['Case Summary']");
 mustContain('useVisualWorkspaceCaseState.js', hook, 'decisionDraft: decisionByCase[caseId] ?? defaultDecisionDraft');
 mustContain('useVisualWorkspaceCaseState.js', hook, 'reviewPackages: packagesByCase[caseId] ?? []');
-mustContain('useVisualWorkspaceCaseState.js', hook, 'reportPackets: packetsByCase[caseId] ?? []');
 
-for (const key of ['tray', 'notes', 'completed', 'decisions', 'packages', 'reportPackets']) {
+for (const key of ['tray', 'notes', 'completed', 'decisions', 'packages']) {
   mustContain('useVisualWorkspaceCaseState.js', hook, `storageKeys.${key}`);
 }
 

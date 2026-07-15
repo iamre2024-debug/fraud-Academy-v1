@@ -3,6 +3,8 @@ import path from 'node:path';
 
 const rootDir = process.cwd();
 const decision = fs.readFileSync(path.join(rootDir, 'src/SubmitDecisionPanel.jsx'), 'utf8');
+const decisionFlags = fs.readFileSync(path.join(rootDir, 'src/DecisionFlagChecklist.jsx'), 'utf8');
+const decisionFlagData = fs.readFileSync(path.join(rootDir, 'src/data/decisionChecklist.js'), 'utf8');
 const luna = fs.readFileSync(path.join(rootDir, 'src/LunaPostSubmissionPanel.jsx'), 'utf8');
 const app = fs.readFileSync(path.join(rootDir, 'src/VisualApp.jsx'), 'utf8');
 const actions = fs.readFileSync(path.join(rootDir, 'src/useVisualWorkspaceActions.js'), 'utf8');
@@ -35,19 +37,44 @@ for (const anchor of [
   'Submit Decision',
   'Evidence First protection',
   'Luna debrief stays locked until this case has a saved learner package.',
-  'Package readiness',
+  'Decision readiness',
   'packageStatus.messages.map',
   'Rationale progress',
-  'decisionCallGroups.map',
-  'Learner decision choice',
+  'getDecisionCallGroups(activeCase)',
+  'selectionGroups.map',
+  'Determination choice',
   'Learner confidence',
   'Learner rationale',
-  'Save learner package',
-  'Check package readiness',
+  'Submit Decision',
+  'Check decision readiness',
   'Submission confirmation',
   'Luna debrief unlocked',
 ]) {
   mustContain('SubmitDecisionPanel.jsx', decision, anchor);
+}
+
+for (const anchor of [
+  'Case-specific checklist',
+  'Red flags',
+  'Green flags',
+  'Proof or record reference',
+  'Why this evidence proves the flag',
+  'Critical red flag documented.',
+  'updateDecisionIndicator',
+]) {
+  mustContain('DecisionFlagChecklist.jsx', decisionFlags, anchor);
+}
+
+for (const anchor of [
+  'export const flagWeightPoints',
+  'wallet-chip-during-fraud-window',
+  'physical chip card',
+  'Business Payroll ATO decision checklist',
+  'Email Fraud / BEC decision checklist',
+  'export function getDecisionChecklist',
+  'export function summarizeDecisionIndicators',
+]) {
+  mustContain('decisionChecklist.js', decisionFlagData, anchor);
 }
 
 for (const anchor of [
@@ -103,9 +130,12 @@ for (const anchor of [
 for (const anchor of [
   'export const decisionCallGroups',
   'export const minimumRationaleWords',
+  'export function getRequiredReviewTools',
+  'export function getDecisionCallGroups',
+  'export function getReviewChoices',
   'export function getReviewPackageStatus',
   'export function buildReviewPackage',
-  'Review package checklist is complete. Evidence First unlocks Luna only after saving this package.',
+  'The weighted flag checklist and review package are complete. Luna unlocks only after saving this package.',
 ]) {
   mustContain('reviewPackage.js', reviewPackage, anchor);
 }
@@ -129,7 +159,7 @@ for (const anchor of [
   '.luna-v1-unlock-grid',
   '.luna-v1-debrief-grid',
   'position: static !important',
-  'grid-template-columns: minmax(0, 0.95fr) minmax(340px, 1.05fr)',
+  'grid-template-columns: minmax(360px, 1.12fr) minmax(280px, 0.88fr)',
   '@media (max-width: 960px)',
   '@media (max-width: 720px)',
   '@media (max-width: 520px)',

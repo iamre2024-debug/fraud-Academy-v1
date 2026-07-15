@@ -1,57 +1,50 @@
 import { test, expect } from '@playwright/test';
 
-test('responsive records become labeled mobile cards without record-surface overflow', async ({ page }, testInfo) => {
+test('responsive payment records stay inside the viewport', async ({ page }, testInfo) => {
   await page.goto('/');
 
-  const workflow = page.getByRole('navigation', { name: 'Active case workflow' });
-  await workflow.getByRole('button', { name: /Summary/ }).click();
+  const groupRail = page.locator('[data-investigation-tool-groups="approved-theme-v1"]');
+  await groupRail.getByRole('button', { name: /Business & Payment Verification/ }).click();
 
-  const selector = page.locator('.activity-panel .tool-select');
-  await expect(selector).toHaveValue('Case Report');
+  const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
+  const selector = panel.getByRole('combobox', { name: 'Choose investigation tool' });
+  await selector.selectOption('Payment Verification');
+  await expect(panel).toHaveAttribute('data-tool-name', 'Payment Verification');
 
-  const table = page.locator('.activity-table');
-  const header = table.locator('.table-head');
-  const firstRecord = table.locator('.activity-row:not(.table-head)').first();
-  const firstCell = firstRecord.locator('[role="cell"][data-field]').first();
-
-  await expect(table).toHaveAttribute('role', 'table');
-  await expect(firstRecord).toBeVisible();
-  await expect(firstCell).toHaveAttribute('data-field', /.+/);
+  const recordList = panel.locator('.payment-record-list');
+  const detail = panel.locator('.payment-detail-panel');
+  await expect(recordList.getByRole('button').first()).toBeVisible();
+  await expect(detail).toBeVisible();
 
   const layout = await page.evaluate(() => {
-    const panel = document.querySelector('.activity-panel');
-    const recordTable = document.querySelector('.activity-table');
-    const record = document.querySelector('.activity-row:not(.table-head)');
+    const panelElement = document.querySelector('[data-investigation-tools-screen="approved-theme-v1"]');
+    const recordListElement = document.querySelector('.payment-record-list');
+    const detailElement = document.querySelector('.payment-detail-panel');
     const viewportWidth = window.innerWidth;
     const withinViewport = (element) => {
-      const rect = element.getBoundingClientRect();
-      return rect.left >= -1 && rect.right <= viewportWidth + 1;
+      const rect = element?.getBoundingClientRect();
+      return Boolean(rect && rect.left >= -1 && rect.right <= viewportWidth + 1);
     };
 
     return {
-      panelFits: withinViewport(panel),
-      tableFits: withinViewport(recordTable),
-      recordFits: withinViewport(record),
-      panelOverflow: panel.scrollWidth - panel.clientWidth,
-      recordOverflow: record.scrollWidth - record.clientWidth,
+      panelFits: withinViewport(panelElement),
+      listFits: withinViewport(recordListElement),
+      detailFits: withinViewport(detailElement),
+      panelOverflow: panelElement.scrollWidth - panelElement.clientWidth,
+      listTop: recordListElement?.getBoundingClientRect().top ?? 0,
+      detailTop: detailElement?.getBoundingClientRect().top ?? 0,
     };
   });
 
   expect(layout.panelFits).toBe(true);
-  expect(layout.tableFits).toBe(true);
-  expect(layout.recordFits).toBe(true);
+  expect(layout.listFits).toBe(true);
+  expect(layout.detailFits).toBe(true);
+  expect(layout.panelOverflow).toBeLessThanOrEqual(1);
 
   if (testInfo.project.name === 'mobile-chromium') {
-    await expect(header).toBeHidden();
-    expect(await firstRecord.evaluate((element) => getComputedStyle(element).display)).toBe('block');
-    expect(layout.panelOverflow).toBeLessThanOrEqual(1);
-    expect(layout.recordOverflow).toBeLessThanOrEqual(1);
-    const mobileLabel = await firstCell.evaluate((element) => getComputedStyle(element, '::before').content);
-    expect(mobileLabel).not.toBe('none');
-    expect(mobileLabel).not.toBe('normal');
+    expect(layout.detailTop).toBeGreaterThan(layout.listTop + 20);
   } else {
-    await expect(header).toBeVisible();
-    expect(await firstRecord.evaluate((element) => getComputedStyle(element).display)).toBe('grid');
+    expect(Math.abs(layout.listTop - layout.detailTop)).toBeLessThanOrEqual(2);
   }
 
   const activeCaseId = await page.locator('.visual-case-switcher select').inputValue();

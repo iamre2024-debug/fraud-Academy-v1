@@ -16,7 +16,7 @@ export const businessRecordsByCase = {
     ],
     payrollHistory: [
       { id: 'PAYR-1001', period: 'Jul 2026', employer: 'No payroll source selected', amount: '$0.00', channel: 'Not part of current claim packet', status: 'Scope note', context: 'Payroll history remains searchable for cross-tool consistency.' },
-      { id: 'PAYR-1002', period: 'Jun 2026', employer: 'Customer relationship snapshot', amount: 'Available balance context only', channel: 'Account history', status: 'Reference', context: 'Use Financial Intelligence for balance and transaction details.' },
+      { id: 'PAYR-1002', period: 'Jun 2026', employer: 'Customer relationship snapshot', amount: 'Available balance context only', channel: 'Account history', status: 'Reference', context: 'Use Financial Investigation for balance and transaction details.' },
     ],
   },
   'FA-CB-24007': {
@@ -28,7 +28,7 @@ export const businessRecordsByCase = {
     businessIntel: [
       { id: 'BIN-2201', type: 'Merchant descriptor', value: 'StreamBox Premium', observed: 'Jul 8, 2026', context: 'Descriptor appears on current and prior billing records.' },
       { id: 'BIN-2202', type: 'Service relationship', value: 'Monthly subscription billing', observed: 'May-Jul 2026', context: 'Pattern context should be reviewed with customer documents.' },
-      { id: 'BIN-2203', type: 'Document dependency', value: 'Cancellation confirmation requested', observed: 'Jul 8, 2026', context: 'Document status belongs in Evidence Center before final case documentation.' },
+      { id: 'BIN-2203', type: 'Document dependency', value: 'Cancellation confirmation requested', observed: 'Jul 8, 2026', context: 'Document status belongs in Document Viewer before final case documentation.' },
     ],
     employeeProfile: [
       { id: 'EMP-2201', name: 'Jordan Ellis', role: 'Customer profile holder', employer: 'No employer object selected', status: 'Scope note', lastSeen: 'Jul 8, 2026', context: 'Employee profile review is not the primary object for this billing dispute.' },

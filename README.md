@@ -126,7 +126,7 @@ Use these files before making architecture, UI, navigation, responsive, tool, sc
 - Academy Progress remains active through contextual Dashboard, Academy, and Agent-profile actions rather than a fifth equal navigation item.
 - `src/ActiveCaseWorkflowRail.jsx` renders Case Briefing, Investigate, Timeline, Summary, Indicators, Determination, and Debrief with neutral status text and accessible current-step state.
 - `src/CategoryTileRail.jsx` renders the six approved contextual tool groups inside Investigate; Timeline and Case Report remain on the workflow rail.
-- Timeline opens the approved dedicated Timeline workspace and Summary keeps the existing Case Report tool; Indicators opens the neutral Evidence Center; Determination opens the approved package-gated Decision workspace; Debrief remains locked until a learner package exists and then opens the approved case-scoped Luna review.
+- Timeline opens the approved dedicated Timeline workspace and Summary keeps the existing Case Report tool; Indicators opens the neutral Document Viewer; Determination opens the approved package-gated Decision workspace; Debrief remains locked until a learner package exists and then opens the approved case-scoped Luna review.
 - `src/displayPhaseOne.css` owns the four-column global navigation override, header-control presentation, contextual Progress shortcut, and reduced-motion behavior.
 - `src/displayPhaseTwo.css` owns the focused workflow-rail presentation and compact wrapping without performing later hierarchy or mobile-record phases.
 - Display Phase 3 calibrates hierarchy and glow through `src/displayPhaseThree.css`, reducing repeated decorative bloom while formalizing primary, secondary, quiet, informational, warning, destructive, disabled, hover, focus, and selected states.
@@ -139,7 +139,7 @@ Use these files before making architecture, UI, navigation, responsive, tool, sc
 - `src/TimelinePanel.jsx` owns the approved Timeline workspace and preserves case-scoped event ordering, source verification, pinning, notes, neutral report packets, reviewed state, and workflow routes on the existing workspace action boundaries.
 - `src/Customer360Panel.jsx` owns the approved Customer 360 dossier and keeps search, related-tool routing, pinning, notes, neutral report packets, reviewed state, active-case switching, and Submit Decision routing on the existing workspace action boundaries.
 - `src/InvestigationToolPanel.jsx` owns the approved deep-tool record workspace and keeps search, expansion, pinning, notes, neutral report packets, reviewed state, Timeline/Case Report routes, case switching, and Submit Decision routing on the existing action boundaries.
-- `src/BottomInvestigationGrid.jsx` owns the Investigation Tray and Investigation Notebook cards, including pinned objects, notes, packet feed, and Open Evidence Center routing.
+- `src/BottomInvestigationGrid.jsx` owns the Investigation Tray and Investigation Notebook cards, including pinned objects, notes, packet feed, and Open Document Viewer routing.
 - `src/CaseSummaryCard.jsx` owns the approved Case Briefing card grid, direct compact controls, Pin Case, Workspace/Timeline/Notes/Reports/More Tools utilities, Identity Intelligence and Login History quick routes, and the Submit Decision jump.
 - `src/SubmitDecisionPanel.jsx` owns the approved Evidence First determination and learner-package workspace while the review package model keeps readiness and submission rules enforced.
 - `src/LunaPostSubmissionPanel.jsx` owns the approved protected lock and post-submission debrief, follows the active built-in or generated case, and reads the saved learner package through the existing state boundaries.
@@ -150,7 +150,7 @@ Use these files before making architecture, UI, navigation, responsive, tool, sc
 - Generated cases are added to the live React case catalog, opened without page refresh, preserved after reload, and kept behind a backend-ready repository contract.
 - The generated queue has no arbitrary application count cap. A monotonic sequence prevents rapid-generation ID collisions, and `scripts/generated-case-smoke-check.mjs` verifies more than 50 cases remain unique and available.
 - The old `src/visualInvestigationRepair.js` DOM route patch is retired and not loaded by the app entrypoint.
-- Case Briefing metadata, Device ID rows, Tool Map, Open Evidence Center, and Submit Decision routing are rendered through React instead of repair scripts.
+- Case Briefing metadata, Device ID rows, Tool Map, Open Document Viewer, and Submit Decision routing are rendered through React instead of repair scripts.
 - Submit Decision uses the locked review package model and remains Evidence First.
 - Category tiles and workflow stages use neutral progress and availability language only.
 - Broad DOM repair scripts remain out of the app entrypoint to avoid browser unresponsive loops.
@@ -218,7 +218,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 9. The approved Academy renders on desktop and Pixel 7 with four Evidence First learning paths, Fraud Library topics, neutral achievement guidance, contextual Progress, functional Cases and Workspace routes, isolation from unreplaced Workspace surfaces, and no required page overflow.
 10. The approved Profile renders on desktop and Pixel 7 with contextual avatar entry, neutral rank, skills, badges, activity, and goals, Workspace, Academy, and Progress routes, four-item navigation, isolation, and no required page overflow.
 11. All three built-in cases load from the Cases queue and update the active case workspace.
-12. Payment Verification, Business Intelligence, Evidence Center, Link Analysis, System Access Lane, Timeline, and Case Report open with records.
+12. Payment Verification, KYB Review, Document Viewer, Link Analysis, System Access Lane, Timeline, and Case Report open with records.
 13. Generated cases save through the repository, open immediately, remain unique during rapid generation, persist after reload, and return to the approved Case Queue.
 14. Luna remains locked before submission and follows the active built-in or generated case ID.
 15. Desktop and mobile Chromium render the tested flows without visible Evidence First answer leaks.

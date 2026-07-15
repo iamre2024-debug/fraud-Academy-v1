@@ -23,11 +23,19 @@ for (const anchor of [
   'data-cases-theme-v1="approved"',
   'Search cases',
   'Case Queue',
+  'Generate fictional training cases',
+  'Create training cases',
+  'Unlimited queue',
+  'Generate case claim type',
+  'Generate case scenario',
+  'Generate case count',
+  'onGenerateCases',
   '>Detail</button>',
   '>Compact</button>',
   'Selected case preview',
   'Why this case exists',
   'Customer allegation or system alert',
+  'case-queue-chargeback-details',
   'Evidence First',
   'className="nav-case-card"',
   'onOpenCase?.(item.id)',
@@ -40,9 +48,13 @@ for (const anchor of [
 
 mustContain('VisualApp.jsx', app, "import CasesThemeV1Panel from './CasesThemeV1Panel.jsx';");
 mustContain('VisualApp.jsx', app, "active={activeTab === 'cases'}");
+mustContain('VisualApp.jsx', app, "import { coreClaimTypes } from './data/claimRegistry.js';");
+mustContain('VisualApp.jsx', app, 'generateAndSaveCases');
+mustContain('VisualApp.jsx', app, 'onGenerateCases={handleGeneratedCases}');
 mustContain('main.jsx', entrypoint, "import './displayCasesThemeV1.css';");
 mustContain('displayCasesThemeV1.css', styles, 'body[data-visual-tab="cases"]');
 mustContain('displayCasesThemeV1.css', styles, '.cases-theme-v1-panel');
+mustContain('displayCasesThemeV1.css', styles, '.case-generator-v2');
 mustContain('displayCasesThemeV1.css', styles, '.case-queue-layout');
 mustContain('displayCasesThemeV1.css', styles, '@media (max-width: 560px)');
 mustContain('displayCasesThemeV1.css', styles, '@media (max-width: 380px)');

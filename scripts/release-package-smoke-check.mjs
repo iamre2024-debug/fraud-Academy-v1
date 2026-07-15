@@ -71,7 +71,6 @@ for (const stateAnchor of [
   'storageKeys.completed',
   'storageKeys.decisions',
   'storageKeys.packages',
-  'storageKeys.reportPackets',
 ]) {
   mustContain('useVisualWorkspaceCaseState.js', workspaceState, stateAnchor);
 }

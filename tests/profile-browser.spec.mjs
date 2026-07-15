@@ -6,7 +6,7 @@ const forbiddenProfileCopy = /(?:Correct answer|Fraud score|Red flag|Green flag|
 async function seedProfileActivity(page) {
   await page.addInitScript(({ activeCaseId }) => {
     localStorage.setItem('fraud-academy-completed-tools-v1', JSON.stringify({
-      [activeCaseId]: ['Case Summary', 'Customer 360', 'Identity Intelligence', 'Login History'],
+      [activeCaseId]: ['Case Summary', 'Customer 360', 'Identity Intel / People Search', 'Login History'],
     }));
     localStorage.setItem('fraud-academy-notes-v1', JSON.stringify({
       [activeCaseId]: ['Profile test note'],
@@ -37,7 +37,7 @@ test('approved Profile opens from the agent avatar and preserves neutral respons
   await expect(profile.locator('.profile-stat-grid article')).toHaveCount(4);
   await expect(profile.locator('.profile-skill-list article')).toHaveCount(4);
   await expect(profile.locator('.profile-badge-grid article')).toHaveCount(4);
-  await expect(profile.locator('.profile-goal-grid article')).toHaveCount(4);
+  await expect(profile.locator('.profile-goal-grid article')).toHaveCount(3);
   await expect(profile.getByText('4', { exact: true }).first()).toBeVisible();
   expect(await profile.innerText()).not.toMatch(forbiddenProfileCopy);
 

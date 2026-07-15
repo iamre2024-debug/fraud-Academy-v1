@@ -1,0 +1,108 @@
+.layout-setting-row {
+  flex-wrap: wrap;
+}
+
+.layout-setting-copy {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.layout-mode-control {
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(72px, 1fr));
+  gap: 4px;
+  border: 1px solid rgba(173, 76, 255, 0.3);
+  border-radius: 12px;
+  background: rgba(7, 3, 14, 0.32);
+  padding: 4px;
+}
+
+.layout-mode-control button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  padding: 6px 10px;
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.layout-mode-control button.active {
+  background: #754fc6;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(63, 39, 123, 0.2);
+}
+
+body[data-visual-tab="workspace"] .layout-mode-control {
+  border-color: rgba(91, 62, 154, 0.18);
+  background: #eee7fb;
+}
+
+body[data-visual-tab="workspace"] .layout-mode-control button {
+  color: #5e5477;
+}
+
+body[data-visual-tab="workspace"] .layout-mode-control button.active {
+  background: #754fc6;
+  color: #fff;
+}
+
+body[data-layout-preference="mobile"] .visual-os-shell {
+  width: min(100%, 460px);
+  margin-inline: auto;
+  padding-inline: 8px;
+}
+
+body[data-layout-preference="mobile"] .visual-os-frame :is(
+  [class$="-layout"],
+  [class*="-layout "],
+  [class$="-grid"],
+  [class*="-grid "]
+) {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+body[data-layout-preference="mobile"] .decision-v1-form,
+body[data-layout-preference="mobile"] .luna-v1-score-banner,
+body[data-layout-preference="mobile"] .luna-v1-user-reasoning dl {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+body[data-layout-preference="mobile"] .luna-v1-breakdown,
+body[data-layout-preference="mobile"] .decision-v1-form > header,
+body[data-layout-preference="mobile"] .decision-v1-form .decision-rationale,
+body[data-layout-preference="mobile"] .decision-v1-form > button {
+  grid-column: auto !important;
+}
+
+body[data-layout-preference="mobile"] .luna-v1-routes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body[data-layout-preference="mobile"] .luna-v1-routes button,
+body[data-layout-preference="mobile"] .decision-v1-form > button {
+  width: 100%;
+}
+
+body[data-layout-preference="mobile"] .decision-v1-header,
+body[data-layout-preference="mobile"] .luna-v1-header {
+  display: grid;
+}
+
+body[data-layout-preference="mobile"] .decision-v1-header-status,
+body[data-layout-preference="mobile"] .luna-v1-header-status {
+  grid-auto-flow: column;
+  justify-content: start;
+  justify-items: start;
+}
+
+@media (max-width: 520px) {
+  .layout-mode-control {
+    width: 100%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

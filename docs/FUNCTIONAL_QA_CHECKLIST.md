@@ -21,7 +21,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Header module | VisualShellHeader module | Own ornate app header, active case strip, and Case Queue dropdown | Split from VisualWorkspace | Keep screenshot classes |
 | Workspace model | visualWorkspaceModel module | Own category definitions, storage keys, row builders, and report packet construction | Split from VisualWorkspace | Keep module boundary |
 | Active tool module | ActiveToolPanel module | Own sub-tool dropdown, search, table, expanded record lanes, pin/review/report actions | Split from VisualWorkspace | Keep screenshot classes |
-| Bottom grid module | BottomInvestigationGrid module | Own Investigation Tray, Notebook, note compose, packet panel, and Open Evidence Center route | Split from VisualWorkspace | Keep case-scoped props |
+| Bottom grid module | BottomInvestigationGrid module | Own Investigation Tray, Notebook, note compose, packet panel, and Open Document Viewer route | Split from VisualWorkspace | Keep case-scoped props |
 | Case summary module | CaseSummaryCard module | Own neutral intake facts, Pin Case, quick tool routes, and Submit Decision jump | Split from VisualWorkspace | Keep no-answer summary |
 | Category rail module | CategoryTileRail module | Own ornate category buttons, reviewed counters, progress bars, and Tool Map route | Split from VisualWorkspace | Keep neutral progress only |
 | Submit module | SubmitDecisionPanel module | Own locked Submit Decision visual markup and learner inputs | Split from VisualWorkspace | Keep Evidence First lock |
@@ -50,7 +50,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Submit Decision | Package input preview | Show reviewed tools, pinned objects, notes, and Case Report packet feed neutrally | Working | Keep |
 | Luna Debrief | Locked state | Stay locked until package exists | Working | Keep |
 | Investigation Tray | Pinned objects | Show current case pinned evidence | Working | Keep |
-| Investigation Tray | Open Evidence Center | Route user to Evidence Center workspace | React callback | Retest |
+| Investigation Tray | Open Document Viewer | Route user to Document Viewer workspace | React callback | Retest |
 | Notebook | Textarea + Save Note | Save note to active case | Working | Keep |
 | Notebook | Case Report packets panel | Show saved packet feed | Working | Keep |
 | Bottom nav | Dashboard | Open dashboard panel | React-managed | Retest |
@@ -81,7 +81,7 @@ Use this path after every major UI update:
 3. Click Dashboard, Cases, Workspace, Academy, and Progress.
 4. Switch to each case from the case dropdown and from the Cases tab.
 5. Use Tool Map and confirm it opens the Academy panel.
-6. Use Open Evidence Center and confirm it switches to Evidence → Evidence Center.
+6. Use Open Document Viewer and confirm it switches to Evidence → Document Viewer.
 7. Confirm Case Summary shows name, claim ID, total amount, transaction/payee info, and short neutral summary.
 8. Open Identity Intel, Case Report, and Submit Decision from the Case Summary quick actions.
 9. Open Device Intelligence and confirm repeated devices show the same Device ID.
@@ -97,4 +97,4 @@ Use this path after every major UI update:
 
 ## Latest QA status
 
-The lightweight investigation repair script has been retired. Device IDs, case-summary metadata, Submit Decision routing, Tool Map routing, Open Evidence Center routing, generated-case opening, case switching, and the System Access Lane sub-tool now run through React state/callbacks from `VisualApp.jsx`, `VisualWorkspace.jsx`, `visualWorkspaceModel.js`, and `VisualNavigation.jsx` while keeping the screenshot-driven visual design intact. The three built-in cases now have an automated visual smoke guard in `npm run verify`; the browser smoke path is still required for real click/viewport confirmation.
+The lightweight investigation repair script has been retired. Device IDs, case-summary metadata, Submit Decision routing, Tool Map routing, Open Document Viewer routing, generated-case opening, case switching, and the System Access Lane sub-tool now run through React state/callbacks from `VisualApp.jsx`, `VisualWorkspace.jsx`, `visualWorkspaceModel.js`, and `VisualNavigation.jsx` while keeping the screenshot-driven visual design intact. The three built-in cases now have an automated visual smoke guard in `npm run verify`; the browser smoke path is still required for real click/viewport confirmation.

@@ -22,6 +22,11 @@ const allowedPostSubmissionFiles = new Set([
   path.join('src', 'AcademyProgress.jsx'),
   path.join('src', 'data', 'lunaDebrief.js'),
 ]);
+const allowedDecisionStageFiles = new Set([
+  path.join('src', 'DecisionFlagChecklist.jsx'),
+  path.join('src', 'data', 'decisionChecklist.js'),
+  path.join('src', 'data', 'reviewPackage.js'),
+]);
 
 function walkDirectory(directory) {
   if (!fs.existsSync(directory)) return [];
@@ -39,6 +44,7 @@ function normalizeRelative(file) {
 
 function isAllowedUse({ relativeFile, lineText }) {
   if (allowedPostSubmissionFiles.has(relativeFile)) return true;
+  if (allowedDecisionStageFiles.has(relativeFile)) return true;
   return allowedLockContext.test(lineText);
 }
 

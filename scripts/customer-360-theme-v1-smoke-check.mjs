@@ -3,6 +3,7 @@ import path from 'node:path';
 
 const rootDir = process.cwd();
 const panel = fs.readFileSync(path.join(rootDir, 'src/Customer360Panel.jsx'), 'utf8');
+const dossier = fs.readFileSync(path.join(rootDir, 'src/data/customer360Dossier.js'), 'utf8');
 const workspace = fs.readFileSync(path.join(rootDir, 'src/VisualWorkspace.jsx'), 'utf8');
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayCustomer360ThemeV1.css'), 'utf8');
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
@@ -33,26 +34,51 @@ for (const anchor of [
   'Recent Customer Contact',
   'Prior Claims / Disputes',
   'Profile Change Event Log',
+  'At a Glance',
+  'Luna Insights',
+  'Recent Documents',
+  'Suggested Next Step',
+  'Accounts & Products',
+  'Recent Customer Contact Log',
+  'Prior Claims & Disputes Records',
+  'Export Profile Change Report',
   'Related Customer Records',
   'Claim-specific Customer 360 highlights',
   'Search this dossier',
+  'customer-360-tabs',
+  'Customer 360 dossier tabs',
+  'Devices & Access',
+  'Customer 360 Notes',
   'Identity Intel',
   'Login History',
   'Device Intelligence',
+  'Document Viewer',
+  'Document Request',
   'Open Submit Decision',
   "markReviewed('Customer 360')",
-  'Save neutral dossier packet',
   'It does not determine the case outcome.',
 ]) {
   mustContain('Customer360Panel.jsx', panel, anchor);
 }
 
 for (const anchor of [
+  'getCustomer360Dossier',
+  'normalDeposits',
+  'normalSpending',
+  'recentContacts',
+  'priorClaims',
+  'claimHighlights',
+  'suggestedTool',
+  'lunaInsight',
+]) {
+  mustContain('customer360Dossier.js', dossier, anchor);
+}
+
+for (const anchor of [
   "import Customer360Panel from './Customer360Panel.jsx'",
-  "tool === 'Customer 360'",
+  "activeTool === 'Customer 360'",
   '<Customer360Panel {...activeToolProps} />',
-  '<ActiveToolPanel {...activeToolProps} />',
-  'rowsFor(tool, activeCase, reportPackets)',
+  'rowsFor(activeTool, activeCase)',
 ]) {
   mustContain('VisualWorkspace.jsx', workspace, anchor);
 }
@@ -61,7 +87,11 @@ for (const anchor of [
   'body[data-visual-tab="workspace"]',
   '.customer-360-theme-v1',
   '.customer-360-dossier-grid',
+  '.customer-360-tabs',
+  '.customer-360-note-list',
   '.customer-360-profile-log',
+  '.customer-360-support-grid',
+  '.customer-360-structured-records',
   '.customer-360-event-card',
   '.customer-360-review-bar',
   'grid-template-columns: repeat(12, minmax(0, 1fr))',
@@ -75,6 +105,8 @@ for (const anchor of [
 mustContain('main.jsx', entrypoint, "import './displayCustomer360ThemeV1.css';");
 mustContain('customer-360-browser.spec.mjs', browser, 'approved Customer 360 is a complete Evidence First dossier');
 mustContain('customer-360-browser.spec.mjs', browser, 'mobile-chromium');
+mustContain('customer-360-browser.spec.mjs', browser, 'Customer 360 dossier tabs');
+mustContain('customer-360-browser.spec.mjs', browser, 'Export Profile Change Report');
 mustContain('Customer 360 handoff', handoff, 'agent/customer-360-approved-theme-v1');
 mustContain('Customer 360 handoff', handoff, 'Investigation tools only');
 mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_CUSTOMER_360_THEME_V1.md`');

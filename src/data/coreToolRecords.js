@@ -1,6 +1,5 @@
-import { financialRecordsByCase } from './financialRecords.js';
-import { businessRecordsByCase } from './businessRecords.js';
-import { evidenceRecordsByCase } from './evidenceRecords.js';
+import { getBusinessRecords, getFinancialRecords } from './caseToolData.js';
+import { getCaseDocuments } from './documentRecords.js';
 
 function row(id, values, pin = id, label = 'Record') {
   const normalized = values.map((value) => value ?? 'Not recorded');
@@ -14,9 +13,10 @@ function joinIds(items = []) {
 export function buildCoreToolRecords(tool, activeCase, fallbackData = { rows: [] }) {
   const logins = activeCase.loginHistory ?? [];
   const events = activeCase.events ?? [];
-  const financial = financialRecordsByCase[activeCase.id] ?? { transactions: [], paymentVerification: [] };
-  const business = businessRecordsByCase[activeCase.id] ?? { businessIntel: [], business360: [] };
-  const evidence = evidenceRecordsByCase[activeCase.id] ?? { evidence: [], documents: [] };
+  const profileChanges = activeCase.customer?.profileChanges ?? [];
+  const financial = getFinancialRecords(activeCase);
+  const business = getBusinessRecords(activeCase);
+  const documents = getCaseDocuments(activeCase);
 
   if (tool === 'Payment Verification') return {
     columns: ['Record', 'Payment Object / Bank Code / Destination ID', 'Status', 'Last Seen', 'Linked Transactions', 'Linked Digital Objects', 'Context'],
@@ -36,14 +36,14 @@ export function buildCoreToolRecords(tool, activeCase, fallbackData = { rows: []
     )),
   };
 
-  if (tool === 'Business Intelligence') return {
+  if (tool === 'KYB Review') return {
     columns: ['Record', 'Type', 'Business / Value', 'Observed', 'Relationships', 'Related Activity', 'Context'],
     rows: [
       ...business.businessIntel.map((item) => row(
         item.id,
         [item.id, item.type, item.value, item.observed, business.business360.map((entry) => entry.entity).join(' · ') || 'None recorded', joinIds(financial.transactions), item.context],
         item.id,
-        'Business intelligence',
+        'KYB record',
       )),
       ...business.business360.map((item) => row(
         `REL-${item.id}`,
@@ -54,22 +54,14 @@ export function buildCoreToolRecords(tool, activeCase, fallbackData = { rows: []
     ],
   };
 
-  if (tool === 'Evidence Center') return {
-    columns: ['Evidence', 'Category', 'Status', 'Source', 'Received / Updated', 'Linked Object', 'Summary / Preview'],
-    rows: [
-      ...evidence.evidence.map((item) => row(
-        item.id,
-        [item.id, item.type, item.status, item.source, item.received, item.linkedObject, item.summary],
-        item.id,
-        'Evidence',
-      )),
-      ...evidence.documents.map((item) => row(
-        item.id,
-        [item.id, item.category, item.status, 'Document Viewer', item.updated, activeCase.id, item.preview],
-        item.id,
-        'Evidence document',
-      )),
-    ],
+  if (tool === 'Document Viewer') return {
+    columns: ['Document', 'Folder', 'Status', 'Source', 'Received / Updated', 'Reference', 'Summary / Preview'],
+    rows: documents.map((item) => row(
+      item.id,
+      [item.id, item.folder, item.status, item.source, item.received, item.reference, item.summary],
+      item.id,
+      'Document',
+    )),
   };
 
   if (tool === 'Link Analysis') return {
@@ -80,7 +72,7 @@ export function buildCoreToolRecords(tool, activeCase, fallbackData = { rows: []
       ...financial.transactions.map((item) => row(`LNK-${item.id}`, [`LNK-${item.id}`, item.id, 'Transaction', item.merchant, item.channel, activeCase.id, `${item.amount} · ${item.instrument}`], item.id, 'Transaction link')),
       ...financial.paymentVerification.map((item) => row(`LNK-${item.id}`, [`LNK-${item.id}`, item.object, `${item.type} / Bank Code / Destination ID`, joinIds(financial.transactions), item.id, activeCase.id, item.context], item.object, 'Payment link')),
       ...business.business360.map((item) => row(`LNK-${item.id}`, [`LNK-${item.id}`, item.entity, 'Business relationship', item.relationship, item.id, activeCase.id, item.context], item.entity, 'Business link')),
-      ...evidence.evidence.map((item) => row(`LNK-${item.id}`, [`LNK-${item.id}`, item.id, 'Evidence', item.linkedObject, item.source, activeCase.id, item.summary], item.id, 'Evidence link')),
+      ...documents.map((item) => row(`LNK-${item.id}`, [`LNK-${item.id}`, item.id, 'Document', item.reference, item.source, activeCase.id, item.summary], item.id, 'Document link')),
     ],
   };
 
@@ -88,29 +80,19 @@ export function buildCoreToolRecords(tool, activeCase, fallbackData = { rows: []
     columns: ['Timeline', 'Time', 'Event', 'Source', 'Linked Object', 'Case', 'Detail'],
     rows: [
       row('TML-OPEN', ['TML-OPEN', activeCase.opened, 'Case opened', 'Case Summary', activeCase.id, activeCase.id, activeCase.queueReason], activeCase.id, 'Timeline event'),
+      ...profileChanges.map((item) => row(
+        `TML-${item.id}`,
+        [`TML-${item.id}`, `${item.date}${item.time ? ` · ${item.time}` : ''}`, item.item, 'Customer 360', item.session ?? item.id, activeCase.id, `${item.eventType ?? 'Profile maintenance'} · ${item.oldValue ?? 'Not recorded'} → ${item.newValue ?? item.detail}`],
+        item.id,
+        'Profile change timeline',
+      )),
       ...events.map((item) => row(`TML-${item.id}`, [`TML-${item.id}`, item.time, item.label, item.chip, item.object, activeCase.id, item.detail], item.id, 'Timeline event')),
       ...logins.map((item) => row(`TML-${item.id}`, [`TML-${item.id}`, item.time, item.result, 'Login History', item.session, activeCase.id, `${item.deviceId ?? item.device} · ${item.ip}`], item.session, 'Login timeline')),
       ...financial.transactions.map((item) => row(`TML-${item.id}`, [`TML-${item.id}`, `${item.posted} · ${item.time}`, item.merchant, 'Transaction History', item.id, activeCase.id, `${item.amount} · ${item.status}`], item.id, 'Transaction timeline')),
       ...financial.paymentVerification.map((item) => row(`TML-${item.id}`, [`TML-${item.id}`, item.lastSeen, item.type, 'Payment Verification', item.id, activeCase.id, `${item.object} · ${item.status}`], item.id, 'Payment timeline')),
-      ...evidence.evidence.map((item) => row(`TML-${item.id}`, [`TML-${item.id}`, item.received, item.name, 'Evidence Center', item.id, activeCase.id, item.status], item.id, 'Evidence timeline')),
+      ...documents.map((item) => row(`TML-${item.id}`, [`TML-${item.id}`, item.received, item.title, 'Document Viewer', item.id, activeCase.id, item.status], item.id, 'Document timeline')),
     ],
   };
-
-  if (tool === 'Case Report') {
-    const savedPackets = (fallbackData.rows ?? []).filter((item) => item.label === 'Report packet');
-    return {
-      columns: ['Report', 'Section', 'Value', 'State', 'Case', 'Source', 'Action'],
-      rows: [
-        row('REP-OVERVIEW', ['REP-OVERVIEW', 'Case overview', activeCase.queueReason, 'Draft available', activeCase.id, 'Case Summary', 'Pin'], activeCase.id, 'Case report section'),
-        row('REP-CUSTOMER', ['REP-CUSTOMER', 'Customer summary', `${activeCase.person} · ${activeCase.trainingId}`, 'Draft available', activeCase.id, 'Customer 360', 'Pin'], activeCase.trainingId, 'Case report section'),
-        row('REP-PAYMENT', ['REP-PAYMENT', 'Payment verification', `${financial.paymentVerification.length} payment records available, including Bank Code and Destination ID objects when present`, 'Draft available', activeCase.id, 'Payment Verification', 'Pin'], activeCase.id, 'Case report section'),
-        row('REP-BUSINESS', ['REP-BUSINESS', 'Business intelligence', `${business.businessIntel.length} business records and ${business.business360.length} relationship records available`, 'Draft available', activeCase.id, 'Business Intelligence', 'Pin'], activeCase.id, 'Case report section'),
-        row('REP-EVIDENCE', ['REP-EVIDENCE', 'Evidence summary', `${evidence.evidence.length} evidence records and ${evidence.documents.length} documents available`, 'Draft available', activeCase.id, 'Evidence Center', 'Pin'], activeCase.id, 'Case report section'),
-        row('REP-TIMELINE', ['REP-TIMELINE', 'Timeline summary', `${events.length + logins.length + financial.transactions.length + financial.paymentVerification.length + evidence.evidence.length} timeline records available`, 'Draft available', activeCase.id, 'Timeline', 'Pin'], activeCase.id, 'Case report section'),
-        ...savedPackets,
-      ],
-    };
-  }
 
   return null;
 }
