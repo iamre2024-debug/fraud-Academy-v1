@@ -157,7 +157,7 @@ export default function CaseSummaryCard({
               </div>
             </div>
             <div className="case-briefing-intake-answer-list">
-              {intakeAnswers.slice(0, 5).map((item) => (
+              {intakeAnswers.map((item) => (
                 <article key={item.id}>
                   <strong>{item.prompt}</strong>
                   <DirectCollapsibleText as="p" lines={2} mobileLines={3}>{item.answer}</DirectCollapsibleText>

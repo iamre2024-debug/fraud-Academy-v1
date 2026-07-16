@@ -6,8 +6,11 @@ import { getKybReview } from '../src/data/kybReviewRecords.js';
 import { getMerchantIntelligence } from '../src/data/merchantIntelligenceRecords.js';
 import { getReviewChoices } from '../src/data/reviewPackage.js';
 import { scenarioTemplates } from '../src/data/scenarioEngine.js';
+import { trainingCases } from '../src/data/cases.js';
 
 const failures = [];
+const genericIntakePattern = /review the related|available when that tool|available for comparison|intake channel:|fictional subject|fictional packet contains/i;
+const generatedAccountIds = new Set();
 const allScenarios = coreClaimTypes.flatMap((claimType) => claimType.scenarios.map((scenario) => ({ claimType, scenario })));
 const scenarioIds = new Set(allScenarios.map(({ scenario }) => scenario.id));
 
@@ -27,15 +30,19 @@ for (const { claimType, scenario } of allScenarios) {
   if (!generated.caseTruth?.correctDetermination || generated.correctDetermination !== generated.caseTruth.correctDetermination) failures.push(`${scenario.id} is missing hidden case truth.`);
   if (!getReviewChoices(generated).includes(generated.correctDetermination)) failures.push(`${scenario.id} has a hidden determination that is not valid for its decision rail.`);
   if (!generated.timelineEvents?.length || !generated.evidenceDocuments?.length || !generated.intakeAnswers?.length) failures.push(`${scenario.id} is missing complete generated outputs.`);
-  if (generated.generatedPacketVersion !== 3) failures.push(`${scenario.id} is missing the complete-packet version marker.`);
+  if (generated.generatedPacketVersion !== 4) failures.push(`${scenario.id} is missing the complete-packet version marker.`);
   if (!generated.accountId?.startsWith('ACCT-')) failures.push(`${scenario.id} is missing its Account ID document lookup key.`);
+  if (generatedAccountIds.has(generated.accountId)) failures.push(`${scenario.id} reused Account ID ${generated.accountId}.`);
+  generatedAccountIds.add(generated.accountId);
+  if (generated.customer?.relationship?.find((item) => item.label === 'Account ID')?.value !== generated.accountId) failures.push(`${scenario.id} does not expose its Account ID in Customer 360.`);
   if (/fictional packet contains both routine and exception evidence/i.test(generated.shortSummary)) failures.push(`${scenario.id} still uses the placeholder short summary.`);
   for (const expectedDetail of [generated.person, generated.amount, generated.reportedDate, generated.issueStartDate, scenario.statement, scenario.transactionInfo]) {
     if (!generated.shortSummary.includes(expectedDetail)) failures.push(`${scenario.id} short summary is missing generated case detail: ${expectedDetail}`);
   }
   if (generated.caseBriefing?.summary !== generated.shortSummary || generated.allegation !== generated.shortSummary) failures.push(`${scenario.id} does not use one complete narrative across its briefing summary fields.`);
   if (generated.documents.some((item) => /fictional case packet|available for .* fictional training packet/i.test(item.detail))) failures.push(`${scenario.id} still has generic generated document text.`);
-  if (generated.intakeAnswers.some((item) => /available for comparison across the required tools|fictional subject/i.test(item.answer))) failures.push(`${scenario.id} still has a generic intake answer.`);
+  if (generated.intakeAnswers.length !== claimType.intakePrompts.length) failures.push(`${scenario.id} does not answer every Claim Intake prompt.`);
+  if (generated.intakeAnswers.some((item) => genericIntakePattern.test(item.answer) || item.answer.length < 45)) failures.push(`${scenario.id} still has a generic or incomplete intake answer.`);
   if (generated.events.some((item) => /a record from another source|one source remains incomplete/i.test(item.detail))) failures.push(`${scenario.id} still has a generic timeline event.`);
   if (generated.identityRecords.some((item) => /fictional case|available for (case comparison|review)/i.test(item.history))) failures.push(`${scenario.id} still has generic identity history.`);
   if (generated.availableTools.includes('Financial Investigation') && generated.toolResults.financialIntel.some((item) => /record available|fictional .* financial record/i.test(`${item.value} ${item.context}`))) failures.push(`${scenario.id} still has generic Financial Investigation data.`);
@@ -90,14 +97,25 @@ const legacySummaryCase = createGeneratedCase({ index: sequence + 50, claimTypeI
 const placeholderSummary = `${legacySummaryCase.scenarioTitle}. The fictional packet contains both routine and exception evidence for an Evidence First review.`;
 const [upgradedLegacyCase] = enrichTrainingCases([{
   ...legacySummaryCase,
-  generatedPacketVersion: undefined,
+  accountId: undefined,
+  generatedPacketVersion: 3,
   shortSummary: placeholderSummary,
   allegation: placeholderSummary,
   caseBriefing: { ...legacySummaryCase.caseBriefing, summary: placeholderSummary },
+  intakeAnswers: legacySummaryCase.intakeAnswers.map((item) => ({ ...item, answer: 'Review the related fictional case records and document what is available or missing.' })),
 }]);
 if (/fictional packet contains both routine and exception evidence/i.test(upgradedLegacyCase.shortSummary)) failures.push('Previously saved generated cases do not upgrade their placeholder summary when loaded.');
 if (upgradedLegacyCase.caseBriefing?.summary !== upgradedLegacyCase.shortSummary) failures.push('Upgraded generated-case briefing summary does not match its complete short summary.');
-if (upgradedLegacyCase.generatedPacketVersion !== 3 || !upgradedLegacyCase.accountId || upgradedLegacyCase.toolResults.business360?.length < 3 || upgradedLegacyCase.toolResults.businessIntel?.length < 4) failures.push('Previously saved generated cases do not upgrade their full investigation packet when loaded.');
+if (upgradedLegacyCase.generatedPacketVersion !== 4 || !upgradedLegacyCase.accountId || upgradedLegacyCase.intakeAnswers.some((item) => genericIntakePattern.test(item.answer)) || upgradedLegacyCase.toolResults.business360?.length < 3 || upgradedLegacyCase.toolResults.businessIntel?.length < 4) failures.push('Previously saved generated cases do not upgrade their full investigation packet when loaded.');
+
+const enrichedBuiltIns = enrichTrainingCases(trainingCases);
+const builtInAccountIds = new Set();
+for (const builtIn of enrichedBuiltIns) {
+  if (!builtIn.accountId?.startsWith('ACCT-') || builtInAccountIds.has(builtIn.accountId)) failures.push(`${builtIn.id} does not have a unique Account ID.`);
+  builtInAccountIds.add(builtIn.accountId);
+  if (builtIn.customer?.relationship?.find((item) => item.label === 'Account ID')?.value !== builtIn.accountId) failures.push(`${builtIn.id} does not expose its Account ID in Customer 360.`);
+  if (!builtIn.intakeAnswers?.length || builtIn.intakeAnswers.some((item) => genericIntakePattern.test(item.answer) || item.answer.length < 45)) failures.push(`${builtIn.id} has a generic or incomplete Claim Intake answer.`);
+}
 
 const sleeperBusiness = createGeneratedCase({ index: sequence + 51, claimTypeId: 'business-loan-bust-out', scenarioId: 'blo-sleeper-llc-sudden-draw', difficulty: 'deep', evidenceDepth: 'deep' });
 if (sleeperBusiness.toolResults.creditProfile?.customerType !== 'Business') failures.push('Sleeper LLC generated a consumer credit profile instead of a business credit profile.');

@@ -4,6 +4,7 @@ import {
   getScenario,
 } from './claimRegistry.js';
 import { buildCaseBriefingPacket } from './caseBriefingDetails.js';
+import { buildCaseIntakeAnswers } from './intakeAnswers.js';
 import {
   buildGeneratedPersona,
   buildGeneratedToolResults,
@@ -268,27 +269,6 @@ function makeDocuments({ id, claimType, scenario, recordCount, difficulty, perso
   });
 }
 
-function intakeAnswer({ prompt, itemIndex, scenario, person, business, employer, city, reportedDate, issueStartDate, toolResults }) {
-  const normalized = prompt.toLowerCase();
-  const merchant = toolResults.merchantIntelligence?.profile;
-  const credit = toolResults.creditProfile;
-  const payment = toolResults.paymentVerification?.[0];
-
-  if (itemIndex === 0) return scenario.statement;
-  if (/when|date|notice|started/.test(normalized)) return `The activity window begins ${issueStartDate}; the case was reported ${reportedDate}.`;
-  if (/device|location|recognize/.test(normalized)) return `The stated customer location is ${city}; device and network records are available when that tool is in the claim lane.`;
-  if (/merchant|purchase|cancel|return|refund/.test(normalized) && merchant) return `${merchant.name} is recorded under MCC ${merchant.mcc}; ${merchant.priorTransactionCount} prior transaction(s) and ${merchant.refundCount} refund(s) are available.`;
-  if (/income|revenue|employer|debt|bankruptcy|cash.flow|utilization|payment/.test(normalized) && credit) return `Stated support is ${credit.statedAnnualIncome}, verified support is ${credit.verifiedAnnualIncome}, utilization is ${credit.utilization}, and ${credit.missingDocuments.length} required document(s) remain missing.`;
-  if (/bank|destination|owner|beneficiary|payroll/.test(normalized) && payment) return `${payment.object} is recorded with ${payment.ownerMatch.toLowerCase()} and ${payment.priorUse.toLowerCase()}.`;
-  if (/document|evidence|record|available|missing/.test(normalized)) {
-    const available = toolResults.documents.filter((item) => item.status !== 'Requested').map((item) => item.title).join(', ') || 'None';
-    const requested = toolResults.documents.filter((item) => item.status === 'Requested').map((item) => item.title).join(', ') || 'None';
-    return `Available documents: ${available}. Still requested: ${requested}.`;
-  }
-  if (/who|customer|employee|vendor|applicant|owner/.test(normalized)) return `${person} is recorded as ${scenario.entityRole}; the connected employer is ${employer}, and the connected business is ${business}.`;
-  return `${scenario.transactionInfo} for ${scenario.amount} is in scope from ${issueStartDate} through the ${reportedDate} report date; intake was received through ${scenario.channel}.`;
-}
-
 export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const config = generatorOptions(indexOrOptions, options);
   const index = safeIndex(config.index);
@@ -312,11 +292,6 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const loginHistory = makeLoginHistory({ id, index, city, recordCount, claimType: caseClaimType, scenario, difficulty });
   const profileChanges = makeGeneratedProfileChanges({ id, index, person, city, claimType, scenario, reportedDate, issueStartDate, loginHistory });
   const statementLabel = /business|vendor|payment contact/i.test(scenario.entityRole) ? 'Business statement' : /employee/i.test(scenario.entityRole) ? 'Employee statement' : /applicant/i.test(scenario.entityRole) ? 'Applicant statement' : 'Customer statement';
-  const intakeAnswers = claimType.intakePrompts.map((prompt, itemIndex) => ({
-    id: `${id}-INT-${itemIndex + 1}`,
-    prompt,
-    answer: intakeAnswer({ prompt, itemIndex, scenario, person, business, employer, city, reportedDate, issueStartDate, toolResults }),
-  }));
   const events = buildScenarioEvents({ id, scenario, claimType, reportedDate, issueStartDate, difficulty, evidenceDepth: depth.label, documents });
   const intake = { channel: scenario.channel, contactTime: `${reportedDate} - 9:05 AM`, customerLocation: city, statedDevice: loginHistory[0]?.device ?? 'No device statement required for this lane' };
   const profile = { person, trainingId, city, employer, business, entityRole: scenario.entityRole };
@@ -333,6 +308,28 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     ],
     profileChanges,
   };
+  const intakeAnswers = buildCaseIntakeAnswers({
+    caseId: id,
+    prompts: claimType.intakePrompts,
+    statement: scenario.statement,
+    person,
+    entityRole: scenario.entityRole,
+    business,
+    employer,
+    city,
+    channel: scenario.channel,
+    statedDevice: intake.statedDevice,
+    reportedDate,
+    issueStartDate,
+    subtype: scenario.subtype,
+    transactionInfo: scenario.transactionInfo,
+    amount: scenario.amount,
+    documents,
+    toolResults,
+    loginHistory,
+    profileChanges,
+    customer,
+  });
   const decisionData = buildScenarioDecisionData({ claimType, scenario, reportedDate, toolResults });
   const generatedSummary = buildGeneratedCaseSummary({
     person,
@@ -382,7 +379,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     timelinePattern: scenario.timelinePattern,
     commonMistake: scenario.commonMistake,
     miniExample: scenario.miniExample,
-    generatedPacketVersion: 3,
+    generatedPacketVersion: 4,
     difficulty,
     evidenceDepth: depth.label,
     priority: scenario.priority,

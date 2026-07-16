@@ -1,5 +1,6 @@
 import { buildGeneratedCaseSummary, createGeneratedCase, makeGeneratedProfileChanges } from './generatedCases.js';
 import { buildCaseBriefingPacket } from './caseBriefingDetails.js';
+import { buildCaseIntakeAnswers } from './intakeAnswers.js';
 import { systemAccessRecordsByCase } from './systemAccessRecords.js';
 
 const deviceIds = {
@@ -13,6 +14,11 @@ const caseIntake = {
     claimId: 'CLM-ATO-24018',
     transactionInfo: 'Northstar Digital Market · card not present · debit card ending 4410',
     shortSummary: 'Long-tenured customer disputed a card-not-present purchase. Access, device, IP, session, transaction, and document records are available for neutral review.',
+    intakeAnswers: [
+      { id: 'FA-ATO-24018-INT-1', prompt: 'What account activity does the customer say they did not authorize?', answer: 'Maya Sterling states she did not authorize the $742.18 card-not-present purchase at Northstar Digital Market on debit card ending 4410 and was home when it occurred.' },
+      { id: 'FA-ATO-24018-INT-2', prompt: 'Which alerts, reset messages, or contact attempts were noticed?', answer: 'Two failed password attempts were recorded at 7:58 AM and 8:00 AM. The recovery email changed at 8:07 AM, security-alert delivery changed at 8:09 AM, and Maya contacted the bank by secure message with phone follow-up at 10:58 AM.' },
+      { id: 'FA-ATO-24018-INT-3', prompt: 'Which devices and locations does the customer recognize?', answer: 'Maya identified her personal iPhone and Dallas, TX at intake. The packet shows successful iPhone 16 activity in Dallas and Irving plus Chrome Mobile activity in Dallas tied to the earlier login and profile-change sequence.' },
+    ],
     parties: [
       { id: 'FA-ATO-24018-PTY-1', role: 'Account holder', name: 'Maya Sterling', relationship: 'Customer who submitted the active claim', source: 'Case intake' },
       { id: 'FA-ATO-24018-PTY-2', role: 'Merchant / payee', name: 'Northstar Digital Market', relationship: 'Merchant tied to the disputed card activity', source: 'Transaction record' },
@@ -53,6 +59,13 @@ const caseIntake = {
     claimId: 'CLM-CB-24007',
     transactionInfo: 'StreamBox Premium · recurring card billing · credit card ending 8841',
     shortSummary: 'Cardholder reports recurring billing after cancellation. Review merchant billing history, customer statement, session activity, and requested document status.',
+    intakeAnswers: [
+      { id: 'FA-CB-24007-INT-1', prompt: 'What did the customer purchase, cancel, return, or ask the merchant to refund?', answer: 'Jordan Ellis states the StreamBox Premium subscription was canceled but the merchant continued recurring billing on credit card ending 8841; the current disputed amount is $189.44.' },
+      { id: 'FA-CB-24007-INT-2', prompt: 'When did the customer first notice the billing issue?', answer: 'The recurring-billing issue begins May 8, 2026. The current $189.44 charge posted Jul 8, 2026, and Jordan opened the mobile-app dispute form at 8:19 AM.' },
+      { id: 'FA-CB-24007-INT-3', prompt: 'What contact has already occurred with the merchant?', answer: 'The customer says the subscription was canceled, but no completed merchant-contact record is included in the current intake. The merchant billing packet contains the current and prior billing records.' },
+      { id: 'FA-CB-24007-INT-4', prompt: 'Which receipt, policy, delivery, return, or refund records are available?', answer: 'The customer dispute form and merchant billing packet are available. Cancellation confirmation remains requested, and no separate return, delivery, or refund record is listed for this subscription claim.' },
+      { id: 'FA-CB-24007-INT-5', prompt: 'Which dispute reason and required evidence should be documented?', answer: 'The dispute reason is canceled service billed. The customer dispute form and current/prior merchant billing records are available; cancellation confirmation remains the required open evidence.' },
+    ],
     parties: [
       { id: 'FA-CB-24007-PTY-1', role: 'Cardholder', name: 'Jordan Ellis', relationship: 'Customer who submitted the billing dispute', source: 'Dispute intake' },
       { id: 'FA-CB-24007-PTY-2', role: 'Subscription merchant', name: 'StreamBox Premium', relationship: 'Merchant tied to the recurring billing records', source: 'Merchant billing packet' },
@@ -87,6 +100,14 @@ const caseIntake = {
     claimId: 'CLM-CR-24003',
     transactionInfo: 'Credit line usage request · payment setup packet · Destination ID token',
     shortSummary: 'New credit relationship has limited history. Review identity, payment setup, session activity, and early account behavior before any final package is submitted.',
+    intakeAnswers: [
+      { id: 'FA-CR-24003-INT-1', prompt: 'What type of credit request or account review opened this case?', answer: 'A system alert opened a credit-line-increase review after the new account requested $2,400.00 of an $8,000.00 line five minutes after external destination DST-7740 was added.' },
+      { id: 'FA-CR-24003-INT-2', prompt: 'What employer, income source, gross/net income, or business revenue was stated?', answer: 'The stated employer is Lakeside Office Supply. The linked checking history shows payroll deposits of $1,280.00 on Jul 1, $1,280.00 on Jun 17, and a $1,240.00 mobile check deposit on Jun 8; no separate gross/net income figure is recorded.' },
+      { id: 'FA-CR-24003-INT-3', prompt: 'What payment, utilization, NSF, late-payment, or cash-flow history is available?', answer: 'The $2,400.00 request equals 30% of the $8,000.00 line. Monthly deposits are $3,800.00, monthly outflow is $2,240.00, one returned item is recorded, DST-7740 is the first external destination, and no cash advance or transfer has posted.' },
+      { id: 'FA-CR-24003-INT-4', prompt: 'Are bank statements, paystubs, credit-file, or business documents available?', answer: 'The system alert packet and account setup record are available. The supporting bank-statement activity is summarized in Financial Investigation; payment verification detail remains requested, and no paystub or business document is attached.' },
+      { id: 'FA-CR-24003-INT-5', prompt: 'What debt obligations, bankruptcy/public-record, or business changes should be documented?', answer: 'No debt-obligation, bankruptcy, or public-record result is included in this new consumer packet. The documented change is the addition of DST-7740 immediately before the $2,400.00 usage request.' },
+      { id: 'FA-CR-24003-INT-6', prompt: 'Which documents and verification records are still needed?', answer: 'Payment verification detail remains requested. Ownership of Bank Code BC-204 and Destination ID DST-7740, the partial name match to Riley Carter, and the pending callback must be resolved and documented.' },
+    ],
     profile: { employer: 'Lakeside Office Supply', entityRole: 'Credit applicant' },
     parties: [
       { id: 'FA-CR-24003-PTY-1', role: 'Credit applicant', name: 'Avery Brooks', relationship: 'Applicant tied to the new credit relationship', source: 'Credit profile' },
@@ -135,6 +156,25 @@ function dedupeStrings(values = []) {
   return [...new Set(values.filter(Boolean))];
 }
 
+function accountIdForCase(item) {
+  if (String(item.accountId ?? '').trim()) return String(item.accountId).trim();
+  const source = item.id ?? item.caseId ?? item.trainingId ?? 'CASE';
+  const token = String(source)
+    .toUpperCase()
+    .replace(/^FA-/, '')
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  return `ACCT-${token || 'CASE'}`;
+}
+
+function relationshipWithAccountId(customer = {}, accountId, extras = []) {
+  return [
+    { label: 'Account ID', value: accountId },
+    ...(customer.relationship ?? []).filter((entry) => entry.label !== 'Account ID'),
+    ...extras,
+  ];
+}
+
 function addDeviceIds(caseId, rows = []) {
   const map = deviceIds[caseId] ?? {};
   return rows.map((row) => ({ ...row, deviceId: row.deviceId ?? map[row.device] ?? `DEV-${String(row.device).toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 18)}` }));
@@ -147,13 +187,28 @@ function buildClaimFields(item, context = {}) {
   const issueStartDate = item.issueStartDate ?? context.issueStartDate ?? reportedDate;
   const statementValue = item.statement?.value ?? context.statement ?? item.allegation ?? scenario.statement;
   const statementLabel = item.statement?.label ?? (/credit|application/i.test(claimType.id) ? 'Applicant statement' : 'Customer statement');
-  const intakeAnswers = item.intakeAnswers?.length
-    ? item.intakeAnswers
-    : claimType.intakePrompts.map((prompt, index) => ({
-      id: `${item.id}-INT-${index + 1}`,
-      prompt,
-      answer: index === 0 ? statementValue : index === 1 ? `Intake channel: ${item.intake?.channel ?? 'Case queue'}.` : 'Review the related fictional case records and document what is available or missing.',
-    }));
+  const intakeAnswers = item.intakeAnswers?.length ? item.intakeAnswers : buildCaseIntakeAnswers({
+    caseId: item.id,
+    prompts: claimType.intakePrompts,
+    statement: statementValue,
+    person: item.person,
+    entityRole: item.profile?.entityRole,
+    business: item.profile?.business,
+    employer: item.profile?.employer,
+    city: item.intake?.customerLocation,
+    channel: item.intake?.channel ?? 'Case queue',
+    statedDevice: item.intake?.statedDevice,
+    reportedDate,
+    issueStartDate,
+    subtype: item.subtype ?? context.subtype ?? scenario.subtype,
+    transactionInfo: item.transactionInfo ?? scenario.transactionInfo,
+    amount: item.amountExposure ?? item.amount,
+    documents: item.documents,
+    toolResults: item.toolResults,
+    loginHistory: item.loginHistory,
+    profileChanges: item.customer?.profileChanges,
+    customer: item.customer,
+  });
   const briefingPacket = buildCaseBriefingPacket({ item, claimType, scenario, reportedDate });
   const availableTools = item.availableTools ?? claimType.availableTools;
   const caseAvailableTools = systemAccessRecordsByCase[item.id]?.length
@@ -209,7 +264,7 @@ function buildClaimFields(item, context = {}) {
 }
 
 function enrichOneCase(item) {
-  if (item.id?.includes('-G') && item.generatedPacketVersion !== 3 && item.claimTypeId && item.scenarioId) {
+  if (item.id?.includes('-G') && item.generatedPacketVersion !== 4 && item.claimTypeId && item.scenarioId) {
     const index = item.generatedAt ?? Number(String(item.id).replace(/\D/g, '').slice(-8)) ?? Date.now();
     const refreshed = createGeneratedCase({
       index,
@@ -230,6 +285,8 @@ function enrichOneCase(item) {
       progress: item.progress ?? refreshed.progress,
     };
   }
+  const accountId = accountIdForCase(item);
+  item = { ...item, accountId };
   const extra = caseIntake[item.id];
   const context = claimContext[item.id] ?? {};
   if (!extra) {
@@ -262,6 +319,7 @@ function enrichOneCase(item) {
       ...builtFields,
       customer: {
         ...item.customer,
+        relationship: relationshipWithAccountId(item.customer, accountId),
         profileChanges: needsProfileUpgrade ? makeGeneratedProfileChanges({
           id: item.id,
           index,
@@ -282,10 +340,11 @@ function enrichOneCase(item) {
 
   const mergedItem = {
     ...item,
-    accountId: item.accountId,
+    accountId,
     claimId: item.claimId ?? extra.claimId,
     transactionInfo: item.transactionInfo ?? extra.transactionInfo,
     shortSummary: item.shortSummary ?? extra.shortSummary,
+    intakeAnswers: item.intakeAnswers ?? extra.intakeAnswers,
     profile: { ...extra.profile, ...item.profile },
     parties: item.parties ?? extra.parties,
   };
@@ -295,11 +354,7 @@ function enrichOneCase(item) {
     ...buildClaimFields(mergedItem, context),
     customer: {
       ...item.customer,
-      relationship: [
-        { label: 'Account ID', value: item.accountId },
-        ...(item.customer?.relationship ?? []).filter((entry) => entry.label !== 'Account ID'),
-        ...(extra.relationshipExtras ?? []),
-      ],
+      relationship: relationshipWithAccountId(item.customer, accountId, extra.relationshipExtras),
       profileChanges: dedupeById([...(item.customer?.profileChanges ?? []), ...(extra.profileExtras ?? [])]),
     },
     identityRecords: dedupeById([...(item.identityRecords ?? []), ...(extra.identityExtras ?? [])]),
