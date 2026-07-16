@@ -9,6 +9,7 @@ import {
   requiredReviewTools,
   reviewChoices,
 } from '../src/data/reviewPackage.js';
+import { getDecisionChecklist } from '../src/data/decisionChecklist.js';
 
 const requiredToolSet = [...requiredReviewTools];
 const accountTakeoverCase = { claimTypeId: 'account-takeover', requiredTools: requiredToolSet };
@@ -51,9 +52,13 @@ assert(!invalidChoiceStatus.ready, 'Package should stay locked when the learner 
 assert(invalidChoiceStatus.blockers.some((blocker) => blocker.includes('valid learner choice')), 'Invalid learner choice should be named as a blocker.');
 
 const missingToolStatus = buildStatus({ completedTools: requiredToolSet.filter((tool) => tool !== 'Document Viewer') });
-assert(!missingToolStatus.ready, 'Package should stay locked when a required tool is missing.');
-assert(missingToolStatus.missingTools.includes('Document Viewer'), 'Missing required tool should be named in the package status.');
-assert(missingToolStatus.messages.some((message) => message.includes('Review package locked')), 'Locked package should explain neutral blockers.');
+assert(missingToolStatus.ready, 'A decision should be submittable when an optional tool was not reviewed.');
+assert(missingToolStatus.missingTools.includes('Document Viewer'), 'Unreviewed optional tools should remain visible in the package status.');
+assert(missingToolStatus.messages.some((message) => message.includes('Optional tools not reviewed')), 'Optional tool coverage should be explained without blocking submission.');
+
+const directDecisionStatus = buildStatus({ completedTools: [], tray: [], notes: [] });
+assert(directDecisionStatus.ready, 'A learner should be able to submit directly without tool reviews, pins, or notebook notes.');
+assert(directDecisionStatus.messages.some((message) => message.includes('without reviewing every tool')), 'Direct-decision readiness should be explicit.');
 
 const shortRationaleStatus = buildStatus({ draft: { choice: accountTakeoverChoice, confidence: 'High', reason: 'Too short.', indicators: accountTakeoverIndicators } });
 assert(!shortRationaleStatus.ready, 'Package should stay locked when rationale is too short.');
@@ -122,6 +127,18 @@ const emailGroups = getDecisionCallGroups({ claimTypeId: 'email-bec' });
 assert(payrollGroups[0].options.includes('Hold') && payrollGroups[0].options.includes('Release'), 'Business Payroll ATO should use Hold and Release as primary determinations.');
 assert(emailGroups[0].options.includes('Hold') && emailGroups[0].options.includes('Release'), 'Email Fraud / BEC should use Hold and Release as primary determinations.');
 
+const duplicateChecklist = getDecisionChecklist({ claimTypeId: 'non-fraud-chargeback', subtype: 'duplicate billing' });
+assert(duplicateChecklist.flags.some((item) => item.id === 'ncb-same-order-duplicate'), 'Duplicate billing should receive its scenario-specific same-order check.');
+assert(!duplicateChecklist.flags.some((item) => item.id === 'ncb-cancellation-proof'), 'Duplicate billing should not receive cancellation-only checks.');
+
+const checkChecklist = getDecisionChecklist({ claimTypeId: 'ach-wire-check', subtype: 'check alteration' });
+assert(checkChecklist.flags.some((item) => item.id === 'payment-check-image-mismatch'), 'Check alteration should receive front/back image checks.');
+assert(!checkChecklist.flags.some((item) => item.id === 'payment-wire-beneficiary-change'), 'Check alteration should not receive wire-beneficiary checks.');
+
+const walletChecklist = getDecisionChecklist({ claimTypeId: 'fraud-chargeback', subtype: 'digital wallet token fraud' });
+assert(walletChecklist.flags.some((item) => item.id === 'wallet-chip-during-fraud-window'), 'Digital-wallet fraud should retain the critical chip-during-fraud-window check.');
+assert(walletChecklist.scopeLabel === 'digital wallet token fraud', 'The checklist should expose the exact matched case scope.');
+
 const savedPackage = buildReviewPackage({
   caseId: 'FA-SMOKE-0001',
   agentId: 'AGT-SMOKE',
@@ -149,4 +166,4 @@ assert(savedPackage.lane === 'Credit decision review', 'Saved package should ret
 assert(savedPackage.blockers.length === 0, 'Saved ready package should not retain blockers.');
 assert(savedPackage.decisionIndicators.length === 1, 'Saved package should snapshot proven weighted flags.');
 
-console.log('Review package smoke check passed. Expanded decision calls, locked blockers, rationale depth, pinned evidence, notes, and saved package snapshots are working.');
+console.log('Review package smoke check passed. Direct submission, claim and subtype-specific flags, rationale depth, optional investigation context, and saved package snapshots are working.');
