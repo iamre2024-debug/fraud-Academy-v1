@@ -1,4 +1,4 @@
-import { makeGeneratedProfileChanges } from './generatedCases.js';
+import { buildGeneratedCaseSummary, createGeneratedCase, makeGeneratedProfileChanges } from './generatedCases.js';
 import { buildCaseBriefingPacket } from './caseBriefingDetails.js';
 import { systemAccessRecordsByCase } from './systemAccessRecords.js';
 
@@ -209,18 +209,56 @@ function buildClaimFields(item, context = {}) {
 }
 
 function enrichOneCase(item) {
+  if (item.id?.includes('-G') && item.generatedPacketVersion !== 2 && item.claimTypeId && item.scenarioId) {
+    const index = item.generatedAt ?? Number(String(item.id).replace(/\D/g, '').slice(-8)) ?? Date.now();
+    const refreshed = createGeneratedCase({
+      index,
+      claimTypeId: item.claimTypeId,
+      scenarioId: item.scenarioId,
+      difficulty: item.difficulty,
+      evidenceDepth: String(item.evidenceDepth ?? 'standard').toLowerCase(),
+    });
+    item = {
+      ...item,
+      ...refreshed,
+      id: item.id,
+      caseId: item.caseId ?? item.id,
+      claimId: item.claimId ?? refreshed.claimId,
+      generatedAt: item.generatedAt,
+      status: item.status ?? refreshed.status,
+      actionLog: item.actionLog ?? refreshed.actionLog,
+      progress: item.progress ?? refreshed.progress,
+    };
+  }
   const extra = caseIntake[item.id];
   const context = claimContext[item.id] ?? {};
   if (!extra) {
-    const builtFields = buildClaimFields(item, context);
+    const claimType = getClaimTypeForCase(item);
+    const scenario = getScenario(claimType.id, item.scenarioId);
+    const storedSummary = item.caseBriefing?.summary ?? item.shortSummary ?? item.allegation ?? '';
+    const shouldUpgradeSummary = item.id?.includes('-G') && (!storedSummary || /fictional packet contains both routine and exception evidence/i.test(storedSummary));
+    const generatedSummary = shouldUpgradeSummary ? buildGeneratedCaseSummary({
+      person: item.person,
+      scenario,
+      employer: item.profile?.employer,
+      business: item.profile?.business,
+      reportedDate: item.reportedDate ?? item.opened,
+      issueStartDate: item.issueStartDate ?? item.reportedDate ?? item.opened,
+      documents: item.documents ?? [],
+    }) : null;
+    const summaryItem = generatedSummary ? {
+      ...item,
+      shortSummary: generatedSummary,
+      allegation: generatedSummary,
+      caseBriefing: { ...item.caseBriefing, summary: generatedSummary },
+    } : item;
+    const builtFields = buildClaimFields(summaryItem, context);
     const loginHistory = addDeviceIds(item.id, item.loginHistory ?? []);
     const existingChanges = item.customer?.profileChanges ?? [];
     const needsProfileUpgrade = item.id.includes('-G') && (existingChanges.length < 3 || existingChanges.some((event) => !event.eventType || !event.oldValue || !event.newValue));
-    const claimType = getClaimTypeForCase({ ...item, ...builtFields });
-    const scenario = getScenario(claimType.id, item.scenarioId);
     const index = item.generatedAt ?? Number(String(item.id).replace(/\D/g, '').slice(-8)) ?? Date.now();
     return {
-      ...item,
+      ...summaryItem,
       ...builtFields,
       customer: {
         ...item.customer,

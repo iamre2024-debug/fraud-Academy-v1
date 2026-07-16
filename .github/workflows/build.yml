@@ -44,6 +44,9 @@ jobs:
       - name: Generated-case repository smoke check
         run: npm run generated-case-smoke-check
 
+      - name: All-scenario generated packet smoke check
+        run: npm run generator-merchant-smoke-check
+
       - name: Luna single-module smoke check
         run: npm run luna-single-module-smoke-check
 

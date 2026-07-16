@@ -147,7 +147,10 @@ function buildScenario(claimType, spec, existingScenario) {
   const defaults = claimDefaults[claimType.id];
   const scenarioId = spec.id ?? existingScenario?.id ?? `${claimType.prefix.toLowerCase()}-${slug(spec.subtype)}`;
   const priority = spec.priority ?? existingScenario?.priority ?? 'Medium';
-  const family = spec.family ?? existingScenario?.family;
+  const businessLoanFamily = claimType.id === 'business-loan-bust-out'
+    ? lifecycleFor(claimType, spec) === 'account monitoring' ? 'Existing business account review' : 'New business application'
+    : undefined;
+  const family = spec.family ?? existingScenario?.family ?? businessLoanFamily;
   const taxonomyTags = {
     ...claimType.taxonomy,
     lifecycleStage: lifecycleFor(claimType, spec),

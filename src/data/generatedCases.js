@@ -35,6 +35,40 @@ function padded(index, length = 6) {
   return String(safeIndex(index)).slice(-length).padStart(length, '0');
 }
 
+function endSentence(value = '') {
+  const text = String(value).trim();
+  if (!text) return '';
+  return /[.!?]$/.test(text) ? text : `${text}.`;
+}
+
+function generatedSubject({ person, scenario, employer, business }) {
+  const role = String(scenario.entityRole ?? 'case subject').toLowerCase();
+  if (/employee/.test(role) && employer) return `${person}, the ${role} at ${employer}`;
+  if (/business|vendor|payment contact|owner/.test(role) && business) return `${person}, the ${role} for ${business}`;
+  return `${person}, the ${role}`;
+}
+
+export function buildGeneratedCaseSummary({
+  person,
+  scenario,
+  employer,
+  business,
+  reportedDate,
+  issueStartDate,
+  documents = [],
+}) {
+  const availableDocuments = documents.filter((document) => document.status !== 'Requested').length;
+  const requestedDocuments = documents.filter((document) => document.status === 'Requested').length;
+  const subject = generatedSubject({ person, scenario, employer, business });
+  const statement = endSentence(scenario.statement);
+  const transaction = endSentence(scenario.transactionInfo);
+  const documentStatus = requestedDocuments
+    ? `${availableDocuments} supporting document(s) are available and ${requestedDocuments} remain requested.`
+    : `${availableDocuments} supporting document(s) are available in the case packet.`;
+
+  return `${subject} reported through ${scenario.channel}: "${statement}" The ${scenario.subtype} review concerns ${transaction} The amount in scope is ${scenario.amount}; activity begins ${issueStartDate}, and the case was reported ${reportedDate}. ${documentStatus}`;
+}
+
 function dateFor(index, offset = 0) {
   const date = new Date(2026, 6, 14, 12, 0, 0);
   date.setDate(date.getDate() - (safeIndex(index) % 24) - (offset * 7));
@@ -137,7 +171,7 @@ export function makeGeneratedProfileChanges({ id, index, person, city, claimType
       ip: currentLogin.ip ?? 'No network record required for this lane',
       session: currentLogin.session ?? `${id}-PROFILE-1`,
       mfaMethod: currentLogin.method ?? 'Profile verification',
-      detail: `${scenarioEvent.item} was recorded as a fictional maintenance event for ${scenario.subtype} review.`,
+      detail: `${scenarioEvent.item} changed from ${scenarioEvent.oldValue} to ${scenarioEvent.newValue} during the ${scenario.subtype} activity window.`,
     },
     hasAccessHistory ? {
       id: `${id}-PCH-2`,
@@ -155,7 +189,7 @@ export function makeGeneratedProfileChanges({ id, index, person, city, claimType
       session: priorLogin.session ?? `${id}-SES-2`,
       mfaMethod: priorLogin.method ?? 'Email code',
       notes: 'Authentication enrollment is evidence only; compare it with the login and session records.',
-      detail: 'The fictional profile recorded an authentication-route maintenance event.',
+      detail: `Authentication changed from Password only to ${priorLogin.method ?? 'Email code'} on ${dateFromLogin(priorLogin.time, issueStartDate)}.`,
     } : {
       id: `${id}-PCH-2`,
       date: issueStartDate,
@@ -172,7 +206,7 @@ export function makeGeneratedProfileChanges({ id, index, person, city, claimType
       session: `${id}-PROFILE-2`,
       mfaMethod: 'Profile verification',
       notes: 'This profile-maintenance record is customer context and does not create a Login History event.',
-      detail: 'The fictional profile contact route was reviewed for the active case.',
+      detail: `The primary contact route was compared with the ${scenario.channel} intake record.`,
     },
     {
       id: `${id}-PCH-3`,
@@ -190,24 +224,51 @@ export function makeGeneratedProfileChanges({ id, index, person, city, claimType
       session: `${id}-PCH-VERIFY`,
       mfaMethod: 'Profile verification',
       notes: 'The existing address was confirmed without a value change.',
-      detail: 'Address verification retained the fictional profile address.',
+      detail: `The physical address remained ${city} training address after verification.`,
     },
   ];
 }
 
-function makeDocuments({ id, claimType, scenario, recordCount, difficulty }) {
-  const documentCount = Math.min(claimType.documents.length, Math.max(4, recordCount));
-  return claimType.documents.slice(0, documentCount).map((name, itemIndex) => ({
-    id: `${id}-DOC-${itemIndex + 1}`,
-    status: itemIndex === 2 || (difficulty === 'deep' && itemIndex === documentCount - 1) ? 'Requested' : itemIndex === 0 ? 'Received' : 'Available',
-    name,
-    detail: itemIndex === 2 || (difficulty === 'deep' && itemIndex === documentCount - 1)
-      ? `${name} has been requested for the fictional case packet.`
-      : `${name} is available for ${scenario.subtype} review in this fictional training packet.`,
-  }));
+function documentDetail({ name, status, scenario, person, business, employer, address, trainingId, reportedDate, issueStartDate }) {
+  const subject = /business|vendor|revenue|registration|EIN|tax|bank statement|invoice|contract/i.test(name) ? business : /payroll|employee|paystub/i.test(name) ? `${person} at ${employer}` : person;
+  if (status === 'Requested') {
+    return `${name} was requested from ${subject} on ${reportedDate} to verify the ${scenario.subtype} activity and ${scenario.amount} amount in scope; no file has been received.`;
+  }
+  if (/identity|ID|selfie|liveness|address|phone/i.test(name)) {
+    return `${name} lists ${person}, Training ID ${trainingId}, and ${address}; the record was observed ${reportedDate}.`;
+  }
+  if (/registration|EIN|formation|ownership/i.test(name)) {
+    return `${name} lists ${business}, ${person} as the connected owner, ${address} as the recorded address, and an active training registration as of ${reportedDate}.`;
+  }
+  if (/bank statement|revenue|income|paystub|tax|cash.flow|invoice|contract/i.test(name)) {
+    return `${name} covers ${subject}, the ${issueStartDate} to ${reportedDate} activity window, and the ${scenario.amount} request or exposure described as ${scenario.transactionInfo}.`;
+  }
+  if (/payroll|direct deposit|employee/i.test(name)) {
+    return `${name} connects ${person} to ${employer} and records ${scenario.transactionInfo} for ${scenario.amount} during the active review window.`;
+  }
+  if (/merchant|receipt|order|authorization|card|refund|return|delivery|service|billing/i.test(name)) {
+    return `${name} records ${scenario.transactionInfo} for ${scenario.amount}, reported through ${scenario.channel} on ${reportedDate}.`;
+  }
+  if (/email|message|vendor|callback|payment instruction/i.test(name)) {
+    return `${name} records the ${scenario.channel} instruction, ${scenario.transactionInfo}, and the ${scenario.amount} payment or exposure reported on ${reportedDate}.`;
+  }
+  return `${name} records ${scenario.title}, ${scenario.transactionInfo}, the ${scenario.amount} amount in scope, and the ${reportedDate} report date.`;
 }
 
-function intakeAnswer({ prompt, itemIndex, scenario, person, city, reportedDate, issueStartDate, toolResults }) {
+function makeDocuments({ id, claimType, scenario, recordCount, difficulty, person, business, employer, address, trainingId, reportedDate, issueStartDate }) {
+  const documentCount = Math.min(claimType.documents.length, Math.max(4, recordCount));
+  return claimType.documents.slice(0, documentCount).map((name, itemIndex) => {
+    const status = itemIndex === 2 || (difficulty === 'deep' && itemIndex === documentCount - 1) ? 'Requested' : itemIndex === 0 ? 'Received' : 'Available';
+    return {
+      id: `${id}-DOC-${itemIndex + 1}`,
+      status,
+      name,
+      detail: documentDetail({ name, status, scenario, person, business, employer, address, trainingId, reportedDate, issueStartDate }),
+    };
+  });
+}
+
+function intakeAnswer({ prompt, itemIndex, scenario, person, business, employer, city, reportedDate, issueStartDate, toolResults }) {
   const normalized = prompt.toLowerCase();
   const merchant = toolResults.merchantIntelligence?.profile;
   const credit = toolResults.creditProfile;
@@ -219,9 +280,13 @@ function intakeAnswer({ prompt, itemIndex, scenario, person, city, reportedDate,
   if (/merchant|purchase|cancel|return|refund/.test(normalized) && merchant) return `${merchant.name} is recorded under MCC ${merchant.mcc}; ${merchant.priorTransactionCount} prior transaction(s) and ${merchant.refundCount} refund(s) are available.`;
   if (/income|revenue|employer|debt|bankruptcy|cash.flow|utilization|payment/.test(normalized) && credit) return `Stated support is ${credit.statedAnnualIncome}, verified support is ${credit.verifiedAnnualIncome}, utilization is ${credit.utilization}, and ${credit.missingDocuments.length} required document(s) remain missing.`;
   if (/bank|destination|owner|beneficiary|payroll/.test(normalized) && payment) return `${payment.object} is recorded with ${payment.ownerMatch.toLowerCase()} and ${payment.priorUse.toLowerCase()}.`;
-  if (/document|evidence|record|available|missing/.test(normalized)) return `${toolResults.documents.filter((item) => item.status !== 'Requested').length} document(s) are available and ${toolResults.documents.filter((item) => item.status === 'Requested').length} remain requested.`;
-  if (/who|customer|employee|vendor|applicant/.test(normalized)) return `${person} is the fictional subject recorded through ${scenario.channel}.`;
-  return `${scenario.subtype} records from ${scenario.channel} are available for comparison across the required tools.`;
+  if (/document|evidence|record|available|missing/.test(normalized)) {
+    const available = toolResults.documents.filter((item) => item.status !== 'Requested').map((item) => item.title).join(', ') || 'None';
+    const requested = toolResults.documents.filter((item) => item.status === 'Requested').map((item) => item.title).join(', ') || 'None';
+    return `Available documents: ${available}. Still requested: ${requested}.`;
+  }
+  if (/who|customer|employee|vendor|applicant|owner/.test(normalized)) return `${person} is recorded as ${scenario.entityRole}; the connected employer is ${employer}, and the connected business is ${business}.`;
+  return `${scenario.transactionInfo} for ${scenario.amount} is in scope from ${issueStartDate} through the ${reportedDate} report date; intake was received through ${scenario.channel}.`;
 }
 
 export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
@@ -241,7 +306,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const trainingId = `TRN-GEN-${suffix}`;
   const reportedDate = dateFor(index);
   const issueStartDate = dateFor(index, 2);
-  const documents = makeDocuments({ id, claimType, scenario, recordCount, difficulty });
+  const documents = makeDocuments({ id, claimType, scenario, recordCount, difficulty, person, business, employer, address, trainingId, reportedDate, issueStartDate });
   const toolResults = buildGeneratedToolResults({ id, index, person, city, employer, business, claimType: caseClaimType, scenario, documents, recordCount, trainingId, reportedDate, issueStartDate, difficulty });
   const loginHistory = makeLoginHistory({ id, index, city, recordCount, claimType: caseClaimType, scenario, difficulty });
   const profileChanges = makeGeneratedProfileChanges({ id, index, person, city, claimType, scenario, reportedDate, issueStartDate, loginHistory });
@@ -249,9 +314,9 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const intakeAnswers = claimType.intakePrompts.map((prompt, itemIndex) => ({
     id: `${id}-INT-${itemIndex + 1}`,
     prompt,
-    answer: intakeAnswer({ prompt, itemIndex, scenario, person, city, reportedDate, issueStartDate, toolResults }),
+    answer: intakeAnswer({ prompt, itemIndex, scenario, person, business, employer, city, reportedDate, issueStartDate, toolResults }),
   }));
-  const events = buildScenarioEvents({ id, scenario, claimType, reportedDate, issueStartDate, difficulty, evidenceDepth: depth.label });
+  const events = buildScenarioEvents({ id, scenario, claimType, reportedDate, issueStartDate, difficulty, evidenceDepth: depth.label, documents });
   const intake = { channel: scenario.channel, contactTime: `${reportedDate} - 9:05 AM`, customerLocation: city, statedDevice: loginHistory[0]?.device ?? 'No device statement required for this lane' };
   const profile = { person, trainingId, city, employer, business, entityRole: scenario.entityRole };
   const taxonomyTags = scenario.taxonomyTags ?? claimType.taxonomy;
@@ -267,6 +332,15 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     profileChanges,
   };
   const decisionData = buildScenarioDecisionData({ claimType, scenario, reportedDate, toolResults });
+  const generatedSummary = buildGeneratedCaseSummary({
+    person,
+    scenario,
+    employer,
+    business,
+    reportedDate,
+    issueStartDate,
+    documents,
+  });
   const briefingPacket = buildCaseBriefingPacket({
     item: {
       id,
@@ -306,6 +380,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     timelinePattern: scenario.timelinePattern,
     commonMistake: scenario.commonMistake,
     miniExample: scenario.miniExample,
+    generatedPacketVersion: 2,
     difficulty,
     evidenceDepth: depth.label,
     priority: scenario.priority,
@@ -319,8 +394,8 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     issueStartDate,
     title: scenario.title,
     transactionInfo: scenario.transactionInfo,
-    shortSummary: scenario.summary,
-    allegation: scenario.summary,
+    shortSummary: generatedSummary,
+    allegation: generatedSummary,
     queueReason: `${claimType.label} · ${scenario.subtype} · generated training case.`,
     statement: { label: statementLabel, value: scenario.statement, source: scenario.channel },
     assignedInvestigator: briefingPacket.assignedInvestigator,
@@ -330,7 +405,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     parties: briefingPacket.parties,
     briefingDetails: briefingPacket.details,
     caseBriefing: {
-      summary: scenario.summary,
+      summary: generatedSummary,
       focusAreas: claimType.intakePrompts,
       evidenceAreas: claimType.evidenceAreas,
       scenarioTitle: scenario.title,
@@ -357,9 +432,9 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     profile,
     customer,
     identityRecords: [
-      { id: `${id}-IDR-1`, type: 'Training ID', value: trainingId, lastSeen: reportedDate, history: 'Generated Training ID tied to the active fictional case.' },
-      { id: `${id}-IDR-2`, type: 'Contact record', value: `${email} | ${phone}`, lastSeen: reportedDate, history: 'Fictional contact record is available for case comparison.' },
-      { id: `${id}-IDR-3`, type: 'Address record', value: address, lastSeen: issueStartDate, history: 'Fictional address record is available for review.' },
+      { id: `${id}-IDR-1`, type: 'Training ID', value: trainingId, lastSeen: reportedDate, history: `${trainingId} is recorded for ${person} on claim ${id}.` },
+      { id: `${id}-IDR-2`, type: 'Contact record', value: `${email} | ${phone}`, lastSeen: reportedDate, history: `The email and phone were recorded from the ${scenario.channel} intake on ${reportedDate}.` },
+      { id: `${id}-IDR-3`, type: 'Address record', value: address, lastSeen: issueStartDate, history: `${address} was the recorded profile address when the activity window began ${issueStartDate}.` },
     ],
     loginHistory,
     events,

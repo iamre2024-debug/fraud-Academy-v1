@@ -154,9 +154,10 @@ function generatedProfile(activeCase, businessRecords) {
   const baseName = /llc|inc\.?|corp/i.test(sourceEntity) ? sourceEntity : `${sourceEntity} LLC`;
   const suffix = String(seed).padStart(5, '0').slice(-5);
   const amount = Math.max(500, amountNumber(activeCase.amount));
-  const statedRevenue = Math.round((amount * (72 + (seed % 36))) / 100) * 100;
-  const deposits = Math.round((statedRevenue / 12) * (0.82 + ((seed % 12) / 100)) * 100) / 100;
-  const outflow = Math.round(deposits * (0.68 + ((seed % 8) / 100)) * 100) / 100;
+  const creditProfile = activeCase.toolResults?.creditProfile;
+  const statedRevenue = amountNumber(creditProfile?.statedAnnualIncome) || Math.round((amount * (72 + (seed % 36))) / 100) * 100;
+  const deposits = amountNumber(creditProfile?.averageMonthlyDeposits) || Math.round((statedRevenue / 12) * (0.82 + ((seed % 12) / 100)) * 100) / 100;
+  const outflow = amountNumber(creditProfile?.averageMonthlyOutflow) || Math.round(deposits * (0.68 + ((seed % 8) / 100)) * 100) / 100;
   const city = activeCase.intake?.customerLocation ?? 'Training City, TX';
   const address = activeCase.customer?.contact?.address ?? `${100 + (seed % 8000)} Training Business Way, ${city}`;
   const jurisdiction = city.split(',').at(-1)?.trim() || 'Training jurisdiction';
