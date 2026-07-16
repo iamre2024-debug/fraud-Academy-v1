@@ -131,8 +131,8 @@ export default function LunaPostSubmissionPanel({
           </section>
 
           <div className="luna-v1-unlock-grid" aria-label="Luna unlock requirements">
-            <article><span>1</span><div><strong>Review required tools</strong><p>Complete the protected investigation checklist.</p></div></article>
-            <article><span>2</span><div><strong>Build evidence support</strong><p>Pin records and preserve investigation notes.</p></div></article>
+            <article><span>1</span><div><strong>Review the records you need</strong><p>Use only the case tools needed to reach a supported decision.</p></div></article>
+            <article><span>2</span><div><strong>Prove the selected flags</strong><p>Add a record reference and explanation for each selected flag.</p></div></article>
             <article><span>3</span><div><strong>Write your rationale</strong><p>Choose a decision route and explain the evidence.</p></div></article>
             <article><span>4</span><div><strong>Submit decision package</strong><p>Submission unlocks the case-scoped debrief.</p></div></article>
           </div>
@@ -148,7 +148,7 @@ export default function LunaPostSubmissionPanel({
             <div>
               <p>Saved package</p>
               <strong>{state.reviewPackage.savedAt}</strong>
-              <span>{state.reviewPackage.reviewedRequired}/{state.reviewPackage.totalRequired} required tools reviewed</span>
+              <span>{state.reviewPackage.reviewedRequired}/{state.reviewPackage.totalRequired} suggested tools reviewed</span>
             </div>
           </section>
 
