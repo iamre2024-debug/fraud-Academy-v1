@@ -22,6 +22,7 @@ export default function DecisionFlagChecklist({
           <p>Case-specific checklist</p>
           <h3 id="decision-flags-heading">{checklist.title}</h3>
           <span>{checklist.description}</span>
+          <small>Matched to this case: {checklist.scopeLabel}</small>
         </div>
         <div className="decision-flag-progress" aria-label={`${indicatorSummary.selectedCount} flags selected`}>
           <strong>{indicatorSummary.selectedCount}</strong>
