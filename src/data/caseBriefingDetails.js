@@ -89,7 +89,8 @@ function buildParties(item, claimType, scenario, context) {
   if (context.business && /business|vendor|payment|owner/i.test(`${role} ${claimType.lane}`)) {
     addParty('Business', context.business, 'Business connected to the active review', 'Business profile');
   }
-  if (context.employer && /payroll|employee|credit|application/i.test(`${claimType.id} ${claimType.lane}`)) {
+  const businessSubject = /business|vendor|owner/i.test(`${role} ${claimType.lane}`);
+  if (context.employer && !businessSubject && /payroll|employee|credit|application/i.test(`${claimType.id} ${claimType.lane}`)) {
     addParty('Employer', context.employer, 'Employer listed in the case packet', 'Relationship record');
   }
   if (claimType.taxonomy?.productRail === 'card') {
@@ -192,7 +193,7 @@ function buildDetailSection(item, claimType, scenario, reportedDate, dueDate, co
         ['Request / exposure', item.amountExposure ?? item.amount ?? scenario.amount],
         ['Product / account context', context.primaryDetails],
         ['Relationship history', context.relationship],
-        ['Employer / business', context.employer ?? context.business],
+        ['Employer / business', rail === 'loan' ? context.business : context.employer ?? context.business],
         ['Payment destination', context.destination],
         ['Review due', dueDate],
       ]),
