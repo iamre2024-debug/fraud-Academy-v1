@@ -14,6 +14,10 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   await expect(briefing.getByRole('heading', { name: 'Briefing summary', exact: true })).toBeVisible();
   await expect(briefing.getByRole('heading', { name: 'Case parties', exact: true })).toBeVisible();
   await expect(briefing.getByRole('heading', { name: 'Account and transaction details', exact: true })).toBeVisible();
+  await expect(briefing.getByRole('heading', { name: 'Claim Intake Form', exact: true })).toBeVisible();
+  await expect(briefing).toContainText('Two failed password attempts were recorded at 7:58 AM and 8:00 AM.');
+  await expect(briefing).toContainText('personal iPhone and Dallas, TX');
+  await expect(briefing).not.toContainText('Review the related fictional case records');
   await expect(briefing.getByRole('heading', { name: 'Luna Briefing Assistant', exact: true })).toBeVisible();
   await expect(briefing.getByRole('heading', { name: 'Recent documents', exact: true })).toBeVisible();
   await expect(briefing.getByRole('heading', { name: 'Key focus areas', exact: true })).toHaveCount(0);
@@ -90,6 +94,7 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   await expect(briefing).toContainText('StreamBox Premium');
   await expect(briefing.getByRole('heading', { name: 'Reason code and packet details', exact: true })).toBeVisible();
   await expect(briefing).toContainText('Training canceled-service / recurring billing review');
+  await expect(briefing).toContainText('cancellation confirmation remains the required open evidence');
 
   const workflow = page.getByRole('navigation', { name: 'Active case workflow' });
 

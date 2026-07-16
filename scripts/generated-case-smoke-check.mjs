@@ -46,6 +46,7 @@ const { getLoginRecords } = await import('../src/data/loginRecords.js');
 const { getSessionRecords } = await import('../src/data/sessionRecords.js');
 const { getIpRecords } = await import('../src/data/ipRecords.js');
 const { buildAccessHistoryReport } = await import('../src/data/accessHistoryReports.js');
+const { enrichTrainingCases } = await import('../src/data/caseEnrichment.js');
 
 const failures = [];
 const repository = await getGeneratedCaseRepository();
@@ -67,10 +68,14 @@ const batch = await generateAndSaveCases({
 
 const saved = await listGeneratedCases();
 const ids = new Set(saved.map((item) => item.id));
+const enrichedSaved = enrichTrainingCases(saved);
+const accountIds = new Set(enrichedSaved.map((item) => item.accountId));
 
 if (saved.length !== 130) failures.push(`Expected 130 generated cases after single and batch generation, found ${saved.length}.`);
 if (!ids.has(legacyCase.id)) failures.push('Legacy localStorage case was not preserved.');
 if (ids.size !== saved.length) failures.push('Generated case IDs are not unique.');
+if (accountIds.size !== enrichedSaved.length || enrichedSaved.some((item) => !item.accountId?.startsWith('ACCT-'))) failures.push('Every saved case must expose a unique Account ID after catalog enrichment.');
+if (enrichedSaved.some((item) => item.customer?.relationship?.find((entry) => entry.label === 'Account ID')?.value !== item.accountId)) failures.push('Every saved case must expose its Account ID in Customer 360.');
 if (batch[batch.length - 1]?.id !== saved[0]?.id) failures.push('Newest generated batch case was not added to the front of the queue.');
 if (batch.length !== 5) failures.push('Batch generation did not return every requested fictional case.');
 
@@ -97,6 +102,9 @@ for (const [index, claimType] of coreClaimTypes.entries()) {
   if (generated.lane !== claimType.lane) failures.push(`${claimType.label} did not preserve its lane.`);
   if (!generated.statement?.value || !generated.intakeAnswers?.length || !generated.caseBriefing?.summary) {
     failures.push(`${claimType.label} is missing its complete Case Briefing intake packet.`);
+  }
+  if (generated.intakeAnswers.length !== claimType.intakePrompts.length || generated.intakeAnswers.some((item) => /review the related|available when that tool|available for comparison|intake channel:|fictional subject/i.test(item.answer))) {
+    failures.push(`${claimType.label} has a generic or incomplete Claim Intake packet.`);
   }
   if (!generated.assignedInvestigator || !generated.assignedDate || !generated.dueDate) {
     failures.push(`${claimType.label} is missing universal Case Briefing ownership or deadline details.`);
