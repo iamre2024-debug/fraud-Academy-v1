@@ -95,11 +95,11 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
           <header><p>Merchant packet</p><h3>{profile.name}</h3><span>{activeCase.id}</span></header>
           <section><p>Packet index</p>{merchantIntelligenceTabs.map((item) => <button key={item.id} type="button" onClick={() => setActiveSection(item.id)}><span>{item.label}</span><strong>{workspace.records.filter((record) => record.section === item.id).length}</strong></button>)}</section>
           <section><p>Reason-code context</p><strong>{workspace.reasonCode}</strong><span>{workspace.responseDeadline}</span></section>
-          <nav><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button><button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button></nav>
+          <nav><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button></nav>
         </aside>
       </div>
 
-      <nav className="investigation-tool-next-routes" aria-label="Merchant Intelligence next routes"><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <nav className="investigation-tool-next-routes" aria-label="Merchant Intelligence next routes"><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
       <footer className="investigation-tool-review-bar"><div><strong>Merchant Intelligence review</strong><span>Review merchant identity, history, authorization, fulfillment, disputes, refunds, subscription or marketplace context, and the applicable reason-code evidence.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Merchant Intelligence')}>{reviewed ? 'Merchant Intelligence reviewed' : 'Mark Merchant Intelligence reviewed'}</button></footer>
     </>
   );

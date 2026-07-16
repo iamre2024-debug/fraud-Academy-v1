@@ -36,7 +36,7 @@ for (const anchor of [
   'Expanded event',
   'Verify this event against its source record',
   'Save timeline note',
-  'Open Document Viewer',
+  'Open Transaction History',
   'Open Submit Decision',
   "markReviewed('Timeline')",
   'It does not determine the case outcome.',

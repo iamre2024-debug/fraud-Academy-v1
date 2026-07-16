@@ -52,7 +52,6 @@ for (const anchor of [
   'Identity Intel',
   'Login History',
   'Device Intelligence',
-  'Document Viewer',
   'Document Request',
   'Open Submit Decision',
   "markReviewed('Customer 360')",

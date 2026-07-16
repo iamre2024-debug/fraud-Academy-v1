@@ -85,7 +85,7 @@ test('approved Dashboard resumes the active case without answer leaks', async ({
   await expect(page.getByRole('heading', { name: 'Investigator dashboard' })).toBeVisible();
   await expect(page.locator('.dashboard-active-case')).toContainText(builtInCases[0].id);
   await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Case Queue/ })).toBeVisible();
-  await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Document Workspace/ })).toBeVisible();
+  await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Investigation Workspace/ })).toBeVisible();
   await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Timeline/ })).toBeVisible();
   await expect(page.locator('.dashboard-quick-grid').getByRole('button', { name: /Progress/ })).toBeVisible();
 

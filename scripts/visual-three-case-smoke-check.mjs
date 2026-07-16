@@ -268,7 +268,7 @@ for (const required of [
 for (const required of [
   'className="bottom-investigation-grid"',
   'className="ornate-card tray-card"',
-  "openTool('Document Viewer')",
+  'Pinned Evidence & Key Identifiers',
   'className="ornate-card notebook-card"',
 ]) {
   requireText('src/BottomInvestigationGrid.jsx', bottomInvestigationGrid, required, 'bottom investigation grid module anchor');

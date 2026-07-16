@@ -71,8 +71,8 @@ const toolDetails = {
     question: 'What payroll activity is recorded for the active case?',
   },
   'Document Viewer': {
-    purpose: 'Open fictional case documents, review complete pages and extracted fields, compare records, and preserve source details without drawing an early conclusion.',
-    question: 'Which documents are available, what does each page contain, and which fields can be verified against other records?',
+    purpose: 'Search by exact Account ID, then review the matching customer documents, complete pages, extracted fields, and source details without drawing an early conclusion.',
+    question: 'Which customer account do these documents belong to, and what can be verified from each record?',
   },
   'Document Request': {
     purpose: 'Track fictional case documents that were requested, received, missing, or awaiting review without treating the request status as a case outcome.',
@@ -367,7 +367,6 @@ function LoginHistoryWorkspace({
               <div>
                 <button type="button" onClick={() => saveLoginNote(`${activeRecord.id} reviewed: ${activeRecord.timestamp} · ${activeRecord.eventType} · ${activeRecord.result} · ${activeRecord.deviceId ?? activeRecord.device} · ${activeRecord.ip}`)}>Save login note</button>
                 <button type="button" onClick={generateLoginReport}>{reportGenerated ? 'Regenerate Login Timeline Report' : 'Generate Login Timeline Report'}</button>
-                {reportGenerated && <button type="button" onClick={() => openTool('Document Viewer')}>Open report in Document Viewer</button>}
               </div>
             </article>
           </section>
@@ -559,7 +558,6 @@ function IPIntelligenceWorkspace({
               <div>
                 <button type="button" onClick={() => saveIpNote(`${activeRecord.ip} reviewed: ${activeRecord.lookupResult}`)}>Save IP note</button>
                 <button type="button" onClick={generateIpReport}>{reportGenerated ? 'Regenerate IP Intelligence Report' : 'Generate IP Intelligence Report'}</button>
-                {reportGenerated && <button type="button" onClick={() => openTool('Document Viewer')}>Open report in Document Viewer</button>}
               </div>
             </article>
           </section>}
@@ -736,7 +734,6 @@ function SessionHistoryWorkspace({
               <div>
                 <button type="button" onClick={() => saveSessionNote(`${activeRecord.session} reviewed: ${activeRecord.sessionPath.join(' / ')}`)}>Save session note</button>
                 <button type="button" onClick={generateSessionReport}>{reportGenerated ? 'Regenerate Session History Report' : 'Generate Session History Report'}</button>
-                {reportGenerated && <button type="button" onClick={() => openTool('Document Viewer')}>Open report in Document Viewer</button>}
               </div>
             </article>
           </section>
@@ -1104,7 +1101,6 @@ function DocumentRequestWorkspace({
             </article>
             <div className="document-request-actions">
               <button type="button" onClick={() => saveRequestNote(`${activeRequest.id} follow-up recorded for ${activeRequest.status}.`)}>Save follow-up note</button>
-              <button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button>
             </div>
           </section>
         </div>
@@ -1117,7 +1113,6 @@ function DocumentRequestWorkspace({
       </section>
 
       <nav className="investigation-tool-next-routes" aria-label="Document request next routes">
-        <button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button>
         <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
@@ -1278,7 +1273,6 @@ function IdentityIntelWorkspace({
 
       <nav className="investigation-tool-next-routes" aria-label="Identity Intel next routes">
         <button type="button" onClick={() => openTool('Customer 360')}>Open Customer 360</button>
-        <button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
 
@@ -1380,11 +1374,10 @@ function TransactionHistoryWorkspace({ activeCase, pin, saveNote, markReviewed, 
           <header><p>Related evidence</p><h3>Objects and documents</h3></header>
           <article><span>Related records</span><strong>{activeRecord.relatedRecords.join(' | ')}</strong></article>
           <article><span>Related documents</span><strong>{activeRecord.relatedDocuments.join(' | ') || 'No document linked in current packet'}</strong></article>
-          <button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button>
         </aside>
       </div> : <div className="investigation-tool-empty" role="status">No transaction records are available for this case.</div>}
 
-      <nav className="investigation-tool-next-routes" aria-label="Transaction History next routes"><button type="button" onClick={() => openTool('Financial Investigation')}>Open Financial Investigation</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <nav className="investigation-tool-next-routes" aria-label="Transaction History next routes"><button type="button" onClick={() => openTool('Financial Investigation')}>Open Financial Investigation</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
       <footer className="investigation-tool-review-bar"><div><strong>Transaction History review</strong><span>Review the activity feed, transaction details, linked records, and documents before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Transaction History')}>{reviewed ? '✓ Transaction History reviewed' : 'Mark Transaction History reviewed'}</button></footer>
     </>
   );
@@ -1484,11 +1477,11 @@ function FinancialInvestigationWorkspace({ activeCase, pin, saveNote, markReview
           <header><p>Case money summary</p><h3>{activeCase.amount}</h3><span>{activeCase.claimType ?? activeCase.type}</span></header>
           <section><p>Reviewed financial facts</p>{workspace.reviewedFacts.map((fact) => <article key={fact}>{fact}</article>)}</section>
           <section><p>Record inventory</p><div>{financialInvestigationTabs.map((item) => <button key={item.id} type="button" onClick={() => selectTab(item.id)}><span>{item.label}</span><strong>{workspace.recordsByTab[item.id]?.length ?? 0}</strong></button>)}</div></section>
-          <nav><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button></nav>
+          <nav><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button></nav>
         </aside>
       </div>
 
-      <nav className="investigation-tool-next-routes" aria-label="Financial Investigation next routes"><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <nav className="investigation-tool-next-routes" aria-label="Financial Investigation next routes"><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
       <footer className="investigation-tool-review-bar"><div><strong>Financial Investigation review</strong><span>Mark reviewed after comparing the relevant money sections and saving the evidence needed for the case package.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Financial Investigation')}>{reviewed ? '✓ Financial Investigation reviewed' : 'Mark Financial Investigation reviewed'}</button></footer>
     </>
   );
@@ -1567,11 +1560,11 @@ function KYBReviewWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed,
 
           {activeRecord ? <section className="kyb-record-detail" aria-label="Expanded KYB record"><header><div><p>Expanded source record</p><h3>{activeRecord.id}</h3><span>{activeRecord.title}</span></div><button type="button" onClick={() => pin(`${activeRecord.id} | ${activeRecord.title}`)}>Pin record</button></header><dl>{activeRecord.fields.map(([label, value]) => <div key={`${activeRecord.id}-${label}`}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><article><span>Recorded context</span><p>{activeRecord.detail}</p></article><div className="kyb-related-records"><span>Related records</span><div>{activeRecord.relatedRecords.map((item) => <button key={item} type="button" onClick={() => pin(item)}>{item}</button>)}</div></div><button type="button" onClick={() => saveNote(`KYB Review: ${activeRecord.id} - ${activeRecord.detail}`, 'KYB Review')}>Save evidence note</button></section> : <div className="investigation-tool-empty" role="status">Choose a KYB source record to open its details.</div>}
 
-          <aside className="kyb-case-rail" aria-label="KYB Review case summary"><header><p>Business evidence summary</p><h3>{workspace.profile.dba}</h3><span>{activeCase.id}</span></header><section><p>Reviewed business facts</p>{workspace.reviewedFacts.map((fact) => <article key={fact}>{fact}</article>)}</section><section className="kyb-report-actions"><p>KYB Business Report</p><span>Generate a factual report from the opened fictional business records. The report appears in Document Viewer.</span><button type="button" onClick={generateReport}>{reportGenerated ? 'Regenerate report' : 'Generate report'}</button>{report && <button type="button" onClick={() => downloadKybReport(report)}>Export report</button>}{reportGenerated && <button type="button" onClick={() => openTool('Document Viewer')}>Open in Document Viewer</button>}</section><nav><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Financial Investigation')}>Open Financial Investigation</button></nav></aside>
+          <aside className="kyb-case-rail" aria-label="KYB Review case summary"><header><p>Business evidence summary</p><h3>{workspace.profile.dba}</h3><span>{activeCase.id}</span></header><section><p>Reviewed business facts</p>{workspace.reviewedFacts.map((fact) => <article key={fact}>{fact}</article>)}</section><section className="kyb-report-actions"><p>KYB Business Report</p><span>Generate a factual report from the opened fictional business records. The report is stored with the matching account documents.</span><button type="button" onClick={generateReport}>{reportGenerated ? 'Regenerate report' : 'Generate report'}</button>{report && <button type="button" onClick={() => downloadKybReport(report)}>Export report</button>}</section><nav><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Financial Investigation')}>Open Financial Investigation</button></nav></aside>
         </div>
       </>}
 
-      <nav className="investigation-tool-next-routes" aria-label="KYB Review next routes"><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Identity Intel / People Search')}>Open Identity Intel</button><button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <nav className="investigation-tool-next-routes" aria-label="KYB Review next routes"><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Identity Intel / People Search')}>Open Identity Intel</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
       <footer className="investigation-tool-review-bar"><div><strong>KYB Review</strong><span>Complete an exact lookup and compare the relevant source records before marking this business review complete.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} disabled={!searchMatched} onClick={() => markReviewed('KYB Review')}>{reviewed ? '✓ KYB Review reviewed' : 'Mark KYB Review reviewed'}</button></footer>
     </>
   );
@@ -1595,7 +1588,7 @@ function Business360Workspace({ activeCase, pin, saveNote, markReviewed, reviewe
       <div className="business-360-workspace">
         <section className="business-360-relationships" aria-label="Business relationships"><header><p>Relationships</p><h3>Choose a business object</h3></header>{workspace.relationships.map((record) => <button key={record.id} type="button" className={record.id === activeRelationship?.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-business-360-record={record.id}><span>{record.id} | {record.status}</span><strong>{record.entity}</strong><small>{record.relationship}</small></button>)}</section>
         {activeRelationship ? <section className="business-360-detail" aria-label="Business relationship detail"><header><div><p>Selected relationship</p><h3>{activeRelationship.entity}</h3><span>{activeRelationship.observed}</span></div><button type="button" onClick={() => pin(activeRelationship.entity)}>Pin relationship</button></header><dl>{[['Relationship', activeRelationship.relationship], ['Status', activeRelationship.status], ['Observed', activeRelationship.observed], ['Case context', activeRelationship.context]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><button type="button" onClick={() => saveNote(`Business 360: ${activeRelationship.id} reviewed for ${activeCase.id}.`, 'Business 360')}>Save business note</button></section> : <div className="investigation-tool-empty" role="status">No business relationship is recorded for this case.</div>}
-        <aside className="business-360-evidence" aria-label="Business 360 evidence"><header><p>Evidence Explorer</p><h3>Business records to compare</h3></header>{workspace.intelligence.map((record) => <article key={record.id}><span>{record.type}</span><strong>{record.value}</strong><small>{record.id} | {record.observed}</small></article>)}<button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button></aside>
+        <aside className="business-360-evidence" aria-label="Business 360 evidence"><header><p>Evidence Explorer</p><h3>Business records to compare</h3></header>{workspace.intelligence.map((record) => <article key={record.id}><span>{record.type}</span><strong>{record.value}</strong><small>{record.id} | {record.observed}</small></article>)}</aside>
       </div>
       <nav className="investigation-tool-next-routes" aria-label="Business 360 next routes"><button type="button" onClick={() => openTool('KYB Review')}>Open KYB Review</button><button type="button" onClick={() => openTool('Employee Profile')}>Open Employee Profile</button><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
       <footer className="investigation-tool-review-bar"><div><strong>Business 360 review</strong><span>Review the fictional business profile, relationship records, and linked evidence before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Business 360')}>{reviewed ? '✓ Business 360 reviewed' : 'Mark Business 360 reviewed'}</button></footer>
@@ -1617,7 +1610,7 @@ function EmployeeProfileWorkspace({ activeCase, pin, saveNote, markReviewed, rev
         <section className="employee-profile-detail" aria-label="Employee Profile detail"><header><div><p>Employee profile</p><h3>{activeRecord.name}</h3><span>{activeRecord.role} | {activeRecord.employer}</span></div><button type="button" onClick={() => pin(`${activeRecord.id} | ${activeRecord.name}`)}>Pin employee</button></header><dl>{[['Employee ID', activeRecord.id], ['Employer', activeRecord.employer], ['Role', activeRecord.role], ['Department', activeRecord.department], ['Status', activeRecord.status], ['Hire date', activeRecord.hireDate], ['Employment timeline', activeRecord.employmentTimeline], ['Official contact / callback', activeRecord.officialContact], ['Direct deposit context', activeRecord.directDeposit], ['Linked payroll records', activeRecord.linkedPayroll.join(' | ') || 'None recorded']].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><button type="button" onClick={() => saveNote(`Employee Profile: ${activeRecord.id} reviewed for ${activeCase.id}.`, 'Employee profile')}>Save employee note</button></section>
         <aside className="employee-profile-evidence" aria-label="Employee payroll evidence"><header><p>Payroll connection</p><h3>Next evidence to review</h3></header><p>Compare the employee record, employer relationship, direct-deposit context, and any payroll change request before documenting a case decision.</p><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button></aside>
       </div> : <div className="investigation-tool-empty" role="status">No employee records are available for this case.</div>}
-      <nav className="investigation-tool-next-routes" aria-label="Employee Profile next routes"><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <nav className="investigation-tool-next-routes" aria-label="Employee Profile next routes"><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
       <footer className="investigation-tool-review-bar"><div><strong>Employee Profile review</strong><span>Review employee and employer facts, official contact details, and linked payroll context before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Employee Profile')}>{reviewed ? '✓ Employee Profile reviewed' : 'Mark Employee Profile reviewed'}</button></footer>
     </>
   );
@@ -1841,7 +1834,6 @@ function PaymentVerificationWorkspace({
       )}
 
       <nav className="investigation-tool-next-routes" aria-label="Payment verification next routes">
-        <button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button>
         <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
@@ -1862,6 +1854,8 @@ function PaymentVerificationWorkspace({
 export default function InvestigationToolPanel({
   activeCategory,
   activeCase,
+  cases,
+  openDocumentAccountCase,
   tool,
   openTool,
   query,
@@ -2082,6 +2076,8 @@ export default function InvestigationToolPanel({
       ) : tool === 'Document Viewer' ? (
         <DocumentViewerWorkspace
           activeCase={activeCase}
+          cases={cases}
+          openDocumentAccountCase={openDocumentAccountCase}
           query={query}
           setQuery={setQuery}
           pin={pin}

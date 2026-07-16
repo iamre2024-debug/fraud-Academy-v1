@@ -60,7 +60,6 @@ export default function CaseSummaryCard({
   function openNotebook() {
     recordBriefingAction('Opened notes', 'Opened the case notebook from Case Briefing.');
     if (openNotes) openNotes();
-    else openTool('Document Viewer', 'indicators');
   }
 
   function showMoreTools() {
@@ -101,6 +100,7 @@ export default function CaseSummaryCard({
             <div className="case-summary-meta-grid">
               <article><small>Name</small><strong>{activeCase.person}</strong></article>
               <article><small>Claim ID</small><strong>{activeCase.claimId ?? activeCase.id}</strong></article>
+              <article><small>Account ID</small><strong>{activeCase.accountId}</strong></article>
               <article><small>Total claim amount</small><strong>{activeCase.amount}</strong></article>
               <article><small>Case type</small><strong>{activeCase.claimType ?? activeCase.type}</strong></article>
               <article><small>Lane</small><strong>{activeCase.lane ?? 'Not supplied'}</strong></article>
@@ -274,7 +274,6 @@ export default function CaseSummaryCard({
               {!documents.length && <p className="case-briefing-empty">No documents are listed in this case packet yet.</p>}
             </div>
             <div className="case-briefing-document-actions">
-              <button type="button" className="case-briefing-secondary-action" onClick={() => openRoute('Document Viewer', 'indicators')}>Open Document Viewer</button>
               <button type="button" className="case-briefing-secondary-action" onClick={() => openRoute('Document Request', 'investigate')}>Open Document Request</button>
             </div>
           </article>

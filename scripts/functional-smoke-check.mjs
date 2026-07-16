@@ -75,6 +75,7 @@ const checks = [
       'function updateDecision(',
       'function submitNote(',
       'function submitDecision(',
+      "openTool('Document Viewer', 'indicators')",
     ],
   },
   {
@@ -145,6 +146,9 @@ const checks = [
       'decision-jump-button',
       'Case briefing quick routes',
     ],
+    mustNotContain: [
+      "openRoute('Document Viewer'",
+    ],
   },
   {
     file: 'src/CategoryTileRail.jsx',
@@ -166,10 +170,12 @@ const checks = [
       'className="bottom-investigation-grid"',
       'className="ornate-card tray-card"',
       'Pinned Evidence & Key Identifiers',
-      "openTool('Document Viewer')",
       'className="ornate-card notebook-card"',
       'className="notebook-compose"',
       'No manual note saved yet.',
+    ],
+    mustNotContain: [
+      'Document Viewer',
     ],
   },
   {

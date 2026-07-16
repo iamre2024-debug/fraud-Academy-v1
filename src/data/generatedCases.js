@@ -304,6 +304,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const { person, city, employer, business, phone, email, address } = persona;
   const id = `FA-${claimType.prefix}-G${String(index).slice(-8)}`;
   const trainingId = `TRN-GEN-${suffix}`;
+  const accountId = `ACCT-${claimType.prefix}-${suffix}`;
   const reportedDate = dateFor(index);
   const issueStartDate = dateFor(index, 2);
   const documents = makeDocuments({ id, claimType, scenario, recordCount, difficulty, person, business, employer, address, trainingId, reportedDate, issueStartDate });
@@ -325,6 +326,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     segment: `${claimType.shortLabel} training profile`,
     contact: { phone, email, address, preferredChannel: scenario.channel },
     relationship: [
+      { label: 'Account ID', value: accountId },
       { label: 'Open products', value: taxonomyTags.productRail },
       { label: 'Relationship context', value: taxonomyTags.lifecycleStage },
       { label: 'Primary entity', value: taxonomyTags.productRail === 'payroll' || taxonomyTags.productRail === 'loan' ? business : person },
@@ -380,13 +382,14 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     timelinePattern: scenario.timelinePattern,
     commonMistake: scenario.commonMistake,
     miniExample: scenario.miniExample,
-    generatedPacketVersion: 2,
+    generatedPacketVersion: 3,
     difficulty,
     evidenceDepth: depth.label,
     priority: scenario.priority,
     status: 'Generated',
     person,
     trainingId,
+    accountId,
     amount: scenario.amount,
     amountExposure: scenario.amount,
     opened: 'Generated training case',
