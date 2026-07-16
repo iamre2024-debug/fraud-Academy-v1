@@ -18,7 +18,8 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   await expect(briefing).toContainText('Two failed password attempts were recorded at 7:58 AM and 8:00 AM.');
   await expect(briefing).toContainText('personal iPhone and Dallas, TX');
   await expect(briefing).not.toContainText('Review the related fictional case records');
-  await expect(briefing.getByRole('heading', { name: 'Luna Briefing Assistant', exact: true })).toBeVisible();
+  await expect(briefing.getByRole('heading', { name: 'Records in this packet', exact: true })).toHaveCount(0);
+  await expect(briefing.getByRole('heading', { name: 'Luna Briefing Assistant', exact: true })).toHaveCount(0);
   await expect(briefing.getByRole('heading', { name: 'Recent documents', exact: true })).toBeVisible();
   await expect(briefing.getByRole('heading', { name: 'Key focus areas', exact: true })).toHaveCount(0);
   await expect(briefing.getByRole('heading', { name: 'Recent actions', exact: true })).toHaveCount(0);
