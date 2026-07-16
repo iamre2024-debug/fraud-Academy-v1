@@ -23,16 +23,10 @@ export default function CaseSummaryCard({
   openNotes,
   openMoreTools,
   openQueue,
-  actionLog = [],
   recordAction,
 }) {
   const intake = activeCase.intake ?? {};
   const documents = activeCase.documents ?? [];
-  const focusAreas = activeCase.caseBriefing?.focusAreas ?? activeCase.briefingQuestions ?? [
-    'What opened this case?',
-    'Which records should be compared?',
-    'What evidence should be documented before a determination?',
-  ];
   const intakeAnswers = activeCase.intakeAnswers ?? [];
   const statement = activeCase.statement ?? { label: 'Customer statement', value: activeCase.allegation ?? activeCase.queueReason, source: intake.channel ?? 'Case queue' };
   const evidenceAreas = activeCase.caseBriefing?.evidenceAreas ?? activeCase.evidenceAreas ?? [];
@@ -232,24 +226,9 @@ export default function CaseSummaryCard({
             </dl>
           </article>
 
-          <article className="case-briefing-card case-briefing-focus-card">
-            <div className="case-briefing-card-heading">
-              <span aria-hidden="true">08</span>
-              <div>
-                <p>Investigator prompts</p>
-                <h3>Key focus areas</h3>
-              </div>
-            </div>
-            <ol>
-              {focusAreas.slice(0, 4).map((question, index) => (
-                <li key={`${activeCase.id}-focus-${index}`}><span>{index + 1}</span><p>{question}</p></li>
-              ))}
-            </ol>
-          </article>
-
           <article className="case-briefing-card case-briefing-evidence-card">
             <div className="case-briefing-card-heading">
-              <span aria-hidden="true">09</span>
+              <span aria-hidden="true">08</span>
               <div>
                 <p>Available evidence areas</p>
                 <h3>Records in this packet</h3>
@@ -279,7 +258,7 @@ export default function CaseSummaryCard({
 
           <article className="case-briefing-card case-briefing-documents-card">
             <div className="case-briefing-card-heading">
-              <span aria-hidden="true">10</span>
+              <span aria-hidden="true">09</span>
               <div>
                 <p>Case packet</p>
                 <h3>Recent documents</h3>
@@ -303,7 +282,7 @@ export default function CaseSummaryCard({
           {chargebackDetails && (
             <article className="case-briefing-card case-briefing-chargeback-card">
               <div className="case-briefing-card-heading">
-                <span aria-hidden="true">11</span>
+                <span aria-hidden="true">10</span>
                 <div>
                   <p>Chargeback review rail</p>
                   <h3>Reason code and packet details</h3>
@@ -323,7 +302,7 @@ export default function CaseSummaryCard({
           {activeCase.creditDecision && (
             <article className="case-briefing-card case-briefing-credit-card">
               <div className="case-briefing-card-heading">
-                <span aria-hidden="true">12</span>
+                <span aria-hidden="true">11</span>
                 <div>
                   <p>Credit review rail</p>
                   <h3>Credit case details</h3>
@@ -340,19 +319,6 @@ export default function CaseSummaryCard({
             </article>
           )}
 
-          <article className="case-briefing-card case-briefing-activity-card">
-            <div className="case-briefing-card-heading">
-              <span aria-hidden="true">⌁</span>
-              <div>
-                <p>Case activity</p>
-                <h3>Recent actions</h3>
-              </div>
-            </div>
-            <div className="case-briefing-activity-list">
-              {actionLog.slice(0, 4).map((entry) => <div key={entry.id}><strong>{entry.action}</strong><span>{entry.time} · {entry.source}</span><small>{entry.detail}</small></div>)}
-              {!actionLog.length && <p className="case-briefing-empty">No activity has been recorded for this case yet.</p>}
-            </div>
-          </article>
         </div>
 
         <nav className="case-briefing-utilities" aria-label="Case briefing utilities">

@@ -33,7 +33,6 @@ for (const anchor of [
   'Case parties',
   'data-case-briefing-parties="true"',
   'data-case-briefing-details="true"',
-  'Key focus areas',
   'Luna Briefing Assistant',
   'Recent documents',
   'Reason code and packet details',
@@ -142,6 +141,8 @@ for (const forbidden of [
   'AI recommendation',
   'Red flag',
   'Green flag',
+  'Key focus areas',
+  'Recent actions',
 ]) {
   mustNotContain('CaseSummaryCard.jsx visible copy', briefing, forbidden);
 }

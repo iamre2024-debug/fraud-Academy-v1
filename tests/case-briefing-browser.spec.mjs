@@ -14,9 +14,10 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   await expect(briefing.getByRole('heading', { name: 'Briefing summary', exact: true })).toBeVisible();
   await expect(briefing.getByRole('heading', { name: 'Case parties', exact: true })).toBeVisible();
   await expect(briefing.getByRole('heading', { name: 'Account and transaction details', exact: true })).toBeVisible();
-  await expect(briefing.getByRole('heading', { name: 'Key focus areas', exact: true })).toBeVisible();
   await expect(briefing.getByRole('heading', { name: 'Luna Briefing Assistant', exact: true })).toBeVisible();
   await expect(briefing.getByRole('heading', { name: 'Recent documents', exact: true })).toBeVisible();
+  await expect(briefing.getByRole('heading', { name: 'Key focus areas', exact: true })).toHaveCount(0);
+  await expect(briefing.getByRole('heading', { name: 'Recent actions', exact: true })).toHaveCount(0);
   await expect(briefing).toContainText('Assigned investigator');
   await expect(briefing).toContainText('Learner Agent');
   await expect(briefing).toContainText('Due date');
