@@ -132,7 +132,189 @@ const checklistByClaimType = {
   },
 };
 
-const defaultChecklist = checklistByClaimType['account-takeover'];
+const defaultChecklist = {
+  title: 'Case decision checklist',
+  description: 'Document only the evidence that directly supports or challenges the determination for this case.',
+  flags: [
+    flag('case-material-conflict', 'red', 'High', 'Does a material case record conflict with the statement or requested outcome?', 'Cite the statement, the conflicting record, and the exact field, amount, or timestamp.'),
+    flag('case-independent-support', 'green', 'High', 'Does an independent record support the statement or requested outcome?', 'Cite the independent source and explain how it connects to the activity in scope.'),
+  ],
+};
+
+const flagApplicability = {
+  'ato-customer-mfa': /credential|phish|vish|remote access|help desk|session|wallet|payee|profile change/i,
+  'fcb-customer-authentication': /CNP|online|wallet|ATM\/POS/i,
+  'fcb-known-merchant': /CNP|online|wallet|unauthorized/i,
+  'fcb-fulfillment': /CNP|online|unauthorized online/i,
+  'fcb-new-token-device': /CNP|online|wallet|unauthorized/i,
+  'fcb-card-possession': /lost|stolen|never received|counterfeit|CNP|wallet|ATM\/POS|online/i,
+  'fcb-merchant-gap': /CNP|online|wallet|unauthorized/i,
+  'ncb-merchant-fulfilled': /canceled service|item not as described|services not rendered|subscription/i,
+  'ncb-late-cancellation': /canceled service|subscription/i,
+  'ncb-recurring-history': /canceled service|subscription/i,
+  'ncb-cancellation-proof': /canceled service|subscription/i,
+  'ncb-billing-error': /incorrect amount|duplicate billing|refund not received|return credit/i,
+  'fpf-benefit-delivery': /friendly|household|digital goods|delivery|non-receipt|refund|usage/i,
+  'fpf-repeat-pattern': /friendly|repeated|refund|dispute after usage/i,
+  'fpf-isolated-event': /friendly|repeated|refund|dispute after usage/i,
+  'payroll-compromised-access': /spoofed|compromised|portal|mailbox|admin/i,
+  'payroll-known-destination': /existing employee|destination changed|payroll card|spoofed|compromised/i,
+  'bec-urgent-control-bypass': /urgent|CEO|invoice diversion|beneficiary change|vendor bank change/i,
+  'credit-income-mismatch': /income|credit line increase|first-payment|fake application|first-party credit|loan stacking/i,
+  'credit-high-dti': /credit line increase|first-payment|repayment stress|bust-out|loan stacking|first-party credit/i,
+  'credit-cashflow-risk': /credit line increase|first-payment|repayment stress|bust-out|business revenue|first-party credit/i,
+  'credit-stable-income': /income|credit line increase|first-payment|fake application|first-party credit/i,
+  'credit-manageable-obligations': /credit line increase|first-payment|repayment stress|bust-out|loan stacking|first-party credit/i,
+  'business-owner-mismatch': /owner|identity|legitimacy|tradeline/i,
+  'business-revenue-mismatch': /revenue|draw|sleeper|legitimacy|stacking/i,
+  'business-rapid-exposure': /draw|sleeper|stacking|limit increase/i,
+  'business-verified-entity': /owner|identity|legitimacy|tradeline|application/i,
+  'business-supported-revenue': /revenue|draw|sleeper|legitimacy|stacking/i,
+  'business-stable-performance': /draw|sleeper|stacking|limit increase/i,
+  'application-document-risk': /ID mismatch|selfie|liveness|synthetic|stolen identity/i,
+  'application-new-identity-cluster': /thin identity|new email|new device|phone ownership|synthetic|stolen identity|address/i,
+  'application-liveness': /selfie|liveness|stolen identity/i,
+  'application-stable-contact': /thin identity|new email|new device|phone ownership|synthetic|stolen identity|address/i,
+  'payment-new-destination': /ACH|wire|recovery/i,
+  'payment-trusted-verification': /ACH|wire|recovery/i,
+  'payment-known-destination': /ACH|wire|recovery/i,
+  'payment-clean-record': /ACH|check|endorsement|alteration/i,
+};
+
+const scenarioFlagsByClaimType = {
+  'account-takeover': [
+    { match: /SIM swap/i, flags: [
+      flag('ato-carrier-change', 'green', 'Critical', 'Did a carrier SIM or number-port change occur before account recovery or money movement?', 'Cite the carrier event, recovery event, login, and transaction timeline.', { override: false }),
+      flag('ato-established-sim', 'red', 'High', 'Do carrier and device records show the established SIM remained active through the disputed activity?', 'Cite the carrier history, device ID, and authentication timestamps.'),
+    ] },
+    { match: /help desk reset/i, flags: [
+      flag('ato-helpdesk-bypass', 'green', 'Critical', 'Did the help desk reset bypass a required identity or callback control?', 'Cite the support ticket, failed or skipped control, changed field, and later activity.'),
+      flag('ato-valid-support-contact', 'red', 'High', 'Does the support record connect the customer to the recovery request through trusted verification?', 'Cite the trusted contact source, verification steps, and support recording or ticket.'),
+    ] },
+    { match: /OTP phishing|vishing|remote access/i, flags: [
+      flag('ato-customer-directed-payment', 'red', 'Critical', 'Did the customer personally approve or release the payment while following another person\'s instructions?', 'Cite the customer statement, authentication event, payment approval, and contact timeline.', { override: true }),
+      flag('ato-control-obtained-by-deception', 'green', 'High', 'Did deception give another person control of credentials, a session, or a payment destination?', 'Cite the message or call, access event, control change, and resulting activity.'),
+    ] },
+  ],
+  'fraud-chargeback': [
+    { match: /lost card|stolen card/i, flags: [
+      flag('fcb-loss-timing', 'green', 'High', 'Did the disputed purchase occur after the documented loss or theft and before the card was blocked?', 'Cite the loss time, transaction time, block time, entry mode, and customer statement.'),
+      flag('fcb-chip-pin-after-loss', 'red', 'Critical', 'Did chip or PIN evidence conflict with the reported card-possession timeline?', 'Cite the EMV or PIN result, transaction time, loss report, and any recognized activity.', { override: true }),
+    ] },
+    { match: /never received card/i, flags: [
+      flag('fcb-card-delivery-activation', 'red', 'High', 'Do delivery and activation records connect the replacement card to the cardholder before use?', 'Cite carrier delivery, activation method, trusted contact, and first transaction.'),
+      flag('fcb-no-receipt-activation-gap', 'green', 'High', 'Is card delivery, activation, or possession unsupported before the disputed purchase?', 'Cite the missing or mismatched delivery and activation records.'),
+    ] },
+    { match: /counterfeit|skimming/i, flags: [
+      flag('fcb-fallback-distant-use', 'green', 'Critical', 'Did magnetic-stripe fallback activity occur away from the cardholder while the genuine card remained in possession?', 'Cite entry mode, location, time, genuine-card activity, and customer statement.'),
+      flag('fcb-genuine-card-present', 'red', 'High', 'Does the authorization show the genuine chip or contactless credential was used near the cardholder?', 'Cite the cryptogram or entry mode, location, and possession evidence.'),
+    ] },
+    { match: /ATM\/POS/i, flags: [
+      flag('fcb-atm-chip-pin', 'red', 'Critical', 'Did the ATM or point-of-sale transaction use the genuine chip and correct PIN in a familiar area?', 'Cite the EMV result, PIN result, terminal, location, time, and nearby recognized activity.', { override: true }),
+      flag('fcb-atm-pos-anomaly', 'green', 'High', 'Do terminal, location, fallback, or timing records materially differ from the cardholder pattern?', 'Cite the terminal record and normal card-use comparison.'),
+    ] },
+  ],
+  'non-fraud-chargeback': [
+    { match: /incorrect amount/i, flags: [
+      flag('ncb-receipt-matches-posted', 'red', 'High', 'Does the signed receipt or invoice match the posted amount?', 'Cite the receipt total, authorization amount, posted amount, and tip or adjustment record.'),
+      flag('ncb-receipt-posting-mismatch', 'green', 'High', 'Does the receipt or authorization support a lower amount than the posted transaction?', 'Cite each amount and identify the unsupported difference.'),
+    ] },
+    { match: /duplicate billing/i, flags: [
+      flag('ncb-separate-orders', 'red', 'High', 'Do the two charges map to separate orders, authorizations, or fulfillment records?', 'Cite both transaction IDs and the separate order or fulfillment references.'),
+      flag('ncb-same-order-duplicate', 'green', 'Critical', 'Do both settled charges map to the same order or service with no separate fulfillment?', 'Cite both transaction IDs, order ID, amount, settlement dates, and fulfillment record.'),
+    ] },
+    { match: /refund not received|return credit not posted/i, flags: [
+      flag('ncb-refund-not-due', 'red', 'Medium', 'Is the merchant credit still within the disclosed processing window?', 'Cite the refund date, policy window, current date, and network status.'),
+      flag('ncb-refund-overdue', 'green', 'High', 'Is a confirmed merchant or return credit missing after the expected posting date?', 'Cite the credit confirmation, return receipt, expected date, and transaction history.'),
+    ] },
+    { match: /item not as described/i, flags: [
+      flag('ncb-description-matches', 'red', 'High', 'Do the listing, receipt, and delivered item materially match?', 'Cite the advertised terms, order details, delivery evidence, and customer complaint.'),
+      flag('ncb-material-description-gap', 'green', 'High', 'Is a material difference between the promised and delivered item documented?', 'Cite photos or inspection, listing language, return request, and merchant response.'),
+    ] },
+    { match: /services not rendered/i, flags: [
+      flag('ncb-service-performed', 'red', 'High', 'Does the merchant show the contracted service was performed or made available as agreed?', 'Cite appointment, access, completion, or signed service records.'),
+      flag('ncb-no-service-or-credit', 'green', 'High', 'Was the service not provided, rescheduled, or credited?', 'Cite the schedule, cancellation, customer contact, and absence of a credit.'),
+    ] },
+  ],
+  'first-party-fraud': [
+    { match: /digital goods|friendly fraud|household member|dispute after usage/i, flags: [
+      flag('fpf-established-device-usage', 'red', 'High', 'Was the product or service activated and used from an established customer or household device?', 'Cite the device ID, account login, activation, usage timestamps, and customer relationship.'),
+      flag('fpf-no-usage-link', 'green', 'High', 'Is there no reliable activation, usage, or household link to the disputed benefit?', 'Cite the searched records and the missing or mismatched customer fields.'),
+    ] },
+    { match: /delivery|non-receipt/i, flags: [
+      flag('fpf-strong-delivery-proof', 'red', 'Critical', 'Do carrier GPS, photo, signature, or access records connect delivery to the customer address?', 'Cite the carrier event, delivery artifact, address match, and recipient details.', { override: true }),
+      flag('fpf-delivery-proof-gap', 'green', 'High', 'Is delivery proof missing, inconsistent, or tied to a different address or recipient?', 'Cite the missing artifact or mismatch and the order record.'),
+    ] },
+  ],
+  'payroll-direct-deposit': [
+    { match: /fake new-hire|ghost employee/i, flags: [
+      flag('payroll-employee-not-supported', 'red', 'Critical', 'Is the employee unsupported by HR, manager, identity, timekeeping, or hiring records?', 'Cite each system searched and the missing or conflicting employee record.', { override: true }),
+      flag('payroll-employee-confirmed', 'green', 'High', 'Do HR, manager, identity, and timekeeping records independently confirm the employee?', 'Cite the employee ID, manager verification, hiring packet, and work records.'),
+    ] },
+  ],
+  'email-bec': [
+    { match: /mailbox compromise|mailbox rule forwarding/i, flags: [
+      flag('bec-mailbox-access-rule', 'red', 'Critical', 'Did unfamiliar mailbox access or a forwarding rule precede the payment instruction?', 'Cite the login, IP, device, rule creation, message, and payment timeline.', { override: true }),
+      flag('bec-clean-mailbox-history', 'green', 'High', 'Do mailbox access, rules, and message history remain consistent with the trusted user?', 'Cite the access history, rule audit, and known-device comparison.'),
+    ] },
+    { match: /look-alike domain|reply-to mismatch/i, flags: [
+      flag('bec-domain-reply-mismatch', 'red', 'Critical', 'Does the sender or reply-to differ from the trusted domain or established address?', 'Cite the full header, domain registration, vendor master record, and exact mismatch.', { override: true }),
+      flag('bec-trusted-domain-thread', 'green', 'High', 'Do the sender, reply-to, domain age, and prior thread consistently match the trusted vendor?', 'Cite the header, domain record, and historical messages.'),
+    ] },
+  ],
+  'credit-risk': [
+    { match: /synthetic identity|fake application|first-party credit abuse/i, flags: [
+      flag('credit-identity-cluster-conflict', 'red', 'Critical', 'Do identity, contact, device, payment, or document records fail to form one consistent applicant?', 'Cite the mismatched fields, linked profiles, source records, and first-seen dates.', { override: true }),
+      flag('credit-identity-independently-supported', 'green', 'High', 'Is the applicant identity consistently supported across independent sources?', 'Cite identity, address, contact, device, payment ownership, and document matches.'),
+    ] },
+    { match: /repayment stress|first-payment default/i, flags: [
+      flag('credit-payment-stress-pattern', 'red', 'High', 'Do missed payments, rising utilization, returns, or cash-flow changes weaken repayment support?', 'Cite the payment dates, balances, utilization, returns, and income change.'),
+      flag('credit-explainable-hardship', 'green', 'Medium', 'Is the payment stress supported by a documented hardship rather than inconsistent application information?', 'Cite customer contact, income change, payment history, and hardship records.'),
+    ] },
+    { match: /loan stacking/i, flags: [
+      flag('credit-concurrent-obligations', 'red', 'High', 'Do recent inquiries or newly opened obligations materially change repayment capacity?', 'Cite inquiry dates, new balances, monthly obligations, and revised DTI.'),
+      flag('credit-shopping-window', 'green', 'Medium', 'Are the inquiries consistent with rate shopping without additional funded obligations?', 'Cite the inquiry window, account-opening results, and verified obligations.'),
+    ] },
+  ],
+  'business-loan-bust-out': [
+    { match: /tradeline/i, flags: [
+      flag('business-unrelated-tradelines', 'red', 'Critical', 'Do submitted trade references belong to unrelated businesses or recently added relationships?', 'Cite tradeline ownership, business identifiers, dates added, and related entities.', { override: true }),
+      flag('business-owned-tradelines', 'green', 'High', 'Are trade references established and owned by the applicant business?', 'Cite vendor confirmations, account age, payment history, and matching entity details.'),
+    ] },
+  ],
+  'application-verification': [
+    { match: /address cannot be verified/i, flags: [
+      flag('application-address-unsupported', 'red', 'High', 'Is the stated address unsupported across documents, records, and contact history?', 'Cite the application address and each source searched or conflicting address.'),
+      flag('application-address-supported', 'green', 'High', 'Is the address independently supported by current documents and established records?', 'Cite the proof-of-address document, record date, and matching identity fields.'),
+    ] },
+    { match: /phone ownership mismatch/i, flags: [
+      flag('application-phone-unrelated', 'red', 'High', 'Is the phone owned by an unrelated party with no supported relationship to the applicant?', 'Cite ownership, tenure, account holder, OTP history, and relationship checks.'),
+      flag('application-phone-relationship', 'green', 'Medium', 'Is the different phone owner explained by a supported family or business relationship?', 'Cite the plan owner, relationship record, tenure, and successful verification.'),
+    ] },
+    { match: /selfie|liveness/i, flags: [
+      flag('application-biometric-mismatch', 'red', 'Critical', 'Do liveness or portrait comparison results materially conflict with the identity document?', 'Cite capture quality, liveness result, portrait comparison, and document ID.', { override: true }),
+      flag('application-biometric-quality-pass', 'green', 'High', 'Did a usable capture pass liveness and match the identity document portrait?', 'Cite capture date, quality, liveness, and face-match results.'),
+    ] },
+  ],
+  'ach-wire-check': [
+    { match: /ACH/i, flags: [
+      flag('payment-ach-authorization', 'green', 'High', 'Is a valid ACH authorization or established originator relationship documented?', 'Cite the authorization, originator, effective date, prior debits, and revocation history.'),
+      flag('payment-ach-no-authorization', 'red', 'High', 'Is ACH authorization missing, revoked, or inconsistent with the debit?', 'Cite the debit, authorization search, revocation, return code, and customer statement.'),
+    ] },
+    { match: /wire/i, flags: [
+      flag('payment-wire-beneficiary-change', 'red', 'Critical', 'Was the wire beneficiary changed outside trusted callback and approval controls?', 'Cite the old and new beneficiary, request source, callback, approver, and release time.', { override: true }),
+      flag('payment-wire-verified-beneficiary', 'green', 'High', 'Was the beneficiary independently verified through trusted contact and ownership records?', 'Cite the callback source, verified contact, ownership result, and approval.'),
+    ] },
+    { match: /check|endorsement|alteration/i, flags: [
+      flag('payment-check-image-mismatch', 'red', 'Critical', 'Do front or back check images show a payee, amount, serial, or endorsement mismatch?', 'Cite the issued-check record, front image, back image, deposit details, and exact alteration.', { override: true }),
+      flag('payment-check-image-match', 'green', 'High', 'Do issued-check details, images, endorsement, and deposit ownership consistently match?', 'Cite the check serial, amount, payee, endorsement, and deposit account ownership.'),
+    ] },
+    { match: /recovery|recall/i, flags: [
+      flag('payment-recall-window', 'red', 'High', 'Was recall or recovery delayed after the concern became known?', 'Cite the release time, discovery time, recall request, beneficiary response, and current status.'),
+      flag('payment-prompt-recall', 'green', 'High', 'Was recall initiated promptly with complete beneficiary and payment details?', 'Cite the discovery, recall, bank contact, beneficiary restriction, and response timestamps.'),
+    ] },
+  ],
+};
 
 function isDigitalWalletCase(activeCase = {}) {
   return /wallet|token/i.test([
@@ -144,9 +326,26 @@ function isDigitalWalletCase(activeCase = {}) {
   ].filter(Boolean).join(' '));
 }
 
+function decisionContext(activeCase = {}) {
+  return [
+    activeCase.scenarioId,
+    activeCase.scenarioTitle,
+    activeCase.subtype,
+    activeCase.family,
+    activeCase.transactionInfo,
+    activeCase.allegation,
+  ].filter(Boolean).join(' ');
+}
+
 export function getDecisionChecklist(activeCase = {}) {
   const base = checklistByClaimType[activeCase.claimTypeId] ?? defaultChecklist;
-  const flags = [...base.flags];
+  const context = decisionContext(activeCase);
+  const hasSpecificCaseContext = Boolean(activeCase.subtype || activeCase.scenarioId || activeCase.scenarioTitle || activeCase.transactionInfo);
+  const flags = base.flags.filter((item) => !hasSpecificCaseContext || !flagApplicability[item.id] || flagApplicability[item.id].test(context));
+
+  (scenarioFlagsByClaimType[activeCase.claimTypeId] ?? []).forEach((rule) => {
+    if (rule.match.test(context)) flags.push(...rule.flags);
+  });
 
   if (['account-takeover', 'fraud-chargeback'].includes(activeCase.claimTypeId) && isDigitalWalletCase(activeCase)) {
     flags.unshift(flag(
@@ -159,7 +358,11 @@ export function getDecisionChecklist(activeCase = {}) {
     ));
   }
 
-  return { ...base, flags };
+  return {
+    ...base,
+    flags: [...new Map(flags.map((item) => [item.id, item])).values()],
+    scopeLabel: activeCase.subtype ?? activeCase.scenarioTitle ?? activeCase.type ?? 'Case-specific review',
+  };
 }
 
 export function summarizeDecisionIndicators(activeCase = {}, indicatorAnswers = {}) {
