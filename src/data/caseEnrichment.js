@@ -209,7 +209,7 @@ function buildClaimFields(item, context = {}) {
 }
 
 function enrichOneCase(item) {
-  if (item.id?.includes('-G') && item.generatedPacketVersion !== 2 && item.claimTypeId && item.scenarioId) {
+  if (item.id?.includes('-G') && item.generatedPacketVersion !== 3 && item.claimTypeId && item.scenarioId) {
     const index = item.generatedAt ?? Number(String(item.id).replace(/\D/g, '').slice(-8)) ?? Date.now();
     const refreshed = createGeneratedCase({
       index,
@@ -282,6 +282,7 @@ function enrichOneCase(item) {
 
   const mergedItem = {
     ...item,
+    accountId: item.accountId,
     claimId: item.claimId ?? extra.claimId,
     transactionInfo: item.transactionInfo ?? extra.transactionInfo,
     shortSummary: item.shortSummary ?? extra.shortSummary,
@@ -294,7 +295,11 @@ function enrichOneCase(item) {
     ...buildClaimFields(mergedItem, context),
     customer: {
       ...item.customer,
-      relationship: [...(item.customer?.relationship ?? []), ...(extra.relationshipExtras ?? [])],
+      relationship: [
+        { label: 'Account ID', value: item.accountId },
+        ...(item.customer?.relationship ?? []).filter((entry) => entry.label !== 'Account ID'),
+        ...(extra.relationshipExtras ?? []),
+      ],
       profileChanges: dedupeById([...(item.customer?.profileChanges ?? []), ...(extra.profileExtras ?? [])]),
     },
     identityRecords: dedupeById([...(item.identityRecords ?? []), ...(extra.identityExtras ?? [])]),

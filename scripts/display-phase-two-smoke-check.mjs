@@ -46,7 +46,7 @@ mustContain('VisualWorkspace.jsx', workspace, 'data-workflow-stage="investigate"
 mustContain('VisualWorkspace.jsx', workspace, 'data-workflow-stage="indicators"');
 mustContain('VisualWorkspace.jsx', workspace, 'data-workflow-stage="determination"');
 mustContain('VisualWorkspace.jsx', workspace, "openTool('Timeline', 'timeline')");
-mustContain('VisualWorkspace.jsx', workspace, "openTool('Document Viewer', 'indicators')");
+mustContain('VisualWorkspace.jsx', workspace, "scrollToWorkspace('[data-workflow-stage=\"indicators\"]')");
 mustContain('VisualWorkspace.jsx', workspace, "scrollToWorkspace('.luna-visual-panel', 80)");
 mustContain('VisualWorkspace.jsx', workspace, "label: hasReviewPackage ? 'Available' : 'Locked'");
 mustContain('VisualWorkspace.jsx', workspace, 'packageStatus.ready');

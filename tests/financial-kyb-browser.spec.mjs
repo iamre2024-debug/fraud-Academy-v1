@@ -125,10 +125,5 @@ test('Financial Investigation and KYB Review provide complete responsive workspa
   expect(kybLayout.panelRight).toBeLessThanOrEqual(kybLayout.viewportWidth + 1);
   expect(kybLayout.columns).toBe(testInfo.project.name === 'mobile-chromium' ? 1 : 3);
 
-  await reportActions.getByRole('button', { name: 'Open in Document Viewer', exact: true }).click();
-  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
-  await toolPanel.getByRole('button', { name: /System Reports 1/ }).click();
-  await expect(toolPanel.locator('[data-document-record]')).toHaveCount(1);
-  await expect(toolPanel).toContainText('KYB Business Report');
-  await expect(toolPanel.locator('.document-page')).toContainText('ENTITY AND REGISTRATION');
+  await expect(reportActions.getByRole('button', { name: 'Open in Document Viewer', exact: true })).toHaveCount(0);
 });

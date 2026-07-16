@@ -152,7 +152,7 @@ for (const anchor of [
   'KYBReviewWorkspace',
   'Search business',
   'Generate report',
-  'Open in Document Viewer',
+  'stored with the matching account documents',
 ]) {
   mustContain('InvestigationToolPanel.jsx', panel, anchor);
 }
@@ -297,6 +297,8 @@ for (const anchor of [
 
 for (const anchor of [
   'data-document-viewer-screen="approved-theme-v1"',
+  'Search by Account ID',
+  'Customer documents are locked',
   'Search Document Viewer records',
   'Document folders',
   'Document preview',
@@ -401,10 +403,10 @@ for (const anchor of ['KYB Business Report', 'generateKybReviewReport', 'getGene
 mustContain('main.jsx', entrypoint, "import './displayInvestigationToolsThemeV1.css';");
 mustContain('investigation-tools-browser.spec.mjs', browser, 'approved Investigation tools are contextual, functional, and responsive');
 mustContain('investigation-tools-browser.spec.mjs', browser, 'mobile-chromium');
-mustContain('document-viewer-browser.spec.mjs', documentBrowser, 'six required document families');
+mustContain('document-viewer-browser.spec.mjs', documentBrowser, 'requires an Account ID');
 mustContain('document-viewer-browser.spec.mjs', documentBrowser, 'Document comparison');
 mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'Financial Investigation and KYB Review provide complete responsive workspaces');
-mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'System Reports 1');
+mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'Open in Document Viewer');
 mustContain('Investigation tools handoff', handoff, 'agent/investigation-tools-approved-theme-v1');
 mustContain('Investigation tools handoff', handoff, 'Timeline only');
 mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **final responsive/mobile polish only**');

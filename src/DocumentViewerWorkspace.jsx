@@ -70,6 +70,7 @@ function documentExportText(document) {
     document.title,
     `Reference: ${document.reference}`,
     `Case: ${document.caseId}`,
+    `Account ID: ${document.accountId}`,
     `Customer: ${document.customer}`,
     `Claim type: ${document.claimType}`,
     `Status: ${document.status}`,
@@ -88,6 +89,8 @@ function documentExportText(document) {
 
 export default function DocumentViewerWorkspace({
   activeCase,
+  cases,
+  openDocumentAccountCase,
   query,
   setQuery,
   pin,
@@ -97,7 +100,13 @@ export default function DocumentViewerWorkspace({
   openTool,
   jumpDecision,
 }) {
-  const documents = useMemo(() => getCaseDocuments(activeCase), [activeCase]);
+  const [accountLookup, setAccountLookup] = useState('');
+  const [matchedAccountId, setMatchedAccountId] = useState('');
+  const [lookupError, setLookupError] = useState('');
+  const normalizeAccountId = (value = '') => String(value).trim().toUpperCase();
+  const accessGranted = Boolean(matchedAccountId)
+    && normalizeAccountId(activeCase.accountId) === matchedAccountId;
+  const documents = useMemo(() => accessGranted ? getCaseDocuments(activeCase) : [], [accessGranted, activeCase]);
   const folders = useMemo(() => ['All Documents', ...new Set(documents.map((document) => document.folder))], [documents]);
   const statuses = useMemo(() => ['All statuses', ...new Set(documents.map((document) => document.status))], [documents]);
   const [folder, setFolder] = useState('All Documents');
@@ -169,11 +178,58 @@ export default function DocumentViewerWorkspace({
     window.URL.revokeObjectURL(url);
   }
 
+  function searchByAccountId(event) {
+    event.preventDefault();
+    const requestedAccountId = normalizeAccountId(accountLookup);
+    const match = (cases ?? [activeCase]).find((item) => normalizeAccountId(item.accountId) === requestedAccountId);
+
+    if (!requestedAccountId || !match) {
+      setMatchedAccountId('');
+      setLookupError('No case was found for that Account ID. Check the ID and search again.');
+      return;
+    }
+
+    setMatchedAccountId(requestedAccountId);
+    setAccountLookup(match.accountId);
+    setLookupError('');
+    setQuery('');
+    openDocumentAccountCase?.(match.id);
+  }
+
   return (
     <div className="document-viewer" data-document-viewer-screen="approved-theme-v1" data-case-id={activeCase.id}>
-      <section className="document-viewer-findbar" aria-label="Find case documents">
+      <form className="document-account-lookup" aria-label="Find customer documents by Account ID" onSubmit={searchByAccountId}>
+        <div>
+          <p>Account document lookup</p>
+          <h3>Search for a customer account</h3>
+          <span>Enter the exact Account ID shown in Case Briefing or Customer 360. Documents remain hidden until a case match is found.</span>
+        </div>
         <label>
-          <span>Search documents</span>
+          <span>Account ID</span>
+          <input
+            value={accountLookup}
+            onChange={(event) => setAccountLookup(event.target.value)}
+            placeholder="ACCT-00000-0000"
+            aria-label="Search by Account ID"
+            autoComplete="off"
+          />
+        </label>
+        <button type="submit">Search account</button>
+        <div className={`document-account-lookup-result ${accessGranted ? 'matched' : ''}`} aria-live="polite">
+          {accessGranted ? <><strong>{activeCase.person}</strong><span>{activeCase.accountId} | {activeCase.id}</span></> : lookupError || 'No customer documents are open.'}
+        </div>
+      </form>
+
+      {!accessGranted ? (
+        <section className="document-viewer-locked" role="status">
+          <span aria-hidden="true">ID</span>
+          <h3>Customer documents are locked</h3>
+          <p>Search with an exact Account ID to open the matching case documents.</p>
+        </section>
+      ) : <>
+      <section className="document-viewer-findbar" aria-label="Filter matched customer documents">
+        <label>
+          <span>Filter documents</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -282,6 +338,7 @@ export default function DocumentViewerWorkspace({
               <header><p>Document status</p><span>{activeDocument.reviewStatus}</span></header>
               <dl>
                 <div><dt>Case</dt><dd>{activeDocument.caseId}</dd></div>
+                <div><dt>Account ID</dt><dd>{activeDocument.accountId}</dd></div>
                 <div><dt>Customer / entity</dt><dd>{activeDocument.customer}</dd></div>
                 <div><dt>Claim type</dt><dd>{activeDocument.claimType}</dd></div>
                 <div><dt>Source</dt><dd>{activeDocument.source}</dd></div>
@@ -360,6 +417,7 @@ export default function DocumentViewerWorkspace({
           {reviewed ? 'Document Viewer reviewed' : 'Mark Document Viewer reviewed'}
         </button>
       </footer>
+      </>}
     </div>
   );
 }

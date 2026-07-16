@@ -22,7 +22,7 @@ mustContain('VisualNavigation.jsx', navigation, "anchor.closest('.workflow-inves
 mustContain('VisualNavigation.jsx', navigation, "panelAnchor.insertAdjacentElement('afterend', host)");
 mustContain('VisualNavigation.jsx', navigation, 'className="dashboard-active-case"');
 mustContain('VisualNavigation.jsx', navigation, '<strong>Case Queue</strong>');
-mustContain('VisualNavigation.jsx', navigation, '<strong>Document Workspace</strong>');
+mustContain('VisualNavigation.jsx', navigation, '<strong>Investigation Workspace</strong>');
 mustContain('VisualNavigation.jsx', navigation, '<strong>Timeline</strong>');
 mustContain('VisualNavigation.jsx', navigation, '<strong>Progress</strong>');
 mustContain('VisualNavigation.jsx', navigation, 'case scoring remains locked until the decision package is submitted');

@@ -11,11 +11,16 @@ const requiredDocuments = [
 
 const forbiddenViewerCopy = /\b(?:fraud score|red flags?|green flags?|correct answer|AI recommendations?|fraudulent|legitimate)\b/i;
 
-test('Document Viewer opens, compares, annotates, exports, and preserves six required document families', async ({ page }, testInfo) => {
+test('Document Viewer requires an Account ID, then compares, annotates, and exports matching customer documents', async ({ page }, testInfo) => {
   await page.goto('/');
 
   const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
+  await expect(briefing.getByRole('button', { name: 'Open Document Viewer', exact: true })).toHaveCount(0);
   await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
+
+  await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')
+    .getByRole('button', { name: 'Document Viewer', exact: true })).toHaveCount(0);
+  await expect(page.locator('.tray-card').getByRole('button', { name: /Document Viewer/ })).toHaveCount(0);
 
   const groupRail = page.locator('[data-investigation-tool-groups="approved-theme-v1"]');
   await groupRail.getByRole('button', { name: /Documents & Requests/ }).click();
@@ -27,6 +32,20 @@ test('Document Viewer opens, compares, annotates, exports, and preserves six req
   await expect(panel).toHaveAttribute('data-tool-name', 'Document Viewer');
   await expect(panel.getByRole('heading', { name: 'Document Viewer', exact: true })).toBeVisible();
   await expect(viewer).toBeVisible();
+  await expect(viewer.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toBeVisible();
+  await expect(viewer.locator('[data-document-record]')).toHaveCount(0);
+  await expect(viewer.getByRole('navigation', { name: 'Document folders' })).toHaveCount(0);
+
+  const accountSearch = viewer.getByRole('textbox', { name: 'Search by Account ID' });
+  await accountSearch.fill('ACCT-NOT-FOUND');
+  await viewer.getByRole('button', { name: 'Search account', exact: true }).click();
+  await expect(viewer).toContainText('No case was found for that Account ID');
+  await expect(viewer.locator('[data-document-record]')).toHaveCount(0);
+
+  await accountSearch.fill('ACCT-24007-8841');
+  await viewer.getByRole('button', { name: 'Search account', exact: true }).click();
+  await expect(viewer).toContainText('Jordan Ellis');
+  await expect(viewer).toContainText('FA-CB-24007');
   await expect(viewer.getByRole('navigation', { name: 'Document folders' }).getByRole('button')).toHaveCount(6);
   expect(await viewer.locator('[data-document-record]').count()).toBeGreaterThanOrEqual(9);
 

@@ -166,6 +166,16 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setExpandedId('');
   }
 
+  function openDocumentAccountCase(nextCaseId) {
+    if (nextCaseId === activeCase.id) return;
+    onCaseChange(nextCaseId);
+    setActiveStage('indicators');
+    setCategoryKey('evidence');
+    setTool('Document Viewer');
+    setQuery('');
+    setExpandedId('');
+  }
+
   function jumpDecision() {
     onNavigate('workspace');
     setActiveStage('determination');
@@ -210,7 +220,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       return;
     }
     if (nextStage === 'indicators') {
-      openTool('Document Viewer', 'indicators');
+      scrollToWorkspace('[data-workflow-stage="indicators"]');
       return;
     }
     if (nextStage === 'determination') {
@@ -237,6 +247,8 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     currentCompleted,
     jumpDecision,
     notes,
+    cases,
+    openDocumentAccountCase,
   };
 
   return (
@@ -296,7 +308,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
           <BottomInvestigationGrid
             tray={tray}
             pin={pin}
-            openTool={openTool}
             noteDraft={noteDraft}
             setNoteDraft={setNoteDraft}
             submitNote={submitNote}

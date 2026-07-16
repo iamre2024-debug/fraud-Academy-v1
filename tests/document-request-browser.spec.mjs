@@ -41,8 +41,8 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await toolPanel.getByRole('button', { name: 'Mark Document Request reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ Document Request reviewed', exact: true })).toBeVisible();
 
-  await toolPanel.getByRole('navigation', { name: 'Document request next routes' })
-    .getByRole('button', { name: 'Open Document Viewer', exact: true })
-    .click();
-  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
+  const nextRoutes = toolPanel.getByRole('navigation', { name: 'Document request next routes' });
+  await expect(nextRoutes.getByRole('button', { name: 'Open Document Viewer', exact: true })).toHaveCount(0);
+  await nextRoutes.getByRole('button', { name: 'Open Submit Decision', exact: true }).click();
+  await expect(page.locator('.submit-decision-panel')).toBeVisible();
 });

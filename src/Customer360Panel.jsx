@@ -268,7 +268,6 @@ export default function Customer360Panel({
     'Identity Intel / People Search',
     'Login History',
     'Device Intelligence',
-    'Document Viewer',
     'Document Request',
     'Payment Verification',
   ].filter((item) => availableToolNames.has(item)).slice(0, 6);
@@ -408,7 +407,6 @@ export default function Customer360Panel({
           <p>Recent Documents</p>
           <h3>Latest case files</h3>
           <div className="customer-360-mini-list">{documents.slice(0, 3).map((document) => <span key={document.id}><strong>{document.title}</strong><small>{document.status} · {document.received}</small></span>)}</div>
-          <button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button>
         </article>
         <article className="customer-360-support-card customer-360-next-step">
           <p>Suggested Next Step</p>

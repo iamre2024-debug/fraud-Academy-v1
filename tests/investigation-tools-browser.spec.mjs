@@ -189,13 +189,7 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await toolPanel.getByRole('button', { name: 'Mark IP Intelligence reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ IP Intelligence reviewed', exact: true })).toBeVisible();
 
-  await toolPanel.getByRole('button', { name: 'Open report in Document Viewer', exact: true }).click();
-  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
-  await toolPanel.getByRole('button', { name: /System Reports 3/ }).click();
-  await expect(toolPanel.locator('[data-document-record]')).toHaveCount(3);
-  await expect(toolPanel).toContainText('Login Timeline Report');
-  await expect(toolPanel).toContainText('Session History Report');
-  await expect(toolPanel).toContainText('IP Intelligence Report');
+  await expect(toolPanel.getByRole('button', { name: 'Open report in Document Viewer', exact: true })).toHaveCount(0);
 
   await groupRail.getByRole('button', { name: /Transactions & Financial/ }).click();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Transaction History');
