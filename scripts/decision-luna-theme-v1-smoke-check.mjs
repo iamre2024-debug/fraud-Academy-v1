@@ -36,6 +36,7 @@ for (const anchor of [
   'Determination · Evidence First',
   'Submit Decision',
   'Evidence First protection',
+  'You can submit a decision without reviewing every tool.',
   'Luna debrief stays locked until this case has a saved learner package.',
   'Decision readiness',
   'packageStatus.messages.map',
@@ -55,6 +56,7 @@ for (const anchor of [
 
 for (const anchor of [
   'Case-specific checklist',
+  'Matched to this case:',
   'Red flags',
   'Green flags',
   'Proof or record reference',
@@ -68,6 +70,7 @@ for (const anchor of [
 for (const anchor of [
   'export const flagWeightPoints',
   'wallet-chip-during-fraud-window',
+  'scenarioFlagsByClaimType',
   'physical chip card',
   'Business Payroll ATO decision checklist',
   'Email Fraud / BEC decision checklist',
@@ -135,7 +138,7 @@ for (const anchor of [
   'export function getReviewChoices',
   'export function getReviewPackageStatus',
   'export function buildReviewPackage',
-  'The weighted flag checklist and review package are complete. Luna unlocks only after saving this package.',
+  'You may submit without reviewing every tool.',
 ]) {
   mustContain('reviewPackage.js', reviewPackage, anchor);
 }
