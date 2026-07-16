@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openWorkflowStage } from './workspace-page-helpers.mjs';
 
 const caseId = 'FA-ATO-24018';
 const requiredTools = [
@@ -30,7 +31,7 @@ async function seedReadyCase(page) {
 }
 
 async function openDecision(page) {
-  await page.locator('.active-case-workflow').getByRole('button', { name: /Determination/ }).click();
+  await openWorkflowStage(page, /Determination/);
   const decision = page.locator('[data-decision-screen="approved-theme-v1"]');
   await expect(decision).toBeVisible();
   return decision;
@@ -62,18 +63,11 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
   await expect(decision.getByText('You can submit a decision without reviewing every tool. Open only the records needed to prove your selected flags.', { exact: true })).toBeVisible();
   await expect(decision.getByText('Matched to this case: phishing', { exact: true })).toBeVisible();
 
-  const lockedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="locked"]');
-  await expect(lockedLuna).toBeAttached();
-  await expect(lockedLuna).toContainText('Evidence First lock is active.');
-  await expect(lockedLuna.locator('.luna-v1-unlock-grid article')).toHaveCount(4);
-  expect(await lockedLuna.innerText()).not.toMatch(forbiddenLockedCopy);
-
-  const layout = await page.evaluate(() => {
+  const decisionLayout = await page.evaluate(() => {
     const panel = document.querySelector('[data-decision-screen="approved-theme-v1"]');
     const workspace = document.querySelector('.decision-v1-workspace');
     const metrics = document.querySelector('.decision-status-grid');
     const flagColumns = document.querySelector('.decision-flag-columns');
-    const lockedGrid = document.querySelector('.luna-v1-unlock-grid');
     const viewportWidth = window.innerWidth;
     const rect = panel?.getBoundingClientRect();
     return {
@@ -83,25 +77,42 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
       workspaceColumns: workspace ? getComputedStyle(workspace).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
       metricColumns: metrics ? getComputedStyle(metrics).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
       flagColumns: flagColumns ? getComputedStyle(flagColumns).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      lockedColumns: lockedGrid ? getComputedStyle(lockedGrid).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
       position: panel ? getComputedStyle(panel).position : '',
     };
   });
 
-  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
-  expect(layout.panelOverflow).toBeLessThanOrEqual(4);
-  expect(layout.position).toBe('static');
+  const lockedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="locked"]');
+  await expect(lockedLuna).toBeAttached();
+  await expect(lockedLuna).toBeHidden();
+  await openWorkflowStage(page, /Debrief/);
+  await expect(lockedLuna).toBeVisible();
+  await expect(lockedLuna).toContainText('Evidence First lock is active.');
+  await expect(lockedLuna.locator('.luna-v1-unlock-grid article')).toHaveCount(4);
+  expect(await lockedLuna.innerText()).not.toMatch(forbiddenLockedCopy);
+
+  const lockedLayout = await page.evaluate(() => {
+    const lockedGrid = document.querySelector('.luna-v1-unlock-grid');
+    return {
+      lockedColumns: lockedGrid ? getComputedStyle(lockedGrid).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+    };
+  });
+
+  expect(decisionLayout.documentWidth).toBeLessThanOrEqual(decisionLayout.viewportWidth + 1);
+  expect(decisionLayout.panelOverflow).toBeLessThanOrEqual(4);
+  expect(decisionLayout.position).toBe('static');
   if (testInfo.project.name === 'mobile-chromium') {
-    expect(layout.workspaceColumns).toBe(1);
-    expect(layout.metricColumns).toBe(1);
-    expect(layout.flagColumns).toBe(1);
-    expect(layout.lockedColumns).toBe(1);
+    expect(decisionLayout.workspaceColumns).toBe(1);
+    expect(decisionLayout.metricColumns).toBe(1);
+    expect(decisionLayout.flagColumns).toBe(1);
+    expect(lockedLayout.lockedColumns).toBe(1);
   } else {
-    expect(layout.workspaceColumns).toBe(2);
-    expect(layout.metricColumns).toBe(4);
-    expect(layout.flagColumns).toBe(2);
-    expect(layout.lockedColumns).toBe(4);
+    expect(decisionLayout.workspaceColumns).toBe(2);
+    expect(decisionLayout.metricColumns).toBe(4);
+    expect(decisionLayout.flagColumns).toBe(2);
+    expect(lockedLayout.lockedColumns).toBe(4);
   }
+
+  await openDecision(page);
 
   const flagQuestion = 'Did a first-seen or unrecognized device access the account during the reported fraud period?';
   await decision.getByRole('checkbox', { name: `Green flag: ${flagQuestion}` }).check();
@@ -115,7 +126,9 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
   await savePackage.click();
 
   await expect(decision.getByRole('heading', { name: `Decision submitted for ${caseId}` })).toBeVisible();
-  await expect(decision.getByText('Luna debrief unlocked', { exact: true })).toBeVisible();
+  const openLuna = decision.getByRole('button', { name: 'Open Luna Debrief', exact: true });
+  await expect(openLuna).toBeVisible();
+  await openLuna.click();
 
   const luna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');
   await expect(luna).toBeVisible();
@@ -170,6 +183,7 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
 
   await page.reload();
   const persistedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');
+  await openWorkflowStage(page, /Debrief/);
   await expect(persistedLuna).toBeVisible();
   await expect(persistedLuna).toContainText(learnerChoice);
 

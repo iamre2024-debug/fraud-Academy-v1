@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { openWorkflowStage } from './workspace-page-helpers.mjs';
 
 const secondCase = { id: 'FA-CB-24007', person: 'Jordan Ellis' };
 const forbiddenPreSubmissionCopy = /\b(?:fraud score|red flags?|green flags?|correct answer|AI recommendations?|fraudulent|legitimate|suggested first tool|investigator question)\b/i;
 
 async function openTimeline(page) {
-  const workflow = page.locator('.active-case-workflow');
-  await workflow.getByRole('button', { name: /Timeline/ }).click();
+  await openWorkflowStage(page, /Timeline/);
   const timeline = page.locator('[data-timeline-screen="approved-theme-v1"]');
   await expect(timeline).toBeVisible();
   return timeline;

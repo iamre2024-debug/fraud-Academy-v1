@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { selectToolGroup } from './workspace-page-helpers.mjs';
 
 const merchantCaseId = 'FA-CB-24007';
 const nonMerchantCaseId = 'FA-ATO-24018';
@@ -12,7 +13,7 @@ test('Merchant Intelligence provides claim-specific evidence and stays out of un
   await expect(caseSelector).toHaveValue(merchantCaseId);
 
   const groupRail = page.locator('[data-investigation-tool-groups="approved-theme-v1"]');
-  await groupRail.getByRole('button', { name: /Merchant & Disputes/ }).click();
+  await selectToolGroup(page, /Merchant & Disputes/);
 
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Merchant Intelligence');
@@ -77,9 +78,9 @@ test('Merchant Intelligence provides claim-specific evidence and stays out of un
 
   await caseSelector.selectOption(nonMerchantCaseId);
   await expect(caseSelector).toHaveValue(nonMerchantCaseId);
-  await expect(groupRail.getByRole('button', { name: /Merchant & Disputes/ })).toHaveCount(0);
+  await expect(groupRail.locator('.visual-category-row > button').filter({ hasText: 'Merchant & Disputes' })).toHaveCount(0);
   await expect(toolPanel).toHaveCount(0);
-  await groupRail.getByRole('button', { name: /Login, Session, Device & IP/ }).click();
+  await selectToolGroup(page, /Login, Session, Device & IP/);
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Login History');
   await expect(toolPanel.getByRole('combobox', { name: 'Choose investigation tool' }).locator('option', { hasText: 'Merchant Intelligence' })).toHaveCount(0);
 });

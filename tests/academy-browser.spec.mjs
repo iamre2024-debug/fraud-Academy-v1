@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openWorkspacePages } from './workspace-page-helpers.mjs';
 
 const forbiddenCopy = /Fraudulent|Legitimate|Correct answer|AI recommendation|Red flag|Green flag|final answer/i;
 
@@ -76,5 +77,5 @@ test('approved Academy preserves neutral learning routes and responsive safety',
   const academyFinal = await openAcademy(page);
   await academyFinal.getByRole('button', { name: /Continue active case/ }).click();
   await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'workspace');
-  await expect(page.locator('.active-case-workflow')).toBeVisible();
+  await openWorkspacePages(page);
 });

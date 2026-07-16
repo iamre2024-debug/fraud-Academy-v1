@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { selectToolGroup } from './workspace-page-helpers.mjs';
 
 test('responsive payment records stay inside the viewport', async ({ page }, testInfo) => {
   await page.goto('/');
 
-  const groupRail = page.locator('[data-investigation-tool-groups="approved-theme-v1"]');
-  await groupRail.getByRole('button', { name: /Business & Payment Verification/ }).click();
+  await selectToolGroup(page, /Business & Payment Verification/);
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const selector = panel.getByRole('combobox', { name: 'Choose investigation tool' });

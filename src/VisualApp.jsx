@@ -16,6 +16,7 @@ export default function VisualApp() {
   const [caseCatalog, setCaseCatalog] = useState(enrichedBaseCases);
   const [activeTab, setActiveTab] = useState('workspace');
   const [activeCaseId, setActiveCaseId] = useState(() => enrichedBaseCases[0]?.id ?? '');
+  const [workspaceScreen, setWorkspaceScreen] = useState('briefing');
   const activeCase = caseCatalog.find((item) => item.id === activeCaseId) ?? caseCatalog[0];
 
   useEffect(() => {
@@ -39,8 +40,9 @@ export default function VisualApp() {
     document.body.dataset.visualTab = activeTab;
   }, [activeTab]);
 
-  function openCase(caseId) {
+  function openCase(caseId, nextWorkspaceScreen = 'briefing') {
     setActiveCaseId(caseId);
+    setWorkspaceScreen(nextWorkspaceScreen);
     setActiveTab('workspace');
   }
 
@@ -65,11 +67,13 @@ export default function VisualApp() {
   }
 
   function returnToWorkspace() {
+    setWorkspaceScreen('tool-menu');
     setActiveTab('workspace');
     window.setTimeout(() => document.querySelector('.active-case-workflow')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   }
 
   function viewCaseSummary() {
+    setWorkspaceScreen('briefing');
     setActiveTab('workspace');
     window.setTimeout(() => document.querySelector('[data-workflow-stage="briefing"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   }
@@ -81,6 +85,8 @@ export default function VisualApp() {
         cases={caseCatalog}
         onCaseChange={openCase}
         onNavigate={setActiveTab}
+        requestedWorkspaceScreen={workspaceScreen}
+        onWorkspaceScreenChange={setWorkspaceScreen}
       />
       <GeneratedCaseControls onCaseGenerated={handleGeneratedCase} />
       <LunaPostSubmissionPanel
@@ -89,6 +95,7 @@ export default function VisualApp() {
         onBackToWorkspace={returnToWorkspace}
         onViewCaseSummary={viewCaseSummary}
         onReturnToQueue={returnToQueue}
+        visible={activeTab === 'workspace' && workspaceScreen === 'debrief'}
       />
       <VisualNavigation
         activeTab={activeTab}

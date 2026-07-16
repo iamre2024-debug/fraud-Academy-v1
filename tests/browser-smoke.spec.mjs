@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openWorkflowStage, selectToolGroup } from './workspace-page-helpers.mjs';
 
 const builtInCases = [
   { id: 'FA-ATO-24018', person: 'Maya Sterling', accountId: 'ACCT-24018-4410' },
@@ -25,8 +26,7 @@ async function openCoreTool(page, category, tool) {
   await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
 
   if (tool === 'Timeline') {
-    const workflow = page.getByRole('navigation', { name: 'Active case workflow' });
-    await workflow.getByRole('button', { name: /Timeline/ }).click();
+    await openWorkflowStage(page, /Timeline/);
     const timeline = page.locator('[data-timeline-screen="approved-theme-v1"]');
     await expect(timeline).toBeVisible();
     await expect(timeline.getByRole('heading', { name: 'Case Timeline', exact: true })).toBeVisible();
@@ -35,10 +35,7 @@ async function openCoreTool(page, category, tool) {
     return;
   }
 
-  const categoryButton = page.locator('[data-investigation-tool-groups="approved-theme-v1"] .visual-category-row button').filter({ hasText: category });
-  await expect(categoryButton).toBeVisible();
-  await categoryButton.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'nearest' }));
-  await categoryButton.evaluate((element) => element.click());
+  await selectToolGroup(page, new RegExp(category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const selector = panel.getByRole('combobox', { name: 'Choose investigation tool' });
@@ -287,11 +284,11 @@ test('generated cases persist through reload and remain Evidence First', async (
     expect(generatedIds).not.toContain(generatedId);
     generatedIds.push(generatedId);
     await expect(page.locator('.visual-case-strip')).toContainText('Generated');
-    await expect(page.locator('[data-customer-360-screen="approved-theme-v1"], [data-investigation-tools-screen="approved-theme-v1"], [data-timeline-screen="approved-theme-v1"]').first()).toBeVisible();
+    await expect(page.locator('[data-case-briefing-screen="approved-theme-v1"]')).toBeVisible();
     await assertEvidenceFirstLock(page, generatedId);
   }
 
-  await page.getByRole('navigation', { name: 'Active case workflow' }).getByRole('button', { name: /Case Briefing/ }).click();
+  await openWorkflowStage(page, /Case Briefing/);
   const generatedBriefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
   await expect(generatedBriefing).toBeVisible();
   await expect(generatedBriefing).not.toContainText('The fictional packet contains both routine and exception evidence');
@@ -320,6 +317,6 @@ test('generated cases persist through reload and remain Evidence First', async (
   await page.locator('.cases-theme-v1-panel .nav-case-card').filter({ hasText: generatedIds[0] }).click();
   await expect(page.locator('.visual-case-switcher select')).toHaveValue(generatedIds[0]);
   await assertEvidenceFirstLock(page, generatedIds[0]);
-  await page.getByRole('navigation', { name: 'Active case workflow' }).getByRole('button', { name: /Case Briefing/ }).click();
+  await openWorkflowStage(page, /Case Briefing/);
   await expect(page.locator('[data-case-briefing-screen="approved-theme-v1"]')).not.toContainText('The fictional packet contains both routine and exception evidence');
 });

@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const localChromium = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+
 export default defineConfig({
   testDir: './tests',
   timeout: 45_000,
@@ -13,6 +15,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    launchOptions: localChromium ? { executablePath: localChromium } : undefined,
   },
   webServer: {
     command: 'npx vite preview --host 127.0.0.1 --port 4173',

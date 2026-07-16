@@ -842,12 +842,14 @@ body[data-visual-tab="workspace"] .decision-v1-confirmation span {
   overflow-wrap: anywhere;
 }
 
-body[data-visual-tab="workspace"] .decision-v1-confirmation > strong {
+body[data-visual-tab="workspace"] .decision-v1-confirmation > .decision-open-debrief {
+  border: 0;
   border-radius: 999px;
   background: var(--decision-purple);
   color: #ffffff;
   padding: 8px 12px;
   font-size: 0.78rem;
+  font-weight: 850;
   white-space: nowrap;
 }
 
@@ -1217,7 +1219,7 @@ body[data-visual-tab="workspace"] .luna-v1-routes {
     grid-template-columns: 42px minmax(0, 1fr);
   }
 
-  body[data-visual-tab="workspace"] .decision-v1-confirmation > strong {
+  body[data-visual-tab="workspace"] .decision-v1-confirmation > .decision-open-debrief {
     grid-column: 1 / -1;
     justify-self: start;
     white-space: normal;

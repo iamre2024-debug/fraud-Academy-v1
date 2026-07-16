@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { selectToolGroup } from './workspace-page-helpers.mjs';
 
 const requiredDocuments = [
   'Driver License Review',
@@ -22,8 +23,7 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
     .getByRole('button', { name: 'Document Viewer', exact: true })).toHaveCount(0);
   await expect(page.locator('.tray-card').getByRole('button', { name: /Document Viewer/ })).toHaveCount(0);
 
-  const groupRail = page.locator('[data-investigation-tool-groups="approved-theme-v1"]');
-  await groupRail.getByRole('button', { name: /Documents & Requests/ }).click();
+  await selectToolGroup(page, /Documents & Requests/);
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const viewer = panel.locator('[data-document-viewer-screen="approved-theme-v1"]');

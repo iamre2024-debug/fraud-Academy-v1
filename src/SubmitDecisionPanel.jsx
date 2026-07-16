@@ -13,6 +13,7 @@ export default function SubmitDecisionPanel({
   updateDecision,
   updateDecisionIndicator,
   submitDecision,
+  openDebrief,
 }) {
   const latestPackage = reviewPackages[0] ?? null;
   const readyLabel = latestPackage ? 'Package saved' : packageStatus.ready ? 'Ready to save' : 'Review in progress';
@@ -170,7 +171,7 @@ export default function SubmitDecisionPanel({
             <h3>Decision submitted for {latestPackage.caseId}</h3>
             <span>{latestPackage.choice} · {latestPackage.confidence} confidence · saved {latestPackage.savedAt}</span>
           </div>
-          <strong>Luna debrief unlocked</strong>
+          <button type="button" className="decision-open-debrief" onClick={openDebrief}>Open Luna Debrief</button>
         </section>
       )}
     </section>
