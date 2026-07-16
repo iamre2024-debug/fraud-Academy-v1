@@ -35,7 +35,7 @@ export default function SubmitDecisionPanel({
         <div>
           <p className="decision-v1-eyebrow">Determination · Evidence First</p>
           <h2>Submit Decision</h2>
-          <p>Complete the case-specific weighted checklist, prove every selected flag, and record the determination supported by the evidence.</p>
+          <p>Use the checklist matched to this case, prove every selected flag, and record the determination supported by the evidence.</p>
         </div>
         <div className="decision-v1-header-status">
           <span>{activeCase.id}</span>
@@ -53,11 +53,15 @@ export default function SubmitDecisionPanel({
       </section>
 
       <section className="decision-status-grid" aria-label="Decision package summary">
-        <article><span>Required tools</span><strong>{packageStatus.reviewedRequired}/{packageStatus.totalRequired}</strong></article>
-        <article><span>Pinned objects</span><strong>{tray.length}</strong></article>
-        <article><span>Investigation notes</span><strong>{notes.length}</strong></article>
+        <article><span>Tools reviewed</span><strong>{packageStatus.reviewedRequired}/{packageStatus.totalRequired}</strong><small>Optional</small></article>
+        <article><span>Pinned objects</span><strong>{tray.length}</strong><small>Optional</small></article>
+        <article><span>Investigation notes</span><strong>{notes.length}</strong><small>Optional</small></article>
         <article><span>Proven flags</span><strong>{packageStatus.indicatorSummary.selectedCount}</strong></article>
       </section>
+
+      <p className="decision-direct-submit-note" role="note">
+        You can submit a decision without reviewing every tool. Open only the records needed to prove your selected flags.
+      </p>
 
       <DecisionFlagChecklist
         activeCase={activeCase}

@@ -20,15 +20,13 @@ async function seedReadyCase(page) {
   await page.addInitScript(({ activeCaseId, completedTools }) => {
     if (sessionStorage.getItem('fraud-academy-decision-luna-test-seeded') === 'yes') return;
     localStorage.setItem('fraud-academy-completed-tools-v1', JSON.stringify({ [activeCaseId]: completedTools }));
-    localStorage.setItem('fraud-academy-visual-tray-v1', JSON.stringify({ [activeCaseId]: ['TRAINING-ID-1001', 'EVT-1014'] }));
-    localStorage.setItem('fraud-academy-notes-v1', JSON.stringify({
-      [activeCaseId]: ['Jul 11 · Investigation note · Reviewed the access sequence and documented the remaining customer-information gap.'],
-    }));
+    localStorage.setItem('fraud-academy-visual-tray-v1', JSON.stringify({ [activeCaseId]: [] }));
+    localStorage.setItem('fraud-academy-notes-v1', JSON.stringify({ [activeCaseId]: [] }));
     localStorage.removeItem('fraud-academy-review-packages-v1');
     localStorage.removeItem('fraud-academy-decision-drafts-v1');
     localStorage.removeItem('fraud-academy-layout-mode-v1');
     sessionStorage.setItem('fraud-academy-decision-luna-test-seeded', 'yes');
-  }, { activeCaseId: caseId, completedTools: requiredTools });
+  }, { activeCaseId: caseId, completedTools: [] });
 }
 
 async function openDecision(page) {
@@ -60,7 +58,9 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
   await expect(decision.getByText('Red flags', { exact: true })).toBeVisible();
   await expect(decision.getByText('Green flags', { exact: true })).toBeVisible();
   await expect(decision.locator('.decision-status-grid article')).toHaveCount(4);
-  await expect(decision.getByText('9/9', { exact: true })).toBeVisible();
+  await expect(decision.getByText('0/9', { exact: true })).toBeVisible();
+  await expect(decision.getByText('You can submit a decision without reviewing every tool. Open only the records needed to prove your selected flags.', { exact: true })).toBeVisible();
+  await expect(decision.getByText('Matched to this case: phishing', { exact: true })).toBeVisible();
 
   const lockedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="locked"]');
   await expect(lockedLuna).toBeAttached();

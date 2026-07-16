@@ -228,8 +228,9 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 - Notebook note entry buttons may expand or collapse their own note text. Keep note saving on the composer submit action, and do not nest direct More / Less buttons inside notebook entry buttons.
 - Visual-shell Investigation Tray, case notes, reviewed tools, decision drafts, review packages, and Case Report packets persist in browser storage by case.
 - Ornate category tiles and workflow stages must show neutral progress only: open, in progress, complete, reviewed counts, collected item counts, ready, available, or locked. They must not label evidence quality or case outcome.
-- Submit Decision remains locked until the required tool checklist, pinned evidence, case notes, learner choice, and evidence-based rationale are present.
-- Submit Decision may display a neutral package input preview showing reviewed tools, pinned objects, notes, and Case Report packets that will snapshot into the saved learner package.
+- Submit Decision does not require every investigation tool to be reviewed. Tool coverage, pinned evidence, and case notes remain optional supporting context and are still saved in the learner package when present.
+- Submission requires a claim and subtype/scenario-specific flag selection with proof and explanation, a valid lane-specific determination, and the minimum evidence-based rationale. Critical override flags must still be resolved before a supportive or release determination can be saved.
+- Submit Decision may display a neutral package input preview showing optional reviewed tools, pinned objects, notes, and Case Report packets that will snapshot into the saved learner package.
 - Luna scoring, strengths, follow-up coaching, and decision-quality breakdown stay hidden until a review package is saved.
 - Insider / Vendor / API / Open Banking records belong inside the core workspace tool switcher as the Connections → System Access Lane sub-tool. Do not restore a separate portal panel for this lane.
 - The `fraud-academy:package-saved` event must refresh Navigation package snapshots and the active Luna panel in the same browser session so Dashboard, Academy Progress, and the post-submission debrief never require a reload to reflect a newly saved learner package.

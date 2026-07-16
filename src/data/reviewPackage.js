@@ -230,9 +230,6 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
   const packageInputSummary = buildPackageInputSummary({ completedTools, tray, notes, indicatorSummary });
   const conflictsWithCriticalRed = indicatorSummary.overrideIndicators.length > 0 && isSupportiveDecision(draft.choice);
 
-  if (missingTools.length) blockers.push(`review required tools: ${missingTools.join(', ')}`);
-  if (!tray.length) blockers.push('pin at least one object');
-  if (!notes.length) blockers.push('add at least one rationale note');
   if (!indicatorSummary.selectedCount) blockers.push('select at least one case flag');
   if (indicatorSummary.incompleteIndicators.length) blockers.push(`add proof and explanation for: ${indicatorSummary.incompleteIndicators.map((item) => item.prompt).join(' | ')}`);
   if (!draft.choice) blockers.push('select a learner choice');
@@ -242,10 +239,7 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
   if (hasRationale && rationaleWordCount < minimumRationaleWords) blockers.push(`expand learner rationale to at least ${minimumRationaleWords} words`);
 
   if (blockers.length) {
-    messages.push(`Review package locked: ${blockers.join('; ')}.`);
-    if (missingTools.length) messages.push(`Required tools still open: ${missingTools.join(', ')}.`);
-    if (!tray.length) messages.push('Pin at least one case object into the Investigation Tray.');
-    if (!notes.length) messages.push('Save at least one case rationale or investigation note.');
+    messages.push(`Decision needs attention: ${blockers.join('; ')}.`);
     if (!indicatorSummary.selectedCount) messages.push('Select the case flags that apply based on the reviewed evidence.');
     if (indicatorSummary.incompleteIndicators.length) messages.push('Every selected flag requires an exact proof reference and a short explanation.');
     if (!draft.choice) messages.push('Select the learner decision choice.');
@@ -254,8 +248,11 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
     if (hasRationale && rationaleWordCount < minimumRationaleWords) messages.push(`Add more evidence detail to the learner rationale (${rationaleWordCount}/${minimumRationaleWords} words).`);
     if (conflictsWithCriticalRed) messages.push('A critical red flag carries override weight. Select a non-supporting, hold, information, or escalation determination, or unmark the flag if the evidence does not prove it.');
   } else {
-    messages.push('The weighted flag checklist and review package are complete. Luna unlocks only after saving this package.');
+    messages.push('The case-specific checklist and determination are complete. You may submit without reviewing every tool.');
   }
+
+  if (missingTools.length) messages.push(`Optional tools not reviewed: ${missingTools.join(', ')}. Open only the records needed for this case.`);
+  if (!tray.length && !notes.length) messages.push('Pinned objects and investigation notes are optional supporting context for this decision.');
 
   messages.push(packageInputSummary);
 
@@ -271,10 +268,7 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
     minimumRationaleWords,
     packageInputSummary,
     indicatorSummary,
-    ready: missingTools.length === 0
-      && tray.length > 0
-      && notes.length > 0
-      && indicatorSummary.selectedCount > 0
+    ready: indicatorSummary.selectedCount > 0
       && indicatorSummary.incompleteIndicators.length === 0
       && Boolean(draft.choice)
       && validChoices.includes(draft.choice)
@@ -319,7 +313,7 @@ export function buildReviewPackage({ caseId, agentId, activeCase, draft, complet
 }
 
 function buildPackageInputSummary({ completedTools = [], tray = [], notes = [], indicatorSummary }) {
-  return `Package input preview: ${completedTools.length} reviewed tool(s), ${tray.length} pinned object(s), ${notes.length} note(s), and ${indicatorSummary?.selectedCount ?? 0} proven flag(s) will snapshot into Submit Decision.`;
+  return `Decision package preview: ${completedTools.length} reviewed tool(s), ${tray.length} optional pinned object(s), ${notes.length} optional note(s), and ${indicatorSummary?.selectedCount ?? 0} proven flag(s) will be saved.`;
 }
 
 function wordCount(text = '') {
