@@ -36,7 +36,8 @@ The established action and state boundaries remain unchanged:
 
 - `src/useVisualWorkspaceActions.js` still checks readiness, builds the learner package, saves it, and dispatches the package-saved event;
 - `src/useVisualWorkspaceCaseState.js` still owns case-scoped drafts, notes, completed tools, packages, tray objects, and report packets;
-- `src/data/reviewPackage.js` still owns the valid decision calls, required tools, minimum rationale depth, blockers, and package builder;
+- `src/data/reviewPackage.js` still owns valid decision calls, optional tool-coverage tracking, minimum rationale depth, decision-field blockers, and the package builder;
+- `src/data/decisionChecklist.js` owns claim and subtype/scenario-specific flag applicability so unrelated checks never appear;
 - `src/data/lunaDebrief.js` still builds the case-scoped coaching result only after a saved learner package exists.
 
 ## Approved Decision interaction model
@@ -46,7 +47,9 @@ Decision now presents:
 - one clear determination task;
 - a visible Evidence First protection notice;
 - case ID and neutral readiness state;
-- required-tool, pinned-object, note, and report-packet metrics;
+- optional tool-review, pinned-object, note, and report-packet metrics;
+- direct decision submission without completing every investigation tool;
+- a checklist visibly matched to the active claim subtype or scenario;
 - a structured final evidence check;
 - rationale word-count progress;
 - lane-organized decision calls using the existing valid choices;
