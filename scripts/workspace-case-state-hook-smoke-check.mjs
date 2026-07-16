@@ -19,7 +19,6 @@ mustContain('VisualWorkspace.jsx', workspace, '} = useVisualWorkspaceCaseState(a
 mustNotContain('VisualWorkspace.jsx', workspace, 'readStorage(');
 mustNotContain('VisualWorkspace.jsx', workspace, 'writeStorage(');
 mustNotContain('VisualWorkspace.jsx', workspace, 'storageKeys.');
-mustNotContain('VisualWorkspace.jsx', workspace, 'useEffect(');
 
 mustContain('useVisualWorkspaceCaseState.js', hook, "import { useEffect, useState } from 'react';");
 mustContain('useVisualWorkspaceCaseState.js', hook, 'tray: trayByCase[caseId] ?? [activeCase.trainingId]');

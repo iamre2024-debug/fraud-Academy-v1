@@ -9,7 +9,7 @@ const workflowStages = [
 
 export default function ActiveCaseWorkflowRail({ activeStage, stageStatus, onStageSelect }) {
   return (
-    <nav className="ornate-card active-case-workflow" aria-label="Active case workflow">
+    <nav className="ornate-card active-case-workflow" aria-label="Active case workflow" data-workspace-page="workflow">
       <div className="active-case-workflow-heading">
         <div>
           <p>Active case workflow</p>

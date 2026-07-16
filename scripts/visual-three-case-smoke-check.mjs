@@ -193,7 +193,7 @@ const main = read('src/main.jsx');
 for (const required of [
   "const [activeCaseId, setActiveCaseId]",
   "const [activeTab, setActiveTab] = useState('workspace')",
-  'function openCase(caseId)',
+  "function openCase(caseId, nextWorkspaceScreen = 'briefing')",
   'onCaseChange={openCase}',
   'onOpenCase={openCase}',
 ]) {

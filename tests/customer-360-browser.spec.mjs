@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { selectToolGroup } from './workspace-page-helpers.mjs';
 
 const secondCase = { id: 'FA-CB-24007', person: 'Jordan Ellis' };
 const forbiddenPreSubmissionCopy = /\b(?:fraud score|red flags?|green flags?|correct answer|AI recommendations?|fraudulent|legitimate|suggested first tool|investigator question)\b/i;
@@ -47,7 +48,6 @@ test('approved Customer 360 is a complete Evidence First dossier', async ({ page
   await expect(customer360.getByRole('heading', { name: 'Customer 360 Notes', exact: true })).toBeVisible();
 
   const relatedTools = customer360.getByRole('navigation', { name: 'Customer 360 related tools' });
-  const categoryRail = page.locator('[data-investigation-tool-groups="approved-theme-v1"]');
   await expect(relatedTools.getByRole('button')).toHaveCount(7);
 
   await tabs.getByRole('tab', { name: 'Profile History', exact: true }).click();
@@ -113,14 +113,14 @@ test('approved Customer 360 is a complete Evidence First dossier', async ({ page
 
   await relatedTools.getByRole('button', { name: 'Transaction History', exact: true }).click();
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Transaction History');
-  await categoryRail.getByRole('button', { name: /Identity & Customer/ }).click();
+  await selectToolGroup(page, /Identity & Customer/);
   await expect(customer360).toBeVisible();
 
   await relatedTools.getByRole('button', { name: 'Identity Intel', exact: true }).click();
   const identityTool = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(identityTool).toHaveAttribute('data-tool-name', 'Identity Intel / People Search');
   await expect(identityTool.getByText('Identity report hidden until a search is run.', { exact: true })).toBeVisible();
-  await categoryRail.getByRole('button', { name: /Identity & Customer/ }).click();
+  await selectToolGroup(page, /Identity & Customer/);
   await expect(customer360).toBeVisible();
 
   const selector = page.locator('.visual-case-switcher select');

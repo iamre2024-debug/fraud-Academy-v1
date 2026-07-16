@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openWorkspacePages } from './workspace-page-helpers.mjs';
 
 const firstCaseId = 'FA-ATO-24018';
 const secondCase = { id: 'FA-CB-24007', person: 'Jordan Ellis' };
@@ -14,7 +15,7 @@ test('approved Workspace shell is compact, functional, and responsive', async ({
   await expect(page.locator('.workspace-shell-heading')).toContainText(`Evidence First · Active case ${firstCaseId}`);
   await expect(page.locator('.visual-case-strip')).toContainText(firstCaseId);
 
-  const workflow = page.getByRole('navigation', { name: 'Active case workflow' });
+  const workflow = await openWorkspacePages(page);
   await expect(workflow.getByRole('button')).toHaveCount(6);
   await expect(workflow.getByRole('button', { name: /Case Briefing/ })).toHaveAttribute('aria-current', 'step');
 

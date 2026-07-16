@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openWorkflowStage, selectToolGroup } from './workspace-page-helpers.mjs';
 
 const secondCase = { id: 'FA-CB-24007', person: 'Jordan Ellis' };
 const forbiddenPreSubmissionCopy = /\b(?:fraud score|red flags?|green flags?|correct answer|AI recommendations?|fraudulent|legitimate|suggested first tool|investigator question)\b/i;
@@ -11,16 +12,17 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'workspace');
   await expect(briefing).toBeVisible();
   await expect(briefing.getByRole('heading', { name: 'Case Briefing', exact: true })).toBeVisible();
-  await expect(briefing.getByRole('heading', { name: 'Briefing summary', exact: true })).toBeVisible();
-  await expect(briefing.getByRole('heading', { name: 'Case parties', exact: true })).toBeVisible();
-  await expect(briefing.getByRole('heading', { name: 'Account and transaction details', exact: true })).toBeVisible();
-  await expect(briefing.getByRole('heading', { name: 'Claim Intake Form', exact: true })).toBeVisible();
+  await expect(briefing.getByRole('heading', { name: 'Briefing summary', exact: true, includeHidden: true })).toHaveCount(1);
+  await expect(briefing.getByRole('heading', { name: 'Case parties', exact: true, includeHidden: true })).toHaveCount(1);
+  await expect(briefing.getByRole('heading', { name: 'Account and transaction details', exact: true, includeHidden: true })).toHaveCount(1);
+  await expect(briefing.getByRole('heading', { name: 'Claim Intake Form', exact: true, includeHidden: true })).toHaveCount(1);
   await expect(briefing).toContainText('Two failed password attempts were recorded at 7:58 AM and 8:00 AM.');
   await expect(briefing).toContainText('personal iPhone and Dallas, TX');
   await expect(briefing).not.toContainText('Review the related fictional case records');
   await expect(briefing.getByRole('heading', { name: 'Records in this packet', exact: true })).toHaveCount(0);
   await expect(briefing.getByRole('heading', { name: 'Luna Briefing Assistant', exact: true })).toHaveCount(0);
-  await expect(briefing.getByRole('heading', { name: 'Recent documents', exact: true })).toBeVisible();
+  await expect(briefing.getByRole('heading', { name: 'Recent documents', exact: true, includeHidden: true })).toHaveCount(0);
+  await expect(briefing).not.toContainText('Case packet');
   await expect(briefing.getByRole('heading', { name: 'Key focus areas', exact: true })).toHaveCount(0);
   await expect(briefing.getByRole('heading', { name: 'Recent actions', exact: true })).toHaveCount(0);
   await expect(briefing).toContainText('Assigned investigator');
@@ -32,8 +34,17 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
 
   const utilities = briefing.getByRole('navigation', { name: 'Case briefing utilities' });
   const quickRoutes = briefing.getByRole('navigation', { name: 'Case briefing quick routes' });
-  await expect(utilities.getByRole('button')).toHaveCount(6);
-  await expect(quickRoutes.getByRole('button')).toHaveCount(4);
+  await expect(utilities.locator('button')).toHaveCount(6);
+  await expect(quickRoutes.locator('button')).toHaveCount(4);
+
+  if (testInfo.project.name === 'mobile-chromium') {
+    const pager = briefing.getByRole('navigation', { name: 'Case Briefing pages' });
+    for (const heading of ['Briefing summary', 'Claim Intake Form', 'Key Case Facts', 'Case parties', 'Account and transaction details']) {
+      await pager.getByRole('button', { name: 'Next' }).click();
+      await expect(briefing.getByRole('heading', { name: heading, exact: true })).toBeVisible();
+    }
+    for (let pageNumber = 6; pageNumber > 1; pageNumber -= 1) await pager.getByRole('button', { name: 'Previous' }).click();
+  }
 
   const layout = await page.evaluate(() => {
     const briefingElement = document.querySelector('[data-case-briefing-screen="approved-theme-v1"]');
@@ -78,8 +89,8 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
 
   if (testInfo.project.name === 'mobile-chromium') {
     expect(Math.abs(layout.overviewTop - layout.summaryTop)).toBeGreaterThan(20);
-    expect(layout.utilityColumns).toBe(2);
-    expect(layout.quickRouteColumns).toBe(testInfo.project.use.viewport.width <= 430 ? 1 : 3);
+    expect(layout.utilityColumns).toBe(1);
+    expect(layout.quickRouteColumns).toBe(1);
   } else {
     expect(Math.abs(layout.overviewTop - layout.summaryTop)).toBeLessThanOrEqual(2);
     expect(layout.utilityColumns).toBe(6);
@@ -91,33 +102,39 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   await expect(selector).toHaveValue(secondCase.id);
   await expect(briefing.getByText(secondCase.person, { exact: true }).first()).toBeVisible();
   await expect(briefing).toContainText('Cardholder reports recurring billing after cancellation.');
-  await expect(briefing.getByRole('heading', { name: 'Transaction details', exact: true })).toBeVisible();
+  await expect(briefing.getByRole('heading', { name: 'Transaction details', exact: true, includeHidden: true })).toHaveCount(1);
   await expect(briefing).toContainText('StreamBox Premium');
-  await expect(briefing.getByRole('heading', { name: 'Reason code and packet details', exact: true })).toBeVisible();
+  await expect(briefing.getByRole('heading', { name: 'Reason code and review details', exact: true, includeHidden: true })).toHaveCount(1);
   await expect(briefing).toContainText('Training canceled-service / recurring billing review');
   await expect(briefing).toContainText('cancellation confirmation remains the required open evidence');
 
-  const workflow = page.getByRole('navigation', { name: 'Active case workflow' });
-
   await utilities.getByRole('button', { name: /Begin Investigation/ }).click();
-  await expect(workflow.getByRole('button', { name: /Investigate/ })).toHaveAttribute('aria-current', 'step');
+  await expect(page.locator('[data-workflow-stage-button="investigate"]')).toHaveAttribute('aria-current', 'step');
   await expect(page.locator('.activity-panel')).toContainText('Customer 360');
 
-  await workflow.getByRole('button', { name: /Case Briefing/ }).click();
-  await quickRoutes.getByRole('button', { name: 'Transaction History', exact: true }).click();
-  await expect(page.locator('.activity-panel')).toContainText('Transaction History');
+  await openWorkflowStage(page, /Case Briefing/);
+  if (testInfo.project.name === 'mobile-chromium') {
+    await selectToolGroup(page, /Transactions & Financial/);
+    await expect(page.locator('.activity-panel')).toContainText('Transaction History');
+    await selectToolGroup(page, /Merchant & Disputes/);
+    await expect(page.locator('.activity-panel')).toContainText('Merchant Intelligence');
+    await selectToolGroup(page, /Business & Payment Verification/);
+    await page.locator('[data-investigation-tools-screen="approved-theme-v1"]').getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Business 360');
+    await expect(page.locator('.activity-panel')).toContainText('Business 360');
+  } else {
+    await quickRoutes.getByRole('button', { name: 'Transaction History', exact: true }).click();
+    await expect(page.locator('.activity-panel')).toContainText('Transaction History');
+    await openWorkflowStage(page, /Case Briefing/);
+    await quickRoutes.getByRole('button', { name: 'Merchant Intelligence', exact: true }).click();
+    await expect(page.locator('.activity-panel')).toContainText('Merchant Intelligence');
+    await openWorkflowStage(page, /Case Briefing/);
+    await quickRoutes.getByRole('button', { name: 'Business 360', exact: true }).click();
+    await expect(page.locator('.activity-panel')).toContainText('Business 360');
+  }
 
-  await workflow.getByRole('button', { name: /Case Briefing/ }).click();
-  await quickRoutes.getByRole('button', { name: 'Merchant Intelligence', exact: true }).click();
-  await expect(page.locator('.activity-panel')).toContainText('Merchant Intelligence');
-
-  await workflow.getByRole('button', { name: /Case Briefing/ }).click();
-  await quickRoutes.getByRole('button', { name: 'Business 360', exact: true }).click();
-  await expect(page.locator('.activity-panel')).toContainText('Business 360');
-
-  await workflow.getByRole('button', { name: /Case Briefing/ }).click();
+  await openWorkflowStage(page, /Case Briefing/);
   await quickRoutes.getByRole('button', { name: 'Submit Decision', exact: true }).click();
-  await expect(workflow.getByRole('button', { name: /Determination/ })).toHaveAttribute('aria-current', 'step');
+  await expect(page.locator('[data-workflow-stage-button="determination"]')).toHaveAttribute('aria-current', 'step');
   await expect(page.locator('.submit-decision-panel')).toBeVisible();
 
   const lunaPanel = page.locator('.luna-visual-panel.locked');

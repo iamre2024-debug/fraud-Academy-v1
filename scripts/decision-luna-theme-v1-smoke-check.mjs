@@ -49,7 +49,7 @@ for (const anchor of [
   'Submit Decision',
   'Check decision readiness',
   'Submission confirmation',
-  'Luna debrief unlocked',
+  'Open Luna Debrief',
 ]) {
   mustContain('SubmitDecisionPanel.jsx', decision, anchor);
 }

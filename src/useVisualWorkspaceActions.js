@@ -38,6 +38,15 @@ export default function useVisualWorkspaceActions({
     recordAction('Pinned evidence', `${value} added to the Investigation Tray.`, tool);
   }
 
+  function removePin(value) {
+    if (!value) return;
+    setTrayByCase((current) => ({
+      ...current,
+      [activeCase.id]: (current[activeCase.id] ?? [activeCase.trainingId]).filter((item) => item !== value),
+    }));
+    recordAction('Removed pinned evidence', `${value} removed from the Investigation Tray.`, 'Pinned Evidence');
+  }
+
   function recordAction(action, detail, source = tool) {
     const timestamp = new Date().toLocaleString([], {
       month: 'short',
@@ -168,6 +177,7 @@ export default function useVisualWorkspaceActions({
   return {
     packageStatus,
     pin,
+    removePin,
     saveNote,
     markReviewed,
     updateDecision,

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { selectToolGroup } from './workspace-page-helpers.mjs';
 
 const secondCase = { id: 'FA-CB-24007', person: 'Jordan Ellis' };
 const forbiddenPreSubmissionCopy = /\b(?:fraud score|red flags?|green flags?|correct answer|AI recommendations?|fraudulent|legitimate|suggested first tool|investigator question)\b/i;
@@ -18,9 +19,9 @@ test('approved Investigation tools are contextual, functional, and responsive', 
 
   const groupRail = page.locator('[data-investigation-tool-groups="approved-theme-v1"]');
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  await expect(groupRail).toBeVisible();
-  await expect(groupRail.getByRole('button')).toHaveCount(7);
-  await expect(groupRail.getByRole('button', { name: /Identity & Customer/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(groupRail).toBeHidden();
+  await expect(groupRail.locator('.visual-category-row > button')).toHaveCount(6);
+  await expect(groupRail.locator('.visual-category-row > button').filter({ hasText: 'Identity & Customer' })).toHaveAttribute('aria-pressed', 'true');
   await expect(toolPanel).toBeVisible();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Identity Intel / People Search');
   await expect(toolPanel.getByRole('heading', { name: 'Identity Intel / People Search', exact: true })).toBeVisible();
@@ -43,7 +44,6 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await expect(toolPanel.getByRole('heading', { name: 'Open a full report section', exact: true })).toBeVisible();
 
   const layout = await page.evaluate(() => {
-    const groups = document.querySelector('.investigation-tool-groups-theme-v1 .visual-category-row');
     const workspace = document.querySelector('.identity-intel-workspace');
     const recordsPanel = document.querySelector('.identity-intel-sections');
     const detail = document.querySelector('.identity-intel-report');
@@ -62,7 +62,6 @@ test('approved Investigation tools are contextual, functional, and responsive', 
       panelFits: fits(toolPanelElement),
       recordsFit: fits(recordsPanel),
       detailFits: fits(detail),
-      groupColumns: groups ? getComputedStyle(groups).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
       workspaceColumns: workspace ? getComputedStyle(workspace).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
       recordsTop: rect(recordsPanel)?.top ?? 0,
       detailTop: rect(detail)?.top ?? 0,
@@ -76,11 +75,9 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   expect(layout.detailFits).toBe(true);
 
   if (testInfo.project.name === 'mobile-chromium') {
-    expect(layout.groupColumns).toBe(2);
     expect(layout.workspaceColumns).toBe(1);
     expect(layout.detailTop).toBeGreaterThan(layout.recordsTop + 20);
   } else {
-    expect(layout.groupColumns).toBe(6);
     expect(layout.workspaceColumns).toBe(3);
     expect(Math.abs(layout.recordsTop - layout.detailTop)).toBeLessThanOrEqual(2);
     expect(Math.abs(layout.evidenceTop - layout.detailTop)).toBeLessThanOrEqual(2);
@@ -106,11 +103,11 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await toolPanel.getByRole('button', { name: 'Mark Identity Intel / People Search reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ Identity Intel / People Search reviewed', exact: true })).toBeVisible();
 
-  await groupRail.getByRole('button', { name: /Login, Session, Device & IP/ }).click();
+  await selectToolGroup(page, /Login, Session, Device & IP/);
   const toolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
   await expect(toolSelect).toHaveValue('Login History');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Login History');
-  await expect(groupRail.getByRole('button', { name: /Login, Session, Device & IP/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(groupRail.locator('.visual-category-row > button').filter({ hasText: 'Login, Session, Device & IP' })).toHaveAttribute('aria-pressed', 'true');
   await expect(toolPanel.getByText('Every recorded login is available below.', { exact: false })).toBeVisible();
   await expect(toolPanel.locator('.login-history-summary article')).toHaveCount(6);
   await expect(toolPanel.getByRole('combobox', { name: 'Filter Login History by result' })).toBeVisible();
@@ -191,7 +188,7 @@ test('approved Investigation tools are contextual, functional, and responsive', 
 
   await expect(toolPanel.getByRole('button', { name: 'Open report in Document Viewer', exact: true })).toHaveCount(0);
 
-  await groupRail.getByRole('button', { name: /Transactions & Financial/ }).click();
+  await selectToolGroup(page, /Transactions & Financial/);
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Transaction History');
   await expect(toolPanel.getByRole('heading', { name: 'Transaction History', exact: true })).toBeVisible();
   await expect(toolPanel.locator('.transaction-history-summary article')).toHaveCount(4);
@@ -206,7 +203,7 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await toolPanel.getByRole('button', { name: 'Mark Transaction History reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ Transaction History reviewed', exact: true })).toBeVisible();
 
-  await groupRail.getByRole('button', { name: /Business & Payment Verification/ }).click();
+  await selectToolGroup(page, /Business & Payment Verification/);
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Payment Verification');
   await expect(toolPanel.getByRole('heading', { name: 'Payment Verification', exact: true })).toBeVisible();
 
@@ -216,7 +213,7 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   const caseSelector = page.locator('.visual-case-switcher select');
   await caseSelector.selectOption('FA-CR-24003');
   await expect(caseSelector).toHaveValue('FA-CR-24003');
-  await groupRail.getByRole('button', { name: /Business & Payment Verification/ }).click();
+  await selectToolGroup(page, /Business & Payment Verification/);
   const creditToolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
 
   await creditToolSelect.selectOption('Business 360');
@@ -248,8 +245,9 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await caseSelector.selectOption(secondCase.id);
   await expect(caseSelector).toHaveValue(secondCase.id);
   await expect(briefing.getByText(secondCase.person, { exact: true }).first()).toBeVisible();
+  await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
   await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')).toBeVisible();
-  await expect(groupRail.getByRole('button', { name: /Login, Session, Device & IP/ })).toHaveCount(0);
+  await expect(groupRail.locator('.visual-category-row > button').filter({ hasText: 'Login, Session, Device & IP' })).toHaveCount(0);
 
   const lunaPanel = page.locator('.luna-visual-panel.locked');
   await expect(lunaPanel).toBeAttached();

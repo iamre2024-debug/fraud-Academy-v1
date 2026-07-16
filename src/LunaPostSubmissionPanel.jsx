@@ -29,6 +29,7 @@ export default function LunaPostSubmissionPanel({
   onBackToWorkspace,
   onViewCaseSummary,
   onReturnToQueue,
+  visible = false,
 }) {
   const [host, setHost] = useState(null);
   const [version, setVersion] = useState(0);
@@ -106,6 +107,8 @@ export default function LunaPostSubmissionPanel({
       data-luna-screen="approved-theme-v1"
       data-case-id={activeCase.id}
       data-luna-state={locked ? 'locked' : 'unlocked'}
+      data-workspace-screen-visible={visible ? 'true' : 'false'}
+      aria-hidden={visible ? undefined : 'true'}
     >
       <header className="luna-v1-header">
         <div>

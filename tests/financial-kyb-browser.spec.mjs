@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { selectToolGroup } from './workspace-page-helpers.mjs';
 
 async function openInvestigationWorkspace(page) {
   await page.goto('/');
@@ -15,10 +16,9 @@ async function openInvestigationWorkspace(page) {
 test('Financial Investigation and KYB Review provide complete responsive workspaces', async ({ page }, testInfo) => {
   await openInvestigationWorkspace(page);
 
-  const groupRail = page.locator('[data-investigation-tool-groups="approved-theme-v1"]');
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
 
-  await groupRail.getByRole('button', { name: /Transactions & Financial/ }).click();
+  await selectToolGroup(page, /Transactions & Financial/);
   const toolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
   await toolSelect.selectOption('Financial Investigation');
 
@@ -75,7 +75,7 @@ test('Financial Investigation and KYB Review provide complete responsive workspa
   const caseSelector = page.locator('.visual-case-switcher select');
   await caseSelector.selectOption('FA-CR-24003');
   await expect(caseSelector).toHaveValue('FA-CR-24003');
-  await groupRail.getByRole('button', { name: /Business & Payment Verification/ }).click();
+  await selectToolGroup(page, /Business & Payment Verification/);
   await toolSelect.selectOption('KYB Review');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'KYB Review');
   await expect(toolPanel.getByRole('heading', { name: 'Do the business identity and operating records connect across independent sources?', exact: true })).toBeVisible();

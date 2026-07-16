@@ -29,7 +29,7 @@ const checks = [
       'cases={caseCatalog}',
       'onCaseGenerated={handleGeneratedCase}',
       "const [activeTab, setActiveTab] = useState('workspace')",
-      'function openCase(caseId)',
+      "function openCase(caseId, nextWorkspaceScreen = 'briefing')",
     ],
     mustNotContain: [
       '<SystemAccessLane',
@@ -58,6 +58,9 @@ const checks = [
       '<SubmitDecisionPanel',
       '<VisualShellHeader',
       'jumpDecision={jumpDecision}',
+      'data-workspace-screen={workspaceScreen}',
+      'function openPinnedEvidence(item)',
+      'onOpenPinned={openPinnedEvidence}',
     ],
     mustNotContain: [
       "window.dispatchEvent(new CustomEvent('fraud-academy:navigate'",
@@ -65,7 +68,6 @@ const checks = [
       'repairDeviceIntelligenceTable',
       'readStorage(',
       'writeStorage(',
-      'useEffect(',
       'getReviewPackageStatus(',
       'buildReviewPackage(',
       'function pin(',

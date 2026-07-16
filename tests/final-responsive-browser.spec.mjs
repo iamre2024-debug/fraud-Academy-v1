@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openWorkflowStage, openWorkspacePages } from './workspace-page-helpers.mjs';
 
 const approvedSurfaceSelector = [
   '[data-react-navigation-panel]',
@@ -11,6 +12,8 @@ const approvedSurfaceSelector = [
   '[data-luna-screen="approved-theme-v1"]',
   '[data-academy-screen="approved-theme-v1"]',
   '[data-profile-screen="approved-theme-v1"]',
+  '.active-case-workflow',
+  '[data-investigation-tool-groups="approved-theme-v1"]',
 ].join(',');
 
 async function assertViewportSafe(page, rootSelector, label) {
@@ -102,11 +105,11 @@ test('final responsive polish protects every completed global surface across com
     await assertViewportSafe(page, '[data-profile-screen="approved-theme-v1"]', `Profile ${viewport.width}`);
 
     await openGlobalTab(page, 'Workspace');
-    await expect(page.locator('.active-case-workflow')).toBeVisible();
+    await openWorkspacePages(page);
     await assertViewportSafe(page, '.visual-os-frame', `Workspace ${viewport.width}`);
 
     for (const stage of ['briefing', 'investigate', 'timeline', 'determination', 'debrief']) {
-      await page.locator(`[data-workflow-stage-button="${stage}"]`).click();
+      await openWorkflowStage(page, new RegExp(stage, 'i'));
       await assertViewportSafe(page, '.visual-os-frame', `Workspace ${stage} ${viewport.width}`);
     }
 

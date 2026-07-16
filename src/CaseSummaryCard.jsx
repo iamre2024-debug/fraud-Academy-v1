@@ -1,8 +1,5 @@
+import { useEffect, useState } from 'react';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
-
-function documentStatusClass(status = '') {
-  return String(status).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'neutral';
-}
 
 function displayFacts(activeCase) {
   const facts = activeCase.keyFacts?.length ? activeCase.keyFacts : [
@@ -25,6 +22,8 @@ export default function CaseSummaryCard({
   openQueue,
   recordAction,
 }) {
+  const [mobilePage, setMobilePage] = useState(1);
+  const [mobileIntakePage, setMobileIntakePage] = useState(0);
   const intake = activeCase.intake ?? {};
   const documents = activeCase.documents ?? [];
   const intakeAnswers = activeCase.intakeAnswers ?? [];
@@ -43,8 +42,20 @@ export default function CaseSummaryCard({
     : activeCase.requiredTools?.find((item) => item !== 'Case Summary' && availableToolNames.has(item))
       ?? activeCase.availableTools?.find((item) => !['Timeline', 'System Access Lane'].includes(item));
   const quickRoutes = [...new Set([...(activeCase.requiredTools ?? []), ...(activeCase.availableTools ?? [])])]
-    .filter((item) => item !== 'Case Summary' && item !== 'Customer 360' && availableToolNames.has(item))
+    .filter((item) => !['Case Summary', 'Customer 360', 'Document Viewer'].includes(item) && availableToolNames.has(item))
     .slice(0, 3);
+  const mobilePageCount = chargebackDetails || activeCase.creditDecision ? 7 : 6;
+  const mobilePageLabels = ['Overview', 'Briefing summary', 'Claim intake', 'Statement and facts', 'Case parties', 'Case details', chargebackDetails ? 'Chargeback details' : 'Credit details'];
+
+  useEffect(() => {
+    setMobilePage(1);
+    setMobileIntakePage(0);
+  }, [activeCase.id]);
+
+  function changeMobilePage(nextPage) {
+    setMobilePage(Math.min(mobilePageCount, Math.max(1, nextPage)));
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }
 
   function recordBriefingAction(action, detail) {
     recordAction?.(action, detail, 'Case Briefing');
@@ -74,7 +85,7 @@ export default function CaseSummaryCard({
 
   return (
     <section className="ornate-card case-summary-visual" data-case-briefing-container="approved-theme-v1">
-      <div className="case-briefing-theme-v1" aria-labelledby="case-briefing-title" data-case-briefing-screen="approved-theme-v1">
+      <div className="case-briefing-theme-v1" aria-labelledby="case-briefing-title" data-case-briefing-screen="approved-theme-v1" data-mobile-briefing-current={mobilePage}>
         <header className="case-briefing-header">
           <div>
             <p className="case-briefing-eyebrow">Active Case · Evidence First</p>
@@ -87,8 +98,14 @@ export default function CaseSummaryCard({
           </div>
         </header>
 
+        <nav className="mobile-case-briefing-pager" aria-label="Case Briefing pages">
+          <button type="button" onClick={() => changeMobilePage(mobilePage - 1)} disabled={mobilePage === 1}>Previous</button>
+          <span><small>Page {mobilePage} of {mobilePageCount}</small><strong>{mobilePageLabels[mobilePage - 1]}</strong></span>
+          <button type="button" onClick={() => changeMobilePage(mobilePage + 1)} disabled={mobilePage === mobilePageCount}>Next</button>
+        </nav>
+
         <div className="case-briefing-card-grid">
-          <article className="case-briefing-card case-briefing-overview-card">
+          <article className="case-briefing-card case-briefing-overview-card" data-mobile-briefing-page="1" data-mobile-briefing-active={mobilePage === 1 ? 'true' : 'false'}>
             <div className="case-briefing-card-heading">
               <span aria-hidden="true">01</span>
               <div>
@@ -119,7 +136,7 @@ export default function CaseSummaryCard({
             </div>
           </article>
 
-          <article className="case-briefing-card case-briefing-summary-card">
+          <article className="case-briefing-card case-briefing-summary-card" data-mobile-briefing-page="2" data-mobile-briefing-active={mobilePage === 2 ? 'true' : 'false'}>
             <div className="case-briefing-card-heading">
               <span aria-hidden="true">02</span>
               <div>
@@ -138,7 +155,7 @@ export default function CaseSummaryCard({
             </dl>
           </article>
 
-          <section className="case-briefing-metrics" aria-label="Case at a glance">
+          <section className="case-briefing-metrics" aria-label="Case at a glance" data-mobile-briefing-page="2" data-mobile-briefing-active={mobilePage === 2 ? 'true' : 'false'}>
             <article><span>Claim amount</span><strong>{activeCase.amount}</strong></article>
             <article><span>Queue status</span><strong>{activeCase.status ?? 'Open'}</strong></article>
             <article><span>Priority</span><strong>{activeCase.priority ?? 'Standard'}</strong></article>
@@ -147,7 +164,7 @@ export default function CaseSummaryCard({
             <article><span>Documents</span><strong>{documents.length}</strong></article>
           </section>
 
-          <article className="case-briefing-card case-briefing-intake-card">
+          <article className="case-briefing-card case-briefing-intake-card" data-mobile-briefing-page="3" data-mobile-briefing-active={mobilePage === 3 ? 'true' : 'false'}>
             <div className="case-briefing-card-heading">
               <span aria-hidden="true">03</span>
               <div>
@@ -155,18 +172,25 @@ export default function CaseSummaryCard({
                 <h3>Claim Intake Form</h3>
               </div>
             </div>
+            {intakeAnswers.length > 1 && (
+              <nav className="mobile-intake-answer-pager" aria-label="Claim Intake questions">
+                <button type="button" onClick={() => setMobileIntakePage((current) => Math.max(0, current - 1))} disabled={mobileIntakePage === 0}>Previous</button>
+                <span>Question {mobileIntakePage + 1} of {intakeAnswers.length}</span>
+                <button type="button" onClick={() => setMobileIntakePage((current) => Math.min(intakeAnswers.length - 1, current + 1))} disabled={mobileIntakePage === intakeAnswers.length - 1}>Next</button>
+              </nav>
+            )}
             <div className="case-briefing-intake-answer-list">
-              {intakeAnswers.map((item) => (
-                <article key={item.id}>
+              {intakeAnswers.map((item, index) => (
+                <article key={item.id} data-mobile-intake-active={mobileIntakePage === index ? 'true' : 'false'}>
                   <strong>{item.prompt}</strong>
                   <DirectCollapsibleText as="p" lines={2} mobileLines={3}>{item.answer}</DirectCollapsibleText>
                 </article>
               ))}
-              {!intakeAnswers.length && <p className="case-briefing-empty">No structured intake answers are included in this case packet yet.</p>}
+              {!intakeAnswers.length && <p className="case-briefing-empty">No structured intake answers are available for this case yet.</p>}
             </div>
           </article>
 
-          <article className="case-briefing-card case-briefing-statement-card">
+          <article className="case-briefing-card case-briefing-statement-card" data-mobile-briefing-page="4" data-mobile-briefing-active={mobilePage === 4 ? 'true' : 'false'}>
             <div className="case-briefing-card-heading">
               <span aria-hidden="true">04</span>
               <div>
@@ -178,7 +202,7 @@ export default function CaseSummaryCard({
             <small>Source: {statement.source}</small>
           </article>
 
-          <article className="case-briefing-card case-briefing-facts-card">
+          <article className="case-briefing-card case-briefing-facts-card" data-mobile-briefing-page="4" data-mobile-briefing-active={mobilePage === 4 ? 'true' : 'false'}>
             <div className="case-briefing-card-heading">
               <span aria-hidden="true">05</span>
               <div>
@@ -191,7 +215,7 @@ export default function CaseSummaryCard({
             </dl>
           </article>
 
-          <article className="case-briefing-card case-briefing-parties-card" data-case-briefing-parties="true">
+          <article className="case-briefing-card case-briefing-parties-card" data-case-briefing-parties="true" data-mobile-briefing-page="5" data-mobile-briefing-active={mobilePage === 5 ? 'true' : 'false'}>
             <div className="case-briefing-card-heading">
               <span aria-hidden="true">06</span>
               <div>
@@ -208,11 +232,11 @@ export default function CaseSummaryCard({
                   <small>Source: {party.source}</small>
                 </article>
               ))}
-              {!parties.length && <p className="case-briefing-empty">No separate party records are included in this case packet yet.</p>}
+              {!parties.length && <p className="case-briefing-empty">No separate party records are available for this case yet.</p>}
             </div>
           </article>
 
-          <article className="case-briefing-card case-briefing-detail-card" data-case-briefing-details="true">
+          <article className="case-briefing-card case-briefing-detail-card" data-case-briefing-details="true" data-mobile-briefing-page="6" data-mobile-briefing-active={mobilePage === 6 ? 'true' : 'false'}>
             <div className="case-briefing-card-heading">
               <span aria-hidden="true">07</span>
               <div>
@@ -225,41 +249,19 @@ export default function CaseSummaryCard({
             </dl>
           </article>
 
-          <article className="case-briefing-card case-briefing-documents-card">
-            <div className="case-briefing-card-heading">
-              <span aria-hidden="true">08</span>
-              <div>
-                <p>Case packet</p>
-                <h3>Recent documents</h3>
-              </div>
-            </div>
-            <div className="case-briefing-document-list">
-              {documents.slice(0, 3).map((document) => (
-                <div key={document.id}>
-                  <span className={`document-status status-${documentStatusClass(document.status)}`}>{document.status}</span>
-                  <div><strong>{document.name ?? document.title}</strong><small>{document.detail ?? 'Available in the case packet'}</small></div>
-                </div>
-              ))}
-              {!documents.length && <p className="case-briefing-empty">No documents are listed in this case packet yet.</p>}
-            </div>
-            <div className="case-briefing-document-actions">
-              <button type="button" className="case-briefing-secondary-action" onClick={() => openRoute('Document Request', 'investigate')}>Open Document Request</button>
-            </div>
-          </article>
-
           {chargebackDetails && (
-            <article className="case-briefing-card case-briefing-chargeback-card">
+            <article className="case-briefing-card case-briefing-chargeback-card" data-mobile-briefing-page="7" data-mobile-briefing-active={mobilePage === 7 ? 'true' : 'false'}>
               <div className="case-briefing-card-heading">
-                <span aria-hidden="true">09</span>
+                <span aria-hidden="true">08</span>
                 <div>
                   <p>Chargeback review rail</p>
-                  <h3>Reason code and packet details</h3>
+                  <h3>Reason code and review details</h3>
                 </div>
               </div>
               <dl className="case-briefing-facts-grid">
                 <div><dt>Reason code guide</dt><dd>{chargebackDetails.reasonCode}</dd></div>
                 <div><dt>Response deadline</dt><dd>{chargebackDetails.responseDeadline}</dd></div>
-                <div><dt>Merchant packet</dt><dd>{chargebackDetails.merchantEvidence}</dd></div>
+                <div><dt>Merchant evidence</dt><dd>{chargebackDetails.merchantEvidence}</dd></div>
                 <div><dt>Authorization review</dt><dd>{chargebackDetails.authorizationReview}</dd></div>
                 <div><dt>Service / delivery review</dt><dd>{chargebackDetails.fulfillmentReview}</dd></div>
                 <div><dt>Customer contact</dt><dd>{chargebackDetails.customerContact}</dd></div>
@@ -268,9 +270,9 @@ export default function CaseSummaryCard({
           )}
 
           {activeCase.creditDecision && (
-            <article className="case-briefing-card case-briefing-credit-card">
+            <article className="case-briefing-card case-briefing-credit-card" data-mobile-briefing-page="7" data-mobile-briefing-active={mobilePage === 7 ? 'true' : 'false'}>
               <div className="case-briefing-card-heading">
-                <span aria-hidden="true">09</span>
+                <span aria-hidden="true">08</span>
                 <div>
                   <p>Credit review rail</p>
                   <h3>Credit case details</h3>
