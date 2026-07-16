@@ -145,7 +145,7 @@ function App() {
   function submitReviewPackage(event) {
     event.preventDefault();
     const draft = decisionDraftsByCase[activeCase.id] ?? defaultDecisionDraft;
-    const packageStatus = getReviewPackageStatus({ completedTools: currentCompleted, tray, notes, draft });
+    const packageStatus = getReviewPackageStatus({ activeCase, completedTools: currentCompleted, tray, notes, draft });
 
     if (!packageStatus.ready) {
       addFinding(`Submit Decision: review package checked. ${packageStatus.messages[0]}`);
@@ -155,6 +155,7 @@ function App() {
     const reviewPackage = buildReviewPackage({
       caseId: activeCase.id,
       agentId: AGENT_ID,
+      activeCase,
       draft,
       completedTools: currentCompleted,
       tray,
@@ -360,7 +361,7 @@ function CaseReportPanel({ activeCase, completed, completedTools, tray, notes, p
 
 function SubmitDecisionPanel({ activeCase, completed, completedTools, tray, notes, decisionDraft, reviewPackages, updateDecisionDraft, submitReviewPackage, addFinding, markReviewed }) {
   const readiness = buildDecisionReadiness(activeCase, completedTools, tray, notes, decisionDraft, reviewPackages.length > 0);
-  const packageStatus = getReviewPackageStatus({ completedTools, tray, notes, draft: decisionDraft });
+  const packageStatus = getReviewPackageStatus({ activeCase, completedTools, tray, notes, draft: decisionDraft });
   const latestPackage = reviewPackages[0];
   const lunaDebrief = buildLunaDebrief({ activeCase, reviewPackage: latestPackage, completedTools, tray, notes });
 
@@ -410,7 +411,7 @@ function SubmitDecisionPanel({ activeCase, completed, completedTools, tray, note
 
       {reviewPackages.length > 0 && (
         <div className="record-list">
-          {reviewPackages.map((item) => <article key={item.id} className="record-card report-section-card"><div><span className="case-pill soft">Saved package</span><h4>{item.caseId} · {item.choice}</h4><p>{item.savedAt} · Confidence {item.confidence}</p><small>{item.reason}</small><small>{item.pinnedEvidence?.length ?? 0} pinned · {item.noteSnapshot?.length ?? 0} note snapshot · {item.reviewedRequired}/{item.totalRequired} required tools</small></div></article>)}
+          {reviewPackages.map((item) => <article key={item.id} className="record-card report-section-card"><div><span className="case-pill soft">Saved package</span><h4>{item.caseId} · {item.choice}</h4><p>{item.savedAt} · Confidence {item.confidence}</p><small>{item.reason}</small><small>{item.pinnedEvidence?.length ?? 0} pinned · {item.noteSnapshot?.length ?? 0} note snapshot · {item.reviewedRequired}/{item.totalRequired} suggested tools reviewed</small></div></article>)}
         </div>
       )}
 
@@ -535,10 +536,10 @@ function buildCaseReportSections(activeCase, completedTools, tray, notes) {
 }
 
 function buildDecisionReadiness(activeCase, completedTools, tray, notes, draft, hasReviewPackage = false) {
-  const packageStatus = getReviewPackageStatus({ completedTools, tray, notes, draft });
+  const packageStatus = getReviewPackageStatus({ activeCase, completedTools, tray, notes, draft });
   const requestedDocs = (activeCase.documents ?? []).filter((doc) => doc.status === 'Requested').length;
   return [
-    { label: 'Required tools', value: `${packageStatus.reviewedRequired}/${packageStatus.totalRequired}` },
+    { label: 'Tools reviewed (optional)', value: `${packageStatus.reviewedRequired}/${packageStatus.totalRequired}` },
     { label: 'Pinned records', value: String(tray.length) },
     { label: 'Notebook notes', value: String(notes.length) },
     { label: 'Case report', value: completedTools.includes('Case Report') ? 'Draft package reviewed' : 'Draft package available' },
