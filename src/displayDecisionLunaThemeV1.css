@@ -246,6 +246,25 @@ body[data-visual-tab="workspace"] .decision-status-grid strong {
   overflow-wrap: anywhere;
 }
 
+body[data-visual-tab="workspace"] .decision-status-grid small {
+  display: block;
+  margin-top: 3px;
+  color: var(--decision-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+body[data-visual-tab="workspace"] .decision-direct-submit-note {
+  margin: -4px 0 18px;
+  border: 1px solid #d8caef;
+  border-radius: 12px;
+  background: var(--decision-lavender);
+  color: var(--decision-purple-dark);
+  padding: 11px 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 body[data-visual-tab="workspace"] .decision-flag-workspace {
   margin-bottom: 18px;
   border: 1px solid var(--decision-border);
@@ -289,6 +308,19 @@ body[data-visual-tab="workspace"] .decision-flag-header > div:first-child > span
   margin-top: 7px;
   color: var(--decision-muted);
   line-height: 1.5;
+}
+
+body[data-visual-tab="workspace"] .decision-flag-header > div:first-child > small {
+  display: inline-flex;
+  max-width: 100%;
+  margin-top: 9px;
+  border-radius: 999px;
+  background: var(--decision-lavender);
+  color: var(--decision-purple-dark);
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  overflow-wrap: anywhere;
 }
 
 body[data-visual-tab="workspace"] .decision-flag-progress {
