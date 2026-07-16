@@ -283,6 +283,13 @@ test('generated cases persist through reload and remain Evidence First', async (
     await assertEvidenceFirstLock(page, generatedId);
   }
 
+  await page.getByRole('navigation', { name: 'Active case workflow' }).getByRole('button', { name: /Case Briefing/ }).click();
+  const generatedBriefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
+  await expect(generatedBriefing).toBeVisible();
+  await expect(generatedBriefing).not.toContainText('The fictional packet contains both routine and exception evidence');
+  await expect(generatedBriefing.locator('.case-briefing-overview-card')).toContainText('The amount in scope is');
+  await expect(generatedBriefing.locator('.case-briefing-overview-card')).toContainText('activity begins');
+
   await expect(page.getByText('3 generated training cases saved locally')).toBeVisible();
   await openCaseQueue(page);
 
@@ -305,4 +312,6 @@ test('generated cases persist through reload and remain Evidence First', async (
   await page.locator('.cases-theme-v1-panel .nav-case-card').filter({ hasText: generatedIds[0] }).click();
   await expect(page.locator('.visual-case-switcher select')).toHaveValue(generatedIds[0]);
   await assertEvidenceFirstLock(page, generatedIds[0]);
+  await page.getByRole('navigation', { name: 'Active case workflow' }).getByRole('button', { name: /Case Briefing/ }).click();
+  await expect(page.locator('[data-case-briefing-screen="approved-theme-v1"]')).not.toContainText('The fictional packet contains both routine and exception evidence');
 });
