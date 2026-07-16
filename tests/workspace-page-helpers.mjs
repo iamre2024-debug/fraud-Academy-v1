@@ -13,7 +13,24 @@ export async function openWorkspacePages(page) {
 
 export async function openWorkflowStage(page, stageName) {
   const workflow = await openWorkspacePages(page);
-  await workflow.getByRole('button', { name: stageName }).click();
+  const stageButton = workflow.getByRole('button', { name: stageName });
+  const label = (await stageButton.innerText()).toLowerCase();
+  const expectedScreen = [
+    ['briefing', 'briefing'],
+    ['investigate', 'tool-menu'],
+    ['timeline', 'timeline'],
+    ['determination', 'determination'],
+    ['debrief', 'debrief'],
+  ].find(([stage]) => label.includes(stage))?.[1];
+
+  await stageButton.click();
+
+  if (expectedScreen) {
+    await expect(page.locator('.visual-os-frame')).toHaveAttribute('data-workspace-screen', expectedScreen);
+  }
+  if (expectedScreen === 'debrief') {
+    await expect(page.locator('[data-luna-screen="approved-theme-v1"]')).toBeVisible();
+  }
 }
 
 export async function openToolGroups(page) {

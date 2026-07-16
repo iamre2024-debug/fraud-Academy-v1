@@ -88,6 +88,10 @@ body {
   padding-bottom: max(0px, env(safe-area-inset-bottom));
 }
 
+.visual-react-bottom-nav {
+  z-index: 60;
+}
+
 @media (min-width: 1440px) {
   .visual-os-shell {
     padding-inline: clamp(24px, 3vw, 52px);
