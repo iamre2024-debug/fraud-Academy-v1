@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 const builtInCases = [
-  { id: 'FA-ATO-24018', person: 'Maya Sterling' },
-  { id: 'FA-CB-24007', person: 'Jordan Ellis' },
-  { id: 'FA-CR-24003', person: 'Avery Brooks' },
+  { id: 'FA-ATO-24018', person: 'Maya Sterling', accountId: 'ACCT-24018-4410' },
+  { id: 'FA-CB-24007', person: 'Jordan Ellis', accountId: 'ACCT-24007-8841' },
+  { id: 'FA-CR-24003', person: 'Avery Brooks', accountId: 'ACCT-24003-3011' },
 ];
 
 const forbiddenPreSubmissionCopy = /\b(?:fraud score|red flags?|green flags?|correct answer|AI recommendations?|open first tool|suggested first tool|investigator question)\b/i;
@@ -52,6 +52,14 @@ async function openCoreTool(page, category, tool) {
     await panel.getByRole('button', { name: 'Use legal name', exact: true }).click();
     await panel.getByRole('button', { name: 'Search business', exact: true }).click();
     await expect(panel.locator('.kyb-profile-header')).toBeVisible();
+  }
+
+  if (tool === 'Document Viewer') {
+    const activeCaseId = await page.locator('.visual-case-switcher select').inputValue();
+    const activeAccountId = builtInCases.find((item) => item.id === activeCaseId)?.accountId;
+    await expect(panel.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toBeVisible();
+    await panel.getByRole('textbox', { name: 'Search by Account ID' }).fill(activeAccountId);
+    await panel.getByRole('button', { name: 'Search account', exact: true }).click();
   }
 
   const specializedSelectors = {
