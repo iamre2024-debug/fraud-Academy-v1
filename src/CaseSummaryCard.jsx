@@ -29,7 +29,6 @@ export default function CaseSummaryCard({
   const documents = activeCase.documents ?? [];
   const intakeAnswers = activeCase.intakeAnswers ?? [];
   const statement = activeCase.statement ?? { label: 'Customer statement', value: activeCase.allegation ?? activeCase.queueReason, source: intake.channel ?? 'Case queue' };
-  const evidenceAreas = activeCase.caseBriefing?.evidenceAreas ?? activeCase.evidenceAreas ?? [];
   const chargebackDetails = activeCase.chargebackDecision;
   const facts = displayFacts(activeCase);
   const assignedInvestigator = activeCase.assignedInvestigator ?? activeCase.caseBriefing?.assignedInvestigator ?? 'Training queue · unassigned';
@@ -226,39 +225,9 @@ export default function CaseSummaryCard({
             </dl>
           </article>
 
-          <article className="case-briefing-card case-briefing-evidence-card">
-            <div className="case-briefing-card-heading">
-              <span aria-hidden="true">08</span>
-              <div>
-                <p>Available evidence areas</p>
-                <h3>Records in this packet</h3>
-              </div>
-            </div>
-            <div className="case-briefing-evidence-chips">
-              {evidenceAreas.slice(0, 6).map((area) => <span key={area}>{area}</span>)}
-            </div>
-            <small>These are neutral areas to review. The case packet does not prescribe an outcome.</small>
-          </article>
-
-          <article className="case-briefing-card case-briefing-luna-card">
-            <div className="case-briefing-card-heading">
-              <span aria-hidden="true">L</span>
-              <div>
-                <p>Process support only</p>
-                <h3>Luna Briefing Assistant</h3>
-              </div>
-            </div>
-            <p>I can help you organize the investigation without revealing an outcome or steering your determination.</p>
-            <ul>
-              <li>Start with the intake and statement.</li>
-              <li>Compare records before pinning evidence.</li>
-              <li>Document what is known, missing, and still unverified.</li>
-            </ul>
-          </article>
-
           <article className="case-briefing-card case-briefing-documents-card">
             <div className="case-briefing-card-heading">
-              <span aria-hidden="true">09</span>
+              <span aria-hidden="true">08</span>
               <div>
                 <p>Case packet</p>
                 <h3>Recent documents</h3>
@@ -281,7 +250,7 @@ export default function CaseSummaryCard({
           {chargebackDetails && (
             <article className="case-briefing-card case-briefing-chargeback-card">
               <div className="case-briefing-card-heading">
-                <span aria-hidden="true">10</span>
+                <span aria-hidden="true">09</span>
                 <div>
                   <p>Chargeback review rail</p>
                   <h3>Reason code and packet details</h3>
@@ -301,7 +270,7 @@ export default function CaseSummaryCard({
           {activeCase.creditDecision && (
             <article className="case-briefing-card case-briefing-credit-card">
               <div className="case-briefing-card-heading">
-                <span aria-hidden="true">11</span>
+                <span aria-hidden="true">09</span>
                 <div>
                   <p>Credit review rail</p>
                   <h3>Credit case details</h3>
