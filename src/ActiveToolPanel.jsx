@@ -140,7 +140,7 @@ export default function ActiveToolPanel({
             <article>
               <h4>History</h4>
               <DirectCollapsibleText>☾ {displayActiveRow.id} is open inside {tool} for {activeCase.id}.</DirectCollapsibleText>
-              <DirectCollapsibleText>☾ Record history can be compared with pinned evidence, timeline entries, and the case report draft.</DirectCollapsibleText>
+              <DirectCollapsibleText>☾ Record history can be compared with pinned evidence, timeline entries, and the decision packet.</DirectCollapsibleText>
             </article>
             <article>
               <h4>Link Analysis</h4>

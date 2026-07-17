@@ -35,7 +35,7 @@ const libraryTopics = [
   ['Evidence First', 'Protected workflow, neutral language, and delayed coaching.'],
   ['Customer and identity', 'Profile, relationship, contact, and identity-record review.'],
   ['Digital and financial', 'Login, device, IP, transaction, and payment-verification practice.'],
-  ['Reports and decisions', 'Notes, evidence packets, readiness, submission, and debrief.'],
+  ['Evidence and decisions', 'Notes, evidence packets, readiness, submission, and debrief.'],
 ];
 
 const achievementSteps = [
