@@ -143,6 +143,30 @@ const claimContext = {
   'FA-CR-24003': { claimTypeId: 'credit-risk', scenarioId: 'cr-new-consumer', subtype: 'credit line increase', reportedDate: 'Jul 8, 2026', issueStartDate: 'Jul 7, 2026', statement: 'I recently opened the account and requested access to the available credit line.' },
 };
 
+const builtInCaseTruth = {
+  'FA-ATO-24018': {
+    classification: 'The unfamiliar password session changed recovery and alert details before the disputed card-not-present activity, while the customer later returned on the established iPhone and denied the purchase.',
+    correctDetermination: 'Support Customer Claim',
+    acceptedDeterminations: ['Support Customer Claim'],
+    rationale: 'The credential and profile-control sequence, unfamiliar device record, customer denial, and disputed purchase support the customer claim.',
+    revealMode: 'post-submission',
+  },
+  'FA-CB-24007': {
+    classification: 'Recurring billing is established, but the customer and merchant cancellation dates conflict and the requested cancellation confirmation is not in the completed evidence.',
+    correctDetermination: 'Insufficient Evidence',
+    acceptedDeterminations: ['Insufficient Evidence'],
+    rationale: 'The billing pattern alone does not prove when cancellation became effective; the conflicting dates and missing confirmation leave the claim unresolved.',
+    revealMode: 'post-submission',
+  },
+  'FA-CR-24003': {
+    classification: 'The new account requested rapid line usage immediately after an external destination with unresolved ownership was added, creating a material first-party credit-abuse concern.',
+    correctDetermination: 'Refer to Fraud Review',
+    acceptedDeterminations: ['Refer to Fraud Review'],
+    rationale: 'Rapid utilization, limited account history, unresolved destination ownership, and unsupported profile activity warrant a fraud referral before credit is released.',
+    revealMode: 'post-submission',
+  },
+};
+
 function dedupeById(records = []) {
   const seen = new Set();
   return records.filter((record) => {
@@ -258,6 +282,9 @@ function buildClaimFields(item, context = {}) {
     expectedEvidenceCategories: item.expectedEvidenceCategories ?? claimType.evidenceAreas,
     taxonomyTags: item.taxonomyTags ?? claimType.taxonomy,
     creditDecision: item.creditDecision ?? (claimType.credit ? { ...claimType.credit, family: item.scenarioFamily ?? scenario.family ?? 'Credit review' } : null),
+    caseTruth: item.caseTruth ?? builtInCaseTruth[item.id] ?? scenario.caseTruth,
+    correctDetermination: item.correctDetermination ?? builtInCaseTruth[item.id]?.correctDetermination ?? scenario.caseTruth?.correctDetermination,
+    debriefLogic: item.debriefLogic ?? scenario.debriefLogic,
     chargebackDecision: item.chargebackDecision ?? (claimType.chargeback ? { ...claimType.chargeback } : null),
     actionLog: item.actionLog ?? [{ id: `${item.id}-ACT-1`, time: `${reportedDate} · ${item.intake?.contactTime ?? 'Case opened'}`, action: 'Case packet available', detail: 'Case packet is ready for Evidence First investigation.', source: 'Case queue' }],
   };

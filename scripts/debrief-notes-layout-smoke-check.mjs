@@ -1,12 +1,25 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { buildLunaDebrief, scoreNotesQuality } from '../src/data/lunaDebrief.js';
+import { trainingCases } from '../src/data/cases.js';
+import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
 
 const rootDir = process.cwd();
 const failures = [];
 
 function fail(message) {
   failures.push(message);
+}
+
+const expectedBuiltInOutcomes = {
+  'FA-ATO-24018': 'Support Customer Claim',
+  'FA-CB-24007': 'Insufficient Evidence',
+  'FA-CR-24003': 'Refer to Fraud Review',
+};
+for (const activeCase of enrichTrainingCases(trainingCases)) {
+  if (activeCase.caseTruth?.correctDetermination !== expectedBuiltInOutcomes[activeCase.id]) {
+    fail(`${activeCase.id} must use its evidence-aligned built-in outcome instead of a loosely matched scenario answer.`);
+  }
 }
 
 const automaticNotes = [
@@ -33,7 +46,17 @@ if (strongScore.evidenceReferenceCount !== 3 || strongScore.reasoningCount !== 3
 }
 
 const debrief = buildLunaDebrief({
-  activeCase: { id: 'FA-NOTES-TEST', type: 'Account Takeover', allegation: 'Training claim' },
+  activeCase: {
+    id: 'FA-NOTES-TEST',
+    type: 'Account Takeover',
+    allegation: 'Training claim',
+    caseTruth: {
+      classification: 'The new device and transaction sequence support the customer claim.',
+      correctDetermination: 'Support Customer Claim',
+      acceptedDeterminations: ['Support Customer Claim'],
+      rationale: 'The new device and transaction sequence support the customer claim.',
+    },
+  },
   reviewPackage: {
     choice: 'Insufficient Evidence',
     confidence: 'Medium',
@@ -46,9 +69,43 @@ const debrief = buildLunaDebrief({
     decisionIndicators: [],
   },
 });
+if (debrief.outcome !== 'incorrect' || debrief.outcomeLabel !== 'Not the right decision' || !debrief.managerMessage.includes('Support Customer Claim')) {
+  fail('An incorrect decision must produce direct manager coaching and the supported outcome.');
+}
 const notesBreakdown = debrief.breakdown.find((item) => item.label === 'Quality of notes');
 if (!notesBreakdown || notesBreakdown.points !== strongScore.points) {
   fail('The debrief breakdown must use the Notes Quality result.');
+}
+
+const correctDebrief = buildLunaDebrief({
+  activeCase: {
+    id: 'FA-NOTES-TEST',
+    type: 'Account Takeover',
+    allegation: 'Training claim',
+    caseTruth: {
+      classification: 'The new device and transaction sequence support the customer claim.',
+      correctDetermination: 'Support Customer Claim',
+      acceptedDeterminations: ['Support Customer Claim'],
+    },
+  },
+  reviewPackage: {
+    choice: 'Support Customer Claim',
+    confidence: 'High',
+    reason: 'The linked access and transaction records support the customer claim based on the documented sequence.',
+    completedTools: ['Document Viewer', 'Login History', 'Transaction History'],
+    pinnedEvidence: ['LOG-1008', 'EVT-1014'],
+    noteSnapshot: strongNotes,
+    reviewedRequired: 3,
+    totalRequired: 3,
+    decisionIndicators: [],
+    documentRequests: [{ id: 'DOC-1', title: 'Customer affidavit', status: 'Received', reviewStatus: 'Pending Review', received: 'Jul 17, 2026' }],
+  },
+});
+if (correctDebrief.outcome !== 'correct' || correctDebrief.outcomeLabel !== 'Correct decision' || !correctDebrief.managerHeading.includes('Great job')) {
+  fail('A correct decision must produce supportive manager feedback.');
+}
+if (!correctDebrief.documentSummary.reviewed.includes('Customer affidavit')) {
+  fail('Luna manager coaching must include received documents reviewed by the learner.');
 }
 if (debrief.breakdown.some((item) => item.label === 'Notebook and rationale depth')) {
   fail('The old note-count scoring label is still present.');
@@ -56,9 +113,11 @@ if (debrief.breakdown.some((item) => item.label === 'Notebook and rationale dept
 
 const panel = fs.readFileSync(path.join(rootDir, 'src/LunaPostSubmissionPanel.jsx'), 'utf8');
 for (const anchor of [
-  "? { strengths: '04', followUps: '05', breakdown: '06' }",
-  ": { strengths: '03', followUps: '04', breakdown: '05' }",
-  'state.debrief.notesQuality.label',
+  '<h2>Luna Briefing</h2>',
+  'state.debrief.managerMessage',
+  'What you did well',
+  'What to improve',
+  'Luna’s manager tip',
   'luna-v1-step-index',
 ]) {
   if (!panel.includes(anchor)) fail(`LunaPostSubmissionPanel.jsx is missing ${anchor}.`);

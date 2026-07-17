@@ -42,7 +42,7 @@ export default function SubmitDecisionPanel({
         <div aria-hidden="true">⌁</div>
         <div>
           <p>Evidence First protection</p>
-          <h3>Luna debrief stays locked until this case has a Submitted Decision Record.</h3>
+          <h3>Luna Briefing stays locked until this case has a Submitted Decision Record.</h3>
           <span>You can submit at any time. Unfinished checklist details are saved for coaching and never prevent Luna from unlocking.</span>
         </div>
       </section>
@@ -71,7 +71,7 @@ export default function SubmitDecisionPanel({
           <header>
             <p>Determination</p>
             <h3>Make the case decision</h3>
-            <span>Choose the lane-appropriate action. Add the support you have, then submit whenever you are ready for the debrief.</span>
+            <span>Choose the lane-appropriate action. Add the support you have, then submit whenever you are ready for Luna Briefing.</span>
           </header>
 
           <fieldset className="decision-choice-fieldset">
@@ -137,7 +137,7 @@ export default function SubmitDecisionPanel({
             <h3>Decision submitted for {latestPackage.caseId}</h3>
             <span>{latestPackage.choice || 'No determination selected'} · {latestPackage.confidence} confidence · saved {latestPackage.savedAt}</span>
           </div>
-          <button type="button" className="decision-open-debrief" onClick={openDebrief}>Open Luna Debrief</button>
+          <button type="button" className="decision-open-debrief" onClick={openDebrief}>Open Luna Briefing</button>
         </section>
       )}
     </section>

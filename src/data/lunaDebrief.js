@@ -87,6 +87,7 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
   const noteSnapshot = reviewPackage.noteSnapshot?.length ? reviewPackage.noteSnapshot : notes;
   const rationale = reviewPackage.reason ?? '';
   const decisionIndicators = reviewPackage.decisionIndicators ?? [];
+  const documentRequests = reviewPackage.documentRequests ?? [];
   const caseTruth = activeCase.caseTruth ?? null;
   const acceptedDeterminations = caseTruth?.acceptedDeterminations?.length
     ? caseTruth.acceptedDeterminations
@@ -94,8 +95,6 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
   const determinationMatched = caseTruth ? acceptedDeterminations.includes(reviewPackage.choice) : null;
 
   const haystack = [
-    activeCase.type,
-    activeCase.allegation,
     ...packageTools,
     ...pinnedEvidence,
     ...noteSnapshot,
@@ -120,17 +119,51 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
   const indicatorScore = Math.min(10, completedDecisionIndicators.length * 3);
   const determinationScore = caseTruth ? (determinationMatched ? 20 : 0) : 10;
   const score = Math.min(100, toolScore + pinScore + noteScore + focusScore + confidenceScore + indicatorScore + determinationScore);
-  const followUps = focusCoverage.filter((area) => !area.covered).map((area) => area.label);
-  if (caseTruth && !determinationMatched) followUps.unshift(`Compare the submitted determination with the scenario truth: ${caseTruth.correctDetermination}.`);
+  const followUps = focusCoverage
+    .filter((area) => !area.covered)
+    .map((area) => `Review ${area.label.toLowerCase()} and explain how it supports or conflicts with your decision.`);
+  const documentSummary = summarizeDocumentRequests(documentRequests, packageTools);
+  if (caseTruth && !determinationMatched) followUps.unshift(`Revisit the records that support ${caseTruth.correctDetermination}.`);
+  if (documentSummary.pending.length) followUps.unshift(`Follow up on the requested ${formatList(documentSummary.pending)} before relying on an evidence gap.`);
+  if (documentSummary.receivedNotReviewed.length) followUps.unshift(`Review the received ${formatList(documentSummary.receivedNotReviewed)} before making the final decision.`);
   if (notesQuality.points < 9) followUps.unshift(notesQuality.nextStep);
+
+  const strengths = buildStrengths({
+    coveredRequired,
+    totalRequired,
+    pinnedEvidence,
+    notesQuality,
+    rationale,
+    focusCoverage,
+    decisionIndicators,
+    determinationMatched,
+    documentSummary,
+  });
+  const coaching = buildManagerCoaching({
+    reviewPackage,
+    caseTruth,
+    determinationMatched,
+    strengths,
+    followUps,
+    notesQuality,
+    focusCoverage,
+    documentSummary,
+  });
 
   return {
     theme: guide.theme,
     coachIntro: guide.coachIntro,
     score,
     scoreLabel: score >= 86 ? 'Strong package' : score >= 70 ? 'Solid package' : score >= 54 ? 'Developing package' : 'Needs more support',
-    strengths: buildStrengths({ coveredRequired, pinnedEvidence, notesQuality, rationale, focusCoverage, decisionIndicators, determinationMatched }),
+    outcome: coaching.outcome,
+    outcomeLabel: coaching.outcomeLabel,
+    managerHeading: coaching.heading,
+    managerMessage: coaching.message,
+    managerTip: coaching.tip,
+    strengths,
+    improvements: followUps.length ? followUps : ['Keep using the same evidence-first approach on the next case.'],
     followUps: followUps.length ? followUps : ['No required focus gaps detected in this saved package.'],
+    documentSummary,
     notesQuality,
     determinationMatched,
     truthReveal: caseTruth ? {
@@ -210,18 +243,88 @@ function analyzeNote(note = '') {
   };
 }
 
-function buildStrengths({ coveredRequired, pinnedEvidence, notesQuality, rationale, focusCoverage, decisionIndicators, determinationMatched }) {
+function buildStrengths({ coveredRequired, totalRequired, pinnedEvidence, notesQuality, rationale, focusCoverage, decisionIndicators, determinationMatched, documentSummary }) {
   const strengths = [];
 
-  if (coveredRequired >= 6) strengths.push('The package covers most required investigation tools before debrief.');
-  if (pinnedEvidence.length >= 2) strengths.push('Pinned evidence gives the rationale concrete records to stand on.');
-  if (notesQuality.points >= 9) strengths.push(`Notebook quality is ${notesQuality.label.toLowerCase()} and connects evidence to investigator reasoning.`);
-  if (wordCount(rationale) >= 20) strengths.push('The rationale has enough substance for coaching review.');
-  if (focusCoverage.some((area) => area.covered)) strengths.push('At least one case-specific focus area is visible in the saved package.');
-  if (decisionIndicators.some((item) => item.proof && item.explanation)) strengths.push('At least one selected case flag includes proof and an investigator explanation.');
-  if (determinationMatched) strengths.push('The submitted determination matches the hidden scenario truth.');
+  if (determinationMatched) strengths.push('You reached the correct decision for this case.');
+  if (coveredRequired >= Math.max(2, Math.ceil(totalRequired * 0.6))) strengths.push('You reviewed a useful range of case records before submitting.');
+  if (pinnedEvidence.length >= 2) strengths.push('You saved specific evidence that supports your reasoning.');
+  if (notesQuality.points >= 9) strengths.push('Your notes connect case evidence to your reasoning.');
+  if (wordCount(rationale) >= 20) strengths.push('You gave enough detail for a manager to follow your decision.');
+  if (focusCoverage.filter((area) => area.covered).length >= 2) strengths.push('You considered more than one part of the case instead of relying on a single clue.');
+  if (decisionIndicators.some((item) => item.proof && item.explanation)) strengths.push('You explained why a selected case flag mattered.');
+  if (documentSummary.reviewed.length) strengths.push(`You included the received ${formatList(documentSummary.reviewed)} in your review.`);
 
-  return strengths.length ? strengths : ['The package was saved, but Luna needs more documented support to coach from.'];
+  return strengths.length ? strengths.slice(0, 3) : ['You completed the case and created a clear decision for manager review.'];
+}
+
+function summarizeDocumentRequests(documentRequests = [], completedTools = []) {
+  const requested = documentRequests.filter((document) => /requested/i.test(document.status));
+  const received = documentRequests.filter((document) => /received|approved|pending review/i.test(`${document.status} ${document.reviewStatus}`));
+  const documentViewerReviewed = completedTools.includes('Document Viewer');
+  const title = (document) => document.title || document.id || 'document';
+
+  return {
+    requested: requested.map(title),
+    pending: requested.filter((document) => !/received/i.test(document.received)).map(title),
+    received: received.map(title),
+    reviewed: documentViewerReviewed ? received.map(title) : [],
+    receivedNotReviewed: documentViewerReviewed ? [] : received.map(title),
+  };
+}
+
+function buildManagerCoaching({ reviewPackage, caseTruth, determinationMatched, strengths, followUps, notesQuality, focusCoverage, documentSummary }) {
+  const selectedDecision = reviewPackage.choice || 'no final decision';
+  const expectedDecision = caseTruth?.correctDetermination;
+  const nextFocus = followUps[0] ?? notesQuality.nextStep;
+  const firstUncoveredArea = focusCoverage.find((area) => !area.covered)?.label;
+
+  if (determinationMatched) {
+    const supportNeedsWork = notesQuality.points < 9 || (!reviewPackage.pinnedEvidence?.length && !documentSummary.reviewed.length);
+    const strongestWork = strengths.find((item) => !/correct decision/i.test(item)) ?? 'You reached the correct case decision.';
+    return {
+      outcome: 'correct',
+      outcomeLabel: 'Correct decision',
+      heading: 'Great job on this case.',
+      message: supportNeedsWork
+        ? `You chose ${selectedDecision}, which is the right outcome. You identified the case correctly; now strengthen the file so another investigator can clearly follow how the evidence led you there.`
+        : `You chose ${selectedDecision}, which is the right outcome. ${strongestWork} Your work shows a clear evidence-first review.`,
+      tip: supportNeedsWork
+        ? nextFocus
+        : `Keep this habit: connect the final decision to the strongest record, then note what conflicting evidence you ruled out.`,
+    };
+  }
+
+  if (caseTruth) {
+    const evidenceExplanation = caseTruth.rationale || caseTruth.classification;
+    return {
+      outcome: 'incorrect',
+      outcomeLabel: 'Not the right decision',
+      heading: 'Let’s build on this one.',
+      message: `You chose ${selectedDecision}, but the supported outcome is ${expectedDecision}. ${evidenceExplanation}`,
+      tip: documentSummary.pending.length
+        ? `Next time, follow up on ${formatList(documentSummary.pending)} before treating missing information as proof.`
+        : firstUncoveredArea
+          ? `Next time, compare ${firstUncoveredArea.toLowerCase()} with the customer or merchant story before submitting.`
+          : nextFocus,
+    };
+  }
+
+  return {
+    outcome: 'review',
+    outcomeLabel: 'Manager review',
+    heading: 'Thanks for working through the case.',
+    message: `You submitted ${selectedDecision}. This case does not have a calibrated answer yet, so Luna is focusing on how clearly the evidence supports your decision.`,
+    tip: nextFocus,
+  };
+}
+
+function formatList(values = []) {
+  const uniqueValues = [...new Set(values.filter(Boolean))];
+  if (!uniqueValues.length) return 'requested documents';
+  if (uniqueValues.length === 1) return uniqueValues[0];
+  if (uniqueValues.length === 2) return `${uniqueValues[0]} and ${uniqueValues[1]}`;
+  return `${uniqueValues.slice(0, -1).join(', ')}, and ${uniqueValues.at(-1)}`;
 }
 
 function wordCount(text = '') {

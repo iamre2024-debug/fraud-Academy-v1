@@ -282,7 +282,7 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
   };
 }
 
-export function buildReviewPackage({ caseId, agentId, activeCase, draft, completedTools = [], tray = [], notes = [], packageStatus }) {
+export function buildReviewPackage({ caseId, agentId, activeCase, draft, completedTools = [], tray = [], notes = [], documentRequests = [], packageStatus }) {
   const requiredTools = packageStatus?.requiredTools ?? getRequiredReviewTools(activeCase);
   return {
     id: `${caseId}-${Date.now()}`,
@@ -298,6 +298,13 @@ export function buildReviewPackage({ caseId, agentId, activeCase, draft, complet
     completedTools: [...completedTools],
     pinnedEvidence: [...tray],
     noteSnapshot: notes.slice(0, 8),
+    documentRequests: documentRequests.map((document) => ({
+      id: document.id,
+      title: document.title ?? document.name ?? 'Requested document',
+      status: document.requestStatus ?? document.status ?? 'Unknown',
+      reviewStatus: document.reviewStatus ?? 'Not reviewed',
+      received: document.received ?? 'Not received',
+    })),
     packageInputSummary: packageStatus?.packageInputSummary ?? buildPackageInputSummary({ completedTools, tray, notes }),
     reviewedRequired: packageStatus?.reviewedRequired ?? 0,
     totalRequired: packageStatus?.totalRequired ?? requiredTools.length,

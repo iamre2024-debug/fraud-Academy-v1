@@ -47,7 +47,7 @@ export default function AcademyProgressPanel({ cases, packagesByCase, onOpenCase
                 <strong>{item.person}</strong>
                 <DirectCollapsibleText as="p" lines={2} mobileLines={2}>
                   {latest
-                    ? `Latest Submitted Decision Record saved ${savedAt}. Luna debrief is available for this case.`
+                    ? `Latest Submitted Decision Record saved ${savedAt}. Luna Briefing is available for this case.`
                     : 'Submit a decision to save the record and unlock Luna progress.'}
                 </DirectCollapsibleText>
                 {latest && (

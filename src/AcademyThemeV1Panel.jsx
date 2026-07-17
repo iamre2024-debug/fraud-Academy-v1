@@ -41,7 +41,7 @@ const libraryTopics = [
 const achievementSteps = [
   ['Review required tools', 'Complete the case-specific required-tool set.'],
   ['Document the evidence', 'Save pinned objects and notes.'],
-  ['Submit the decision', 'Save the Submitted Decision Record and unlock the case-scoped Luna debrief.'],
+  ['Submit the decision', 'Save the Submitted Decision Record and unlock the case-scoped Luna Briefing.'],
 ];
 
 export default function AcademyThemeV1Panel({ onNavigate }) {

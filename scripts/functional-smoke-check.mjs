@@ -276,8 +276,10 @@ const checks = [
     label: 'post submission Luna module',
     mustContain: [
       'buildLunaDebrief',
-      'Post-submission coaching stays locked',
-      'Decision-quality breakdown',
+      'Luna Briefing stays locked',
+      'state.debrief.managerMessage',
+      'What you did well',
+      'What to improve',
       'fraud-academy:package-saved',
     ],
   },

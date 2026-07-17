@@ -3,7 +3,7 @@ import { openWorkflowStage } from './workspace-page-helpers.mjs';
 
 const caseId = 'FA-ATO-24018';
 const learnerChoice = 'Insufficient Evidence';
-const forbiddenLockedCopy = /(?:\/100|Strong package|Solid package|Developing package|Needs more support|Package strengths|Next coaching focus)/i;
+const forbiddenLockedCopy = /(?:\/100|Correct decision|Not the right decision|Great job|Let’s build on this one|Supported outcome)/i;
 
 async function seedIncompleteCase(page) {
   await page.addInitScript(({ activeCaseId, completedTools }) => {
@@ -74,7 +74,7 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
   const lockedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="locked"]');
   await expect(lockedLuna).toBeAttached();
   await expect(lockedLuna).toBeHidden();
-  await openWorkflowStage(page, /Debrief/);
+  await openWorkflowStage(page, /Luna Briefing/);
   await expect(lockedLuna).toBeVisible();
   await expect(lockedLuna).toContainText('Evidence First lock is active.');
   await expect(lockedLuna.locator('.luna-v1-unlock-grid article')).toHaveCount(4);
@@ -118,27 +118,29 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
   expect(savedPackage).not.toBeNull();
   expect(savedPackage.completedTools).toEqual([]);
   expect(savedPackage.decisionIndicators).toEqual([]);
+  expect(savedPackage.documentRequests).toEqual([]);
   expect(savedPackage.reason).toBe('');
   expect(savedPackage.blockers.length).toBeGreaterThan(0);
-  const openLuna = decision.getByRole('button', { name: 'Open Luna Debrief', exact: true });
+  const openLuna = decision.getByRole('button', { name: 'Open Luna Briefing', exact: true });
   await expect(openLuna).toBeVisible();
   await openLuna.click();
 
   const luna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');
   await expect(luna).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'Your submitted determination', exact: true })).toBeVisible();
+  await expect(luna.getByRole('heading', { name: 'Luna Briefing', exact: true })).toBeVisible();
+  await expect(luna.getByText('Not the right decision', { exact: true }).first()).toBeVisible();
+  await expect(luna.getByRole('heading', { name: 'Let’s build on this one.', exact: true })).toBeVisible();
+  await expect(luna.getByRole('heading', { name: 'Your decision', exact: true })).toBeVisible();
   await expect(luna.getByText(learnerChoice, { exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'How Luna read the submitted record', exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'What your submitted record did well', exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'Next coaching focus', exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'Decision-quality breakdown', exact: true })).toBeVisible();
-  const notesQualityLabel = luna.getByText('Quality of notes', { exact: true });
-  await notesQualityLabel.scrollIntoViewIfNeeded();
-  await expect(notesQualityLabel).toBeVisible();
+  await expect(luna.getByText('Support Customer Claim', { exact: true })).toBeVisible();
+  await expect(luna.getByRole('heading', { name: 'What you did well', exact: true })).toBeVisible();
+  await expect(luna.getByRole('heading', { name: 'What to improve', exact: true })).toBeVisible();
+  await expect(luna.getByRole('heading', { name: 'Luna’s manager tip', exact: true })).toBeVisible();
+  await expect(luna).not.toContainText('/100');
 
   const debriefStepNumbers = (await luna.locator('.luna-v1-step-index').allTextContents()).map((value) => value.trim());
   expect(new Set(debriefStepNumbers).size).toBe(debriefStepNumbers.length);
-  expect(debriefStepNumbers).toEqual(['01', '02', '03', '04', '05']);
+  expect(debriefStepNumbers).toEqual(['01', '02', '03', '04']);
 
   const debriefLayout = await page.evaluate(() => {
     const grid = document.querySelector('.luna-v1-debrief-grid');
@@ -177,7 +179,7 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
 
   await page.reload();
   const persistedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');
-  await openWorkflowStage(page, /Debrief/);
+  await openWorkflowStage(page, /Luna Briefing/);
   await expect(persistedLuna).toBeVisible();
   await expect(persistedLuna).toContainText(learnerChoice);
 

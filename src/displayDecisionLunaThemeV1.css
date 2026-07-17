@@ -173,6 +173,18 @@ body[data-visual-tab="workspace"] .luna-v1-header-status strong {
   background: var(--decision-lavender);
 }
 
+body[data-visual-tab="workspace"] .luna-v1-header-status strong[data-luna-outcome="correct"] {
+  border-color: #9bc8ae;
+  background: #e8f7ee;
+  color: #205f3d;
+}
+
+body[data-visual-tab="workspace"] .luna-v1-header-status strong[data-luna-outcome="incorrect"] {
+  border-color: #e2b5ad;
+  background: #fff0ed;
+  color: #8b352a;
+}
+
 body[data-visual-tab="workspace"] .decision-v1-lock,
 body[data-visual-tab="workspace"] .luna-v1-locked > section {
   display: grid;
@@ -913,6 +925,65 @@ body[data-visual-tab="workspace"] .luna-v1-score-banner {
   border-radius: 20px;
   background: linear-gradient(135deg, #eee4ff 0%, #ffffff 72%);
   padding: 17px;
+}
+
+body[data-visual-tab="workspace"] .luna-v1-manager-banner {
+  margin-bottom: 18px;
+  border: 1px solid #c7b4e4;
+  border-left: 6px solid var(--decision-purple);
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f1e9ff 0%, #ffffff 74%);
+  padding: clamp(18px, 3vw, 28px);
+}
+
+body[data-visual-tab="workspace"] .luna-v1-manager-banner.correct {
+  border-color: #a9d0b8;
+  border-left-color: #3f9363;
+  background: linear-gradient(135deg, #eaf8ef 0%, #ffffff 74%);
+}
+
+body[data-visual-tab="workspace"] .luna-v1-manager-banner.incorrect {
+  border-color: #e4bab2;
+  border-left-color: #ba5749;
+  background: linear-gradient(135deg, #fff0ed 0%, #ffffff 74%);
+}
+
+body[data-visual-tab="workspace"] .luna-v1-outcome-badge {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--decision-lavender);
+  color: var(--decision-purple-dark);
+  padding: 5px 11px;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .luna-v1-manager-banner.correct .luna-v1-outcome-badge {
+  background: #d8f1e2;
+  color: #205f3d;
+}
+
+body[data-visual-tab="workspace"] .luna-v1-manager-banner.incorrect .luna-v1-outcome-badge {
+  background: #f9dcd6;
+  color: #8b352a;
+}
+
+body[data-visual-tab="workspace"] .luna-v1-manager-banner h3 {
+  margin: 12px 0 8px;
+  color: var(--decision-ink);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: clamp(1.35rem, 3vw, 1.9rem);
+}
+
+body[data-visual-tab="workspace"] .luna-v1-manager-banner p {
+  max-width: 78ch;
+  margin: 0;
+  color: var(--decision-muted);
+  line-height: 1.65;
 }
 
 body[data-visual-tab="workspace"] .luna-v1-score-banner > div {

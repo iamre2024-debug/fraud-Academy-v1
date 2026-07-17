@@ -366,7 +366,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
           evidence: 'Pinned Evidence',
           notes: 'Case Notes',
           determination: 'Submit Decision',
-          debrief: 'Luna Debrief',
+          debrief: 'Luna Briefing',
         }[workspaceScreen] ?? 'Workspace';
 
   const activeToolProps = {

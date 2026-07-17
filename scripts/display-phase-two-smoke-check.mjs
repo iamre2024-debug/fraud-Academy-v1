@@ -26,7 +26,7 @@ if (!stageBlock) {
   const keys = [...stageBlock[1].matchAll(/key: '([^']+)'/g)].map((match) => match[1]);
   const labels = [...stageBlock[1].matchAll(/label: '([^']+)'/g)].map((match) => match[1]);
   const expectedKeys = ['briefing', 'investigate', 'timeline', 'indicators', 'determination', 'debrief'];
-  const expectedLabels = ['Case Briefing', 'Investigate', 'Timeline', 'Indicators', 'Determination', 'Debrief'];
+  const expectedLabels = ['Case Briefing', 'Investigate', 'Timeline', 'Indicators', 'Determination', 'Luna Briefing'];
   if (JSON.stringify(keys) !== JSON.stringify(expectedKeys)) {
     failures.push(`Workflow stage keys must be exactly ${expectedKeys.join(', ')}; found ${keys.join(', ') || 'none'}.`);
   }
@@ -74,4 +74,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Display Phase 2 smoke check passed. The six workflow stages are wired, direct determination submission is available, and Debrief stays locked only until a package is saved.');
+console.log('Display Phase 2 smoke check passed. The six workflow stages are wired, direct determination submission is available, and Luna Briefing stays locked only until a package is saved.');

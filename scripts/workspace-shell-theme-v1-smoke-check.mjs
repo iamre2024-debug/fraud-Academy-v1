@@ -39,7 +39,7 @@ for (const stage of [
   'Timeline',
   'Indicators',
   'Determination',
-  'Debrief',
+  'Luna Briefing',
 ]) {
   mustContain('ActiveCaseWorkflowRail.jsx', workflow, stage);
 }

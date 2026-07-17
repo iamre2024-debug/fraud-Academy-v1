@@ -23,13 +23,15 @@ mustContain('useVisualWorkspaceActions.js', workspaceActions, "window.dispatchEv
 mustContain('useVisualWorkspaceActions.js', workspaceActions, "markReviewed('Submit Decision')");
 
 for (const anchor of [
-  'Luna Post-Submission Debrief',
+  '<h2>Luna Briefing</h2>',
   'data-luna-screen="approved-theme-v1"',
   "data-luna-state={locked ? 'locked' : 'unlocked'}",
-  'Post-submission coaching stays locked',
+  'Luna Briefing stays locked',
   'Evidence First lock is active',
-  'Your submitted determination',
-  'Decision-quality breakdown',
+  'Your decision',
+  'What you did well',
+  'What to improve',
+  'Luna’s manager tip',
   "window.addEventListener('fraud-academy:package-saved'",
   "import DirectCollapsibleText from './DirectCollapsibleText.jsx';",
 ]) {
