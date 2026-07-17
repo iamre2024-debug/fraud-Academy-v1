@@ -48,7 +48,7 @@ function requestedShell(document) {
   };
 }
 
-function receivedDocument(baseDocument, page) {
+function receivedDocument(baseDocument, pages) {
   const receivedAt = timestamp();
   return {
     ...baseDocument,
@@ -64,7 +64,7 @@ function receivedDocument(baseDocument, page) {
     investigatorNote: 'This fictional response was generated after the learner requested the document.',
     trainingTip: 'Compare this generated response with the customer statement, transaction records, and merchant or payment evidence before deciding.',
     fields: responseFields(baseDocument),
-    pages: [page],
+    pages,
   };
 }
 
@@ -116,33 +116,57 @@ function responseFields(document = {}) {
   ];
 }
 
-function generatedPage(document = {}) {
+function generatedPages(document = {}) {
   const rows = responseFields(document);
   if (/bank statement/i.test(document.title)) {
-    return {
-      title: 'Monthly Checking Statement',
-      subtitle: 'FICTIONAL TRAINING RESPONSE - GENERATED AFTER REQUEST',
-      kind: 'statement',
-      sections: [
-        { title: 'Account summary', rows: rows.slice(0, 8) },
-        { title: 'Selected activity', table: { columns: ['Date', 'Description', 'Amount'], rows: [['Jun 05', 'PAYROLL - TRAINING EMPLOYER', '$2,941.05'], ['Jun 14', 'TRANSFER FROM SAVINGS', '$960.00'], ['Jun 18', 'CARD PURCHASE - DISPUTED MERCHANT', '-$189.44'], ['Jun 25', 'UTILITY PAYMENT', '-$184.32']] } },
-      ],
-    };
+    return [
+      {
+        title: 'Monthly Checking Statement',
+        subtitle: 'FICTIONAL TRAINING RESPONSE - GENERATED AFTER REQUEST',
+        kind: 'statement',
+        sections: [
+          { title: 'Account summary', rows: rows.slice(0, 8) },
+          { title: 'Statement notice', paragraphs: ['This fictional statement was generated only for Fraud Academy training and cannot be used as a financial record.'] },
+        ],
+      },
+      {
+        title: 'Statement Activity',
+        subtitle: 'FICTIONAL TRAINING RESPONSE - PAGE 2 OF 2',
+        kind: 'statement',
+        sections: [
+          { title: 'Selected withdrawals', table: { columns: ['Date', 'Description', 'Amount'], rows: [['Jun 05', 'PAYROLL - TRAINING EMPLOYER', '$2,941.05'], ['Jun 14', 'TRANSFER FROM SAVINGS', '$960.00'], ['Jun 18', 'CARD PURCHASE - DISPUTED MERCHANT', '-$189.44'], ['Jun 25', 'UTILITY PAYMENT', '-$184.32']] } },
+          { title: 'Activity context', paragraphs: ['Transaction descriptions are fictional training data. Compare the disputed entry with the case transaction record before making a determination.'] },
+        ],
+      },
+    ];
   }
 
   if (/merchant/i.test(`${document.title} ${document.category} ${document.source}`)) {
-    return {
-      title: 'Merchant Response Packet',
-      subtitle: 'FICTIONAL TRAINING RESPONSE - GENERATED AFTER REQUEST',
-      kind: 'case',
-      sections: [
-        { title: 'Merchant transaction response', rows },
-        { title: 'Response notes', paragraphs: ['The merchant response should be compared against the customer dispute reason, customer uploads, transaction history, and reason-code requirements.', 'This generated packet is fictional training data and does not determine the outcome.'] },
-      ],
-    };
+    return [
+      {
+        title: 'Merchant Response Packet',
+        subtitle: 'FICTIONAL TRAINING RESPONSE - PAGE 1 OF 3',
+        kind: 'case',
+        sections: [{ title: 'Merchant transaction response', rows: rows.slice(0, 4) }],
+      },
+      {
+        title: 'Billing and Service Detail',
+        subtitle: 'FICTIONAL TRAINING RESPONSE - PAGE 2 OF 3',
+        kind: 'case',
+        sections: [{ title: 'Terms and service period', rows: rows.slice(3, 7) }],
+      },
+      {
+        title: 'Merchant Response Notes',
+        subtitle: 'FICTIONAL TRAINING RESPONSE - PAGE 3 OF 3',
+        kind: 'case',
+        sections: [
+          { title: 'Packet review context', paragraphs: ['Compare the merchant response against the customer dispute reason, customer uploads, transaction history, and reason-code requirements.', 'This generated packet is fictional training data and does not determine the outcome.'] },
+        ],
+      },
+    ];
   }
 
-  return {
+  return [{
     title: document.title,
     subtitle: 'FICTIONAL TRAINING RESPONSE - GENERATED AFTER REQUEST',
     kind: 'case',
@@ -150,7 +174,7 @@ function generatedPage(document = {}) {
       { title: 'Submitted document fields', rows },
       { title: 'Review notes', paragraphs: ['Compare dates, merchant contact, transaction reference, and requested outcome before relying on this support document.'] },
     ],
-  };
+  }];
 }
 
 export function readDocumentFulfillments(caseId) {
@@ -178,7 +202,7 @@ export function recordDocumentRequest(caseId, document) {
 export function receiveGeneratedDocument(caseId, document) {
   const all = readAllFulfillments();
   const current = all[caseId] ?? {};
-  const generated = receivedDocument(document, generatedPage(document));
+  const generated = receivedDocument(document, generatedPages(document));
   current[document.id] = generated;
   writeAllFulfillments({ ...all, [caseId]: current });
   return generated;

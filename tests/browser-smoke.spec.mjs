@@ -116,13 +116,20 @@ test('approved Cases queue supports neutral search, filters, preview, and respon
 
   const queue = page.locator('.cases-theme-v1-panel');
   const cards = queue.locator('.nav-case-card');
+  const isMobile = testInfo.project.name === 'mobile-chromium';
   await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'cases');
   await expect(queue.getByRole('heading', { name: 'Case Queue' })).toBeVisible();
+  if (isMobile) await queue.getByRole('button', { name: 'Open case filters', exact: true }).click();
   await expect(queue.getByLabel('Search cases')).toBeVisible();
   await expect(queue.getByRole('combobox', { name: 'Priority', exact: true })).toBeVisible();
   await expect(queue.getByRole('combobox', { name: 'Sort', exact: true })).toBeVisible();
-  await expect(queue.getByRole('button', { name: 'Detail', exact: true })).toBeVisible();
-  await expect(queue.getByRole('button', { name: 'Compact', exact: true })).toBeVisible();
+  if (isMobile) {
+    await expect(queue.getByRole('button', { name: 'Detail', exact: true })).toBeHidden();
+    await expect(queue.getByRole('button', { name: 'Compact', exact: true })).toBeHidden();
+  } else {
+    await expect(queue.getByRole('button', { name: 'Detail', exact: true })).toBeVisible();
+    await expect(queue.getByRole('button', { name: 'Compact', exact: true })).toBeVisible();
+  }
   await expect(cards).toHaveCount(3);
 
   await queue.getByLabel('Search cases').fill('Jordan Ellis');
@@ -134,6 +141,7 @@ test('approved Cases queue supports neutral search, filters, preview, and respon
   await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Jordan Ellis');
   await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Non-Fraud Chargeback Claim');
   await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Reason code guide');
+  if (isMobile) await queue.getByRole('button', { name: 'Close selected case preview', exact: true }).click();
 
   await queue.getByLabel('Search cases').fill('');
   await queue.getByRole('combobox', { name: 'Priority', exact: true }).selectOption('High');
@@ -141,8 +149,10 @@ test('approved Cases queue supports neutral search, filters, preview, and respon
   await expect(cards.first()).toContainText('FA-ATO-24018');
   await queue.getByRole('combobox', { name: 'Priority', exact: true }).selectOption('all');
 
-  await queue.getByRole('button', { name: 'Compact', exact: true }).click();
-  await expect(queue.locator('.case-queue-list')).toHaveClass(/view-compact/);
+  if (!isMobile) {
+    await queue.getByRole('button', { name: 'Compact', exact: true }).click();
+    await expect(queue.locator('.case-queue-list')).toHaveClass(/view-compact/);
+  }
 
   const layout = await page.evaluate(() => {
     const panel = document.querySelector('.cases-theme-v1-panel');
@@ -153,6 +163,7 @@ test('approved Cases queue supports neutral search, filters, preview, and respon
       documentWidth: document.documentElement.scrollWidth,
       panelLeft: panelRect?.left ?? 0,
       panelRight: panelRect?.right ?? 0,
+      previewDisplay: preview ? getComputedStyle(preview).display : '',
       previewPosition: preview ? getComputedStyle(preview).position : '',
     };
   });
@@ -160,12 +171,13 @@ test('approved Cases queue supports neutral search, filters, preview, and respon
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
   expect(layout.panelLeft).toBeGreaterThanOrEqual(-1);
   expect(layout.panelRight).toBeLessThanOrEqual(layout.viewportWidth + 1);
-  if (testInfo.project.name === 'mobile-chromium') {
-    expect(layout.previewPosition).toBe('static');
+  if (isMobile) {
+    expect(layout.previewDisplay).toBe('none');
   } else {
     expect(layout.previewPosition).toBe('sticky');
   }
 
+  if (isMobile) await queue.getByRole('button', { name: 'Open case generator', exact: true }).click();
   await expect(queue.getByLabel('Generate case claim type')).toBeVisible();
   await expect(queue.getByLabel('Generate case scenario')).toBeVisible();
   await expect(queue.getByLabel('Generate case count')).toBeVisible();
@@ -268,7 +280,8 @@ test('responsive investigation records stay inside the viewport', async ({ page 
   await assertEvidenceFirstLock(page, builtInCases[0].id);
 });
 
-test('generated cases persist through reload and remain Evidence First', async ({ page }) => {
+test('generated cases persist through reload and remain Evidence First', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile-chromium', 'Phone case generation is covered through the dedicated Case Queue generator.');
   await page.goto('/');
   const selector = page.locator('.visual-case-switcher select');
   const generateButton = page.getByRole('button', { name: /Generate \+ Open Case/ });

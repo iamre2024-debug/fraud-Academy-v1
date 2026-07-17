@@ -17,7 +17,8 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
 
   await expect(frame).toHaveAttribute('data-workspace-screen', 'briefing');
   await expect(briefing).toBeVisible();
-  await expect(workflow).toBeHidden();
+  if (testInfo.project.name === 'mobile-chromium') await expect(workflow).toBeHidden();
+  else await expect(workflow).toBeVisible();
   await expect(toolMenu).toBeHidden();
   await expect(toolPage).toBeHidden();
   await expect(indicators).toBeHidden();
@@ -37,7 +38,7 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')).toBeVisible();
   await expect(briefing).toBeHidden();
 
-  await page.getByRole('button', { name: 'Pages' }).click();
+  if (testInfo.project.name === 'mobile-chromium') await page.getByRole('button', { name: 'Pages' }).click();
   await workflow.getByRole('button', { name: /Investigate/ }).click();
   await expect(frame).toHaveAttribute('data-workspace-screen', 'tool-menu');
   await expect(toolMenu).toBeVisible();
@@ -46,7 +47,7 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Login History');
   await expect(toolMenu).toBeHidden();
 
-  await page.getByRole('button', { name: 'Pages' }).click();
+  if (testInfo.project.name === 'mobile-chromium') await page.getByRole('button', { name: 'Pages' }).click();
   await expect(workflow).toBeVisible();
   await workflow.getByRole('button', { name: /Indicators/ }).click();
   await expect(frame).toHaveAttribute('data-workspace-screen', 'evidence');

@@ -58,6 +58,11 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
 
   await search.fill('Bank Statement');
   const pageControls = viewer.getByRole('region', { name: 'Document page controls' });
+  if (await pageControls.getByText('Page 0 of 0', { exact: true }).count()) {
+    const sendRequest = viewer.getByRole('button', { name: 'Send request', exact: true });
+    if (await sendRequest.isEnabled()) await sendRequest.click();
+    await viewer.getByRole('button', { name: 'Receive generated document', exact: true }).click();
+  }
   await expect(pageControls.getByText('Page 1 of 2', { exact: true })).toBeVisible();
   await viewer.getByRole('button', { name: 'Next page', exact: true }).click();
   await expect(pageControls.getByText('Page 2 of 2', { exact: true })).toBeVisible();
