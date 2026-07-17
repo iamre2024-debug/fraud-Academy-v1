@@ -1,6 +1,7 @@
 import { evidenceRecordsByCase } from './evidenceRecords.js';
 import { getGeneratedAccessReportDocuments } from './accessHistoryReports.js';
 import { getGeneratedKybReportDocuments } from './kybReviewReport.js';
+import { applyDocumentRequestWorkflow } from './documentRequestFulfillment.js';
 
 function valueOr(value, fallback) {
   return value || fallback;
@@ -304,7 +305,8 @@ function legacyCaseDocuments(activeCase) {
 
 export function getCaseDocuments(activeCase = {}) {
   const combined = [...standardDocuments(activeCase), ...getGeneratedAccessReportDocuments(activeCase), ...getGeneratedKybReportDocuments(activeCase), ...legacyCaseDocuments(activeCase)];
-  return combined.filter((item, index) => combined.findIndex((candidate) => candidate.id === item.id) === index);
+  const deduped = combined.filter((item, index) => combined.findIndex((candidate) => candidate.id === item.id) === index);
+  return applyDocumentRequestWorkflow(activeCase, deduped);
 }
 
 export function documentSearchText(document) {
