@@ -31,7 +31,7 @@ for (const anchor of [
   'Skill proficiency',
   'Investigation milestones',
   'Activity summary',
-  'Complete the active case package',
+  'Complete the active case decision',
   'Activity-based development tracks investigation habits only.',
   'These percentages reflect completed learning activity, not hidden case correctness or a pre-submission risk score.',
   'Open Academy Progress',

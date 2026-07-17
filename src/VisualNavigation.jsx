@@ -27,8 +27,8 @@ const tabCopy = {
   },
   progress: {
     eyebrow: 'Academy Progress',
-    title: 'Saved package progress',
-    text: 'Progress stays locked until a learner review package is saved. Luna scoring only appears after submission.',
+    title: 'Submitted decision progress',
+    text: 'Progress stays locked until a Submitted Decision Record is saved. Luna scoring only appears after submission.',
     icon: '▢',
   },
   profile: {
@@ -265,14 +265,14 @@ function DashboardPanel({ activeCaseId, cases, snapshot, onNavigate, onOpenCase 
         </button>
         <button type="button" onClick={() => onNavigate('progress')}>
           <span className="dashboard-quick-icon">▱</span>
-          <span><strong>Progress</strong><small>{snapshot.packages} packages</small></span>
+          <span><strong>Progress</strong><small>{snapshot.packages} decision records</small></span>
         </button>
       </div>
 
       <section className="dashboard-summary-grid" aria-label="Recent work summary">
         <article><strong>{snapshot.notes}</strong><span>Saved notes</span></article>
         <article><strong>{snapshot.reviewed}</strong><span>Reviewed tools</span></article>
-        <article><strong>{snapshot.packages}</strong><span>Submitted packages</span></article>
+        <article><strong>{snapshot.packages}</strong><span>Submitted decision records</span></article>
       </section>
 
       <aside className="dashboard-luna-card">
@@ -280,7 +280,7 @@ function DashboardPanel({ activeCaseId, cases, snapshot, onNavigate, onOpenCase 
         <div>
           <span className="dashboard-kicker">Luna guide</span>
           <strong>Process coaching stays neutral</strong>
-          <p>Luna can guide the workflow, but case scoring remains locked until the decision package is submitted.</p>
+          <p>Luna can guide the workflow, but case scoring remains locked until a Submitted Decision Record is saved.</p>
         </div>
       </aside>
     </div>

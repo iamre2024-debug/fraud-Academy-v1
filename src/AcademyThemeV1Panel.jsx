@@ -4,7 +4,7 @@ const learningPaths = [
   {
     number: '01',
     title: 'Evidence First foundation',
-    description: 'Build the habit of protecting the outcome until the investigation and learner package are complete.',
+    description: 'Build the habit of protecting the outcome until the investigation and Submitted Decision Record are complete.',
     steps: ['Evidence First', 'Open records'],
     label: 'Foundation',
   },
@@ -26,7 +26,7 @@ const learningPaths = [
     number: '04',
     title: 'Case quality and submission',
     description: 'Turn reviewed evidence into a documented packet and save the learner decision only when readiness passes.',
-    steps: ['Submit package'],
+    steps: ['Submit decision'],
     label: 'Case quality',
   },
 ];
@@ -41,7 +41,7 @@ const libraryTopics = [
 const achievementSteps = [
   ['Review required tools', 'Complete the case-specific required-tool set.'],
   ['Document the evidence', 'Save pinned objects and notes.'],
-  ['Submit the package', 'Unlock the case-scoped Luna debrief and progress snapshot.'],
+  ['Submit the decision', 'Save the Submitted Decision Record and unlock the case-scoped Luna debrief.'],
 ];
 
 export default function AcademyThemeV1Panel({ onNavigate }) {
@@ -125,7 +125,7 @@ export default function AcademyThemeV1Panel({ onNavigate }) {
           <section className="academy-achievement-card" aria-labelledby="academy-achievements-title">
             <span className="academy-kicker">Achievements</span>
             <h4 id="academy-achievements-title">Progress follows completed work</h4>
-            <p>Academy status stays neutral until a learner package is saved for the case.</p>
+            <p>Academy status stays neutral until a Submitted Decision Record is saved for the case.</p>
             <ol>
               {achievementSteps.map(([title, detail]) => (
                 <li key={title}>

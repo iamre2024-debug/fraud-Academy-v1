@@ -53,7 +53,7 @@ for (const text of [
 
 for (const text of [
   "markReviewed('Submit Decision')",
-  'Post-submission Luna debrief can now read the saved package state.',
+  'Post-submission Luna debrief can now read the saved decision state.',
 ]) requireText(controllerPath, controller, text);
 
 forbidText(controllerPath, controller, 'if (!status.ready)');

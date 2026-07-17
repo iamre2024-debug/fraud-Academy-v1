@@ -42,12 +42,12 @@ export default function SubmitDecisionPanel({
         <div aria-hidden="true">⌁</div>
         <div>
           <p>Evidence First protection</p>
-          <h3>Luna debrief stays locked until this case has a saved learner package.</h3>
+          <h3>Luna debrief stays locked until this case has a Submitted Decision Record.</h3>
           <span>You can submit at any time. Unfinished checklist details are saved for coaching and never prevent Luna from unlocking.</span>
         </div>
       </section>
 
-      <section className="decision-status-grid" aria-label="Decision package summary">
+      <section className="decision-status-grid" aria-label="Submitted decision record summary">
         <article><span>Tools reviewed</span><strong>{packageStatus.reviewedRequired}/{packageStatus.totalRequired}</strong><small>Optional</small></article>
         <article><span>Pinned objects</span><strong>{tray.length}</strong><small>Optional</small></article>
         <article><span>Investigation notes</span><strong>{notes.length}</strong><small>Optional</small></article>

@@ -128,7 +128,7 @@ for (const anchor of ['Login History', 'Transaction History', 'Payment Verificat
 }
 
 const lunaLocked = buildLunaDebrief({ activeCase: creditReview, reviewPackage: null });
-if (lunaLocked !== null) fail('Luna must return no debrief before a learner package is saved.');
+if (lunaLocked !== null) fail('Luna must return no debrief before a Submitted Decision Record is saved.');
 
 const lunaUnlocked = buildLunaDebrief({
   activeCase: creditReview,
@@ -142,7 +142,7 @@ const lunaUnlocked = buildLunaDebrief({
   },
 });
 if (!lunaUnlocked || typeof lunaUnlocked.score !== 'number') {
-  fail('Luna must produce post-submission scoring from a saved learner package.');
+  fail('Luna must produce post-submission scoring from a Submitted Decision Record.');
 }
 
 const activePanel = fs.readFileSync('src/ActiveToolPanel.jsx', 'utf8');

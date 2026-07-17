@@ -20,7 +20,7 @@ const skillDefinitions = [
   {
     key: 'decision',
     label: 'Case quality and determination',
-    detail: 'Complete readiness checks and save a defensible learner package.',
+    detail: 'Complete readiness checks and save a defensible Submitted Decision Record.',
     icon: 'CQ',
   },
 ];
@@ -66,7 +66,7 @@ export default function ProfileThemeV1Panel({ activeCaseId, cases, snapshot, onN
   const goals = [
     { label: 'Review required tools', current: Math.min(activeReviewed, 8), target: 8, action: 'Open Workspace', route: 'workspace' },
     { label: 'Document investigation notes', current: Math.min(activeNotes, 3), target: 3, action: 'Open Workspace', route: 'workspace' },
-    { label: 'Save the learner package', current: Math.min(activePackages, 1), target: 1, action: 'View Progress', route: 'progress' },
+    { label: 'Save a Submitted Decision Record', current: Math.min(activePackages, 1), target: 1, action: 'View Progress', route: 'progress' },
   ];
 
   return (
@@ -77,7 +77,7 @@ export default function ProfileThemeV1Panel({ activeCaseId, cases, snapshot, onN
           <span className="profile-kicker">Agent profile</span>
           <h3>Learner Agent</h3>
           <p className="profile-rank">{rank}</p>
-          <p>Activity-based development tracks investigation habits only. Case outcomes and Luna coaching remain protected until a learner package is saved.</p>
+          <p>Activity-based development tracks investigation habits only. Case outcomes and Luna coaching remain protected until a Submitted Decision Record is saved.</p>
           <div className="profile-hero-actions">
             <button type="button" className="profile-primary-action" onClick={() => activeCase && onOpenCase(activeCase.id)}>
               Continue active case <span aria-hidden="true">→</span>
@@ -97,7 +97,7 @@ export default function ProfileThemeV1Panel({ activeCaseId, cases, snapshot, onN
         <article><strong>{cases.length}</strong><span>Training cases available</span></article>
         <article><strong>{snapshot.reviewed}</strong><span>Tools reviewed</span></article>
         <article><strong>{snapshot.notes}</strong><span>Notes saved</span></article>
-        <article><strong>{completedCases}</strong><span>Cases with saved packages</span></article>
+        <article><strong>{completedCases}</strong><span>Cases with submitted decisions</span></article>
       </section>
 
       <div className="profile-main-grid">
@@ -133,7 +133,7 @@ export default function ProfileThemeV1Panel({ activeCaseId, cases, snapshot, onN
               <article className={badges.evidenceFirst ? 'unlocked' : 'locked'}><span>EF</span><strong>Evidence First</strong><small>Core standard</small></article>
               <article className={badges.recordReviewer ? 'unlocked' : 'locked'}><span>RR</span><strong>Record Reviewer</strong><small>{badges.recordReviewer ? 'Unlocked' : 'Review 4 tools'}</small></article>
               <article className={badges.caseDocumenter ? 'unlocked' : 'locked'}><span>CD</span><strong>Case Documenter</strong><small>{badges.caseDocumenter ? 'Unlocked' : 'Save a note'}</small></article>
-              <article className={badges.packageBuilder ? 'unlocked' : 'locked'}><span>PB</span><strong>Package Builder</strong><small>{badges.packageBuilder ? 'Unlocked' : 'Save a learner package'}</small></article>
+              <article className={badges.packageBuilder ? 'unlocked' : 'locked'}><span>DR</span><strong>Decision Record</strong><small>{badges.packageBuilder ? 'Unlocked' : 'Save a Submitted Decision Record'}</small></article>
             </div>
           </section>
 
@@ -141,7 +141,7 @@ export default function ProfileThemeV1Panel({ activeCaseId, cases, snapshot, onN
             <span className="profile-kicker">Activity summary</span>
             <h4 id="profile-activity-title">Your saved work</h4>
             <dl>
-              <div><dt>Submitted packages</dt><dd>{snapshot.packages}</dd></div>
+              <div><dt>Submitted decision records</dt><dd>{snapshot.packages}</dd></div>
               <div><dt>Active-case tools</dt><dd>{activeReviewed}</dd></div>
               <div><dt>Active-case notes</dt><dd>{activeNotes}</dd></div>
             </dl>
@@ -154,9 +154,9 @@ export default function ProfileThemeV1Panel({ activeCaseId, cases, snapshot, onN
         <div className="profile-section-heading">
           <div>
             <span className="profile-kicker">Goals</span>
-            <h4 id="profile-goals-title">Complete the active case package</h4>
+            <h4 id="profile-goals-title">Complete the active case decision</h4>
           </div>
-          <p>Goals follow the current case and use the existing case-scoped notes, reviewed tools, and learner-package snapshot.</p>
+          <p>Goals follow the current case and use the existing case-scoped notes, reviewed tools, and Submitted Decision Record.</p>
         </div>
         <div className="profile-goal-grid">
           {goals.map((goal) => {

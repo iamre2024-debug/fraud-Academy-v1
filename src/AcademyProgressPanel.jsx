@@ -31,7 +31,7 @@ export default function AcademyProgressPanel({ cases, packagesByCase, onOpenCase
       <div className="nav-progress-summary" aria-label="Academy progress summary">
         <article><strong>{cases.length}</strong><span>Training cases</span></article>
         <article><strong>{unlockedCases}</strong><span>Luna unlocked</span></article>
-        <article><strong>{savedPackages}</strong><span>Saved packages</span></article>
+        <article><strong>{savedPackages}</strong><span>Submitted decision records</span></article>
       </div>
       <div className="nav-progress-list">
         {cases.map((item) => {
@@ -47,15 +47,15 @@ export default function AcademyProgressPanel({ cases, packagesByCase, onOpenCase
                 <strong>{item.person}</strong>
                 <DirectCollapsibleText as="p" lines={2} mobileLines={2}>
                   {latest
-                    ? `Latest learner package saved ${savedAt}. Luna debrief is available for this case.`
-                    : 'Submit a review package to unlock Luna progress.'}
+                    ? `Latest Submitted Decision Record saved ${savedAt}. Luna debrief is available for this case.`
+                    : 'Submit a decision to save the record and unlock Luna progress.'}
                 </DirectCollapsibleText>
                 {latest && (
-                  <div className="nav-progress-metrics" aria-label={`${item.id} saved package snapshot`}>
+                  <div className="nav-progress-metrics" aria-label={`${item.id} submitted decision snapshot`}>
                     <small><b>{metrics.reviewedRequired}/{metrics.totalRequired}</b> required tools</small>
                     <small><b>{metrics.pinnedEvidence}</b> pinned objects</small>
                     <small><b>{metrics.notes}</b> saved notes</small>
-                    <small><b>{packages.length}</b> package{packages.length === 1 ? '' : 's'}</small>
+                    <small><b>{packages.length}</b> submitted record{packages.length === 1 ? '' : 's'}</small>
                   </div>
                 )}
               </div>

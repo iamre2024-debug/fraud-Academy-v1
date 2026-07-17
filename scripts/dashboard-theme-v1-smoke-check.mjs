@@ -25,7 +25,7 @@ mustContain('VisualNavigation.jsx', navigation, '<strong>Case Queue</strong>');
 mustContain('VisualNavigation.jsx', navigation, '<strong>Investigation Workspace</strong>');
 mustContain('VisualNavigation.jsx', navigation, '<strong>Timeline</strong>');
 mustContain('VisualNavigation.jsx', navigation, '<strong>Progress</strong>');
-mustContain('VisualNavigation.jsx', navigation, 'case scoring remains locked until the decision package is submitted');
+mustContain('VisualNavigation.jsx', navigation, 'case scoring remains locked until a Submitted Decision Record is saved');
 
 mustContain('displayDashboardThemeV1.css', styles, 'body[data-visual-tab="dashboard"]');
 mustContain('displayDashboardThemeV1.css', styles, '.dashboard-v1-shell');

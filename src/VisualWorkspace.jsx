@@ -26,6 +26,15 @@ function stageForTool(toolName) {
   return 'investigate';
 }
 
+function stageForScreen(screen, toolName) {
+  if (screen === 'tool' || screen === 'timeline') return stageForTool(toolName);
+  if (screen === 'tool-menu') return 'investigate';
+  if (screen === 'evidence' || screen === 'notes') return 'indicators';
+  if (screen === 'determination') return 'determination';
+  if (screen === 'debrief') return 'debrief';
+  return 'briefing';
+}
+
 export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCases(baseCases), onCaseChange, onNavigate, requestedWorkspaceScreen, onWorkspaceScreenChange }) {
   const [activeStage, setActiveStage] = useState('briefing');
   const [workspaceScreen, setWorkspaceScreen] = useState('briefing');
@@ -45,7 +54,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     const nextScreen = requestedWorkspaceScreen || 'briefing';
     workspaceScreenHistory.current = [];
     requestedWorkspaceScreenRef.current = nextScreen;
-    setActiveStage(nextScreen === 'tool' ? stageForTool(tool) : 'briefing');
+    setActiveStage(stageForScreen(nextScreen, tool));
     setWorkspaceScreen(nextScreen);
     setOpenedPinnedEvidence(null);
   }, [activeCase.id]);
@@ -58,8 +67,9 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     if (!requestedWorkspaceScreen || requestedWorkspaceScreen === requestedWorkspaceScreenRef.current) return;
     requestedWorkspaceScreenRef.current = requestedWorkspaceScreen;
     if (requestedWorkspaceScreen !== workspaceScreen) setWorkspaceScreen(requestedWorkspaceScreen);
+    setActiveStage(stageForScreen(requestedWorkspaceScreen, tool));
     resetWorkspacePageScroll();
-  }, [requestedWorkspaceScreen, workspaceScreen]);
+  }, [requestedWorkspaceScreen, tool, workspaceScreen]);
 
   const {
     tray,
@@ -471,7 +481,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
           />
         </div>
 
-        {activeStage === 'determination' && (
+        {(activeStage === 'determination' || workspaceScreen === 'determination') && (
           <div data-workflow-stage="determination" data-workspace-page="determination">
             <SubmitDecisionPanel
               submitRef={submitRef}

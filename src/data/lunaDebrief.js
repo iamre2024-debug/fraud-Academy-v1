@@ -1,7 +1,7 @@
 const debriefGuides = {
   'FA-ATO-24018': {
     theme: 'Account access and purchase timeline',
-    coachIntro: 'Luna is reviewing the saved package against the access story, transaction sequence, customer statement, and evidence trail.',
+    coachIntro: 'Luna is reviewing the Submitted Decision Record against the access story, transaction sequence, customer statement, and evidence trail.',
     focusAreas: [
       {
         label: 'Customer statement and disputed purchase timeline',
@@ -23,7 +23,7 @@ const debriefGuides = {
   },
   'FA-CB-24007': {
     theme: 'Recurring billing and cancellation evidence',
-    coachIntro: 'Luna is reviewing the saved package against the billing sequence, merchant context, customer submission, and document trail.',
+    coachIntro: 'Luna is reviewing the Submitted Decision Record against the billing sequence, merchant context, customer submission, and document trail.',
     focusAreas: [
       {
         label: 'Customer dispute form and cancellation story',
@@ -45,7 +45,7 @@ const debriefGuides = {
   },
   'FA-CR-24003': {
     theme: 'Credit review package and payment verification',
-    coachIntro: 'Luna is reviewing the saved package against the system alert, identity record, payment setup, and early account activity.',
+    coachIntro: 'Luna is reviewing the Submitted Decision Record against the system alert, identity record, payment setup, and early account activity.',
     focusAreas: [
       {
         label: 'System alert and credit usage request',
@@ -69,7 +69,7 @@ const debriefGuides = {
 
 const defaultGuide = {
   theme: 'Case documentation quality',
-  coachIntro: 'Luna is reviewing the saved package against the documented evidence trail.',
+  coachIntro: 'Luna is reviewing the Submitted Decision Record against the documented evidence trail.',
   focusAreas: [
     { label: 'Case reason', keywords: ['case', 'reason', 'allegation', 'system'] },
     { label: 'Customer and identity records', keywords: ['customer', 'identity', 'training id'] },
@@ -182,7 +182,7 @@ export function scoreNotesQuality(notes = []) {
     substantiveCount: substantiveNotes.length,
     evidenceReferenceCount: evidenceReferences,
     reasoningCount: reasonedNotes,
-    comparisonCount,
+    comparisonCount: comparisonNotes,
     nextStep,
   };
 }
@@ -192,7 +192,7 @@ function analyzeNote(note = '') {
   const type = parts.length >= 3 ? parts[1].trim() : 'Investigation note';
   const body = (parts.length >= 3 ? parts.slice(2).join(' ') : String(note)).trim();
   const words = wordCount(body);
-  const automaticType = /^(?:tool review|decision checklist|decision package)$/i.test(type);
+  const automaticType = /^(?:tool review|decision checklist|decision package|submitted decision record)$/i.test(type);
   const genericReview = /^(?:[\w /&-]+:\s*)?reviewed\.?$/i.test(body);
   const hasEvidenceReference = /\b[A-Z]{2,}(?:-[A-Z0-9]+)+\b/.test(body)
     || /\$\s?\d[\d,]*(?:\.\d{2})?/.test(body)

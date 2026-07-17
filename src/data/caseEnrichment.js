@@ -99,7 +99,7 @@ const caseIntake = {
   'FA-CR-24003': {
     claimId: 'CLM-CR-24003',
     transactionInfo: 'Credit line usage request · payment setup packet · Destination ID token',
-    shortSummary: 'New credit relationship has limited history. Review identity, payment setup, session activity, and early account behavior before any final package is submitted.',
+    shortSummary: 'New credit relationship has limited history. Review identity, payment setup, session activity, and early account behavior before any final decision is submitted.',
     intakeAnswers: [
       { id: 'FA-CR-24003-INT-1', prompt: 'What type of credit request or account review opened this case?', answer: 'A system alert opened a credit-line-increase review after the new account requested $2,400.00 of an $8,000.00 line five minutes after external destination DST-7740 was added.' },
       { id: 'FA-CR-24003-INT-2', prompt: 'What employer, income source, gross/net income, or business revenue was stated?', answer: 'The stated employer is Lakeside Office Supply. The linked checking history shows payroll deposits of $1,280.00 on Jul 1, $1,280.00 on Jun 17, and a $1,240.00 mobile check deposit on Jun 8; no separate gross/net income figure is recorded.' },

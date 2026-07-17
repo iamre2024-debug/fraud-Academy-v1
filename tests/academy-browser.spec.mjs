@@ -67,7 +67,7 @@ test('approved Academy preserves neutral learning routes and responsive safety',
 
   await academy.getByRole('button', { name: 'Open Academy Progress', exact: true }).click();
   await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'progress');
-  await expect(page.getByRole('heading', { name: 'Saved package progress', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Submitted decision progress', exact: true })).toBeVisible();
 
   const academyAgain = await openAcademy(page);
   await academyAgain.getByRole('button', { name: 'Open Case Queue', exact: true }).click();
