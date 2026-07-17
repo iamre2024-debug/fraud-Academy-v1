@@ -116,7 +116,8 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
   const noteScore = notesQuality.points;
   const focusScore = Math.round((focusCoverage.filter((area) => area.covered).length / focusCoverage.length) * 14);
   const confidenceScore = reviewPackage.confidence === 'High' ? 4 : reviewPackage.confidence === 'Medium' ? 3 : 2;
-  const indicatorScore = Math.min(10, decisionIndicators.filter((item) => item.proof && item.explanation).length * 3);
+  const completedDecisionIndicators = decisionIndicators.filter((item) => item.proof && item.explanation);
+  const indicatorScore = Math.min(10, completedDecisionIndicators.length * 3);
   const determinationScore = caseTruth ? (determinationMatched ? 20 : 0) : 10;
   const score = Math.min(100, toolScore + pinScore + noteScore + focusScore + confidenceScore + indicatorScore + determinationScore);
   const followUps = focusCoverage.filter((area) => !area.covered).map((area) => area.label);
@@ -143,7 +144,7 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
       { label: 'Pinned evidence support', value: `${pinnedEvidence.length} object(s)`, points: pinScore },
       { label: 'Quality of notes', value: notesQuality.summary, points: noteScore },
       { label: 'Case focus coverage', value: `${focusCoverage.filter((area) => area.covered).length}/${focusCoverage.length}`, points: focusScore },
-      { label: 'Weighted flag documentation', value: `${decisionIndicators.length} proven flag(s)`, points: indicatorScore },
+      { label: 'Weighted flag documentation', value: `${completedDecisionIndicators.length}/${decisionIndicators.length} completed flag(s)`, points: indicatorScore },
       { label: 'Scenario determination', value: caseTruth ? (determinationMatched ? 'Matched' : 'Did not match') : 'Base-case calibration', points: determinationScore },
       { label: 'Confidence calibration', value: reviewPackage.confidence, points: confidenceScore },
     ],
@@ -181,7 +182,7 @@ export function scoreNotesQuality(notes = []) {
     substantiveCount: substantiveNotes.length,
     evidenceReferenceCount: evidenceReferences,
     reasoningCount: reasonedNotes,
-    comparisonCount: comparisonNotes,
+    comparisonCount,
     nextStep,
   };
 }
@@ -217,7 +218,7 @@ function buildStrengths({ coveredRequired, pinnedEvidence, notesQuality, rationa
   if (notesQuality.points >= 9) strengths.push(`Notebook quality is ${notesQuality.label.toLowerCase()} and connects evidence to investigator reasoning.`);
   if (wordCount(rationale) >= 20) strengths.push('The rationale has enough substance for coaching review.');
   if (focusCoverage.some((area) => area.covered)) strengths.push('At least one case-specific focus area is visible in the saved package.');
-  if (decisionIndicators.length) strengths.push('The selected case flags include proof and an investigator explanation.');
+  if (decisionIndicators.some((item) => item.proof && item.explanation)) strengths.push('At least one selected case flag includes proof and an investigator explanation.');
   if (determinationMatched) strengths.push('The submitted determination matches the hidden scenario truth.');
 
   return strengths.length ? strengths : ['The package was saved, but Luna needs more documented support to coach from.'];
