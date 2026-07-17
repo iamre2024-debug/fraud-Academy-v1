@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
-import { getMerchantIntelligence, merchantIntelligenceTabs, merchantRecordSearchText } from './data/merchantIntelligenceRecords.js';
+import { getMerchantIntelligence, merchantIntelligenceTabs, merchantRecordSearchText } from './data/merchantIntelligenceAlignedRecords.js';
 
 export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
   const workspace = useMemo(() => getMerchantIntelligence(activeCase), [activeCase]);
+  const isNonFraudChargeback = activeCase.claimTypeId === 'non-fraud-chargeback';
   const [activeSection, setActiveSection] = useState('overview');
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState('');
@@ -61,7 +62,7 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
 
       <section className="merchant-intelligence-findbar" aria-label="Merchant Intelligence filters">
         <div><p>{section.label}</p><h3>{section.question}</h3></div>
-        <label><span>Search merchant evidence</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Merchant, MCC, order, authorization, delivery, refund, or reason code" aria-label="Search Merchant Intelligence" /></label>
+        <label><span>Search merchant and document evidence</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Merchant, MCC, order, authorization, customer document, refund, or reason code" aria-label="Search Merchant Intelligence" /></label>
         <span>{filteredRecords.length} of {sectionRecords.length} records shown</span>
       </section>
 
@@ -95,12 +96,12 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
           <header><p>Merchant packet</p><h3>{profile.name}</h3><span>{activeCase.id}</span></header>
           <section><p>Packet index</p>{merchantIntelligenceTabs.map((item) => <button key={item.id} type="button" onClick={() => setActiveSection(item.id)}><span>{item.label}</span><strong>{workspace.records.filter((record) => record.section === item.id).length}</strong></button>)}</section>
           <section><p>Reason-code context</p><strong>{workspace.reasonCode}</strong><span>{workspace.responseDeadline}</span></section>
-          <nav><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button></nav>
+          <nav><button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button></nav>
         </aside>
       </div>
 
-      <nav className="investigation-tool-next-routes" aria-label="Merchant Intelligence next routes"><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
-      <footer className="investigation-tool-review-bar"><div><strong>Merchant Intelligence review</strong><span>Review merchant identity, history, authorization, fulfillment, disputes, refunds, subscription or marketplace context, and the applicable reason-code evidence.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Merchant Intelligence')}>{reviewed ? 'Merchant Intelligence reviewed' : 'Mark Merchant Intelligence reviewed'}</button></footer>
+      <nav className="investigation-tool-next-routes" aria-label="Merchant Intelligence next routes"><button type="button" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button><button type="button" onClick={() => openTool('Document Request')}>Open Document Request</button>{!isNonFraudChargeback && <button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button>}<button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <footer className="investigation-tool-review-bar"><div><strong>Merchant Intelligence review</strong><span>{isNonFraudChargeback ? 'Review merchant identity, the merchant-supplied transaction packet, customer-supplied dispute documents, and the applicable reason-code evidence.' : 'Review merchant identity, history, authorization, merchant transaction documents, customer dispute documents, refunds, subscription or marketplace context, and the applicable reason-code evidence.'}</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Merchant Intelligence')}>{reviewed ? 'Merchant Intelligence reviewed' : 'Mark Merchant Intelligence reviewed'}</button></footer>
     </>
   );
 }
