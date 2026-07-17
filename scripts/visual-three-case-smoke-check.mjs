@@ -277,11 +277,9 @@ for (const required of [
 for (const required of [
   'getDecisionCallGroups(activeCase)',
   'selectionGroups.map',
-  'packageStatus.messages.map',
   'className="ornate-card submit-decision-panel decision-theme-v1"',
   'activeCase.id',
   'Submit Decision',
-  'Check decision readiness',
 ]) {
   requireText('src/SubmitDecisionPanel.jsx', submitDecisionPanel, required, 'Submit Decision panel module anchor');
 }

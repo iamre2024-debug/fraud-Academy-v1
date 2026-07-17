@@ -38,20 +38,21 @@ for (const anchor of [
   'Evidence First protection',
   'You can submit a decision without reviewing every tool.',
   'Luna debrief stays locked until this case has a saved learner package.',
-  'Decision readiness',
-  'packageStatus.messages.map',
-  'Rationale progress',
+  'Unfinished checklist details are saved for coaching',
   'getDecisionCallGroups(activeCase)',
   'selectionGroups.map',
   'Determination choice',
   'Learner confidence',
   'Learner rationale',
   'Submit Decision',
-  'Check decision readiness',
   'Submission confirmation',
   'Open Luna Debrief',
 ]) {
   mustContain('SubmitDecisionPanel.jsx', decision, anchor);
+}
+
+for (const removed of ['Decision readiness', 'Decision needs attention', 'Check decision readiness', 'packageStatus.messages.map']) {
+  mustNotContain('SubmitDecisionPanel.jsx', decision, removed);
 }
 
 for (const anchor of [
@@ -85,7 +86,8 @@ for (const anchor of [
   'data-luna-screen="approved-theme-v1"',
   "data-luna-state={locked ? 'locked' : 'unlocked'}",
   'Evidence First lock is active',
-  'Finish and save your own reasoning before Luna reviews the case.',
+  'Submit your current decision package when you are ready.',
+  'Submission alone unlocks the case-scoped debrief.',
   'No score, strengths, evidence coaching, or decision-quality feedback appears before submission.',
   'Your submitted determination',
   'How Luna read the package',
@@ -113,13 +115,13 @@ for (const anchor of [
 
 for (const anchor of [
   'function submitDecision(event)',
-  'if (!status.ready)',
   'const reviewPackage = buildReviewPackage({',
   "window.dispatchEvent(new CustomEvent('fraud-academy:package-saved'",
   "markReviewed('Submit Decision')",
 ]) {
   mustContain('useVisualWorkspaceActions.js', actions, anchor);
 }
+mustNotContain('useVisualWorkspaceActions.js', actions, 'if (!status.ready)');
 
 for (const anchor of [
   'readStorage(storageKeys.decisions',
@@ -162,7 +164,7 @@ for (const anchor of [
   '.luna-v1-unlock-grid',
   '.luna-v1-debrief-grid',
   'position: static !important',
-  'grid-template-columns: minmax(360px, 1.12fr) minmax(280px, 0.88fr)',
+  'grid-template-columns: minmax(0, 1fr)',
   '@media (max-width: 960px)',
   '@media (max-width: 720px)',
   '@media (max-width: 520px)',
@@ -184,7 +186,7 @@ for (const anchor of [
 
 mustContain('main.jsx', entrypoint, "import './displayDecisionLunaThemeV1.css';");
 mustContain('main.jsx', entrypoint, "import './displayDecisionLunaLayoutSafetyV1.css';");
-mustContain('decision-luna-browser.spec.mjs', browser, 'approved Decision and Luna preserve Evidence First, package submission, debrief routes, and responsive safety');
+mustContain('decision-luna-browser.spec.mjs', browser, 'an incomplete decision saves and unlocks Luna on desktop and mobile');
 mustContain('decision-luna-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('decision-luna-browser.spec.mjs', browser, 'data-decision-screen="approved-theme-v1"');
 mustContain('decision-luna-browser.spec.mjs', browser, 'data-luna-state="locked"');

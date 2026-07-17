@@ -147,11 +147,6 @@ function App() {
     const draft = decisionDraftsByCase[activeCase.id] ?? defaultDecisionDraft;
     const packageStatus = getReviewPackageStatus({ activeCase, completedTools: currentCompleted, tray, notes, draft });
 
-    if (!packageStatus.ready) {
-      addFinding(`Submit Decision: review package checked. ${packageStatus.messages[0]}`);
-      return;
-    }
-
     const reviewPackage = buildReviewPackage({
       caseId: activeCase.id,
       agentId: AGENT_ID,

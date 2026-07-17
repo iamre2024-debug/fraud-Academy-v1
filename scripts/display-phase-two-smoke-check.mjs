@@ -49,7 +49,7 @@ mustContain('VisualWorkspace.jsx', workspace, "openTool('Timeline', 'timeline')"
 mustContain('VisualWorkspace.jsx', workspace, "scrollToWorkspace('[data-workflow-stage=\"indicators\"]')");
 mustContain('VisualWorkspace.jsx', workspace, "scrollToWorkspace('.luna-visual-panel', 80)");
 mustContain('VisualWorkspace.jsx', workspace, "label: hasReviewPackage ? 'Available' : 'Locked'");
-mustContain('VisualWorkspace.jsx', workspace, 'packageStatus.ready');
+mustContain('VisualWorkspace.jsx', workspace, "label: hasReviewPackage ? 'Decision saved' : 'Ready to submit'");
 mustContain('CategoryTileRail.jsx', categoryRail, 'onInvestigate');
 mustContain('CategoryTileRail.jsx', categoryRail, 'onInvestigate?.();');
 mustContain('displayPhaseTwo.css', styles, '.active-case-workflow-list');
@@ -74,4 +74,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Display Phase 2 smoke check passed. The six workflow stages are wired, the category rail stays inside Investigate, determination remains package-gated, and Debrief stays locked until a saved package exists.');
+console.log('Display Phase 2 smoke check passed. The six workflow stages are wired, direct determination submission is available, and Debrief stays locked only until a package is saved.');
