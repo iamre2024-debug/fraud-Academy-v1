@@ -313,7 +313,9 @@ export function buildReviewPackage({ caseId, agentId, activeCase, draft, complet
 }
 
 function buildPackageInputSummary({ completedTools = [], tray = [], notes = [], indicatorSummary }) {
-  return `Decision package preview: ${completedTools.length} reviewed tool(s), ${tray.length} optional pinned object(s), ${notes.length} optional note(s), and ${indicatorSummary?.selectedCount ?? 0} proven flag(s) will be saved.`;
+  const selectedFlags = indicatorSummary?.selectedCount ?? 0;
+  const completeFlags = selectedFlags - (indicatorSummary?.incompleteIndicators?.length ?? 0);
+  return `Decision package preview: ${completedTools.length} reviewed tool(s), ${tray.length} optional pinned object(s), ${notes.length} optional note(s), and ${selectedFlags} selected flag(s) (${completeFlags} complete) will be saved.`;
 }
 
 function wordCount(text = '') {
