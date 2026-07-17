@@ -1,4 +1,4 @@
-import { summarizeDecisionIndicators } from './decisionChecklist.js';
+import { summarizeDecisionIndicators } from './decisionChecklistAligned.js';
 
 export const reviewChoices = [
   'Approve claim / customer claim supported',
@@ -109,6 +109,10 @@ function uniqueGroups(groups = []) {
 }
 
 export function getRequiredReviewTools(activeCase = {}) {
+  if (activeCase?.claimTypeId === 'non-fraud-chargeback') {
+    return ['Case Summary', 'Merchant Intelligence', 'Document Viewer', 'Document Request', 'Transaction History'];
+  }
+
   const caseTools = Array.isArray(activeCase?.requiredTools) ? activeCase.requiredTools : [];
   return unique(caseTools.length ? caseTools : requiredReviewTools);
 }
@@ -228,7 +232,7 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
   const hasRationale = Boolean(draft.reason?.trim());
   const indicatorSummary = summarizeDecisionIndicators(activeCase, draft.indicators);
   const packageInputSummary = buildPackageInputSummary({ completedTools, tray, notes, indicatorSummary });
-  const conflictsWithCriticalRed = indicatorSummary.overrideIndicators.length > 0 && isSupportiveDecision(draft.choice);
+  const conflictsWithCriticalRed = indicatorSummary.overrideIndicators.length > 0 && conflictsWithCriticalRedFlag(activeCase, draft.choice);
 
   if (!indicatorSummary.selectedCount) blockers.push('select at least one case flag');
   if (indicatorSummary.incompleteIndicators.length) blockers.push(`add proof and explanation for: ${indicatorSummary.incompleteIndicators.map((item) => item.prompt).join(' | ')}`);
@@ -246,7 +250,7 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
     if (draft.choice && !validChoices.includes(draft.choice)) messages.push('The selected learner choice is no longer in the current decision call list.');
     if (!hasRationale) messages.push('Write the evidence-based learner rationale.');
     if (hasRationale && rationaleWordCount < minimumRationaleWords) messages.push(`Add more evidence detail to the learner rationale (${rationaleWordCount}/${minimumRationaleWords} words).`);
-    if (conflictsWithCriticalRed) messages.push('A critical red flag carries override weight. Select a non-supporting, hold, information, or escalation determination, or unmark the flag if the evidence does not prove it.');
+    if (conflictsWithCriticalRed) messages.push('A critical red flag carries override weight. Select a determination that fits the documented risk indicator, or unmark the flag if the evidence does not prove it.');
   } else {
     messages.push('The case-specific checklist and determination are complete. You may submit without reviewing every tool.');
   }
@@ -328,11 +332,28 @@ function usesHoldReleaseDetermination(activeCase = {}) {
   return activeCase.claimTypeId === 'account-takeover' && /business.*payroll|payroll.*business/i.test(context);
 }
 
-function isSupportiveDecision(choice = '') {
-  return [
-    'Support Customer Claim',
-    'Support Credit Request',
-    'Approve Application',
-    'Release',
-  ].includes(choice);
+function conflictsWithCriticalRedFlag(activeCase = {}, choice = '') {
+  if (!choice) return false;
+
+  if (['account-takeover', 'fraud-chargeback', 'non-fraud-chargeback'].includes(activeCase.claimTypeId)) {
+    return ['Do Not Support Customer Claim'].includes(choice);
+  }
+
+  if (activeCase.claimTypeId === 'first-party-fraud') {
+    return ['Support Customer Claim', 'Approve claim / customer claim supported'].includes(choice);
+  }
+
+  if (activeCase.claimTypeId === 'credit-risk') {
+    return ['Support Credit Request'].includes(choice);
+  }
+
+  if (activeCase.claimTypeId === 'application-verification') {
+    return ['Complete application verification review'].includes(choice);
+  }
+
+  if (['email-bec', 'payroll-direct-deposit', 'ach-wire-check', 'business-loan-bust-out'].includes(activeCase.claimTypeId)) {
+    return ['Release', 'Approve With Restrictions', 'Deny claim / customer claim not supported'].includes(choice);
+  }
+
+  return false;
 }
