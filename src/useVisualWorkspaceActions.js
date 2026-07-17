@@ -2,6 +2,9 @@ import { buildReviewPackage, getReviewPackageStatus } from './data/reviewPackage
 import {
   AGENT_ID,
   defaultDecisionDraft,
+  readStorage,
+  storageKeys,
+  writeStorage,
 } from './visualWorkspaceModel.js';
 
 export default function useVisualWorkspaceActions({
@@ -154,10 +157,13 @@ export default function useVisualWorkspaceActions({
       packageStatus: status,
     });
 
-    setPackagesByCase((current) => ({
-      ...current,
-      [activeCase.id]: [reviewPackage, ...(current[activeCase.id] ?? [])],
-    }));
+    const savedPackages = readStorage(storageKeys.packages, {});
+    const nextPackagesByCase = {
+      ...savedPackages,
+      [activeCase.id]: [reviewPackage, ...(savedPackages[activeCase.id] ?? [])],
+    };
+    writeStorage(storageKeys.packages, nextPackagesByCase);
+    setPackagesByCase(nextPackagesByCase);
     recordAction('Saved learner package', 'Submit Decision package saved; post-submission debrief is available.', 'Submit Decision');
     window.dispatchEvent(new CustomEvent('fraud-academy:package-saved', {
       detail: { caseId: activeCase.id, packageId: reviewPackage.id, reviewPackage },
@@ -167,6 +173,7 @@ export default function useVisualWorkspaceActions({
       'Submit Decision: learner review package saved. Post-submission Luna debrief can now read the saved package state.',
       'Decision package',
     );
+    return reviewPackage;
   }
 
   return {
