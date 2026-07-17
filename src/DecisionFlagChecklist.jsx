@@ -26,7 +26,7 @@ export default function DecisionFlagChecklist({
         </div>
         <div className="decision-flag-progress" aria-label={`${indicatorSummary.selectedCount} flags selected`}>
           <strong>{indicatorSummary.selectedCount}</strong>
-          <span>proven flags</span>
+          <span>selected flags</span>
         </div>
       </header>
 
@@ -101,7 +101,7 @@ export default function DecisionFlagChecklist({
                               required
                             />
                           </label>
-                          <small>{complete ? 'Proof complete' : 'Proof and explanation are required before submission.'}</small>
+                          <small>{complete ? 'Proof complete' : 'Add proof and explanation to complete this selected flag.'}</small>
                         </div>
                       )}
                     </article>
