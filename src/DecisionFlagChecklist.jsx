@@ -51,7 +51,7 @@ export default function DecisionFlagChecklist({
               <header>
                 <div>
                   <p>{type === 'red' ? 'Red flags' : 'Green flags'}</p>
-                  <h4>{type === 'red' ? 'Evidence against the claim or release' : 'Evidence supporting the claim or release'}</h4>
+                  <h4>{type === 'red' ? 'Risk or problem indicators' : 'Reassuring or control-supported indicators'}</h4>
                 </div>
                 <span>{flags.length} checks</span>
               </header>
