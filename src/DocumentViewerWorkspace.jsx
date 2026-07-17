@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { documentSearchText, getCaseDocuments } from './data/documentRecords.js';
+import { isRequestableDocument, receiveGeneratedDocument, recordDocumentRequest } from './data/documentRequestFulfillment.js';
 
 function fieldValue(document, label) {
   return document?.fields?.find(([field]) => field === label)?.[1] ?? 'Not recorded';
@@ -103,10 +104,11 @@ export default function DocumentViewerWorkspace({
   const [accountLookup, setAccountLookup] = useState('');
   const [matchedAccountId, setMatchedAccountId] = useState('');
   const [lookupError, setLookupError] = useState('');
+  const [documentVersion, setDocumentVersion] = useState(0);
   const normalizeAccountId = (value = '') => String(value).trim().toUpperCase();
   const accessGranted = Boolean(matchedAccountId)
     && normalizeAccountId(activeCase.accountId) === matchedAccountId;
-  const documents = useMemo(() => accessGranted ? getCaseDocuments(activeCase) : [], [accessGranted, activeCase]);
+  const documents = useMemo(() => accessGranted ? getCaseDocuments(activeCase) : [], [accessGranted, activeCase, documentVersion]);
   const folders = useMemo(() => ['All Documents', ...new Set(documents.map((document) => document.folder))], [documents]);
   const statuses = useMemo(() => ['All statuses', ...new Set(documents.map((document) => document.status))], [documents]);
   const [folder, setFolder] = useState('All Documents');
@@ -128,6 +130,9 @@ export default function DocumentViewerWorkspace({
     ?? documents[0];
   const activePage = activeDocument?.pages?.[pageIndex] ?? activeDocument?.pages?.[0];
   const comparedDocuments = compareIds.map((id) => documents.find((document) => document.id === id)).filter(Boolean);
+  const activeDocumentRequestable = activeDocument ? isRequestableDocument(activeDocument) : false;
+  const activeDocumentReceived = activeDocument?.requestStatus === 'Received' && activeDocument?.pages?.length > 0;
+  const activeDocumentRequestSent = activeDocument?.requestStatus === 'Requested';
 
   useEffect(() => {
     setFolder('All Documents');
@@ -142,6 +147,12 @@ export default function DocumentViewerWorkspace({
   useEffect(() => {
     setPageIndex(0);
   }, [activeDocument?.id]);
+
+  useEffect(() => {
+    const refreshDocuments = () => setDocumentVersion((current) => current + 1);
+    window.addEventListener('fraud-academy:documents-updated', refreshDocuments);
+    return () => window.removeEventListener('fraud-academy:documents-updated', refreshDocuments);
+  }, []);
 
   function openDocument(documentId) {
     setSelectedDocumentId(documentId);
@@ -176,6 +187,21 @@ export default function DocumentViewerWorkspace({
     link.download = `${activeDocument.id}.txt`;
     link.click();
     window.URL.revokeObjectURL(url);
+  }
+
+  function sendDocumentRequest() {
+    if (!activeDocument || !activeDocumentRequestable || activeDocumentReceived || activeDocumentRequestSent) return;
+    const requested = recordDocumentRequest(activeCase.id, activeDocument);
+    setSelectedDocumentId(requested.id);
+    saveNote(`${requested.id}: request sent for ${requested.title}.`, 'Document request');
+  }
+
+  function receiveDocumentResponse() {
+    if (!activeDocument || !activeDocumentRequestable || activeDocumentReceived || !activeDocumentRequestSent) return;
+    const generated = receiveGeneratedDocument(activeCase.id, activeDocument);
+    setSelectedDocumentId(generated.id);
+    setPageIndex(0);
+    saveNote(`${generated.id}: generated fictional response received for ${generated.title}.`, 'Document request');
   }
 
   function searchByAccountId(event) {
@@ -299,6 +325,8 @@ export default function DocumentViewerWorkspace({
                 <div className="document-toolbar-actions">
                   <button type="button" onClick={() => pin(`${activeDocument.id} | ${activeDocument.title}`)}>Pin</button>
                   <button type="button" aria-pressed={compareIds.includes(activeDocument.id)} onClick={() => toggleCompare(activeDocument.id)}>Compare</button>
+                  <button type="button" disabled={!activeDocumentRequestable || activeDocumentReceived || activeDocumentRequestSent} onClick={sendDocumentRequest}>Send request</button>
+                  <button type="button" disabled={!activeDocumentRequestable || activeDocumentReceived || !activeDocumentRequestSent} onClick={receiveDocumentResponse}>Receive generated document</button>
                   <button type="button" onClick={exportDocument}>Export</button>
                 </div>
               </header>
