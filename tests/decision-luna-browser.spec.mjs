@@ -110,7 +110,7 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
   await expect(savePackage).toBeVisible();
   await savePackage.click();
 
-  await expect(decision.getByRole('heading', { name: `Decision submitted for ${caseId}` })).toBeVisible();
+  await expect(page.locator('.visual-os-frame')).toHaveAttribute('data-workspace-screen', 'debrief');
   const savedPackage = await page.evaluate((activeCaseId) => {
     const packages = JSON.parse(localStorage.getItem('fraud-academy-review-packages-v1') || '{}');
     return packages[activeCaseId]?.[0] ?? null;
@@ -120,9 +120,6 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
   expect(savedPackage.decisionIndicators).toEqual([]);
   expect(savedPackage.reason).toBe('');
   expect(savedPackage.blockers.length).toBeGreaterThan(0);
-  const openLuna = decision.getByRole('button', { name: 'Open Luna Debrief', exact: true });
-  await expect(openLuna).toBeVisible();
-  await openLuna.click();
 
   const luna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');
   await expect(luna).toBeVisible();
