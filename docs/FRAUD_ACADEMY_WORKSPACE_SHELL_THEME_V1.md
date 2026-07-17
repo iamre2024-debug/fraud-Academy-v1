@@ -55,7 +55,7 @@ The approved Workspace shell now provides:
 - Luna remains locked until Submit Decision saves a learner package.
 - `src/data/generatedCaseRepository.js` remains the generated-case persistence boundary.
 - IndexedDB remains primary with the existing localStorage migration and fallback behavior.
-- Unlimited generated cases, storage keys, routes, notes, reviewed tools, reports, learner packages, and Case Report packets are unchanged.
+- Unlimited generated cases, storage keys, routes, notes, reviewed tools, reports, learner packages, and Evidence Packet snapshots are unchanged.
 - The reduced-motion storage key and existing header controls remain intact.
 - System Access Lane and all investigation-tool behavior remain untouched.
 - Case Briefing and every later screen remain intentionally unreplaced.

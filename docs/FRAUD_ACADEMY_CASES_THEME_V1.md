@@ -48,7 +48,7 @@ The approved Cases surface now provides:
 - Luna remains locked until Submit Decision saves a learner package.
 - `src/data/generatedCaseRepository.js` remains the only generated-case persistence boundary.
 - IndexedDB remains primary with the existing localStorage migration and fallback behavior.
-- Unlimited generated cases, storage keys, case routes, notes, reviewed tools, reports, learner packages, and Case Report packets are unchanged.
+- Unlimited generated cases, storage keys, case routes, notes, reviewed tools, reports, learner packages, and Evidence Packet snapshots are unchanged.
 - The Cases component reads the existing review-package key only to display completed state and does not write persistence data.
 - Existing Workspace, System Access Lane, and investigation-tool behavior remain untouched.
 

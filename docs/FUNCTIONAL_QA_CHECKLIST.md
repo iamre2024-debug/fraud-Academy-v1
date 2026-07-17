@@ -29,7 +29,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Case strip | Case Queue dropdown | Switch active case | React callback | Retest after every case switch |
 | Case Summary | Pin Case | Add case ID to tray | Working | Keep |
 | Case Summary | Name / Claim ID / amount / transaction-payee / short summary | Show neutral case intake facts | React-rendered | Keep |
-| Case Summary | Identity Intel / Case Report / Submit Decision quick routes | Open the matching tool or panel | React callbacks | Retest |
+| Case Summary | Identity Intel / Submit Decision quick routes | Open the matching tool or panel | React callbacks | Retest |
 | Category tiles | Identity / Digital / Financial / Business / Evidence / Connections / Investigation | Switch category and default sub-tool | Working | Keep |
 | Category tiles | Reviewed counters | Show completed sub-tool progress | Working | Keep |
 | Category tiles | Progress bars | Show progress toward category completion | Working | Keep |
@@ -42,17 +42,17 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | Tool rows | Expand | Open/activate expanded record review | Working | Keep |
 | Tool rows | Pin | Add record object to tray | Working | Keep |
 | Record detail | Save expanded note | Save note into case notebook | Working | Keep |
-| Record detail | Save Case Report packet | Save structured packet by case | Working | Keep |
+| Record detail | Save expanded note | Save structured evidence context by case | Working | Keep |
 | Record detail | Mark reviewed | Add selected tool to completed tools | Working | Keep |
 | Submit Decision | Checklist | Show neutral blockers only | Working | Keep Evidence First lock |
 | Submit Decision | Choice / confidence / rationale | Save learner draft inputs | Working | Keep |
 | Submit Decision | Save / Check Review Package | Save package only when checklist passes | Working | Keep |
-| Submit Decision | Package input preview | Show reviewed tools, pinned objects, notes, and Case Report packet feed neutrally | Working | Keep |
+| Submit Decision | Package input preview | Show reviewed tools, pinned objects, and notes neutrally | Working | Keep |
 | Luna Debrief | Locked state | Stay locked until package exists | Working | Keep |
 | Investigation Tray | Pinned objects | Show current case pinned evidence | Working | Keep |
 | Evidence tool group | Open Document Viewer | Open the standalone viewer without preloading customer documents | React callback | Retest |
 | Notebook | Textarea + Save Note | Save note to active case | Working | Keep |
-| Notebook | Case Report packets panel | Show saved packet feed | Working | Keep |
+| Notebook | Notes panel | Show saved note feed | Working | Keep |
 | Bottom nav | Dashboard | Open dashboard panel | React-managed | Retest |
 | Bottom nav | Cases | Open case cards and switch case | React-managed direct callback | Retest case switch |
 | Bottom nav | Workspace | Return to main workspace | React-managed | Retest |
@@ -83,12 +83,12 @@ Use this path after every major UI update:
 5. Use Tool Map and confirm it opens the Academy panel.
 6. Open Document Viewer from the Evidence tool group, confirm no documents preload, search an exact Account ID, and verify only the matching customer packet appears.
 7. Confirm Case Summary shows name, claim ID, total amount, transaction/payee info, and short neutral summary.
-8. Open Identity Intel, Case Report, and Submit Decision from the Case Summary quick actions.
+8. Open Identity Intel and Submit Decision from the Case Summary quick actions.
 9. Open Device Intelligence and confirm repeated devices show the same Device ID.
 10. For each category, open every sub-tool from the dropdown, including Connections → System Access Lane.
 11. Use Generate + Open Case and confirm the generated case opens without a page refresh.
 12. Confirm the generated case appears in the case dropdown and Cases panel.
-13. Search one record term, expand a row, pin it, save an expanded note, and save a Case Report packet.
+13. Search one record term, expand a row, pin it, and save an expanded note.
 14. Confirm the tray, notebook, and packet panel update by case.
 15. Generate neutral reports until required tools are reviewed.
 16. Try Submit Decision while locked and confirm it only gives neutral checklist blockers.
