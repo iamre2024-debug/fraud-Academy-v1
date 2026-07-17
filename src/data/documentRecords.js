@@ -88,8 +88,8 @@ function standardDocuments(activeCase) {
         ['Document number', `TX-*****${accountSuffix}`],
         ['Issued', 'Sep 14, 2023'],
         ['Expires', 'Apr 18, 2031'],
-        ['Document quality', 'Front and back images readable'],
-        ['Machine-readable data', 'Barcode fields extracted'],
+        ['Document quality', 'Front image readable; portrait edge smoothing noted'],
+        ['Machine-readable data', 'Barcode fields extracted with address mismatch'],
       ],
       pages: [
         page('Texas Driver License', 'FRONT IMAGE - FICTIONAL TRAINING DOCUMENT', [
@@ -97,8 +97,8 @@ function standardDocuments(activeCase) {
           section('Document dates', [['Issued', '09/14/2023'], ['Expires', '04/18/2031'], ['Document no.', `TX-*****${accountSuffix}`]]),
         ], { kind: 'identity-front', initials: context.initials }),
         page('Texas Driver License', 'BACK IMAGE - FICTIONAL TRAINING DOCUMENT', [
-          section('Machine-readable fields', [['Barcode result', 'Decoded'], ['Name field', context.person], ['Address field', context.address], ['Document suffix', accountSuffix]]),
-          section('Image review', [['Back image', 'Readable'], ['Cropping', 'All edges visible'], ['Resubmissions', 'None recorded']]),
+          section('Machine-readable fields', [['Barcode result', 'Decoded with mismatch'], ['Name field', context.person], ['Address field', `${valueOr(activeCase.intake?.customerLocation, 'Dallas, TX')} prior training address`], ['Document suffix', accountSuffix]]),
+          section('Image review', [['Back image', 'Readable'], ['Cropping', 'All edges visible'], ['Portrait edge review', 'Smoothing around hairline and shoulder edge'], ['Resubmissions', 'One alternate front image recorded']]),
         ], { kind: 'identity-back' }),
       ],
     }),
