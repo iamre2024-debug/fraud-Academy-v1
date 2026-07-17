@@ -19,6 +19,11 @@ export default function SubmitDecisionPanel({
   const decisionGroups = getDecisionCallGroups(activeCase);
   const selectionGroups = decisionGroups.length ? decisionGroups : [{ label: 'Learner choices', options: reviewChoices }];
 
+  function submitAndOpenDebrief(event) {
+    const reviewPackage = submitDecision(event);
+    if (reviewPackage) openDebrief?.();
+  }
+
   return (
     <section
       ref={submitRef}
@@ -67,7 +72,7 @@ export default function SubmitDecisionPanel({
       />
 
       <div className="decision-v1-workspace">
-        <form className="decision-form decision-v1-form" onSubmit={submitDecision}>
+        <form className="decision-form decision-v1-form" onSubmit={submitAndOpenDebrief}>
           <header>
             <p>Determination</p>
             <h3>Make the case decision</h3>
