@@ -139,8 +139,8 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       state: collectedIndicators ? 'in-progress' : 'open',
     },
     determination: {
-      label: hasReviewPackage ? 'Package saved' : packageStatus.ready ? 'Ready to save' : `${packageStatus.blockers.length} open`,
-      state: hasReviewPackage ? 'complete' : packageStatus.ready ? 'ready' : 'locked',
+      label: hasReviewPackage ? 'Decision saved' : 'Ready to submit',
+      state: hasReviewPackage ? 'complete' : 'ready',
     },
     debrief: {
       label: hasReviewPackage ? 'Available' : 'Locked',

@@ -52,10 +52,11 @@ for (const text of [
 ]) forbidText(workspacePath, workspace, text);
 
 for (const text of [
-  "if (!status.ready)",
   "markReviewed('Submit Decision')",
   'Post-submission Luna debrief can now read the saved package state.',
 ]) requireText(controllerPath, controller, text);
+
+forbidText(controllerPath, controller, 'if (!status.ready)');
 
 if (failures.length) {
   console.error('Workspace action controller smoke check failed:');
@@ -63,4 +64,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Workspace action controller smoke check passed. Case actions remain extracted, package-gated, and wired through the existing visual shell.');
+console.log('Workspace action controller smoke check passed. Case actions remain extracted, direct decision submission is available, and Luna receives saved packages.');

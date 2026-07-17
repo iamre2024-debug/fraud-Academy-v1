@@ -2,22 +2,10 @@ import { test, expect } from '@playwright/test';
 import { openWorkflowStage } from './workspace-page-helpers.mjs';
 
 const caseId = 'FA-ATO-24018';
-const requiredTools = [
-  'Case Summary',
-  'Customer 360',
-  'Login History',
-  'Session History',
-  'Device Intelligence',
-  'IP Intelligence',
-  'Transaction History',
-  'Document Viewer',
-  'Link Analysis',
-];
 const learnerChoice = 'Insufficient Evidence';
-const rationale = 'The reviewed records support another information request because the current package documents the timeline, linked activity, and remaining evidence gap.';
 const forbiddenLockedCopy = /(?:\/100|Strong package|Solid package|Developing package|Needs more support|Package strengths|Next coaching focus)/i;
 
-async function seedReadyCase(page) {
+async function seedIncompleteCase(page) {
   await page.addInitScript(({ activeCaseId, completedTools }) => {
     if (sessionStorage.getItem('fraud-academy-decision-luna-test-seeded') === 'yes') return;
     localStorage.setItem('fraud-academy-completed-tools-v1', JSON.stringify({ [activeCaseId]: completedTools }));
@@ -37,8 +25,8 @@ async function openDecision(page) {
   return decision;
 }
 
-test('approved Decision and Luna preserve Evidence First, package submission, debrief routes, and responsive safety', async ({ page }, testInfo) => {
-  await seedReadyCase(page);
+test('an incomplete decision saves and unlocks Luna on desktop and mobile', async ({ page }, testInfo) => {
+  await seedIncompleteCase(page);
   await page.goto('/');
 
   const detectedLayout = testInfo.project.name === 'mobile-chromium' ? 'mobile' : 'desktop';
@@ -62,6 +50,8 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
   await expect(decision.getByText('0/9', { exact: true })).toBeVisible();
   await expect(decision.getByText('You can submit a decision without reviewing every tool. Open only the records needed to prove your selected flags.', { exact: true })).toBeVisible();
   await expect(decision.getByText('Matched to this case: phishing', { exact: true })).toBeVisible();
+  await expect(decision.getByRole('heading', { name: 'Decision readiness', exact: true })).toHaveCount(0);
+  await expect(decision.getByText(/Decision needs attention/i)).toHaveCount(0);
 
   const decisionLayout = await page.evaluate(() => {
     const panel = document.querySelector('[data-decision-screen="approved-theme-v1"]');
@@ -106,7 +96,7 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
     expect(decisionLayout.flagColumns).toBe(1);
     expect(lockedLayout.lockedColumns).toBe(1);
   } else {
-    expect(decisionLayout.workspaceColumns).toBe(2);
+    expect(decisionLayout.workspaceColumns).toBe(1);
     expect(decisionLayout.metricColumns).toBe(4);
     expect(decisionLayout.flagColumns).toBe(2);
     expect(lockedLayout.lockedColumns).toBe(4);
@@ -114,18 +104,22 @@ test('approved Decision and Luna preserve Evidence First, package submission, de
 
   await openDecision(page);
 
-  const flagQuestion = 'Did a first-seen or unrecognized device access the account during the reported fraud period?';
-  await decision.getByRole('checkbox', { name: `Green flag: ${flagQuestion}` }).check();
-  await decision.getByRole('combobox', { name: `Proof for ${flagQuestion}` }).fill('LOG-1008 and DEV-MAYA-IP16-001');
-  await decision.getByRole('textbox', { name: `Explanation for ${flagQuestion}` }).fill('The cited login and device record document the device reviewed during the reported period.');
   await decision.getByRole('radio', { name: learnerChoice, exact: true }).check();
   await decision.getByRole('combobox', { name: 'Learner confidence' }).selectOption('High');
-  await decision.getByRole('textbox', { name: 'Learner rationale' }).fill(rationale);
   const savePackage = decision.getByRole('button', { name: 'Submit Decision', exact: true });
   await expect(savePackage).toBeVisible();
   await savePackage.click();
 
   await expect(decision.getByRole('heading', { name: `Decision submitted for ${caseId}` })).toBeVisible();
+  const savedPackage = await page.evaluate((activeCaseId) => {
+    const packages = JSON.parse(localStorage.getItem('fraud-academy-review-packages-v1') || '{}');
+    return packages[activeCaseId]?.[0] ?? null;
+  }, caseId);
+  expect(savedPackage).not.toBeNull();
+  expect(savedPackage.completedTools).toEqual([]);
+  expect(savedPackage.decisionIndicators).toEqual([]);
+  expect(savedPackage.reason).toBe('');
+  expect(savedPackage.blockers.length).toBeGreaterThan(0);
   const openLuna = decision.getByRole('button', { name: 'Open Luna Debrief', exact: true });
   await expect(openLuna).toBeVisible();
   await openLuna.click();

@@ -128,16 +128,16 @@ export default function LunaPostSubmissionPanel({
             <div aria-hidden="true">⌁</div>
             <div>
               <p>Evidence First lock is active.</p>
-              <h3>Finish and save your own reasoning before Luna reviews the case.</h3>
+              <h3>Submit your current decision package when you are ready.</h3>
               <span>No score, strengths, evidence coaching, or decision-quality feedback appears before submission.</span>
             </div>
           </section>
 
-          <div className="luna-v1-unlock-grid" aria-label="Luna unlock requirements">
-            <article><span>1</span><div><strong>Review the records you need</strong><p>Use only the case tools needed to reach a supported decision.</p></div></article>
-            <article><span>2</span><div><strong>Prove the selected flags</strong><p>Add a record reference and explanation for each selected flag.</p></div></article>
-            <article><span>3</span><div><strong>Write your rationale</strong><p>Choose a decision route and explain the evidence.</p></div></article>
-            <article><span>4</span><div><strong>Submit decision package</strong><p>Submission unlocks the case-scoped debrief.</p></div></article>
+          <div className="luna-v1-unlock-grid" aria-label="Luna submission steps">
+            <article><span>1</span><div><strong>Review what matters</strong><p>Open only the case records you need.</p></div></article>
+            <article><span>2</span><div><strong>Add useful flags</strong><p>Flag proof can be saved when it applies.</p></div></article>
+            <article><span>3</span><div><strong>Add optional rationale</strong><p>Document any reasoning you want Luna to coach.</p></div></article>
+            <article><span>4</span><div><strong>Submit decision package</strong><p>Submission alone unlocks the case-scoped debrief.</p></div></article>
           </div>
         </div>
       ) : (
@@ -159,10 +159,10 @@ export default function LunaPostSubmissionPanel({
             <section className="luna-v1-card luna-v1-user-reasoning">
               <header><span className="luna-v1-step-index" aria-hidden="true">01</span><div><p>Learner reasoning</p><h3>Your submitted determination</h3></div></header>
               <dl>
-                <div><dt>Decision</dt><dd>{state.reviewPackage.choice}</dd></div>
+                <div><dt>Decision</dt><dd>{state.reviewPackage.choice || 'No determination selected'}</dd></div>
                 <div><dt>Confidence</dt><dd>{state.reviewPackage.confidence}</dd></div>
               </dl>
-              <DirectCollapsibleText as="p" lines={5} mobileLines={6}>{state.reviewPackage.reason}</DirectCollapsibleText>
+              <DirectCollapsibleText as="p" lines={5} mobileLines={6}>{state.reviewPackage.reason || 'No rationale was submitted.'}</DirectCollapsibleText>
             </section>
 
             <section className="luna-v1-card luna-v1-senior-review">

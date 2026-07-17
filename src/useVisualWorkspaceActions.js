@@ -143,11 +143,6 @@ export default function useVisualWorkspaceActions({
       draft: decisionDraft,
     });
 
-    if (!status.ready) {
-      saveNote(`Submit Decision checklist checked. ${status.messages[0]}`, 'Decision checklist');
-      return;
-    }
-
     const reviewPackage = buildReviewPackage({
       caseId: activeCase.id,
       agentId: AGENT_ID,

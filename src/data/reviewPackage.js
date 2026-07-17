@@ -239,7 +239,7 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
   if (hasRationale && rationaleWordCount < minimumRationaleWords) blockers.push(`expand learner rationale to at least ${minimumRationaleWords} words`);
 
   if (blockers.length) {
-    messages.push(`Decision needs attention: ${blockers.join('; ')}.`);
+    messages.push(`Unfinished submission details: ${blockers.join('; ')}.`);
     if (!indicatorSummary.selectedCount) messages.push('Select the case flags that apply based on the reviewed evidence.');
     if (indicatorSummary.incompleteIndicators.length) messages.push('Every selected flag requires an exact proof reference and a short explanation.');
     if (!draft.choice) messages.push('Select the learner decision choice.');

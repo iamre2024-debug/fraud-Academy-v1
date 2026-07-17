@@ -1,4 +1,3 @@
-import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import DecisionFlagChecklist from './DecisionFlagChecklist.jsx';
 import { getDecisionCallGroups, reviewChoices } from './data/reviewPackage.js';
 
@@ -16,12 +15,7 @@ export default function SubmitDecisionPanel({
   openDebrief,
 }) {
   const latestPackage = reviewPackages[0] ?? null;
-  const readyLabel = latestPackage ? 'Package saved' : packageStatus.ready ? 'Ready to save' : 'Review in progress';
-  const rationaleProgress = Math.min(
-    100,
-    Math.round((packageStatus.rationaleWordCount / packageStatus.minimumRationaleWords) * 100),
-  );
-  const submitLabel = packageStatus.ready ? 'Submit Decision' : 'Check decision readiness';
+  const submissionLabel = latestPackage ? 'Decision saved' : 'Ready to submit';
   const decisionGroups = getDecisionCallGroups(activeCase);
   const selectionGroups = decisionGroups.length ? decisionGroups : [{ label: 'Learner choices', options: reviewChoices }];
 
@@ -40,7 +34,7 @@ export default function SubmitDecisionPanel({
         </div>
         <div className="decision-v1-header-status">
           <span>{activeCase.id}</span>
-          <strong data-decision-readiness={packageStatus.ready ? 'ready' : 'locked'}>{readyLabel}</strong>
+          <strong data-decision-submission-state={latestPackage ? 'saved' : 'available'}>{submissionLabel}</strong>
         </div>
       </header>
 
@@ -49,7 +43,7 @@ export default function SubmitDecisionPanel({
         <div>
           <p>Evidence First protection</p>
           <h3>Luna debrief stays locked until this case has a saved learner package.</h3>
-          <span>Locked checklist guidance may show completion needs, but no score or post-submission coaching appears before saving.</span>
+          <span>You can submit at any time. Unfinished checklist details are saved for coaching and never prevent Luna from unlocking.</span>
         </div>
       </section>
 
@@ -57,7 +51,7 @@ export default function SubmitDecisionPanel({
         <article><span>Tools reviewed</span><strong>{packageStatus.reviewedRequired}/{packageStatus.totalRequired}</strong><small>Optional</small></article>
         <article><span>Pinned objects</span><strong>{tray.length}</strong><small>Optional</small></article>
         <article><span>Investigation notes</span><strong>{notes.length}</strong><small>Optional</small></article>
-        <article><span>Proven flags</span><strong>{packageStatus.indicatorSummary.selectedCount}</strong></article>
+        <article><span>Proven flags</span><strong>{packageStatus.indicatorSummary.selectedCount}</strong><small>Optional</small></article>
       </section>
 
       <p className="decision-direct-submit-note" role="note">
@@ -77,7 +71,7 @@ export default function SubmitDecisionPanel({
           <header>
             <p>Determination</p>
             <h3>Make the case decision</h3>
-            <span>Choose the lane-appropriate action below, then explain how the proven flags and supporting evidence justify it.</span>
+            <span>Choose the lane-appropriate action. Add the support you have, then submit whenever you are ready for the debrief.</span>
           </header>
 
           <fieldset className="decision-choice-fieldset">
@@ -126,41 +120,13 @@ export default function SubmitDecisionPanel({
               placeholder={`Write the evidence-based rationale for ${activeCase.id}.`}
               aria-describedby="decision-rationale-help"
             />
-            <small id="decision-rationale-help">Use the reviewed records, pinned objects, notes, and unresolved gaps. Minimum {packageStatus.minimumRationaleWords} words.</small>
+            <small id="decision-rationale-help">Optional. Use reviewed records, pinned objects, notes, and unresolved gaps when they are relevant.</small>
           </label>
 
-          <button className="primary-action" type="submit" aria-label={submitLabel}>
-            {submitLabel}
+          <button className="primary-action" type="submit" aria-label="Submit Decision">
+            Submit Decision
           </button>
         </form>
-
-        <section className="decision-v1-checklist" aria-labelledby="decision-checklist-heading">
-          <header>
-            <div>
-              <p>Final evidence check</p>
-              <h3 id="decision-checklist-heading">Decision readiness</h3>
-            </div>
-            <span>{packageStatus.blockers.length ? `${packageStatus.blockers.length} open` : 'Complete'}</span>
-          </header>
-
-          <div className="decision-checklist" aria-live="polite">
-            {packageStatus.messages.map((message, index) => (
-              <article key={message} data-checklist-message={index === 0 ? 'primary' : 'supporting'}>
-                <span aria-hidden="true">{index === 0 && packageStatus.ready ? '✓' : '•'}</span>
-                <DirectCollapsibleText minLength={88}>{message}</DirectCollapsibleText>
-              </article>
-            ))}
-          </div>
-
-          <div className="decision-v1-support-summary">
-            <div>
-              <span>Rationale progress</span>
-              <strong>{packageStatus.rationaleWordCount}/{packageStatus.minimumRationaleWords} words</strong>
-            </div>
-            <div className="decision-v1-progress" aria-hidden="true"><b style={{ width: `${rationaleProgress}%` }} /></div>
-            <p>{packageStatus.packageInputSummary}</p>
-          </div>
-        </section>
       </div>
 
       {latestPackage && (
@@ -169,7 +135,7 @@ export default function SubmitDecisionPanel({
           <div>
             <p>Submission confirmation</p>
             <h3>Decision submitted for {latestPackage.caseId}</h3>
-            <span>{latestPackage.choice} · {latestPackage.confidence} confidence · saved {latestPackage.savedAt}</span>
+            <span>{latestPackage.choice || 'No determination selected'} · {latestPackage.confidence} confidence · saved {latestPackage.savedAt}</span>
           </div>
           <button type="button" className="decision-open-debrief" onClick={openDebrief}>Open Luna Debrief</button>
         </section>
