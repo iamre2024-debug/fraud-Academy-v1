@@ -1,12 +1,109 @@
 import { useEffect, useMemo, useState } from 'react';
 import { documentSearchText, getCaseDocuments } from './data/documentRecords.js';
 import { isRequestableDocument, receiveGeneratedDocument, recordDocumentRequest } from './data/documentRequestFulfillment.js';
+import './trainingIdentityCard.css';
 
 function fieldValue(document, label) {
   return document?.fields?.find(([field]) => field === label)?.[1] ?? 'Not recorded';
 }
 
+function sectionValue(page, sectionTitle, label, fallback = 'Not recorded') {
+  const section = page.sections.find((item) => item.title === sectionTitle);
+  return section?.rows?.find(([field]) => field === label)?.[1] ?? fallback;
+}
+
+function TrainingIdentityCard({ document, page, pageNumber }) {
+  const isBack = page.kind === 'identity-back';
+  const name = sectionValue(page, 'Identity fields', 'Name', fieldValue(document, 'Name'));
+  const dob = sectionValue(page, 'Identity fields', 'DOB', fieldValue(document, 'Date of birth'));
+  const address = sectionValue(page, 'Identity fields', 'Address', fieldValue(document, 'Address'));
+  const issued = sectionValue(page, 'Document dates', 'Issued', fieldValue(document, 'Issued'));
+  const expires = sectionValue(page, 'Document dates', 'Expires', fieldValue(document, 'Expires'));
+  const documentNumber = sectionValue(page, 'Document dates', 'Document no.', fieldValue(document, 'Document number'));
+  const barcode = sectionValue(page, 'Machine-readable fields', 'Barcode result', 'Training-only encoded block');
+  const documentSuffix = sectionValue(page, 'Machine-readable fields', 'Document suffix', '0000');
+  const barcodeName = sectionValue(page, 'Machine-readable fields', 'Name field', name);
+  const barcodeAddress = sectionValue(page, 'Machine-readable fields', 'Address field', address);
+
+  return (
+    <article className={`training-id-card ${isBack ? 'training-id-card-back' : ''}`} aria-label={`${document.title} page ${pageNumber}`}>
+      <div className="training-id-watermark">TRAINING ONLY</div>
+      <header className="training-id-header">
+        <div>
+          <span>FRAUD ACADEMY</span>
+          <strong>Training Identity Authority</strong>
+        </div>
+        <p>FICTIONAL DRIVER LICENSE</p>
+      </header>
+      {isBack ? (
+        <div className="training-id-back-grid">
+          <section>
+            <h4>Machine Readable Training Block</h4>
+            <div className="training-id-barcode" aria-label="Non-scannable training barcode">
+              {Array.from({ length: 32 }, (_, index) => <span key={index} />)}
+            </div>
+            <dl>
+              <div><dt>Barcode result</dt><dd>{barcode}</dd></div>
+              <div><dt>Encoded name</dt><dd>{barcodeName}</dd></div>
+              <div><dt>Encoded address</dt><dd>{barcodeAddress}</dd></div>
+              <div><dt>Training suffix</dt><dd>{documentSuffix}</dd></div>
+              <div><dt>Card use</dt><dd>Fictional classroom verification only</dd></div>
+            </dl>
+          </section>
+          <section>
+            <h4>Back Image Review</h4>
+            {page.sections.flatMap((section) => section.rows ?? []).map(([label, value]) => (
+              <p key={label}><strong>{label}</strong><span>{value}</span></p>
+            ))}
+            <p><strong>Fake-ID cue</strong><span>Encoded suffix and visible document number should be compared before relying on the card.</span></p>
+          </section>
+        </div>
+      ) : (
+        <div className="training-id-front-grid">
+          <div className="training-id-photo" aria-label="Fictional training portrait">
+            <span>{page.initials}</span>
+            <small>SAMPLE</small>
+          </div>
+          <div className="training-id-main">
+            <span className="training-id-purpose">NOT VALID FOR REAL-WORLD IDENTIFICATION</span>
+            <dl>
+              <div><dt>DL</dt><dd>{documentNumber}</dd></div>
+              <div><dt>DOB</dt><dd>{dob}</dd></div>
+              <div><dt>ISS</dt><dd>{issued}</dd></div>
+              <div><dt>EXP</dt><dd>{expires}</dd></div>
+            </dl>
+            <h4>{name}</h4>
+            <p>{address}</p>
+            <div className="training-id-small-fields">
+              <span>CLASS C</span>
+              <span>END NONE</span>
+              <span>RESTR NONE</span>
+            </div>
+          </div>
+          <div className="training-id-ghost">
+            <span>{page.initials}</span>
+          </div>
+          <aside className="training-id-cues" aria-label="Training fake ID cues">
+            <h4>Review cues</h4>
+            <p>Issuer is fictional training authority.</p>
+            <p>Document number format is not state-issued.</p>
+            <p>Back barcode must match name and address.</p>
+          </aside>
+        </div>
+      )}
+      <footer>
+        <span>Fictional training document - check for fake-ID cues</span>
+        <strong>Page {pageNumber} of {document.pages.length}</strong>
+      </footer>
+    </article>
+  );
+}
+
 function DocumentPage({ document, page, pageNumber, zoom }) {
+  if (['identity-front', 'identity-back'].includes(page.kind)) {
+    return <TrainingIdentityCard document={document} page={page} pageNumber={pageNumber} />;
+  }
+
   return (
     <article
       className={`document-page document-page-${page.kind ?? 'standard'}`}
