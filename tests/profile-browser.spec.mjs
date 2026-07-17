@@ -83,5 +83,5 @@ test('approved Profile opens from the agent avatar and preserves neutral respons
 
   await page.locator('[data-profile-screen="approved-theme-v1"]').getByRole('button', { name: 'Open Academy Progress', exact: true }).click();
   await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'progress');
-  await expect(page.getByText('Saved package progress', { exact: true })).toBeVisible();
+  await expect(page.getByText('Submitted decision progress', { exact: true })).toBeVisible();
 });

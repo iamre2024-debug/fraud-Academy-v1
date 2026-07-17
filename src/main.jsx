@@ -35,6 +35,7 @@ import './displayProfileThemeV1Safety.css';
 import './displayFinalResponsivePolishV1.css';
 import './responsiveLayoutMode.css';
 import './mobileAppPages.css';
+import './mobileExperienceV2.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

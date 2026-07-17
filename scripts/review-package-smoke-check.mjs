@@ -87,7 +87,10 @@ const chargebackCase = {
   requiredTools: ['Case Summary', 'Customer 360', 'Transaction History', 'Business 360', 'Document Viewer', 'Document Request'],
 };
 const chargebackChoices = getReviewChoices(chargebackCase);
-assert(getRequiredReviewTools(chargebackCase).length === chargebackCase.requiredTools.length, 'Chargeback package should use its own required tools.');
+assert(!getRequiredReviewTools(chargebackCase).includes('Business 360'), 'Non-fraud chargeback package should not require generic business tools.');
+assert(getRequiredReviewTools(chargebackCase).includes('Merchant Intelligence'), 'Non-fraud chargeback package should require merchant packet review.');
+assert(getRequiredReviewTools(chargebackCase).includes('Document Viewer'), 'Non-fraud chargeback package should require document review.');
+assert(getRequiredReviewTools(chargebackCase).includes('Document Request'), 'Non-fraud chargeback package should track requested customer documents.');
 assert(getDecisionCallGroups(chargebackCase).some((group) => group.label === 'Chargeback determination calls'), 'Chargeback package should use chargeback decision calls.');
 assert(chargebackChoices.includes('Route for chargeback representment review'), 'Chargeback package should include the representment route.');
 assert(!chargebackChoices.includes('Support Credit Request'), 'Chargeback package should not use credit-only decision calls.');

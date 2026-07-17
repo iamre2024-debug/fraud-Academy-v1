@@ -28,7 +28,7 @@ mustContain('AcademyThemeV1Panel.jsx', academy, '<DirectCollapsibleText as="p" l
 mustContain('AcademyThemeV1Panel.jsx', academy, "onClick={() => onNavigate('progress')}>Open Academy Progress</button>");
 mustContain('AcademyProgressPanel.jsx', progress, "import DirectCollapsibleText from './DirectCollapsibleText.jsx';");
 mustContain('AcademyProgressPanel.jsx', progress, '<DirectCollapsibleText as="p" lines={2} mobileLines={2}>');
-mustContain('AcademyProgressPanel.jsx', progress, 'Submit a review package to unlock Luna progress.');
+mustContain('AcademyProgressPanel.jsx', progress, 'Submit a decision to save the record and unlock Luna progress.');
 mustNotContain('VisualNavigation.jsx', navigation, 'Luna scoring only appears before submission');
 mustContain('VisualTextCollapse.jsx', visualTextCollapse, 'data-react-text-collapse="retired"');
 mustNotContain('VisualTextCollapse.jsx', visualTextCollapse, 'COLLAPSE_SELECTOR');

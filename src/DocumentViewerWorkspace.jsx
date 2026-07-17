@@ -1,11 +1,109 @@
 import { useEffect, useMemo, useState } from 'react';
 import { documentSearchText, getCaseDocuments } from './data/documentRecords.js';
+import { isRequestableDocument, receiveGeneratedDocument, recordDocumentRequest } from './data/documentRequestFulfillment.js';
+import './trainingIdentityCard.css';
 
 function fieldValue(document, label) {
   return document?.fields?.find(([field]) => field === label)?.[1] ?? 'Not recorded';
 }
 
+function sectionValue(page, sectionTitle, label, fallback = 'Not recorded') {
+  const section = page.sections.find((item) => item.title === sectionTitle);
+  return section?.rows?.find(([field]) => field === label)?.[1] ?? fallback;
+}
+
+function TrainingIdentityCard({ document, page, pageNumber }) {
+  const isBack = page.kind === 'identity-back';
+  const name = sectionValue(page, 'Identity fields', 'Name', fieldValue(document, 'Name'));
+  const dob = sectionValue(page, 'Identity fields', 'DOB', fieldValue(document, 'Date of birth'));
+  const address = sectionValue(page, 'Identity fields', 'Address', fieldValue(document, 'Address'));
+  const issued = sectionValue(page, 'Document dates', 'Issued', fieldValue(document, 'Issued'));
+  const expires = sectionValue(page, 'Document dates', 'Expires', fieldValue(document, 'Expires'));
+  const documentNumber = sectionValue(page, 'Document dates', 'Document no.', fieldValue(document, 'Document number'));
+  const barcode = sectionValue(page, 'Machine-readable fields', 'Barcode result', 'Training-only encoded block');
+  const documentSuffix = sectionValue(page, 'Machine-readable fields', 'Document suffix', '0000');
+  const barcodeName = sectionValue(page, 'Machine-readable fields', 'Name field', name);
+  const barcodeAddress = sectionValue(page, 'Machine-readable fields', 'Address field', address);
+
+  return (
+    <article className={`training-id-card ${isBack ? 'training-id-card-back' : ''}`} aria-label={`${document.title} page ${pageNumber}`}>
+      <div className="training-id-watermark">TRAINING ONLY</div>
+      <header className="training-id-header">
+        <div>
+          <span>FRAUD ACADEMY</span>
+          <strong>Training Identity Authority</strong>
+        </div>
+        <p>FICTIONAL DRIVER LICENSE</p>
+      </header>
+      {isBack ? (
+        <div className="training-id-back-grid">
+          <section>
+            <h4>Machine Readable Training Block</h4>
+            <div className="training-id-barcode" aria-label="Non-scannable training barcode">
+              {Array.from({ length: 32 }, (_, index) => <span key={index} />)}
+            </div>
+            <dl>
+              <div><dt>Barcode result</dt><dd>{barcode}</dd></div>
+              <div><dt>Encoded name</dt><dd>{barcodeName}</dd></div>
+              <div><dt>Encoded address</dt><dd>{barcodeAddress}</dd></div>
+              <div><dt>Training suffix</dt><dd>{documentSuffix}</dd></div>
+              <div><dt>Card use</dt><dd>Fictional classroom verification only</dd></div>
+            </dl>
+          </section>
+          <section>
+            <h4>Back Image Review</h4>
+            {page.sections.flatMap((section) => section.rows ?? []).map(([label, value]) => (
+              <p key={label}><strong>{label}</strong><span>{value}</span></p>
+            ))}
+            <p><strong>Fake-ID cue</strong><span>Encoded suffix and visible document number should be compared before relying on the card.</span></p>
+          </section>
+        </div>
+      ) : (
+        <div className="training-id-front-grid">
+          <div className="training-id-photo" aria-label="Fictional training portrait">
+            <span>{page.initials}</span>
+            <small>SAMPLE</small>
+          </div>
+          <div className="training-id-main">
+            <span className="training-id-purpose">NOT VALID FOR REAL-WORLD IDENTIFICATION</span>
+            <dl>
+              <div><dt>DL</dt><dd>{documentNumber}</dd></div>
+              <div><dt>DOB</dt><dd>{dob}</dd></div>
+              <div><dt>ISS</dt><dd>{issued}</dd></div>
+              <div><dt>EXP</dt><dd>{expires}</dd></div>
+            </dl>
+            <h4>{name}</h4>
+            <p>{address}</p>
+            <div className="training-id-small-fields">
+              <span>CLASS C</span>
+              <span>END NONE</span>
+              <span>RESTR NONE</span>
+            </div>
+          </div>
+          <div className="training-id-ghost">
+            <span>{page.initials}</span>
+          </div>
+          <aside className="training-id-cues" aria-label="Training fake ID cues">
+            <h4>Review cues</h4>
+            <p>Issuer is fictional training authority.</p>
+            <p>Document number format is not state-issued.</p>
+            <p>Back barcode must match name and address.</p>
+          </aside>
+        </div>
+      )}
+      <footer>
+        <span>Fictional training document - check for fake-ID cues</span>
+        <strong>Page {pageNumber} of {document.pages.length}</strong>
+      </footer>
+    </article>
+  );
+}
+
 function DocumentPage({ document, page, pageNumber, zoom }) {
+  if (['identity-front', 'identity-back'].includes(page.kind)) {
+    return <TrainingIdentityCard document={document} page={page} pageNumber={pageNumber} />;
+  }
+
   return (
     <article
       className={`document-page document-page-${page.kind ?? 'standard'}`}
@@ -103,10 +201,11 @@ export default function DocumentViewerWorkspace({
   const [accountLookup, setAccountLookup] = useState('');
   const [matchedAccountId, setMatchedAccountId] = useState('');
   const [lookupError, setLookupError] = useState('');
+  const [documentVersion, setDocumentVersion] = useState(0);
   const normalizeAccountId = (value = '') => String(value).trim().toUpperCase();
   const accessGranted = Boolean(matchedAccountId)
     && normalizeAccountId(activeCase.accountId) === matchedAccountId;
-  const documents = useMemo(() => accessGranted ? getCaseDocuments(activeCase) : [], [accessGranted, activeCase]);
+  const documents = useMemo(() => accessGranted ? getCaseDocuments(activeCase) : [], [accessGranted, activeCase, documentVersion]);
   const folders = useMemo(() => ['All Documents', ...new Set(documents.map((document) => document.folder))], [documents]);
   const statuses = useMemo(() => ['All statuses', ...new Set(documents.map((document) => document.status))], [documents]);
   const [folder, setFolder] = useState('All Documents');
@@ -128,6 +227,9 @@ export default function DocumentViewerWorkspace({
     ?? documents[0];
   const activePage = activeDocument?.pages?.[pageIndex] ?? activeDocument?.pages?.[0];
   const comparedDocuments = compareIds.map((id) => documents.find((document) => document.id === id)).filter(Boolean);
+  const activeDocumentRequestable = activeDocument ? isRequestableDocument(activeDocument) : false;
+  const activeDocumentReceived = activeDocument?.requestStatus === 'Received' && activeDocument?.pages?.length > 0;
+  const activeDocumentRequestSent = activeDocument?.requestStatus === 'Requested';
 
   useEffect(() => {
     setFolder('All Documents');
@@ -142,6 +244,12 @@ export default function DocumentViewerWorkspace({
   useEffect(() => {
     setPageIndex(0);
   }, [activeDocument?.id]);
+
+  useEffect(() => {
+    const refreshDocuments = () => setDocumentVersion((current) => current + 1);
+    window.addEventListener('fraud-academy:documents-updated', refreshDocuments);
+    return () => window.removeEventListener('fraud-academy:documents-updated', refreshDocuments);
+  }, []);
 
   function openDocument(documentId) {
     setSelectedDocumentId(documentId);
@@ -176,6 +284,21 @@ export default function DocumentViewerWorkspace({
     link.download = `${activeDocument.id}.txt`;
     link.click();
     window.URL.revokeObjectURL(url);
+  }
+
+  function sendDocumentRequest() {
+    if (!activeDocument || !activeDocumentRequestable || activeDocumentReceived || activeDocumentRequestSent) return;
+    const requested = recordDocumentRequest(activeCase.id, activeDocument);
+    setSelectedDocumentId(requested.id);
+    saveNote(`${requested.id}: request sent for ${requested.title}.`, 'Document request');
+  }
+
+  function receiveDocumentResponse() {
+    if (!activeDocument || !activeDocumentRequestable || activeDocumentReceived || !activeDocumentRequestSent) return;
+    const generated = receiveGeneratedDocument(activeCase.id, activeDocument);
+    setSelectedDocumentId(generated.id);
+    setPageIndex(0);
+    saveNote(`${generated.id}: generated fictional response received for ${generated.title}.`, 'Document request');
   }
 
   function searchByAccountId(event) {
@@ -299,6 +422,8 @@ export default function DocumentViewerWorkspace({
                 <div className="document-toolbar-actions">
                   <button type="button" onClick={() => pin(`${activeDocument.id} | ${activeDocument.title}`)}>Pin</button>
                   <button type="button" aria-pressed={compareIds.includes(activeDocument.id)} onClick={() => toggleCompare(activeDocument.id)}>Compare</button>
+                  <button type="button" disabled={!activeDocumentRequestable || activeDocumentReceived || activeDocumentRequestSent} onClick={sendDocumentRequest}>Send request</button>
+                  <button type="button" disabled={!activeDocumentRequestable || activeDocumentReceived || !activeDocumentRequestSent} onClick={receiveDocumentResponse}>Receive generated document</button>
                   <button type="button" onClick={exportDocument}>Export</button>
                 </div>
               </header>

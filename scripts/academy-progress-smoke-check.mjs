@@ -20,7 +20,7 @@ mustContain('VisualNavigation.jsx', navigation, "window.addEventListener('fraud-
 mustContain('VisualNavigation.jsx', navigation, '<AcademyProgressPanel cases={cases} packagesByCase={snapshot.packagesByCase} onOpenCase={onOpenCase} />');
 
 mustContain('AcademyProgressPanel.jsx', progress, "import DirectCollapsibleText from './DirectCollapsibleText.jsx';");
-mustContain('AcademyProgressPanel.jsx', progress, 'Submit a review package to unlock Luna progress.');
+mustContain('AcademyProgressPanel.jsx', progress, 'Submit a decision to save the record and unlock Luna progress.');
 mustContain('AcademyProgressPanel.jsx', progress, 'Luna debrief is available for this case.');
 mustContain('AcademyProgressPanel.jsx', progress, 'reviewPackage.reviewedRequired');
 mustContain('AcademyProgressPanel.jsx', progress, 'reviewPackage.pinnedEvidence?.length');

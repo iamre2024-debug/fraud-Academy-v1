@@ -38,7 +38,7 @@ for (const anchor of [
   'case-queue-chargeback-details',
   'Evidence First',
   'className="nav-case-card"',
-  'onOpenCase?.(item.id)',
+  'openQueueItem(item.id)',
   "['generated', 'Generated']",
   "['completed', 'Completed']",
   'No cases match these filters.',

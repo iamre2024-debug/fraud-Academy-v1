@@ -1482,7 +1482,7 @@ function FinancialInvestigationWorkspace({ activeCase, pin, saveNote, markReview
       </div>
 
       <nav className="investigation-tool-next-routes" aria-label="Financial Investigation next routes"><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
-      <footer className="investigation-tool-review-bar"><div><strong>Financial Investigation review</strong><span>Mark reviewed after comparing the relevant money sections and saving the evidence needed for the case package.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Financial Investigation')}>{reviewed ? '✓ Financial Investigation reviewed' : 'Mark Financial Investigation reviewed'}</button></footer>
+      <footer className="investigation-tool-review-bar"><div><strong>Financial Investigation review</strong><span>Mark reviewed after comparing the relevant money sections and saving the evidence needed for the decision.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Financial Investigation')}>{reviewed ? '✓ Financial Investigation reviewed' : 'Mark Financial Investigation reviewed'}</button></footer>
     </>
   );
 }
@@ -1923,7 +1923,7 @@ export default function InvestigationToolPanel({
         <div>
           <p>Working question</p>
           <h3 id="investigation-tool-question-heading">{toolDetail.question}</h3>
-          <span>Review the records, expand the useful details, and save only the evidence needed for the case package.</span>
+          <span>Review the records, expand the useful details, and save only the evidence needed for the decision.</span>
         </div>
       </section>
 

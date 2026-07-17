@@ -128,8 +128,8 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
   await expect(luna).toBeVisible();
   await expect(luna.getByRole('heading', { name: 'Your submitted determination', exact: true })).toBeVisible();
   await expect(luna.getByText(learnerChoice, { exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'How Luna read the package', exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'What your package did well', exact: true })).toBeVisible();
+  await expect(luna.getByRole('heading', { name: 'How Luna read the submitted record', exact: true })).toBeVisible();
+  await expect(luna.getByRole('heading', { name: 'What your submitted record did well', exact: true })).toBeVisible();
   await expect(luna.getByRole('heading', { name: 'Next coaching focus', exact: true })).toBeVisible();
   await expect(luna.getByRole('heading', { name: 'Decision-quality breakdown', exact: true })).toBeVisible();
   const notesQualityLabel = luna.getByText('Quality of notes', { exact: true });

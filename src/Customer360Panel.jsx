@@ -11,7 +11,7 @@ const dossierTabs = [
   { id: 'accounts', label: 'Accounts', sections: ['products', 'relationship'] },
   { id: 'devices', label: 'Devices & Access', sections: ['security'] },
   { id: 'contact', label: 'Contact History', sections: ['contact', 'contact-log'] },
-  { id: 'history', label: 'Profile History', sections: ['prior-claims'] },
+  { id: 'history', label: 'Profile & Relationship', sections: ['prior-claims'] },
   { id: 'notes', label: 'Notes', sections: [] },
 ];
 
@@ -254,9 +254,12 @@ export default function Customer360Panel({
   const documents = getCaseDocuments(activeCase);
   const sections = buildDossierSections(activeCase, dossier, currentCompleted);
   const claimContext = dossier.claimContext;
-  const profileChanges = (activeCase.customer?.profileChanges ?? []).filter((item) => matchesQuery(Object.values(item).join(' '), normalizedQuery));
+  const allProfileChanges = activeCase.customer?.profileChanges ?? [];
+  const profileChanges = allProfileChanges.filter((item) => matchesQuery(Object.values(item).join(' '), normalizedQuery));
   const visibleSections = sections.filter((section) => !normalizedQuery || matchesQuery(`${section.title} ${section.subtitle} ${section.fields.flat().join(' ')}`, normalizedQuery));
   const visibleRows = rows.filter((row) => matchesQuery(`${row.id} ${row.label} ${row.detail}`, normalizedQuery));
+  const profileEventIds = new Set(allProfileChanges.map((event) => event.id));
+  const relationshipRows = visibleRows.filter((row) => !profileEventIds.has(row.id));
   const selectedTab = dossierTabs.find((item) => item.id === activeTab) ?? dossierTabs[0];
   const tabSections = sections.filter((section) => (
     normalizedQuery || selectedTab.sections.includes(section.id)
@@ -276,14 +279,21 @@ export default function Customer360Panel({
     setActiveTab('overview');
   }, [activeCase.id]);
 
-  function exportProfileChangeReport() {
+  function exportProfileRelationshipHistory() {
     const lines = [
-      'Fraud Academy - Profile Change Report',
+      'Fraud Academy - Profile & Relationship History',
       `Case: ${activeCase.id}`,
       `Customer: ${activeCase.person}`,
       'Fictional training data only',
       '',
-      ...(activeCase.customer?.profileChanges ?? []).flatMap((event) => [
+      'RELATIONSHIP SNAPSHOT',
+      ...rows.filter((row) => !allProfileChanges.some((event) => event.id === row.id)).flatMap((row) => [
+        `${row.id} | ${row.label}`,
+        row.detail,
+        '',
+      ]),
+      'PROFILE CHANGE EVENTS',
+      ...allProfileChanges.flatMap((event) => [
         `${event.date}${event.time ? ` · ${event.time}` : ''} | ${event.eventType ?? 'Profile maintenance'} | ${event.item}`,
         `Old value: ${event.oldValue ?? 'Not supplied'}`,
         `New value: ${event.newValue ?? 'Not supplied'}`,
@@ -297,7 +307,7 @@ export default function Customer360Panel({
     const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${activeCase.id}-profile-change-report.txt`;
+    link.download = `${activeCase.id}-profile-relationship-history.txt`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -455,54 +465,56 @@ export default function Customer360Panel({
         </div> : <div className="customer-360-empty">No prior claim or dispute record is supplied for this fictional profile.</div>}
       </section>}
 
-      {(activeTab === 'history' || normalizedQuery) && <section className="customer-360-profile-log" aria-labelledby="customer-360-profile-log-heading">
+      {(activeTab === 'history' || normalizedQuery) && <section className="customer-360-profile-log customer-360-related-records" aria-labelledby="customer-360-profile-log-heading">
         <header className="customer-360-section-heading">
           <div>
-            <p>Permanent dossier history</p>
-            <h3 id="customer-360-profile-log-heading">Profile Change Event Log</h3>
+            <p>Customer relationship and permanent dossier history</p>
+            <h3 id="customer-360-profile-log-heading">Profile & Relationship History</h3>
           </div>
-          <div className="customer-360-section-actions"><span>{profileChanges.length} shown</span><button type="button" onClick={exportProfileChangeReport}>Export Profile Change Report</button></div>
+          <div className="customer-360-section-actions"><span>{relationshipRows.length + profileChanges.length} shown</span><button type="button" onClick={exportProfileRelationshipHistory}>Export History</button></div>
         </header>
-        <div className="customer-360-event-list">
-          {profileChanges.map((event) => (
-            <article key={event.id} className="customer-360-event-card" data-profile-event={event.id}>
-              <div className="customer-360-event-time"><strong>{event.date}</strong><span>{event.time ?? 'Time not supplied'}</span><span>{event.source}</span></div>
-              <div className="customer-360-event-copy">
-                <h4>{event.item}</h4>
-                <DirectCollapsibleText lines={2} mobileLines={3}>{event.detail}</DirectCollapsibleText>
-                <dl>{profileEventMetadata(event).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
-              </div>
-              <div className="customer-360-event-actions">
-                <button type="button" onClick={() => pin(`${event.id} · ${event.item}`)}>Pin</button>
-                <button type="button" onClick={() => saveNote(`Customer 360 profile event ${event.id}: ${event.item}. ${event.detail}`, 'Customer profile event')}>Save note</button>
-              </div>
-            </article>
-          ))}
-          {!profileChanges.length && <div className="customer-360-empty" role="status">No profile events match this search.</div>}
-        </div>
-      </section>}
-
-      {(activeTab === 'devices' || normalizedQuery) && <section className="customer-360-related-records" aria-labelledby="customer-360-related-records-heading">
-        <header className="customer-360-section-heading">
-          <div>
-            <p>Searchable case objects</p>
-            <h3 id="customer-360-related-records-heading">Related Customer Records</h3>
+        <div className="customer-360-history-layout">
+          <div className="customer-360-history-relationship">
+            <div className="customer-360-history-subheading">
+              <span>Relationship snapshot</span>
+              <small>{relationshipRows.length} records</small>
+            </div>
+            <div className="customer-360-record-grid">
+              {relationshipRows.map((row) => (
+                <article key={row.id} className={activeRow?.id === row.id ? 'selected' : ''} data-customer-record={row.id}>
+                  <span>{row.id}</span>
+                  <h4>{row.label}</h4>
+                  <DirectCollapsibleText lines={2} mobileLines={3}>{row.detail}</DirectCollapsibleText>
+                  <div>
+                    <button type="button" onClick={() => setExpandedId(row.id)}>Open record</button>
+                    <button type="button" onClick={() => pin(row.pin)}>Pin</button>
+                  </div>
+                </article>
+              ))}
+              {!relationshipRows.length && <div className="customer-360-empty" role="status">No relationship records match this search.</div>}
+            </div>
           </div>
-          <span>{visibleRows.length} shown</span>
-        </header>
-        <div className="customer-360-record-grid">
-          {visibleRows.map((row) => (
-            <article key={row.id} className={activeRow?.id === row.id ? 'selected' : ''} data-customer-record={row.id}>
-              <span>{row.id}</span>
-              <h4>{row.label}</h4>
-              <DirectCollapsibleText lines={2} mobileLines={3}>{row.detail}</DirectCollapsibleText>
-              <div>
-                <button type="button" onClick={() => setExpandedId(row.id)}>Open record</button>
-                <button type="button" onClick={() => pin(row.pin)}>Pin</button>
-              </div>
-            </article>
-          ))}
-          {!visibleRows.length && <div className="customer-360-empty" role="status">No related customer records match this search.</div>}
+          <div className="customer-360-event-list">
+            <div className="customer-360-history-subheading">
+              <span>Profile change events</span>
+              <small>{profileChanges.length} events</small>
+            </div>
+            {profileChanges.map((event) => (
+              <article key={event.id} className="customer-360-event-card" data-profile-event={event.id}>
+                <div className="customer-360-event-time"><strong>{event.date}</strong><span>{event.time ?? 'Time not supplied'}</span><span>{event.source}</span></div>
+                <div className="customer-360-event-copy">
+                  <h4>{event.item}</h4>
+                  <DirectCollapsibleText lines={2} mobileLines={3}>{event.detail}</DirectCollapsibleText>
+                  <dl>{profileEventMetadata(event).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+                </div>
+                <div className="customer-360-event-actions">
+                  <button type="button" onClick={() => pin(`${event.id} · ${event.item}`)}>Pin</button>
+                  <button type="button" onClick={() => saveNote(`Customer 360 profile event ${event.id}: ${event.item}. ${event.detail}`, 'Customer profile event')}>Save note</button>
+                </div>
+              </article>
+            ))}
+            {!profileChanges.length && <div className="customer-360-empty" role="status">No profile events match this search.</div>}
+          </div>
         </div>
       </section>}
 

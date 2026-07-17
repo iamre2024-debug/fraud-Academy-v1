@@ -124,6 +124,9 @@ export default function CasesThemeV1Panel({
   const [generatorDepth, setGeneratorDepth] = useState('standard');
   const [generatorCount, setGeneratorCount] = useState('1');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [mobileGeneratorOpen, setMobileGeneratorOpen] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
 
   useEffect(() => {
     const frame = document.querySelector('.visual-os-frame');
@@ -171,6 +174,14 @@ export default function CasesThemeV1Panel({
       window.removeEventListener('fraud-academy:packages-updated', refresh);
     };
   }, []);
+
+  useEffect(() => {
+    if (!active) {
+      setMobilePreviewOpen(false);
+      setMobileFiltersOpen(false);
+      setMobileGeneratorOpen(false);
+    }
+  }, [active]);
 
   const selectedCase = useMemo(
     () => cases.find((item) => item.id === selectedCaseId) ?? cases[0],
@@ -225,10 +236,26 @@ export default function CasesThemeV1Panel({
         setSelectedCaseId(firstCase.id);
         setScope('generated');
         setQuery('');
+        setMobileGeneratorOpen(false);
+        setMobilePreviewOpen(true);
       }
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  function isMobileLayout() {
+    return typeof document !== 'undefined' && document.body.dataset.layoutMode === 'mobile';
+  }
+
+  function openQueueItem(itemId) {
+    setSelectedCaseId(itemId);
+    onOpenCase?.(itemId);
+  }
+
+  function previewQueueItem(itemId) {
+    setSelectedCaseId(itemId);
+    if (isMobileLayout()) setMobilePreviewOpen(true);
   }
 
   if (!active || !panelHost) return null;
@@ -244,7 +271,37 @@ export default function CasesThemeV1Panel({
         <div className="cases-theme-v1-mark" aria-hidden="true">▣</div>
       </header>
 
-      <section className="case-generator-v2" aria-label="Generate fictional training cases">
+      <div className="case-queue-mobile-actions" aria-label="Mobile case queue controls">
+        <button
+          type="button"
+          className={mobileFiltersOpen ? 'active' : ''}
+          aria-expanded={mobileFiltersOpen}
+          aria-controls="case-queue-mobile-filters"
+          aria-label="Open case filters"
+          onClick={() => setMobileFiltersOpen((current) => !current)}
+        >
+          <span aria-hidden="true">⌕</span>
+          Filters
+        </button>
+        <button
+          type="button"
+          className={mobileGeneratorOpen ? 'active' : ''}
+          aria-expanded={mobileGeneratorOpen}
+          aria-controls="case-queue-mobile-generator"
+          aria-label="Open case generator"
+          onClick={() => setMobileGeneratorOpen((current) => !current)}
+        >
+          <span aria-hidden="true">✦</span>
+          Generate
+        </button>
+      </div>
+
+      <section
+        id="case-queue-mobile-generator"
+        className="case-generator-v2"
+        data-mobile-expanded={mobileGeneratorOpen}
+        aria-label="Generate fictional training cases"
+      >
         <header>
           <div>
             <p>Case generator</p>
@@ -313,7 +370,12 @@ export default function CasesThemeV1Panel({
         <article><strong>{scopeCounts.completed}</strong><span>Completed</span></article>
       </section>
 
-      <section className="case-queue-controls" aria-label="Case queue controls">
+      <section
+        id="case-queue-mobile-filters"
+        className="case-queue-controls"
+        data-mobile-expanded={mobileFiltersOpen}
+        aria-label="Case queue controls"
+      >
         <label className="case-queue-search">
           <span>Search cases</span>
           <input
@@ -400,7 +462,7 @@ export default function CasesThemeV1Panel({
                     <button
                       type="button"
                       className="nav-case-card"
-                      onClick={() => onOpenCase?.(item.id)}
+                      onClick={() => openQueueItem(item.id)}
                       onMouseEnter={() => setSelectedCaseId(item.id)}
                       onFocus={() => setSelectedCaseId(item.id)}
                     >
@@ -426,7 +488,7 @@ export default function CasesThemeV1Panel({
                     <button
                       type="button"
                       className="case-queue-preview-control"
-                      onClick={() => setSelectedCaseId(item.id)}
+                      onClick={() => previewQueueItem(item.id)}
                       aria-pressed={isSelected}
                     >
                       {isSelected ? 'Preview selected' : 'Preview details'}
@@ -455,7 +517,13 @@ export default function CasesThemeV1Panel({
         </section>
 
         {selectedCase && (
-          <aside className="case-queue-preview" aria-label="Selected case preview">
+          <aside
+            className="case-queue-preview"
+            data-mobile-open={mobilePreviewOpen}
+            aria-label="Selected case preview"
+            aria-hidden={isMobileLayout() && !mobilePreviewOpen}
+          >
+            <button type="button" className="case-queue-preview-close" onClick={() => setMobilePreviewOpen(false)} aria-label="Close selected case preview">‹ Back to cases</button>
             <div className="case-queue-preview-heading">
               <div>
                 <span>Selected case preview</span>

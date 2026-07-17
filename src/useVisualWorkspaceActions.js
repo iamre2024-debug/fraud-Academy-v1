@@ -158,14 +158,14 @@ export default function useVisualWorkspaceActions({
       ...current,
       [activeCase.id]: [reviewPackage, ...(current[activeCase.id] ?? [])],
     }));
-    recordAction('Saved learner package', 'Submit Decision package saved; post-submission debrief is available.', 'Submit Decision');
+    recordAction('Saved submitted decision record', 'Submitted Decision Record saved; post-submission debrief is available.', 'Submit Decision');
     window.dispatchEvent(new CustomEvent('fraud-academy:package-saved', {
       detail: { caseId: activeCase.id, packageId: reviewPackage.id, reviewPackage },
     }));
     markReviewed('Submit Decision');
     saveNote(
-      'Submit Decision: learner review package saved. Post-submission Luna debrief can now read the saved package state.',
-      'Decision package',
+      'Submit Decision: Submitted Decision Record saved. Post-submission Luna debrief can now read the saved decision state.',
+      'Submitted decision record',
     );
   }
 

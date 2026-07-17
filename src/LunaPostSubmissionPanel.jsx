@@ -114,7 +114,7 @@ export default function LunaPostSubmissionPanel({
         <div>
           <p className="luna-v1-eyebrow">Debrief · Senior investigator coaching</p>
           <h2>Luna Post-Submission Debrief</h2>
-          <p>{locked ? 'Post-submission coaching stays locked until Submit Decision saves a learner package.' : state.debrief.coachIntro}</p>
+          <p>{locked ? 'Post-submission coaching stays locked until Submit Decision saves a Submitted Decision Record.' : state.debrief.coachIntro}</p>
         </div>
         <div className="luna-v1-header-status">
           <span>{activeCase.id}</span>
@@ -128,7 +128,7 @@ export default function LunaPostSubmissionPanel({
             <div aria-hidden="true">⌁</div>
             <div>
               <p>Evidence First lock is active.</p>
-              <h3>Submit your current decision package when you are ready.</h3>
+              <h3>Submit your decision when you are ready.</h3>
               <span>No score, strengths, evidence coaching, or decision-quality feedback appears before submission.</span>
             </div>
           </section>
@@ -137,7 +137,7 @@ export default function LunaPostSubmissionPanel({
             <article><span>1</span><div><strong>Review what matters</strong><p>Open only the case records you need.</p></div></article>
             <article><span>2</span><div><strong>Add useful flags</strong><p>Flag proof can be saved when it applies.</p></div></article>
             <article><span>3</span><div><strong>Add optional rationale</strong><p>Document any reasoning you want Luna to coach.</p></div></article>
-            <article><span>4</span><div><strong>Submit decision package</strong><p>Submission alone unlocks the case-scoped debrief.</p></div></article>
+            <article><span>4</span><div><strong>Save Submitted Decision Record</strong><p>Submission alone unlocks the case-scoped debrief.</p></div></article>
           </div>
         </div>
       ) : (
@@ -149,7 +149,7 @@ export default function LunaPostSubmissionPanel({
               <p>{state.debrief.scoreLabel}</p>
             </div>
             <div>
-              <p>Saved package</p>
+              <p>Submitted Decision Record</p>
               <strong>{state.reviewPackage.savedAt}</strong>
               <span>{state.reviewPackage.reviewedRequired}/{state.reviewPackage.totalRequired} suggested tools reviewed</span>
             </div>
@@ -166,7 +166,7 @@ export default function LunaPostSubmissionPanel({
             </section>
 
             <section className="luna-v1-card luna-v1-senior-review">
-              <header><span className="luna-v1-step-index" aria-hidden="true">02</span><div><p>Senior review</p><h3>How Luna read the package</h3></div></header>
+              <header><span className="luna-v1-step-index" aria-hidden="true">02</span><div><p>Senior review</p><h3>How Luna read the submitted record</h3></div></header>
               <DirectCollapsibleText as="p" lines={4} mobileLines={5}>{state.debrief.coachIntro}</DirectCollapsibleText>
               <div className="luna-v1-package-facts">
                 <span>{state.reviewPackage.pinnedEvidence.length} pinned</span>
@@ -188,7 +188,7 @@ export default function LunaPostSubmissionPanel({
             )}
 
             <section className="luna-v1-card luna-v1-strengths" data-debrief-step={stepNumbers.strengths}>
-              <header><span className="luna-v1-step-index" aria-hidden="true">{stepNumbers.strengths}</span><div><p>Strong investigation choices</p><h3>What your package did well</h3></div></header>
+              <header><span className="luna-v1-step-index" aria-hidden="true">{stepNumbers.strengths}</span><div><p>Strong investigation choices</p><h3>What your submitted record did well</h3></div></header>
               <div className="luna-v1-list">
                 {state.debrief.strengths.map((item) => (
                   <DirectCollapsibleText key={item} as="p" lines={3} mobileLines={4}>✓ {item}</DirectCollapsibleText>

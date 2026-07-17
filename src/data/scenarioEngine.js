@@ -32,7 +32,7 @@ export const scenarioInputFields = [
 export const scenarioSafetyRules = [
   'Generated cases use fictional people, entities, contact points, devices, reserved training IP ranges, Training IDs, Bank Codes, and Destination IDs.',
   'Generated case summaries explain why the case exists using only the allegation, alert, or review request.',
-  'The hidden truth, expected determination, grading result, and post-submission coaching stay locked until a learner package is saved.',
+  'The hidden truth, expected determination, grading result, and post-submission coaching stay locked until a Submitted Decision Record is saved.',
   'Generated link analysis shows shared objects neutrally without labeling the relationship as safe, confirmed, or suspicious.',
   'Difficulty changes evidence conflict and dependency depth while preserving the selected claim lane and subtype.',
 ];

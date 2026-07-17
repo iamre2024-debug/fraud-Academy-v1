@@ -26,7 +26,7 @@ The implementation follows:
 - Replace the old ornate Case Summary presentation with a calm light-lavender and white Case Briefing card grid.
 - Preserve the active allegation or system-alert context as the reason the case exists.
 - Show case overview, briefing summary, at-a-glance metrics, key focus areas, neutral Luna process support, and recent documents.
-- Add functional utilities for Workspace, Timeline, Notes, Reports, More Tools, and Begin Investigation.
+- Add functional utilities for Workspace, Timeline, Notes, More Tools, and Begin Investigation.
 - Route Begin Investigation into the existing Customer 360 tool without changing the tool implementation.
 - Preserve the existing direct React compact-text controls for transaction/payee information and the short summary.
 - Preserve desktop and mobile no-overflow behavior.

@@ -36,13 +36,11 @@ test('approved Customer 360 is a complete Evidence First dossier', async ({ page
   await expect(customer360.getByRole('heading', { name: 'Recent Customer Contact', exact: true })).toBeVisible();
   await expect(customer360.getByRole('heading', { name: 'Recent Customer Contact Log', exact: true })).toBeVisible();
 
-  await tabs.getByRole('tab', { name: 'Profile History', exact: true }).click();
+  await tabs.getByRole('tab', { name: 'Profile & Relationship', exact: true }).click();
   await expect(customer360.getByRole('heading', { name: 'Prior Claims / Disputes', exact: true })).toBeVisible();
   await expect(customer360.getByRole('heading', { name: 'Prior Claims & Disputes Records', exact: true })).toBeVisible();
-  await expect(customer360.getByRole('heading', { name: 'Profile Change Event Log', exact: true })).toBeVisible();
-
-  await tabs.getByRole('tab', { name: 'Devices & Access', exact: true }).click();
-  await expect(customer360.getByRole('heading', { name: 'Related Customer Records', exact: true })).toBeVisible();
+  await expect(customer360.getByRole('heading', { name: 'Profile & Relationship History', exact: true })).toBeVisible();
+  await expect(customer360.locator('[data-customer-record]').first()).toBeVisible();
 
   await tabs.getByRole('tab', { name: 'Notes', exact: true }).click();
   await expect(customer360.getByRole('heading', { name: 'Customer 360 Notes', exact: true })).toBeVisible();
@@ -50,14 +48,14 @@ test('approved Customer 360 is a complete Evidence First dossier', async ({ page
   const relatedTools = customer360.getByRole('navigation', { name: 'Customer 360 related tools' });
   await expect(relatedTools.getByRole('button')).toHaveCount(7);
 
-  await tabs.getByRole('tab', { name: 'Profile History', exact: true }).click();
+  await tabs.getByRole('tab', { name: 'Profile & Relationship', exact: true }).click();
   await expect(customer360.locator('[data-profile-event]')).toHaveCount(7);
   await expect(customer360.locator('[data-profile-event]').first()).toContainText('Old value');
   await expect(customer360.locator('[data-profile-event]').first()).toContainText('New value');
   await expect(customer360.locator('[data-profile-event]').first()).toContainText('Device / session');
   const profileDownload = page.waitForEvent('download');
-  await customer360.getByRole('button', { name: 'Export Profile Change Report', exact: true }).click();
-  expect((await profileDownload).suggestedFilename()).toBe('FA-ATO-24018-profile-change-report.txt');
+  await customer360.getByRole('button', { name: 'Export History', exact: true }).click();
+  expect((await profileDownload).suggestedFilename()).toBe('FA-ATO-24018-profile-relationship-history.txt');
 
   await tabs.getByRole('tab', { name: 'Overview', exact: true }).click();
 

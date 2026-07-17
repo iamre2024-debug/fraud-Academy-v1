@@ -1059,3 +1059,31 @@ body[data-visual-tab="workspace"] .customer-360-section-actions > span {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+body[data-visual-tab="workspace"] .customer-360-history-layout {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .customer-360-history-subheading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 9px;
+  border-bottom: 1px solid rgba(91, 62, 154, 0.1);
+  padding: 0 2px 8px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-history-subheading span {
+  color: #342758;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+body[data-visual-tab="workspace"] .customer-360-history-subheading small {
+  color: #756c8d;
+  font-size: 0.66rem;
+  font-weight: 800;
+}

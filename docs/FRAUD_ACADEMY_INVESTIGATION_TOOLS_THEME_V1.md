@@ -54,7 +54,7 @@ The approved contextual groups are:
 - Link Analysis
 - System Access Lane
 
-Customer 360 keeps its completed dedicated dossier. Timeline and Case Report remain on the existing workflow renderer until their later isolated redesign steps.
+Customer 360 keeps its completed dedicated dossier. Timeline remains on the existing workflow renderer until its later isolated redesign step.
 
 ## Approved interaction model
 
@@ -62,14 +62,14 @@ Each deep tool now presents:
 
 - one neutral working question;
 - the existing tool selector inside the active contextual group;
-- the protected Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Case Report flow;
+- the protected Record → Expand → Search → History → Link Analysis → Generate Report → Timeline → Submit Decision flow;
 - searchable records;
 - an expanded record workspace;
 - pinning;
 - case-scoped note saving;
 - neutral report-packet saving;
 - reviewed-state tracking;
-- direct routes to Timeline, Case Report, and locked Submit Decision.
+- direct routes to Timeline and locked Submit Decision.
 
 The redesign changes presentation and hierarchy only. It does not replace record builders, tool data, action controllers, or persistence.
 
@@ -124,7 +124,7 @@ Do not merge until all of the following pass on the final branch head:
 5. Pixel 7 Chromium browser coverage;
 6. Evidence First wording guard;
 7. built-in case switching;
-8. search, record expansion, pin/note/report/review actions, and Timeline/Case Report routing;
+8. search, record expansion, pin/note/review actions, and Timeline and Submit Decision routing;
 9. Luna pre-submission lock;
 10. viewport-width safety.
 

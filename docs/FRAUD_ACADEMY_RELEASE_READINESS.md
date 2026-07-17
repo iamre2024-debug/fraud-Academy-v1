@@ -25,7 +25,7 @@ The verified runtime preserves the core Fraud Academy investigation experience a
 | Luna pre-submission lock | Pass | The locked Luna panel is case-scoped for built-in and generated cases; scoring, strengths, missed evidence, and decision-quality feedback remain post-submission only. |
 | Built-in case routes | Pass | Desktop and mobile Playwright open all three built-in cases from the live Case Queue and verify the active case workspace. |
 | Generated-case persistence | Pass | `src/data/generatedCaseRepository.js` keeps IndexedDB primary, localStorage migration and fallback intact, collision-safe IDs, and an uncapped queue. Browser coverage reloads the app and confirms generated cases remain available. |
-| Investigation modules | Pass | Payment Verification, KYB Review, Document Viewer, Link Analysis, Timeline, Case Report, and the single Connections to System Access Lane render live records. |
+| Investigation modules | Pass | Payment Verification, KYB Review, Document Viewer, Link Analysis, Timeline, and the single Connections to System Access Lane render live records. |
 | System Access boundary | Pass | The single workspace lane remains active; the parked ten-module portal is not restored. |
 | Display structure | Pass | Four-item global navigation, functional header controls, seven-stage workflow rail, calibrated hierarchy, and responsive mobile record cards are guarded by focused Phase 1 through Phase 4 checks. |
 | Responsive behavior | Pass | Desktop record headers remain visible; Pixel 7 records become labeled cards with thumb-friendly actions and no required record-surface or page overflow. |

@@ -25,11 +25,11 @@ The display sources control presentation, hierarchy, responsive behavior, and sc
 
 ## Isolated scope
 
-This step redesigns Timeline only. It does not redesign Case Report, Decision and Luna, Academy, Profile, or the final responsive/mobile pass.
+This step redesigns Timeline only. It does not redesign Decision and Luna, Academy, Profile, or the final responsive/mobile pass.
 
 `src/TimelinePanel.jsx` owns the approved Timeline presentation. `src/displayTimelineThemeV1.css` owns the responsive light-lavender and white Timeline layout. `src/data/coreToolRecords.js` continues to supply the established case-scoped timeline rows and remains unchanged by this presentation step.
 
-Case Report stays on `src/ActiveToolPanel.jsx` until its approved place in the later workflow work. The completed Customer 360 and Investigation-tool panels stay unchanged.
+Decision package context stays inside Determination and Debrief. The completed Customer 360 and Investigation-tool panels stay unchanged.
 
 ## Approved interaction model
 
@@ -46,7 +46,7 @@ Timeline now presents:
 - case-scoped timeline notes;
 - neutral report-packet saving;
 - reviewed-state tracking;
-- direct routes to Document Viewer, Case Report, and locked Submit Decision.
+- direct routes to Document Viewer and locked Submit Decision.
 
 The Timeline organizes available records and never determines the case outcome. It preserves the current row order from the established record builder instead of inventing or rewriting event chronology.
 
@@ -93,7 +93,7 @@ Do not merge until all of the following pass on the final branch head:
 7. built-in case switching;
 8. search and source filtering;
 9. event expansion, pin, note, neutral report packet, and reviewed-state actions;
-10. Document Viewer, Case Report, and Submit Decision routing;
+10. Document Viewer and Submit Decision routing;
 11. Luna pre-submission lock;
 12. viewport-width safety.
 

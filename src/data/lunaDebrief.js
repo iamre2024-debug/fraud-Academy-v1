@@ -1,7 +1,7 @@
 const debriefGuides = {
   'FA-ATO-24018': {
     theme: 'Account access and purchase timeline',
-    coachIntro: 'Luna is reviewing the saved package against the access story, transaction sequence, customer statement, and evidence trail.',
+    coachIntro: 'Luna is reviewing the Submitted Decision Record against the access story, transaction sequence, customer statement, and evidence trail.',
     focusAreas: [
       {
         label: 'Customer statement and disputed purchase timeline',
@@ -23,7 +23,7 @@ const debriefGuides = {
   },
   'FA-CB-24007': {
     theme: 'Recurring billing and cancellation evidence',
-    coachIntro: 'Luna is reviewing the saved package against the billing sequence, merchant context, customer submission, and document trail.',
+    coachIntro: 'Luna is reviewing the Submitted Decision Record against the billing sequence, merchant context, customer submission, and document trail.',
     focusAreas: [
       {
         label: 'Customer dispute form and cancellation story',
@@ -45,7 +45,7 @@ const debriefGuides = {
   },
   'FA-CR-24003': {
     theme: 'Credit review package and payment verification',
-    coachIntro: 'Luna is reviewing the saved package against the system alert, identity record, payment setup, and early account activity.',
+    coachIntro: 'Luna is reviewing the Submitted Decision Record against the system alert, identity record, payment setup, and early account activity.',
     focusAreas: [
       {
         label: 'System alert and credit usage request',
@@ -69,7 +69,7 @@ const debriefGuides = {
 
 const defaultGuide = {
   theme: 'Case documentation quality',
-  coachIntro: 'Luna is reviewing the saved package against the documented evidence trail.',
+  coachIntro: 'Luna is reviewing the Submitted Decision Record against the documented evidence trail.',
   focusAreas: [
     { label: 'Case reason', keywords: ['case', 'reason', 'allegation', 'system'] },
     { label: 'Customer and identity records', keywords: ['customer', 'identity', 'training id'] },
@@ -116,7 +116,8 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
   const noteScore = notesQuality.points;
   const focusScore = Math.round((focusCoverage.filter((area) => area.covered).length / focusCoverage.length) * 14);
   const confidenceScore = reviewPackage.confidence === 'High' ? 4 : reviewPackage.confidence === 'Medium' ? 3 : 2;
-  const indicatorScore = Math.min(10, decisionIndicators.filter((item) => item.proof && item.explanation).length * 3);
+  const completedDecisionIndicators = decisionIndicators.filter((item) => item.proof && item.explanation);
+  const indicatorScore = Math.min(10, completedDecisionIndicators.length * 3);
   const determinationScore = caseTruth ? (determinationMatched ? 20 : 0) : 10;
   const score = Math.min(100, toolScore + pinScore + noteScore + focusScore + confidenceScore + indicatorScore + determinationScore);
   const followUps = focusCoverage.filter((area) => !area.covered).map((area) => area.label);
@@ -143,7 +144,7 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
       { label: 'Pinned evidence support', value: `${pinnedEvidence.length} object(s)`, points: pinScore },
       { label: 'Quality of notes', value: notesQuality.summary, points: noteScore },
       { label: 'Case focus coverage', value: `${focusCoverage.filter((area) => area.covered).length}/${focusCoverage.length}`, points: focusScore },
-      { label: 'Weighted flag documentation', value: `${decisionIndicators.length} proven flag(s)`, points: indicatorScore },
+      { label: 'Weighted flag documentation', value: `${completedDecisionIndicators.length}/${decisionIndicators.length} completed flag(s)`, points: indicatorScore },
       { label: 'Scenario determination', value: caseTruth ? (determinationMatched ? 'Matched' : 'Did not match') : 'Base-case calibration', points: determinationScore },
       { label: 'Confidence calibration', value: reviewPackage.confidence, points: confidenceScore },
     ],
@@ -191,7 +192,7 @@ function analyzeNote(note = '') {
   const type = parts.length >= 3 ? parts[1].trim() : 'Investigation note';
   const body = (parts.length >= 3 ? parts.slice(2).join(' ') : String(note)).trim();
   const words = wordCount(body);
-  const automaticType = /^(?:tool review|decision checklist|decision package)$/i.test(type);
+  const automaticType = /^(?:tool review|decision checklist|decision package|submitted decision record)$/i.test(type);
   const genericReview = /^(?:[\w /&-]+:\s*)?reviewed\.?$/i.test(body);
   const hasEvidenceReference = /\b[A-Z]{2,}(?:-[A-Z0-9]+)+\b/.test(body)
     || /\$\s?\d[\d,]*(?:\.\d{2})?/.test(body)
@@ -217,7 +218,7 @@ function buildStrengths({ coveredRequired, pinnedEvidence, notesQuality, rationa
   if (notesQuality.points >= 9) strengths.push(`Notebook quality is ${notesQuality.label.toLowerCase()} and connects evidence to investigator reasoning.`);
   if (wordCount(rationale) >= 20) strengths.push('The rationale has enough substance for coaching review.');
   if (focusCoverage.some((area) => area.covered)) strengths.push('At least one case-specific focus area is visible in the saved package.');
-  if (decisionIndicators.length) strengths.push('The selected case flags include proof and an investigator explanation.');
+  if (decisionIndicators.some((item) => item.proof && item.explanation)) strengths.push('At least one selected case flag includes proof and an investigator explanation.');
   if (determinationMatched) strengths.push('The submitted determination matches the hidden scenario truth.');
 
   return strengths.length ? strengths : ['The package was saved, but Luna needs more documented support to coach from.'];

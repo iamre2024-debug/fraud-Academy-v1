@@ -33,7 +33,7 @@ for (const anchor of [
   'Case quality and submission',
   'Fraud Library',
   'Achievements',
-  'Academy status stays neutral until a learner package is saved for the case.',
+  'Academy status stays neutral until a Submitted Decision Record is saved for the case.',
   "onNavigate('workspace')",
   "onNavigate('cases')",
   "onNavigate('progress')",

@@ -33,7 +33,7 @@ for (const anchor of [
   'Current Case Snapshot',
   'Recent Customer Contact',
   'Prior Claims / Disputes',
-  'Profile Change Event Log',
+  'Profile & Relationship History',
   'At a Glance',
   'Luna Insights',
   'Recent Documents',
@@ -41,8 +41,8 @@ for (const anchor of [
   'Accounts & Products',
   'Recent Customer Contact Log',
   'Prior Claims & Disputes Records',
-  'Export Profile Change Report',
-  'Related Customer Records',
+  'Export History',
+  'Profile & Relationship',
   'Claim-specific Customer 360 highlights',
   'Search this dossier',
   'customer-360-tabs',
@@ -105,7 +105,7 @@ mustContain('main.jsx', entrypoint, "import './displayCustomer360ThemeV1.css';")
 mustContain('customer-360-browser.spec.mjs', browser, 'approved Customer 360 is a complete Evidence First dossier');
 mustContain('customer-360-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('customer-360-browser.spec.mjs', browser, 'Customer 360 dossier tabs');
-mustContain('customer-360-browser.spec.mjs', browser, 'Export Profile Change Report');
+mustContain('customer-360-browser.spec.mjs', browser, 'Export History');
 mustContain('Customer 360 handoff', handoff, 'agent/customer-360-approved-theme-v1');
 mustContain('Customer 360 handoff', handoff, 'Investigation tools only');
 mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_CUSTOMER_360_THEME_V1.md`');

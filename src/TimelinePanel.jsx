@@ -78,7 +78,7 @@ export default function TimelinePanel({
         <div>
           <p className="timeline-eyebrow">Workflow Review · Evidence First</p>
           <h2>Case Timeline</h2>
-          <p>Review recorded events in sequence, connect each entry to its source, and preserve only the facts needed for the case package.</p>
+          <p>Review recorded events in sequence, connect each entry to its source, and preserve only the facts needed for the decision.</p>
         </div>
         <div className="timeline-header-actions">
           <span>{activeCase.id}</span>

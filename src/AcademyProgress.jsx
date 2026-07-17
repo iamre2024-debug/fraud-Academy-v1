@@ -37,13 +37,13 @@ function buildProgressRows(packagesByCase) {
       caseId: activeCase.id,
       caseType: activeCase.type,
       person: activeCase.person,
-      status: latestPackage ? 'Completed package saved' : 'Investigation open',
+      status: latestPackage ? 'Submitted decision saved' : 'Investigation open',
       savedAt: latestPackage?.savedAt ?? 'Not submitted yet',
       score: debrief?.score ?? null,
       scoreLabel: debrief?.scoreLabel ?? 'Locked',
       requiredCoverage: latestPackage ? `${latestPackage.reviewedRequired ?? 0}/${latestPackage.totalRequired ?? REQUIRED_TOOL_GOAL}` : 'Locked',
       packageCount: packages.length,
-      nextFocus: debrief?.followUps?.[0] ?? 'Submit a learner review package to unlock Luna progress.',
+      nextFocus: debrief?.followUps?.[0] ?? 'Save a Submitted Decision Record to unlock Luna progress.',
     };
   });
 }
@@ -52,7 +52,7 @@ function buildSkillMeters(rows) {
   const completedRows = rows.filter((row) => typeof row.score === 'number');
   if (!completedRows.length) {
     return [
-      { label: 'Evidence coverage', value: 0, note: 'Locked until a package is saved.' },
+      { label: 'Evidence coverage', value: 0, note: 'Locked until a Submitted Decision Record is saved.' },
       { label: 'Documentation depth', value: 0, note: 'Rationale scoring appears after submission.' },
       { label: 'Case completion', value: 0, note: 'Complete cases to grow the academy trail.' },
     ];
@@ -66,9 +66,9 @@ function buildSkillMeters(rows) {
   }, 0) / completedRows.length);
 
   return [
-    { label: 'Evidence coverage', value: averageCoverage, note: 'Average required-tool coverage from saved packages.' },
+    { label: 'Evidence coverage', value: averageCoverage, note: 'Average required-tool coverage from submitted decision records.' },
     { label: 'Documentation depth', value: averageScore, note: 'Average Luna decision-quality score after submission.' },
-    { label: 'Case completion', value: completionValue, note: `${completedRows.length}/${rows.length} cases have saved review packages.` },
+    { label: 'Case completion', value: completionValue, note: `${completedRows.length}/${rows.length} cases have Submitted Decision Records.` },
   ];
 }
 
@@ -103,14 +103,14 @@ export default function AcademyProgress() {
           <div>
             <p className="eyebrow">Academy Progress</p>
             <h3>Skill trail</h3>
-            <p>Scores stay locked until a learner review package is saved.</p>
+            <p>Scores stay locked until a Submitted Decision Record is saved.</p>
           </div>
           <div className="academy-progress-moon" aria-hidden="true">🌙</div>
         </div>
 
         <div className="academy-stat-row">
           <ProgressStat label="Completed cases" value={`${completedCount}/${rows.length}`} />
-          <ProgressStat label="Saved packages" value={String(savedPackages.length)} />
+          <ProgressStat label="Submitted decision records" value={String(savedPackages.length)} />
           <ProgressStat label="Average score" value={averageScore === null ? 'Locked' : `${averageScore}/100`} />
         </div>
 

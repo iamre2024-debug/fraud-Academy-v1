@@ -26,7 +26,7 @@ export default function DecisionFlagChecklist({
         </div>
         <div className="decision-flag-progress" aria-label={`${indicatorSummary.selectedCount} flags selected`}>
           <strong>{indicatorSummary.selectedCount}</strong>
-          <span>proven flags</span>
+          <span>selected flags</span>
         </div>
       </header>
 
@@ -51,7 +51,7 @@ export default function DecisionFlagChecklist({
               <header>
                 <div>
                   <p>{type === 'red' ? 'Red flags' : 'Green flags'}</p>
-                  <h4>{type === 'red' ? 'Evidence against the claim or release' : 'Evidence supporting the claim or release'}</h4>
+                  <h4>{type === 'red' ? 'Risk or problem indicators' : 'Reassuring or control-supported indicators'}</h4>
                 </div>
                 <span>{flags.length} checks</span>
               </header>
@@ -101,7 +101,7 @@ export default function DecisionFlagChecklist({
                               required
                             />
                           </label>
-                          <small>{complete ? 'Proof complete' : 'Proof and explanation are required before submission.'}</small>
+                          <small>{complete ? 'Proof complete' : 'Add proof and explanation to complete this selected flag.'}</small>
                         </div>
                       )}
                     </article>
