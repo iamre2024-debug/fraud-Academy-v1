@@ -51,7 +51,7 @@ export default function SubmitDecisionPanel({
         <article><span>Tools reviewed</span><strong>{packageStatus.reviewedRequired}/{packageStatus.totalRequired}</strong><small>Optional</small></article>
         <article><span>Pinned objects</span><strong>{tray.length}</strong><small>Optional</small></article>
         <article><span>Investigation notes</span><strong>{notes.length}</strong><small>Optional</small></article>
-        <article><span>Proven flags</span><strong>{packageStatus.indicatorSummary.selectedCount}</strong><small>Optional</small></article>
+        <article><span>Selected flags</span><strong>{packageStatus.indicatorSummary.selectedCount}</strong><small>Optional</small></article>
       </section>
 
       <p className="decision-direct-submit-note" role="note">
