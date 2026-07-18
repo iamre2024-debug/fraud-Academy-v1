@@ -21,7 +21,7 @@ mustNotContain('VisualWorkspace.jsx', workspace, 'writeStorage(');
 mustNotContain('VisualWorkspace.jsx', workspace, 'storageKeys.');
 
 mustContain('useVisualWorkspaceCaseState.js', hook, "import { useEffect, useState } from 'react';");
-mustContain('useVisualWorkspaceCaseState.js', hook, 'tray: trayByCase[caseId] ?? [activeCase.trainingId]');
+mustContain('useVisualWorkspaceCaseState.js', hook, 'tray: trayByCase[caseId] ?? []');
 mustContain('useVisualWorkspaceCaseState.js', hook, "currentCompleted: completedByCase[caseId] ?? ['Case Summary']");
 mustContain('useVisualWorkspaceCaseState.js', hook, 'decisionDraft: decisionByCase[caseId] ?? defaultDecisionDraft');
 mustContain('useVisualWorkspaceCaseState.js', hook, 'reviewPackages: packagesByCase[caseId] ?? []');
