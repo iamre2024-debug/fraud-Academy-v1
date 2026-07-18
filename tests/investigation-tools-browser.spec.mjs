@@ -206,6 +206,13 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await selectToolGroup(page, /Business & Payment Verification/);
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Payment Verification');
   await expect(toolPanel.getByRole('heading', { name: 'Payment Verification', exact: true })).toBeVisible();
+  await expect(toolPanel.locator('.payment-lookup-results')).toHaveCount(0);
+  await toolPanel.getByRole('textbox', { name: 'Destination ID' }).fill('DST-CARD-4410');
+  await toolPanel.getByRole('textbox', { name: 'Bank Code' }).fill('BC-441');
+  await toolPanel.getByRole('textbox', { name: 'Account owner name' }).fill('Maya Sterling');
+  await toolPanel.getByRole('button', { name: 'Run verification', exact: true }).click();
+  await expect(toolPanel.locator('.payment-lookup-results')).toBeVisible();
+  await expect(toolPanel.getByText('Yes — Name Match', { exact: true }).first()).toBeVisible();
 
   await toolPanel.getByRole('button', { name: 'Mark Payment Verification reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ Payment Verification reviewed', exact: true })).toBeVisible();
@@ -235,6 +242,13 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await toolPanel.getByRole('button', { name: 'Mark Payroll History reviewed', exact: true }).click();
 
   await creditToolSelect.selectOption('Payment Verification');
+  await expect(toolPanel.locator('.payment-lookup-results')).toHaveCount(0);
+  await toolPanel.getByRole('textbox', { name: 'Destination ID' }).fill('DST-7740');
+  await toolPanel.getByRole('textbox', { name: 'Bank Code' }).fill('BC-204');
+  await toolPanel.getByRole('textbox', { name: 'Account owner name' }).fill('Avery Brooks');
+  await toolPanel.getByRole('button', { name: 'Run verification', exact: true }).click();
+  await expect(toolPanel.getByText('Partial Match', { exact: true }).first()).toBeVisible();
+  await expect(toolPanel.getByText('Pending', { exact: true }).first()).toBeVisible();
 
   await toolPanel.getByRole('navigation', { name: 'Payment verification next routes' })
     .getByRole('button', { name: 'Open Timeline', exact: true })
