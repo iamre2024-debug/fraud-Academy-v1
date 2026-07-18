@@ -3,6 +3,7 @@ import path from 'node:path';
 
 const rootDir = process.cwd();
 const decision = fs.readFileSync(path.join(rootDir, 'src/SubmitDecisionPanel.jsx'), 'utf8');
+const decisionEvidence = fs.readFileSync(path.join(rootDir, 'src/DecisionEvidenceNotepad.jsx'), 'utf8');
 const decisionFlags = fs.readFileSync(path.join(rootDir, 'src/DecisionFlagChecklist.jsx'), 'utf8');
 const decisionFlagData = fs.readFileSync(path.join(rootDir, 'src/data/decisionChecklist.js'), 'utf8');
 const luna = fs.readFileSync(path.join(rootDir, 'src/LunaPostSubmissionPanel.jsx'), 'utf8');
@@ -47,8 +48,27 @@ for (const anchor of [
   'Submit Decision',
   'Submission confirmation',
   'Open Luna Briefing',
+  '<DecisionEvidenceNotepad',
+  'removePin={removePin}',
+  'toolNames={toolNames}',
 ]) {
   mustContain('SubmitDecisionPanel.jsx', decision, anchor);
+}
+
+for (const anchor of [
+  'Evidence Notepad',
+  'Pinned Proof',
+  'Case Notes',
+  'Everything you pin stays with this case',
+  'resolvePinnedEvidence',
+  'rowsFor',
+  'Add to rationale',
+  'Add a case note',
+  'Save Note',
+  "saveNote(cleanNote, 'Decision note')",
+  'removePin(record.value)',
+]) {
+  mustContain('DecisionEvidenceNotepad.jsx', decisionEvidence, anchor);
 }
 
 for (const removed of ['Decision readiness', 'Decision needs attention', 'Check decision readiness', 'packageStatus.messages.map']) {
@@ -165,6 +185,9 @@ for (const anchor of [
   'body[data-visual-tab="workspace"] .luna-theme-v1',
   '.decision-v1-workspace',
   '.decision-status-grid',
+  '.decision-evidence-notepad',
+  '.decision-evidence-tabs',
+  '.decision-pinned-proof-card',
   '.luna-v1-unlock-grid',
   '.luna-v1-debrief-grid',
   'position: static !important',
