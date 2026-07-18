@@ -256,6 +256,7 @@ export default function Customer360Panel({
   const claimContext = dossier.claimContext;
   const allProfileChanges = activeCase.customer?.profileChanges ?? [];
   const profileChanges = allProfileChanges.filter((item) => matchesQuery(Object.values(item).join(' '), normalizedQuery));
+  const accountSnapshot = (dossier.accountSnapshot ?? []).filter((item) => matchesQuery(Object.values(item).join(' '), normalizedQuery));
   const visibleSections = sections.filter((section) => !normalizedQuery || matchesQuery(`${section.title} ${section.subtitle} ${section.fields.flat().join(' ')}`, normalizedQuery));
   const visibleRows = rows.filter((row) => matchesQuery(`${row.id} ${row.label} ${row.detail}`, normalizedQuery));
   const profileEventIds = new Set(allProfileChanges.map((event) => event.id));
@@ -267,12 +268,13 @@ export default function Customer360Panel({
   const availableToolNames = new Set(activeCase.availableTools ?? []);
   const relatedTools = [
     'Transaction History',
+    'Financial Investigation',
+    'Payment Verification',
     'Merchant Intelligence',
     'Identity Intel / People Search',
     'Login History',
     'Device Intelligence',
     'Document Request',
-    'Payment Verification',
   ].filter((item) => availableToolNames.has(item)).slice(0, 6);
 
   useEffect(() => {
@@ -432,6 +434,28 @@ export default function Customer360Panel({
           <div className="customer-360-empty" role="status">No dossier fields match this search. Clear or revise the search to continue.</div>
         )}
       </section>
+
+      {!!dossier.accountSnapshot?.length && (activeTab === 'accounts' || normalizedQuery) && <section className="customer-360-account-snapshot" aria-labelledby="customer-360-account-snapshot-heading">
+        <header className="customer-360-section-heading">
+          <div><p>Personal relationship snapshot</p><h3 id="customer-360-account-snapshot-heading">Account & Payment Snapshot</h3></div>
+          <span>{accountSnapshot.length} shown</span>
+        </header>
+        {accountSnapshot.length ? <div className="customer-360-account-snapshot-grid">
+          {accountSnapshot.map((account) => <article key={account.id} data-customer-account-snapshot={account.id}>
+            <header><div><span>{account.relationship}</span><h4>{account.product}</h4><p>{account.maskedAccount}</p></div><div className="customer-360-account-actions"><button type="button" onClick={() => pin(`${account.bankCode} · ${account.destinationId}`)}>Pin identifiers</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button></div></header>
+            <dl>
+              <div><dt>Account owner</dt><dd>{account.ownerName}</dd></div>
+              <div><dt>Bank Code</dt><dd>{account.bankCode}</dd></div>
+              <div><dt>Destination ID</dt><dd>{account.destinationId}</dd></div>
+              <div><dt>Account status</dt><dd>{account.accountStatus}</dd></div>
+              <div><dt>Standing</dt><dd>{account.standing}</dd></div>
+              <div><dt>First seen</dt><dd>{account.firstSeen}</dd></div>
+              <div className="customer-360-account-wide"><dt>Prior-use history</dt><dd>{account.priorUse}</dd></div>
+              <div><dt>Source record</dt><dd>{account.sourceRecord}</dd></div>
+            </dl>
+          </article>)}
+        </div> : <div className="customer-360-empty" role="status">No personal account identifiers match this search.</div>}
+      </section>}
 
       {(activeTab === 'accounts' || normalizedQuery) && <section className="customer-360-record-section" aria-labelledby="customer-360-product-records-heading">
         <header className="customer-360-section-heading"><div><p>Account-level records</p><h3 id="customer-360-product-records-heading">Accounts & Products</h3></div><span>{dossier.products.length} records</span></header>
