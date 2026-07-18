@@ -33,7 +33,7 @@ export default function useVisualWorkspaceActions({
   function pin(value) {
     if (!value) return;
     setTrayByCase((current) => {
-      const caseTray = current[activeCase.id] ?? [activeCase.trainingId];
+      const caseTray = current[activeCase.id] ?? [];
       return { ...current, [activeCase.id]: [...new Set([...caseTray, value])] };
     });
     recordAction('Pinned evidence', `${value} added to the Investigation Tray.`, tool);
@@ -43,7 +43,7 @@ export default function useVisualWorkspaceActions({
     if (!value) return;
     setTrayByCase((current) => ({
       ...current,
-      [activeCase.id]: (current[activeCase.id] ?? [activeCase.trainingId]).filter((item) => item !== value),
+      [activeCase.id]: (current[activeCase.id] ?? []).filter((item) => item !== value),
     }));
     recordAction('Removed pinned evidence', `${value} removed from the Investigation Tray.`, 'Pinned Evidence');
   }
