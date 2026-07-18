@@ -39,6 +39,11 @@ for (const anchor of [
   'Recent Documents',
   'Suggested Next Step',
   'Accounts & Products',
+  'Account & Payment Snapshot',
+  'Bank Code',
+  'Destination ID',
+  'data-customer-account-snapshot',
+  'Open Payment Verification',
   'Recent Customer Contact Log',
   'Prior Claims & Disputes Records',
   'Export History',
@@ -69,6 +74,8 @@ for (const anchor of [
   'claimHighlights',
   'suggestedTool',
   'lunaInsight',
+  'personalAccountSnapshot',
+  'accountSnapshot',
 ]) {
   mustContain('customer360Dossier.js', dossier, anchor);
 }
@@ -91,6 +98,8 @@ for (const anchor of [
   '.customer-360-profile-log',
   '.customer-360-support-grid',
   '.customer-360-structured-records',
+  '.customer-360-account-snapshot',
+  '.customer-360-account-snapshot-grid',
   '.customer-360-event-card',
   '.customer-360-review-bar',
   'grid-template-columns: repeat(12, minmax(0, 1fr))',
