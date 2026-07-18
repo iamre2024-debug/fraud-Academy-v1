@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { trainingCases as baseCases } from '../src/data/cases.js';
 import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
 import { buildCoreToolRecords } from '../src/data/coreToolRecords.js';
+import { getCustomer360Dossier } from '../src/data/customer360Dossier.js';
 import { financialRecordsByCase } from '../src/data/financialRecords.js';
 import { getFinancialInvestigation, financialInvestigationTabs } from '../src/data/financialInvestigationRecords.js';
 import { createGeneratedCase } from '../src/data/generatedCases.js';
@@ -52,12 +53,23 @@ for (const activeCase of cases) {
   }
 
   const financialWorkspace = getFinancialInvestigation(activeCase);
+  const customerDossier = getCustomer360Dossier(activeCase);
   if (financialInvestigationTabs.length !== 10) fail(`${activeCase.id} Financial Investigation: expected ten Bible v2 sections.`);
   for (const tab of applicableFinancialTabs(activeCase)) {
     if (!financialWorkspace.recordsByTab[tab.id]?.length) fail(`${activeCase.id} Financial Investigation: ${tab.label} has no case-specific records.`);
   }
   if (!hasMerchantLane(activeCase) && financialWorkspace.recordsByTab.merchant?.length) {
     fail(`${activeCase.id} Financial Investigation: merchant records must remain empty outside merchant lanes.`);
+  }
+  if (!financialWorkspace.recordsByTab['funds-flow']?.every((record) => record.fields.some(([label]) => label === 'Destination'))) {
+    fail(`${activeCase.id} Financial Investigation: every funds-flow step must identify its destination.`);
+  }
+  if (activeCase.customer && !financialWorkspace.availableTransferRails.length) {
+    fail(`${activeCase.id} Financial Investigation: personal cases must expose ACH, wire, or P2P history when available.`);
+  }
+  for (const account of customerDossier.accountSnapshot ?? []) {
+    const resolvesInPaymentVerification = financialRecordsByCase[activeCase.id]?.paymentVerification?.some((record) => record.bankCode === account.bankCode && record.destinationId === account.destinationId);
+    if (!resolvesInPaymentVerification) fail(`${activeCase.id} Customer 360 identifiers must resolve in Payment Verification: ${account.bankCode} / ${account.destinationId}.`);
   }
 
   const kybWorkspace = getKybReview(activeCase);
