@@ -278,6 +278,7 @@ function makeTransactions({ id, claimType, scenario, amount, reportedDate, issue
   const rail = scenario.taxonomyTags?.productRail ?? claimType.taxonomy.productRail;
   const primaryName = merchantPacket?.profile.name ?? scenario.transactionInfo.split(' - ')[0];
   const step = Math.max(18, Math.round(Math.max(amount, 120) * 0.13));
+  const evidenceContext = scenario.intakePresentation?.evidenceContext ?? `${scenario.subtype} activity`;
   const records = Array.from({ length: Math.max(2, recordCount) }, (_, itemIndex) => {
     const current = itemIndex === 0;
     const itemAmount = current ? amount : Math.max(0, amount - (itemIndex * step));
@@ -311,7 +312,7 @@ function makeTransactions({ id, claimType, scenario, amount, reportedDate, issue
       channel,
       instrument,
       status: current ? 'Posted record' : 'Historical record',
-      context: current ? `${scenario.subtype} activity in the current fictional case.` : `Prior ${claimType.shortLabel.toLowerCase()} activity supplied for baseline comparison.`,
+      context: current ? `Current ${evidenceContext} record.` : `Prior ${(scenario.intakePresentation?.claimLabel ?? claimType.shortLabel).toLowerCase()} activity supplied for baseline comparison.`,
     };
   });
 
@@ -333,14 +334,14 @@ function makePaymentVerification({ id, claimType, scenario, person, business, re
   const recordedOwner = rail === 'wire' || rail === 'loan' ? business : person;
   const primaryRecord = {
     id: `${id}-PV-1`, type: destinationType, object: `Destination ID ${destination}`, status: 'Lookup completed', lastSeen: `${reportedDate} - 9:18 AM`,
-    context: `${destinationType} ${destination} is linked to ${scenario.transactionInfo} and ${transactions.length} transaction record(s).`, bankName: pick(['Training Atlantic Bank', 'Training Community Bank', 'Training Mobile Money Network', 'Training Federal Credit Union'], seed),
+    context: `${destinationType} ${destination} is linked to ${scenario.intakePresentation?.transactionInfo ?? scenario.transactionInfo} and ${transactions.length} transaction record(s).`, bankName: pick(['Training Atlantic Bank', 'Training Community Bank', 'Training Mobile Money Network', 'Training Federal Credit Union'], seed),
     accountType: rail === 'payroll' ? 'Payroll destination account' : rail === 'wire' ? 'Business beneficiary account' : /credit|loan/.test(rail) ? 'External payment account' : 'Card network object',
     accountHolder: tone === 'established' ? recordedOwner : `Training holder ${String(seed).slice(-4)}`, ownerMatch: tone === 'established' ? `Exact match to ${recordedOwner}` : tone === 'mixed' ? `Partial match to ${recordedOwner}` : `No match to ${recordedOwner}`,
     accountStatus: 'Open training record', standing: tone === 'exception' ? 'Recently opened record' : 'History available', priorUse: tone === 'established' ? 'Prior use recorded' : 'No prior use located', firstSeen: issueStartDate,
     verificationMethod: rail === 'card' ? 'Network authorization packet' : 'Training ownership and history comparison', recoverability: rail === 'wire' ? 'Recall status pending receiving-bank response' : 'Review path documented in the payment packet',
     bankCode: `BC-${String(seed).slice(-5)}`, destinationId: destination, oldDestination: rail === 'payroll' || rail === 'wire' ? 'Established destination ending 2204' : 'Prior payment object on file', newDestination: `Destination ID ${destination}`,
     changeComparison: `${destination} was ${tone === 'established' ? 'used before the current activity window' : `first observed ${issueStartDate}`}.`, verificationOutcome: `${destinationType}, ownership, status, prior use, and first-seen date recorded`, relatedRecords: transactions.map((item) => item.id),
-    actions: ['Compare ownership and prior use', 'Document the trusted verification source'], verificationLog: [{ time: `${reportedDate} - 9:30 AM`, method: 'Training lookup', result: tone === 'mixed' ? 'Manual review' : 'Recorded', note: 'The log records source evidence only.' }], notes: `Generated payment object ${index} for ${scenario.subtype}.`,
+    actions: ['Compare ownership and prior use', 'Document the trusted verification source'], verificationLog: [{ time: `${reportedDate} - 9:30 AM`, method: 'Training lookup', result: tone === 'mixed' ? 'Manual review' : 'Recorded', note: 'The log records source evidence only.' }], notes: `Generated payment object ${index} for the active ${scenario.intakePresentation?.evidenceContext ?? 'case review'}.`,
   };
 
   if (rail !== 'payroll') return [primaryRecord];
@@ -419,12 +420,14 @@ function makePaymentVerification({ id, claimType, scenario, person, business, re
 function makeBusinessRecords({ id, index, claimType, scenario, person, employer, business, reportedDate, issueStartDate, amount, recordCount, creditProfile, paymentVerification = [] }) {
   const tools = new Set(claimType.availableTools);
   const result = {};
+  const evidenceContext = scenario.intakePresentation?.evidenceContext ?? `${scenario.subtype} review`;
+  const evidence = scenario.evidenceProfile ?? {};
   if (tools.has('Business 360')) {
     const entity = /business|vendor|payroll|merchant/i.test(`${scenario.entityRole} ${claimType.lane}`) ? business : scenario.transactionInfo.split(' - ')[0];
     result.business360 = [
-      { id: `${id}-BIZ-1`, entity, relationship: `${scenario.family ?? claimType.lane} relationship`, status: 'Active profile', observed: reportedDate, context: `${entity} is connected to ${person} and claim ${id}.` },
+      { id: `${id}-BIZ-1`, entity, relationship: `${scenario.family ?? scenario.intakePresentation?.lane ?? claimType.lane} relationship`, status: 'Active profile', observed: reportedDate, context: `${entity} is connected to ${person} and claim ${id}.` },
       { id: `${id}-BIZ-2`, entity: person, relationship: scenario.entityRole, status: 'Named in intake', observed: reportedDate, context: `${person} submitted or is named in the ${scenario.channel} record.` },
-      { id: `${id}-BIZ-3`, entity: scenario.transactionInfo, relationship: 'Activity or exposure in scope', status: scenario.amount, observed: issueStartDate, context: `${scenario.subtype} review covers ${scenario.amount} from ${issueStartDate} through ${reportedDate}.` },
+      { id: `${id}-BIZ-3`, entity: scenario.intakePresentation?.transactionInfo ?? scenario.transactionInfo, relationship: 'Activity or exposure in scope', status: scenario.amount, observed: issueStartDate, context: `The ${evidenceContext} covers ${scenario.amount} from ${issueStartDate} through ${reportedDate}.` },
     ];
   }
   if (tools.has('KYB Review')) {
@@ -432,13 +435,13 @@ function makeBusinessRecords({ id, index, claimType, scenario, person, employer,
       { id: `${id}-BIN-1`, type: 'Registration and legal-name record', value: business, observed: reportedDate, context: `${business} is recorded as the legal entity connected to claim ${id}.` },
       { id: `${id}-BIN-2`, type: 'Owner or controlling party', value: person, observed: reportedDate, context: `${person} is recorded as ${scenario.entityRole}.` },
       { id: `${id}-BIN-3`, type: 'Operating and revenue context', value: creditProfile?.statedAnnualIncome ?? money(Math.max(amount * 18, 85000)), observed: reportedDate, context: `Stated annual revenue is compared with ${scenario.amount} in current exposure.` },
-      { id: `${id}-BIN-4`, type: 'Case activity', value: scenario.transactionInfo, observed: issueStartDate, context: `${scenario.subtype} activity was reported through ${scenario.channel} on ${reportedDate}.` },
+      { id: `${id}-BIN-4`, type: 'Case activity', value: scenario.intakePresentation?.transactionInfo ?? scenario.transactionInfo, observed: issueStartDate, context: `The ${evidenceContext} entered the queue through ${scenario.intakePresentation?.channel ?? scenario.channel} on ${reportedDate}.` },
     ];
   }
   if (tools.has('Employee Profile')) {
     result.employeeProfile = [
-      { id: `${id}-EMP-1`, name: person, role: /payroll/i.test(claimType.lane) ? 'Employee payroll record' : scenario.entityRole, employer, status: 'Active profile', lastSeen: reportedDate, context: `${person} is linked to ${employer} in the current ${scenario.subtype} review.` },
-      { id: `${id}-EMP-2`, name: person, role: 'Change authorization subject', employer, status: 'Authorization under review', lastSeen: issueStartDate, context: `${scenario.transactionInfo} for ${scenario.amount} is the employee-linked activity in scope.` },
+      { id: `${id}-EMP-1`, name: person, role: /payroll/i.test(claimType.lane) ? 'Employee payroll record' : scenario.entityRole, employer, status: 'Active profile', lastSeen: reportedDate, context: evidence.relationshipRecord ?? `${person} is linked to ${employer} in the current review.` },
+      { id: `${id}-EMP-2`, name: person, role: 'Change authorization subject', employer, status: 'Authorization under review', lastSeen: issueStartDate, context: `${scenario.intakePresentation?.transactionInfo ?? scenario.transactionInfo} for ${scenario.amount} is the employee-linked activity in scope.` },
     ];
   }
   if (tools.has('Payroll History')) {
@@ -463,9 +466,9 @@ function makeBusinessRecords({ id, index, claimType, scenario, person, employer,
       ];
       const runTotal = payees.reduce((total, payee) => total + numberFromMoney(payee.amount), 0);
       return {
-        id: `${id}-PAYR-${itemIndex + 1}`, period: shiftedDate(reportedDate, -(itemIndex * 14)), employer, amount: money(runTotal), channel: /payroll/i.test(claimType.lane) ? 'Direct deposit payroll run' : 'Verified payroll income record', status: current ? 'Pending review' : 'Posted prior period', context: current ? `${scenario.transactionInfo} is the current payroll activity in scope.` : `${person}'s prior payroll from ${employer} provides a dated amount and destination baseline.`,
+        id: `${id}-PAYR-${itemIndex + 1}`, period: shiftedDate(reportedDate, -(itemIndex * 14)), employer, amount: money(runTotal), channel: /payroll/i.test(claimType.lane) ? 'Direct deposit payroll run' : 'Verified payroll income record', status: current ? 'Pending review' : 'Posted prior period', context: current ? `${scenario.intakePresentation?.transactionInfo ?? scenario.transactionInfo} is the current payroll activity in scope.` : `${person}'s prior payroll from ${employer} provides a dated amount and destination baseline.`,
         fundingOwner: fundingAccount?.accountHolder ?? business, fundingBankCode: fundingAccount?.bankCode ?? 'No Bank Code returned', fundingDestinationId: fundingAccount?.destinationId ?? 'No Destination ID returned', fundingPaymentRecordId: fundingAccount?.id ?? '',
-        changeRequest: current ? scenario.statement : 'No change request attached to this prior payroll run', adminActivity: current ? `${scenario.subtype} activity recorded through ${scenario.channel}` : 'No destination-change activity in this prior run', callback: current ? `Trusted callback evidence must be reviewed for ${scenario.caseTruth?.correctDetermination ?? 'the current decision'}` : 'Not required for the unchanged prior run', payees,
+        changeRequest: current ? evidence.requestRecord ?? 'Current payroll change request is available for review' : 'No change request attached to this prior payroll run', adminActivity: current ? `Current ${evidenceContext} recorded through the payroll administration workflow` : 'No destination-change activity in this prior run', callback: current ? evidence.callbackRecord ?? 'Trusted callback evidence must be reviewed before a decision is recorded' : 'Not required for the unchanged prior run', payees,
       };
     });
   }
@@ -506,24 +509,27 @@ function makeFinancialIntel({ id, claimType, scenario, reportedDate, issueStartD
   const requestedDocuments = documents.filter((item) => item.status === 'Requested').length;
   const values = [
     money(amount),
-    scenario.transactionInfo,
+    scenario.intakePresentation?.transactionInfo ?? scenario.transactionInfo,
     `${transactions.length} transaction or activity record(s)`,
     `${availableDocuments} document(s) available; ${requestedDocuments} requested`,
     `${issueStartDate} to ${reportedDate}`,
   ];
+  const evidence = scenario.evidenceProfile ?? {};
+  const evidenceContext = [evidence.requestRecord, evidence.accessRecord, evidence.paymentRecord].filter(Boolean).join(' ')
+    || `${scenario.intakePresentation?.evidenceContext ?? scenario.subtype}: ${scenario.intakePresentation?.statement ?? scenario.statement}`;
   return claimType.evidenceAreas.slice(0, Math.max(2, recordCount)).map((area, itemIndex) => ({
     id: `${id}-FIN-${itemIndex + 1}`,
     type: area,
     value: values[itemIndex % values.length],
     observed: shiftedDate(reportedDate, -itemIndex),
-    context: `${scenario.subtype}: ${scenario.statement} Source: ${scenario.channel}.`,
+    context: `${evidenceContext} Source: ${scenario.intakePresentation?.channel ?? scenario.channel}.`,
   }));
 }
 
 function makeEvidence({ id, scenario, documents, transactions, reportedDate }) {
   return {
     evidence: documents.map((document, itemIndex) => ({ id: `${id}-EVD-${itemIndex + 1}`, status: document.status, type: itemIndex === 0 ? 'Case packet' : 'Supporting document', name: document.name, source: itemIndex === 0 ? scenario.channel : 'Generated training packet', received: document.status === 'Requested' ? 'Pending' : shiftedDate(reportedDate, -itemIndex), summary: document.detail, linkedObject: itemIndex === 0 ? id : transactions[itemIndex % Math.max(1, transactions.length)]?.id ?? id })),
-    documents: documents.map((document, itemIndex) => ({ id: document.id, title: document.name, category: document.status === 'Requested' ? 'Requested document' : 'Case document', status: document.status, updated: document.status === 'Requested' ? 'Pending' : shiftedDate(reportedDate, -itemIndex), preview: document.detail, fields: `Case ID, ${scenario.subtype}, source, observed date, training packet status` })),
+    documents: documents.map((document, itemIndex) => ({ id: document.id, title: document.name, category: document.status === 'Requested' ? 'Requested document' : 'Case document', status: document.status, updated: document.status === 'Requested' ? 'Pending' : shiftedDate(reportedDate, -itemIndex), preview: document.detail, fields: `Case ID, ${scenario.intakePresentation?.evidenceContext ?? 'case review'}, source, observed date, training packet status` })),
   };
 }
 
@@ -616,12 +622,15 @@ export function buildScenarioDecisionData({ claimType, scenario, reportedDate, t
 export function buildScenarioEvents({ id, scenario, claimType, reportedDate, issueStartDate, difficulty, evidenceDepth, documents = [] }) {
   const availableDocuments = documents.filter((item) => item.status !== 'Requested');
   const requestedDocuments = documents.filter((item) => item.status === 'Requested');
+  const presentation = scenario.intakePresentation ?? {};
+  const evidence = scenario.evidenceProfile ?? {};
   const events = [
-    { id: `${id}-EVT-1`, time: `${issueStartDate} - 10:10 AM`, label: `${scenario.subtype} activity recorded`, detail: `${scenario.transactionInfo} for ${scenario.amount} entered the activity window.`, chip: 'Case event', object: 'Case' },
-    { id: `${id}-EVT-2`, time: `${reportedDate} - 9:05 AM`, label: 'Intake or alert received', detail: `${scenario.channel} opened the case with this statement: ${scenario.statement}`, chip: 'Intake', object: 'Statement' },
-    { id: `${id}-EVT-3`, time: `${reportedDate} - 9:18 AM`, label: 'Evidence packet initialized', detail: `${evidenceDepth} packet created with ${availableDocuments.length} available document(s) and ${requestedDocuments.length} requested document(s) for ${claimType.label}.`, chip: 'Packet', object: 'Document' },
+    { id: `${id}-EVT-1`, time: `${issueStartDate} - 10:10 AM`, label: `${presentation.subtype ?? scenario.subtype} recorded`, detail: `${presentation.transactionInfo ?? scenario.transactionInfo} for ${scenario.amount} entered the activity window.`, chip: 'Case event', object: 'Case' },
+    { id: `${id}-EVT-2`, time: `${reportedDate} - 9:05 AM`, label: 'System alert received', detail: `${presentation.channel ?? scenario.channel} opened the case: ${presentation.statement ?? scenario.statement}`, chip: 'Intake', object: 'Statement' },
+    { id: `${id}-EVT-3`, time: `${reportedDate} - 9:18 AM`, label: 'Evidence packet initialized', detail: `${evidenceDepth} packet created with ${availableDocuments.length} available document(s) and ${requestedDocuments.length} requested document(s) for ${presentation.claimLabel ?? claimType.label}.`, chip: 'Packet', object: 'Document' },
   ];
-  if (difficulty !== 'light') events.push({ id: `${id}-EVT-C1`, time: `${reportedDate} - 10:20 AM`, label: 'Cross-source comparison added', detail: `Compare the ${scenario.channel} statement with ${scenario.transactionInfo}, payment ownership, and dated profile records.`, chip: 'Comparison', object: 'Record' });
-  if (difficulty === 'deep') events.push({ id: `${id}-EVT-C2`, time: `${reportedDate} - 11:35 AM`, label: 'Additional evidence dependency recorded', detail: requestedDocuments.length ? `${requestedDocuments.map((item) => item.name).join(' and ')} remain requested while the available records are reviewed.` : `The ${scenario.subtype} timing must be reconciled across transaction, profile, and document records.`, chip: 'Dependency', object: 'Document' });
+  if (difficulty !== 'light') events.push({ id: `${id}-EVT-C1`, time: `${reportedDate} - 10:20 AM`, label: 'Cross-source comparison added', detail: `Compare the alert with the request source, access history, trusted contact, payment ownership, and dated profile records.`, chip: 'Comparison', object: 'Record' });
+  if (difficulty === 'deep') events.push({ id: `${id}-EVT-C2`, time: `${reportedDate} - 11:35 AM`, label: 'Additional evidence dependency recorded', detail: requestedDocuments.length ? `${requestedDocuments.map((item) => item.name).join(' and ')} remain requested while the available records are reviewed.` : `The ${presentation.evidenceContext ?? 'case'} timing must be reconciled across transaction, profile, and document records.`, chip: 'Dependency', object: 'Document' });
+  if (evidence.accessRecord) events.push({ id: `${id}-EVT-A1`, time: `${issueStartDate} - 10:02 AM`, label: 'Access record linked', detail: evidence.accessRecord, chip: 'Access', object: 'Session' });
   return events;
 }
