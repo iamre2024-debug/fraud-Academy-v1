@@ -1,4 +1,5 @@
 import { createGeneratedCase } from './generatedCases.js';
+import { getClaimType } from './claimRegistry.js';
 
 const databaseName = 'fraud-academy-os-v1';
 const databaseVersion = 1;
@@ -190,11 +191,13 @@ export async function generateAndSaveCase(config = {}) {
   return nextCase;
 }
 
-export async function generateAndSaveCases({ count = 1, ...config } = {}) {
+export async function generateAndSaveCases({ count = 1, randomizeScenario = false, ...config } = {}) {
   const normalizedCount = Math.min(25, Math.max(1, Number.parseInt(count, 10) || 1));
   const created = [];
   for (let index = 0; index < normalizedCount; index += 1) {
-    created.push(await generateAndSaveCase(config));
+    const scenarios = randomizeScenario ? getClaimType(config.claimTypeId).scenarios : [];
+    const scenarioId = scenarios.length ? scenarios[Math.floor(Math.random() * scenarios.length)].id : config.scenarioId;
+    created.push(await generateAndSaveCase({ ...config, scenarioId }));
   }
   return created;
 }
