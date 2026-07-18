@@ -218,7 +218,7 @@ The latest source-of-truth audit confirmed these requirements are active or rest
 9. The approved Academy renders on desktop and Pixel 7 with four Evidence First learning paths, Fraud Library topics, neutral achievement guidance, contextual Progress, functional Cases and Workspace routes, isolation from unreplaced Workspace surfaces, and no required page overflow.
 10. The approved Profile renders on desktop and Pixel 7 with contextual avatar entry, neutral rank, skills, badges, activity, and goals, Workspace, Academy, and Progress routes, four-item navigation, isolation, and no required page overflow.
 11. All three built-in cases load from the Cases queue and update the active case workspace.
-12. Payment Verification, KYB Review, Document Viewer, Link Analysis, System Access Lane, Timeline, and Case Report open with records.
+12. Payment Verification opens in a locked search-first state and returns case-specific name-match and account-status results only after a Bank Code, Destination ID, and owner-name lookup; KYB Review, Document Viewer, Link Analysis, System Access Lane, Timeline, and Case Report open with their expected records.
 13. Generated cases save through the repository, open immediately, remain unique during rapid generation, persist after reload, and return to the approved Case Queue.
 14. Luna remains locked before submission and follows the active built-in or generated case ID.
 15. Desktop and mobile Chromium render the tested flows without visible Evidence First answer leaks.
