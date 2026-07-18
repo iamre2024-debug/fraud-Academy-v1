@@ -46,6 +46,36 @@ function fallbackPayment(activeCase) {
   };
 }
 
+function upgradeLegacyPayrollPayments(activeCase, records = []) {
+  if (activeCase.claimTypeId !== 'payroll-direct-deposit' || !records.length) return records;
+  const hasFunding = records.some((record) => /payroll funding/i.test(`${record.type} ${record.accountType}`));
+  const payeeRecords = records.filter((record) => /payroll payee/i.test(record.type));
+  if (hasFunding && payeeRecords.length >= 2) return records;
+
+  const base = records[0];
+  const digits = String(activeCase.id ?? '00000').replace(/\D/g, '').slice(-5).padStart(5, '0');
+  const person = activeCase.person ?? 'Training employee';
+  const employer = activeCase.profile?.employer ?? activeCase.profile?.business ?? 'Training employer';
+  const payrollIds = (activeCase.toolResults?.payrollHistory ?? []).map((record) => record.id);
+  const clone = (overrides) => ({ ...base, verificationLog: [...(base.verificationLog ?? [])], actions: [...(base.actions ?? [])], relatedRecords: payrollIds, ...overrides });
+  const additions = [];
+
+  if (!records.some((record) => /established payroll destination/i.test(record.type))) additions.push(clone({
+    id: `${activeCase.id}-PV-PRIOR`, type: 'Established payroll destination', object: `Destination ID DST-PAY-${digits.slice(-4)}`, accountHolder: person, ownerMatch: `Exact match to ${person}`, accountStatus: 'Open', standing: 'Good standing', priorUse: 'Established payroll history returned', bankCode: `BC-PAY-${digits.slice(-3)}`, destinationId: `DST-PAY-${digits.slice(-4)}`, oldDestination: `DST-PAY-${digits.slice(-4)}`, newDestination: `DST-PAY-${digits.slice(-4)}`, changeComparison: 'Established destination used before the current request.', verificationOutcome: 'Established payroll ownership returned',
+  }));
+  const comparisonOwners = ['Morgan Reed', 'Taylor Grant'];
+  comparisonOwners.forEach((owner, index) => {
+    if (payeeRecords[index]) return;
+    const suffix = String(Number(digits) + ((index + 1) * 137)).slice(-5).padStart(5, '0');
+    additions.push(clone({ id: `${activeCase.id}-PV-PAYEE-${index + 2}`, type: 'Payroll payee destination', object: `Destination ID DST-PAYEE-${suffix}`, accountHolder: owner, ownerMatch: `Exact match to ${owner}`, accountStatus: 'Open', standing: 'Good standing', priorUse: 'Established payroll history returned', bankCode: `BC-${suffix.slice(-4)}`, destinationId: `DST-PAYEE-${suffix}`, oldDestination: `DST-PAYEE-${suffix}`, newDestination: `DST-PAYEE-${suffix}`, changeComparison: 'No destination change returned for this comparison payee.', verificationOutcome: 'Established payroll payee account returned' }));
+  });
+  if (!hasFunding) additions.push(clone({
+    id: `${activeCase.id}-PV-FUNDING`, type: 'Business payroll funding account', object: `Destination ID DST-FUND-${digits}`, accountType: 'Business payroll funding account', accountHolder: employer, ownerMatch: `Exact match to ${employer}`, accountStatus: 'Open', standing: 'Good standing', priorUse: 'Established payroll funding history returned', bankCode: `BC-FUND-${digits.slice(-3)}`, destinationId: `DST-FUND-${digits}`, oldDestination: 'Established business funding account', newDestination: 'No funding-account change returned', changeComparison: 'Business funding account is established.', verificationOutcome: 'Business owner and funding-account history returned',
+  }));
+
+  return [...records, ...additions];
+}
+
 function fallbackBusiness(activeCase) {
   const entity = activeCase.profile?.business ?? activeCase.customer?.relationship?.[0]?.value ?? `${activeCase.type ?? 'Case'} entity`;
   return {
@@ -89,10 +119,11 @@ export function getFinancialRecords(activeCase = {}) {
   const staticRecords = financialRecordsByCase[activeCase.id];
   if (staticRecords) return staticRecords;
   const generated = generatedResults(activeCase);
+  const paymentVerification = generated.paymentVerification?.length ? generated.paymentVerification : [fallbackPayment(activeCase)];
   return {
     transactions: generated.transactions?.length ? generated.transactions : [fallbackTransaction(activeCase)],
     financialIntel: generated.financialIntel?.length ? generated.financialIntel : [{ id: `${activeCase.id}-FIN-1`, type: 'Case context', value: activeCase.amount ?? 'Not supplied', observed: activeCase.reportedDate ?? activeCase.opened ?? 'Training date', context: 'Training context available for review.' }],
-    paymentVerification: generated.paymentVerification?.length ? generated.paymentVerification : [fallbackPayment(activeCase)],
+    paymentVerification: upgradeLegacyPayrollPayments(activeCase, paymentVerification),
   };
 }
 
