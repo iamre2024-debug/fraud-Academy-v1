@@ -40,7 +40,7 @@ export default function useVisualWorkspaceCaseState(activeCase) {
   const caseId = activeCase.id;
 
   return {
-    tray: trayByCase[caseId] ?? [activeCase.trainingId],
+    tray: trayByCase[caseId] ?? [],
     notes: notesByCase[caseId] ?? [],
     currentCompleted: completedByCase[caseId] ?? ['Case Summary'],
     decisionDraft: decisionByCase[caseId] ?? defaultDecisionDraft,
