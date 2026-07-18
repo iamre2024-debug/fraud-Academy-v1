@@ -248,6 +248,7 @@ export function claimGeneratorChoices() {
     id: claimType.id,
     label: claimType.label,
     lane: claimType.lane,
+    hideScenarioAnswer: ['payroll-direct-deposit', 'email-bec'].includes(claimType.id),
     scenarios: claimType.scenarios.map((item) => ({ id: item.id, title: item.title, subtype: item.subtype })),
   }));
 }
