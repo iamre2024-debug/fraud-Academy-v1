@@ -83,6 +83,23 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   await expect(page.locator('.notebook-card')).toBeVisible();
   await expect(page.locator('.tray-card')).toBeHidden();
 
+  if (testInfo.project.name === 'mobile-chromium') await page.getByRole('button', { name: 'Pages' }).click();
+  await workflow.getByRole('button', { name: /Determination/ }).click();
+  await expect(frame).toHaveAttribute('data-workspace-screen', 'determination');
+  const evidenceNotepad = page.locator('.decision-evidence-notepad');
+  await expect(evidenceNotepad.getByRole('heading', { name: 'Evidence Notepad', exact: true })).toBeVisible();
+  await expect(evidenceNotepad.getByRole('tab', { name: /Pinned Proof/ })).toHaveAttribute('aria-selected', 'true');
+  await expect(evidenceNotepad).toContainText('TRN-8842-19');
+  await expect(evidenceNotepad).toContainText('Customer 360');
+  await evidenceNotepad.getByRole('tab', { name: /Case Notes/ }).click();
+  await expect(evidenceNotepad.getByText('No case notes saved yet', { exact: true })).toBeVisible();
+  await evidenceNotepad.getByRole('textbox', { name: 'Add a case note' }).fill('Pinned transaction supports the decision rationale.');
+  await evidenceNotepad.getByRole('button', { name: 'Save Note', exact: true }).click();
+  await expect(evidenceNotepad).toContainText('Pinned transaction supports the decision rationale.');
+  await evidenceNotepad.getByRole('tab', { name: /Pinned Proof/ }).click();
+  await evidenceNotepad.getByRole('button', { name: 'Add to rationale', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Learner rationale' })).toHaveValue(/TRN-8842-19/);
+
   const widths = await page.evaluate(() => ({
     viewport: window.innerWidth,
     document: document.documentElement.scrollWidth,
