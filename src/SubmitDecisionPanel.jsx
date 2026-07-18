@@ -1,4 +1,5 @@
 import DecisionFlagChecklist from './DecisionFlagChecklist.jsx';
+import DecisionEvidenceNotepad from './DecisionEvidenceNotepad.jsx';
 import { getDecisionCallGroups, reviewChoices } from './data/reviewPackage.js';
 
 export default function SubmitDecisionPanel({
@@ -13,6 +14,9 @@ export default function SubmitDecisionPanel({
   updateDecisionIndicator,
   submitDecision,
   openDebrief,
+  removePin,
+  toolNames,
+  saveNote,
 }) {
   const latestPackage = reviewPackages[0] ?? null;
   const submissionLabel = latestPackage ? 'Decision saved' : 'Ready to submit';
@@ -57,6 +61,17 @@ export default function SubmitDecisionPanel({
       <p className="decision-direct-submit-note" role="note">
         You can submit a decision without reviewing every tool. Open only the records needed to prove your selected flags.
       </p>
+
+      <DecisionEvidenceNotepad
+        tray={tray}
+        notes={notes}
+        activeCase={activeCase}
+        toolNames={toolNames}
+        decisionDraft={decisionDraft}
+        updateDecision={updateDecision}
+        removePin={removePin}
+        saveNote={saveNote}
+      />
 
       <DecisionFlagChecklist
         activeCase={activeCase}
