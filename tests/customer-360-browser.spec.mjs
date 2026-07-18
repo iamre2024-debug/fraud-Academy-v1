@@ -25,6 +25,12 @@ test('approved Customer 360 is a complete Evidence First dossier', async ({ page
   await tabs.getByRole('tab', { name: 'Accounts', exact: true }).click();
   await expect(customer360.getByRole('heading', { name: 'Products & Accounts', exact: true })).toBeVisible();
   await expect(customer360.getByRole('heading', { name: 'Relationship Overview', exact: true })).toBeVisible();
+  await expect(customer360.getByRole('heading', { name: 'Account & Payment Snapshot', exact: true })).toBeVisible();
+  await expect(customer360.locator('[data-customer-account-snapshot]')).toHaveCount(1);
+  await expect(customer360.locator('[data-customer-account-snapshot]').first()).toContainText('BC-441');
+  await expect(customer360.locator('[data-customer-account-snapshot]').first()).toContainText('DST-CARD-4410');
+  await expect(customer360.getByRole('button', { name: 'Pin identifiers', exact: true })).toBeVisible();
+  await expect(customer360.locator('[data-customer-account-snapshot]').getByRole('button', { name: 'Open Payment Verification', exact: true })).toBeVisible();
   await expect(customer360.getByRole('heading', { name: 'Accounts & Products', exact: true })).toBeVisible();
   await expect(customer360.locator('.customer-360-structured-records article')).toHaveCount(3);
 
