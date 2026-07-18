@@ -41,8 +41,20 @@ test('Financial Investigation and KYB Review provide complete responsive workspa
   await toolPanel.getByRole('button', { name: 'Save evidence note', exact: true }).click();
   await expect(page.locator('.notebook-card')).toContainText('Financial Investigation');
 
+  await toolPanel.getByRole('button', { name: 'ACH, Wire & P2P History', exact: true }).click();
+  await expect(toolPanel.getByRole('navigation', { name: 'Transfer rail filters' })).toBeVisible();
+  await expect(toolPanel.getByRole('button', { name: 'ACH', exact: true })).toBeVisible();
+  await expect(toolPanel.getByRole('button', { name: 'Zelle / P2P', exact: true })).toBeVisible();
+  await toolPanel.getByRole('button', { name: 'Zelle / P2P', exact: true }).click();
+  await expect(toolPanel.locator('[data-financial-investigation-record]')).toHaveCount(1);
+  await expect(toolPanel.locator('.financial-record-detail')).toContainText('Network trace ID');
+  await expect(toolPanel.locator('.financial-record-detail')).toContainText('Destination ID');
+  await expect(toolPanel.locator('.financial-record-detail')).toContainText('Related device / session');
+
   await toolPanel.getByRole('button', { name: 'Funds Flow', exact: true }).click();
   await expect(toolPanel.locator('[data-financial-investigation-record]')).toHaveCount(3);
+  await expect(toolPanel.locator('.financial-funds-flow-map')).toBeVisible();
+  await expect(toolPanel.locator('[data-funds-flow-step]')).toHaveCount(3);
   await expect(toolPanel.locator('.financial-record-detail')).toContainText('Source');
   await expect(toolPanel.locator('.financial-record-detail')).toContainText('Destination');
   await toolPanel.getByRole('button', { name: 'Mark Financial Investigation reviewed', exact: true }).click();
