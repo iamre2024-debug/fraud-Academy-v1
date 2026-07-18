@@ -241,8 +241,8 @@ function buildClaimFields(item, context = {}) {
 
   return {
     claimTypeId: claimType.id,
-    type: claimType.label,
-    claimType: claimType.label,
+    type: item.type ?? claimType.label,
+    claimType: item.claimType ?? item.type ?? claimType.label,
     lane: item.lane ?? claimType.lane,
     subtype: item.subtype ?? context.subtype ?? scenario.subtype,
     scenarioId: item.scenarioId ?? scenario.id,
@@ -291,7 +291,7 @@ function buildClaimFields(item, context = {}) {
 }
 
 function enrichOneCase(item) {
-  if (item.id?.includes('-G') && item.generatedPacketVersion !== 4 && item.claimTypeId && item.scenarioId) {
+  if (item.id?.includes('-G') && item.generatedPacketVersion !== 5 && item.claimTypeId && item.scenarioId) {
     const index = item.generatedAt ?? Number(String(item.id).replace(/\D/g, '').slice(-8)) ?? Date.now();
     const refreshed = createGeneratedCase({
       index,
