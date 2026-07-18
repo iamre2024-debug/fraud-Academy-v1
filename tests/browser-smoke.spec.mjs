@@ -191,7 +191,12 @@ test('approved Cases queue supports neutral search, filters, preview, and respon
   await expect(queue.getByLabel('Generate case claim type')).toBeVisible();
   await expect(queue.getByLabel('Generate case scenario')).toBeVisible();
   await expect(queue.getByLabel('Generate case count')).toBeVisible();
+  await queue.getByLabel('Generate case claim type').selectOption('payroll-direct-deposit');
+  await expect(queue.getByLabel('Generate case scenario')).toBeDisabled();
+  await expect(queue.getByLabel('Generate case scenario')).toHaveValue('randomized');
+  await expect(queue.getByLabel('Generate case scenario')).toContainText('Randomized hidden evidence pattern');
   await queue.getByLabel('Generate case claim type').selectOption('credit-risk');
+  await expect(queue.getByLabel('Generate case scenario')).toBeEnabled();
   await queue.getByLabel('Generate case count').selectOption('5');
   await queue.getByRole('button', { name: 'Generate cases', exact: true }).click();
   await expect(queue.locator('[data-case-origin="generated"]')).toHaveCount(5);
