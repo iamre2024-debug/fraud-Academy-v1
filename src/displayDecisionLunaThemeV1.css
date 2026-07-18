@@ -277,6 +277,261 @@ body[data-visual-tab="workspace"] .decision-direct-submit-note {
   line-height: 1.45;
 }
 
+body[data-visual-tab="workspace"] .decision-evidence-notepad {
+  margin-bottom: 18px;
+  border: 1px solid var(--decision-border);
+  border-radius: 20px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+body[data-visual-tab="workspace"] .decision-evidence-notepad > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+body[data-visual-tab="workspace"] .decision-evidence-notepad > header p {
+  margin: 0 0 5px;
+  color: var(--decision-purple);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .decision-evidence-notepad > header h3 {
+  margin: 0;
+  color: var(--decision-ink);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 1.18rem;
+}
+
+body[data-visual-tab="workspace"] .decision-evidence-notepad > header span {
+  display: block;
+  max-width: 760px;
+  margin-top: 6px;
+  color: var(--decision-muted);
+  line-height: 1.45;
+}
+
+body[data-visual-tab="workspace"] .decision-evidence-notepad > header > strong {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--decision-lavender);
+  color: var(--decision-purple-dark);
+  padding: 7px 11px;
+  font-size: 0.75rem;
+}
+
+body[data-visual-tab="workspace"] .decision-evidence-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  background: #f7f4fb;
+  padding: 5px;
+}
+
+body[data-visual-tab="workspace"] .decision-evidence-tabs button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--decision-muted);
+  font-weight: 850;
+}
+
+body[data-visual-tab="workspace"] .decision-evidence-tabs button span {
+  display: inline-grid;
+  min-width: 22px;
+  min-height: 22px;
+  place-items: center;
+  margin-left: 5px;
+  border-radius: 999px;
+  background: #e9e1f5;
+  color: var(--decision-purple-dark);
+  font-size: 0.7rem;
+}
+
+body[data-visual-tab="workspace"] .decision-evidence-tabs button.active {
+  background: var(--decision-purple);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(78, 45, 143, 0.2);
+}
+
+body[data-visual-tab="workspace"] .decision-evidence-tabs button.active span {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+body[data-visual-tab="workspace"] .decision-pinned-proof-list,
+body[data-visual-tab="workspace"] .decision-case-note-list {
+  display: grid;
+  gap: 10px;
+}
+
+body[data-visual-tab="workspace"] .decision-pinned-proof-card {
+  min-width: 0;
+  border: 1px solid #dfd4ed;
+  border-left: 5px solid var(--decision-purple);
+  border-radius: 15px;
+  background: #fcfbff;
+  padding: 13px;
+}
+
+body[data-visual-tab="workspace"] .decision-pinned-proof-card > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+body[data-visual-tab="workspace"] .decision-pinned-proof-card > header div {
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .decision-pinned-proof-card > header small,
+body[data-visual-tab="workspace"] .decision-pinned-proof-card > header strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .decision-pinned-proof-card > header small {
+  margin-bottom: 3px;
+  color: var(--decision-purple);
+  font-weight: 850;
+}
+
+body[data-visual-tab="workspace"] .decision-pinned-proof-card > header strong {
+  color: var(--decision-ink);
+}
+
+body[data-visual-tab="workspace"] .decision-pinned-proof-card > header button {
+  flex: 0 0 auto;
+  border-color: #e0b8c3;
+  color: #84374c;
+  font-size: 0.75rem;
+}
+
+body[data-visual-tab="workspace"] .decision-pinned-proof-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+body[data-visual-tab="workspace"] .decision-pinned-proof-card dl div {
+  min-width: 0;
+  border: 1px solid #e7e0ef;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 9px;
+}
+
+body[data-visual-tab="workspace"] .decision-pinned-proof-card dt {
+  color: var(--decision-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+body[data-visual-tab="workspace"] .decision-pinned-proof-card dd {
+  margin: 4px 0 0;
+  color: var(--decision-ink);
+  font-size: 0.8rem;
+  font-weight: 750;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+body[data-visual-tab="workspace"] .decision-pinned-proof-card > p,
+body[data-visual-tab="workspace"] .decision-evidence-empty p {
+  margin: 10px 0;
+  color: var(--decision-muted);
+  line-height: 1.45;
+}
+
+body[data-visual-tab="workspace"] .decision-add-proof-button {
+  border-color: var(--decision-purple) !important;
+  color: var(--decision-purple-dark) !important;
+  font-weight: 850;
+}
+
+body[data-visual-tab="workspace"] .decision-add-proof-button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+body[data-visual-tab="workspace"] .decision-case-note-list article {
+  border: 1px solid #e4dced;
+  border-radius: 13px;
+  background: #fcfbff;
+  color: var(--decision-ink);
+  padding: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .decision-note-compose {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #d9cce9;
+  border-radius: 14px;
+  background: var(--decision-lavender);
+  padding: 12px;
+}
+
+body[data-visual-tab="workspace"] .decision-note-compose label {
+  color: var(--decision-ink);
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+body[data-visual-tab="workspace"] .decision-note-compose textarea {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  border: 1px solid #c6b2e1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--decision-ink);
+  padding: 10px;
+  line-height: 1.45;
+}
+
+body[data-visual-tab="workspace"] .decision-note-compose button {
+  justify-self: start;
+  border-color: var(--decision-purple);
+  background: var(--decision-purple);
+  color: #ffffff;
+  font-weight: 850;
+}
+
+body[data-visual-tab="workspace"] .decision-note-compose button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+body[data-visual-tab="workspace"] .decision-evidence-empty {
+  border: 1px dashed #cfc0e3;
+  border-radius: 14px;
+  background: #faf8fd;
+  padding: 16px;
+  text-align: center;
+}
+
+body[data-visual-tab="workspace"] .decision-evidence-empty strong {
+  color: var(--decision-ink);
+}
+
+body[data-visual-tab="workspace"] .decision-evidence-empty p {
+  margin-bottom: 0;
+}
+
 body[data-visual-tab="workspace"] .decision-flag-workspace {
   margin-bottom: 18px;
   border: 1px solid var(--decision-border);
@@ -1221,6 +1476,10 @@ body[data-visual-tab="workspace"] .luna-v1-routes {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  body[data-visual-tab="workspace"] .decision-pinned-proof-card dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   body[data-visual-tab="workspace"] .luna-v1-breakdown {
     grid-column: 1 / -1;
   }
@@ -1259,6 +1518,32 @@ body[data-visual-tab="workspace"] .luna-v1-routes {
   body[data-visual-tab="workspace"] .luna-v1-unlock-grid,
   body[data-visual-tab="workspace"] .luna-v1-breakdown .luna-breakdown-card {
     grid-template-columns: 1fr;
+  }
+
+  body[data-visual-tab="workspace"] .decision-evidence-notepad {
+    padding: 13px;
+  }
+
+  body[data-visual-tab="workspace"] .decision-evidence-notepad > header,
+  body[data-visual-tab="workspace"] .decision-pinned-proof-card > header {
+    display: grid;
+  }
+
+  body[data-visual-tab="workspace"] .decision-evidence-notepad > header > strong,
+  body[data-visual-tab="workspace"] .decision-pinned-proof-card > header button {
+    justify-self: start;
+  }
+
+  body[data-visual-tab="workspace"] .decision-pinned-proof-card dl {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-visual-tab="workspace"] .decision-add-proof-button {
+    width: 100%;
+  }
+
+  body[data-visual-tab="workspace"] .decision-note-compose button {
+    width: 100%;
   }
 
   body[data-visual-tab="workspace"] .decision-flag-header,
