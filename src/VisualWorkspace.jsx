@@ -44,6 +44,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   const [expandedId, setExpandedId] = useState('');
   const [noteDraft, setNoteDraft] = useState('');
   const [openedPinnedEvidence, setOpenedPinnedEvidence] = useState(null);
+  const [paymentLookupSeed, setPaymentLookupSeed] = useState(null);
   const submitRef = useRef(null);
   const workspaceScreenHistory = useRef([]);
   const requestedWorkspaceScreenRef = useRef(requestedWorkspaceScreen);
@@ -57,6 +58,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setActiveStage(stageForScreen(nextScreen, tool));
     setWorkspaceScreen(nextScreen);
     setOpenedPinnedEvidence(null);
+    setPaymentLookupSeed(null);
   }, [activeCase.id]);
 
   useEffect(() => {
@@ -220,9 +222,15 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setQuery('');
     setExpandedId('');
     setOpenedPinnedEvidence(null);
+    if (nextTool !== 'Payment Verification') setPaymentLookupSeed(null);
     showWorkspaceScreen(nextTool === 'Timeline' ? 'timeline' : 'tool');
     if (!scroll || isMobileLayout()) return;
     scrollToWorkspace('.activity-panel');
+  }
+
+  function openPaymentVerification(seed) {
+    setPaymentLookupSeed({ ...seed, caseId: activeCase.id, requestedAt: Date.now() });
+    openTool('Payment Verification');
   }
 
   function openPinnedEvidence(item) {
@@ -388,6 +396,8 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     notes,
     cases,
     openDocumentAccountCase,
+    paymentLookupSeed,
+    openPaymentVerification,
   };
 
   return (
