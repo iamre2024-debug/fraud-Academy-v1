@@ -28,6 +28,8 @@ for (const anchor of [
   'Unlimited queue',
   'Generate case claim type',
   'Generate case scenario',
+  'Randomized hidden evidence pattern',
+  'randomizeScenario: generatorClaimType.hideScenarioAnswer',
   'Generate case count',
   'onGenerateCases',
   '>Detail</button>',
