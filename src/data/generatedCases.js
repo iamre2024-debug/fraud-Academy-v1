@@ -281,7 +281,8 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const recordCount = Math.min(5, depth.records + difficultyProfile.extraRecords);
   const suffix = padded(index);
   const persona = buildGeneratedPersona(index, scenario);
-  const { person, city, employer, business, phone, email, address } = persona;
+  const { person, city, employer, phone, email, address } = persona;
+  const business = claimType.id === 'payroll-direct-deposit' ? employer : persona.business;
   const id = `FA-${claimType.prefix}-G${String(index).slice(-8)}`;
   const trainingId = `TRN-GEN-${suffix}`;
   const accountId = `ACCT-${claimType.prefix}-${suffix}`;
