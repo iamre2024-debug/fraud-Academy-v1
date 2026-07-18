@@ -1061,6 +1061,407 @@ body[data-visual-tab="workspace"] .payment-notes-panel button:last-child {
   color: #fff;
 }
 
+body[data-visual-tab="workspace"] .payment-lookup-intro {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+  border: 1px solid rgba(117, 81, 200, 0.2);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #f1eaff 0%, #fff 56%, #fff3fb 100%);
+  padding: 15px;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-intro > span,
+body[data-visual-tab="workspace"] .payment-lookup-empty > span {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #7551c8, #bd72c9);
+  color: #fff;
+  font-size: 1.45rem;
+  font-weight: 900;
+  box-shadow: 0 8px 20px rgba(117, 81, 200, 0.2);
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-intro p,
+body[data-visual-tab="workspace"] .payment-lookup-form header p,
+body[data-visual-tab="workspace"] .payment-result-header p,
+body[data-visual-tab="workspace"] .payment-result-guide > p {
+  margin: 0;
+  color: #7551c8;
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-intro h3,
+body[data-visual-tab="workspace"] .payment-lookup-form h3,
+body[data-visual-tab="workspace"] .payment-result-header h3,
+body[data-visual-tab="workspace"] .payment-result-guide h3 {
+  margin: 3px 0 0;
+  color: #2a214e;
+  font-size: 0.95rem;
+  line-height: 1.3;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-intro div > p:last-child {
+  margin-top: 4px;
+  color: #6f6688;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-form,
+body[data-visual-tab="workspace"] .payment-lookup-results {
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.14);
+  border-radius: 18px;
+  background: #fff;
+  padding: 15px;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-form {
+  display: grid;
+  gap: 13px;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: 11px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-fields label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-fields label > span {
+  color: #40375f;
+  font-size: 0.69rem;
+  font-weight: 850;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-fields input {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  border: 1px solid rgba(91, 62, 154, 0.2);
+  border-radius: 13px;
+  background: #fcfbff;
+  padding: 11px 12px;
+  color: #2b2350;
+  font: 750 0.78rem/1.2 Inter, ui-sans-serif, system-ui, sans-serif;
+  outline: none;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-fields input:focus-visible {
+  border-color: #7551c8;
+  box-shadow: 0 0 0 3px rgba(117, 81, 200, 0.12);
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-submit {
+  min-height: 46px;
+  border: 1px solid #7551c8;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #7551c8, #b568c5);
+  padding: 10px 18px;
+  color: #fff;
+  font: 900 0.76rem/1.2 Inter, ui-sans-serif, system-ui, sans-serif;
+  box-shadow: 0 8px 18px rgba(117, 81, 200, 0.18);
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-submit span {
+  margin-right: 5px;
+  font-size: 1rem;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-training-note,
+body[data-visual-tab="workspace"] .payment-lookup-form-message {
+  margin: 0;
+  color: #777087;
+  font-size: 0.66rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-form-message {
+  border-radius: 10px;
+  background: #fff1f4;
+  padding: 8px;
+  color: #96243e;
+  font-weight: 800;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 0;
+  border: 1px dashed rgba(117, 81, 200, 0.28);
+  border-radius: 18px;
+  background: #faf8ff;
+  padding: 30px 16px;
+  text-align: center;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-empty > span {
+  width: 38px;
+  height: 38px;
+  margin-bottom: 3px;
+  background: #eee7ff;
+  color: #7551c8;
+  box-shadow: none;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-empty h3,
+body[data-visual-tab="workspace"] .payment-result-no-info h4 {
+  margin: 0;
+  color: #2a214e;
+  font-size: 0.88rem;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-empty p,
+body[data-visual-tab="workspace"] .payment-result-no-info p {
+  max-width: 560px;
+  margin: 0;
+  color: #716a83;
+  font-size: 0.69rem;
+  line-height: 1.45;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-results {
+  display: grid;
+  gap: 14px;
+}
+
+body[data-visual-tab="workspace"] .payment-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .payment-result-header > div:first-child > span {
+  color: #756c8d;
+  font-size: 0.66rem;
+}
+
+body[data-visual-tab="workspace"] .payment-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+body[data-visual-tab="workspace"] .payment-result-actions button {
+  min-height: 40px;
+  border: 1px solid rgba(117, 81, 200, 0.2);
+  border-radius: 12px;
+  background: #f6f1ff;
+  padding: 9px 11px;
+  color: #5f3cad;
+  font: 850 0.68rem/1.2 Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body[data-visual-tab="workspace"] .payment-result-actions button:last-child {
+  background: #7551c8;
+  color: #fff;
+}
+
+body[data-visual-tab="workspace"] .payment-result-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(250px, 0.75fr);
+  align-items: start;
+  gap: 14px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .payment-result-main {
+  display: grid;
+  gap: 11px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .payment-result-match-card,
+body[data-visual-tab="workspace"] .payment-result-status-card,
+body[data-visual-tab="workspace"] .payment-result-guide,
+body[data-visual-tab="workspace"] .payment-result-no-info {
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.12);
+  border-radius: 16px;
+  background: #faf8ff;
+  padding: 13px;
+}
+
+body[data-visual-tab="workspace"] .payment-result-match-card,
+body[data-visual-tab="workspace"] .payment-result-status-card > header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+body[data-visual-tab="workspace"] .payment-result-match-card.good { border-color: rgba(41, 145, 79, 0.3); background: #f3fbf6; }
+body[data-visual-tab="workspace"] .payment-result-match-card.warn { border-color: rgba(191, 125, 9, 0.28); background: #fffbf0; }
+body[data-visual-tab="workspace"] .payment-result-match-card.alert { border-color: rgba(174, 44, 75, 0.28); background: #fff5f7; }
+
+body[data-visual-tab="workspace"] .payment-result-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 2px solid #7551c8;
+  border-radius: 50%;
+  color: #7551c8;
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+body[data-visual-tab="workspace"] .payment-result-match-card.good .payment-result-icon { border-color: #2f9951; color: #2f9951; }
+body[data-visual-tab="workspace"] .payment-result-match-card.warn .payment-result-icon { border-color: #b87700; color: #b87700; }
+body[data-visual-tab="workspace"] .payment-result-match-card.alert .payment-result-icon { border-color: #ae2c4b; color: #ae2c4b; }
+
+body[data-visual-tab="workspace"] .payment-result-match-card span,
+body[data-visual-tab="workspace"] .payment-result-status-card header span,
+body[data-visual-tab="workspace"] .payment-result-related > span {
+  color: #766d8d;
+  font-size: 0.61rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .payment-result-match-card h4,
+body[data-visual-tab="workspace"] .payment-result-status-card h4 {
+  margin: 3px 0;
+  color: #2a214e;
+  font-size: 1rem;
+}
+
+body[data-visual-tab="workspace"] .payment-result-match-card.good h4 { color: #247d42; }
+body[data-visual-tab="workspace"] .payment-result-match-card.warn h4 { color: #946100; }
+body[data-visual-tab="workspace"] .payment-result-match-card.alert h4 { color: #9b2141; }
+
+body[data-visual-tab="workspace"] .payment-result-match-card p,
+body[data-visual-tab="workspace"] .payment-result-status-card header p,
+body[data-visual-tab="workspace"] .payment-result-guide article p {
+  margin: 0;
+  color: #665e79;
+  font-size: 0.69rem;
+  line-height: 1.4;
+}
+
+body[data-visual-tab="workspace"] .payment-result-status-card {
+  display: grid;
+  gap: 12px;
+  background: #fff;
+}
+
+body[data-visual-tab="workspace"] .payment-result-status-list {
+  display: grid;
+  margin: 0;
+  border: 1px solid rgba(91, 62, 154, 0.1);
+  border-radius: 13px;
+  overflow: hidden;
+}
+
+body[data-visual-tab="workspace"] .payment-result-status-list > div {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 9px 10px;
+  background: #fcfbff;
+}
+
+body[data-visual-tab="workspace"] .payment-result-status-list > div + div { border-top: 1px solid rgba(91, 62, 154, 0.09); }
+body[data-visual-tab="workspace"] .payment-result-status-list dt { color: #665e79; font-size: 0.67rem; font-weight: 700; }
+body[data-visual-tab="workspace"] .payment-result-status-list dd { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin: 0; font-size: 0.67rem; font-weight: 900; text-align: right; overflow-wrap: anywhere; }
+body[data-visual-tab="workspace"] .payment-result-status-list dd span,
+body[data-visual-tab="workspace"] .payment-result-guide article > span { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+body[data-visual-tab="workspace"] .payment-result-status-list dd.good,
+body[data-visual-tab="workspace"] .payment-result-guide .good { color: #248245; }
+body[data-visual-tab="workspace"] .payment-result-status-list dd.warn,
+body[data-visual-tab="workspace"] .payment-result-guide .warn { color: #a36b00; }
+body[data-visual-tab="workspace"] .payment-result-status-list dd.alert,
+body[data-visual-tab="workspace"] .payment-result-guide .alert { color: #a72646; }
+body[data-visual-tab="workspace"] .payment-result-status-list dd.neutral,
+body[data-visual-tab="workspace"] .payment-result-guide .neutral { color: #777087; }
+
+body[data-visual-tab="workspace"] .payment-result-detail-grid {
+  margin: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body[data-visual-tab="workspace"] .payment-result-related {
+  display: grid;
+  gap: 7px;
+}
+
+body[data-visual-tab="workspace"] .payment-result-related > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+body[data-visual-tab="workspace"] .payment-result-related b {
+  border-radius: 999px;
+  background: #eee7ff;
+  padding: 6px 8px;
+  color: #5f3cad;
+  font-size: 0.61rem;
+}
+
+body[data-visual-tab="workspace"] .payment-result-guide {
+  display: grid;
+  gap: 9px;
+  position: sticky;
+  top: 12px;
+  background: linear-gradient(180deg, #fbf9ff, #fff);
+}
+
+body[data-visual-tab="workspace"] .payment-result-guide h3:not(:first-of-type) {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(91, 62, 154, 0.1);
+}
+
+body[data-visual-tab="workspace"] .payment-result-guide article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+}
+
+body[data-visual-tab="workspace"] .payment-result-guide article > span { margin-top: 4px; }
+body[data-visual-tab="workspace"] .payment-result-guide article strong { color: #3c3459; font-size: 0.67rem; }
+
+body[data-visual-tab="workspace"] .payment-result-no-info {
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+  background: #faf8ff;
+}
+
+body[data-visual-tab="workspace"] .investigation-tool-review-bar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 body[data-visual-tab="workspace"] .device-intel-findbar {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(280px, 1.1fr) auto;
@@ -1869,6 +2270,14 @@ body[data-visual-tab="workspace"] .ip-notes-panel button:last-child { border-col
     grid-template-columns: 1fr;
   }
 
+  body[data-visual-tab="workspace"] .payment-result-layout {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-visual-tab="workspace"] .payment-result-guide {
+    position: static;
+  }
+
   body[data-visual-tab="workspace"] .access-history-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1921,6 +2330,25 @@ body[data-visual-tab="workspace"] .ip-notes-panel button:last-child { border-col
 
   body[data-visual-tab="workspace"] .payment-verification-findbar > span {
     white-space: normal;
+  }
+
+  body[data-visual-tab="workspace"] .payment-lookup-fields {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-visual-tab="workspace"] .payment-result-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  body[data-visual-tab="workspace"] .payment-result-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-visual-tab="workspace"] .payment-result-actions button {
+    width: 100%;
+    text-align: center;
   }
 
   body[data-visual-tab="workspace"] .device-intel-findbar > span {
@@ -2007,6 +2435,38 @@ body[data-visual-tab="workspace"] .ip-notes-panel button:last-child { border-col
 
   body[data-visual-tab="workspace"] .payment-comparison-panel article:last-child {
     grid-column: auto;
+  }
+
+  body[data-visual-tab="workspace"] .payment-lookup-intro {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-visual-tab="workspace"] .payment-lookup-intro > span {
+    width: 38px;
+    height: 38px;
+  }
+
+  body[data-visual-tab="workspace"] .payment-result-match-card,
+  body[data-visual-tab="workspace"] .payment-result-status-card > header {
+    align-items: start;
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .payment-result-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 0.95rem;
+  }
+
+  body[data-visual-tab="workspace"] .payment-result-status-list > div {
+    align-items: start;
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  body[data-visual-tab="workspace"] .payment-result-status-list dd {
+    justify-content: flex-start;
+    text-align: left;
   }
 
   body[data-visual-tab="workspace"] .device-behavior-panel article:last-child {
@@ -2537,6 +2997,32 @@ body[data-visual-tab="workspace"] .kyb-review-tabs button.active {
   color: #3d2b6d;
 }
 
+body[data-visual-tab="workspace"] .financial-transfer-rail-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+  border-radius: 13px;
+  background: #f8f5ff;
+  padding: 8px;
+}
+
+body[data-visual-tab="workspace"] .financial-transfer-rail-filter button {
+  min-height: 36px;
+  border: 1px solid rgba(91, 62, 154, 0.14);
+  border-radius: 999px;
+  background: #fff;
+  padding: 7px 12px;
+  color: #625875;
+  font: 800 0.65rem/1.2 Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body[data-visual-tab="workspace"] .financial-transfer-rail-filter button.active {
+  border-color: #7551c8;
+  background: #7551c8;
+  color: #fff;
+}
+
 body[data-visual-tab="workspace"] .financial-investigation-findbar,
 body[data-visual-tab="workspace"] .kyb-review-findbar {
   display: grid;
@@ -2716,6 +3202,92 @@ body[data-visual-tab="workspace"] .financial-deposit-trend article small {
 body[data-visual-tab="workspace"] .financial-deposit-trend article strong {
   color: #33294f;
   font-size: 0.7rem;
+}
+
+body[data-visual-tab="workspace"] .financial-funds-flow-map {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.13);
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f5efff 0%, #fff 60%, #fff6fb 100%);
+  padding: 13px;
+}
+
+body[data-visual-tab="workspace"] .financial-funds-flow-map > header {
+  display: grid;
+  gap: 3px;
+}
+
+body[data-visual-tab="workspace"] .financial-funds-flow-map > header p {
+  margin: 0;
+  color: #7551c8;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .financial-funds-flow-map > header h3 {
+  margin: 0;
+  color: #2c234c;
+  font-size: 0.84rem;
+}
+
+body[data-visual-tab="workspace"] .financial-funds-flow-map > header span {
+  color: #746c88;
+  font-size: 0.65rem;
+  line-height: 1.4;
+}
+
+body[data-visual-tab="workspace"] .financial-funds-flow-map > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .financial-funds-flow-map article {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px;
+}
+
+body[data-visual-tab="workspace"] .financial-funds-flow-map article > span {
+  color: #7551c8;
+  font-size: 0.6rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .financial-funds-flow-map article > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+
+body[data-visual-tab="workspace"] .financial-funds-flow-map article strong {
+  color: #342a51;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .financial-funds-flow-map article b {
+  color: #8b64ce;
+  font-size: 1rem;
+}
+
+body[data-visual-tab="workspace"] .financial-funds-flow-map article p {
+  margin: 0;
+  color: #746c88;
+  font-size: 0.62rem;
+  line-height: 1.4;
 }
 
 body[data-visual-tab="workspace"] .financial-investigation-workspace {
@@ -3109,6 +3681,10 @@ body[data-visual-tab="workspace"] .kyb-report-actions > span {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  body[data-visual-tab="workspace"] .financial-funds-flow-map > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   body[data-visual-tab="workspace"] .financial-investigation-findbar,
   body[data-visual-tab="workspace"] .kyb-review-findbar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3173,6 +3749,24 @@ body[data-visual-tab="workspace"] .kyb-report-actions > span {
   body[data-visual-tab="workspace"] .kyb-record-list > header,
   body[data-visual-tab="workspace"] .kyb-record-detail > header {
     display: grid;
+  }
+
+  body[data-visual-tab="workspace"] .financial-transfer-rail-filter {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-visual-tab="workspace"] .financial-transfer-rail-filter button {
+    width: 100%;
+  }
+
+  body[data-visual-tab="workspace"] .financial-funds-flow-map article > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .financial-funds-flow-map article b {
+    transform: rotate(90deg);
+    justify-self: start;
   }
 }
 
@@ -4942,7 +5536,9 @@ body[data-visual-tab="workspace"] .employee-profile-detail,
 body[data-visual-tab="workspace"] .employee-profile-evidence,
 body[data-visual-tab="workspace"] .payroll-history-list,
 body[data-visual-tab="workspace"] .payroll-history-detail,
-body[data-visual-tab="workspace"] .payroll-history-controls {
+body[data-visual-tab="workspace"] .payroll-history-controls,
+body[data-visual-tab="workspace"] .payroll-payee-roster,
+body[data-visual-tab="workspace"] .payroll-payee-detail {
   min-width: 0;
   border: 1px solid rgba(91, 62, 154, 0.12);
   border-radius: 16px;
@@ -4982,6 +5578,154 @@ body[data-visual-tab="workspace"] .payroll-history-workspace {
   align-items: start;
   gap: 12px;
   min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .payroll-history-workspace > .payroll-history-detail,
+body[data-visual-tab="workspace"] .payroll-history-workspace > .payroll-payee-detail {
+  grid-column: 2 / -1;
+}
+
+body[data-visual-tab="workspace"] .payroll-history-workspace > .payroll-history-controls {
+  grid-column: 1 / -1;
+}
+
+body[data-visual-tab="workspace"] .payroll-payee-roster,
+body[data-visual-tab="workspace"] .payroll-payee-detail {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.12);
+  border-radius: 16px;
+  background: #fff;
+  padding: 13px;
+}
+
+body[data-visual-tab="workspace"] .payroll-payee-roster header p,
+body[data-visual-tab="workspace"] .payroll-payee-detail header p {
+  margin: 0;
+  color: #7551c8;
+  font-size: 0.65rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .payroll-payee-roster h3,
+body[data-visual-tab="workspace"] .payroll-payee-detail h3 {
+  margin: 4px 0 0;
+  color: #21184a;
+  font-size: 0.94rem;
+}
+
+body[data-visual-tab="workspace"] .payroll-payee-roster header > span,
+body[data-visual-tab="workspace"] .payroll-payee-detail header span {
+  display: block;
+  margin-top: 4px;
+  color: #756c8d;
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+body[data-visual-tab="workspace"] .payroll-payee-roster > div {
+  display: grid;
+  gap: 8px;
+}
+
+body[data-visual-tab="workspace"] .payroll-payee-roster > div > button {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.1);
+  border-radius: 11px;
+  background: #faf8ff;
+  padding: 9px;
+  color: #342758;
+  text-align: left;
+}
+
+body[data-visual-tab="workspace"] .payroll-payee-roster > div > button.active {
+  border-color: rgba(117, 81, 200, 0.5);
+  background: #f0e9ff;
+}
+
+body[data-visual-tab="workspace"] .payroll-payee-roster button span {
+  color: #7551c8;
+  font-size: 0.62rem;
+  font-weight: 850;
+}
+
+body[data-visual-tab="workspace"] .payroll-payee-roster button strong {
+  color: #29204f;
+  font-size: 0.77rem;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .payroll-payee-roster button small {
+  color: #756c8d;
+  font-size: 0.66rem;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .payroll-payee-detail > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+body[data-visual-tab="workspace"] .payroll-payee-detail > header button,
+body[data-visual-tab="workspace"] .payroll-verify-destination,
+body[data-visual-tab="workspace"] .payroll-run-actions button {
+  min-height: 38px;
+  border: 1px solid rgba(91, 62, 154, 0.18);
+  border-radius: 11px;
+  background: #f7f3ff;
+  padding: 8px 10px;
+  color: #51496d;
+  font: 800 0.71rem/1.1 Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body[data-visual-tab="workspace"] .payroll-payee-detail dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+body[data-visual-tab="workspace"] .payroll-payee-detail dl > div {
+  min-width: 0;
+  border-radius: 10px;
+  background: #faf8ff;
+  padding: 8px;
+}
+
+body[data-visual-tab="workspace"] .payroll-payee-detail dt {
+  color: #7a7094;
+  font-size: 0.62rem;
+  font-weight: 850;
+}
+
+body[data-visual-tab="workspace"] .payroll-payee-detail dd {
+  margin: 4px 0 0;
+  color: #30264f;
+  font-size: 0.73rem;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .payroll-run-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+body[data-visual-tab="workspace"] .payroll-verify-destination {
+  justify-self: start;
+  border-color: #7551c8 !important;
+  background: #7551c8 !important;
+  color: #fff !important;
 }
 
 body[data-visual-tab="workspace"] .transaction-history-list,
@@ -5199,6 +5943,11 @@ body[data-visual-tab="workspace"] .business-360-evidence article small {
     grid-column: 1 / -1;
   }
 
+  body[data-visual-tab="workspace"] .payroll-history-workspace > .payroll-history-detail,
+  body[data-visual-tab="workspace"] .payroll-history-workspace > .payroll-payee-detail {
+    grid-column: 2;
+  }
+
   body[data-visual-tab="workspace"] .business-360-profile dl {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -5227,6 +5976,16 @@ body[data-visual-tab="workspace"] .business-360-evidence article small {
   body[data-visual-tab="workspace"] .payroll-history-controls {
     grid-column: auto;
   }
+
+  body[data-visual-tab="workspace"] .payroll-history-workspace > .payroll-history-detail,
+  body[data-visual-tab="workspace"] .payroll-history-workspace > .payroll-payee-detail,
+  body[data-visual-tab="workspace"] .payroll-history-workspace > .payroll-history-controls {
+    grid-column: auto;
+  }
+
+  body[data-visual-tab="workspace"] .payroll-payee-detail dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 430px) {
@@ -5241,11 +6000,25 @@ body[data-visual-tab="workspace"] .business-360-evidence article small {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  body[data-visual-tab="workspace"] .payroll-payee-detail dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   body[data-visual-tab="workspace"] .transaction-history-detail header,
   body[data-visual-tab="workspace"] .business-360-profile header,
   body[data-visual-tab="workspace"] .business-360-detail header,
   body[data-visual-tab="workspace"] .employee-profile-detail header,
   body[data-visual-tab="workspace"] .payroll-history-detail header {
     display: grid;
+  }
+
+  body[data-visual-tab="workspace"] .payroll-payee-detail > header {
+    display: grid;
+  }
+
+  body[data-visual-tab="workspace"] .payroll-payee-detail > header button,
+  body[data-visual-tab="workspace"] .payroll-verify-destination,
+  body[data-visual-tab="workspace"] .payroll-run-actions button {
+    width: 100%;
   }
 }
