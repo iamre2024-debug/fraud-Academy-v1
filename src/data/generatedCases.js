@@ -58,6 +58,7 @@ export function buildGeneratedCaseSummary({
   issueStartDate,
   documents = [],
 }) {
+  const intakePresentation = scenario.intakePresentation;
   const availableDocuments = documents.filter((document) => document.status !== 'Requested').length;
   const requestedDocuments = documents.filter((document) => document.status === 'Requested').length;
   const subject = generatedSubject({ person, scenario, employer, business });
@@ -66,6 +67,10 @@ export function buildGeneratedCaseSummary({
   const documentStatus = requestedDocuments
     ? `${availableDocuments} supporting document(s) are available and ${requestedDocuments} remain requested.`
     : `${availableDocuments} supporting document(s) are available in the case packet.`;
+
+  if (intakePresentation?.claimLabel) {
+    return `${intakePresentation.summary} The amount in scope is ${scenario.amount}; activity begins ${issueStartDate}, and the alert entered the queue ${reportedDate}. ${documentStatus}`;
+  }
 
   return `${subject} reported through ${scenario.channel}: "${statement}" The ${scenario.subtype} review concerns ${transaction} The amount in scope is ${scenario.amount}; activity begins ${issueStartDate}, and the case was reported ${reportedDate}. ${documentStatus}`;
 }
@@ -94,8 +99,9 @@ function makeLoginHistory({ id, index, city, recordCount, claimType, scenario, d
   const residentialIp = `198.51.100.${20 + (safeIndex(index) % 120)}`;
   const secondaryIp = `203.0.113.${10 + (safeIndex(index) % 120)}`;
   const determination = scenario.caseTruth?.correctDetermination ?? '';
-  const established = /do not support|release|complete application/i.test(determination);
-  const mixed = /insufficient|more information|escalate|unable|hold pending/i.test(determination);
+  const accessPattern = scenario.evidenceProfile?.accessPattern;
+  const established = accessPattern === 'established' || (!accessPattern && /do not support|release|complete application/i.test(determination));
+  const mixed = accessPattern === 'mixed' || (!accessPattern && /insufficient|more information|escalate|unable|hold pending/i.test(determination));
   const currentLocation = established ? city : mixed ? city : 'Phoenix, AZ';
   const currentDevice = established ? `DEV-GEN-${suffix}-M` : `DEV-GEN-${suffix}-N`;
   const records = [
@@ -172,7 +178,7 @@ export function makeGeneratedProfileChanges({ id, index, person, city, claimType
       ip: currentLogin.ip ?? 'No network record required for this lane',
       session: currentLogin.session ?? `${id}-PROFILE-1`,
       mfaMethod: currentLogin.method ?? 'Profile verification',
-      detail: `${scenarioEvent.item} changed from ${scenarioEvent.oldValue} to ${scenarioEvent.newValue} during the ${scenario.subtype} activity window.`,
+      detail: `${scenarioEvent.item} changed from ${scenarioEvent.oldValue} to ${scenarioEvent.newValue} during the ${scenario.intakePresentation?.evidenceContext ?? `${scenario.subtype} activity window`}.`,
     },
     hasAccessHistory ? {
       id: `${id}-PCH-2`,
@@ -232,14 +238,34 @@ export function makeGeneratedProfileChanges({ id, index, person, city, claimType
 
 function documentDetail({ name, status, scenario, person, business, employer, address, trainingId, reportedDate, issueStartDate }) {
   const subject = /business|vendor|revenue|registration|EIN|tax|bank statement|invoice|contract/i.test(name) ? business : /payroll|employee|paystub/i.test(name) ? `${person} at ${employer}` : person;
+  const evidence = scenario.evidenceProfile ?? {};
+  const protectedContext = scenario.intakePresentation?.evidenceContext;
   if (status === 'Requested') {
-    return `${name} was requested from ${subject} on ${reportedDate} to verify the ${scenario.subtype} activity and ${scenario.amount} amount in scope; no file has been received.`;
+    return `${name} was requested from ${subject} on ${reportedDate} for the ${protectedContext ?? `${scenario.subtype} activity`} and ${scenario.amount} amount in scope; no file has been received.`;
   }
   if (/identity|ID|selfie|liveness|address|phone/i.test(name)) {
     return `${name} lists ${person}, Training ID ${trainingId}, and ${address}; the record was observed ${reportedDate}.`;
   }
   if (/registration|EIN|formation|ownership/i.test(name)) {
     return `${name} lists ${business}, ${person} as the connected owner, ${address} as the recorded address, and an active training registration as of ${reportedDate}.`;
+  }
+  if (/callback/i.test(name) && evidence.callbackRecord) {
+    return `${evidence.callbackRecord} The record is dated inside the ${issueStartDate} to ${reportedDate} review window.`;
+  }
+  if (/employee profile|new.hire|payee|roster/i.test(name) && evidence.relationshipRecord) {
+    return `${evidence.relationshipRecord} ${evidence.accessRecord ?? 'Access history remains available in the related system records.'}`;
+  }
+  if (/payroll change|direct deposit|payroll card/i.test(name) && evidence.requestRecord) {
+    return `${evidence.requestRecord} ${evidence.paymentRecord ?? ''}`.trim();
+  }
+  if (/email|message/i.test(name) && evidence.requestRecord) {
+    return `${evidence.requestRecord} ${evidence.accessRecord ?? 'No separate unfamiliar mailbox-access event is returned in the current access records.'}`;
+  }
+  if (/vendor master|counterparty master/i.test(name) && evidence.relationshipRecord) {
+    return evidence.relationshipRecord;
+  }
+  if (/payment instruction|beneficiary/i.test(name) && evidence.paymentRecord) {
+    return `${evidence.requestRecord ?? ''} ${evidence.paymentRecord}`.trim();
   }
   if (/bank statement|revenue|income|paystub|tax|cash.flow|invoice|contract/i.test(name)) {
     return `${name} covers ${subject}, the ${issueStartDate} to ${reportedDate} activity window, and the ${scenario.amount} request or exposure described as ${scenario.transactionInfo}.`;
@@ -253,7 +279,7 @@ function documentDetail({ name, status, scenario, person, business, employer, ad
   if (/email|message|vendor|callback|payment instruction/i.test(name)) {
     return `${name} records the ${scenario.channel} instruction, ${scenario.transactionInfo}, and the ${scenario.amount} payment or exposure reported on ${reportedDate}.`;
   }
-  return `${name} records ${scenario.title}, ${scenario.transactionInfo}, the ${scenario.amount} amount in scope, and the ${reportedDate} report date.`;
+  return `${name} records ${scenario.intakePresentation?.title ?? scenario.title}, ${scenario.intakePresentation?.transactionInfo ?? scenario.transactionInfo}, the ${scenario.amount} amount in scope, and the ${reportedDate} report date.`;
 }
 
 function makeDocuments({ id, claimType, scenario, recordCount, difficulty, person, business, employer, address, trainingId, reportedDate, issueStartDate }) {
@@ -288,18 +314,27 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const accountId = `ACCT-${claimType.prefix}-${suffix}`;
   const reportedDate = dateFor(index);
   const issueStartDate = dateFor(index, 2);
+  const intakePresentation = scenario.intakePresentation ?? {};
+  const visibleScenario = {
+    ...scenario,
+    subtype: intakePresentation.subtype ?? scenario.subtype,
+    title: intakePresentation.title ?? scenario.title,
+    statement: intakePresentation.statement ?? scenario.statement,
+    channel: intakePresentation.channel ?? scenario.channel,
+    transactionInfo: intakePresentation.transactionInfo ?? scenario.transactionInfo,
+  };
   const documents = makeDocuments({ id, claimType, scenario, recordCount, difficulty, person, business, employer, address, trainingId, reportedDate, issueStartDate });
   const toolResults = buildGeneratedToolResults({ id, index, person, city, employer, business, claimType: caseClaimType, scenario, documents, recordCount, trainingId, reportedDate, issueStartDate, difficulty });
   const loginHistory = makeLoginHistory({ id, index, city, recordCount, claimType: caseClaimType, scenario, difficulty });
   const profileChanges = makeGeneratedProfileChanges({ id, index, person, city, claimType, scenario, reportedDate, issueStartDate, loginHistory });
-  const statementLabel = /business|vendor|payment contact/i.test(scenario.entityRole) ? 'Business statement' : /employee/i.test(scenario.entityRole) ? 'Employee statement' : /applicant/i.test(scenario.entityRole) ? 'Applicant statement' : 'Customer statement';
+  const statementLabel = intakePresentation.statementLabel ?? (/business|vendor|payment contact/i.test(scenario.entityRole) ? 'Business statement' : /employee/i.test(scenario.entityRole) ? 'Employee statement' : /applicant/i.test(scenario.entityRole) ? 'Applicant statement' : 'Customer statement');
   const events = buildScenarioEvents({ id, scenario, claimType, reportedDate, issueStartDate, difficulty, evidenceDepth: depth.label, documents });
-  const intake = { channel: scenario.channel, contactTime: `${reportedDate} - 9:05 AM`, customerLocation: city, statedDevice: loginHistory[0]?.device ?? 'No device statement required for this lane' };
+  const intake = { channel: visibleScenario.channel, contactTime: `${reportedDate} - 9:05 AM`, customerLocation: city, statedDevice: loginHistory[0]?.device ?? 'No device statement required for this lane' };
   const profile = { person, trainingId, city, employer, business, entityRole: scenario.entityRole };
   const taxonomyTags = scenario.taxonomyTags ?? claimType.taxonomy;
   const customer = {
     relationshipSince: /existing|history/i.test(`${scenario.family} ${scenario.caseTruth?.classification}`) ? '2021' : index % 2 ? '2023' : '2026',
-    segment: `${claimType.shortLabel} training profile`,
+    segment: `${intakePresentation.claimLabel ?? claimType.shortLabel} training profile`,
     contact: { phone, email, address, preferredChannel: scenario.channel },
     relationship: [
       { label: 'Account ID', value: accountId },
@@ -312,23 +347,23 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const intakeAnswers = buildCaseIntakeAnswers({
     caseId: id,
     prompts: claimType.intakePrompts,
-    statement: scenario.statement,
+    statement: visibleScenario.statement,
     person,
     entityRole: scenario.entityRole,
     business,
     employer,
     city,
-    channel: scenario.channel,
+    channel: visibleScenario.channel,
     statedDevice: intake.statedDevice,
     reportedDate,
     issueStartDate,
-    subtype: scenario.subtype,
-    transactionInfo: scenario.transactionInfo,
+    subtype: visibleScenario.subtype,
+    transactionInfo: visibleScenario.transactionInfo,
     amount: scenario.amount,
     documents,
-    toolResults,
-    loginHistory,
-    profileChanges,
+    toolResults: intakePresentation.claimLabel ? {} : toolResults,
+    loginHistory: intakePresentation.claimLabel ? [] : loginHistory,
+    profileChanges: intakePresentation.claimLabel ? [] : profileChanges,
     customer,
   });
   const decisionData = buildScenarioDecisionData({ claimType, scenario, reportedDate, toolResults });
@@ -348,9 +383,9 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
       amount: scenario.amount,
       amountExposure: scenario.amount,
       priority: scenario.priority,
-      subtype: scenario.subtype,
-      scenarioFamily: scenario.family ?? claimType.lane,
-      transactionInfo: scenario.transactionInfo,
+      subtype: visibleScenario.subtype,
+      scenarioFamily: scenario.family ?? intakePresentation.lane ?? claimType.lane,
+      transactionInfo: visibleScenario.transactionInfo,
       intake,
       profile,
       customer,
@@ -359,7 +394,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
       loginHistory,
     },
     claimType,
-    scenario,
+    scenario: visibleScenario,
     reportedDate,
   });
 
@@ -368,19 +403,19 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     caseId: id,
     claimId: `CLM-${claimType.prefix}-G${String(index).slice(-8)}`,
     claimTypeId: claimType.id,
-    type: claimType.label,
-    claimType: claimType.label,
-    lane: claimType.lane,
-    subtype: scenario.subtype,
+    type: intakePresentation.claimLabel ?? claimType.label,
+    claimType: intakePresentation.claimLabel ?? claimType.label,
+    lane: intakePresentation.lane ?? claimType.lane,
+    subtype: visibleScenario.subtype,
     scenarioId: scenario.id,
-    scenarioTitle: scenario.title,
-    scenarioFamily: scenario.family ?? claimType.lane,
+    scenarioTitle: visibleScenario.title,
+    scenarioFamily: scenario.family ?? intakePresentation.lane ?? claimType.lane,
     plainEnglishMeaning: scenario.plainEnglishMeaning,
     howItHappens: scenario.howItHappens,
     timelinePattern: scenario.timelinePattern,
     commonMistake: scenario.commonMistake,
     miniExample: scenario.miniExample,
-    generatedPacketVersion: 4,
+    generatedPacketVersion: 5,
     difficulty,
     evidenceDepth: depth.label,
     priority: scenario.priority,
@@ -393,12 +428,12 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     opened: 'Generated training case',
     reportedDate,
     issueStartDate,
-    title: scenario.title,
-    transactionInfo: scenario.transactionInfo,
+    title: visibleScenario.title,
+    transactionInfo: visibleScenario.transactionInfo,
     shortSummary: generatedSummary,
     allegation: generatedSummary,
-    queueReason: `${claimType.label} · ${scenario.subtype} · generated training case.`,
-    statement: { label: statementLabel, value: scenario.statement, source: scenario.channel },
+    queueReason: `${intakePresentation.claimLabel ?? claimType.label} · ${visibleScenario.subtype} · system-generated training alert.`,
+    statement: { label: statementLabel, value: visibleScenario.statement, source: visibleScenario.channel },
     assignedInvestigator: briefingPacket.assignedInvestigator,
     assignedDate: briefingPacket.assignedDate,
     assignmentTeam: briefingPacket.assignmentTeam,
@@ -409,7 +444,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
       summary: generatedSummary,
       focusAreas: claimType.intakePrompts,
       evidenceAreas: claimType.evidenceAreas,
-      scenarioTitle: scenario.title,
+      scenarioTitle: visibleScenario.title,
       complexity: difficultyProfile.label,
       assignedInvestigator: briefingPacket.assignedInvestigator,
       assignedDate: briefingPacket.assignedDate,
@@ -422,9 +457,9 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     intakeAnswers,
     briefingQuestions: claimType.intakePrompts,
     keyFacts: [
-      ['Lane', claimType.lane], ['Subtype', scenario.subtype], ['Reported date', reportedDate], ['Issue start date', issueStartDate], ['Amount / exposure', scenario.amount], ['Scenario', scenario.title], ['Difficulty', difficultyProfile.label], ['Evidence depth', depth.label],
+      ['Lane', intakePresentation.lane ?? claimType.lane], ['Alert type', visibleScenario.subtype], ['Reported date', reportedDate], ['Issue start date', issueStartDate], ['Amount / exposure', scenario.amount], ['Trigger', visibleScenario.title], ['Difficulty', difficultyProfile.label], ['Evidence depth', depth.label],
     ],
-    productsAccounts: [{ label: 'Product rail', value: taxonomyTags.productRail }, { label: 'Entity role', value: scenario.entityRole }, { label: 'Primary account context', value: scenario.transactionInfo }],
+    productsAccounts: [{ label: 'Product rail', value: taxonomyTags.productRail }, { label: 'Entity role', value: scenario.entityRole }, { label: 'Primary account context', value: visibleScenario.transactionInfo }],
     availableTools: scenario.toolkitTools ?? claimType.availableTools,
     requiredTools: claimType.requiredTools,
     evidenceAreas: claimType.evidenceAreas,
@@ -447,7 +482,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     facts: ['Generated training case', 'No final outcome shown', 'No outcome is displayed during active investigation', 'Evidence First lock active', `${difficultyProfile.label} / ${depth.label} packet depth`, difficulty === 'deep' ? 'Two cross-source dependencies require reconciliation' : difficulty === 'standard' ? 'One cross-source comparison requires reconciliation' : 'Focused evidence path'],
     progress: ['Case Summary'],
     links: ['Customer or entity', 'Case event', 'Document', ...(toolResults.paymentVerification?.length ? ['Payment object'] : []), ...(toolResults.merchantIntelligence ? ['Merchant and order objects'] : [])],
-    actionLog: [{ id: `${id}-ACT-1`, time: `${reportedDate} - 9:05 AM`, action: 'Generated case created', detail: `${claimType.label} scenario ${scenario.title} added to the training queue.`, source: 'Scenario generator' }],
+    actionLog: [{ id: `${id}-ACT-1`, time: `${reportedDate} - 9:05 AM`, action: 'Generated case created', detail: `${intakePresentation.claimLabel ?? claimType.label} alert ${visibleScenario.title} added to the training queue.`, source: 'Scenario generator' }],
     creditDecision: decisionData.creditDecision,
     chargebackDecision: decisionData.chargebackDecision,
     caseTruth: scenario.caseTruth,
