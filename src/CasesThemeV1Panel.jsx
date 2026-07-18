@@ -227,6 +227,7 @@ export default function CasesThemeV1Panel({
       const createdCases = await onGenerateCases({
         claimTypeId: generatorClaimType.id,
         scenarioId: generatorScenarioId,
+        randomizeScenario: generatorClaimType.hideScenarioAnswer,
         difficulty: generatorDifficulty,
         evidenceDepth: generatorDepth,
         count: generatorCount,
@@ -306,7 +307,7 @@ export default function CasesThemeV1Panel({
           <div>
             <p>Case generator</p>
             <h3>Create training cases</h3>
-            <span>Select a Bible-v2 claim lane and scenario. Every generated packet stays fictional and Evidence First.</span>
+            <span>Select a Bible-v2 claim lane. Answer-bearing payroll and business-payment evidence patterns stay hidden and randomized.</span>
           </div>
           <span className="case-generator-v2-count">Unlimited queue</span>
         </header>
@@ -320,9 +321,15 @@ export default function CasesThemeV1Panel({
           </label>
           <label>
             <span>Scenario</span>
-            <select value={generatorScenarioId} onChange={(event) => setGeneratorScenarioId(event.target.value)} aria-label="Generate case scenario">
-              {(generatorClaimType?.scenarios ?? []).map((scenario) => <option key={scenario.id} value={scenario.id}>{scenario.title}</option>)}
-            </select>
+            {generatorClaimType?.hideScenarioAnswer ? (
+              <select value="randomized" disabled aria-label="Generate case scenario">
+                <option value="randomized">Randomized hidden evidence pattern</option>
+              </select>
+            ) : (
+              <select value={generatorScenarioId} onChange={(event) => setGeneratorScenarioId(event.target.value)} aria-label="Generate case scenario">
+                {(generatorClaimType?.scenarios ?? []).map((scenario) => <option key={scenario.id} value={scenario.id}>{scenario.title}</option>)}
+              </select>
+            )}
           </label>
           <label>
             <span>Difficulty</span>
@@ -541,7 +548,7 @@ export default function CasesThemeV1Panel({
               <div><dt>SLA band</dt><dd>{getSlaBand(selectedCase)}</dd></div>
               <div><dt>Amount</dt><dd>{selectedCase.amount || 'Not listed'}</dd></div>
               <div><dt>Lane</dt><dd>{selectedCase.lane ?? 'Not supplied'}</dd></div>
-              <div><dt>Subtype</dt><dd>{selectedCase.subtype ?? 'Not supplied'}</dd></div>
+              <div><dt>{['payroll-direct-deposit', 'email-bec'].includes(selectedCase.claimTypeId) ? 'Alert type' : 'Subtype'}</dt><dd>{selectedCase.subtype ?? 'Not supplied'}</dd></div>
               <div><dt>Reported</dt><dd>{selectedCase.reportedDate ?? selectedCase.opened}</dd></div>
               <div><dt>Documents</dt><dd>{documentSummary(selectedCase)}</dd></div>
             </dl>
