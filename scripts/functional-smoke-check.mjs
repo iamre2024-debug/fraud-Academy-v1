@@ -185,6 +185,7 @@ const checks = [
     label: 'direct Submit Decision visual module',
     mustContain: [
       "import DecisionFlagChecklist from './DecisionFlagChecklist.jsx'",
+      "import DecisionEvidenceNotepad from './DecisionEvidenceNotepad.jsx'",
       "import { getDecisionCallGroups, reviewChoices } from './data/reviewPackage.js'",
       'className="ornate-card submit-decision-panel decision-theme-v1"',
       'Unfinished checklist details are saved for coaching',
@@ -192,6 +193,7 @@ const checks = [
       'const decisionGroups = getDecisionCallGroups(activeCase);',
       'selectionGroups.map',
       'Submit Decision',
+      '<DecisionEvidenceNotepad',
       'placeholder={`Write the evidence-based rationale for ${activeCase.id}.`}',
     ],
     mustNotContain: [
@@ -200,6 +202,20 @@ const checks = [
       'Decision readiness',
       'Decision needs attention',
       'Check decision readiness',
+    ],
+  },
+  {
+    file: 'src/DecisionEvidenceNotepad.jsx',
+    label: 'decision evidence notepad module',
+    mustContain: [
+      'Evidence Notepad',
+      'Pinned Proof',
+      'Case Notes',
+      'resolvePinnedEvidence',
+      'Add to rationale',
+      'Add a case note',
+      'Save Note',
+      'removePin(record.value)',
     ],
   },
   {
