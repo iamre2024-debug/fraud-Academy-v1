@@ -25,19 +25,59 @@ let sequence = 1780001000000;
 for (const { claimType, scenario } of allScenarios) {
   const generated = createGeneratedCase({ index: sequence, claimTypeId: claimType.id, scenarioId: scenario.id, difficulty: 'deep', evidenceDepth: 'deep' });
   sequence += 1;
+  const hidesScenarioAnswer = ['payroll-direct-deposit', 'email-bec'].includes(claimType.id);
 
-  if (generated.subtype !== scenario.subtype || generated.scenarioId !== scenario.id) failures.push(`${scenario.id} did not preserve its selected subtype.`);
+  if (generated.scenarioId !== scenario.id) failures.push(`${scenario.id} did not preserve its selected scenario ID.`);
+  if (hidesScenarioAnswer && generated.subtype !== scenario.intakePresentation.subtype) failures.push(`${scenario.id} did not use its neutral system-alert subtype.`);
+  if (!hidesScenarioAnswer && generated.subtype !== scenario.subtype) failures.push(`${scenario.id} did not preserve its selected subtype.`);
   if (!generated.caseTruth?.correctDetermination || generated.correctDetermination !== generated.caseTruth.correctDetermination) failures.push(`${scenario.id} is missing hidden case truth.`);
   if (!getReviewChoices(generated).includes(generated.correctDetermination)) failures.push(`${scenario.id} has a hidden determination that is not valid for its decision rail.`);
   if (!generated.timelineEvents?.length || !generated.evidenceDocuments?.length || !generated.intakeAnswers?.length) failures.push(`${scenario.id} is missing complete generated outputs.`);
-  if (generated.generatedPacketVersion !== 4) failures.push(`${scenario.id} is missing the complete-packet version marker.`);
+  if (generated.generatedPacketVersion !== 5) failures.push(`${scenario.id} is missing the complete-packet version marker.`);
   if (!generated.accountId?.startsWith('ACCT-')) failures.push(`${scenario.id} is missing its Account ID document lookup key.`);
   if (generatedAccountIds.has(generated.accountId)) failures.push(`${scenario.id} reused Account ID ${generated.accountId}.`);
   generatedAccountIds.add(generated.accountId);
   if (generated.customer?.relationship?.find((item) => item.label === 'Account ID')?.value !== generated.accountId) failures.push(`${scenario.id} does not expose its Account ID in Customer 360.`);
   if (/fictional packet contains both routine and exception evidence/i.test(generated.shortSummary)) failures.push(`${scenario.id} still uses the placeholder short summary.`);
-  for (const expectedDetail of [generated.person, generated.amount, generated.reportedDate, generated.issueStartDate, scenario.statement, scenario.transactionInfo]) {
+  const expectedSummaryDetails = hidesScenarioAnswer
+    ? [generated.amount, generated.reportedDate, generated.issueStartDate, 'A system alert opened this case']
+    : [generated.person, generated.amount, generated.reportedDate, generated.issueStartDate, scenario.statement, scenario.transactionInfo];
+  for (const expectedDetail of expectedSummaryDetails) {
     if (!generated.shortSummary.includes(expectedDetail)) failures.push(`${scenario.id} short summary is missing generated case detail: ${expectedDetail}`);
+  }
+  if (hidesScenarioAnswer) {
+    const preInvestigationText = JSON.stringify({
+      type: generated.type,
+      lane: generated.lane,
+      subtype: generated.subtype,
+      title: generated.title,
+      transactionInfo: generated.transactionInfo,
+      shortSummary: generated.shortSummary,
+      queueReason: generated.queueReason,
+      statement: generated.statement,
+      intakeAnswers: generated.intakeAnswers,
+      keyFacts: generated.keyFacts,
+      caseBriefing: generated.caseBriefing,
+    }).toLowerCase();
+    for (const answerBearingText of [scenario.subtype, scenario.title, scenario.statement, scenario.transactionInfo, scenario.caseTruth.correctDetermination]) {
+      if (preInvestigationText.includes(String(answerBearingText).toLowerCase())) failures.push(`${scenario.id} leaks answer-bearing text in the pre-investigation case briefing: ${answerBearingText}`);
+    }
+    const investigationRecordText = JSON.stringify({
+      customer: generated.customer,
+      identityRecords: generated.identityRecords,
+      events: generated.events,
+      documents: generated.documents,
+      toolResults: generated.toolResults,
+      caseBriefing: generated.caseBriefing,
+      actionLog: generated.actionLog,
+    }).toLowerCase();
+    for (const answerLabel of [scenario.subtype, scenario.title, scenario.statement, scenario.transactionInfo]) {
+      if (investigationRecordText.includes(String(answerLabel).toLowerCase())) failures.push(`${scenario.id} labels an investigation record with the hidden scenario answer: ${answerLabel}`);
+    }
+    if (!generated.documents.some((item) => item.status !== 'Requested' && item.detail.includes(scenario.evidenceProfile.requestRecord))) failures.push(`${scenario.id} does not place factual request evidence in an available document.`);
+    if (/hold|release|correct determination/i.test(JSON.stringify(generated.toolResults.payrollHistory ?? []))) failures.push(`${scenario.id} leaks a decision through Payroll History.`);
+    if (scenario.evidenceProfile.accessPattern === 'established' && !/Established training mobile browser/i.test(generated.loginHistory[0]?.device ?? '')) failures.push(`${scenario.id} should use established access history so a non-access scenario is not mislabeled as account takeover.`);
+    if (scenario.evidenceProfile.accessPattern === 'compromised' && !/New training mobile browser/i.test(generated.loginHistory[0]?.device ?? '')) failures.push(`${scenario.id} is missing its newly seen access evidence.`);
   }
   if (generated.caseBriefing?.summary !== generated.shortSummary || generated.allegation !== generated.shortSummary) failures.push(`${scenario.id} does not use one complete narrative across its briefing summary fields.`);
   if (generated.documents.some((item) => /fictional case packet|available for .* fictional training packet/i.test(item.detail))) failures.push(`${scenario.id} still has generic generated document text.`);
@@ -98,7 +138,7 @@ const placeholderSummary = `${legacySummaryCase.scenarioTitle}. The fictional pa
 const [upgradedLegacyCase] = enrichTrainingCases([{
   ...legacySummaryCase,
   accountId: undefined,
-  generatedPacketVersion: 3,
+  generatedPacketVersion: 4,
   shortSummary: placeholderSummary,
   allegation: placeholderSummary,
   caseBriefing: { ...legacySummaryCase.caseBriefing, summary: placeholderSummary },
@@ -106,7 +146,7 @@ const [upgradedLegacyCase] = enrichTrainingCases([{
 }]);
 if (/fictional packet contains both routine and exception evidence/i.test(upgradedLegacyCase.shortSummary)) failures.push('Previously saved generated cases do not upgrade their placeholder summary when loaded.');
 if (upgradedLegacyCase.caseBriefing?.summary !== upgradedLegacyCase.shortSummary) failures.push('Upgraded generated-case briefing summary does not match its complete short summary.');
-if (upgradedLegacyCase.generatedPacketVersion !== 4 || !upgradedLegacyCase.accountId || upgradedLegacyCase.intakeAnswers.some((item) => genericIntakePattern.test(item.answer)) || upgradedLegacyCase.toolResults.business360?.length < 3 || upgradedLegacyCase.toolResults.businessIntel?.length < 4) failures.push('Previously saved generated cases do not upgrade their full investigation packet when loaded.');
+if (upgradedLegacyCase.generatedPacketVersion !== 5 || !upgradedLegacyCase.accountId || upgradedLegacyCase.intakeAnswers.some((item) => genericIntakePattern.test(item.answer)) || upgradedLegacyCase.toolResults.business360?.length < 3 || upgradedLegacyCase.toolResults.businessIntel?.length < 4) failures.push('Previously saved generated cases do not upgrade their full investigation packet when loaded.');
 
 const enrichedBuiltIns = enrichTrainingCases(trainingCases);
 const builtInAccountIds = new Set();
