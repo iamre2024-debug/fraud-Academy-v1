@@ -128,17 +128,80 @@ export function getEmployeeProfiles(activeCase) {
 
 export function getPayrollHistory(activeCase) {
   const records = getBusinessRecords(activeCase);
+  const financial = getFinancialRecords(activeCase);
   const employees = records.employeeProfile ?? [];
+  const paymentRecords = financial.paymentVerification ?? [];
+  const fundingAccount = paymentRecords.find((record) => /payroll funding/i.test(`${record.type} ${record.accountType}`));
   return (records.payrollHistory ?? []).map((item, index) => ({
-    ...item,
-    employee: employees.find((employee) => employee.employer === item.employer)?.name ?? activeCase.person,
-    destination: /direct deposit/i.test(item.channel) ? `Fictional destination ending ${String(index + 1).padStart(4, '0')}` : 'No payroll destination in current packet',
-    priorDestination: /direct deposit/i.test(item.channel) ? 'Prior fictional destination not changed in current packet' : 'Not applicable',
-    effectiveDate: item.period,
-    changeRequest: /direct deposit/i.test(item.channel) ? 'No payroll change request is included in this training packet' : 'Not applicable',
-    adminActivity: /direct deposit/i.test(item.channel) ? 'No payroll admin change activity recorded in this packet' : 'Not applicable',
-    callback: /direct deposit/i.test(item.channel) ? 'Trusted callback status not recorded' : 'Not applicable',
-    runStatus: item.status,
-    relatedRecords: [item.id, ...employees.filter((employee) => employee.employer === item.employer).map((employee) => employee.id)],
+    ...normalizePayrollRun({ item, index, activeCase, employees, paymentRecords, fundingAccount }),
   }));
+}
+
+function normalizePayrollRun({ item, index, activeCase, employees, paymentRecords, fundingAccount }) {
+  const employee = employees.find((record) => record.employer === item.employer)?.name ?? activeCase.person;
+  const currentPayment = paymentRecords.find((record) => /payroll destination/i.test(`${record.type} ${record.accountType}`) && !/established payroll destination/i.test(record.type));
+  const priorPayment = paymentRecords.find((record) => /established payroll destination/i.test(record.type));
+  const linkedPayment = paymentRecords.find((record) => record.relatedRecords?.includes(item.id) && !/funding|payee/i.test(`${record.type} ${record.accountType}`))
+    ?? (index === 0 ? currentPayment : priorPayment)
+    ?? paymentRecords.find((record) => /payroll destination/i.test(`${record.type} ${record.accountType}`) && normalizeName(record.accountHolder) === normalizeName(employee));
+  const defaultPayee = {
+    id: employees.find((record) => normalizeName(record.name) === normalizeName(employee))?.id ?? `${item.id}-EMP-1`,
+    employee,
+    employeeId: employees.find((record) => normalizeName(record.name) === normalizeName(employee))?.id ?? `EMP-${String(index + 1).padStart(4, '0')}`,
+    amount: item.amount,
+    status: item.status,
+    ownerName: employee,
+    bankCode: item.bankCode ?? linkedPayment?.bankCode ?? 'No Bank Code returned',
+    destinationId: item.destinationId ?? linkedPayment?.destinationId ?? 'No Destination ID returned',
+    priorDestinationId: item.priorDestinationId ?? linkedPayment?.oldDestination ?? 'No prior destination returned',
+    paymentRecordId: linkedPayment?.id ?? '',
+  };
+  const comparisonPayees = paymentRecords.filter((record) => /payroll payee destination/i.test(record.type)).slice(0, 2).map((record, comparisonIndex) => ({
+    id: `${item.id}-EMP-${comparisonIndex + 2}`,
+    employee: record.accountHolder,
+    employeeId: `EMP-${String(index + 1)}${String(comparisonIndex + 2).padStart(3, '0')}`,
+    amount: item.amount,
+    status: item.status,
+    ownerName: record.accountHolder,
+    bankCode: record.bankCode,
+    destinationId: record.destinationId,
+    priorDestinationId: record.destinationId,
+    paymentRecordId: record.id,
+  }));
+  const payees = (item.payees?.length ? item.payees : [defaultPayee, ...comparisonPayees]).map((payee, payeeIndex) => ({
+    id: payee.id ?? `${item.id}-EMP-${payeeIndex + 1}`,
+    employee: payee.employee ?? payee.name ?? employee,
+    employeeId: payee.employeeId ?? payee.id ?? `EMP-${String(payeeIndex + 1).padStart(4, '0')}`,
+    amount: payee.amount ?? item.amount,
+    status: payee.status ?? item.status,
+    ownerName: payee.ownerName ?? payee.employee ?? payee.name ?? employee,
+    bankCode: payee.bankCode ?? 'No Bank Code returned',
+    destinationId: payee.destinationId ?? 'No Destination ID returned',
+    priorDestinationId: payee.priorDestinationId ?? 'No prior destination returned',
+    paymentRecordId: payee.paymentRecordId ?? '',
+  }));
+
+  return {
+    ...item,
+    employee: payees[0]?.employee ?? employee,
+    destination: payees[0]?.destinationId ?? 'No payroll destination in current packet',
+    bankCode: payees[0]?.bankCode ?? 'No Bank Code returned',
+    destinationId: payees[0]?.destinationId ?? 'No Destination ID returned',
+    priorDestination: payees[0]?.priorDestinationId ?? 'No prior destination returned',
+    effectiveDate: item.effectiveDate ?? item.period,
+    changeRequest: item.changeRequest ?? (/direct deposit/i.test(item.channel) ? 'No payroll change request is included in this training packet' : 'Not applicable'),
+    adminActivity: item.adminActivity ?? (/direct deposit/i.test(item.channel) ? 'No payroll admin change activity recorded in this packet' : 'Not applicable'),
+    callback: item.callback ?? (/direct deposit/i.test(item.channel) ? 'Trusted callback status not recorded' : 'Not applicable'),
+    fundingOwner: item.fundingOwner ?? fundingAccount?.accountHolder ?? item.employer,
+    fundingBankCode: item.fundingBankCode ?? fundingAccount?.bankCode ?? 'No funding Bank Code returned',
+    fundingDestinationId: item.fundingDestinationId ?? fundingAccount?.destinationId ?? 'No funding Destination ID returned',
+    fundingPaymentRecordId: item.fundingPaymentRecordId ?? fundingAccount?.id ?? '',
+    runStatus: item.status,
+    payees,
+    relatedRecords: [...new Set([item.id, ...employees.filter((record) => record.employer === item.employer).map((record) => record.id), ...payees.map((payee) => payee.paymentRecordId).filter(Boolean), item.fundingPaymentRecordId ?? fundingAccount?.id].filter(Boolean))],
+  };
+}
+
+function normalizeName(value = '') {
+  return String(value).trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ');
 }
