@@ -65,19 +65,33 @@ const batch = await generateAndSaveCases({
   difficulty: 'deep',
   evidenceDepth: 'standard',
 });
+const originalRandom = Math.random;
+let randomizedIndex = 0;
+Math.random = () => ((randomizedIndex += 1) % 8) / 8;
+const randomizedPayrollBatch = await generateAndSaveCases({
+  count: 8,
+  claimTypeId: 'payroll-direct-deposit',
+  scenarioId: 'pay-spoofed-employee-email',
+  randomizeScenario: true,
+  difficulty: 'deep',
+  evidenceDepth: 'standard',
+});
+Math.random = originalRandom;
 
 const saved = await listGeneratedCases();
 const ids = new Set(saved.map((item) => item.id));
 const enrichedSaved = enrichTrainingCases(saved);
 const accountIds = new Set(enrichedSaved.map((item) => item.accountId));
 
-if (saved.length !== 130) failures.push(`Expected 130 generated cases after single and batch generation, found ${saved.length}.`);
+if (saved.length !== 138) failures.push(`Expected 138 generated cases after single and batch generation, found ${saved.length}.`);
 if (!ids.has(legacyCase.id)) failures.push('Legacy localStorage case was not preserved.');
 if (ids.size !== saved.length) failures.push('Generated case IDs are not unique.');
 if (accountIds.size !== enrichedSaved.length || enrichedSaved.some((item) => !item.accountId?.startsWith('ACCT-'))) failures.push('Every saved case must expose a unique Account ID after catalog enrichment.');
 if (enrichedSaved.some((item) => item.customer?.relationship?.find((entry) => entry.label === 'Account ID')?.value !== item.accountId)) failures.push('Every saved case must expose its Account ID in Customer 360.');
-if (batch[batch.length - 1]?.id !== saved[0]?.id) failures.push('Newest generated batch case was not added to the front of the queue.');
+if (randomizedPayrollBatch[randomizedPayrollBatch.length - 1]?.id !== saved[0]?.id) failures.push('Newest generated batch case was not added to the front of the queue.');
 if (batch.length !== 5) failures.push('Batch generation did not return every requested fictional case.');
+if (new Set(randomizedPayrollBatch.map((item) => item.scenarioId)).size < 7) failures.push('Hidden payroll evidence patterns were not randomized across the generated batch.');
+if (randomizedPayrollBatch.some((item) => item.type !== 'Payroll Change Review' || !/alert/i.test(item.subtype) || /spoofed|compromised|ghost|diversion/i.test(`${item.subtype} ${item.title} ${item.shortSummary}`))) failures.push('Randomized payroll cases expose an answer-bearing scenario before investigation.');
 
 for (const item of saved) {
   for (const field of ['id', 'type', 'person', 'trainingId', 'claimId', 'allegation', 'queueReason']) {
@@ -97,9 +111,10 @@ for (const [index, claimType] of coreClaimTypes.entries()) {
     difficulty: 'deep',
     evidenceDepth: 'standard',
   });
+  const hidesScenarioAnswer = ['payroll-direct-deposit', 'email-bec'].includes(claimType.id);
   if (generated.claimTypeId !== claimType.id) failures.push(`${claimType.label} did not preserve its claim type ID.`);
-  if (generated.type !== claimType.label) failures.push(`${claimType.label} did not preserve its official display name.`);
-  if (generated.lane !== claimType.lane) failures.push(`${claimType.label} did not preserve its lane.`);
+  if (generated.type !== (hidesScenarioAnswer ? claimType.scenarios[0].intakePresentation.claimLabel : claimType.label)) failures.push(`${claimType.label} did not preserve its Evidence First display name.`);
+  if (generated.lane !== (hidesScenarioAnswer ? claimType.scenarios[0].intakePresentation.lane : claimType.lane)) failures.push(`${claimType.label} did not preserve its Evidence First lane.`);
   if (!generated.statement?.value || !generated.intakeAnswers?.length || !generated.caseBriefing?.summary) {
     failures.push(`${claimType.label} is missing its complete Case Briefing intake packet.`);
   }
