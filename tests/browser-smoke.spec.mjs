@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 import { openWorkflowStage, selectToolGroup } from './workspace-page-helpers.mjs';
 
 const builtInCases = [
-  { id: 'FA-ATO-24018', person: 'Maya Sterling', accountId: 'ACCT-24018-4410' },
-  { id: 'FA-CB-24007', person: 'Jordan Ellis', accountId: 'ACCT-24007-8841' },
-  { id: 'FA-CR-24003', person: 'Avery Brooks', accountId: 'ACCT-24003-3011' },
+  { id: 'FA-ATO-24018', person: 'Maya Sterling', accountId: 'ACCT-24018-4410', bankCode: 'BC-441', destinationId: 'DST-CARD-4410' },
+  { id: 'FA-CB-24007', person: 'Jordan Ellis', accountId: 'ACCT-24007-8841', bankCode: 'BC-884', destinationId: 'DST-CARD-8841' },
+  { id: 'FA-CR-24003', person: 'Avery Brooks', accountId: 'ACCT-24003-3011', bankCode: 'BC-204', destinationId: 'DST-7740' },
 ];
 
 const forbiddenPreSubmissionCopy = /\b(?:fraud score|red flags?|green flags?|correct answer|AI recommendations?|open first tool|suggested first tool|investigator question)\b/i;
@@ -57,6 +57,16 @@ async function openCoreTool(page, category, tool) {
     await expect(panel.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toBeVisible();
     await panel.getByRole('textbox', { name: 'Search by Account ID' }).fill(activeAccountId);
     await panel.getByRole('button', { name: 'Search account', exact: true }).click();
+  }
+
+  if (tool === 'Payment Verification') {
+    const activeCaseId = await page.locator('.visual-case-switcher select').inputValue();
+    const paymentLookup = builtInCases.find((item) => item.id === activeCaseId);
+    await expect(panel.locator('.payment-lookup-results')).toHaveCount(0);
+    await panel.getByRole('textbox', { name: 'Destination ID' }).fill(paymentLookup.destinationId);
+    await panel.getByRole('textbox', { name: 'Bank Code' }).fill(paymentLookup.bankCode);
+    await panel.getByRole('textbox', { name: 'Account owner name' }).fill(paymentLookup.person);
+    await panel.getByRole('button', { name: 'Run verification', exact: true }).click();
   }
 
   const specializedSelectors = {
@@ -228,8 +238,8 @@ test('responsive investigation records stay inside the viewport', async ({ page 
   await openCoreTool(page, 'Business & Payment Verification', 'Payment Verification');
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  const recordList = panel.locator('.payment-record-list');
-  const detail = panel.locator('.payment-detail-panel');
+  const searchForm = panel.locator('.payment-lookup-form');
+  const detail = panel.locator('.payment-lookup-results');
   const firstRecord = panel.locator('[data-payment-verification-record]').first();
   const firstField = panel.locator('.payment-detail-grid > div').first();
 
@@ -238,8 +248,8 @@ test('responsive investigation records stay inside the viewport', async ({ page 
 
   const layout = await page.evaluate(() => {
     const panelElement = document.querySelector('[data-investigation-tools-screen="approved-theme-v1"]');
-    const recordListElement = document.querySelector('.payment-record-list');
-    const detailElement = document.querySelector('.payment-detail-panel');
+    const searchFormElement = document.querySelector('.payment-lookup-form');
+    const detailElement = document.querySelector('.payment-lookup-results');
     const record = document.querySelector('[data-payment-verification-record]');
     const fieldGrid = document.querySelector('.payment-detail-grid');
     const viewportWidth = window.innerWidth;
@@ -251,19 +261,19 @@ test('responsive investigation records stay inside the viewport', async ({ page 
 
     return {
       panelFits: withinViewport(panelElement),
-      listFits: withinViewport(recordListElement),
+      formFits: withinViewport(searchFormElement),
       detailFits: withinViewport(detailElement),
       recordFits: withinViewport(record),
       panelOverflow: panelElement.scrollWidth - panelElement.clientWidth,
       recordOverflow: record.scrollWidth - record.clientWidth,
       fieldColumns: fieldGrid ? getComputedStyle(fieldGrid).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      listTop: rect(recordListElement)?.top ?? 0,
+      formTop: rect(searchFormElement)?.top ?? 0,
       detailTop: rect(detailElement)?.top ?? 0,
     };
   });
 
   expect(layout.panelFits).toBe(true);
-  expect(layout.listFits).toBe(true);
+  expect(layout.formFits).toBe(true);
   expect(layout.detailFits).toBe(true);
   expect(layout.recordFits).toBe(true);
   expect(layout.panelOverflow).toBeLessThanOrEqual(1);
@@ -271,10 +281,10 @@ test('responsive investigation records stay inside the viewport', async ({ page 
 
   if (testInfo.project.name === 'mobile-chromium') {
     expect(layout.fieldColumns).toBe(1);
-    expect(layout.detailTop).toBeGreaterThan(layout.listTop + 20);
+    expect(layout.detailTop).toBeGreaterThan(layout.formTop + 20);
   } else {
     expect(layout.fieldColumns).toBe(2);
-    expect(Math.abs(layout.listTop - layout.detailTop)).toBeLessThanOrEqual(2);
+    expect(layout.detailTop).toBeGreaterThan(layout.formTop + 20);
   }
 
   await assertEvidenceFirstLock(page, builtInCases[0].id);
