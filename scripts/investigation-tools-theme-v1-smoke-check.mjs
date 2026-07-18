@@ -49,15 +49,17 @@ for (const anchor of [
   'Open Submit Decision',
   'It does not determine the case outcome.',
   'PaymentVerificationWorkspace',
-  'Find the answer here',
-  'Search Bank Code, Destination ID, account holder, status, match result, prior use, recovery, or action.',
-  'Account Snapshot',
-  'Old / prior account',
-  'New destination',
-  'Payroll / vendor change comparison',
-  'Verification Call Drawer',
-  'Action Panel',
-  'Investigator Notes',
+  'Search payment information',
+  'Destination ID',
+  'Bank Code',
+  'Account owner name',
+  'Run verification',
+  'Verification results',
+  'Name match status',
+  'Account status',
+  'NSF Status',
+  'Fraud Indicator',
+  'No information found',
   'DeviceIntelligenceWorkspace',
   'Search a Device ID, fingerprint, browser, session, profile, wallet, or location to reveal device intelligence.',
   'Device Snapshot',
@@ -209,12 +211,13 @@ for (const anchor of [
   '@media (max-width: 720px)',
   '@media (max-width: 430px)',
   '@media (max-width: 350px)',
-  '.payment-verification-findbar',
-  '.payment-verification-snapshot',
-  '.payment-verification-workspace',
-  '.payment-call-drawer',
-  '.payment-action-panel',
-  '.payment-notes-panel',
+  '.payment-lookup-intro',
+  '.payment-lookup-form',
+  '.payment-lookup-fields',
+  '.payment-lookup-results',
+  '.payment-result-match-card',
+  '.payment-result-status-list',
+  '.payment-result-guide',
   '.device-intel-findbar',
   '.device-intel-snapshot',
   '.device-intel-workspace',
@@ -388,8 +391,16 @@ mustContain('documentRecords.js', documentRecords, 'getGeneratedKybReportDocumen
 mustContain('displayInvestigationToolsThemeV1.css', styles, '.access-history-filters');
 mustContain('displayInvestigationToolsThemeV1.css', styles, '.ip-lookup-action');
 
-for (const anchor of ['financialInvestigationTabs', 'Account Overview', 'Deposit Analysis', 'Spending Analysis', 'Cash Activity', 'Digital Payments', 'Linked Accounts', 'Merchant Intelligence', 'Behavior Trends', 'Funds Flow', 'Mule / Cash-Out Pattern', 'getFinancialInvestigation', 'financialRecordSearchText']) {
+for (const anchor of ['financialInvestigationTabs', 'Account Overview', 'Deposit Analysis', 'Spending Analysis', 'Cash Activity', 'ACH, Wire & P2P History', 'Linked Accounts', 'Merchant Intelligence', 'Behavior Trends', 'Funds Flow', 'Mule / Cash-Out Pattern', 'personalTransferRecords', 'availableTransferRails', 'getFinancialInvestigation', 'financialRecordSearchText']) {
   mustContain('financialInvestigationRecords.js', financialInvestigation, anchor);
+}
+
+for (const anchor of ['financial-transfer-rail-filter', 'financial-funds-flow-map', 'Follow the money', 'Open Customer 360']) {
+  mustContain('InvestigationToolPanel.jsx', panel, anchor);
+}
+
+for (const anchor of ['.financial-transfer-rail-filter', '.financial-funds-flow-map']) {
+  mustContain('displayInvestigationToolsThemeV1.css', styles, anchor);
 }
 
 for (const anchor of ['kybReviewTabs', 'Owners & UBO', 'Bank Ownership', 'Revenue & Cash Flow', 'getKybReview', 'matchesKybReviewLookup']) {
