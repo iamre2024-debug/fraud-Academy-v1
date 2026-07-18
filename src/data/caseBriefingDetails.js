@@ -175,7 +175,7 @@ function buildDetailSection(item, claimType, scenario, reportedDate, dueDate, co
         ['Instruction in scope', context.merchant],
         ['Amount', item.amountExposure ?? item.amount ?? scenario.amount],
         ['Beneficiary / destination', context.destination],
-        ['Payment rail', claimType.shortLabel ?? claimType.label],
+        ['Payment rail', scenario.intakePresentation?.claimLabel ?? claimType.shortLabel ?? claimType.label],
         ['Instruction date', reportedDate],
         ['Payment record', context.paymentRecord ?? context.recordId],
       ]),
