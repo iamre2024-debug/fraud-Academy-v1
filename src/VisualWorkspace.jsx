@@ -495,6 +495,9 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
               updateDecisionIndicator={updateDecisionIndicator}
               submitDecision={submitDecision}
               openDebrief={openDebrief}
+              removePin={removePin}
+              toolNames={visibleWorkspaceTools}
+              saveNote={saveNote}
             />
           </div>
         )}
