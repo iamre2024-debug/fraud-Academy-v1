@@ -147,6 +147,13 @@ for (const anchor of [
   'Employee Profile review',
   'PayrollHistoryWorkspace',
   'Payroll and direct deposit',
+  'Payee roster',
+  'Employees in this payroll run',
+  'Funding Bank Code',
+  'Funding Destination ID',
+  'Verify funding account',
+  'Verify destination',
+  'paymentLookupSeed',
   'Trusted callback',
   'Payroll History review',
   'FinancialInvestigationWorkspace',
@@ -184,8 +191,29 @@ for (const anchor of [
   '<TimelinePanel {...activeToolProps} />',
   '<InvestigationToolPanel {...activeToolProps} />',
   'rowsFor(activeTool, activeCase)',
+  'function openPaymentVerification(seed)',
+  'paymentLookupSeed',
 ]) {
   mustContain('VisualWorkspace.jsx', workspace, anchor);
+}
+
+for (const anchor of [
+  'normalizePayrollRun',
+  'fundingBankCode',
+  'fundingDestinationId',
+  'payees',
+  'paymentRecordId',
+]) {
+  mustContain('businessPayrollWorkspace.js', businessPayrollWorkspace, anchor);
+}
+
+for (const anchor of [
+  '.payroll-payee-roster',
+  '.payroll-payee-detail',
+  '.payroll-verify-destination',
+  '.payroll-run-actions',
+]) {
+  mustContain('displayInvestigationToolsThemeV1.css', styles, anchor);
 }
 
 for (const anchor of [
@@ -335,7 +363,7 @@ for (const anchor of [
   'getEmployeeProfiles',
   'getPayrollHistory',
   'Card not present',
-  'Fictional destination ending',
+  'fundingDestinationId',
   'Training payroll callback channel',
 ]) {
   mustContain('businessPayrollWorkspace.js', businessPayrollWorkspace, anchor);
