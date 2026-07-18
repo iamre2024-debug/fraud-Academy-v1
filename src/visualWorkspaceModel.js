@@ -1,4 +1,5 @@
 import { getBusinessRecords, getFinancialRecords } from './data/caseToolData.js';
+import { getPayrollHistory } from './data/businessPayrollWorkspace.js';
 import { getCaseDocuments } from './data/documentRecords.js';
 import { getMerchantIntelligence } from './data/merchantIntelligenceRecords.js';
 import { getSystemAccessRecords } from './data/systemAccessRecords.js';
@@ -150,9 +151,10 @@ export function rowsFor(tool, activeCase) {
   }
 
   if (tool === 'Payroll History') {
+    const payrollHistory = getPayrollHistory(activeCase);
     return {
-      columns: ['Record', 'Period', 'Employer', 'Amount', 'Channel', 'Status', 'Context'],
-      rows: business.payrollHistory.map((item) => makeRow(item.id, [item.id, item.period, item.employer, item.amount, item.channel, item.status, item.context], item.id, 'Payroll record')),
+      columns: ['Record', 'Period', 'Employer', 'Run Total', 'Payees', 'Funding Destination', 'Status'],
+      rows: payrollHistory.map((item) => makeRow(item.id, [item.id, item.period, item.employer, item.amount, String(item.payees.length), `${item.fundingBankCode} / ${item.fundingDestinationId}`, item.status], item.id, 'Payroll run')),
     };
   }
 
