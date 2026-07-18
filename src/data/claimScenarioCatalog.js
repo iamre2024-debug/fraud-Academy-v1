@@ -1,3 +1,5 @@
+import { evidenceFirstPresentation, scenarioEvidenceProfile } from './evidenceFirstScenario.js';
+
 function entry(subtype, title, statement, amount, transactionInfo, correctDetermination, truth, options = {}) {
   return {
     subtype,
@@ -156,6 +158,9 @@ function buildScenario(claimType, spec, existingScenario) {
     lifecycleStage: lifecycleFor(claimType, spec),
     customerRole: /support customer|hold|route for secondary fraud/i.test(spec.correctDetermination) ? 'victim or at-risk party' : claimType.taxonomy.customerRole,
   };
+  const sourceScenario = { ...spec, id: scenarioId, family, entityRole: spec.entityRole ?? existingScenario?.entityRole ?? defaults.entityRole };
+  const intakePresentation = evidenceFirstPresentation(claimType.id, sourceScenario);
+  const evidenceProfile = scenarioEvidenceProfile(claimType.id, sourceScenario);
 
   return {
     id: scenarioId,
@@ -177,6 +182,8 @@ function buildScenario(claimType, spec, existingScenario) {
     expectedEvidence: [...claimType.evidenceAreas],
     toolkitTools: toolkitFor(claimType, spec),
     documents: [...claimType.documents],
+    intakePresentation,
+    evidenceProfile,
     taxonomyTags,
     caseTruth: {
       classification: spec.truth,
