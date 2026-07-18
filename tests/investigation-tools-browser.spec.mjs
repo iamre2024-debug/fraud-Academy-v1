@@ -237,12 +237,30 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await creditToolSelect.selectOption('Payroll History');
   await expect(toolPanel.locator('.payroll-history-summary article')).toHaveCount(4);
   await toolPanel.locator('[data-payroll-history-record]').first().click();
+  await expect(toolPanel.locator('[data-payroll-payee]')).toHaveCount(3);
+  await expect(toolPanel.locator('.payroll-history-detail')).toContainText('Funding Bank Code');
+  await expect(toolPanel.locator('.payroll-history-detail')).toContainText('Funding Destination ID');
+  await expect(toolPanel.locator('.payroll-payee-detail')).toContainText('BC-PAY-128');
+  await expect(toolPanel.locator('.payroll-payee-detail')).toContainText('DST-PAY-4412');
   await toolPanel.getByRole('button', { name: 'Pin payroll record', exact: true }).click();
   await toolPanel.getByRole('button', { name: 'Save payroll note', exact: true }).click();
   await toolPanel.getByRole('button', { name: 'Mark Payroll History reviewed', exact: true }).click();
 
+  await toolPanel.getByRole('button', { name: 'Verify funding account', exact: true }).click();
+  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Payment Verification');
+  await expect(toolPanel.getByRole('textbox', { name: 'Destination ID' })).toHaveValue('DST-BIZ-LSO-4821');
+  await expect(toolPanel.getByRole('textbox', { name: 'Bank Code' })).toHaveValue('BC-BIZ-482');
+  await expect(toolPanel.getByRole('textbox', { name: 'Account owner name' })).toHaveValue('Lakeside Office Supply');
+  await expect(toolPanel.getByText('Yes — Name Match', { exact: true }).first()).toBeVisible();
+  await toolPanel.getByRole('navigation', { name: 'Payment verification next routes' }).getByRole('button', { name: 'Open Payroll History', exact: true }).click();
+  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Payroll History');
+  await toolPanel.getByRole('button', { name: 'Verify destination', exact: true }).click();
+  await expect(toolPanel.getByRole('textbox', { name: 'Destination ID' })).toHaveValue('DST-PAY-4412');
+  await expect(toolPanel.getByRole('textbox', { name: 'Bank Code' })).toHaveValue('BC-PAY-128');
+  await expect(toolPanel.getByRole('textbox', { name: 'Account owner name' })).toHaveValue('Avery Brooks');
+  await expect(toolPanel.getByText('Yes — Name Match', { exact: true }).first()).toBeVisible();
+
   await creditToolSelect.selectOption('Payment Verification');
-  await expect(toolPanel.locator('.payment-lookup-results')).toHaveCount(0);
   await toolPanel.getByRole('textbox', { name: 'Destination ID' }).fill('DST-7740');
   await toolPanel.getByRole('textbox', { name: 'Bank Code' }).fill('BC-204');
   await toolPanel.getByRole('textbox', { name: 'Account owner name' }).fill('Avery Brooks');
