@@ -331,7 +331,7 @@ function makePaymentVerification({ id, claimType, scenario, person, business, re
   const destination = `DST-${String(seed).slice(-7).padStart(7, '0')}`;
   const tone = claimType.id === 'non-fraud-chargeback' ? 'established' : /credit|loan/.test(rail) ? creditDeterminationTone(scenario) : determinationTone(scenario);
   const recordedOwner = rail === 'wire' || rail === 'loan' ? business : person;
-  return [{
+  const primaryRecord = {
     id: `${id}-PV-1`, type: destinationType, object: `Destination ID ${destination}`, status: 'Lookup completed', lastSeen: `${reportedDate} - 9:18 AM`,
     context: `${destinationType} ${destination} is linked to ${scenario.transactionInfo} and ${transactions.length} transaction record(s).`, bankName: pick(['Training Atlantic Bank', 'Training Community Bank', 'Training Mobile Money Network', 'Training Federal Credit Union'], seed),
     accountType: rail === 'payroll' ? 'Payroll destination account' : rail === 'wire' ? 'Business beneficiary account' : /credit|loan/.test(rail) ? 'External payment account' : 'Card network object',
@@ -341,10 +341,82 @@ function makePaymentVerification({ id, claimType, scenario, person, business, re
     bankCode: `BC-${String(seed).slice(-5)}`, destinationId: destination, oldDestination: rail === 'payroll' || rail === 'wire' ? 'Established destination ending 2204' : 'Prior payment object on file', newDestination: `Destination ID ${destination}`,
     changeComparison: `${destination} was ${tone === 'established' ? 'used before the current activity window' : `first observed ${issueStartDate}`}.`, verificationOutcome: `${destinationType}, ownership, status, prior use, and first-seen date recorded`, relatedRecords: transactions.map((item) => item.id),
     actions: ['Compare ownership and prior use', 'Document the trusted verification source'], verificationLog: [{ time: `${reportedDate} - 9:30 AM`, method: 'Training lookup', result: tone === 'mixed' ? 'Manual review' : 'Recorded', note: 'The log records source evidence only.' }], notes: `Generated payment object ${index} for ${scenario.subtype}.`,
-  }];
+  };
+
+  if (rail !== 'payroll') return [primaryRecord];
+
+  const priorDestination = `DST-PAY-${String(seed).slice(-4).padStart(4, '0')}`;
+  const priorBankCode = `BC-PAY-${String(seed).slice(-3).padStart(3, '0')}`;
+  const comparisonOwners = [
+    pick(['Morgan Reed', 'Taylor Grant', 'Cameron Price', 'Jordan Stone'], seed, 2),
+    pick(['Avery Monroe', 'Parker James', 'Quinn Foster', 'Riley Bennett'], seed, 5),
+  ];
+  const priorRecord = {
+    ...primaryRecord,
+    id: `${id}-PV-PRIOR`,
+    type: 'Established payroll destination',
+    object: `Destination ID ${priorDestination}`,
+    accountHolder: person,
+    ownerMatch: `Exact match to ${person}`,
+    accountStatus: 'Open',
+    standing: 'Good standing',
+    priorUse: 'Used for at least three prior payroll deposits',
+    firstSeen: shiftedDate(issueStartDate, -6),
+    bankCode: priorBankCode,
+    destinationId: priorDestination,
+    oldDestination: priorDestination,
+    newDestination: priorDestination,
+    changeComparison: 'Established destination used before the current payroll-change request.',
+    verificationOutcome: 'Established payroll ownership and prior use returned',
+    relatedRecords: [],
+  };
+  const comparisonRecords = comparisonOwners.map((owner, ownerIndex) => {
+    const suffix = String(seed + ((ownerIndex + 1) * 137)).slice(-5).padStart(5, '0');
+    return {
+      ...primaryRecord,
+      id: `${id}-PV-PAYEE-${ownerIndex + 2}`,
+      type: 'Payroll payee destination',
+      object: `Destination ID DST-PAYEE-${suffix}`,
+      accountHolder: owner,
+      ownerMatch: `Exact match to ${owner}`,
+      accountStatus: 'Open',
+      standing: 'Good standing',
+      priorUse: 'Established payroll history returned',
+      firstSeen: shiftedDate(issueStartDate, -(ownerIndex + 4)),
+      bankCode: `BC-${suffix.slice(-4)}`,
+      destinationId: `DST-PAYEE-${suffix}`,
+      oldDestination: `DST-PAYEE-${suffix}`,
+      newDestination: `DST-PAYEE-${suffix}`,
+      changeComparison: 'No destination change returned for this comparison payee.',
+      verificationOutcome: 'Established payroll payee account returned',
+      relatedRecords: [],
+    };
+  });
+  const fundingRecord = {
+    ...primaryRecord,
+    id: `${id}-PV-FUNDING`,
+    type: 'Business payroll funding account',
+    object: `Destination ID DST-FUND-${String(seed).slice(-5).padStart(5, '0')}`,
+    accountType: 'Business payroll funding account',
+    accountHolder: business,
+    ownerMatch: `Exact match to ${business}`,
+    accountStatus: 'Open',
+    standing: 'Good standing',
+    priorUse: 'Established payroll funding history returned',
+    firstSeen: shiftedDate(issueStartDate, -12),
+    bankCode: `BC-FUND-${String(seed).slice(-3).padStart(3, '0')}`,
+    destinationId: `DST-FUND-${String(seed).slice(-5).padStart(5, '0')}`,
+    oldDestination: 'Established business funding account',
+    newDestination: 'No business funding-account change returned',
+    changeComparison: 'Business funding account is established; the employee destination is the object under review.',
+    verificationOutcome: 'Business owner and funding-account history returned',
+    relatedRecords: [],
+  };
+
+  return [primaryRecord, priorRecord, ...comparisonRecords, fundingRecord];
 }
 
-function makeBusinessRecords({ id, claimType, scenario, person, employer, business, reportedDate, issueStartDate, amount, recordCount, creditProfile }) {
+function makeBusinessRecords({ id, index, claimType, scenario, person, employer, business, reportedDate, issueStartDate, amount, recordCount, creditProfile, paymentVerification = [] }) {
   const tools = new Set(claimType.availableTools);
   const result = {};
   if (tools.has('Business 360')) {
@@ -370,7 +442,32 @@ function makeBusinessRecords({ id, claimType, scenario, person, employer, busine
     ];
   }
   if (tools.has('Payroll History')) {
-    result.payrollHistory = Array.from({ length: Math.max(2, Math.min(4, recordCount)) }, (_, itemIndex) => ({ id: `${id}-PAYR-${itemIndex + 1}`, period: shiftedDate(reportedDate, -(itemIndex * 14)), employer, amount: money(Math.max(900, Math.round(amount / Math.max(1, recordCount)) + (itemIndex * 45))), channel: /payroll/i.test(claimType.lane) ? 'Direct deposit record' : 'Verified payroll income record', status: itemIndex === 0 ? 'Current period' : 'Posted prior period', context: itemIndex === 0 ? `${scenario.transactionInfo} is the current payroll activity in scope.` : `${person}'s prior payroll from ${employer} provides a dated amount and destination baseline.` }));
+    const currentDestination = paymentVerification.find((record) => record.id === `${id}-PV-1`) ?? paymentVerification[0];
+    const priorDestination = paymentVerification.find((record) => record.id === `${id}-PV-PRIOR`) ?? currentDestination;
+    const comparisonDestinations = paymentVerification.filter((record) => /PV-PAYEE-/.test(record.id));
+    const fundingAccount = paymentVerification.find((record) => /PV-FUNDING/.test(record.id));
+    const payrollRecordCount = Math.max(2, Math.min(4, recordCount));
+    result.payrollHistory = Array.from({ length: payrollRecordCount }, (_, itemIndex) => {
+      const current = itemIndex === 0;
+      const subjectDestination = current ? currentDestination : priorDestination;
+      const subjectAmount = current ? Math.max(900, amount) : Math.max(900, Math.round(amount * 0.96));
+      const payees = [
+        {
+          id: `${id}-EMP-1`, employee: person, employeeId: `EMP-${String(index).slice(-5)}`, amount: money(subjectAmount), status: current ? 'Pending payroll review' : 'Paid', ownerName: person,
+          bankCode: subjectDestination?.bankCode ?? 'No Bank Code returned', destinationId: subjectDestination?.destinationId ?? 'No Destination ID returned', priorDestinationId: priorDestination?.destinationId ?? 'No prior destination returned', paymentRecordId: subjectDestination?.id ?? '',
+        },
+        ...comparisonDestinations.map((destinationRecord, comparisonIndex) => ({
+          id: `${id}-EMP-${comparisonIndex + 3}`, employee: destinationRecord.accountHolder, employeeId: `EMP-${String(Number(String(index).slice(-5)) + comparisonIndex + 1).padStart(5, '0')}`, amount: money(Math.max(950, Math.round(amount * (0.58 + (comparisonIndex * 0.11))))), status: 'Paid', ownerName: destinationRecord.accountHolder,
+          bankCode: destinationRecord.bankCode, destinationId: destinationRecord.destinationId, priorDestinationId: destinationRecord.destinationId, paymentRecordId: destinationRecord.id,
+        })),
+      ];
+      const runTotal = payees.reduce((total, payee) => total + numberFromMoney(payee.amount), 0);
+      return {
+        id: `${id}-PAYR-${itemIndex + 1}`, period: shiftedDate(reportedDate, -(itemIndex * 14)), employer, amount: money(runTotal), channel: /payroll/i.test(claimType.lane) ? 'Direct deposit payroll run' : 'Verified payroll income record', status: current ? 'Pending review' : 'Posted prior period', context: current ? `${scenario.transactionInfo} is the current payroll activity in scope.` : `${person}'s prior payroll from ${employer} provides a dated amount and destination baseline.`,
+        fundingOwner: fundingAccount?.accountHolder ?? business, fundingBankCode: fundingAccount?.bankCode ?? 'No Bank Code returned', fundingDestinationId: fundingAccount?.destinationId ?? 'No Destination ID returned', fundingPaymentRecordId: fundingAccount?.id ?? '',
+        changeRequest: current ? scenario.statement : 'No change request attached to this prior payroll run', adminActivity: current ? `${scenario.subtype} activity recorded through ${scenario.channel}` : 'No destination-change activity in this prior run', callback: current ? `Trusted callback evidence must be reviewed for ${scenario.caseTruth?.correctDetermination ?? 'the current decision'}` : 'Not required for the unchanged prior run', payees,
+      };
+    });
   }
   return result;
 }
@@ -461,11 +558,20 @@ export function buildGeneratedToolResults({ id, index, person, city, employer, b
   const transactions = makeTransactions({ id, claimType, scenario, amount, reportedDate, issueStartDate, recordCount, difficulty, merchantPacket });
   const paymentVerification = makePaymentVerification({ id, claimType, scenario, person, business, reportedDate, issueStartDate, transactions, index });
   const evidence = makeEvidence({ id, scenario, documents, transactions, reportedDate });
+  const businessRecords = makeBusinessRecords({ id, index, claimType, scenario, person, employer, business, reportedDate, issueStartDate, amount, recordCount, creditProfile, paymentVerification });
+  if (businessRecords.payrollHistory?.length) {
+    paymentVerification.forEach((paymentRecord) => {
+      const linkedRuns = businessRecords.payrollHistory
+        .filter((run) => run.fundingPaymentRecordId === paymentRecord.id || run.payees.some((payee) => payee.paymentRecordId === paymentRecord.id))
+        .map((run) => run.id);
+      paymentRecord.relatedRecords = [...new Set([...(paymentRecord.relatedRecords ?? []), ...linkedRuns])];
+    });
+  }
   const result = {
     transactions,
     financialIntel: makeFinancialIntel({ id, claimType, scenario, reportedDate, issueStartDate, amount, creditProfile, recordCount, transactions, documents }),
     paymentVerification,
-    ...makeBusinessRecords({ id, claimType, scenario, person, employer, business, reportedDate, issueStartDate, amount, recordCount, creditProfile }),
+    ...businessRecords,
     ...evidence,
     identityReport: makeIdentityReport({ id, claimType, trainingId, person, reportedDate }),
   };
