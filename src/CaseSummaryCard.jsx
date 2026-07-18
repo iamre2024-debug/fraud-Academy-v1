@@ -37,6 +37,7 @@ export default function CaseSummaryCard({
   const parties = activeCase.parties ?? activeCase.caseBriefing?.parties ?? [];
   const briefingDetails = activeCase.briefingDetails ?? activeCase.caseBriefing?.details ?? { eyebrow: 'Structured case details', title: 'Account details', rows: [] };
   const availableToolNames = new Set(activeCase.availableTools ?? []);
+  const usesNeutralAlert = ['payroll-direct-deposit', 'email-bec'].includes(activeCase.claimTypeId);
   const firstInvestigationTool = availableToolNames.has('Customer 360')
     ? 'Customer 360'
     : activeCase.requiredTools?.find((item) => item !== 'Case Summary' && availableToolNames.has(item))
@@ -120,7 +121,7 @@ export default function CaseSummaryCard({
               <article><small>Total claim amount</small><strong>{activeCase.amount}</strong></article>
               <article><small>Case type</small><strong>{activeCase.claimType ?? activeCase.type}</strong></article>
               <article><small>Lane</small><strong>{activeCase.lane ?? 'Not supplied'}</strong></article>
-              <article><small>Subtype</small><strong>{activeCase.subtype ?? 'Not supplied'}</strong></article>
+              <article><small>{usesNeutralAlert ? 'Alert type' : 'Subtype'}</small><strong>{activeCase.subtype ?? 'Not supplied'}</strong></article>
               <article className="wide">
                 <small>Transaction / payee info</small>
                 <DirectCollapsibleText as="strong" lines={2} mobileLines={3}>
