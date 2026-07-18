@@ -6,6 +6,9 @@ import { getCustomer360Dossier } from '../src/data/customer360Dossier.js';
 import { financialRecordsByCase } from '../src/data/financialRecords.js';
 import { getFinancialInvestigation, financialInvestigationTabs } from '../src/data/financialInvestigationRecords.js';
 import { createGeneratedCase } from '../src/data/generatedCases.js';
+import { getClaimType } from '../src/data/claimRegistry.js';
+import { getPayrollHistory } from '../src/data/businessPayrollWorkspace.js';
+import { getFinancialRecords } from '../src/data/caseToolData.js';
 import { getKybReview, kybReviewTabs, matchesKybReviewLookup } from '../src/data/kybReviewRecords.js';
 import { buildKybReviewReport } from '../src/data/kybReviewReport.js';
 import { buildLunaDebrief } from '../src/data/lunaDebrief.js';
@@ -95,7 +98,71 @@ if (generatedFinancial.recordsByTab.merchant?.length) fail('Generated non-mercha
 if (!kybReviewTabs.every((tab) => generatedKyb.recordsByTab[tab.id]?.length)) fail('Generated KYB Review must populate all eight sections.');
 if (!generatedKyb.profile.legalName.includes(generatedCase.profile.business)) fail('Generated KYB Review must use the generated case business instead of a built-in profile.');
 
+for (const [scenarioIndex, scenario] of getClaimType('payroll-direct-deposit').scenarios.entries()) {
+  const payrollCase = createGeneratedCase({ index: 9180 + scenarioIndex, claimTypeId: 'payroll-direct-deposit', scenarioId: scenario.id, evidenceDepth: 'deep', difficulty: 'deep' });
+  const payrollRuns = getPayrollHistory(payrollCase);
+  const paymentRecords = getFinancialRecords(payrollCase).paymentVerification;
+  if (payrollCase.profile.business !== payrollCase.profile.employer) fail(`${scenario.id}: payroll business and employer must identify the same entity.`);
+  for (const run of payrollRuns) {
+    if (run.payees.length < 3) fail(`${scenario.id}: payroll run ${run.id} must include a payee roster.`);
+    if (!run.fundingBankCode || !run.fundingDestinationId) fail(`${scenario.id}: payroll run ${run.id} is missing funding-account identifiers.`);
+    const fundingResolves = paymentRecords.some((record) => record.bankCode === run.fundingBankCode && record.destinationId === run.fundingDestinationId);
+    if (!fundingResolves) fail(`${scenario.id}: payroll funding account does not resolve in Payment Verification.`);
+    for (const payee of run.payees) {
+      const payeeResolves = paymentRecords.some((record) => record.bankCode === payee.bankCode && record.destinationId === payee.destinationId);
+      if (!payeeResolves) fail(`${scenario.id}: ${payee.employee} destination does not resolve in Payment Verification.`);
+    }
+  }
+  if (/No payroll change request is included/i.test(payrollRuns[0]?.changeRequest ?? '')) fail(`${scenario.id}: current payroll run contradicts the destination-change allegation.`);
+}
+
+const legacyPayrollCase = JSON.parse(JSON.stringify(createGeneratedCase({
+  index: 9280,
+  claimTypeId: 'payroll-direct-deposit',
+  scenarioId: 'employee-direct-deposit-change',
+  evidenceDepth: 'deep',
+  difficulty: 'deep',
+})));
+legacyPayrollCase.toolResults.paymentVerification = legacyPayrollCase.toolResults.paymentVerification.slice(0, 1);
+legacyPayrollCase.toolResults.payrollHistory = legacyPayrollCase.toolResults.payrollHistory.map((run) => {
+  const {
+    payees,
+    fundingOwner,
+    fundingBankCode,
+    fundingDestinationId,
+    fundingPaymentRecordId,
+    changeRequest,
+    adminActivity,
+    callback,
+    ...legacyRun
+  } = run;
+  return legacyRun;
+});
+const upgradedLegacyPayments = getFinancialRecords(legacyPayrollCase).paymentVerification;
+const upgradedLegacyPayroll = getPayrollHistory(legacyPayrollCase);
+if (upgradedLegacyPayments.length < 5) fail('Legacy saved payroll cases must receive a complete Payment Verification record set.');
+for (const run of upgradedLegacyPayroll) {
+  if (run.payees.length < 3) fail(`Legacy payroll run ${run.id} must receive a payee roster.`);
+  const destinations = [
+    [run.fundingBankCode, run.fundingDestinationId],
+    ...run.payees.map((payee) => [payee.bankCode, payee.destinationId]),
+  ];
+  for (const [bankCode, destinationId] of destinations) {
+    if (!upgradedLegacyPayments.some((record) => record.bankCode === bankCode && record.destinationId === destinationId)) {
+      fail(`Legacy payroll destination ${bankCode} / ${destinationId} must resolve in Payment Verification.`);
+    }
+  }
+}
+
 const creditReview = cases.find((item) => item.id === 'FA-CR-24003');
+const creditPayroll = getPayrollHistory(creditReview);
+if (!creditPayroll.every((run) => run.payees.length >= 3)) fail('Built-in credit review Payroll History must show the payee roster for every run.');
+for (const run of creditPayroll) {
+  for (const payee of run.payees) {
+    const resolves = financialRecordsByCase['FA-CR-24003'].paymentVerification.some((record) => record.bankCode === payee.bankCode && record.destinationId === payee.destinationId);
+    if (!resolves) fail(`Built-in payroll payee ${payee.employee} does not resolve in Payment Verification.`);
+  }
+}
 const paymentData = buildCoreToolRecords('Payment Verification', creditReview, { rows: [] });
 const paymentText = JSON.stringify(paymentData);
 if (!paymentText.includes('Bank Code') || !paymentText.includes('Destination ID')) {
