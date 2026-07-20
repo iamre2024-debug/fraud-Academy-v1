@@ -1,0 +1,78 @@
+/* Final responsive overrides for the post-decision Luna manager screen. */
+body[data-visual-tab="workspace"] .luna-theme-v1,
+body[data-visual-tab="workspace"] .luna-theme-v1 * {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
+}
+
+@media (max-width: 760px) {
+  body[data-visual-tab="workspace"] .luna-post-submission-host,
+  body[data-visual-tab="workspace"] .luna-theme-v1 {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  body[data-visual-tab="workspace"] .luna-theme-v1 {
+    padding: 16px !important;
+  }
+
+  body[data-visual-tab="workspace"] .luna-v1-debrief-grid,
+  body[data-visual-tab="workspace"] .luna-v1-score-banner,
+  body[data-visual-tab="workspace"] .luna-v1-user-reasoning dl,
+  body[data-visual-tab="workspace"] .luna-v1-breakdown .luna-breakdown-card {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  body[data-visual-tab="workspace"] .luna-v1-card,
+  body[data-visual-tab="workspace"] .luna-v1-score-banner {
+    width: 100%;
+    padding: 15px;
+  }
+
+  body[data-visual-tab="workspace"] .luna-v1-card > header {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .luna-v1-card h3,
+  body[data-visual-tab="workspace"] .luna-v1-card p,
+  body[data-visual-tab="workspace"] .luna-v1-card dd,
+  body[data-visual-tab="workspace"] .luna-v1-score-banner strong,
+  body[data-visual-tab="workspace"] .luna-v1-score-banner span {
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  body[data-visual-tab="workspace"] .luna-v1-user-reasoning dl {
+    gap: 8px;
+  }
+
+  body[data-visual-tab="workspace"] .luna-v1-score-banner > div:last-child {
+    border-left: 0;
+    border-top: 1px solid #d8cae9;
+    padding: 13px 0 0;
+  }
+}
+
+@media (max-width: 420px) {
+  body[data-visual-tab="workspace"] .luna-theme-v1 {
+    border-radius: 16px;
+    padding: 12px !important;
+  }
+
+  body[data-visual-tab="workspace"] .luna-v1-card,
+  body[data-visual-tab="workspace"] .luna-v1-score-banner {
+    padding: 13px;
+  }
+
+  body[data-visual-tab="workspace"] .luna-v1-card > header {
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  body[data-visual-tab="workspace"] .luna-v1-card > header > span {
+    width: 32px;
+    height: 32px;
+  }
+}
