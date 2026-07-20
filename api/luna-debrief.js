@@ -35,6 +35,7 @@ export default async function handler(req, res) {
     expectedDetermination: deterministic.expectedDetermination || null,
     acceptedDeterminations: cleanList(deterministic.acceptedDeterminations),
     classification: deterministic.classification || null,
+    truthRationale: deterministic.truthRationale || null,
     score: Number(deterministic.score || 0),
     strengths: cleanList(deterministic.strengths),
     followUps: cleanList(deterministic.followUps),
@@ -44,13 +45,16 @@ export default async function handler(req, res) {
   };
 
   const instructions = [
-    'You are Luna, a senior fraud-investigation coach inside a training app.',
-    'The deterministic result supplied by the application is authoritative.',
-    'Never reverse, reinterpret, or override determinationMatched, expectedDetermination, acceptedDeterminations, classification, or score.',
-    'In particular, Do Not Support means the evidence does not support the customer fraud claim. Never describe that choice as fraud confirmed.',
+    'You are Luna, the fraud manager conducting a post-decision case review inside a training app.',
+    'Speak like an experienced manager reviewing an investigator decision, not like a generic tutor or scorecard.',
+    'The deterministic fields are authoritative. Never reverse or override determinationMatched, expectedDetermination, acceptedDeterminations, classification, truthRationale, or score.',
+    'First state plainly whether the investigator decision was correct, partially supported, or incorrect based on determinationMatched.',
+    'Explain what the submitted decision means. Do Not Support means the available evidence does not support the customer fraud claim; it never means fraud was confirmed.',
+    'Then explain what the case actually was according to classification and truthRationale, including whether later review established fraud, non-fraud, customer involvement, or an unresolved outcome.',
+    'Separate the quality of the investigator decision at the time from what became known later in the scenario.',
+    'Use only supplied facts. Do not invent evidence, people, transactions, downstream events, or policy rules.',
     'Do not reveal hidden truth before submission. This endpoint is called only after submission.',
-    'Coach the learner using only the supplied package facts. Do not invent evidence.',
-    'Return concise JSON only with coachIntro, strengths, and followUps.',
+    'Return concise JSON only using the required schema.',
   ].join(' ');
 
   try {
@@ -67,17 +71,20 @@ export default async function handler(req, res) {
         text: {
           format: {
             type: 'json_schema',
-            name: 'luna_debrief',
+            name: 'luna_manager_debrief',
             strict: true,
             schema: {
               type: 'object',
               additionalProperties: false,
               properties: {
-                coachIntro: { type: 'string' },
+                managerVerdict: { type: 'string' },
+                decisionMeaning: { type: 'string' },
+                actualCaseOutcome: { type: 'string' },
+                managerExplanation: { type: 'string' },
                 strengths: { type: 'array', items: { type: 'string' }, maxItems: 6 },
-                followUps: { type: 'array', items: { type: 'string' }, maxItems: 6 },
+                coachingActions: { type: 'array', items: { type: 'string' }, maxItems: 6 },
               },
-              required: ['coachIntro', 'strengths', 'followUps'],
+              required: ['managerVerdict', 'decisionMeaning', 'actualCaseOutcome', 'managerExplanation', 'strengths', 'coachingActions'],
             },
           },
         },
@@ -87,20 +94,23 @@ export default async function handler(req, res) {
     if (!apiResponse.ok) {
       const details = await apiResponse.text();
       console.error('OpenAI Luna request failed', apiResponse.status, details.slice(0, 1000));
-      return send(res, 502, { error: 'Luna coaching service failed' });
+      return send(res, 502, { error: 'Luna manager review failed' });
     }
 
     const result = await apiResponse.json();
     const outputText = result.output_text || result.output?.flatMap((item) => item.content || []).find((item) => item.type === 'output_text')?.text;
-    const coaching = JSON.parse(outputText || '{}');
+    const review = JSON.parse(outputText || '{}');
     return send(res, 200, {
-      coachIntro: String(coaching.coachIntro || ''),
-      strengths: cleanList(coaching.strengths, guardedFacts.strengths),
-      followUps: cleanList(coaching.followUps, guardedFacts.followUps),
+      managerVerdict: String(review.managerVerdict || ''),
+      decisionMeaning: String(review.decisionMeaning || ''),
+      actualCaseOutcome: String(review.actualCaseOutcome || ''),
+      managerExplanation: String(review.managerExplanation || ''),
+      strengths: cleanList(review.strengths, guardedFacts.strengths),
+      coachingActions: cleanList(review.coachingActions, guardedFacts.followUps),
       source: 'api',
     });
   } catch (error) {
-    console.error('Luna debrief error', error);
-    return send(res, 500, { error: 'Unable to generate Luna coaching' });
+    console.error('Luna manager debrief error', error);
+    return send(res, 500, { error: 'Unable to generate Luna manager review' });
   }
 }
