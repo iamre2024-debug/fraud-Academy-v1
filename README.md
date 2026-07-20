@@ -243,6 +243,10 @@ npm run browser-smoke-check
 npm run dev
 ```
 
+## Luna AI coaching
+
+Luna uses deterministic case truth for grading, then optionally calls the Netlify `/api/luna-debrief` function for manager-style coaching. Set `OPENAI_API_KEY` in Netlify environment variables to enable the AI coaching layer; the browser falls back to built-in coaching when the key is absent. `LUNA_OPENAI_MODEL` can override the default `gpt-5.6-sol` model.
+
 ## Build
 
 ```bash
