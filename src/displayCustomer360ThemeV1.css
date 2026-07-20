@@ -459,6 +459,124 @@ body[data-visual-tab="workspace"] .customer-360-related-records {
   padding: 15px;
 }
 
+body[data-visual-tab="workspace"] .customer-360-account-snapshot {
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.14);
+  border-radius: 18px;
+  background: linear-gradient(145deg, #f7f2ff 0%, #fff 62%, #fff7fc 100%);
+  padding: 15px;
+  box-shadow: 0 8px 22px rgba(67, 43, 126, 0.06);
+}
+
+body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid > article {
+  display: grid;
+  gap: 11px;
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.12);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 13px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid > article > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid header > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid header span {
+  color: #7551c8;
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid h4 {
+  color: #29204f;
+  font-size: 0.84rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid header p {
+  color: #756c8d;
+  font-size: 0.67rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid header button {
+  min-height: 38px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(117, 81, 200, 0.22);
+  border-radius: 11px;
+  background: #f2ecff;
+  padding: 8px 10px;
+  color: #5f3cad;
+  font: 850 0.66rem/1.2 Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body[data-visual-tab="workspace"] .customer-360-account-actions {
+  display: grid;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+body[data-visual-tab="workspace"] .customer-360-account-actions button:last-child {
+  border-color: #7551c8;
+  background: #7551c8;
+  color: #fff;
+}
+
+body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+
+body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid dl > div {
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.08);
+  border-radius: 10px;
+  background: #faf8ff;
+  padding: 8px;
+}
+
+body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid .customer-360-account-wide {
+  grid-column: 1 / -1;
+}
+
+body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid dt {
+  color: #7a7094;
+  font-size: 0.59rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid dd {
+  margin: 4px 0 0;
+  color: #30264f;
+  font-size: 0.7rem;
+  font-weight: 750;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 body[data-visual-tab="workspace"] .customer-360-section-heading {
   display: flex;
   align-items: flex-start;
@@ -657,6 +775,10 @@ body[data-visual-tab="workspace"] .customer-360-review-bar > div:last-child {
   body[data-visual-tab="workspace"] .customer-360-record-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 720px) {
@@ -754,6 +876,26 @@ body[data-visual-tab="workspace"] .customer-360-review-bar > div:last-child {
   body[data-visual-tab="workspace"] .customer-360-event-actions,
   body[data-visual-tab="workspace"] .customer-360-record-grid article > div {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid > article > header {
+    display: grid;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid header button {
+    width: 100%;
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-account-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .customer-360-account-snapshot-grid .customer-360-account-wide {
+    grid-column: auto;
   }
 }
 
