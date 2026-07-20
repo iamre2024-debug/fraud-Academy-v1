@@ -4,6 +4,7 @@ import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import { buildLunaDebrief } from './data/lunaDebrief.js';
+import { requestLunaApiCoaching } from './data/lunaApi.js';
 
 const cases = enrichTrainingCases(baseCases);
 const storageKeys = {
@@ -34,6 +35,8 @@ export default function LunaPostSubmissionPanel({
   const [host, setHost] = useState(null);
   const [version, setVersion] = useState(0);
   const [submittedPackage, setSubmittedPackage] = useState(null);
+  const [apiCoaching, setApiCoaching] = useState(null);
+  const [apiStatus, setApiStatus] = useState('idle');
   const activeCase = suppliedActiveCase ?? cases.find((item) => item.id === activeCaseId) ?? cases[0];
 
   useEffect(() => {
@@ -57,6 +60,8 @@ export default function LunaPostSubmissionPanel({
 
   useEffect(() => {
     setSubmittedPackage(null);
+    setApiCoaching(null);
+    setApiStatus('idle');
   }, [activeCase.id]);
 
   useEffect(() => {
@@ -96,8 +101,38 @@ export default function LunaPostSubmissionPanel({
     return { reviewPackage, debrief };
   }, [activeCase, submittedPackage, version]);
 
+  useEffect(() => {
+    if (!visible || !state.reviewPackage || !state.debrief) return undefined;
+    const controller = new AbortController();
+    setApiStatus('loading');
+    requestLunaApiCoaching({
+      activeCase,
+      reviewPackage: state.reviewPackage,
+      deterministicDebrief: state.debrief,
+      signal: controller.signal,
+    })
+      .then((coaching) => {
+        if (!coaching) return;
+        setApiCoaching(coaching);
+        setApiStatus('ready');
+      })
+      .catch((error) => {
+        if (error.name === 'AbortError') return;
+        console.warn('Luna API coaching unavailable; using deterministic coaching.', error);
+        setApiCoaching(null);
+        setApiStatus('fallback');
+      });
+    return () => controller.abort();
+  }, [activeCase, state.reviewPackage, state.debrief, visible]);
+
   const locked = !state.reviewPackage || !state.debrief;
-  const stepNumbers = state.debrief?.truthReveal
+  const displayedDebrief = state.debrief ? {
+    ...state.debrief,
+    coachIntro: apiCoaching?.coachIntro || state.debrief.coachIntro,
+    strengths: apiCoaching?.strengths?.length ? apiCoaching.strengths : state.debrief.strengths,
+    followUps: apiCoaching?.followUps?.length ? apiCoaching.followUps : state.debrief.followUps,
+  } : null;
+  const stepNumbers = displayedDebrief?.truthReveal
     ? { strengths: '04', followUps: '05', breakdown: '06' }
     : { strengths: '03', followUps: '04', breakdown: '05' };
   const panel = (
@@ -107,6 +142,8 @@ export default function LunaPostSubmissionPanel({
       data-luna-screen="approved-theme-v1"
       data-case-id={activeCase.id}
       data-luna-state={locked ? 'locked' : 'unlocked'}
+      data-luna-coaching-source={apiCoaching ? 'api' : 'deterministic'}
+      data-luna-api-status={apiStatus}
       data-workspace-screen-visible={visible ? 'true' : 'false'}
       aria-hidden={visible ? undefined : 'true'}
     >
@@ -114,11 +151,11 @@ export default function LunaPostSubmissionPanel({
         <div>
           <p className="luna-v1-eyebrow">Debrief · Senior investigator coaching</p>
           <h2>Luna Post-Submission Debrief</h2>
-          <p>{locked ? 'Post-submission coaching stays locked until Submit Decision saves a learner package.' : state.debrief.coachIntro}</p>
+          <p>{locked ? 'Post-submission coaching stays locked until Submit Decision saves a learner package.' : displayedDebrief.coachIntro}</p>
         </div>
         <div className="luna-v1-header-status">
           <span>{activeCase.id}</span>
-          <strong>{locked ? 'Locked' : `${state.debrief.score}/100`}</strong>
+          <strong>{locked ? 'Locked' : `${displayedDebrief.score}/100`}</strong>
         </div>
       </header>
 
@@ -144,9 +181,9 @@ export default function LunaPostSubmissionPanel({
         <>
           <section className="luna-v1-score-banner" aria-label="Luna debrief score">
             <div>
-              <span>{state.debrief.theme}</span>
-              <strong>{state.debrief.score}/100</strong>
-              <p>{state.debrief.scoreLabel}</p>
+              <span>{displayedDebrief.theme}</span>
+              <strong>{displayedDebrief.score}/100</strong>
+              <p>{displayedDebrief.scoreLabel}</p>
             </div>
             <div>
               <p>Saved package</p>
@@ -167,30 +204,30 @@ export default function LunaPostSubmissionPanel({
 
             <section className="luna-v1-card luna-v1-senior-review">
               <header><span className="luna-v1-step-index" aria-hidden="true">02</span><div><p>Senior review</p><h3>How Luna read the package</h3></div></header>
-              <DirectCollapsibleText as="p" lines={4} mobileLines={5}>{state.debrief.coachIntro}</DirectCollapsibleText>
+              <DirectCollapsibleText as="p" lines={4} mobileLines={5}>{displayedDebrief.coachIntro}</DirectCollapsibleText>
               <div className="luna-v1-package-facts">
                 <span>{state.reviewPackage.pinnedEvidence.length} pinned</span>
-                <span>{state.reviewPackage.noteSnapshot.length} notes - {state.debrief.notesQuality.label}</span>
+                <span>{state.reviewPackage.noteSnapshot.length} notes - {displayedDebrief.notesQuality.label}</span>
                 <span>{state.reviewPackage.indicatorSummary?.redPoints ?? 0} red weight</span>
                 <span>{state.reviewPackage.indicatorSummary?.greenPoints ?? 0} green weight</span>
               </div>
             </section>
 
-            {state.debrief.truthReveal && (
+            {displayedDebrief.truthReveal && (
               <section className="luna-v1-card luna-v1-truth-review">
                 <header><span className="luna-v1-step-index" aria-hidden="true">03</span><div><p>Scenario reveal</p><h3>Truth and expected determination</h3></div></header>
                 <dl>
-                  <div><dt>Expected determination</dt><dd>{state.debrief.truthReveal.correctDetermination}</dd></div>
-                  <div><dt>Learner match</dt><dd>{state.debrief.determinationMatched ? 'Matched' : 'Did not match'}</dd></div>
+                  <div><dt>Expected determination</dt><dd>{displayedDebrief.truthReveal.correctDetermination}</dd></div>
+                  <div><dt>Learner match</dt><dd>{displayedDebrief.determinationMatched ? 'Matched' : 'Did not match'}</dd></div>
                 </dl>
-                <DirectCollapsibleText as="p" lines={5} mobileLines={6}>{state.debrief.truthReveal.classification}</DirectCollapsibleText>
+                <DirectCollapsibleText as="p" lines={5} mobileLines={6}>{displayedDebrief.truthReveal.classification}</DirectCollapsibleText>
               </section>
             )}
 
             <section className="luna-v1-card luna-v1-strengths" data-debrief-step={stepNumbers.strengths}>
               <header><span className="luna-v1-step-index" aria-hidden="true">{stepNumbers.strengths}</span><div><p>Strong investigation choices</p><h3>What your package did well</h3></div></header>
               <div className="luna-v1-list">
-                {state.debrief.strengths.map((item) => (
+                {displayedDebrief.strengths.map((item) => (
                   <DirectCollapsibleText key={item} as="p" lines={3} mobileLines={4}>✓ {item}</DirectCollapsibleText>
                 ))}
               </div>
@@ -199,7 +236,7 @@ export default function LunaPostSubmissionPanel({
             <section className="luna-v1-card luna-v1-followups" data-debrief-step={stepNumbers.followUps}>
               <header><span className="luna-v1-step-index" aria-hidden="true">{stepNumbers.followUps}</span><div><p>Evidence to revisit</p><h3>Next coaching focus</h3></div></header>
               <div className="luna-v1-list">
-                {state.debrief.followUps.map((item) => (
+                {displayedDebrief.followUps.map((item) => (
                   <DirectCollapsibleText key={item} as="p" lines={3} mobileLines={4}>⌁ {item}</DirectCollapsibleText>
                 ))}
               </div>
@@ -208,7 +245,7 @@ export default function LunaPostSubmissionPanel({
             <section className="luna-v1-card luna-v1-breakdown" data-debrief-step={stepNumbers.breakdown}>
               <header><span className="luna-v1-step-index" aria-hidden="true">{stepNumbers.breakdown}</span><div><p>Learning outcome</p><h3>Decision-quality breakdown</h3></div></header>
               <div className="luna-breakdown-card">
-                {state.debrief.breakdown.map((item) => (
+                {displayedDebrief.breakdown.map((item) => (
                   <div key={item.label}>
                     <span>{item.label}</span>
                     <strong>{item.value}</strong>
