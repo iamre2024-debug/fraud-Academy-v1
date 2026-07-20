@@ -24,6 +24,42 @@ function readJson(key, fallback) {
   }
 }
 
+function explainDecisionMeaning(choice) {
+  const normalized = String(choice || '').toLowerCase();
+  if (normalized.includes('do not support')) {
+    return 'Your decision means the evidence available at the time did not support the customer’s fraud claim. It does not mean fraud was confirmed.';
+  }
+  if (normalized.includes('support')) {
+    return 'Your decision means the evidence available at the time supported the customer’s fraud claim.';
+  }
+  if (normalized.includes('insufficient')) {
+    return 'Your decision means the evidence was not strong enough to support or reject the claim with confidence.';
+  }
+  if (normalized.includes('escalate')) {
+    return 'Your decision means the case required additional authority, evidence, or specialist review before a final outcome.';
+  }
+  return `Your submitted determination was ${choice || 'not selected'}.`;
+}
+
+function buildManagerFallback(debrief, reviewPackage) {
+  const matched = Boolean(debrief?.determinationMatched);
+  const truth = debrief?.truthReveal;
+  return {
+    managerVerdict: matched
+      ? 'Your determination was correct based on the case evidence.'
+      : `Your determination did not match the expected case outcome${truth?.correctDetermination ? ` of ${truth.correctDetermination}` : ''}.`,
+    decisionMeaning: explainDecisionMeaning(reviewPackage?.choice),
+    actualCaseOutcome: truth
+      ? `${truth.classification}${truth.rationale ? ` ${truth.rationale}` : ''}`
+      : 'This case does not include a hidden downstream outcome.',
+    managerExplanation: matched
+      ? 'You reached the right decision. The next question is whether your notes and pinned evidence clearly show how you got there.'
+      : 'The result needs correction. Compare your reasoning with the hidden case outcome and identify which evidence changed the decision.',
+    strengths: debrief?.strengths || [],
+    coachingActions: debrief?.followUps || [],
+  };
+}
+
 export default function LunaPostSubmissionPanel({
   activeCase: suppliedActiveCase,
   activeCaseId,
@@ -43,7 +79,6 @@ export default function LunaPostSubmissionPanel({
     const frame = document.querySelector('.visual-os-frame');
     const anchor = document.querySelector('.decision-luna-portal-anchor');
     if (!frame || !anchor) return undefined;
-
     let lunaHost = frame.querySelector('.luna-post-submission-host');
     const created = !lunaHost;
     if (!lunaHost) {
@@ -51,7 +86,6 @@ export default function LunaPostSubmissionPanel({
       lunaHost.className = 'luna-post-submission-host';
       anchor.insertAdjacentElement('afterend', lunaHost);
     }
-
     setHost(lunaHost);
     return () => {
       if (created) lunaHost.remove();
@@ -65,25 +99,24 @@ export default function LunaPostSubmissionPanel({
   }, [activeCase.id]);
 
   useEffect(() => {
-    let packageRefreshTimer = null;
+    let timer = null;
     const refresh = () => setVersion((current) => current + 1);
-    const refreshAfterPackageSaved = (event) => {
+    const saved = (event) => {
       if (event.detail?.caseId === activeCase.id && event.detail?.reviewPackage) {
         setSubmittedPackage(event.detail.reviewPackage);
       }
       refresh();
-      if (packageRefreshTimer !== null) window.clearTimeout(packageRefreshTimer);
-      packageRefreshTimer = window.setTimeout(refresh, 24);
+      if (timer !== null) window.clearTimeout(timer);
+      timer = window.setTimeout(refresh, 24);
     };
-
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
-    window.addEventListener('fraud-academy:package-saved', refreshAfterPackageSaved);
+    window.addEventListener('fraud-academy:package-saved', saved);
     return () => {
       window.removeEventListener('storage', refresh);
       window.removeEventListener('focus', refresh);
-      window.removeEventListener('fraud-academy:package-saved', refreshAfterPackageSaved);
-      if (packageRefreshTimer !== null) window.clearTimeout(packageRefreshTimer);
+      window.removeEventListener('fraud-academy:package-saved', saved);
+      if (timer !== null) window.clearTimeout(timer);
     };
   }, [activeCase.id]);
 
@@ -94,10 +127,13 @@ export default function LunaPostSubmissionPanel({
     const notesByCase = readJson(storageKeys.notes, {});
     const storedPackage = (packagesByCase[activeCase.id] ?? [])[0] ?? null;
     const reviewPackage = submittedPackage?.caseId === activeCase.id ? submittedPackage : storedPackage;
-    const completedTools = completedByCase[activeCase.id] ?? [];
-    const tray = trayByCase[activeCase.id] ?? [];
-    const notes = notesByCase[activeCase.id] ?? [];
-    const debrief = buildLunaDebrief({ activeCase, reviewPackage, completedTools, tray, notes });
+    const debrief = buildLunaDebrief({
+      activeCase,
+      reviewPackage,
+      completedTools: completedByCase[activeCase.id] ?? [],
+      tray: trayByCase[activeCase.id] ?? [],
+      notes: notesByCase[activeCase.id] ?? [],
+    });
     return { reviewPackage, debrief };
   }, [activeCase, submittedPackage, version]);
 
@@ -118,7 +154,7 @@ export default function LunaPostSubmissionPanel({
       })
       .catch((error) => {
         if (error.name === 'AbortError') return;
-        console.warn('Luna API coaching unavailable; using deterministic coaching.', error);
+        console.warn('Luna manager API unavailable; using guarded fallback.', error);
         setApiCoaching(null);
         setApiStatus('fallback');
       });
@@ -126,15 +162,10 @@ export default function LunaPostSubmissionPanel({
   }, [activeCase, state.reviewPackage, state.debrief, visible]);
 
   const locked = !state.reviewPackage || !state.debrief;
-  const displayedDebrief = state.debrief ? {
-    ...state.debrief,
-    coachIntro: apiCoaching?.coachIntro || state.debrief.coachIntro,
-    strengths: apiCoaching?.strengths?.length ? apiCoaching.strengths : state.debrief.strengths,
-    followUps: apiCoaching?.followUps?.length ? apiCoaching.followUps : state.debrief.followUps,
-  } : null;
-  const stepNumbers = displayedDebrief?.truthReveal
-    ? { strengths: '04', followUps: '05', breakdown: '06' }
-    : { strengths: '03', followUps: '04', breakdown: '05' };
+  const managerReview = !locked
+    ? { ...buildManagerFallback(state.debrief, state.reviewPackage), ...(apiCoaching || {}) }
+    : null;
+
   const panel = (
     <section
       className={`ornate-card luna-visual-panel luna-theme-v1 ${locked ? 'locked' : 'unlocked'}`}
@@ -149,13 +180,13 @@ export default function LunaPostSubmissionPanel({
     >
       <header className="luna-v1-header">
         <div>
-          <p className="luna-v1-eyebrow">Debrief · Senior investigator coaching</p>
-          <h2>Luna Post-Submission Debrief</h2>
-          <p>{locked ? 'Post-submission coaching stays locked until Submit Decision saves a learner package.' : displayedDebrief.coachIntro}</p>
+          <p className="luna-v1-eyebrow">Post-decision review · Fraud manager</p>
+          <h2>Luna Manager Debrief</h2>
+          <p>{locked ? 'Post-submission coaching stays locked until Submit Decision saves a learner package.' : managerReview.managerVerdict}</p>
         </div>
         <div className="luna-v1-header-status">
           <span>{activeCase.id}</span>
-          <strong>{locked ? 'Locked' : `${displayedDebrief.score}/100`}</strong>
+          <strong>{locked ? 'Locked' : state.debrief.determinationMatched ? 'Correct' : 'Review'}</strong>
         </div>
       </header>
 
@@ -166,35 +197,34 @@ export default function LunaPostSubmissionPanel({
             <div>
               <p>Evidence First lock is active.</p>
               <h3>Submit your current decision package when you are ready.</h3>
-              <span>No score, strengths, evidence coaching, or decision-quality feedback appears before submission.</span>
+              <span>No outcome, manager feedback, or scenario truth appears before submission.</span>
             </div>
           </section>
-
           <div className="luna-v1-unlock-grid" aria-label="Luna submission steps">
-            <article><span>1</span><div><strong>Review what matters</strong><p>Open only the case records you need.</p></div></article>
-            <article><span>2</span><div><strong>Add useful flags</strong><p>Flag proof can be saved when it applies.</p></div></article>
-            <article><span>3</span><div><strong>Add optional rationale</strong><p>Document any reasoning you want Luna to coach.</p></div></article>
-            <article><span>4</span><div><strong>Submit decision package</strong><p>Submission alone unlocks the case-scoped debrief.</p></div></article>
+            <article><span>1</span><div><strong>Review the case</strong><p>Open the records you need.</p></div></article>
+            <article><span>2</span><div><strong>Document evidence</strong><p>Pin proof and add useful notes.</p></div></article>
+            <article><span>3</span><div><strong>Make your call</strong><p>Select the determination that fits the evidence.</p></div></article>
+            <article><span>4</span><div><strong>Submit</strong><p>Luna reviews the decision after it is saved.</p></div></article>
           </div>
         </div>
       ) : (
         <>
-          <section className="luna-v1-score-banner" aria-label="Luna debrief score">
+          <section className="luna-v1-score-banner" aria-label="Luna manager verdict">
             <div>
-              <span>{displayedDebrief.theme}</span>
-              <strong>{displayedDebrief.score}/100</strong>
-              <p>{displayedDebrief.scoreLabel}</p>
+              <span>Manager verdict</span>
+              <strong>{state.debrief.determinationMatched ? 'Right call' : 'Needs correction'}</strong>
+              <p>{managerReview.managerVerdict}</p>
             </div>
             <div>
-              <p>Saved package</p>
-              <strong>{state.reviewPackage.savedAt}</strong>
-              <span>{state.reviewPackage.reviewedRequired}/{state.reviewPackage.totalRequired} suggested tools reviewed</span>
+              <p>Investigation package quality</p>
+              <strong>{state.debrief.score}/100</strong>
+              <span>{state.debrief.scoreLabel}</span>
             </div>
           </section>
 
           <div className="luna-debrief-grid luna-v1-debrief-grid">
             <section className="luna-v1-card luna-v1-user-reasoning">
-              <header><span className="luna-v1-step-index" aria-hidden="true">01</span><div><p>Learner reasoning</p><h3>Your submitted determination</h3></div></header>
+              <header><span className="luna-v1-step-index" aria-hidden="true">01</span><div><p>Your decision</p><h3>What you submitted</h3></div></header>
               <dl>
                 <div><dt>Decision</dt><dd>{state.reviewPackage.choice || 'No determination selected'}</dd></div>
                 <div><dt>Confidence</dt><dd>{state.reviewPackage.confidence}</dd></div>
@@ -203,54 +233,38 @@ export default function LunaPostSubmissionPanel({
             </section>
 
             <section className="luna-v1-card luna-v1-senior-review">
-              <header><span className="luna-v1-step-index" aria-hidden="true">02</span><div><p>Senior review</p><h3>How Luna read the package</h3></div></header>
-              <DirectCollapsibleText as="p" lines={4} mobileLines={5}>{displayedDebrief.coachIntro}</DirectCollapsibleText>
-              <div className="luna-v1-package-facts">
-                <span>{state.reviewPackage.pinnedEvidence.length} pinned</span>
-                <span>{state.reviewPackage.noteSnapshot.length} notes - {displayedDebrief.notesQuality.label}</span>
-                <span>{state.reviewPackage.indicatorSummary?.redPoints ?? 0} red weight</span>
-                <span>{state.reviewPackage.indicatorSummary?.greenPoints ?? 0} green weight</span>
-              </div>
+              <header><span className="luna-v1-step-index" aria-hidden="true">02</span><div><p>Decision meaning</p><h3>What your answer actually says</h3></div></header>
+              <DirectCollapsibleText as="p" lines={5} mobileLines={6}>{managerReview.decisionMeaning}</DirectCollapsibleText>
             </section>
 
-            {displayedDebrief.truthReveal && (
-              <section className="luna-v1-card luna-v1-truth-review">
-                <header><span className="luna-v1-step-index" aria-hidden="true">03</span><div><p>Scenario reveal</p><h3>Truth and expected determination</h3></div></header>
-                <dl>
-                  <div><dt>Expected determination</dt><dd>{displayedDebrief.truthReveal.correctDetermination}</dd></div>
-                  <div><dt>Learner match</dt><dd>{displayedDebrief.determinationMatched ? 'Matched' : 'Did not match'}</dd></div>
-                </dl>
-                <DirectCollapsibleText as="p" lines={5} mobileLines={6}>{displayedDebrief.truthReveal.classification}</DirectCollapsibleText>
-              </section>
-            )}
+            <section className="luna-v1-card luna-v1-truth-review">
+              <header><span className="luna-v1-step-index" aria-hidden="true">03</span><div><p>Case outcome</p><h3>What was actually happening</h3></div></header>
+              <dl>
+                <div><dt>Expected determination</dt><dd>{state.debrief.truthReveal?.correctDetermination || 'Not available'}</dd></div>
+                <div><dt>Your result</dt><dd>{state.debrief.determinationMatched ? 'Matched' : 'Did not match'}</dd></div>
+              </dl>
+              <DirectCollapsibleText as="p" lines={6} mobileLines={7}>{managerReview.actualCaseOutcome}</DirectCollapsibleText>
+            </section>
 
-            <section className="luna-v1-card luna-v1-strengths" data-debrief-step={stepNumbers.strengths}>
-              <header><span className="luna-v1-step-index" aria-hidden="true">{stepNumbers.strengths}</span><div><p>Strong investigation choices</p><h3>What your package did well</h3></div></header>
+            <section className="luna-v1-card luna-v1-senior-review">
+              <header><span className="luna-v1-step-index" aria-hidden="true">04</span><div><p>Manager review</p><h3>Why the decision was right or wrong</h3></div></header>
+              <DirectCollapsibleText as="p" lines={6} mobileLines={7}>{managerReview.managerExplanation}</DirectCollapsibleText>
+            </section>
+
+            <section className="luna-v1-card luna-v1-strengths" data-debrief-step="05">
+              <header><span className="luna-v1-step-index" aria-hidden="true">05</span><div><p>Strong investigation choices</p><h3>What you handled well</h3></div></header>
               <div className="luna-v1-list">
-                {displayedDebrief.strengths.map((item) => (
+                {managerReview.strengths.map((item) => (
                   <DirectCollapsibleText key={item} as="p" lines={3} mobileLines={4}>✓ {item}</DirectCollapsibleText>
                 ))}
               </div>
             </section>
 
-            <section className="luna-v1-card luna-v1-followups" data-debrief-step={stepNumbers.followUps}>
-              <header><span className="luna-v1-step-index" aria-hidden="true">{stepNumbers.followUps}</span><div><p>Evidence to revisit</p><h3>Next coaching focus</h3></div></header>
+            <section className="luna-v1-card luna-v1-followups" data-debrief-step="06">
+              <header><span className="luna-v1-step-index" aria-hidden="true">06</span><div><p>Manager coaching</p><h3>What to improve next time</h3></div></header>
               <div className="luna-v1-list">
-                {displayedDebrief.followUps.map((item) => (
+                {managerReview.coachingActions.map((item) => (
                   <DirectCollapsibleText key={item} as="p" lines={3} mobileLines={4}>⌁ {item}</DirectCollapsibleText>
-                ))}
-              </div>
-            </section>
-
-            <section className="luna-v1-card luna-v1-breakdown" data-debrief-step={stepNumbers.breakdown}>
-              <header><span className="luna-v1-step-index" aria-hidden="true">{stepNumbers.breakdown}</span><div><p>Learning outcome</p><h3>Decision-quality breakdown</h3></div></header>
-              <div className="luna-breakdown-card">
-                {displayedDebrief.breakdown.map((item) => (
-                  <div key={item.label}>
-                    <span>{item.label}</span>
-                    <strong>{item.value}</strong>
-                    <em>{item.points} pts</em>
-                  </div>
                 ))}
               </div>
             </section>
