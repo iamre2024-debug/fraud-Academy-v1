@@ -20,9 +20,20 @@ export default async function handler(req, res) {
 
   const body = req.body || {};
   const deterministic = body.deterministicResult || {};
-  if (!body.caseId || !body.submittedDecision || typeof deterministic.determinationMatched !== 'boolean') {
+  const hasMatchField = Object.prototype.hasOwnProperty.call(deterministic, 'determinationMatched');
+  const matchValueIsValid = deterministic.determinationMatched === true
+    || deterministic.determinationMatched === false
+    || deterministic.determinationMatched === null;
+
+  if (!body.caseId || !body.submittedDecision || !hasMatchField || !matchValueIsValid) {
     return send(res, 400, { error: 'Missing guarded debrief inputs' });
   }
+
+  const reviewStatus = deterministic.determinationMatched === true
+    ? 'matched'
+    : deterministic.determinationMatched === false
+      ? 'mismatched'
+      : 'ungraded';
 
   const guardedFacts = {
     caseId: String(body.caseId),
@@ -31,6 +42,7 @@ export default async function handler(req, res) {
     submittedDecision: String(body.submittedDecision),
     confidence: String(body.confidence || ''),
     rationale: String(body.rationale || '').slice(0, 4000),
+    reviewStatus,
     determinationMatched: deterministic.determinationMatched,
     expectedDetermination: deterministic.expectedDetermination || null,
     acceptedDeterminations: cleanList(deterministic.acceptedDeterminations),
@@ -47,10 +59,12 @@ export default async function handler(req, res) {
   const instructions = [
     'You are Luna, the fraud manager conducting a post-decision case review inside a training app.',
     'Speak like an experienced manager reviewing an investigator decision, not like a generic tutor or scorecard.',
-    'The deterministic fields are authoritative. Never reverse or override determinationMatched, expectedDetermination, acceptedDeterminations, classification, truthRationale, or score.',
-    'First state plainly whether the investigator decision was correct, partially supported, or incorrect based on determinationMatched.',
+    'The deterministic fields are authoritative. Never reverse or override reviewStatus, determinationMatched, expectedDetermination, acceptedDeterminations, classification, truthRationale, or score.',
+    'When reviewStatus is matched, say the investigator made the correct call.',
+    'When reviewStatus is mismatched, say the determination needs correction and explain why from the supplied truth.',
+    'When reviewStatus is ungraded, never call the decision right, wrong, matched, mismatched, or in need of correction. State that the case has no hidden outcome and review only the investigation quality and reasoning.',
     'Explain what the submitted decision means. Do Not Support means the available evidence does not support the customer fraud claim; it never means fraud was confirmed.',
-    'Then explain what the case actually was according to classification and truthRationale, including whether later review established fraud, non-fraud, customer involvement, or an unresolved outcome.',
+    'Explain what the case actually was only when classification or truthRationale is supplied. Do not invent a downstream outcome.',
     'Separate the quality of the investigator decision at the time from what became known later in the scenario.',
     'Use only supplied facts. Do not invent evidence, people, transactions, downstream events, or policy rules.',
     'Do not reveal hidden truth before submission. This endpoint is called only after submission.',
@@ -107,6 +121,7 @@ export default async function handler(req, res) {
       managerExplanation: String(review.managerExplanation || ''),
       strengths: cleanList(review.strengths, guardedFacts.strengths),
       coachingActions: cleanList(review.coachingActions, guardedFacts.followUps),
+      reviewStatus,
       source: 'api',
     });
   } catch (error) {
