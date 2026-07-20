@@ -19,6 +19,7 @@ export async function requestLunaApiCoaching({ activeCase, reviewPackage, determ
         expectedDetermination: deterministicDebrief.truthReveal?.correctDetermination || null,
         acceptedDeterminations: deterministicDebrief.truthReveal?.acceptedDeterminations || [],
         classification: deterministicDebrief.truthReveal?.classification || null,
+        truthRationale: deterministicDebrief.truthReveal?.rationale || null,
         score: deterministicDebrief.score,
         strengths: deterministicDebrief.strengths,
         followUps: deterministicDebrief.followUps,
@@ -34,6 +35,6 @@ export async function requestLunaApiCoaching({ activeCase, reviewPackage, determ
 
   if (!response.ok) throw new Error(`Luna API request failed (${response.status})`);
   const payload = await response.json();
-  if (!payload || typeof payload.coachIntro !== 'string') throw new Error('Luna API returned an invalid coaching payload');
+  if (!payload || typeof payload.managerVerdict !== 'string') throw new Error('Luna API returned an invalid manager-review payload');
   return payload;
 }
