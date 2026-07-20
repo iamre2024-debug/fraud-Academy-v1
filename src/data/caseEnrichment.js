@@ -145,10 +145,10 @@ const claimContext = {
 
 const builtInCaseTruth = {
   'FA-ATO-24018': {
-    classification: 'The unfamiliar password session changed recovery and alert details before the disputed card-not-present activity, while the customer later returned on the established iPhone and denied the purchase.',
-    correctDetermination: 'Support Customer Claim',
-    acceptedDeterminations: ['Support Customer Claim'],
-    rationale: 'The credential and profile-control sequence, unfamiliar device record, customer denial, and disputed purchase support the customer claim.',
+    classification: 'The disputed purchase is supported by the account history because the key activity stays within the recognized Dallas access pattern and does not show a confirmed takeover path.',
+    correctDetermination: 'Do Not Support Customer Claim',
+    acceptedDeterminations: ['Do Not Support Customer Claim'],
+    rationale: 'The purchase followed known-account access patterns, the successful activity stayed in the normal Dallas area, the device history does not confirm a new takeover device, and the available records do not indicate fraud on the account.',
     revealMode: 'post-submission',
   },
   'FA-CB-24007': {
