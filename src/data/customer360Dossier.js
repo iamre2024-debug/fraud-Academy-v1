@@ -1,3 +1,5 @@
+import { getFinancialRecords } from './caseToolData.js';
+
 const unavailable = 'Not available in the current training packet';
 
 const builtInDossiers = {
@@ -200,6 +202,51 @@ function generatedPriorClaims(activeCase) {
   }];
 }
 
+function isPersonalCustomerCase(activeCase) {
+  const descriptor = [
+    activeCase.claimTypeId,
+    activeCase.type,
+    activeCase.scenarioFamily,
+    activeCase.profile?.entityRole,
+    activeCase.customer?.segment,
+  ].filter(Boolean).join(' ').toLowerCase();
+  return !/(business|vendor|employer|payroll administrator|business payment contact)/.test(descriptor);
+}
+
+function personalAccountSnapshot(activeCase) {
+  if (!isPersonalCustomerCase(activeCase)) return [];
+  const paymentRecords = getFinancialRecords(activeCase).paymentVerification ?? [];
+  const preferredRecords = paymentRecords.filter((record) => (
+    /(payment instrument|bank code|destination id|verification packet|payment account|card authorization object)/i.test(record.type)
+  ));
+  const sourceRecords = preferredRecords.length ? preferredRecords : paymentRecords;
+  const rankedRecords = [...sourceRecords].sort((left, right) => {
+    const rank = (record) => (/verification packet/i.test(record.type) ? 0 : /payment instrument/i.test(record.type) ? 1 : /destination id/i.test(record.type) ? 2 : 3);
+    return rank(left) - rank(right);
+  });
+  const seen = new Set();
+
+  return rankedRecords.filter((record) => {
+    const key = `${record.bankCode ?? ''}|${record.destinationId ?? ''}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).map((record, index) => ({
+    id: `C360-${record.id}`,
+    ownerName: activeCase.person,
+    product: record.accountType ?? record.type ?? 'Personal payment account',
+    maskedAccount: record.object ?? activeCase.accountId ?? unavailable,
+    bankCode: record.bankCode ?? unavailable,
+    destinationId: record.destinationId ?? unavailable,
+    relationship: /no prior|newly|first seen|new destination/i.test(`${record.priorUse} ${record.firstSeen} ${record.changeComparison}`) ? 'Newly linked destination' : index === 0 ? 'Primary payment relationship' : 'Linked payment relationship',
+    accountStatus: record.accountStatus ?? record.status ?? unavailable,
+    standing: record.standing ?? unavailable,
+    firstSeen: record.firstSeen ?? unavailable,
+    priorUse: record.priorUse ?? unavailable,
+    sourceRecord: record.id,
+  }));
+}
+
 function claimHighlights(activeCase) {
   const claim = `${activeCase.claimTypeId ?? ''} ${activeCase.type ?? ''} ${activeCase.lane ?? ''}`.toLowerCase();
   const profileChanges = activeCase.customer?.profileChanges ?? [];
@@ -298,6 +345,7 @@ export function getCustomer360Dossier(activeCase) {
   const recentContacts = preset.recentContacts ?? generatedContactHistory(activeCase);
   const priorClaims = preset.priorClaims ?? generatedPriorClaims(activeCase);
   const suggestedTool = nextStep(activeCase);
+  const accountSnapshot = personalAccountSnapshot(activeCase);
 
   return {
     identity,
@@ -307,6 +355,7 @@ export function getCustomer360Dossier(activeCase) {
     security,
     recentContacts,
     priorClaims,
+    accountSnapshot,
     claimContext: claimHighlights(activeCase),
     suggestedTool,
     atAGlance: [
