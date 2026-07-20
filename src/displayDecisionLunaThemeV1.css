@@ -185,6 +185,16 @@ body[data-visual-tab="workspace"] .luna-v1-header-status strong[data-luna-outcom
   color: #8b352a;
 }
 
+body[data-visual-tab="workspace"] .luna-v1-ai-status {
+  max-width: 190px;
+  color: var(--decision-muted);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: right;
+}
+
 body[data-visual-tab="workspace"] .decision-v1-lock,
 body[data-visual-tab="workspace"] .luna-v1-locked > section {
   display: grid;
