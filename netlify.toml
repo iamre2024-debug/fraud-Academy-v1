@@ -1,0 +1,4 @@
+[[redirects]]
+  from = "/api/luna-debrief"
+  to = "/.netlify/functions/luna-debrief"
+  status = 200
