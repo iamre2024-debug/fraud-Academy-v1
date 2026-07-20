@@ -41,9 +41,28 @@ function explainDecisionMeaning(choice) {
   return `Your submitted determination was ${choice || 'not selected'}.`;
 }
 
+function getReviewStatus(debrief) {
+  if (debrief?.determinationMatched === true) return 'matched';
+  if (debrief?.determinationMatched === false) return 'mismatched';
+  return 'ungraded';
+}
+
 function buildManagerFallback(debrief, reviewPackage) {
-  const matched = Boolean(debrief?.determinationMatched);
+  const status = getReviewStatus(debrief);
   const truth = debrief?.truthReveal;
+
+  if (status === 'ungraded') {
+    return {
+      managerVerdict: 'This case does not include a hidden outcome, so your determination cannot be marked right or wrong. Luna can still review the quality of your investigation and documentation.',
+      decisionMeaning: explainDecisionMeaning(reviewPackage?.choice),
+      actualCaseOutcome: 'No hidden downstream outcome is attached to this case. The case remains an investigation-quality exercise rather than a graded truth-match scenario.',
+      managerExplanation: 'Your decision is not being corrected. Review whether your notes, pinned evidence, and rationale clearly support the determination you selected.',
+      strengths: debrief?.strengths || [],
+      coachingActions: debrief?.followUps || [],
+    };
+  }
+
+  const matched = status === 'matched';
   return {
     managerVerdict: matched
       ? 'Your determination was correct based on the case evidence.'
@@ -51,7 +70,7 @@ function buildManagerFallback(debrief, reviewPackage) {
     decisionMeaning: explainDecisionMeaning(reviewPackage?.choice),
     actualCaseOutcome: truth
       ? `${truth.classification}${truth.rationale ? ` ${truth.rationale}` : ''}`
-      : 'This case does not include a hidden downstream outcome.',
+      : 'No downstream outcome was supplied.',
     managerExplanation: matched
       ? 'You reached the right decision. The next question is whether your notes and pinned evidence clearly show how you got there.'
       : 'The result needs correction. Compare your reasoning with the hidden case outcome and identify which evidence changed the decision.',
@@ -162,9 +181,35 @@ export default function LunaPostSubmissionPanel({
   }, [activeCase, state.reviewPackage, state.debrief, visible]);
 
   const locked = !state.reviewPackage || !state.debrief;
+  const reviewStatus = locked ? 'locked' : getReviewStatus(state.debrief);
+  const fallbackReview = !locked ? buildManagerFallback(state.debrief, state.reviewPackage) : null;
   const managerReview = !locked
-    ? { ...buildManagerFallback(state.debrief, state.reviewPackage), ...(apiCoaching || {}) }
+    ? {
+        ...fallbackReview,
+        ...(apiCoaching || {}),
+        managerVerdict: fallbackReview.managerVerdict,
+        decisionMeaning: fallbackReview.decisionMeaning,
+        actualCaseOutcome: reviewStatus === 'ungraded' ? fallbackReview.actualCaseOutcome : (apiCoaching?.actualCaseOutcome || fallbackReview.actualCaseOutcome),
+        managerExplanation: reviewStatus === 'ungraded' ? fallbackReview.managerExplanation : (apiCoaching?.managerExplanation || fallbackReview.managerExplanation),
+      }
     : null;
+  const verdictLabel = reviewStatus === 'matched'
+    ? 'Right call'
+    : reviewStatus === 'mismatched'
+      ? 'Needs correction'
+      : 'Not graded';
+  const statusLabel = reviewStatus === 'matched'
+    ? 'Correct'
+    : reviewStatus === 'mismatched'
+      ? 'Review'
+      : reviewStatus === 'ungraded'
+        ? 'Coaching only'
+        : 'Locked';
+  const resultLabel = reviewStatus === 'matched'
+    ? 'Matched'
+    : reviewStatus === 'mismatched'
+      ? 'Did not match'
+      : 'Not graded';
 
   const panel = (
     <section
@@ -173,6 +218,7 @@ export default function LunaPostSubmissionPanel({
       data-luna-screen="approved-theme-v1"
       data-case-id={activeCase.id}
       data-luna-state={locked ? 'locked' : 'unlocked'}
+      data-luna-review-status={reviewStatus}
       data-luna-coaching-source={apiCoaching ? 'api' : 'deterministic'}
       data-luna-api-status={apiStatus}
       data-workspace-screen-visible={visible ? 'true' : 'false'}
@@ -186,7 +232,7 @@ export default function LunaPostSubmissionPanel({
         </div>
         <div className="luna-v1-header-status">
           <span>{activeCase.id}</span>
-          <strong>{locked ? 'Locked' : state.debrief.determinationMatched ? 'Correct' : 'Review'}</strong>
+          <strong>{statusLabel}</strong>
         </div>
       </header>
 
@@ -212,7 +258,7 @@ export default function LunaPostSubmissionPanel({
           <section className="luna-v1-score-banner" aria-label="Luna manager verdict">
             <div>
               <span>Manager verdict</span>
-              <strong>{state.debrief.determinationMatched ? 'Right call' : 'Needs correction'}</strong>
+              <strong>{verdictLabel}</strong>
               <p>{managerReview.managerVerdict}</p>
             </div>
             <div>
@@ -238,16 +284,16 @@ export default function LunaPostSubmissionPanel({
             </section>
 
             <section className="luna-v1-card luna-v1-truth-review">
-              <header><span className="luna-v1-step-index" aria-hidden="true">03</span><div><p>Case outcome</p><h3>What was actually happening</h3></div></header>
+              <header><span className="luna-v1-step-index" aria-hidden="true">03</span><div><p>Case outcome</p><h3>{reviewStatus === 'ungraded' ? 'Outcome availability' : 'What was actually happening'}</h3></div></header>
               <dl>
                 <div><dt>Expected determination</dt><dd>{state.debrief.truthReveal?.correctDetermination || 'Not available'}</dd></div>
-                <div><dt>Your result</dt><dd>{state.debrief.determinationMatched ? 'Matched' : 'Did not match'}</dd></div>
+                <div><dt>Your result</dt><dd>{resultLabel}</dd></div>
               </dl>
               <DirectCollapsibleText as="p" lines={6} mobileLines={7}>{managerReview.actualCaseOutcome}</DirectCollapsibleText>
             </section>
 
             <section className="luna-v1-card luna-v1-senior-review">
-              <header><span className="luna-v1-step-index" aria-hidden="true">04</span><div><p>Manager review</p><h3>Why the decision was right or wrong</h3></div></header>
+              <header><span className="luna-v1-step-index" aria-hidden="true">04</span><div><p>Manager review</p><h3>{reviewStatus === 'ungraded' ? 'How well your decision was supported' : 'Why the decision was right or wrong'}</h3></div></header>
               <DirectCollapsibleText as="p" lines={6} mobileLines={7}>{managerReview.managerExplanation}</DirectCollapsibleText>
             </section>
 
