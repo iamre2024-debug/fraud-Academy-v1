@@ -1,0 +1,146 @@
+name: Verify Luna Deployment
+
+on:
+  push:
+    branches:
+      - automation/verify-luna-483fe915
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Resolve deployment and verify app plus Luna API
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          deployment_id="DoW5JmRr2zMFPkBsapdwznKsZ5an"
+          candidates=()
+
+          deployment_json="$(curl --silent --show-error --location --max-time 30 "https://api.vercel.com/v13/deployments/${deployment_id}" || true)"
+          if printf '%s' "$deployment_json" | jq -e '.url and (.url | type == "string")' >/dev/null 2>&1; then
+            candidates+=("https://$(printf '%s' "$deployment_json" | jq -r '.url')")
+          fi
+          while IFS= read -r alias; do
+            [[ -n "$alias" && "$alias" != "null" ]] && candidates+=("https://${alias}")
+          done < <(printf '%s' "$deployment_json" | jq -r '.alias[]?' 2>/dev/null || true)
+
+          candidates+=(
+            "https://fraud-academy-v1.vercel.app"
+            "https://fraud-academy-v1-git-main-iamre2024-debugs-projects.vercel.app"
+            "https://fraud-academy-v1-iamre2024-debugs-projects.vercel.app"
+          )
+
+          live_url=""
+          : > /tmp/candidate-results.txt
+          declare -A seen=()
+          for candidate in "${candidates[@]}"; do
+            [[ -n "${seen[$candidate]:-}" ]] && continue
+            seen[$candidate]=1
+            status="$(curl --silent --show-error --location --max-time 30 --output /tmp/home.html --write-out '%{http_code}' "${candidate}/" || true)"
+            title="$(grep -io '<title>[^<]*' /tmp/home.html 2>/dev/null | head -n 1 | sed 's/<title>//I' || true)"
+            printf '%s | HTTP %s | %s\n' "$candidate" "$status" "$title" | tee -a /tmp/candidate-results.txt
+            if [[ "$status" == "200" ]] && grep -Eqi 'Fraud Academy|Fraud Investigation' /tmp/home.html; then
+              live_url="$candidate"
+              break
+            fi
+          done
+
+          if [[ -z "$live_url" ]]; then
+            echo "No accessible Fraud Academy deployment URL was found." >&2
+            cat /tmp/candidate-results.txt >&2
+            exit 1
+          fi
+
+          cat > /tmp/luna-payload.json <<'JSON'
+          {
+            "caseId": "AUTO-UNGRADED-VERIFY",
+            "caseType": "Generated training review",
+            "allegation": "Neutral training claim with no hidden downstream outcome",
+            "submittedDecision": "Do Not Support Customer Claim",
+            "confidence": "Medium",
+            "rationale": "The available records were reviewed and documented. This verification case intentionally has no hidden outcome, so the decision must remain ungraded.",
+            "deterministicResult": {
+              "determinationMatched": null,
+              "expectedDetermination": null,
+              "acceptedDeterminations": [],
+              "classification": null,
+              "truthRationale": null,
+              "score": 72,
+              "strengths": [
+                "Reviewed relevant records",
+                "Documented an evidence-based rationale"
+              ],
+              "followUps": [
+                "Add one more exact evidence citation"
+              ]
+            },
+            "packageFacts": {
+              "completedTools": ["Login History", "Device Intelligence"],
+              "pinnedEvidence": ["Training device record"],
+              "noteSnapshot": ["Compared login and device records and documented the result."],
+              "decisionIndicators": []
+            }
+          }
+          JSON
+
+          api_status="$(curl --silent --show-error --location --max-time 90 \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --data-binary @/tmp/luna-payload.json \
+            --output /tmp/luna-response.json \
+            --write-out '%{http_code}' \
+            "${live_url}/api/luna-debrief" || true)"
+
+          echo "Luna API HTTP status: ${api_status}"
+          cat /tmp/luna-response.json || true
+          echo
+
+          if [[ "$api_status" != "200" ]]; then
+            echo "Luna API did not return HTTP 200." >&2
+            exit 1
+          fi
+
+          jq -e '
+            .reviewStatus == "ungraded"
+            and .source == "api"
+            and (.managerVerdict | type == "string" and length > 0)
+            and (.decisionMeaning | type == "string" and length > 0)
+            and (.managerExplanation | type == "string" and length > 0)
+          ' /tmp/luna-response.json >/dev/null
+
+          {
+            echo "VERIFIED_LIVE_URL=${live_url}"
+            echo "VERIFIED_APP_STATUS=available"
+            echo "VERIFIED_LUNA_API_STATUS=working"
+            echo "VERIFIED_REVIEW_STATUS=$(jq -r '.reviewStatus' /tmp/luna-response.json)"
+            echo "VERIFIED_API_SOURCE=$(jq -r '.source' /tmp/luna-response.json)"
+          } | tee /tmp/verification-result.txt
+
+          {
+            echo "## Luna deployment verification"
+            echo
+            echo "- Live URL: ${live_url}"
+            echo "- App: available"
+            echo "- Luna API: working"
+            echo "- Ungraded payload: accepted"
+            echo "- API source: $(jq -r '.source' /tmp/luna-response.json)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload verification result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: luna-deployment-verification
+          path: |
+            /tmp/verification-result.txt
+            /tmp/candidate-results.txt
+            /tmp/luna-response.json
+          if-no-files-found: warn
