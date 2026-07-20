@@ -5,7 +5,7 @@ export const financialInvestigationTabs = [
   { id: 'deposits', label: 'Deposit Analysis', question: 'Do incoming funds match the recorded baseline?' },
   { id: 'spending', label: 'Spending Analysis', question: 'How does current spending compare with prior activity?' },
   { id: 'cash', label: 'Cash Activity', question: 'What cash deposits, withdrawals, or advances are recorded?' },
-  { id: 'digital', label: 'Digital Payments', question: 'Which digital payment rails and recipients appear?' },
+  { id: 'digital', label: 'ACH, Wire & P2P History', question: 'Which ACH, wire, Zelle, or other P2P transfers and recipients appear?' },
   { id: 'linked', label: 'Linked Accounts', question: 'Which external payment objects are linked to this relationship?' },
   { id: 'merchant', label: 'Merchant Intelligence', question: 'What merchant history and fulfillment context are available?' },
   { id: 'trends', label: 'Behavior Trends', question: 'What changed when current behavior is compared with the baseline?' },
@@ -273,8 +273,70 @@ function generatedProfile(activeCase, source) {
   return records;
 }
 
-function createRecord({ id, title, category, value, observed, status, detail, fields = [], relatedRecords = [], period = 'Current review' }) {
-  return { id, title, category, value, observed, status, detail, fields, relatedRecords, period };
+function createRecord({ id, title, category, value, observed, status, detail, fields = [], relatedRecords = [], period = 'Current review', rail = '' }) {
+  return { id, title, category, value, observed, status, detail, fields, relatedRecords, period, rail };
+}
+
+function isPersonalFinancialCase(activeCase) {
+  const descriptor = [activeCase.claimTypeId, activeCase.type, activeCase.scenarioFamily, activeCase.profile?.entityRole, activeCase.customer?.segment].filter(Boolean).join(' ').toLowerCase();
+  return !/(business|vendor|employer|payroll administrator|business payment contact)/.test(descriptor);
+}
+
+function transferRail(value = '') {
+  if (/zelle|p2p|peer.to.peer|mobile transfer/i.test(value)) return 'Zelle / P2P';
+  if (/wire|beneficiary|swift/i.test(value)) return 'Wire';
+  if (/ach|direct deposit|external transfer|payroll deposit/i.test(value)) return 'ACH';
+  return '';
+}
+
+function preferredPaymentRecord(source) {
+  return [...(source.paymentVerification ?? [])].sort((left, right) => {
+    const rank = (record) => (/verification packet/i.test(record.type) ? 0 : /payment instrument/i.test(record.type) ? 1 : /destination id/i.test(record.type) ? 2 : 3);
+    return rank(left) - rank(right);
+  })[0];
+}
+
+function personalTransferRecords(activeCase, profile, source) {
+  if (!isPersonalFinancialCase(activeCase)) return [];
+  const payment = preferredPaymentRecord(source) ?? {};
+  const currentAccess = activeCase.loginHistory?.[0] ?? {};
+  const transactionIds = (source.transactions ?? []).map((item) => item.id);
+  const records = [];
+
+  profile.deposits.forEach(([id, title, amount, observed, status, detail], index) => {
+    const rail = transferRail(`${title} ${status}`);
+    if (rail !== 'ACH') return;
+    records.push(createRecord({
+      id: `${id}-ACH`, title: `${title} to ${profile.account}`, category: 'Incoming transfer history', value: money(amount), observed, status, detail,
+      rail, period: index === 0 ? 'Current review' : 'Prior comparison', relatedRecords: transactionIds,
+      fields: [['Rail', rail], ['Direction', 'Incoming'], ['Originator / sender', title], ['Recipient account', profile.account], ['Receiving institution', payment.bankName ?? 'Training institution record'], ['Bank Code', payment.bankCode ?? 'Not supplied'], ['Destination ID', payment.destinationId ?? 'Not supplied'], ['ACH trace ID', `ACH-${id.replace(/[^A-Z0-9]/gi, '')}`], ['Amount', money(amount)], ['Status', status], ['Observed', observed], ['Prior-use context', detail]],
+    }));
+  });
+
+  profile.digital.forEach(([id, title, amount, observed, status, detail], index) => {
+    const rail = transferRail(`${title} ${status} ${detail}`);
+    if (!rail) return;
+    const recipient = /current case object|request pending|recorded/i.test(status) && detail ? detail : status;
+    records.push(createRecord({
+      id: `${id}-${rail === 'Wire' ? 'WIRE' : rail === 'ACH' ? 'ACH' : 'P2P'}`, title: `${title} · ${recipient}`, category: 'Outgoing transfer history', value: money(amount), observed, status, detail,
+      rail, period: index === 0 ? 'Current review' : 'Prior comparison', relatedRecords: [...transactionIds, ...(payment.relatedRecords ?? [])],
+      fields: [['Rail', rail], ['Direction', 'Outgoing'], ['Sender account', profile.account], ['Recipient / beneficiary', recipient || 'Recipient profile'], ['Receiving institution', payment.bankName ?? 'Training receiving institution'], ['Bank Code', payment.bankCode ?? 'Not supplied'], ['Destination ID', payment.destinationId ?? 'Not supplied'], ['Network trace ID', `${rail === 'Wire' ? 'WIRE' : rail === 'ACH' ? 'ACH' : 'P2P'}-${id.replace(/[^A-Z0-9]/gi, '')}`], ['Amount', money(amount)], ['Transfer status', amount ? 'Recorded transfer' : status], ['Observed', observed], ['Prior-use context', detail], ['Related device / session', `${currentAccess.deviceId ?? currentAccess.device ?? 'No device listed'} · ${currentAccess.session ?? 'No session listed'}`]],
+    }));
+  });
+
+  const currentTransaction = source.transactions?.[0];
+  const currentDescriptor = `${activeCase.subtype ?? ''} ${activeCase.transactionInfo ?? ''} ${currentTransaction?.channel ?? ''} ${currentTransaction?.merchant ?? ''}`;
+  const currentRail = transferRail(currentDescriptor);
+  if (currentTransaction && currentRail && !records.some((record) => record.relatedRecords.includes(currentTransaction.id) && record.rail === currentRail)) {
+    const amount = amountNumber(currentTransaction.amount);
+    records.unshift(createRecord({
+      id: `${currentTransaction.id}-${currentRail === 'Wire' ? 'WIRE' : currentRail === 'ACH' ? 'ACH' : 'P2P'}`, title: `${profile.account} to ${currentTransaction.merchant}`, category: 'Case transfer', value: currentTransaction.amount, observed: `${currentTransaction.posted} ${currentTransaction.time ?? ''}`.trim(), status: currentTransaction.status,
+      detail: currentTransaction.context ?? `${currentRail} transfer connected to the current case.`, rail: currentRail, period: 'Current review', relatedRecords: [currentTransaction.id, ...(payment.relatedRecords ?? [])],
+      fields: [['Rail', currentRail], ['Direction', 'Outgoing'], ['Sender account', profile.account], ['Recipient / beneficiary', currentTransaction.merchant], ['Receiving institution', payment.bankName ?? 'Training receiving institution'], ['Bank Code', payment.bankCode ?? 'Not supplied'], ['Destination ID', payment.destinationId ?? 'Not supplied'], ['Network trace ID', `${currentRail === 'Wire' ? 'WIRE' : currentRail === 'ACH' ? 'ACH' : 'P2P'}-${currentTransaction.id.replace(/[^A-Z0-9]/gi, '')}`], ['Amount', money(amount)], ['Transfer status', currentTransaction.status], ['Observed', `${currentTransaction.posted} ${currentTransaction.time ?? ''}`.trim()], ['Prior-use context', payment.priorUse ?? 'No prior-use information supplied'], ['Related device / session', `${currentAccess.deviceId ?? currentAccess.device ?? 'No device listed'} · ${currentAccess.session ?? 'No session listed'}`]],
+    }));
+  }
+
+  return records;
 }
 
 function profileRecords(activeCase, profile, source) {
@@ -309,6 +371,7 @@ function profileRecords(activeCase, profile, source) {
     relatedRecords: [item.id],
     period: index === 0 ? 'Current review' : 'Prior comparison',
   }));
+  const transferRecords = personalTransferRecords(activeCase, profile, source);
 
   const records = {
     overview: [createRecord({
@@ -329,7 +392,7 @@ function profileRecords(activeCase, profile, source) {
       const displayValue = isEventCount ? `${amount} event(s)` : money(amount);
       return createRecord({ id, title, category: 'Cash activity', value: displayValue, observed, status, detail, fields: [[isEventCount ? 'Event count' : 'Amount', displayValue], ['Cash activity type', title], ['Channel / location', status], ['Observed', observed], ['Daily limit context', isEventCount ? 'Count shown for cash-flow comparison' : amount ? 'Within the fictional daily limit' : 'No cash amount posted']], relatedRecords: transactionIds, period: index === 0 ? 'Current review' : 'Prior comparison' });
     }),
-    digital: profile.digital.map(([id, title, amount, observed, status, detail], index) => createRecord({ id, title, category: 'Digital payment', value: money(amount), observed, status, detail, fields: [['Amount', money(amount)], ['Rail / object', title], ['Recipient / token status', status], ['Observed', observed], ['Prior-use context', detail]], relatedRecords: [...transactionIds, ...paymentIds], period: index === 0 ? 'Current review' : 'Prior comparison' })),
+    digital: transferRecords.length ? transferRecords : profile.digital.map(([id, title, amount, observed, status, detail], index) => createRecord({ id, title, category: 'Digital payment', value: money(amount), observed, status, detail, fields: [['Amount', money(amount)], ['Rail / object', title], ['Recipient / token status', status], ['Observed', observed], ['Prior-use context', detail]], relatedRecords: [...transactionIds, ...paymentIds], period: index === 0 ? 'Current review' : 'Prior comparison', rail: transferRail(`${title} ${status} ${detail}`) || 'Other' })),
     linked: (source.paymentVerification ?? []).map((item, index) => createRecord({
       id: `LNK-${item.id}`,
       title: item.object,
@@ -338,7 +401,7 @@ function profileRecords(activeCase, profile, source) {
       observed: item.firstSeen ?? item.lastSeen,
       status: item.accountStatus ?? item.status,
       detail: item.changeComparison ?? item.context,
-      fields: [['Bank Code', item.bankCode ?? 'Not supplied'], ['Destination ID', item.destinationId ?? 'Not supplied'], ['Account holder', item.accountHolder ?? 'Not supplied'], ['Owner match', item.ownerMatch ?? 'Not supplied'], ['Account status', item.accountStatus ?? item.status], ['First seen', item.firstSeen ?? 'Not supplied'], ['Prior use', item.priorUse ?? 'Not supplied'], ['Verification method', item.verificationMethod ?? 'Not supplied'], ['Failed verification attempts', (item.verificationLog ?? []).filter((entry) => /unable|no answer|failed/i.test(entry.result)).length.toString()]],
+      fields: [['Destination type', item.type ?? 'Payment object'], ['Bank Code', item.bankCode ?? 'Not supplied'], ['Destination ID', item.destinationId ?? 'Not supplied'], ['Recipient / account holder', item.accountHolder ?? 'Not supplied'], ['Receiving institution', item.bankName ?? 'Not supplied'], ['Owner match', item.ownerMatch ?? 'Not supplied'], ['Account status', item.accountStatus ?? item.status], ['First seen', item.firstSeen ?? 'Not supplied'], ['Last seen', item.lastSeen ?? 'Not supplied'], ['Prior use', item.priorUse ?? 'Not supplied'], ['Related transfer count', String(item.relatedRecords?.filter((id) => /TXN|DIG|FLOW/i.test(id)).length ?? 0)], ['Verification method', item.verificationMethod ?? 'Not supplied'], ['Added / observed from', `${activeCase.loginHistory?.[0]?.deviceId ?? activeCase.loginHistory?.[0]?.device ?? 'Device not listed'} · ${activeCase.loginHistory?.[0]?.session ?? 'Session not listed'}`], ['Failed verification attempts', (item.verificationLog ?? []).filter((entry) => /unable|no answer|failed/i.test(entry.result)).length.toString()]],
       relatedRecords: item.relatedRecords ?? [],
       period: index === 0 ? 'Current review' : 'Related object',
     })),
@@ -380,9 +443,12 @@ export function getFinancialInvestigation(activeCase = {}) {
   const profile = builtInProfiles[activeCase.id] ?? generatedProfile(activeCase, source);
   const recordsByTab = profileRecords(activeCase, profile, source);
   const totalTransactions = source.transactions?.length ?? 0;
+  const availableTransferRails = [...new Set((recordsByTab.digital ?? []).map((record) => record.rail).filter(Boolean))];
   return {
     profile,
     recordsByTab,
+    availableTransferRails,
+    personalTransferView: isPersonalFinancialCase(activeCase),
     kpis: [
       { label: 'Current balance', value: money(profile.currentBalance), context: profile.account },
       { label: 'Available balance', value: money(profile.availableBalance), context: profile.accountStatus },
