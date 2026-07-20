@@ -13,6 +13,7 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
   const filteredRecords = sectionRecords.filter((item) => !normalizedQuery || merchantRecordSearchText(item).includes(normalizedQuery));
   const activeRecord = filteredRecords.find((item) => item.id === selectedId) ?? filteredRecords[0] ?? sectionRecords[0];
   const profile = workspace.profile;
+  const activeSectionIndex = merchantIntelligenceTabs.findIndex((item) => item.id === activeSection);
 
   useEffect(() => {
     setActiveSection('overview');
@@ -30,6 +31,22 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
 
   return (
     <>
+      <section className="merchant-intelligence-command" aria-label="Merchant Intelligence dashboard">
+        <div className="merchant-intelligence-command-copy">
+          <span className="merchant-intelligence-command-icon" aria-hidden="true">MI</span>
+          <div>
+            <p>Merchant Intelligence</p>
+            <h3>{profile.name}</h3>
+            <span>Compare merchant, transaction, fulfillment, and dispute records before making a determination.</span>
+          </div>
+        </div>
+        <div className="merchant-intelligence-command-tags" aria-label="Current merchant context">
+          <span>{activeCase.id}</span>
+          <span>{profile.channel}</span>
+          <span>MCC {profile.mcc}</span>
+        </div>
+      </section>
+
       <section className="merchant-intelligence-profile" aria-label="Merchant profile">
         <div>
           <p>Merchant in review</p>
@@ -59,6 +76,13 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
         ))}
       </nav>
 
+      <label className="merchant-intelligence-mobile-section">
+        <span>Evidence section</span>
+        <select value={activeSection} onChange={(event) => setActiveSection(event.target.value)} aria-label="Choose Merchant Intelligence section">
+          {merchantIntelligenceTabs.map((item) => <option key={item.id} value={item.id}>{activeSection === item.id ? `${activeSectionIndex + 1} of ${merchantIntelligenceTabs.length} · ` : ''}{item.label}</option>)}
+        </select>
+      </label>
+
       <section className="merchant-intelligence-findbar" aria-label="Merchant Intelligence filters">
         <div><p>{section.label}</p><h3>{section.question}</h3></div>
         <label><span>Search merchant evidence</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Merchant, MCC, order, authorization, delivery, refund, or reason code" aria-label="Search Merchant Intelligence" /></label>
@@ -67,7 +91,7 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
 
       <div className="merchant-intelligence-workspace">
         <section className="merchant-intelligence-records" aria-label={`${section.label} records`}>
-          <header><div><p>Evidence records</p><h3>{section.label}</h3></div><span>{filteredRecords.length} shown</span></header>
+          <header><div><p>Evidence records</p><h3>{section.label}</h3></div><span>{activeSectionIndex + 1} / {merchantIntelligenceTabs.length}</span></header>
           {filteredRecords.map((item) => (
             <button key={item.id} type="button" className={activeRecord?.id === item.id ? 'active' : ''} onClick={() => setSelectedId(item.id)} data-merchant-intelligence-record={item.id}>
               <span>{item.status} | {item.observed}</span>
@@ -82,12 +106,12 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
           <section className="merchant-intelligence-detail" aria-label="Expanded merchant record">
             <header>
               <div><p>Expanded evidence</p><h3>{activeRecord.id}</h3><span>{activeRecord.title} | {activeRecord.observed}</span></div>
-              <button type="button" onClick={() => pin(`${activeRecord.id} | ${activeRecord.title}`)}>Pin record</button>
+              <button type="button" className="merchant-intelligence-pin" onClick={() => pin(`${activeRecord.id} | ${activeRecord.title}`)}>Pin record</button>
             </header>
             <dl>{activeRecord.fields.map(([label, value]) => <div key={`${activeRecord.id}-${label}`}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
             <article><span>Recorded context</span><p>{activeRecord.summary}</p></article>
             <div className="merchant-intelligence-related"><span>Related records</span><div>{activeRecord.relatedRecords.length ? activeRecord.relatedRecords.map((item) => <button key={item} type="button" onClick={() => pin(item)}>{item}</button>) : <small>No related object is supplied in this section.</small>}</div></div>
-            <button type="button" onClick={() => saveMerchantNote(activeRecord)}>Save evidence note</button>
+            <button type="button" className="merchant-intelligence-save" onClick={() => saveMerchantNote(activeRecord)}>Save evidence note</button>
           </section>
         ) : <div className="investigation-tool-empty" role="status">Choose a merchant record to open its full details.</div>}
 

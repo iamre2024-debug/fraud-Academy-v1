@@ -2030,15 +2030,90 @@ body[data-visual-tab="workspace"] .ip-notes-panel button:last-child { border-col
   }
 }
 
+body[data-visual-tab="workspace"] .merchant-intelligence-command,
 body[data-visual-tab="workspace"] .merchant-intelligence-profile,
 body[data-visual-tab="workspace"] .merchant-intelligence-findbar,
 body[data-visual-tab="workspace"] .merchant-intelligence-records,
 body[data-visual-tab="workspace"] .merchant-intelligence-detail,
 body[data-visual-tab="workspace"] .merchant-intelligence-rail {
   border: 1px solid rgba(91, 62, 154, 0.16);
-  border-radius: 8px;
+  border-radius: 18px;
   background: #ffffff;
   box-shadow: 0 12px 28px rgba(67, 45, 112, 0.08);
+}
+
+body[data-visual-tab="workspace"] .merchant-intelligence-command {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 12px;
+  padding: 18px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 92% 10%, rgba(255, 177, 222, 0.3), transparent 34%),
+    linear-gradient(135deg, #ffffff 0%, #f2ebff 100%);
+}
+
+body[data-visual-tab="workspace"] .merchant-intelligence-command-copy {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 12px;
+}
+
+body[data-visual-tab="workspace"] .merchant-intelligence-command-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #7e55d1, #b567de);
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 950;
+  box-shadow: 0 10px 22px rgba(117, 81, 200, 0.24);
+}
+
+body[data-visual-tab="workspace"] .merchant-intelligence-command p {
+  margin: 0 0 3px;
+  color: #7551c8;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .merchant-intelligence-command h3 {
+  margin: 0;
+  color: #251a43;
+  font-size: 1.16rem;
+}
+
+body[data-visual-tab="workspace"] .merchant-intelligence-command-copy div > span {
+  display: block;
+  margin-top: 4px;
+  color: #665c7d;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+body[data-visual-tab="workspace"] .merchant-intelligence-command-tags {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+body[data-visual-tab="workspace"] .merchant-intelligence-command-tags span {
+  border: 1px solid rgba(117, 81, 200, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #5e478d;
+  padding: 7px 9px;
+  font-size: 0.63rem;
+  font-weight: 850;
 }
 
 body[data-visual-tab="workspace"] .merchant-intelligence-profile {
@@ -2046,8 +2121,12 @@ body[data-visual-tab="workspace"] .merchant-intelligence-profile {
   grid-template-columns: minmax(220px, 0.72fr) minmax(0, 1.28fr);
   gap: 14px;
   align-items: center;
-  margin-top: 12px;
+  margin-top: 9px;
   padding: 14px;
+}
+
+body[data-visual-tab="workspace"] .merchant-intelligence-mobile-section {
+  display: none;
 }
 
 body[data-visual-tab="workspace"] .merchant-intelligence-profile p,
@@ -2254,6 +2333,23 @@ body[data-visual-tab="workspace"] .merchant-intelligence-records > button.active
   background: #f4efff;
 }
 
+body[data-visual-tab="workspace"] .merchant-intelligence-pin,
+body[data-visual-tab="workspace"] .merchant-intelligence-save {
+  border: 1px solid rgba(117, 81, 200, 0.2);
+  border-radius: 10px;
+  background: #f2ebff;
+  color: #5e3aa8;
+  padding: 8px 10px;
+  font-size: 0.68rem;
+  font-weight: 850;
+}
+
+body[data-visual-tab="workspace"] .merchant-intelligence-save {
+  width: 100%;
+  background: linear-gradient(135deg, #8058d5, #ad61db);
+  color: #ffffff;
+}
+
 body[data-visual-tab="workspace"] .merchant-intelligence-records > button span,
 body[data-visual-tab="workspace"] .merchant-intelligence-records > button small {
   color: #786d8f;
@@ -2346,6 +2442,38 @@ body[data-visual-tab="workspace"] .merchant-intelligence-rail section > strong {
 }
 
 @media (max-width: 720px) {
+  body[data-visual-tab="workspace"] .merchant-intelligence-command {
+    display: grid;
+    padding: 14px;
+  }
+
+  body[data-visual-tab="workspace"] .merchant-intelligence-command-tags {
+    justify-content: flex-start;
+  }
+
+  body[data-visual-tab="workspace"] .merchant-intelligence-tabs {
+    display: none;
+  }
+
+  body[data-visual-tab="workspace"] .merchant-intelligence-mobile-section {
+    display: grid;
+    gap: 6px;
+    margin-top: 9px;
+    color: #665b7d;
+    font-size: 0.65rem;
+    font-weight: 900;
+  }
+
+  body[data-visual-tab="workspace"] .merchant-intelligence-mobile-section select {
+    width: 100%;
+    border: 1px solid rgba(117, 81, 200, 0.2);
+    border-radius: 12px;
+    background: #ffffff;
+    color: #34244f;
+    padding: 11px;
+    font: inherit;
+  }
+
   body[data-visual-tab="workspace"] .merchant-intelligence-profile,
   body[data-visual-tab="workspace"] .merchant-intelligence-findbar,
   body[data-visual-tab="workspace"] .merchant-intelligence-workspace {
@@ -2360,6 +2488,18 @@ body[data-visual-tab="workspace"] .merchant-intelligence-rail section > strong {
 
   body[data-visual-tab="workspace"] .merchant-intelligence-rail {
     grid-column: auto;
+  }
+
+  body[data-visual-tab="workspace"] .merchant-intelligence-records {
+    order: 1;
+  }
+
+  body[data-visual-tab="workspace"] .merchant-intelligence-detail {
+    order: 2;
+  }
+
+  body[data-visual-tab="workspace"] .merchant-intelligence-rail {
+    order: 3;
   }
 }
 

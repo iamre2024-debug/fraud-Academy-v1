@@ -21,11 +21,16 @@ test('Merchant Intelligence provides claim-specific evidence and stays out of un
   await expect(toolPanel.getByRole('heading', { name: 'Is this a customer issue, merchant issue, fraud issue, or dispute issue?', exact: true })).toBeVisible();
   await expect(toolPanel.locator('.merchant-intelligence-profile')).toContainText('StreamBox Premium');
   await expect(toolPanel.locator('.merchant-intelligence-profile')).toContainText('MCC 4899');
+  await expect(toolPanel.locator('.merchant-intelligence-command')).toContainText('StreamBox Premium');
   await expect(toolPanel.locator('.merchant-intelligence-metrics article')).toHaveCount(4);
   await expect(toolPanel.locator('.merchant-intelligence-tabs button')).toHaveCount(7);
   await expect(toolPanel.locator('[data-merchant-intelligence-record]')).toHaveCount(1);
 
-  await toolPanel.getByRole('button', { name: 'Authorization', exact: true }).click();
+  if (testInfo.project.name === 'mobile-chromium') {
+    await toolPanel.getByRole('combobox', { name: 'Choose Merchant Intelligence section' }).selectOption('authorization');
+  } else {
+    await toolPanel.getByRole('button', { name: 'Authorization', exact: true }).click();
+  }
   await expect(toolPanel.locator('.merchant-intelligence-detail')).toContainText('Entry mode');
   await expect(toolPanel.locator('.merchant-intelligence-detail')).toContainText('AVS');
   await expect(toolPanel.locator('.merchant-intelligence-detail')).toContainText('CVV');
@@ -38,13 +43,17 @@ test('Merchant Intelligence provides claim-specific evidence and stays out of un
   await search.clear();
   await expect(toolPanel.locator('[data-merchant-intelligence-record]')).toHaveCount(1);
 
-  await toolPanel.getByRole('button', { name: 'Fulfillment', exact: true }).click();
+  const openSection = async (value, label) => {
+    if (testInfo.project.name === 'mobile-chromium') await toolPanel.getByRole('combobox', { name: 'Choose Merchant Intelligence section' }).selectOption(value);
+    else await toolPanel.getByRole('button', { name: label, exact: true }).click();
+  };
+  await openSection('fulfillment', 'Fulfillment');
   await expect(toolPanel.locator('.merchant-intelligence-detail')).toContainText(/Delivery|service|usage/i);
-  await toolPanel.getByRole('button', { name: 'Disputes & Refunds', exact: true }).click();
+  await openSection('disputes', 'Disputes & Refunds');
   await expect(toolPanel.locator('.merchant-intelligence-detail')).toContainText('Prior disputes');
-  await toolPanel.getByRole('button', { name: 'Subscription / Marketplace', exact: true }).click();
+  await openSection('marketplace', 'Subscription / Marketplace');
   await expect(toolPanel.locator('.merchant-intelligence-detail')).toContainText('Subscription status');
-  await toolPanel.getByRole('button', { name: 'Reason Code', exact: true }).click();
+  await openSection('reason-code', 'Reason Code');
   await expect(toolPanel.locator('.merchant-intelligence-detail')).toContainText('Response deadline');
   await expect(toolPanel.locator('.merchant-intelligence-rail')).toContainText('Reason-code context');
 
