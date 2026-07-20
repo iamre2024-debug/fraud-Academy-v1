@@ -12,7 +12,7 @@ function fail(message) {
 }
 
 const expectedBuiltInOutcomes = {
-  'FA-ATO-24018': 'Support Customer Claim',
+  'FA-ATO-24018': 'Do Not Support Customer Claim',
   'FA-CB-24007': 'Insufficient Evidence',
   'FA-CR-24003': 'Refer to Fraud Review',
 };
@@ -43,6 +43,25 @@ if (strongScore.points < 13 || strongScore.label !== 'Strong') {
 }
 if (strongScore.evidenceReferenceCount !== 3 || strongScore.reasoningCount !== 3 || strongScore.comparisonCount < 2) {
   fail('Notes Quality must preserve evidence, reasoning, and comparison counts.');
+}
+
+const mayaCase = enrichTrainingCases(trainingCases).find((item) => item.id === 'FA-ATO-24018');
+const mayaDebrief = buildLunaDebrief({
+  activeCase: mayaCase,
+  reviewPackage: {
+    choice: 'Do Not Support Customer Claim',
+    confidence: 'High',
+    reason: 'The successful purchase and access history do not show confirmed fraud because the records stay within known Dallas account patterns.',
+    completedTools: ['Customer 360', 'Login History', 'Device Intelligence', 'Transaction History'],
+    pinnedEvidence: ['LOG-1008', 'DEV-MAYA-IP16-001', 'EVT-1014'],
+    noteSnapshot: strongNotes,
+    reviewedRequired: 4,
+    totalRequired: 4,
+    decisionIndicators: [],
+  },
+});
+if (mayaDebrief.outcome !== 'correct' || mayaDebrief.truthReveal.correctDetermination !== 'Do Not Support Customer Claim') {
+  fail('Maya ATO must coach the no-confirmed-fraud determination as correct.');
 }
 
 const debrief = buildLunaDebrief({
