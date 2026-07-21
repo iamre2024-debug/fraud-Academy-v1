@@ -1,3 +1,4 @@
+// Application entrypoint.
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import VisualApp from './VisualApp.jsx';
@@ -25,6 +26,7 @@ import './displayCaseBriefingThemeV1.css';
 import './displayCaseBriefingRoutesV1.css';
 import './displayCustomer360ThemeV1.css';
 import './displayInvestigationToolsThemeV1.css';
+import './merchantChargebackLifecycle.css';
 import './displayTimelineThemeV1.css';
 import './displayDecisionLunaThemeV1.css';
 import './displayDecisionLunaLayoutSafetyV1.css';

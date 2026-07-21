@@ -1,130 +1,260 @@
+// Chargeback lifecycle workspace with source-document review.
 import { useEffect, useMemo, useState } from 'react';
-import DirectCollapsibleText from './DirectCollapsibleText.jsx';
-import { getMerchantIntelligence, merchantIntelligenceTabs, merchantRecordSearchText } from './data/merchantIntelligenceRecords.js';
+import { getMerchantIntelligence, merchantIntelligenceTabs } from './data/merchantIntelligenceRecords.js';
+
+function FieldGrid({ fields = [], className = '' }) {
+  return (
+    <dl className={`merchant-lifecycle-fields ${className}`.trim()}>
+      {fields.map(([label, value]) => (
+        <div key={`${label}-${value}`}>
+          <dt>{label}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function StatusPill({ children, tone = 'neutral' }) {
+  return <span className={`merchant-status-pill ${tone}`}>{children}</span>;
+}
+
+function DocumentCard({ document, onOpen }) {
+  const available = document.status === 'Available';
+  return (
+    <button
+      type="button"
+      className={`merchant-document-card ${available ? '' : 'pending'}`}
+      onClick={() => available && onOpen(document)}
+      disabled={!available}
+      data-merchant-document={document.id}
+      aria-label={`${available ? 'Open' : 'Pending'} ${document.title}`}
+    >
+      <span className="merchant-document-icon" aria-hidden="true">{document.icon ?? 'DOC'}</span>
+      <span>
+        <strong>{document.title}</strong>
+        <small>{document.source} · {document.status}</small>
+      </span>
+      <em aria-hidden="true">{available ? '›' : '…'}</em>
+    </button>
+  );
+}
+
+function DocumentSheet({ document, activeCase, onClose, pin, saveNote }) {
+  return (
+    <section className="merchant-document-viewer" aria-label={`${document.title} document viewer`}>
+      <header className="merchant-document-toolbar">
+        <button type="button" onClick={onClose}>← Back to evidence packet</button>
+        <div>
+          <span>{document.source}</span>
+          <strong>{document.title}</strong>
+        </div>
+        <nav>
+          <button type="button" onClick={() => pin(`${document.id} | ${document.title}`)}>Pin document</button>
+          <button type="button" onClick={() => saveNote(`Reviewed ${document.title} (${document.id}) without assigning an outcome.`, 'Merchant Intelligence')}>Save review note</button>
+        </nav>
+      </header>
+
+      <div className="merchant-document-canvas">
+        <article className={`merchant-document-sheet ${document.kind ?? 'letter'}`} data-document-id={document.id}>
+          <header className="merchant-document-letterhead">
+            <div className="merchant-document-brandmark" aria-hidden="true">{document.mark ?? 'M'}</div>
+            <div><strong>{document.brand}</strong><span>{document.department}</span></div>
+            <small>{document.classification ?? 'ACCOUNT RECORD'}</small>
+          </header>
+
+          <section className="merchant-document-titleblock">
+            <div><span>Document</span><strong>{document.title}</strong></div>
+            <dl>
+              <div><dt>Reference</dt><dd>{document.reference}</dd></div>
+              <div><dt>Date</dt><dd>{document.date}</dd></div>
+              <div><dt>Case</dt><dd>{activeCase.id}</dd></div>
+            </dl>
+          </section>
+
+          {document.subject && <p className="merchant-document-subject"><strong>Subject:</strong> {document.subject}</p>}
+          {document.to && <p className="merchant-document-address"><strong>To:</strong> {document.to}</p>}
+          {document.salutation && <p>{document.salutation}</p>}
+          {(document.paragraphs ?? []).map((paragraph, index) => <p key={`${document.id}-paragraph-${index}`}>{paragraph}</p>)}
+
+          {document.facts?.length > 0 && (
+            <dl className="merchant-document-facts">
+              {document.facts.map(([label, value]) => <div key={`${document.id}-${label}`}><dt>{label}</dt><dd>{value}</dd></div>)}
+            </dl>
+          )}
+
+          {(document.tables ?? []).map((table, index) => (
+            <section className="merchant-document-table-wrap" key={`${document.id}-table-${index}`}>
+              {table.title && <h3>{table.title}</h3>}
+              <table>
+                <thead><tr>{table.columns.map((column) => <th key={column}>{column}</th>)}</tr></thead>
+                <tbody>{table.rows.map((row, rowIndex) => <tr key={`${document.id}-${index}-${rowIndex}`}>{row.map((value, cellIndex) => <td key={`${rowIndex}-${cellIndex}`}>{value}</td>)}</tr>)}</tbody>
+              </table>
+            </section>
+          ))}
+
+          {document.callout && <aside className="merchant-document-callout"><strong>{document.callout.label}</strong><p>{document.callout.value}</p></aside>}
+          {document.signature && <section className="merchant-document-signature"><span>Sincerely,</span><strong>{document.signature.name}</strong><small>{document.signature.role}</small></section>}
+          <footer><span>{document.footer ?? 'Training document · Review source fields and dates'}</span><span>Page 1 of 1</span></footer>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function ClaimDetails({ workspace, onOpen }) {
+  return (
+    <div className="merchant-lifecycle-stack">
+      <section className="merchant-lifecycle-panel">
+        <header><span className="merchant-panel-icon">CLM</span><div><h3>Claim details</h3><p>Information captured from the customer at intake.</p></div></header>
+        <FieldGrid fields={workspace.claimDetails} />
+      </section>
+      <section className="merchant-lifecycle-panel merchant-statement-card">
+        <header><span className="merchant-panel-icon">TXT</span><div><h3>Customer statement</h3><p>{workspace.customerStatementSource}</p></div></header>
+        <blockquote>{workspace.customerStatement}</blockquote>
+      </section>
+      <section className="merchant-lifecycle-panel">
+        <header><span className="merchant-panel-icon">DOC</span><div><h3>Claim documents</h3><p>Open the source document and review it directly.</p></div></header>
+        <div className="merchant-document-grid">{workspace.customerDocuments.filter((item) => item.status === 'Available').map((document) => <DocumentCard key={document.id} document={document} onOpen={onOpen} />)}</div>
+      </section>
+    </div>
+  );
+}
+
+function NetworkSubmission({ workspace, onOpen }) {
+  return (
+    <div className="merchant-lifecycle-stack">
+      <section className="merchant-lifecycle-panel">
+        <header><span className="merchant-panel-icon">NET</span><div><h3>Network submission</h3><p>Internal training view of what was sent through the card-network process.</p></div><StatusPill tone="active">{workspace.network.status}</StatusPill></header>
+        <FieldGrid fields={workspace.network.fields} />
+      </section>
+      <section className="merchant-lifecycle-panel">
+        <header><span className="merchant-panel-icon">PKT</span><div><h3>Submitted packet</h3><p>Documents and claim fields transmitted for merchant review.</p></div></header>
+        <div className="merchant-document-grid">{workspace.network.documents.map((document) => <DocumentCard key={document.id} document={document} onOpen={onOpen} />)}</div>
+      </section>
+    </div>
+  );
+}
+
+function MerchantResponse({ workspace, onOpen }) {
+  const response = workspace.response;
+  return (
+    <div className="merchant-lifecycle-stack">
+      <section className="merchant-lifecycle-panel">
+        <header><span className="merchant-panel-icon">RSP</span><div><h3>Merchant response</h3><p>Response returned through the card-network process.</p></div><StatusPill tone={response.status === 'Challenged' ? 'attention' : response.status === 'Accepted' ? 'positive' : 'active'}>{response.status}</StatusPill></header>
+        <FieldGrid fields={response.fields} />
+      </section>
+      <section className="merchant-lifecycle-panel merchant-statement-card">
+        <header><span className="merchant-panel-icon">MSG</span><div><h3>Merchant statement</h3><p>Merchant-provided position; not an investigation conclusion.</p></div></header>
+        <blockquote>{response.statement}</blockquote>
+      </section>
+      <section className="merchant-lifecycle-panel">
+        <header><span className="merchant-panel-icon">DOC</span><div><h3>Merchant evidence packet</h3><p>{response.documents.filter((item) => item.status === 'Available').length} documents available to inspect.</p></div></header>
+        <div className="merchant-document-grid">{response.documents.map((document) => <DocumentCard key={document.id} document={document} onOpen={onOpen} />)}</div>
+      </section>
+      <section className="merchant-lifecycle-panel merchant-needed-panel">
+        <header><span className="merchant-panel-icon">REQ</span><div><h3>Next required from customer</h3><p>Evidence still needed if the merchant challenges the claim.</p></div></header>
+        <ul>{workspace.customerRequirements.map((item) => <li key={item}><span aria-hidden="true">○</span>{item}</li>)}</ul>
+      </section>
+    </div>
+  );
+}
+
+function CustomerEvidence({ workspace, onOpen, openTool }) {
+  return (
+    <div className="merchant-lifecycle-stack">
+      <section className="merchant-lifecycle-panel">
+        <header><span className="merchant-panel-icon">CUS</span><div><h3>Customer evidence</h3><p>Received and requested customer-side documents for this dispute.</p></div></header>
+        <div className="merchant-document-grid">{workspace.customerDocuments.map((document) => <DocumentCard key={document.id} document={document} onOpen={onOpen} />)}</div>
+      </section>
+      <section className="merchant-lifecycle-panel merchant-needed-panel">
+        <header><span className="merchant-panel-icon">REQ</span><div><h3>Open document requests</h3><p>Only requested items that fit this claim scenario are shown.</p></div></header>
+        <ul>{workspace.customerRequirements.map((item) => <li key={item}><span aria-hidden="true">○</span>{item}</li>)}</ul>
+        <button type="button" className="merchant-inline-action" onClick={() => openTool('Document Viewer')}>Open document request center</button>
+      </section>
+    </div>
+  );
+}
+
+function VisaRequirements({ workspace }) {
+  return (
+    <div className="merchant-lifecycle-stack">
+      <section className="merchant-lifecycle-panel">
+        <header><span className="merchant-panel-icon">V</span><div><h3>Visa requirements</h3><p>Neutral documentation guidance after reviewing the available evidence.</p></div><StatusPill tone="neutral">Guidance only</StatusPill></header>
+        <FieldGrid fields={workspace.visa.fields} />
+      </section>
+      <section className="merchant-lifecycle-panel merchant-needed-panel">
+        <header><span className="merchant-panel-icon">CHK</span><div><h3>Evidence checklist</h3><p>Confirm whether each requirement is supported in the source documents.</p></div></header>
+        <ul>{workspace.visa.requirements.map((item) => <li key={item}><span aria-hidden="true">○</span>{item}</li>)}</ul>
+        <p className="merchant-guidance-lock">Merchant Intelligence does not select a reason code or decide the claim.</p>
+      </section>
+    </div>
+  );
+}
+
+function CaseStatus({ workspace }) {
+  return (
+    <div className="merchant-lifecycle-stack">
+      <section className="merchant-lifecycle-panel">
+        <header><span className="merchant-panel-icon">STS</span><div><h3>Case status</h3><p>Chargeback exchange and evidence-request timeline.</p></div><StatusPill tone="active">{workspace.caseStatus}</StatusPill></header>
+        <ol className="merchant-status-timeline">{workspace.timeline.map((event) => <li key={`${event.date}-${event.label}`} className={event.state}><span></span><div><small>{event.date}</small><strong>{event.label}</strong><p>{event.detail}</p></div></li>)}</ol>
+      </section>
+    </div>
+  );
+}
 
 export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
   const workspace = useMemo(() => getMerchantIntelligence(activeCase), [activeCase]);
-  const [activeSection, setActiveSection] = useState('overview');
-  const [query, setQuery] = useState('');
-  const [selectedId, setSelectedId] = useState('');
-  const section = merchantIntelligenceTabs.find((item) => item.id === activeSection) ?? merchantIntelligenceTabs[0];
-  const sectionRecords = workspace.records.filter((item) => item.section === activeSection);
-  const normalizedQuery = query.trim().toLowerCase();
-  const filteredRecords = sectionRecords.filter((item) => !normalizedQuery || merchantRecordSearchText(item).includes(normalizedQuery));
-  const activeRecord = filteredRecords.find((item) => item.id === selectedId) ?? filteredRecords[0] ?? sectionRecords[0];
-  const profile = workspace.profile;
-  const activeSectionIndex = merchantIntelligenceTabs.findIndex((item) => item.id === activeSection);
+  const [activeSection, setActiveSection] = useState('merchant-response');
+  const [selectedDocument, setSelectedDocument] = useState(null);
 
   useEffect(() => {
-    setActiveSection('overview');
-    setQuery('');
-    setSelectedId('');
+    setActiveSection('merchant-response');
+    setSelectedDocument(null);
   }, [activeCase.id]);
 
-  useEffect(() => {
-    setSelectedId('');
-  }, [activeSection]);
-
-  function saveMerchantNote(record) {
-    saveNote(`Merchant Intelligence: ${record.id} - ${record.summary}`, 'Merchant intelligence');
+  if (selectedDocument) {
+    return <DocumentSheet document={selectedDocument} activeCase={activeCase} onClose={() => setSelectedDocument(null)} pin={pin} saveNote={saveNote} />;
   }
 
+  const sectionProps = { workspace, onOpen: setSelectedDocument, openTool };
+  const sections = {
+    'claim-details': <ClaimDetails {...sectionProps} />,
+    'network-submission': <NetworkSubmission {...sectionProps} />,
+    'merchant-response': <MerchantResponse {...sectionProps} />,
+    'customer-evidence': <CustomerEvidence {...sectionProps} />,
+    'visa-requirements': <VisaRequirements {...sectionProps} />,
+    'case-status': <CaseStatus {...sectionProps} />,
+  };
+
   return (
-    <>
-      <section className="merchant-intelligence-command" aria-label="Merchant Intelligence dashboard">
-        <div className="merchant-intelligence-command-copy">
-          <span className="merchant-intelligence-command-icon" aria-hidden="true">MI</span>
-          <div>
-            <p>Merchant Intelligence</p>
-            <h3>{profile.name}</h3>
-            <span>Compare merchant, transaction, fulfillment, and dispute records before making a determination.</span>
-          </div>
-        </div>
-        <div className="merchant-intelligence-command-tags" aria-label="Current merchant context">
-          <span>{activeCase.id}</span>
-          <span>{profile.channel}</span>
-          <span>MCC {profile.mcc}</span>
-        </div>
+    <section className="merchant-lifecycle" aria-label="Merchant Intelligence chargeback lifecycle">
+      <header className="merchant-lifecycle-heading">
+        <div><p>Merchant Intelligence</p><h2>Chargeback lifecycle view</h2><span>Review the customer claim, network exchange, merchant response, and source documents without assigning an outcome.</span></div>
+        <StatusPill tone="neutral">Evidence First</StatusPill>
+      </header>
+
+      <section className="merchant-lifecycle-summary" aria-label="Merchant dispute summary">
+        <span className="merchant-summary-mark" aria-hidden="true">{workspace.profile.mark ?? 'M'}</span>
+        <div className="merchant-summary-name"><h3>{workspace.profile.name}</h3><p>{workspace.scenario.label}</p></div>
+        <FieldGrid fields={workspace.summaryFields} />
+        <StatusPill tone="attention">{workspace.claimLane}</StatusPill>
       </section>
 
-      <section className="merchant-intelligence-profile" aria-label="Merchant profile">
-        <div>
-          <p>Merchant in review</p>
-          <h3>{profile.name}</h3>
-          <span>{profile.descriptor} | MCC {profile.mcc} | {profile.channel}</span>
-        </div>
-        <dl>
-          <div><dt>Category</dt><dd>{profile.category}</dd></div>
-          <div><dt>Location</dt><dd>{profile.location}</dd></div>
-          <div><dt>First used</dt><dd>{profile.firstUsed}</dd></div>
-          <div><dt>Prior transactions</dt><dd>{profile.priorTransactionCount}</dd></div>
-        </dl>
-      </section>
+      <nav className="merchant-lifecycle-tabs" aria-label="Chargeback lifecycle sections">
+        {merchantIntelligenceTabs.map((tab) => <button key={tab.id} type="button" className={activeSection === tab.id ? 'active' : ''} aria-pressed={activeSection === tab.id} onClick={() => setActiveSection(tab.id)}>{tab.label}</button>)}
+      </nav>
+      <label className="merchant-lifecycle-mobile-tabs"><span>Lifecycle section</span><select value={activeSection} onChange={(event) => setActiveSection(event.target.value)} aria-label="Choose chargeback lifecycle section">{merchantIntelligenceTabs.map((tab) => <option key={tab.id} value={tab.id}>{tab.label}</option>)}</select></label>
 
-      <section className="merchant-intelligence-metrics" aria-label="Merchant activity summary">
-        <article><span>Prior customer transactions</span><strong>{profile.priorTransactionCount}</strong></article>
-        <article><span>Prior disputes</span><strong>{profile.priorDisputeCount}</strong></article>
-        <article><span>Refunds recorded</span><strong>{profile.refundCount}</strong></article>
-        <article><span>Attempts / declines</span><strong>{profile.attemptedTransactions} / {profile.declinedTransactions}</strong></article>
-      </section>
+      <div className="merchant-lifecycle-content" data-lifecycle-section={activeSection}>{sections[activeSection]}</div>
 
-      <nav className="merchant-intelligence-tabs" aria-label="Merchant Intelligence sections">
-        {merchantIntelligenceTabs.map((item) => (
-          <button key={item.id} type="button" className={activeSection === item.id ? 'active' : ''} aria-pressed={activeSection === item.id} onClick={() => setActiveSection(item.id)}>
-            {item.label}
-          </button>
-        ))}
+      <nav className="merchant-lifecycle-actions" aria-label="Merchant Intelligence actions">
+        <button type="button" onClick={() => setActiveSection('network-submission')}>View network details</button>
+        <button type="button" onClick={() => openTool('Document Viewer')}>Request customer documents</button>
+        <button type="button" className="primary" onClick={jumpDecision}>Continue to decision →</button>
       </nav>
 
-      <label className="merchant-intelligence-mobile-section">
-        <span>Evidence section</span>
-        <select value={activeSection} onChange={(event) => setActiveSection(event.target.value)} aria-label="Choose Merchant Intelligence section">
-          {merchantIntelligenceTabs.map((item) => <option key={item.id} value={item.id}>{activeSection === item.id ? `${activeSectionIndex + 1} of ${merchantIntelligenceTabs.length} · ` : ''}{item.label}</option>)}
-        </select>
-      </label>
-
-      <section className="merchant-intelligence-findbar" aria-label="Merchant Intelligence filters">
-        <div><p>{section.label}</p><h3>{section.question}</h3></div>
-        <label><span>Search merchant evidence</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Merchant, MCC, order, authorization, delivery, refund, or reason code" aria-label="Search Merchant Intelligence" /></label>
-        <span>{filteredRecords.length} of {sectionRecords.length} records shown</span>
-      </section>
-
-      <div className="merchant-intelligence-workspace">
-        <section className="merchant-intelligence-records" aria-label={`${section.label} records`}>
-          <header><div><p>Evidence records</p><h3>{section.label}</h3></div><span>{activeSectionIndex + 1} / {merchantIntelligenceTabs.length}</span></header>
-          {filteredRecords.map((item) => (
-            <button key={item.id} type="button" className={activeRecord?.id === item.id ? 'active' : ''} onClick={() => setSelectedId(item.id)} data-merchant-intelligence-record={item.id}>
-              <span>{item.status} | {item.observed}</span>
-              <strong>{item.title}</strong>
-              <DirectCollapsibleText as="small" lines={2} mobileLines={3}>{item.summary}</DirectCollapsibleText>
-            </button>
-          ))}
-          {!filteredRecords.length && <div className="investigation-tool-empty" role="status">No merchant records match this search.</div>}
-        </section>
-
-        {activeRecord ? (
-          <section className="merchant-intelligence-detail" aria-label="Expanded merchant record">
-            <header>
-              <div><p>Expanded evidence</p><h3>{activeRecord.id}</h3><span>{activeRecord.title} | {activeRecord.observed}</span></div>
-              <button type="button" className="merchant-intelligence-pin" onClick={() => pin(`${activeRecord.id} | ${activeRecord.title}`)}>Pin record</button>
-            </header>
-            <dl>{activeRecord.fields.map(([label, value]) => <div key={`${activeRecord.id}-${label}`}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
-            <article><span>Recorded context</span><p>{activeRecord.summary}</p></article>
-            <div className="merchant-intelligence-related"><span>Related records</span><div>{activeRecord.relatedRecords.length ? activeRecord.relatedRecords.map((item) => <button key={item} type="button" onClick={() => pin(item)}>{item}</button>) : <small>No related object is supplied in this section.</small>}</div></div>
-            <button type="button" className="merchant-intelligence-save" onClick={() => saveMerchantNote(activeRecord)}>Save evidence note</button>
-          </section>
-        ) : <div className="investigation-tool-empty" role="status">Choose a merchant record to open its full details.</div>}
-
-        <aside className="merchant-intelligence-rail" aria-label="Merchant packet summary">
-          <header><p>Merchant packet</p><h3>{profile.name}</h3><span>{activeCase.id}</span></header>
-          <section><p>Packet index</p>{merchantIntelligenceTabs.map((item) => <button key={item.id} type="button" onClick={() => setActiveSection(item.id)}><span>{item.label}</span><strong>{workspace.records.filter((record) => record.section === item.id).length}</strong></button>)}</section>
-          <section><p>Reason-code context</p><strong>{workspace.reasonCode}</strong><span>{workspace.responseDeadline}</span></section>
-          <nav><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button></nav>
-        </aside>
-      </div>
-
-      <nav className="investigation-tool-next-routes" aria-label="Merchant Intelligence next routes"><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
-      <footer className="investigation-tool-review-bar"><div><strong>Merchant Intelligence review</strong><span>Review merchant identity, history, authorization, fulfillment, disputes, refunds, subscription or marketplace context, and the applicable reason-code evidence.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Merchant Intelligence')}>{reviewed ? 'Merchant Intelligence reviewed' : 'Mark Merchant Intelligence reviewed'}</button></footer>
-    </>
+      <footer className="investigation-tool-review-bar"><div><strong>Merchant Intelligence review</strong><span>Marking this tool reviewed records process completion only. It does not determine the claim.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Merchant Intelligence')}>{reviewed ? 'Merchant Intelligence reviewed' : 'Mark Merchant Intelligence reviewed'}</button></footer>
+    </section>
   );
 }

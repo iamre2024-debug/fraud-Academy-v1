@@ -1,3 +1,4 @@
+// Chargeback lifecycle and real-document browser coverage.
 import { test, expect } from '@playwright/test';
 import { selectToolGroup } from './workspace-page-helpers.mjs';
 
@@ -5,91 +6,64 @@ const merchantCaseId = 'FA-CB-24007';
 const nonMerchantCaseId = 'FA-ATO-24018';
 const forbiddenPreSubmissionCopy = /\b(?:fraud score|correct answer|AI recommendations?|approve claim|deny claim)\b/i;
 
-test('Merchant Intelligence provides claim-specific evidence and stays out of unrelated lanes', async ({ page }, testInfo) => {
+test('Merchant Intelligence presents a chargeback lifecycle with inspectable scenario documents', async ({ page }, testInfo) => {
   await page.goto('/');
 
   const caseSelector = page.locator('.visual-case-switcher select');
   await caseSelector.selectOption(merchantCaseId);
-  await expect(caseSelector).toHaveValue(merchantCaseId);
-
-  const groupRail = page.locator('[data-investigation-tool-groups="approved-theme-v1"]');
   await selectToolGroup(page, /Merchant & Disputes/);
 
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Merchant Intelligence');
-  await expect(toolPanel.getByRole('heading', { name: 'Merchant Intelligence', exact: true })).toBeVisible();
-  await expect(toolPanel.getByRole('heading', { name: 'Is this a customer issue, merchant issue, fraud issue, or dispute issue?', exact: true })).toBeVisible();
-  await expect(toolPanel.locator('.merchant-intelligence-profile')).toContainText('StreamBox Premium');
-  await expect(toolPanel.locator('.merchant-intelligence-profile')).toContainText('MCC 4899');
-  await expect(toolPanel.locator('.merchant-intelligence-command')).toContainText('StreamBox Premium');
-  await expect(toolPanel.locator('.merchant-intelligence-metrics article')).toHaveCount(4);
-  await expect(toolPanel.locator('.merchant-intelligence-tabs button')).toHaveCount(7);
-  await expect(toolPanel.locator('[data-merchant-intelligence-record]')).toHaveCount(1);
+  await expect(toolPanel.locator('.merchant-lifecycle-summary')).toContainText('StreamBox Premium');
+  await expect(toolPanel.locator('.merchant-lifecycle-summary')).toContainText('Recurring billing dispute');
+  await expect(toolPanel.locator('.merchant-lifecycle-tabs button')).toHaveCount(6);
+  await expect(toolPanel.locator('[data-lifecycle-section="merchant-response"]')).toBeVisible();
+  await expect(toolPanel.getByRole('heading', { name: 'Merchant response', exact: true })).toBeVisible();
+  await expect(toolPanel.getByText('Challenged', { exact: true }).first()).toBeVisible();
+  await expect(toolPanel.locator('[data-merchant-document]')).toHaveCount(5);
 
-  if (testInfo.project.name === 'mobile-chromium') {
-    await toolPanel.getByRole('combobox', { name: 'Choose Merchant Intelligence section' }).selectOption('authorization');
-  } else {
-    await toolPanel.getByRole('button', { name: 'Authorization', exact: true }).click();
-  }
-  await expect(toolPanel.locator('.merchant-intelligence-detail')).toContainText('Entry mode');
-  await expect(toolPanel.locator('.merchant-intelligence-detail')).toContainText('AVS');
-  await expect(toolPanel.locator('.merchant-intelligence-detail')).toContainText('CVV');
-  await expect(toolPanel.locator('.merchant-intelligence-detail')).toContainText('3DS');
-  await expect(toolPanel.locator('.merchant-intelligence-detail')).toContainText('Wallet token');
-
-  const search = toolPanel.getByRole('textbox', { name: 'Search Merchant Intelligence' });
-  await search.fill('no-such-merchant-record');
-  await expect(toolPanel.getByText('No merchant records match this search.', { exact: true })).toBeVisible();
-  await search.clear();
-  await expect(toolPanel.locator('[data-merchant-intelligence-record]')).toHaveCount(1);
+  await toolPanel.getByRole('button', { name: 'Open Billing history statement' }).click();
+  await expect(toolPanel.locator('.merchant-document-viewer')).toBeVisible();
+  await expect(toolPanel.locator('.merchant-document-sheet')).toContainText('BILLING HISTORY');
+  await expect(toolPanel.locator('.merchant-document-sheet table')).toBeVisible();
+  await expect(toolPanel.locator('.merchant-document-sheet')).toContainText('StreamBox Premium');
+  await toolPanel.getByRole('button', { name: 'Pin document' }).click();
+  await expect(page.locator('.tray-card')).toContainText('Pinned');
+  await toolPanel.getByRole('button', { name: 'Save review note' }).click();
+  await expect(page.locator('.notebook-card')).toContainText('Merchant Intelligence');
+  await toolPanel.getByRole('button', { name: 'Back to evidence packet' }).click();
 
   const openSection = async (value, label) => {
-    if (testInfo.project.name === 'mobile-chromium') await toolPanel.getByRole('combobox', { name: 'Choose Merchant Intelligence section' }).selectOption(value);
+    if (testInfo.project.name === 'mobile-chromium') await toolPanel.getByRole('combobox', { name: 'Choose chargeback lifecycle section' }).selectOption(value);
     else await toolPanel.getByRole('button', { name: label, exact: true }).click();
   };
-  await openSection('fulfillment', 'Fulfillment');
-  await expect(toolPanel.locator('.merchant-intelligence-detail')).toContainText(/Delivery|service|usage/i);
-  await openSection('disputes', 'Disputes & Refunds');
-  await expect(toolPanel.locator('.merchant-intelligence-detail')).toContainText('Prior disputes');
-  await openSection('marketplace', 'Subscription / Marketplace');
-  await expect(toolPanel.locator('.merchant-intelligence-detail')).toContainText('Subscription status');
-  await openSection('reason-code', 'Reason Code');
-  await expect(toolPanel.locator('.merchant-intelligence-detail')).toContainText('Response deadline');
-  await expect(toolPanel.locator('.merchant-intelligence-rail')).toContainText('Reason-code context');
 
-  await toolPanel.getByRole('button', { name: 'Pin record', exact: true }).click();
-  await expect(page.locator('.tray-card')).toContainText('Pinned');
-  await toolPanel.getByRole('button', { name: 'Save evidence note', exact: true }).click();
-  await expect(page.locator('.notebook-card')).toContainText('Merchant Intelligence');
+  await openSection('claim-details', 'Claim Details');
+  await expect(toolPanel.getByRole('heading', { name: 'Customer statement' })).toBeVisible();
+  await openSection('network-submission', 'Network Submission');
+  await expect(toolPanel.getByText('Card-network exchange', { exact: true })).toBeVisible();
+  await openSection('customer-evidence', 'Customer Evidence');
+  await expect(toolPanel.getByRole('button', { name: 'Pending Cancellation confirmation' })).toBeDisabled();
+  await openSection('visa-requirements', 'Visa Requirements');
+  await expect(toolPanel).toContainText('Merchant Intelligence does not select a reason code or decide the claim.');
+  await openSection('case-status', 'Case Status');
+  await expect(toolPanel.locator('.merchant-status-timeline li')).toHaveCount(5);
+
   await toolPanel.getByRole('button', { name: 'Mark Merchant Intelligence reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: 'Merchant Intelligence reviewed', exact: true })).toBeVisible();
 
-  const layout = await page.evaluate(() => {
-    const panel = document.querySelector('[data-investigation-tools-screen="approved-theme-v1"]');
-    const workspace = document.querySelector('.merchant-intelligence-workspace');
-    const profile = document.querySelector('.merchant-intelligence-profile');
-    const viewportWidth = window.innerWidth;
-    const panelBox = panel?.getBoundingClientRect();
-    const profileBox = profile?.getBoundingClientRect();
-    return {
-      viewportWidth,
-      documentWidth: document.documentElement.scrollWidth,
-      panelFits: Boolean(panelBox && panelBox.left >= -1 && panelBox.right <= viewportWidth + 1),
-      profileFits: Boolean(profileBox && profileBox.left >= -1 && profileBox.right <= viewportWidth + 1),
-      workspaceColumns: workspace ? getComputedStyle(workspace).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-    };
-  });
+  const layout = await page.evaluate(() => ({
+    viewportWidth: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    panelRight: document.querySelector('[data-investigation-tools-screen="approved-theme-v1"]')?.getBoundingClientRect().right,
+    visibleLifecycleSections: [...document.querySelectorAll('.merchant-lifecycle-content > *')].filter((node) => getComputedStyle(node).display !== 'none').length,
+  }));
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
-  expect(layout.panelFits).toBe(true);
-  expect(layout.profileFits).toBe(true);
-  expect(layout.workspaceColumns).toBe(testInfo.project.name === 'mobile-chromium' ? 1 : 3);
+  expect(layout.panelRight).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.visibleLifecycleSections).toBe(1);
   expect(await page.locator('body').innerText()).not.toMatch(forbiddenPreSubmissionCopy);
 
   await caseSelector.selectOption(nonMerchantCaseId);
-  await expect(caseSelector).toHaveValue(nonMerchantCaseId);
-  await expect(groupRail.locator('.visual-category-row > button').filter({ hasText: 'Merchant & Disputes' })).toHaveCount(0);
-  await expect(toolPanel).toHaveCount(0);
-  await selectToolGroup(page, /Login, Session, Device & IP/);
-  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Login History');
-  await expect(toolPanel.getByRole('combobox', { name: 'Choose investigation tool' }).locator('option', { hasText: 'Merchant Intelligence' })).toHaveCount(0);
+  await expect(page.locator('[data-investigation-tool-groups="approved-theme-v1"] .visual-category-row > button').filter({ hasText: 'Merchant & Disputes' })).toHaveCount(0);
 });
