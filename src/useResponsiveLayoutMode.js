@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 export const layoutModeStorageKey = 'fraud-academy-layout-mode-v1';
 export const mobileLayoutQuery = '(max-width: 720px)';
+export const mobileDeviceLayoutQuery = '(max-device-width: 820px)';
 
 const validPreferences = new Set(['auto', 'mobile', 'desktop']);
 
@@ -17,7 +18,7 @@ function readPreference() {
 
 function detectLayout() {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'desktop';
-  return window.matchMedia(mobileLayoutQuery).matches ? 'mobile' : 'desktop';
+  return window.matchMedia(mobileLayoutQuery).matches || window.matchMedia(mobileDeviceLayoutQuery).matches ? 'mobile' : 'desktop';
 }
 
 export default function useResponsiveLayoutMode() {
@@ -30,14 +31,18 @@ export default function useResponsiveLayoutMode() {
 
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') return undefined;
-    const query = window.matchMedia(mobileLayoutQuery);
-    const syncDetectedLayout = (event) => setDetectedLayout(event.matches ? 'mobile' : 'desktop');
-    syncDetectedLayout(query);
-    if (query.addEventListener) query.addEventListener('change', syncDetectedLayout);
-    else query.addListener?.(syncDetectedLayout);
+    const queries = [window.matchMedia(mobileLayoutQuery), window.matchMedia(mobileDeviceLayoutQuery)];
+    const syncDetectedLayout = () => setDetectedLayout(queries.some((query) => query.matches) ? 'mobile' : 'desktop');
+    syncDetectedLayout();
+    queries.forEach((query) => {
+      if (query.addEventListener) query.addEventListener('change', syncDetectedLayout);
+      else query.addListener?.(syncDetectedLayout);
+    });
     return () => {
-      if (query.removeEventListener) query.removeEventListener('change', syncDetectedLayout);
-      else query.removeListener?.(syncDetectedLayout);
+      queries.forEach((query) => {
+        if (query.removeEventListener) query.removeEventListener('change', syncDetectedLayout);
+        else query.removeListener?.(syncDetectedLayout);
+      });
     };
   }, []);
 

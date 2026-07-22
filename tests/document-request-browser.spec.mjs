@@ -16,6 +16,8 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(toolPanel.getByRole('heading', { name: 'What documents were requested, received, missing, or pending review for this case?', exact: true })).toBeVisible();
   await expect(toolPanel.locator('.document-request-inbox')).toBeVisible();
   await expect(toolPanel.locator('.document-request-compose-button')).toHaveText('＋ Request Paperwork');
+  const cancellationRecord = toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation' });
+  await expect(cancellationRecord).toContainText('Not Requested');
 
   await toolPanel.locator('.document-request-compose-button').click();
   const composer = toolPanel.getByRole('main', { name: 'Compose paperwork request' });
@@ -60,6 +62,17 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(page.locator('.tray-card')).toContainText('Pinned');
   await detail.getByRole('button', { name: 'Save follow-up note', exact: true }).click();
   await expect(page.locator('.notebook-card')).toContainText('Document Request');
+
+  await detail.getByRole('button', { name: 'View Merchant Paperwork', exact: true }).click();
+  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
+  const viewer = toolPanel.locator('[data-document-viewer-screen="approved-theme-v1"]');
+  await expect(viewer.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toHaveCount(0);
+  await expect(viewer.getByRole('button', { name: /Merchant Evidence/ })).toHaveClass(/active/);
+  await expect(viewer.locator('.document-page')).toBeVisible();
+  await viewer.getByRole('navigation', { name: 'Document Viewer next routes' })
+    .getByRole('button', { name: 'Open Document Request', exact: true })
+    .click();
+  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Request');
 
   await toolPanel.getByRole('button', { name: 'Mark Document Request reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ Document Request reviewed', exact: true })).toBeVisible();

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { documentSearchText, getCaseDocuments } from './data/documentRecords.js';
+import { clearDocumentViewerRoute, readDocumentViewerRoute } from './documentViewerRoute.js';
 
 function fieldValue(document, label) {
   return document?.fields?.find(([field]) => field === label)?.[1] ?? 'Not recorded';
@@ -142,14 +143,24 @@ export default function DocumentViewerWorkspace({
   const comparedDocuments = compareIds.map((id) => documents.find((document) => document.id === id)).filter(Boolean);
 
   useEffect(() => {
-    setFolder('All Documents');
+    const directRoute = readDocumentViewerRoute(activeCase.id);
+    setFolder(directRoute?.folder ?? 'All Documents');
     setStatus('All statuses');
-    setSelectedDocumentId('');
+    setSelectedDocumentId(directRoute?.documentId ?? '');
     setPageIndex(0);
     setZoom(100);
     setCompareIds([]);
     setNoteDraft('');
-    setMobilePane('inbox');
+    setMobilePane(directRoute?.pane ?? 'inbox');
+    if (directRoute) {
+      setMatchedAccountId(normalizeAccountId(activeCase.accountId));
+      setAccountLookup(activeCase.accountId);
+      setLookupError('');
+    }
+    const clearRouteTimer = directRoute ? window.setTimeout(clearDocumentViewerRoute, 0) : null;
+    return () => {
+      if (clearRouteTimer) window.clearTimeout(clearRouteTimer);
+    };
   }, [activeCase.id]);
 
   useEffect(() => {
@@ -239,6 +250,7 @@ export default function DocumentViewerWorkspace({
           <span aria-hidden="true">ID</span>
           <h3>Customer documents are locked</h3>
           <p>Search with an exact Account ID to open the matching case documents.</p>
+          <button type="button" onClick={() => { setAccountLookup(activeCase.accountId); setMatchedAccountId(normalizeAccountId(activeCase.accountId)); setLookupError(''); }}>Open active case documents</button>
         </section>
       ) : <>
       <section className="document-viewer-findbar" aria-label="Filter matched customer documents">

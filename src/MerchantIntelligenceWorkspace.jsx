@@ -1,6 +1,7 @@
 // Chargeback lifecycle workspace with source-document review.
 import { useEffect, useMemo, useState } from 'react';
 import { getMerchantIntelligence, merchantIntelligenceTabs } from './data/merchantIntelligenceRecords.js';
+import { queueDocumentViewerRoute } from './documentViewerRoute.js';
 
 function FieldGrid({ fields = [], className = '' }) {
   return (
@@ -140,7 +141,7 @@ function NetworkSubmission({ workspace, onOpen }) {
   );
 }
 
-function MerchantResponse({ workspace, onOpen }) {
+function MerchantResponse({ workspace, onOpen, openMerchantPaperwork }) {
   const response = workspace.response;
   return (
     <div className="merchant-lifecycle-stack">
@@ -155,6 +156,7 @@ function MerchantResponse({ workspace, onOpen }) {
       <section className="merchant-lifecycle-panel">
         <header><span className="merchant-panel-icon">DOC</span><div><h3>Merchant evidence packet</h3><p>{response.documents.filter((item) => item.status === 'Available').length} documents available to inspect.</p></div></header>
         <div className="merchant-document-grid">{response.documents.map((document) => <DocumentCard key={document.id} document={document} onOpen={onOpen} />)}</div>
+        <button type="button" className="merchant-inline-action" onClick={openMerchantPaperwork}>View all merchant paperwork</button>
       </section>
       <section className="merchant-lifecycle-panel merchant-needed-panel">
         <header><span className="merchant-panel-icon">REQ</span><div><h3>Next required from customer</h3><p>Evidence still needed if the merchant challenges the claim.</p></div></header>
@@ -164,12 +166,15 @@ function MerchantResponse({ workspace, onOpen }) {
   );
 }
 
-function CustomerEvidence({ workspace, onOpen, openTool }) {
+function CustomerEvidence({ workspace, onOpen, openTool, documentRequests }) {
+  const customerDocuments = workspace.customerDocuments.map((document) => document.status === 'Available'
+    ? document
+    : { ...document, status: documentRequests[document.id]?.status ?? 'Not Requested' });
   return (
     <div className="merchant-lifecycle-stack">
       <section className="merchant-lifecycle-panel">
         <header><span className="merchant-panel-icon">CUS</span><div><h3>Customer evidence</h3><p>Received and requested customer-side documents for this dispute.</p></div></header>
-        <div className="merchant-document-grid">{workspace.customerDocuments.map((document) => <DocumentCard key={document.id} document={document} onOpen={onOpen} />)}</div>
+        <div className="merchant-document-grid">{customerDocuments.map((document) => <DocumentCard key={document.id} document={document} onOpen={onOpen} />)}</div>
       </section>
       <section className="merchant-lifecycle-panel merchant-needed-panel">
         <header><span className="merchant-panel-icon">REQ</span><div><h3>Open document requests</h3><p>Only requested items that fit this claim scenario are shown.</p></div></header>
@@ -207,7 +212,7 @@ function CaseStatus({ workspace }) {
   );
 }
 
-export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
+export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision, documentRequests = {} }) {
   const workspace = useMemo(() => getMerchantIntelligence(activeCase), [activeCase]);
   const [activeSection, setActiveSection] = useState('merchant-response');
   const [selectedDocument, setSelectedDocument] = useState(null);
@@ -217,11 +222,22 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
     setSelectedDocument(null);
   }, [activeCase.id]);
 
+  function openMerchantPaperwork() {
+    const firstDocument = workspace.response.documents.find((document) => document.status === 'Available');
+    queueDocumentViewerRoute({
+      caseId: activeCase.id,
+      folder: 'Merchant Evidence',
+      documentId: firstDocument?.id ?? '',
+      pane: firstDocument ? 'reader' : 'inbox',
+    });
+    openTool('Document Viewer');
+  }
+
   if (selectedDocument) {
     return <DocumentSheet document={selectedDocument} activeCase={activeCase} onClose={() => setSelectedDocument(null)} pin={pin} saveNote={saveNote} />;
   }
 
-  const sectionProps = { workspace, onOpen: setSelectedDocument, openTool };
+  const sectionProps = { workspace, onOpen: setSelectedDocument, openTool, openMerchantPaperwork, documentRequests };
   const sections = {
     'claim-details': <ClaimDetails {...sectionProps} />,
     'network-submission': <NetworkSubmission {...sectionProps} />,
@@ -257,6 +273,7 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
 
       <nav className="merchant-lifecycle-actions" aria-label="Merchant Intelligence actions">
         <button type="button" onClick={() => setActiveSection('network-submission')}>View network details</button>
+        <button type="button" onClick={openMerchantPaperwork}>View merchant paperwork</button>
         <button type="button" onClick={() => openTool('Document Request')}>Request customer documents</button>
         <button type="button" className="primary" onClick={jumpDecision}>Continue to decision →</button>
       </nav>

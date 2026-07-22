@@ -15,6 +15,7 @@ import { getIpRecords } from './data/ipRecords.js';
 import { getKybReview, kybRecordSearchText, kybReviewTabs, matchesKybReviewLookup } from './data/kybReviewRecords.js';
 import { generateKybReviewReport, hasGeneratedKybReport, kybReportExportText } from './data/kybReviewReport.js';
 import { getSessionRecords } from './data/sessionRecords.js';
+import { queueDocumentViewerRoute } from './documentViewerRoute.js';
 import { workflows } from './visualWorkspaceModel.js';
 
 const toolDetails = {
@@ -954,17 +955,23 @@ function DeviceIntelligenceWorkspace({
   );
 }
 
-const documentRequestStatuses = ['All', 'Requested', 'Received', 'Pending Review', 'Approved', 'Rejected', 'Expired', 'Missing', 'Exception Approved'];
+const documentRequestStatuses = ['All', 'Not Requested', 'Requested', 'Received', 'Pending Review', 'Approved', 'Rejected', 'Expired', 'Missing', 'Exception Approved'];
 
 function documentRequestStatus(status = '') {
   if (status === 'Available') return 'Pending Review';
-  return documentRequestStatuses.includes(status) ? status : 'Pending Review';
+  if (status === 'Pending') return 'Not Requested';
+  return documentRequestStatuses.includes(status) ? status : 'Not Requested';
 }
 
 function buildDocumentRequests(activeCase, requestUpdates = {}) {
   return getCaseDocumentRequests(activeCase).map((document) => {
     const update = requestUpdates[document.id] ?? {};
-    const status = documentRequestStatus(update.status ?? document.requestStatus ?? document.status);
+    const hasSavedRequest = Boolean(update.status);
+    const status = documentRequestStatus(hasSavedRequest
+      ? update.status
+      : document.pages?.length
+        ? document.requestStatus ?? document.status
+        : 'Not Requested');
     const isOptional = /optional/i.test(document.folder ?? document.type);
     const received = update.receivedDate ?? (['Received', 'Approved', 'Pending Review'].includes(status) ? document.received : 'Not received');
     return {
@@ -972,11 +979,13 @@ function buildDocumentRequests(activeCase, requestUpdates = {}) {
       documentType: document.title,
       category: document.folder,
       status,
-      reason: update.reason ?? (status === 'Requested'
+      reason: update.reason ?? (status === 'Not Requested'
+        ? 'No request has been sent. Use Request Paperwork only when this evidence is required for the claim.'
+        : status === 'Requested'
         ? 'Requested to complete the fictional case packet.'
         : status === 'Missing'
           ? 'Optional supporting document is not included in the current packet.'
-          : 'Available for case-document review and comparison.'),
+          : 'Customer-submitted paperwork is available for source-document review and comparison.'),
       requirement: isOptional ? 'Optional' : 'Required',
       dueDate: update.dueDate ?? (status === 'Requested' ? 'Follow up date not supplied' : 'Not applicable'),
       authenticity: document.authenticity,
@@ -984,9 +993,11 @@ function buildDocumentRequests(activeCase, requestUpdates = {}) {
       linkedCase: activeCase.id,
       linkedTool: 'Document Viewer',
       receivedDate: received,
-      requestedDate: update.requestedDate ?? 'No agent request recorded',
+      requestedDate: update.requestedDate ?? (status === 'Not Requested' ? 'Not requested' : 'No agent request required'),
       recipient: update.recipient ?? activeCase.person ?? 'Customer on the active case',
-      deliveryChannel: update.deliveryChannel ?? 'Not sent by the agent',
+      sender: update.sender ?? document.source ?? activeCase.person ?? 'Customer on the active case',
+      deliveryChannel: update.deliveryChannel ?? (status === 'Not Requested' ? 'Not sent' : 'Customer-provided case intake'),
+      pagesAvailable: Boolean(document.pages?.length),
       fields: document.fields.map(([label, value]) => `${label}: ${value}`).join(' | '),
     };
   });
@@ -1023,6 +1034,8 @@ function DocumentRequestWorkspace({
   const [mobilePane, setMobilePane] = useState('inbox');
   const [requestConfirmation, setRequestConfirmation] = useState('');
   const requests = buildDocumentRequests(activeCase, documentRequests);
+  const merchantDocuments = getCaseDocuments(activeCase).filter((document) => document.folder === 'Merchant Evidence' && document.pages?.length);
+  const firstMerchantDocument = merchantDocuments[0];
   const normalizedQuery = query.trim().toLowerCase();
   const filteredRequests = requests.filter((request) => (
     (statusFilter === 'All' || request.status === statusFilter)
@@ -1093,6 +1106,19 @@ function DocumentRequestWorkspace({
     setRequestConfirmation('');
   }
 
+  function openDocumentViewerRoute({ folder = 'All Documents', documentId = '', pane = 'inbox' } = {}) {
+    queueDocumentViewerRoute({ caseId: activeCase.id, folder, documentId, pane });
+    openTool('Document Viewer');
+  }
+
+  function openMerchantPaperwork() {
+    openDocumentViewerRoute({
+      folder: 'Merchant Evidence',
+      documentId: firstMerchantDocument?.id ?? '',
+      pane: firstMerchantDocument ? 'reader' : 'inbox',
+    });
+  }
+
   return (
     <>
       <section className="document-request-findbar" aria-label="Find document request information">
@@ -1123,7 +1149,8 @@ function DocumentRequestWorkspace({
             if (status !== 'All' && count === 0) return null;
             return <button key={status} type="button" className={statusFilter === status ? 'active' : ''} onClick={() => { setStatusFilter(status); setMobilePane('inbox'); }}>{status === 'All' ? 'All paperwork' : status}<strong>{count}</strong></button>;
           })}
-          <button type="button" className="document-request-viewer-route" onClick={() => openTool('Document Viewer')}>Open Document Viewer</button>
+          {firstMerchantDocument && <button type="button" className="document-request-viewer-route merchant-paperwork-route" onClick={openMerchantPaperwork}>View Merchant Paperwork <strong>{merchantDocuments.length}</strong></button>}
+          <button type="button" className="document-request-viewer-route" onClick={() => openDocumentViewerRoute()}>Open All Documents</button>
         </aside>
 
         <section className="document-request-list" aria-label="Document request records">
@@ -1140,7 +1167,7 @@ function DocumentRequestWorkspace({
                 data-document-request={request.id}
               >
                 <span className={`document-request-status-dot status-${request.status.toLowerCase().replace(/\s+/g, '-')}`} aria-hidden="true"></span>
-                <span className="document-request-message-copy"><strong>{request.documentType}</strong><small>To: {request.recipient} · {request.requirement}</small><em>{request.reason}</em></span>
+                <span className="document-request-message-copy"><strong>{request.documentType}</strong><small>{request.status === 'Not Requested' ? 'Not sent' : request.pagesAvailable ? `From: ${request.sender}` : `To: ${request.recipient}`} · {request.requirement}</small><em>{request.reason}</em></span>
                 <span className="document-request-message-meta"><small>{request.status}</small><time>{request.requestedDate === 'No agent request recorded' ? request.receivedDate : request.requestedDate}</time></span>
               </button>
             ))}
@@ -1171,8 +1198,20 @@ function DocumentRequestWorkspace({
               </div>
               <button type="button" onClick={() => pin(`${activeRequest.id} · ${activeRequest.documentType}`)}>Pin request</button>
             </header>
-            <section className="document-request-message-header"><dl><div><dt>From</dt><dd>Fraud Academy Document Services</dd></div><div><dt>To</dt><dd>{activeRequest.recipient}</dd></div><div><dt>Sent</dt><dd>{activeRequest.requestedDate}</dd></div><div><dt>Delivery</dt><dd>{activeRequest.deliveryChannel}</dd></div></dl></section>
-            <article className="document-request-message-body"><p>Hello {activeRequest.recipient},</p><p>{activeRequest.reason}</p><p>Please return the requested paperwork by <strong>{activeRequest.dueDate}</strong>. Use the request channel above so the document remains connected to case {activeRequest.linkedCase}.</p><p>Thank you,<br />Fraud Academy Document Services</p></article>
+            {activeRequest.status === 'Not Requested' ? (
+              <section className="document-request-not-sent" role="status">
+                <span>Not requested</span>
+                <h4>No paperwork request has been sent.</h4>
+                <p>The customer has not been contacted for this item. Send a request only when the claim scenario requires this evidence.</p>
+                <button type="button" onClick={() => openComposer(activeRequest)}>Request this paperwork</button>
+              </section>
+            ) : activeRequest.pagesAvailable ? (<>
+              <section className="document-request-message-header"><dl><div><dt>From</dt><dd>{activeRequest.sender}</dd></div><div><dt>To</dt><dd>Fraud Academy Chargebacks</dd></div><div><dt>Received</dt><dd>{activeRequest.receivedDate}</dd></div><div><dt>Source</dt><dd>{activeRequest.deliveryChannel}</dd></div></dl></section>
+              <article className="document-request-message-body inbound"><p>Customer-submitted paperwork received for case <strong>{activeRequest.linkedCase}</strong>.</p><p>{activeRequest.reason}</p><p>Open the source document below and review the actual page before recording what it supports or leaves unresolved.</p></article>
+            </>) : (<>
+              <section className="document-request-message-header"><dl><div><dt>From</dt><dd>Fraud Academy Document Services</dd></div><div><dt>To</dt><dd>{activeRequest.recipient}</dd></div><div><dt>Sent</dt><dd>{activeRequest.requestedDate}</dd></div><div><dt>Delivery</dt><dd>{activeRequest.deliveryChannel}</dd></div></dl></section>
+              <article className="document-request-message-body"><p>Hello {activeRequest.recipient},</p><p>{activeRequest.reason}</p><p>Please submit the requested paperwork by <strong>{activeRequest.dueDate}</strong>. The status remains Requested until the customer manually returns a document.</p><p>Thank you,<br />Fraud Academy Document Services</p></article>
+            </>)}
             <dl>
               {[
                 ['Document type', activeRequest.documentType],
@@ -1192,8 +1231,9 @@ function DocumentRequestWorkspace({
             </article>
             <div className="document-request-actions">
               <button type="button" onClick={() => saveRequestNote(`${activeRequest.id} follow-up recorded for ${activeRequest.status}.`)}>Save follow-up note</button>
-              <button type="button" onClick={() => openComposer(activeRequest)}>Request again</button>
-              <button type="button" onClick={() => openTool('Document Viewer')}>Open in Document Viewer</button>
+              <button type="button" onClick={() => openComposer(activeRequest)}>{activeRequest.status === 'Not Requested' ? 'Request paperwork' : 'Request again'}</button>
+              {activeRequest.pagesAvailable && <button type="button" onClick={() => openDocumentViewerRoute({ folder: activeRequest.category, documentId: activeRequest.id, pane: 'reader' })}>Open Customer Document</button>}
+              {firstMerchantDocument && <button type="button" onClick={openMerchantPaperwork}>View Merchant Paperwork</button>}
             </div>
           </>) : <div className="investigation-tool-empty" role="status">No document requests are available for this case.</div>}
         </main>
@@ -2073,6 +2113,7 @@ export default function InvestigationToolPanel({
           reviewed={reviewed}
           openTool={openTool}
           jumpDecision={jumpDecision}
+          documentRequests={documentRequests}
         />
       ) : tool === 'Financial Investigation' ? (
         <FinancialInvestigationWorkspace
