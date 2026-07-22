@@ -4,6 +4,7 @@ import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
 import { getFinancialInvestigation } from '../src/data/financialInvestigationRecords.js';
 import { getKybReview } from '../src/data/kybReviewRecords.js';
 import { getMerchantIntelligence } from '../src/data/merchantIntelligenceRecords.js';
+import { buildCustomerDocumentResponse, customerDocumentResponseOutcomes, getCustomerDocumentResponseOutcome } from '../src/data/customerDocumentResponses.js';
 import { getCaseDocuments, getCaseDocumentRequests } from '../src/data/documentRecords.js';
 import { getReviewChoices } from '../src/data/reviewPackage.js';
 import { scenarioTemplates } from '../src/data/scenarioEngine.js';
@@ -12,6 +13,7 @@ import { trainingCases } from '../src/data/cases.js';
 const failures = [];
 const genericIntakePattern = /review the related|available when that tool|available for comparison|intake channel:|fictional subject|fictional packet contains/i;
 const generatedAccountIds = new Set();
+const generatedCustomerResponseOutcomes = new Set();
 const allScenarios = coreClaimTypes.flatMap((claimType) => claimType.scenarios.map((scenario) => ({ claimType, scenario })));
 const scenarioIds = new Set(allScenarios.map(({ scenario }) => scenario.id));
 
@@ -84,7 +86,20 @@ for (const { claimType, scenario } of allScenarios) {
     if (!merchant.merchantDocuments.length || !merchant.customerDocuments.length || !merchant.network.documents.length) failures.push(`${scenario.id} is missing source documents for a chargeback party.`);
     const sourceDocuments = getCaseDocuments(generated);
     if (!sourceDocuments.length || sourceDocuments.some((document) => /Driver License|EIN Assignment|Utility Bill|Phone Ownership/i.test(document.title))) failures.push(`${scenario.id} contains generic evidence-warehouse documents instead of chargeback source documents.`);
-    if (getCaseDocumentRequests(generated).some((document) => document.folder !== 'Customer Evidence')) failures.push(`${scenario.id} places merchant-returned evidence in the customer request queue.`);
+    const requestDocuments = getCaseDocumentRequests(generated);
+    if (requestDocuments.some((document) => document.folder !== 'Customer Evidence')) failures.push(`${scenario.id} places merchant-returned evidence in the customer request queue.`);
+    const requestedCustomerDocument = requestDocuments.find((document) => !document.pages.length);
+    if (!requestedCustomerDocument) {
+      failures.push(`${scenario.id} does not provide scenario-specific customer paperwork for the manual request workflow.`);
+    } else {
+      const outcome = getCustomerDocumentResponseOutcome(generated, requestedCustomerDocument);
+      const response = buildCustomerDocumentResponse({ activeCase: generated, document: requestedCustomerDocument, outcome, receivedDate: 'Jul 21, 2026' });
+      generatedCustomerResponseOutcomes.add(outcome);
+      if (outcome === 'no-response' && response.customerSubmission) failures.push(`${scenario.id} creates a customer document even though the scenario outcome is no response.`);
+      if (outcome !== 'no-response' && !response.customerSubmission?.pages?.length) failures.push(`${scenario.id} does not create a reviewable customer source page after the customer responds.`);
+      if (outcome === 'incomplete' && !/incomplete/i.test(response.customerSubmission?.fields?.find(([label]) => label === 'Completeness')?.[1] ?? '')) failures.push(`${scenario.id} does not visibly identify an incomplete customer submission.`);
+      if (response.customerSubmission?.pages?.some((page) => !page.title || !page.subtitle || !page.sections?.length)) failures.push(`${scenario.id} creates an unstructured customer response instead of a rendered document.`);
+    }
     if (merchant.scenario.id === 'recurring-cancellation') {
       const claimFields = new Map(merchant.claimDetails);
       const networkFields = new Map(merchant.network.fields);
@@ -105,6 +120,10 @@ for (const { claimType, scenario } of allScenarios) {
     const nsfRecord = financial.recordsByTab.cash.find((item) => /NSF|returned-payment/i.test(item.title));
     if (nsfRecord?.value !== `${credit.nsfReturns} event(s)`) failures.push(`${scenario.id} formats an NSF event count as money instead of an event count.`);
   }
+}
+
+for (const outcome of customerDocumentResponseOutcomes) {
+  if (!generatedCustomerResponseOutcomes.has(outcome)) failures.push(`Generated chargeback cases do not exercise the ${outcome} customer-response outcome.`);
 }
 
 const legacySummaryCase = createGeneratedCase({ index: sequence + 50, claimTypeId: 'business-loan-bust-out', scenarioId: 'blo-sleeper-llc-sudden-draw' });

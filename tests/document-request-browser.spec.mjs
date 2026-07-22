@@ -35,6 +35,29 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   expect(savedRequest['FA-CB-24007']).toBeTruthy();
   expect(Object.values(savedRequest['FA-CB-24007']).some((request) => request.status === 'Requested' && request.deliveryChannel === 'Email')).toBe(true);
 
+  const requestDetail = toolPanel.getByRole('main', { name: 'Expanded document request detail' });
+  await requestDetail.getByRole('button', { name: 'Check for Customer Response', exact: true }).click();
+  await expect(toolPanel.locator('.document-request-confirmation')).toContainText('received from the customer and added to the Document Viewer');
+  await expect(requestDetail).toContainText('Received');
+  await expect(requestDetail).toContainText('New customer submission');
+  await expect(requestDetail.getByRole('button', { name: 'Open Customer Document', exact: true })).toBeVisible();
+
+  const receivedRequest = await page.evaluate(() => JSON.parse(localStorage.getItem('fraud-academy-document-requests-v1') || '{}'));
+  const cancellationSubmission = Object.values(receivedRequest['FA-CB-24007']).find((request) => request.status === 'Received');
+  expect(cancellationSubmission?.customerSubmission?.pages?.length).toBe(1);
+  expect(cancellationSubmission?.customerSubmission?.pages?.[0]?.title).toContain('StreamBox Premium Cancellation Confirmation');
+
+  await requestDetail.getByRole('button', { name: 'Open Customer Document', exact: true }).click();
+  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
+  const customerViewer = toolPanel.locator('[data-document-viewer-screen="approved-theme-v1"]');
+  await expect(customerViewer.getByRole('button', { name: /Customer Evidence/ })).toHaveClass(/active/);
+  await expect(customerViewer.locator('.document-page')).toContainText('StreamBox Premium Cancellation Confirmation');
+  await expect(customerViewer.locator('.document-page')).toContainText('Automatic renewal turned off');
+  await customerViewer.getByRole('navigation', { name: 'Document Viewer next routes' })
+    .getByRole('button', { name: 'Open Document Request', exact: true })
+    .click();
+  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Request');
+
   if (testInfo.project.name === 'mobile-chromium') {
     await toolPanel.getByRole('button', { name: '‹ Inbox', exact: true }).click();
   }

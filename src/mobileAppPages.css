@@ -477,6 +477,114 @@ body[data-layout-mode="mobile"][data-visual-tab="workspace"] .luna-visual-panel[
   display: block !important;
 }
 
+/* Customer 360 must follow the explicit app layout mode. Some Android in-app
+   browsers expose a wide CSS viewport even while the app shell is phone-sized. */
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-theme-v1 {
+  width: 100%;
+  min-width: 0;
+  gap: 12px;
+  overflow: hidden;
+  border-radius: 18px;
+  padding: 10px;
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-header,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-review-bar,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-section-heading {
+  width: 100%;
+  min-width: 0;
+  align-items: stretch;
+  flex-direction: column;
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-header > div:first-child,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-header-actions,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-header-actions > *,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-review-bar > div:last-child,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-review-bar button {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-header > div:first-child {
+  flex: 1 1 auto;
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-header :is(.customer-360-eyebrow, h2, p),
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-status {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-header-actions,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-review-bar > div:last-child {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: stretch;
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-status {
+  justify-content: center;
+  border-radius: 12px;
+  text-align: center;
+  white-space: normal;
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-identity-band {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-identity-metrics,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-highlight-grid,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-field-grid,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-event-copy dl,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-support-grid,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-support-card dl,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-structured-records,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-structured-records article dl,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-record-grid,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-event-actions,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-record-grid article > div {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-tool-row,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-search-row,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-event-card {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-flow-chips {
+  justify-content: flex-start;
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-section-actions {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-search-row > span,
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-section-heading > span {
+  justify-self: start;
+  white-space: normal;
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-card {
+  grid-column: 1 / -1;
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+}
+
 @media (max-width: 360px) {
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .mobile-workspace-page-header,
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .mobile-case-briefing-pager {
@@ -485,5 +593,9 @@ body[data-layout-mode="mobile"][data-visual-tab="workspace"] .luna-visual-panel[
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .case-briefing-card-grid > .case-briefing-metrics[data-mobile-briefing-active="true"] {
     grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .customer-360-actions {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

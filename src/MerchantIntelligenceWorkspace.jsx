@@ -21,7 +21,7 @@ function StatusPill({ children, tone = 'neutral' }) {
 }
 
 function DocumentCard({ document, onOpen }) {
-  const available = document.status === 'Available';
+  const available = ['Available', 'Received', 'Incomplete', 'Received Late'].includes(document.status);
   return (
     <button
       type="button"
@@ -167,9 +167,15 @@ function MerchantResponse({ workspace, onOpen, openMerchantPaperwork }) {
 }
 
 function CustomerEvidence({ workspace, onOpen, openTool, documentRequests }) {
-  const customerDocuments = workspace.customerDocuments.map((document) => document.status === 'Available'
-    ? document
-    : { ...document, status: documentRequests[document.id]?.status ?? 'Not Requested' });
+  const customerDocuments = workspace.customerDocuments.map((document) => {
+    if (document.status === 'Available') return document;
+    const savedRequest = documentRequests[document.id];
+    return {
+      ...document,
+      status: savedRequest?.status ?? 'Not Requested',
+      receivedInInbox: Boolean(savedRequest?.customerSubmission?.pages?.length),
+    };
+  });
   return (
     <div className="merchant-lifecycle-stack">
       <section className="merchant-lifecycle-panel">
@@ -233,6 +239,20 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
     openTool('Document Viewer');
   }
 
+  function openCustomerPaperwork(document) {
+    if (!document.receivedInInbox) {
+      setSelectedDocument(document);
+      return;
+    }
+    queueDocumentViewerRoute({
+      caseId: activeCase.id,
+      folder: 'Customer Evidence',
+      documentId: document.id,
+      pane: 'reader',
+    });
+    openTool('Document Viewer');
+  }
+
   if (selectedDocument) {
     return <DocumentSheet document={selectedDocument} activeCase={activeCase} onClose={() => setSelectedDocument(null)} pin={pin} saveNote={saveNote} />;
   }
@@ -242,7 +262,7 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
     'claim-details': <ClaimDetails {...sectionProps} />,
     'network-submission': <NetworkSubmission {...sectionProps} />,
     'merchant-response': <MerchantResponse {...sectionProps} />,
-    'customer-evidence': <CustomerEvidence {...sectionProps} />,
+    'customer-evidence': <CustomerEvidence {...sectionProps} onOpen={openCustomerPaperwork} />,
     'visa-requirements': <VisaRequirements {...sectionProps} />,
     'case-status': <CaseStatus {...sectionProps} />,
   };

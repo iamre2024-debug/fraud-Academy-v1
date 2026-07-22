@@ -247,8 +247,11 @@ body[data-visual-tab="workspace"] .document-request-status-dot {
 body[data-visual-tab="workspace"] .document-request-status-dot.status-not-requested { background: #a998c8; }
 body[data-visual-tab="workspace"] .document-request-status-dot.status-requested { background: #e27a3f; }
 body[data-visual-tab="workspace"] .document-request-status-dot.status-received,
+body[data-visual-tab="workspace"] .document-request-status-dot.status-received-late,
 body[data-visual-tab="workspace"] .document-request-status-dot.status-approved { background: #36a374; }
 body[data-visual-tab="workspace"] .document-request-status-dot.status-pending-review { background: #7551c8; }
+body[data-visual-tab="workspace"] .document-request-status-dot.status-incomplete { background: #d48a24; }
+body[data-visual-tab="workspace"] .document-request-status-dot.status-no-response { background: #9b6b78; }
 
 body[data-visual-tab="workspace"] .document-request-message-copy,
 body[data-visual-tab="workspace"] .document-request-message-meta {
@@ -321,6 +324,25 @@ body[data-visual-tab="workspace"] .document-request-message-body {
 
 body[data-visual-tab="workspace"] .document-request-message-body p + p {
   margin-top: 12px;
+}
+
+body[data-visual-tab="workspace"] .document-request-unread {
+  display: inline-flex;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  background: #e9f8f1;
+  padding: 5px 9px;
+  color: #287354;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .document-request-actions .document-request-check-response {
+  border-color: #7551c8;
+  background: linear-gradient(135deg, #7551c8, #8d5ac5);
+  color: #fff;
 }
 
 body[data-visual-tab="workspace"] .document-request-not-sent {

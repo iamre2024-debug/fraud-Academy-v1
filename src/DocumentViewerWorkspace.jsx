@@ -15,11 +15,11 @@ function DocumentPage({ document, page, pageNumber, zoom }) {
     >
       <header className="document-page-header">
         <div>
-          <span>Fraud Academy Training Records</span>
+          <span>{page.brand ?? 'Fraud Academy Training Records'}</span>
           <h3>{page.title}</h3>
           <p>{page.subtitle}</p>
         </div>
-        <small>{document.reference}</small>
+        <small>{page.reference ?? document.reference}</small>
       </header>
 
       {page.initials && (
@@ -111,14 +111,38 @@ export default function DocumentViewerWorkspace({
   const documents = useMemo(() => accessGranted ? getCaseDocuments(activeCase).map((document) => {
     const request = documentRequests[document.id];
     if (!request) return document;
+    const submission = request.customerSubmission;
+    const hasCustomerPages = Boolean(submission?.pages?.length);
+    const reviewStatus = request.status === 'Requested'
+      ? 'Awaiting customer paperwork'
+      : request.status === 'Incomplete'
+        ? 'Incomplete — investigator review required'
+        : request.status === 'Received Late'
+          ? 'Pending Review — received late'
+          : request.status === 'No Response'
+            ? 'No customer response'
+            : ['Received', 'Approved'].includes(request.status)
+              ? 'Pending Review'
+              : document.reviewStatus;
     return {
       ...document,
+      ...(hasCustomerPages ? {
+        pages: submission.pages,
+        fields: submission.fields ?? document.fields,
+        source: submission.source ?? document.source,
+        reference: submission.reference ?? document.reference,
+        summary: submission.summary ?? document.summary,
+        authenticity: submission.authenticity ?? document.authenticity,
+        extractionConfidence: submission.extractionConfidence ?? document.extractionConfidence,
+        investigatorNote: 'Review the customer-supplied page itself. Record what is visible, what is missing, and how its dates compare with the claim and merchant records.',
+      } : {}),
       status: document.pages.length ? document.status : request.status,
       requestStatus: request.status,
-      reviewStatus: request.status === 'Requested' ? 'Awaiting paperwork' : document.reviewStatus,
+      reviewStatus,
       received: request.receivedDate ?? document.received,
       requestDueDate: request.dueDate,
-      requestDeliveryChannel: request.deliveryChannel,
+      requestDeliveryChannel: request.requestDeliveryChannel ?? request.deliveryChannel,
+      responseChannel: request.responseChannel,
     };
   }) : [], [accessGranted, activeCase, documentRequests]);
   const folders = useMemo(() => ['All Documents', ...new Set(documents.map((document) => document.folder))], [documents]);
@@ -375,6 +399,7 @@ export default function DocumentViewerWorkspace({
                 <div><dt>Request status</dt><dd>{activeDocument.requestStatus}</dd></div>
                 {activeDocument.requestDueDate && <div><dt>Request due</dt><dd>{activeDocument.requestDueDate}</dd></div>}
                 {activeDocument.requestDeliveryChannel && <div><dt>Request delivery</dt><dd>{activeDocument.requestDeliveryChannel}</dd></div>}
+                {activeDocument.responseChannel && <div><dt>Customer delivery</dt><dd>{activeDocument.responseChannel}</dd></div>}
                 <div><dt>Extraction confidence</dt><dd>{activeDocument.extractionConfidence}</dd></div>
                 <div><dt>Quality review</dt><dd>{activeDocument.authenticity}</dd></div>
               </dl>

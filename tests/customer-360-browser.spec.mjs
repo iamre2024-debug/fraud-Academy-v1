@@ -136,3 +136,44 @@ test('approved Customer 360 is a complete Evidence First dossier', async ({ page
   await expect(lunaPanel).toHaveAttribute('data-case-id', secondCase.id);
   expect(await page.locator('body').innerText()).not.toMatch(forbiddenPreSubmissionCopy);
 });
+
+test('Customer 360 honors explicit mobile app layout without compressing text', async ({ page }) => {
+  await page.setViewportSize({ width: 980, height: 900 });
+  await page.goto('/');
+  await page.locator('[data-case-briefing-screen="approved-theme-v1"]')
+    .getByRole('button', { name: /Begin Investigation/ })
+    .click();
+  await page.evaluate(() => {
+    document.body.dataset.layoutMode = 'mobile';
+  });
+
+  const customer360 = page.locator('[data-customer-360-screen="approved-theme-v1"]');
+  await expect(customer360).toBeVisible();
+  const layout = await page.evaluate(() => {
+    const panel = document.querySelector('[data-customer-360-screen="approved-theme-v1"]');
+    const header = panel?.querySelector('.customer-360-header');
+    const copy = header?.querySelector(':scope > div:first-child');
+    const title = header?.querySelector('h2');
+    const actions = header?.querySelector('.customer-360-header-actions');
+    const identity = panel?.querySelector('.customer-360-identity-band');
+    const rect = (element) => element?.getBoundingClientRect();
+    return {
+      documentWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth,
+      headerDirection: header ? getComputedStyle(header).flexDirection : '',
+      copyWidth: rect(copy)?.width ?? 0,
+      titleWidth: rect(title)?.width ?? 0,
+      titleHeight: rect(title)?.height ?? 0,
+      actionColumns: actions ? getComputedStyle(actions).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      identityColumns: identity ? getComputedStyle(identity).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+    };
+  });
+
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.headerDirection).toBe('column');
+  expect(layout.copyWidth).toBeGreaterThan(250);
+  expect(layout.titleWidth).toBeGreaterThan(150);
+  expect(layout.titleHeight).toBeLessThan(80);
+  expect(layout.actionColumns).toBe(1);
+  expect(layout.identityColumns).toBe(1);
+});

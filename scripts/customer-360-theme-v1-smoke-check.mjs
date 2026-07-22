@@ -103,6 +103,7 @@ for (const anchor of [
 
 mustContain('main.jsx', entrypoint, "import './displayCustomer360ThemeV1.css';");
 mustContain('customer-360-browser.spec.mjs', browser, 'approved Customer 360 is a complete Evidence First dossier');
+mustContain('customer-360-browser.spec.mjs', browser, 'Customer 360 honors explicit mobile app layout without compressing text');
 mustContain('customer-360-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('customer-360-browser.spec.mjs', browser, 'Customer 360 dossier tabs');
 mustContain('customer-360-browser.spec.mjs', browser, 'Export Profile Change Report');
