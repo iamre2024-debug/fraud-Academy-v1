@@ -48,7 +48,7 @@ export default function VisualShellHeader({ activeCase, cases, changeCase, onNav
         <div className="hero-bat">🦇</div>
         <div className="hero-title-wrap"><div className="hero-jewel">💜</div><h1>Fraud Academy OS</h1><span>v1.0</span></div>
         <div className="workspace-shell-heading">
-          <span className="workspace-shell-mark" aria-hidden="true">FA</span>
+          <button type="button" className="workspace-shell-mark" aria-label="Return to Dashboard" onClick={() => navigate('dashboard')}>FA</button>
           <div>
             <p>Investigation Workspace</p>
             <h1>Fraud Academy OS</h1>

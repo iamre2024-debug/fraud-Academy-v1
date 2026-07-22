@@ -42,7 +42,7 @@ const tabCopy = {
 const navigationItems = [
   { key: 'dashboard', icon: '🏠', label: 'Home', accessibleLabel: 'Dashboard' },
   { key: 'cases', icon: '🔎', label: 'Cases', accessibleLabel: 'Cases' },
-  { key: 'workspace', icon: '🧭', label: 'Work', accessibleLabel: 'Workspace' },
+  { key: 'workspace', icon: '📎', label: 'Files', accessibleLabel: 'Workspace' },
   { key: 'academy', icon: '🌙', label: 'Luna', accessibleLabel: 'Academy' },
 ];
 
@@ -137,12 +137,13 @@ export default function VisualNavigation({ activeTab = 'workspace', activeCaseId
   return (
     <>
       {panelHost && createPortal(panel, panelHost)}
-      <nav className="visual-bottom-nav visual-react-bottom-nav" aria-label="Main navigation" data-react-navigation="true">
+      <nav className="visual-bottom-nav visual-react-bottom-nav mission-route-dock" aria-label="Main navigation" data-react-navigation="true">
         {navigationItems.map((item) => (
           <button
             key={item.key}
             type="button"
             className={activeTab === item.key ? 'active' : ''}
+            data-mission-route={item.key}
             onClick={() => onNavigate(item.key)}
             aria-label={item.accessibleLabel}
             aria-current={activeTab === item.key ? 'page' : undefined}
@@ -159,7 +160,7 @@ function NavigationPanel({ activeTab, activeCaseId, cases, snapshot, onNavigate,
   const copy = tabCopy[activeTab] ?? tabCopy.dashboard;
 
   return (
-    <section className={`ornate-card visual-nav-panel ${activeTab === 'dashboard' ? 'dashboard-theme-v1' : ''}`} aria-live="polite" data-react-navigation-panel={activeTab}>
+    <section className={`ornate-card visual-nav-panel mission-deck-panel mission-deck-panel-${activeTab} ${activeTab === 'dashboard' ? 'dashboard-theme-v1' : ''}`} aria-live="polite" data-react-navigation-panel={activeTab}>
       <div className="visual-nav-heading">
         <div>
           <p>{copy.eyebrow}</p>
@@ -279,7 +280,7 @@ function DashboardPanel({ activeCaseId, cases, snapshot, onNavigate, onOpenCase 
         </section>
       )}
 
-      <div className="dashboard-quick-grid" aria-label="Dashboard shortcuts">
+      <div className="dashboard-quick-grid dashboard-mission-drawers" aria-label="Dashboard shortcuts">
         <button type="button" onClick={() => onNavigate('cases')}>
           <span className="dashboard-quick-icon">▣</span>
           <span><strong>Case Queue</strong><small>{cases.length} available cases</small></span>

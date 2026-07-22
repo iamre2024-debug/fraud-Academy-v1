@@ -35,6 +35,11 @@ export default function SubmitDecisionPanel({
       data-decision-screen="approved-theme-v1"
       data-case-id={activeCase.id}
     >
+      <aside className="mission-decision-progress" aria-label="Decision workflow progress">
+        <span className="complete"><i />Review</span>
+        <span className={notes.length ? 'complete' : 'active'}><i />Notes</span>
+        <span className={latestPackage ? 'complete' : 'active'}><i />Decide</span>
+      </aside>
       <header className="decision-v1-header">
         <div>
           <p className="decision-v1-eyebrow">Determination · Evidence First</p>

@@ -7,6 +7,14 @@ function fieldValue(document, label) {
   return document?.fields?.find(([field]) => field === label)?.[1] ?? 'Not recorded';
 }
 
+function folderIcon(folder = '') {
+  if (/customer/i.test(folder)) return '👤';
+  if (/merchant/i.test(folder)) return '🏪';
+  if (/request/i.test(folder)) return '💬';
+  if (/network/i.test(folder)) return '🌐';
+  return '📁';
+}
+
 function DocumentPage({ document, page, pageNumber, zoom }) {
   return (
     <article
@@ -264,6 +272,12 @@ export default function DocumentViewerWorkspace({
         <span aria-live="polite">{filteredDocuments.length} of {documents.length} documents shown</span>
       </section>
 
+      <aside className="mission-document-progress" aria-label="Document review progress">
+        <span className={mobilePane === 'reader' ? 'complete' : 'active'}><i />Review</span>
+        <span className={noteDraft.trim() ? 'active' : ''}><i />Notes</span>
+        <button type="button" onClick={jumpDecision}><i />Decide</button>
+      </aside>
+
       <div className="document-viewer-layout" data-mobile-pane={mobilePane}>
         <nav className="document-folder-nav" aria-label="Document folders">
           <p>Mailboxes</p>
@@ -271,7 +285,7 @@ export default function DocumentViewerWorkspace({
             const count = item === 'All Documents' ? documents.length : documents.filter((document) => document.folder === item).length;
             return (
               <button key={item} type="button" className={folder === item ? 'active' : ''} onClick={() => { setFolder(item); setMobilePane('inbox'); }}>
-                <span>{item}</span><strong>{count}</strong>
+                <span><i aria-hidden="true">{folderIcon(item)}</i>{item}</span><strong>{count}</strong>
               </button>
             );
           })}
