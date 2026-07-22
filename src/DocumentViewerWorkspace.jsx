@@ -99,6 +99,7 @@ export default function DocumentViewerWorkspace({
   reviewed,
   openTool,
   jumpDecision,
+  documentRequests = {},
 }) {
   const [accountLookup, setAccountLookup] = useState('');
   const [matchedAccountId, setMatchedAccountId] = useState('');
@@ -106,7 +107,19 @@ export default function DocumentViewerWorkspace({
   const normalizeAccountId = (value = '') => String(value).trim().toUpperCase();
   const accessGranted = Boolean(matchedAccountId)
     && normalizeAccountId(activeCase.accountId) === matchedAccountId;
-  const documents = useMemo(() => accessGranted ? getCaseDocuments(activeCase) : [], [accessGranted, activeCase]);
+  const documents = useMemo(() => accessGranted ? getCaseDocuments(activeCase).map((document) => {
+    const request = documentRequests[document.id];
+    if (!request) return document;
+    return {
+      ...document,
+      status: document.pages.length ? document.status : request.status,
+      requestStatus: request.status,
+      reviewStatus: request.status === 'Requested' ? 'Awaiting paperwork' : document.reviewStatus,
+      received: request.receivedDate ?? document.received,
+      requestDueDate: request.dueDate,
+      requestDeliveryChannel: request.deliveryChannel,
+    };
+  }) : [], [accessGranted, activeCase, documentRequests]);
   const folders = useMemo(() => ['All Documents', ...new Set(documents.map((document) => document.folder))], [documents]);
   const statuses = useMemo(() => ['All statuses', ...new Set(documents.map((document) => document.status))], [documents]);
   const [folder, setFolder] = useState('All Documents');
@@ -116,6 +129,7 @@ export default function DocumentViewerWorkspace({
   const [zoom, setZoom] = useState(100);
   const [compareIds, setCompareIds] = useState([]);
   const [noteDraft, setNoteDraft] = useState('');
+  const [mobilePane, setMobilePane] = useState('inbox');
   const normalizedQuery = query.trim().toLowerCase();
   const filteredDocuments = documents.filter((document) => (
     (folder === 'All Documents' || document.folder === folder)
@@ -123,9 +137,7 @@ export default function DocumentViewerWorkspace({
     && (!normalizedQuery || documentSearchText(document).includes(normalizedQuery))
   ));
   const activeDocument = filteredDocuments.find((document) => document.id === selectedDocumentId)
-    ?? filteredDocuments[0]
-    ?? documents.find((document) => document.id === selectedDocumentId)
-    ?? documents[0];
+    ?? filteredDocuments[0];
   const activePage = activeDocument?.pages?.[pageIndex] ?? activeDocument?.pages?.[0];
   const comparedDocuments = compareIds.map((id) => documents.find((document) => document.id === id)).filter(Boolean);
 
@@ -137,6 +149,7 @@ export default function DocumentViewerWorkspace({
     setZoom(100);
     setCompareIds([]);
     setNoteDraft('');
+    setMobilePane('inbox');
   }, [activeCase.id]);
 
   useEffect(() => {
@@ -146,6 +159,7 @@ export default function DocumentViewerWorkspace({
   function openDocument(documentId) {
     setSelectedDocumentId(documentId);
     setPageIndex(0);
+    setMobilePane('reader');
   }
 
   function toggleCompare(documentId) {
@@ -243,23 +257,25 @@ export default function DocumentViewerWorkspace({
             {statuses.map((item) => <option key={item}>{item}</option>)}
           </select>
         </label>
+        <button type="button" className="document-viewer-request-button" onClick={() => openTool('Document Request')}>Request Paperwork</button>
         <span aria-live="polite">{filteredDocuments.length} of {documents.length} documents shown</span>
       </section>
 
-      <nav className="document-folder-nav" aria-label="Document folders">
-        {folders.map((item) => {
-          const count = item === 'All Documents' ? documents.length : documents.filter((document) => document.folder === item).length;
-          return (
-            <button key={item} type="button" className={folder === item ? 'active' : ''} onClick={() => setFolder(item)}>
-              <span>{item}</span><strong>{count}</strong>
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="document-viewer-layout">
+      <div className="document-viewer-layout" data-mobile-pane={mobilePane}>
+        <nav className="document-folder-nav" aria-label="Document folders">
+          <p>Mailboxes</p>
+          {folders.map((item) => {
+            const count = item === 'All Documents' ? documents.length : documents.filter((document) => document.folder === item).length;
+            return (
+              <button key={item} type="button" className={folder === item ? 'active' : ''} onClick={() => { setFolder(item); setMobilePane('inbox'); }}>
+                <span>{item}</span><strong>{count}</strong>
+              </button>
+            );
+          })}
+          <button type="button" className="document-folder-request" onClick={() => openTool('Document Request')}>＋ Request Paperwork</button>
+        </nav>
         <section className="document-record-browser" aria-label="Document records">
-          <header><p>Case file</p><h3>Available documents</h3></header>
+          <header><p>Case inbox</p><h3>{filteredDocuments.length} document{filteredDocuments.length === 1 ? '' : 's'}</h3></header>
           <div className="document-record-list">
             {filteredDocuments.map((document) => (
               <article
@@ -291,6 +307,7 @@ export default function DocumentViewerWorkspace({
           {activeDocument ? (
             <>
               <header className="document-preview-toolbar">
+                <button type="button" className="document-mobile-back" onClick={() => setMobilePane('inbox')}>‹ Inbox</button>
                 <div>
                   <p>{activeDocument.type}</p>
                   <h3>{activeDocument.title}</h3>
@@ -344,6 +361,8 @@ export default function DocumentViewerWorkspace({
                 <div><dt>Source</dt><dd>{activeDocument.source}</dd></div>
                 <div><dt>Received</dt><dd>{activeDocument.received}</dd></div>
                 <div><dt>Request status</dt><dd>{activeDocument.requestStatus}</dd></div>
+                {activeDocument.requestDueDate && <div><dt>Request due</dt><dd>{activeDocument.requestDueDate}</dd></div>}
+                {activeDocument.requestDeliveryChannel && <div><dt>Request delivery</dt><dd>{activeDocument.requestDeliveryChannel}</dd></div>}
                 <div><dt>Extraction confidence</dt><dd>{activeDocument.extractionConfidence}</dd></div>
                 <div><dt>Quality review</dt><dd>{activeDocument.authenticity}</dd></div>
               </dl>

@@ -68,12 +68,14 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     decisionDraft,
     reviewPackages,
     actionLog,
+    documentRequests,
     setTrayByCase,
     setNotesByCase,
     setCompletedByCase,
     setDecisionByCase,
     setPackagesByCase,
     setActionsByCase,
+    setDocumentRequestsByCase,
   } = useVisualWorkspaceCaseState(activeCase);
   const availableToolNames = useMemo(() => new Set(activeCase.availableTools?.length ? activeCase.availableTools : workspaceTools), [activeCase]);
   const visibleCategories = useMemo(() => investigationToolGroups
@@ -378,6 +380,8 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     notes,
     cases,
     openDocumentAccountCase,
+    documentRequests,
+    setDocumentRequestsByCase,
   };
 
   return (

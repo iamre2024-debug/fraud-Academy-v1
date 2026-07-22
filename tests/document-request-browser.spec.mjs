@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('Document Request tracks case-scoped document workflow states', async ({ page }) => {
+test('Document Request tracks case-scoped document workflow states', async ({ page }, testInfo) => {
   await page.goto('/');
 
   const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
@@ -14,7 +14,28 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Request');
   await expect(toolPanel.getByRole('heading', { name: 'What documents were requested, received, missing, or pending review for this case?', exact: true })).toBeVisible();
-  await expect(toolPanel.getByRole('region', { name: 'Document request statuses' }).getByRole('button')).toHaveCount(9);
+  await expect(toolPanel.locator('.document-request-inbox')).toBeVisible();
+  await expect(toolPanel.locator('.document-request-compose-button')).toHaveText('＋ Request Paperwork');
+
+  await toolPanel.locator('.document-request-compose-button').click();
+  const composer = toolPanel.getByRole('main', { name: 'Compose paperwork request' });
+  await expect(composer.getByRole('heading', { name: 'Request Paperwork', exact: true })).toBeVisible();
+  await composer.getByRole('combobox', { name: 'Paperwork to request' }).selectOption({ label: 'Cancellation confirmation' });
+  await composer.getByRole('combobox', { name: 'Paperwork request delivery method' }).selectOption('Email');
+  await composer.getByRole('textbox', { name: 'Paperwork request reason' }).fill('Please send the cancellation confirmation showing the date and method used before renewal.');
+  await composer.getByRole('button', { name: 'Send Request', exact: true }).click();
+
+  await expect(toolPanel.locator('.document-request-confirmation')).toContainText('Cancellation confirmation request sent');
+  await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('Email');
+  await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('Requested');
+
+  const savedRequest = await page.evaluate(() => JSON.parse(localStorage.getItem('fraud-academy-document-requests-v1') || '{}'));
+  expect(savedRequest['FA-CB-24007']).toBeTruthy();
+  expect(Object.values(savedRequest['FA-CB-24007']).some((request) => request.status === 'Requested' && request.deliveryChannel === 'Email')).toBe(true);
+
+  if (testInfo.project.name === 'mobile-chromium') {
+    await toolPanel.getByRole('button', { name: '‹ Inbox', exact: true }).click();
+  }
 
   const records = toolPanel.locator('[data-document-request]');
   await expect(records.first()).toBeVisible();
@@ -24,12 +45,14 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   const search = toolPanel.getByRole('textbox', { name: 'Search Document Request records' });
   await search.fill(firstRequestId);
   await expect(records).toHaveCount(1);
+  await search.fill('no-matching-paperwork-record');
+  await expect(records).toHaveCount(0);
+  await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('No document requests are available for this case.');
   await search.clear();
 
   await records.first().click();
-  const detail = toolPanel.getByRole('region', { name: 'Expanded document request detail' });
+  const detail = toolPanel.getByRole('main', { name: 'Expanded document request detail' });
   await expect(detail).toContainText(firstRequestId);
-  await expect(detail).toContainText('Reason requested');
   await expect(detail).toContainText('Required / optional');
   await expect(detail).toContainText('Authenticity flag');
 

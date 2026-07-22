@@ -38,6 +38,7 @@ import './displayFinalResponsivePolishV1.css';
 import './responsiveLayoutMode.css';
 import './mobileAppPages.css';
 import './lunaManagerMobileFix.css';
+import './documentInbox.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

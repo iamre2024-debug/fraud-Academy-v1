@@ -47,17 +47,29 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
   await viewer.getByRole('button', { name: 'Search account', exact: true }).click();
   await expect(viewer).toContainText('Jordan Ellis');
   await expect(viewer).toContainText('FA-CB-24007');
-  await expect(viewer.getByRole('navigation', { name: 'Document folders' }).getByRole('button')).toHaveCount(4);
+  await expect(viewer.getByRole('button', { name: 'Request Paperwork', exact: true }).first()).toBeVisible();
+  await expect(viewer.getByRole('navigation', { name: 'Document folders' }).locator('button:not(.document-folder-request)')).toHaveCount(4);
   await expect(viewer.locator('[data-document-record]')).toHaveCount(8);
+
+  await search.fill('no-matching-document-record');
+  await expect(viewer.locator('[data-document-record]')).toHaveCount(0);
+  await expect(viewer.locator('.document-record-list .document-viewer-empty')).toContainText('No documents match the current folder, status, and search.');
+  await expect(viewer.getByRole('main', { name: 'Document preview' })).toContainText('Choose a document to open its viewer.');
+  await search.clear();
 
   for (const title of requiredDocuments) {
     await search.fill(title);
     await expect(viewer.locator('[data-document-record]')).toHaveCount(1);
+    await viewer.locator('[data-document-record] .document-record-open').click();
     await expect(viewer.getByRole('heading', { name: title, exact: true }).first()).toBeVisible();
     await expect(viewer.locator('.document-inspector')).toContainText('Extraction confidence');
+    if (testInfo.project.name === 'mobile-chromium') {
+      await viewer.getByRole('button', { name: '‹ Inbox', exact: true }).click();
+    }
   }
 
   await search.fill('Billing history statement');
+  await viewer.locator('[data-document-record] .document-record-open').click();
   const pageControls = viewer.getByRole('region', { name: 'Document page controls' });
   await expect(pageControls.getByText('Page 1 of 1', { exact: true })).toBeVisible();
   await expect(viewer.locator('.document-page')).toContainText('Account billing ledger');
@@ -68,6 +80,9 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toContain('BILL-HIST');
 
+  if (testInfo.project.name === 'mobile-chromium') {
+    await viewer.getByRole('button', { name: '‹ Inbox', exact: true }).click();
+  }
   await search.clear();
   const customerRecord = viewer.locator('[data-document-record]').filter({ hasText: 'Customer dispute form' });
   const statementRecord = viewer.locator('[data-document-record]').filter({ hasText: 'Billing history statement' });

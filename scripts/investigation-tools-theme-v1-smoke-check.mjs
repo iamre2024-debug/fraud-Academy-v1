@@ -18,6 +18,9 @@ const groups = fs.readFileSync(path.join(rootDir, 'src/investigationToolGroups.j
 const workspace = fs.readFileSync(path.join(rootDir, 'src/VisualWorkspace.jsx'), 'utf8');
 const rail = fs.readFileSync(path.join(rootDir, 'src/CategoryTileRail.jsx'), 'utf8');
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayInvestigationToolsThemeV1.css'), 'utf8');
+const documentInboxStyles = fs.readFileSync(path.join(rootDir, 'src/documentInbox.css'), 'utf8');
+const workspaceState = fs.readFileSync(path.join(rootDir, 'src/useVisualWorkspaceCaseState.js'), 'utf8');
+const workspaceModel = fs.readFileSync(path.join(rootDir, 'src/visualWorkspaceModel.js'), 'utf8');
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/investigation-tools-browser.spec.mjs'), 'utf8');
 const documentBrowser = fs.readFileSync(path.join(rootDir, 'tests/document-viewer-browser.spec.mjs'), 'utf8');
@@ -109,10 +112,14 @@ for (const anchor of [
   'DocumentRequestWorkspace',
   'DocumentViewerWorkspace',
   'Document request workflow',
+  'Paperwork inbox',
+  'Request Paperwork',
+  'Send Request',
+  'Paperwork conversation',
+  'Compose paperwork request',
+  'setDocumentRequestsByCase',
   'Search Document Request',
   'Document request statuses',
-  'Request queue',
-  'Reason requested',
   'Required / optional',
   'Authenticity flag',
   'Reviewer notes',
@@ -401,6 +408,13 @@ for (const anchor of ['KYB Business Report', 'generateKybReviewReport', 'getGene
 }
 
 mustContain('main.jsx', entrypoint, "import './displayInvestigationToolsThemeV1.css';");
+mustContain('main.jsx', entrypoint, "import './documentInbox.css';");
+mustContain('useVisualWorkspaceCaseState.js', workspaceState, 'setDocumentRequestsByCase');
+mustContain('useVisualWorkspaceCaseState.js', workspaceState, 'storageKeys.documentRequests');
+mustContain('visualWorkspaceModel.js', workspaceModel, "documentRequests: 'fraud-academy-document-requests-v1'");
+for (const anchor of ['.document-request-inbox', '.document-request-compose-button', '.document-request-message-body', '[data-mobile-pane="compose"]', '.document-viewer-layout']) {
+  mustContain('documentInbox.css', documentInboxStyles, anchor);
+}
 mustContain('investigation-tools-browser.spec.mjs', browser, 'approved Investigation tools are contextual, functional, and responsive');
 mustContain('investigation-tools-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('document-viewer-browser.spec.mjs', documentBrowser, 'requires an Account ID');

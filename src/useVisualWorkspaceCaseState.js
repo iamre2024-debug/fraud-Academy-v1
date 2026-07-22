@@ -26,6 +26,7 @@ export default function useVisualWorkspaceCaseState(activeCase) {
   const [decisionByCase, setDecisionByCase] = useState(() => readStorage(storageKeys.decisions, {}));
   const [packagesByCase, setPackagesByCase] = useState(() => readStorage(storageKeys.packages, {}));
   const [actionsByCase, setActionsByCase] = useState(() => readStorage(storageKeys.actions, {}));
+  const [documentRequestsByCase, setDocumentRequestsByCase] = useState(() => readStorage(storageKeys.documentRequests, {}));
 
   useEffect(() => writeStorage(storageKeys.tray, trayByCase), [trayByCase]);
   useEffect(() => writeStorage(storageKeys.notes, notesByCase), [notesByCase]);
@@ -36,6 +37,7 @@ export default function useVisualWorkspaceCaseState(activeCase) {
     window.dispatchEvent(new CustomEvent('fraud-academy:packages-updated'));
   }, [packagesByCase]);
   useEffect(() => writeStorage(storageKeys.actions, actionsByCase), [actionsByCase]);
+  useEffect(() => writeStorage(storageKeys.documentRequests, documentRequestsByCase), [documentRequestsByCase]);
 
   const caseId = activeCase.id;
 
@@ -46,11 +48,13 @@ export default function useVisualWorkspaceCaseState(activeCase) {
     decisionDraft: decisionByCase[caseId] ?? defaultDecisionDraft,
     reviewPackages: packagesByCase[caseId] ?? [],
     actionLog: [...(actionsByCase[caseId] ?? []), ...(activeCase.actionLog ?? [])],
+    documentRequests: documentRequestsByCase[caseId] ?? {},
     setTrayByCase,
     setNotesByCase,
     setCompletedByCase,
     setDecisionByCase,
     setPackagesByCase,
     setActionsByCase,
+    setDocumentRequestsByCase,
   };
 }
