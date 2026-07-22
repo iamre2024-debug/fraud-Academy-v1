@@ -70,6 +70,7 @@ body[data-layout-mode="mobile"] .visual-os-frame {
 }
 
 body[data-layout-mode="mobile"] .visual-os-shell {
+  width: min(100%, 460px) !important;
   margin: 0 auto;
   padding: 0 9px calc(98px + env(safe-area-inset-bottom));
   background: transparent !important;

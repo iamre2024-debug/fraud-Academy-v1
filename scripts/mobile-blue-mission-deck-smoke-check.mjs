@@ -22,6 +22,7 @@ for (const anchor of [
   'body[data-layout-mode="mobile"]',
   '--mission-navy: #031225',
   '--mission-cyan: #3ad8ff',
+  'width: min(100%, 460px) !important',
   '.dashboard-mission-stack',
   '.dashboard-lighthouse-art',
   '.visual-react-bottom-nav',
