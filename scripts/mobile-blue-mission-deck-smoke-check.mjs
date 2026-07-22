@@ -33,6 +33,7 @@ for (const anchor of [
   '.mission-evidence-map',
   '.mission-map-node.node-transaction',
   '.visual-category-row',
+  '.visual-category-row > button > em',
   '.investigation-category-copy',
   '.document-request-statuses',
   '.document-preview-workspace',
