@@ -928,6 +928,7 @@ body[data-layout-mode="mobile"] .document-request-summary { display: flex !impor
 body[data-layout-mode="mobile"] .document-request-summary article { flex: 0 0 116px; border-color: var(--mission-line) !important; background: #042b50 !important; color: #fff !important; }
 
 /* Document Viewer: white document, blue folders and an actual decision rail. */
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .investigation-tools-theme-v1[data-tool-name="Document Viewer"] { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 body[data-layout-mode="mobile"] .document-viewer { position: relative; min-width: 0; padding: 0 52px 18px 0; }
 body[data-layout-mode="mobile"] .mission-document-progress,
 body[data-layout-mode="mobile"] .mission-decision-progress { position: absolute; z-index: 12; top: 176px; right: 0; width: 47px; display: grid; justify-items: center; gap: 0; border: 1px solid var(--mission-line); border-radius: 22px; background: rgba(2, 26, 51, 0.96); padding: 12px 4px; box-shadow: var(--mission-shadow); }
