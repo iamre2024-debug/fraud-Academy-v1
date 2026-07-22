@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { documentSearchText, getCaseDocuments } from './data/documentRecords.js';
+import { buildCustomerResponseDocuments } from './data/documentRequestWorkflow.js';
 import { clearDocumentViewerRoute, readDocumentViewerRoute } from './documentViewerRoute.js';
 
 function fieldValue(document, label) {
@@ -108,43 +109,9 @@ export default function DocumentViewerWorkspace({
   const normalizeAccountId = (value = '') => String(value).trim().toUpperCase();
   const accessGranted = Boolean(matchedAccountId)
     && normalizeAccountId(activeCase.accountId) === matchedAccountId;
-  const documents = useMemo(() => accessGranted ? getCaseDocuments(activeCase).map((document) => {
-    const request = documentRequests[document.id];
-    if (!request) return document;
-    const submission = request.customerSubmission;
-    const hasCustomerPages = Boolean(submission?.pages?.length);
-    const reviewStatus = request.status === 'Requested'
-      ? 'Awaiting customer paperwork'
-      : request.status === 'Incomplete'
-        ? 'Incomplete — investigator review required'
-        : request.status === 'Received Late'
-          ? 'Pending Review — received late'
-          : request.status === 'No Response'
-            ? 'No customer response'
-            : ['Received', 'Approved'].includes(request.status)
-              ? 'Pending Review'
-              : document.reviewStatus;
-    return {
-      ...document,
-      ...(hasCustomerPages ? {
-        pages: submission.pages,
-        fields: submission.fields ?? document.fields,
-        source: submission.source ?? document.source,
-        reference: submission.reference ?? document.reference,
-        summary: submission.summary ?? document.summary,
-        authenticity: submission.authenticity ?? document.authenticity,
-        extractionConfidence: submission.extractionConfidence ?? document.extractionConfidence,
-        investigatorNote: 'Review the customer-supplied page itself. Record what is visible, what is missing, and how its dates compare with the claim and merchant records.',
-      } : {}),
-      status: document.pages.length ? document.status : request.status,
-      requestStatus: request.status,
-      reviewStatus,
-      received: request.receivedDate ?? document.received,
-      requestDueDate: request.dueDate,
-      requestDeliveryChannel: request.requestDeliveryChannel ?? request.deliveryChannel,
-      responseChannel: request.responseChannel,
-    };
-  }) : [], [accessGranted, activeCase, documentRequests]);
+  const documents = useMemo(() => accessGranted
+    ? [...getCaseDocuments(activeCase), ...buildCustomerResponseDocuments(activeCase, documentRequests)]
+    : [], [accessGranted, activeCase, documentRequests]);
   const folders = useMemo(() => ['All Documents', ...new Set(documents.map((document) => document.folder))], [documents]);
   const statuses = useMemo(() => ['All statuses', ...new Set(documents.map((document) => document.status))], [documents]);
   const [folder, setFolder] = useState('All Documents');

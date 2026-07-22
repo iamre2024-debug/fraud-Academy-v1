@@ -16,8 +16,9 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(toolPanel.getByRole('heading', { name: 'What documents were requested, received, missing, or pending review for this case?', exact: true })).toBeVisible();
   await expect(toolPanel.locator('.document-request-inbox')).toBeVisible();
   await expect(toolPanel.locator('.document-request-compose-button')).toHaveText('＋ Request Paperwork');
-  const cancellationRecord = toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation' });
-  await expect(cancellationRecord).toContainText('Not Requested');
+  await expect(toolPanel.locator('[data-document-request]')).toHaveCount(1);
+  await expect(toolPanel.locator('[data-document-request]').first()).toContainText('Customer dispute form');
+  await expect(toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation' })).toHaveCount(0);
 
   await toolPanel.locator('.document-request-compose-button').click();
   const composer = toolPanel.getByRole('main', { name: 'Compose paperwork request' });
@@ -30,10 +31,12 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(toolPanel.locator('.document-request-confirmation')).toContainText('Cancellation confirmation request sent');
   await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('Email');
   await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('Requested');
+  await expect(toolPanel.locator('[data-document-request]')).toHaveCount(2);
+  await expect(toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation request' })).toContainText('Requested');
 
-  const savedRequest = await page.evaluate(() => JSON.parse(localStorage.getItem('fraud-academy-document-requests-v1') || '{}'));
+  const savedRequest = await page.evaluate(() => JSON.parse(localStorage.getItem('fraud-academy-document-requests-v2') || '{}'));
   expect(savedRequest['FA-CB-24007']).toBeTruthy();
-  expect(Object.values(savedRequest['FA-CB-24007']).some((request) => request.status === 'Requested' && request.deliveryChannel === 'Email')).toBe(true);
+  expect(Object.values(savedRequest['FA-CB-24007']).some((request) => request.attempts?.some((attempt) => attempt.requestDeliveryChannel === 'Email'))).toBe(true);
 
   const requestDetail = toolPanel.getByRole('main', { name: 'Expanded document request detail' });
   await requestDetail.getByRole('button', { name: 'Check for Customer Response', exact: true }).click();
@@ -41,9 +44,14 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(requestDetail).toContainText('Received');
   await expect(requestDetail).toContainText('New customer submission');
   await expect(requestDetail.getByRole('button', { name: 'Open Customer Document', exact: true })).toBeVisible();
+  await expect(toolPanel.locator('[data-document-request]')).toHaveCount(3);
+  await expect(toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation request' })).toContainText('Requested');
+  await expect(toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation' }).filter({ hasText: 'Received' })).toHaveCount(1);
 
-  const receivedRequest = await page.evaluate(() => JSON.parse(localStorage.getItem('fraud-academy-document-requests-v1') || '{}'));
-  const cancellationSubmission = Object.values(receivedRequest['FA-CB-24007']).find((request) => request.status === 'Received');
+  const receivedRequest = await page.evaluate(() => JSON.parse(localStorage.getItem('fraud-academy-document-requests-v2') || '{}'));
+  const cancellationSubmission = Object.values(receivedRequest['FA-CB-24007'])
+    .flatMap((request) => request.attempts ?? [])
+    .find((attempt) => attempt.responseStatus === 'Received');
   expect(cancellationSubmission?.customerSubmission?.pages?.length).toBe(1);
   expect(cancellationSubmission?.customerSubmission?.pages?.[0]?.title).toContain('StreamBox Premium Cancellation Confirmation');
 

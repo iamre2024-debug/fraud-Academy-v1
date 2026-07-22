@@ -411,7 +411,7 @@ mustContain('main.jsx', entrypoint, "import './displayInvestigationToolsThemeV1.
 mustContain('main.jsx', entrypoint, "import './documentInbox.css';");
 mustContain('useVisualWorkspaceCaseState.js', workspaceState, 'setDocumentRequestsByCase');
 mustContain('useVisualWorkspaceCaseState.js', workspaceState, 'storageKeys.documentRequests');
-mustContain('visualWorkspaceModel.js', workspaceModel, "documentRequests: 'fraud-academy-document-requests-v1'");
+mustContain('visualWorkspaceModel.js', workspaceModel, "documentRequests: 'fraud-academy-document-requests-v2'");
 for (const anchor of ['.document-request-inbox', '.document-request-compose-button', '.document-request-message-body', '[data-mobile-pane="compose"]', '.document-viewer-layout']) {
   mustContain('documentInbox.css', documentInboxStyles, anchor);
 }

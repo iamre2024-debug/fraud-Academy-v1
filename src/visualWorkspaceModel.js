@@ -25,7 +25,7 @@ export const storageKeys = {
   decisions: 'fraud-academy-decision-drafts-v1',
   packages: 'fraud-academy-review-packages-v1',
   actions: 'fraud-academy-action-log-v1',
-  documentRequests: 'fraud-academy-document-requests-v1',
+  documentRequests: 'fraud-academy-document-requests-v2',
 };
 
 export const defaultDecisionDraft = { choice: '', confidence: 'Medium', reason: '', indicators: {} };

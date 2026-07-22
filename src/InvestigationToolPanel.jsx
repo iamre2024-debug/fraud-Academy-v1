@@ -7,8 +7,13 @@ import { buildCoreToolRecords } from './data/coreToolRecords.js';
 import { getBusiness360Workspace, getEmployeeProfiles, getPayrollHistory, getTransactionHistory } from './data/businessPayrollWorkspace.js';
 import { getDeviceProfiles } from './data/deviceRecords.js';
 import { getFinancialRecords } from './data/caseToolData.js';
-import { buildCustomerDocumentResponse, getCustomerDocumentResponseOutcome } from './data/customerDocumentResponses.js';
-import { getCaseDocumentRequests, getCaseDocuments } from './data/documentRecords.js';
+import { getCaseDocuments } from './data/documentRecords.js';
+import {
+  applyCustomerResponse,
+  buildPaperworkInboxRecords,
+  createPaperworkAttempt,
+  getPaperworkRequestTemplates,
+} from './data/documentRequestWorkflow.js';
 import { financialInvestigationTabs, financialRecordSearchText, getFinancialInvestigation } from './data/financialInvestigationRecords.js';
 import { getIdentityIntelReport, matchesIdentityIntelSearch } from './data/identityIntelReport.js';
 import { getLoginRecords } from './data/loginRecords.js';
@@ -958,58 +963,6 @@ function DeviceIntelligenceWorkspace({
 
 const documentRequestStatuses = ['All', 'Not Requested', 'Requested', 'Received', 'Incomplete', 'Received Late', 'No Response', 'Pending Review', 'Approved', 'Rejected', 'Expired', 'Missing', 'Exception Approved'];
 
-function documentRequestStatus(status = '') {
-  if (status === 'Available') return 'Pending Review';
-  if (status === 'Pending') return 'Not Requested';
-  return documentRequestStatuses.includes(status) ? status : 'Not Requested';
-}
-
-function buildDocumentRequests(activeCase, requestUpdates = {}) {
-  return getCaseDocumentRequests(activeCase).map((document) => {
-    const update = requestUpdates[document.id] ?? {};
-    const submission = update.customerSubmission;
-    const hasSavedRequest = Boolean(update.status);
-    const status = documentRequestStatus(hasSavedRequest
-      ? update.status
-      : document.pages?.length
-        ? document.requestStatus ?? document.status
-        : 'Not Requested');
-    const isOptional = /optional/i.test(document.folder ?? document.type);
-    const received = update.receivedDate ?? (['Received', 'Incomplete', 'Received Late', 'Approved', 'Pending Review'].includes(status) ? document.received : 'Not received');
-    const documentFields = submission?.fields ?? document.fields;
-    return {
-      id: document.id,
-      documentType: document.title,
-      category: document.folder,
-      status,
-      reason: update.reason ?? (status === 'Not Requested'
-        ? 'No request has been sent. Use Request Paperwork only when this evidence is required for the claim.'
-        : status === 'Requested'
-        ? 'Requested to complete the fictional case packet.'
-        : status === 'Missing'
-          ? 'Optional supporting document is not included in the current packet.'
-          : 'Customer-submitted paperwork is available for source-document review and comparison.'),
-      requirement: isOptional ? 'Optional' : 'Required',
-      dueDate: update.dueDate ?? (status === 'Requested' ? 'Follow up date not supplied' : 'Not applicable'),
-      authenticity: submission?.authenticity ?? document.authenticity,
-      reviewerNotes: update.reviewerNotes ?? document.summary,
-      linkedCase: activeCase.id,
-      linkedTool: 'Document Viewer',
-      receivedDate: received,
-      requestedDate: update.requestedDate ?? (status === 'Not Requested' ? 'Not requested' : 'No agent request required'),
-      recipient: update.recipient ?? activeCase.person ?? 'Customer on the active case',
-      sender: update.sender ?? document.source ?? activeCase.person ?? 'Customer on the active case',
-      requestDeliveryChannel: update.requestDeliveryChannel ?? update.deliveryChannel ?? (status === 'Not Requested' ? 'Not sent' : 'Customer-provided case intake'),
-      deliveryChannel: update.responseChannel ?? update.deliveryChannel ?? (status === 'Not Requested' ? 'Not sent' : 'Customer-provided case intake'),
-      pagesAvailable: Boolean(document.pages?.length || submission?.pages?.length),
-      fields: documentFields.map(([label, value]) => `${label}: ${value}`).join(' | '),
-      responseOutcome: update.responseOutcome,
-      responseCheckedAt: update.responseCheckedAt,
-      unread: Boolean(update.unread),
-    };
-  });
-}
-
 function documentRequestSearchText(request) {
   return Object.values(request).filter(Boolean).join(' ').toLowerCase();
 }
@@ -1040,7 +993,8 @@ function DocumentRequestWorkspace({
   });
   const [mobilePane, setMobilePane] = useState('inbox');
   const [requestConfirmation, setRequestConfirmation] = useState('');
-  const requests = buildDocumentRequests(activeCase, documentRequests);
+  const requestTemplates = getPaperworkRequestTemplates(activeCase);
+  const requests = buildPaperworkInboxRecords(activeCase, documentRequests);
   const merchantDocuments = getCaseDocuments(activeCase).filter((document) => document.folder === 'Merchant Evidence' && document.pages?.length);
   const firstMerchantDocument = merchantDocuments[0];
   const normalizedQuery = query.trim().toLowerCase();
@@ -1064,13 +1018,16 @@ function DocumentRequestWorkspace({
     saveNote(`Document Request: ${message}`, 'Document request');
   }
 
-  function openComposer(request = activeRequest) {
-    setComposeDocumentId(request?.id ?? requests[0]?.id ?? '');
+  function openComposer(request) {
+    const requestedSourceId = request?.sourceDocumentId;
+    const sourceDocumentId = requestTemplates.some((item) => item.id === requestedSourceId)
+      ? requestedSourceId
+      : requestTemplates[0]?.id ?? '';
+    const requestedTitle = request?.requestedDocumentType ?? request?.documentType ?? requestTemplates[0]?.title ?? 'this paperwork';
+    setComposeDocumentId(sourceDocumentId);
     setComposeReason(['Incomplete', 'No Response'].includes(request?.status)
-      ? `Please provide a complete copy of ${request.documentType}, including every page and visible reference.`
-      : request?.status === 'Not Requested'
-        ? `Please provide ${request.documentType} for the disputed claim, including every page and visible reference.`
-        : 'Please provide this paperwork so the disputed claim can be reviewed.');
+      ? `Please provide a complete copy of ${requestedTitle}, including every page and visible reference.`
+      : 'Please provide this paperwork so the disputed claim can be reviewed.');
     setComposeChannel(request?.requestDeliveryChannel === 'Not sent' ? 'Secure upload link' : request?.requestDeliveryChannel ?? 'Secure upload link');
     setComposeOpen(true);
     setMobilePane('compose');
@@ -1079,78 +1036,68 @@ function DocumentRequestWorkspace({
 
   function submitPaperworkRequest(event) {
     event.preventDefault();
-    const document = requests.find((request) => request.id === composeDocumentId);
+    const document = requestTemplates.find((request) => request.id === composeDocumentId);
     if (!document || !composeReason.trim()) return;
     const requestedDate = new Date().toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
     const dueDate = composeDueDate
       ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(`${composeDueDate}T12:00:00`))
       : 'Follow-up date not supplied';
-    const sourceDocument = getCaseDocumentRequests(activeCase).find((item) => item.id === document.id) ?? document;
-    const responseOutcome = getCustomerDocumentResponseOutcome(activeCase, sourceDocument);
-    setDocumentRequestsByCase((current) => ({
-      ...current,
-      [activeCase.id]: {
-        ...(current[activeCase.id] ?? {}),
-        [document.id]: {
-          ...(current[activeCase.id]?.[document.id] ?? {}),
-          status: 'Requested',
-          reason: composeReason.trim(),
-          dueDate,
-          requestedDate,
-          recipient: activeCase.person ?? 'Customer on the active case',
-          deliveryChannel: composeChannel,
-          requestDeliveryChannel: composeChannel,
-          receivedDate: 'Not received',
-          responseOutcome,
-          responseCheckedAt: '',
-          responseChannel: '',
-          customerSubmission: null,
-          unread: false,
-          reviewerNotes: `Paperwork request sent through ${composeChannel}. Review the returned source document before documenting an outcome.`,
-        },
-      },
-    }));
-    setSelectedRequestId(document.id);
-    setStatusFilter('All');
-    setComposeOpen(false);
-    setMobilePane('reader');
-    setRequestConfirmation(`${document.documentType} request sent to ${activeCase.person ?? 'the customer'} through ${composeChannel}.`);
-    saveRequestNote(`${document.documentType} requested from ${activeCase.person ?? 'the customer'} through ${composeChannel}; follow-up due ${dueDate}.`);
-  }
-
-  function checkCustomerResponse(request = activeRequest) {
-    if (!request || request.status !== 'Requested') return;
-    const sourceDocument = getCaseDocumentRequests(activeCase).find((item) => item.id === request.id) ?? request;
-    const checkedAt = new Date().toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
-    const response = buildCustomerDocumentResponse({
+    const attempt = createPaperworkAttempt({
       activeCase,
-      document: sourceDocument,
-      outcome: request.responseOutcome,
-      receivedDate: checkedAt,
+      document,
+      reason: composeReason.trim(),
+      dueDate,
+      requestedDate,
+      deliveryChannel: composeChannel,
     });
     setDocumentRequestsByCase((current) => ({
       ...current,
       [activeCase.id]: {
         ...(current[activeCase.id] ?? {}),
-        [request.id]: {
-          ...(current[activeCase.id]?.[request.id] ?? {}),
-          ...response,
-          unread: Boolean(response.customerSubmission?.pages?.length),
+        [document.id]: {
+          schemaVersion: 2,
+          sourceDocumentId: document.id,
+          attempts: [...(current[activeCase.id]?.[document.id]?.attempts ?? []), attempt],
         },
       },
     }));
-    setSelectedRequestId(request.id);
+    setSelectedRequestId(attempt.requestId);
+    setStatusFilter('All');
+    setComposeOpen(false);
+    setMobilePane('reader');
+    setRequestConfirmation(`${document.title} request sent to ${activeCase.person ?? 'the customer'} through ${composeChannel}.`);
+    saveRequestNote(`${document.title} requested from ${activeCase.person ?? 'the customer'} through ${composeChannel}; follow-up due ${dueDate}.`);
+  }
+
+  function checkCustomerResponse(request = activeRequest) {
+    if (!request || request.recordKind !== 'outbound-request' || request.status !== 'Requested' || request.responseCheckedAt) return;
+    const sourceDocument = requestTemplates.find((item) => item.id === request.sourceDocumentId);
+    if (!sourceDocument) return;
+    const checkedAt = new Date().toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    const currentAttempt = documentRequests[request.sourceDocumentId]?.attempts?.find((attempt) => attempt.attemptId === request.attemptId);
+    if (!currentAttempt) return;
+    const updatedAttempt = applyCustomerResponse({ activeCase, document: sourceDocument, attempt: currentAttempt, checkedAt });
+    setDocumentRequestsByCase((current) => ({
+      ...current,
+      [activeCase.id]: (() => {
+        const caseRequests = current[activeCase.id] ?? {};
+        const documentState = caseRequests[request.sourceDocumentId] ?? { schemaVersion: 2, sourceDocumentId: request.sourceDocumentId, attempts: [] };
+        const attempts = documentState.attempts.map((attempt) => attempt.attemptId === request.attemptId ? updatedAttempt : attempt);
+        return { ...caseRequests, [request.sourceDocumentId]: { ...documentState, attempts } };
+      })(),
+    }));
+    setSelectedRequestId(updatedAttempt.responseId || updatedAttempt.requestId);
     setStatusFilter('All');
     setMobilePane('reader');
-    const confirmation = response.status === 'No Response'
-      ? `${request.documentType}: no customer response was received for this scenario.`
-      : response.status === 'Incomplete'
-        ? `${request.documentType} received from the customer, but the submission is incomplete.`
-        : response.status === 'Received Late'
-          ? `${request.documentType} received from the customer after the follow-up date.`
-          : `${request.documentType} received from the customer and added to the Document Viewer.`;
+    const confirmation = updatedAttempt.responseStatus === 'No Response'
+      ? `${sourceDocument.title}: no customer response was received for this scenario.`
+      : updatedAttempt.responseStatus === 'Incomplete'
+        ? `${sourceDocument.title} received from the customer, but the submission is incomplete.`
+        : updatedAttempt.responseStatus === 'Received Late'
+          ? `${sourceDocument.title} received from the customer after the follow-up date.`
+          : `${sourceDocument.title} received from the customer and added as a separate Document Viewer record.`;
     setRequestConfirmation(confirmation);
-    saveRequestNote(`${request.documentType} response check recorded: ${response.status}.`);
+    saveRequestNote(`${sourceDocument.title} response check recorded: ${updatedAttempt.responseStatus}.`);
   }
 
   function openRequest(requestId) {
@@ -1196,7 +1143,7 @@ function DocumentRequestWorkspace({
 
       <div className="document-request-inbox" data-mobile-pane={composeOpen ? 'compose' : mobilePane}>
         <aside className="document-request-statuses" aria-label="Document request statuses">
-          <button type="button" className="document-request-compose-button" onClick={() => openComposer()} disabled={!requests.length}>＋ Request Paperwork</button>
+          <button type="button" className="document-request-compose-button" onClick={() => openComposer()} disabled={!requestTemplates.length}>＋ Request Paperwork</button>
           <p>Mailboxes</p>
           {documentRequestStatuses.map((status) => {
             const count = status === 'All' ? requests.length : requests.filter((request) => request.status === status).length;
@@ -1222,7 +1169,7 @@ function DocumentRequestWorkspace({
               >
                 <span className={`document-request-status-dot status-${request.status.toLowerCase().replace(/\s+/g, '-')}`} aria-hidden="true"></span>
                 <span className="document-request-message-copy"><strong>{request.documentType}</strong><small>{request.status === 'Not Requested' ? 'Not sent' : request.pagesAvailable ? `From: ${request.sender}` : `To: ${request.recipient}`} · {request.requirement}</small><em>{request.reason}</em></span>
-                <span className="document-request-message-meta"><small>{request.status}</small><time>{request.requestedDate === 'No agent request recorded' ? request.receivedDate : request.requestedDate}</time></span>
+                <span className="document-request-message-meta"><small>{request.status}</small><time>{request.recordKind === 'customer-submission' ? request.receivedDate : request.requestedDate}</time></span>
               </button>
             ))}
             {!filteredRequests.length && <div className="investigation-tool-empty" role="status">No document requests match this filter or search.</div>}
@@ -1236,11 +1183,11 @@ function DocumentRequestWorkspace({
                 <div><p>New request</p><h3>Request Paperwork</h3><span>This creates a saved request on {activeCase.id}.</span></div>
               </header>
               <label><span>To</span><input value={activeCase.person ?? 'Customer on the active case'} readOnly aria-label="Paperwork request recipient" /></label>
-              <label><span>Paperwork</span><select value={composeDocumentId || requests[0]?.id || ''} onChange={(event) => setComposeDocumentId(event.target.value)} aria-label="Paperwork to request">{requests.map((request) => <option key={request.id} value={request.id}>{request.documentType}</option>)}</select></label>
+              <label><span>Paperwork</span><select value={composeDocumentId || requestTemplates[0]?.id || ''} onChange={(event) => setComposeDocumentId(event.target.value)} aria-label="Paperwork to request">{requestTemplates.map((request) => <option key={request.id} value={request.id}>{request.title}</option>)}</select></label>
               <label><span>Delivery method</span><select value={composeChannel} onChange={(event) => setComposeChannel(event.target.value)} aria-label="Paperwork request delivery method"><option>Secure upload link</option><option>Email</option><option>Mail</option><option>Customer service follow-up</option></select></label>
               <label><span>Follow-up due</span><input type="date" value={composeDueDate} onChange={(event) => setComposeDueDate(event.target.value)} aria-label="Paperwork request due date" /></label>
               <label className="document-request-compose-reason"><span>Message / reason</span><textarea value={composeReason} onChange={(event) => setComposeReason(event.target.value)} aria-label="Paperwork request reason" /></label>
-              <div className="document-request-compose-actions"><button type="button" onClick={() => { setComposeOpen(false); setMobilePane(activeRequest ? 'reader' : 'inbox'); }}>Cancel</button><button type="submit" className="primary" disabled={!composeDocumentId && !requests[0]?.id}>Send Request</button></div>
+              <div className="document-request-compose-actions"><button type="button" onClick={() => { setComposeOpen(false); setMobilePane(activeRequest ? 'reader' : 'inbox'); }}>Cancel</button><button type="submit" className="primary" disabled={!composeDocumentId && !requestTemplates[0]?.id}>Send Request</button></div>
             </form>
           ) : activeRequest ? (<>
             <header>
@@ -1289,9 +1236,9 @@ function DocumentRequestWorkspace({
             </article>
             <div className="document-request-actions">
               <button type="button" onClick={() => saveRequestNote(`${activeRequest.id} follow-up recorded for ${activeRequest.status}.`)}>Save follow-up note</button>
-              {activeRequest.status === 'Requested' && <button type="button" className="document-request-check-response" onClick={() => checkCustomerResponse(activeRequest)}>Check for Customer Response</button>}
+              {activeRequest.recordKind === 'outbound-request' && activeRequest.status === 'Requested' && !activeRequest.responseCheckedAt && <button type="button" className="document-request-check-response" onClick={() => checkCustomerResponse(activeRequest)}>Check for Customer Response</button>}
               {['Not Requested', 'Incomplete', 'No Response'].includes(activeRequest.status) && <button type="button" onClick={() => openComposer(activeRequest)}>{activeRequest.status === 'Not Requested' ? 'Request paperwork' : 'Request again'}</button>}
-              {activeRequest.pagesAvailable && <button type="button" onClick={() => openDocumentViewerRoute({ folder: activeRequest.category, documentId: activeRequest.id, pane: 'reader' })}>Open Customer Document</button>}
+              {activeRequest.pagesAvailable && <button type="button" onClick={() => openDocumentViewerRoute({ folder: activeRequest.category, documentId: activeRequest.documentViewerId, pane: 'reader' })}>Open Customer Document</button>}
               {firstMerchantDocument && <button type="button" onClick={openMerchantPaperwork}>View Merchant Paperwork</button>}
             </div>
           </>) : <div className="investigation-tool-empty" role="status">No document requests are available for this case.</div>}
