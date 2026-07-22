@@ -226,6 +226,36 @@ body[data-layout-mode="mobile"] .visual-header-control-panel {
   box-shadow: var(--mission-shadow) !important;
 }
 
+body[data-layout-mode="mobile"] .visual-header-control-panel .header-setting-row {
+  width: 100%;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+body[data-layout-mode="mobile"] .visual-header-control-panel .header-setting-row > span {
+  display: grid !important;
+  min-width: 0 !important;
+  gap: 3px;
+}
+
+body[data-layout-mode="mobile"] .visual-header-control-panel .header-setting-row > input[type="checkbox"] {
+  width: 24px !important;
+  min-width: 24px !important;
+  height: 24px !important;
+  margin: 0 !important;
+}
+
+body[data-layout-mode="mobile"] .visual-header-control-panel .layout-setting-row {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+body[data-layout-mode="mobile"] .visual-header-control-panel .layout-mode-control {
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
 body[data-layout-mode="mobile"] .case-info-bar.visual-case-strip {
   display: none !important;
 }
@@ -280,6 +310,28 @@ body[data-layout-mode="mobile"] .visual-react-bottom-nav button.active {
 
 body[data-layout-mode="mobile"]:not([data-visual-tab="workspace"]) :is(.visual-react-nav-host, .cases-theme-v1-host) {
   margin-right: 64px;
+}
+
+body[data-layout-mode="mobile"]:not([data-visual-tab="workspace"]) :is(
+  .case-info-bar.visual-case-strip,
+  .generated-case-controls,
+  .mobile-workspace-page-header,
+  .active-case-workflow,
+  [data-workflow-stage="briefing"],
+  .workflow-investigate-stage,
+  .workflow-active-tool-stage,
+  [data-workflow-stage="indicators"],
+  [data-workflow-stage="determination"],
+  .decision-luna-portal-anchor,
+  .luna-post-submission-host
+) {
+  display: none !important;
+}
+
+body[data-layout-mode="mobile"]:not([data-visual-tab="workspace"]) .visual-react-nav-host {
+  display: block !important;
+  width: auto !important;
+  min-width: 0 !important;
 }
 
 body[data-layout-mode="mobile"][data-visual-tab="workspace"] .visual-react-bottom-nav {
