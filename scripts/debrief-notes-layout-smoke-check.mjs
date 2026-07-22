@@ -56,8 +56,8 @@ if (debrief.breakdown.some((item) => item.label === 'Notebook and rationale dept
 
 const panel = fs.readFileSync(path.join(rootDir, 'src/LunaPostSubmissionPanel.jsx'), 'utf8');
 for (const anchor of [
-  "? { strengths: '04', followUps: '05', breakdown: '06' }",
-  ": { strengths: '03', followUps: '04', breakdown: '05' }",
+  'data-debrief-step="05"',
+  'data-debrief-step="06"',
   'state.debrief.notesQuality.label',
   'luna-v1-step-index',
 ]) {

@@ -7,7 +7,7 @@ import { buildCoreToolRecords } from './data/coreToolRecords.js';
 import { getBusiness360Workspace, getEmployeeProfiles, getPayrollHistory, getTransactionHistory } from './data/businessPayrollWorkspace.js';
 import { getDeviceProfiles } from './data/deviceRecords.js';
 import { getFinancialRecords } from './data/caseToolData.js';
-import { getCaseDocuments } from './data/documentRecords.js';
+import { getCaseDocumentRequests, getCaseDocuments } from './data/documentRecords.js';
 import { financialInvestigationTabs, financialRecordSearchText, getFinancialInvestigation } from './data/financialInvestigationRecords.js';
 import { getIdentityIntelReport, matchesIdentityIntelSearch } from './data/identityIntelReport.js';
 import { getLoginRecords } from './data/loginRecords.js';
@@ -962,7 +962,7 @@ function documentRequestStatus(status = '') {
 }
 
 function buildDocumentRequests(activeCase) {
-  return getCaseDocuments(activeCase).map((document) => {
+  return getCaseDocumentRequests(activeCase).map((document) => {
     const status = documentRequestStatus(document.requestStatus ?? document.status);
     const isOptional = /optional/i.test(document.folder ?? document.type);
     const received = ['Received', 'Approved', 'Pending Review'].includes(status) ? document.received : 'Not received';
@@ -1329,7 +1329,7 @@ function TransactionHistoryWorkspace({ activeCase, pin, saveNote, markReviewed, 
   return (
     <>
       <section className="transaction-history-findbar" aria-label="Transaction History filters">
-        <div><p>Banking activity</p><h3>30-day training activity view. Filter merchant, date, account, amount context, channel, or debit and credit activity.</h3></div>
+        <div><p>Banking activity</p><h3>Case activity view. Filter merchant, date, account, amount context, channel, or debit and credit activity.</h3></div>
         <label><span>Merchant or transaction</span><input value={merchantSearch} onChange={(event) => setMerchantSearch(event.target.value)} placeholder="Merchant, transaction ID, category, or account" aria-label="Search Transaction History" /></label>
         <label><span>From date</span><input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} aria-label="Transaction History from date" /></label>
         <label><span>To date</span><input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} aria-label="Transaction History to date" /></label>
@@ -1377,7 +1377,12 @@ function TransactionHistoryWorkspace({ activeCase, pin, saveNote, markReviewed, 
         </aside>
       </div> : <div className="investigation-tool-empty" role="status">No transaction records are available for this case.</div>}
 
-      <nav className="investigation-tool-next-routes" aria-label="Transaction History next routes"><button type="button" onClick={() => openTool('Financial Investigation')}>Open Financial Investigation</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <nav className="investigation-tool-next-routes" aria-label="Transaction History next routes">
+        {activeCase.availableTools?.includes('Merchant Intelligence') && <button type="button" onClick={() => openTool('Merchant Intelligence')}>Open Merchant Intelligence</button>}
+        {activeCase.availableTools?.includes('Financial Investigation') && <button type="button" onClick={() => openTool('Financial Investigation')}>Open Financial Investigation</button>}
+        {activeCase.availableTools?.includes('Payment Verification') && <button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button>}
+        <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
+      </nav>
       <footer className="investigation-tool-review-bar"><div><strong>Transaction History review</strong><span>Review the activity feed, transaction details, linked records, and documents before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Transaction History')}>{reviewed ? '✓ Transaction History reviewed' : 'Mark Transaction History reviewed'}</button></footer>
     </>
   );

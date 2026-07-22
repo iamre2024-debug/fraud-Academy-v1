@@ -269,6 +269,31 @@ function makeDocuments({ id, claimType, scenario, recordCount, difficulty, perso
   });
 }
 
+function makeClaimDetails({ scenario, reportedDate, issueStartDate, transactionId }) {
+  const context = `${scenario.subtype} ${scenario.title}`;
+  const base = {
+    disputedTransactionIds: [transactionId],
+    disputedTransactionDate: reportedDate,
+    requestedOutcome: 'Review the disputed transaction under the applicable card-network claim lane',
+  };
+  if (/subscription terms|trial.*convert|annual subscription/i.test(context)) return {
+    ...base,
+    enrollmentOrTrialDate: issueStartDate,
+    requestedOutcome: 'Review the subscription enrollment, price disclosure, and renewal terms',
+  };
+  if (/cancel|subscription|recurring/i.test(context)) return {
+    ...base,
+    cancellationDate: issueStartDate,
+    cancellationMethod: 'Merchant account settings · customer-reported',
+    requestedOutcome: 'Stop recurring billing and review the disputed renewal',
+  };
+  if (/refund|return credit/i.test(context)) return { ...base, returnOrRefundDate: issueStartDate, merchantContactMethod: scenario.channel };
+  if (/not received|delivery/i.test(context)) return { ...base, expectedDeliveryDate: issueStartDate, deliveryAddress: 'Customer address recorded at intake' };
+  if (/service|not as described/i.test(context)) return { ...base, serviceOrDeliveryDate: issueStartDate, merchantContactMethod: scenario.channel };
+  if (/duplicate|incorrect amount/i.test(context)) return { ...base, agreedAmountSource: 'Customer receipt or order record requested for comparison' };
+  return base;
+}
+
 export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const config = generatorOptions(indexOrOptions, options);
   const index = safeIndex(config.index);
@@ -289,6 +314,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const issueStartDate = dateFor(index, 2);
   const documents = makeDocuments({ id, claimType, scenario, recordCount, difficulty, person, business, employer, address, trainingId, reportedDate, issueStartDate });
   const toolResults = buildGeneratedToolResults({ id, index, person, city, employer, business, claimType: caseClaimType, scenario, documents, recordCount, trainingId, reportedDate, issueStartDate, difficulty });
+  const claimDetails = makeClaimDetails({ scenario, reportedDate, issueStartDate, transactionId: toolResults.transactions?.[0]?.id ?? `${id}-TXN-1` });
   const loginHistory = makeLoginHistory({ id, index, city, recordCount, claimType: caseClaimType, scenario, difficulty });
   const profileChanges = makeGeneratedProfileChanges({ id, index, person, city, claimType, scenario, reportedDate, issueStartDate, loginHistory });
   const statementLabel = /business|vendor|payment contact/i.test(scenario.entityRole) ? 'Business statement' : /employee/i.test(scenario.entityRole) ? 'Employee statement' : /applicant/i.test(scenario.entityRole) ? 'Applicant statement' : 'Customer statement';
@@ -379,11 +405,17 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     timelinePattern: scenario.timelinePattern,
     commonMistake: scenario.commonMistake,
     miniExample: scenario.miniExample,
-    generatedPacketVersion: 4,
+    generatedPacketVersion: 5,
     difficulty,
     evidenceDepth: depth.label,
     priority: scenario.priority,
-    status: 'Generated',
+    status: toolResults.merchantIntelligence?.response?.status === 'Accepted'
+      ? 'Merchant accepted — account credit review'
+      : toolResults.merchantIntelligence?.response?.status === 'Challenged'
+        ? 'Merchant challenged — customer evidence pending'
+        : toolResults.merchantIntelligence?.response?.status === 'Pending'
+          ? 'Submitted — merchant response pending'
+          : 'Generated',
     person,
     trainingId,
     accountId,
@@ -418,6 +450,8 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
       details: briefingPacket.details,
     },
     intake,
+    claimDetails,
+    merchantResponse: toolResults.merchantIntelligence?.response,
     intakeAnswers,
     briefingQuestions: claimType.intakePrompts,
     keyFacts: [

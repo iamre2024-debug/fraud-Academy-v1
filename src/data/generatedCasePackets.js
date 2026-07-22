@@ -115,10 +115,9 @@ function makeMerchantPacket({ id, index, claimType, scenario, person, reportedDa
   const name = /merchant|retail|online|card|transaction/i.test(scenarioMerchant) && scenarioMerchant.split(/\s+/).length < 3 ? fallbackName : scenarioMerchant || fallbackName;
   const tone = determinationTone(scenario);
   const authorizationTone = claimType.id === 'non-fraud-chargeback' ? 'established' : tone;
-  const relationshipTone = claimType.id === 'non-fraud-chargeback' && /duplicate|refund|return|cancel|subscription/i.test(scenario.subtype) ? 'established' : tone;
   const channel = merchantChannel(scenario.subtype);
   const authEntryMode = entryMode(scenario.subtype);
-  const priorCount = relationshipTone === 'established' ? 8 + (seed % 11) : relationshipTone === 'mixed' ? 2 + (seed % 4) : seed % 2;
+  const priorCount = Math.max(1, recordCount - 1);
   const disputeCount = /first-party/i.test(claimType.id) ? 2 + (seed % 3) : seed % 2;
   const refundCount = /refund|return|cancel/i.test(scenario.subtype) ? 1 + (seed % 3) : seed % 2;
   const attemptCount = difficulty === 'deep' ? 4 : difficulty === 'standard' ? 2 : 1;
@@ -142,6 +141,15 @@ function makeMerchantPacket({ id, index, claimType, scenario, person, reportedDa
     device: deviceMatch,
     ip: authorizationTone === 'established' ? '198.51.100.42 - previously recorded training range' : '203.0.113.84 - new training range',
     attempts: `${attemptCount} attempt${attemptCount === 1 ? '' : 's'}; ${declineCount} declined before settlement`,
+  };
+  const responseStatus = seed % 7 === 0 ? 'Pending' : seed % 5 === 0 ? 'Accepted' : 'Challenged';
+  const response = {
+    status: responseStatus,
+    receivedDate: responseStatus === 'Pending' ? 'Pending' : `${shiftedDate(reportedDate, 1)} - 2:14 PM`,
+    cancellationRequestFound: /cancel|subscription|recurring/i.test(scenario.subtype)
+      ? responseStatus === 'Accepted' ? 'Not contested' : 'No completed request located'
+      : 'Not applicable to this dispute type',
+    refundIssued: responseStatus === 'Accepted' ? 'Chargeback accepted; issuer credit review pending' : refundCount ? 'Refund entry recorded' : 'No',
   };
   const profile = {
     name,
@@ -207,7 +215,7 @@ function makeMerchantPacket({ id, index, claimType, scenario, person, reportedDa
     });
   }
 
-  return { profile, authorization: auth, records, reasonCode: reasonCodeFor(scenario.subtype), responseDeadline: deadlineFrom(reportedDate, 10, '3:00 PM') };
+  return { profile, authorization: auth, response, records, reasonCode: reasonCodeFor(scenario.subtype), responseDeadline: deadlineFrom(reportedDate, 10, '3:00 PM') };
 }
 
 function makeCreditProfile({ id, index, claimType, scenario, person, business, amount, reportedDate, difficulty }) {
@@ -278,12 +286,14 @@ function makeTransactions({ id, claimType, scenario, amount, reportedDate, issue
   const rail = scenario.taxonomyTags?.productRail ?? claimType.taxonomy.productRail;
   const primaryName = merchantPacket?.profile.name ?? scenario.transactionInfo.split(' - ')[0];
   const step = Math.max(18, Math.round(Math.max(amount, 120) * 0.13));
+  const recurring = /subscription|cancel|recurring/i.test(scenario.subtype);
+  const recurringDays = /annual/i.test(`${scenario.subtype} ${scenario.transactionInfo}`) ? 365 : 30;
   const records = Array.from({ length: Math.max(2, recordCount) }, (_, itemIndex) => {
     const current = itemIndex === 0;
     const itemAmount = current ? amount : Math.max(0, amount - (itemIndex * step));
     let channel = 'Account activity';
     let instrument = 'Training payment object';
-    let merchant = current ? primaryName : `${primaryName} prior activity ${itemIndex}`;
+    let merchant = current || recurring ? primaryName : `${primaryName} prior activity ${itemIndex}`;
 
     if (rail === 'card') {
       channel = merchantChannel(scenario.subtype) === 'Recurring' ? 'Recurring card billing' : merchantChannel(scenario.subtype) === 'In-store' ? 'Card present' : merchantChannel(scenario.subtype) === 'Digital wallet' ? 'Digital wallet payment' : 'Card not present';
@@ -304,7 +314,7 @@ function makeTransactions({ id, claimType, scenario, amount, reportedDate, issue
 
     return {
       id: `${id}-TXN-${itemIndex + 1}`,
-      posted: current ? reportedDate : shiftedDate(issueStartDate, -(itemIndex * 21)),
+      posted: current ? reportedDate : shiftedDate(recurring ? reportedDate : issueStartDate, -(itemIndex * (recurring ? recurringDays : 21))),
       time: current ? '9:18 AM' : `${String(8 + itemIndex).padStart(2, '0')}:42 AM`,
       merchant,
       amount: money(itemAmount),

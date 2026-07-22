@@ -19,6 +19,13 @@ body[data-visual-tab="workspace"] .merchant-summary-name { min-width: 0; }
 body[data-visual-tab="workspace"] .merchant-summary-name h3 { color: #21184a; font-size: 1.05rem; overflow-wrap: anywhere; }
 body[data-visual-tab="workspace"] .merchant-summary-name p { margin-top: 4px; color: #755f94; font-size: .75rem; }
 
+body[data-visual-tab="workspace"] .merchant-quick-summary { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 8px; min-width: 0; }
+body[data-visual-tab="workspace"] .merchant-quick-summary article { min-width: 0; border: 1px solid rgba(91,62,154,.12); border-radius: 13px; background: #fff; padding: 10px; }
+body[data-visual-tab="workspace"] .merchant-quick-summary span,
+body[data-visual-tab="workspace"] .merchant-quick-summary strong { display: block; overflow-wrap: anywhere; }
+body[data-visual-tab="workspace"] .merchant-quick-summary span { color: #776e90; font-size: .6rem; line-height: 1.3; }
+body[data-visual-tab="workspace"] .merchant-quick-summary strong { margin-top: 4px; color: #2b2350; font-size: .76rem; }
+
 body[data-visual-tab="workspace"] .merchant-lifecycle-fields { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); min-width: 0; }
 body[data-visual-tab="workspace"] .merchant-lifecycle-fields > div { min-width: 0; display: grid; gap: 4px; border-left: 1px solid rgba(91,62,154,.11); padding: 5px 14px; }
 body[data-visual-tab="workspace"] .merchant-lifecycle-fields > div:first-child { border-left: 0; }
@@ -125,6 +132,7 @@ body[data-visual-tab="workspace"] .merchant-document-signature strong { margin-t
 body[data-visual-tab="workspace"] .merchant-document-sheet > footer { display: flex; justify-content: space-between; gap: 12px; margin-top: auto; border-top: 1px solid #ddd9e1; padding-top: 10px; color: #88818d; font-family: Arial,Helvetica,sans-serif; font-size: .55rem; }
 
 @media (max-width: 900px) {
+  body[data-visual-tab="workspace"] .merchant-quick-summary { grid-template-columns: repeat(3,minmax(0,1fr)); }
   body[data-visual-tab="workspace"] .merchant-lifecycle-summary { grid-template-columns: auto minmax(0,1fr) auto; }
   body[data-visual-tab="workspace"] .merchant-lifecycle-summary > .merchant-lifecycle-fields { grid-column: 1 / -1; }
   body[data-visual-tab="workspace"] .merchant-lifecycle-tabs { display: none; }
@@ -136,6 +144,7 @@ body[data-visual-tab="workspace"] .merchant-document-sheet > footer { display: f
 }
 
 @media (max-width: 620px) {
+  body[data-visual-tab="workspace"] .merchant-quick-summary { grid-template-columns: repeat(2,minmax(0,1fr)); }
   body[data-visual-tab="workspace"] .merchant-lifecycle { gap: 11px; }
   body[data-visual-tab="workspace"] .merchant-lifecycle-heading { display: grid; grid-template-columns: minmax(0,1fr) auto; }
   body[data-visual-tab="workspace"] .merchant-lifecycle-heading div > span { grid-column: 1 / -1; }

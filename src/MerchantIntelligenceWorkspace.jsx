@@ -114,6 +114,10 @@ function ClaimDetails({ workspace, onOpen }) {
         <blockquote>{workspace.customerStatement}</blockquote>
       </section>
       <section className="merchant-lifecycle-panel">
+        <header><span className="merchant-panel-icon">AUTH</span><div><h3>Authorization / billing</h3><p>Card-processing facts tied to the disputed transaction.</p></div></header>
+        <FieldGrid fields={workspace.authorizationFields} />
+      </section>
+      <section className="merchant-lifecycle-panel">
         <header><span className="merchant-panel-icon">DOC</span><div><h3>Claim documents</h3><p>Open the source document and review it directly.</p></div></header>
         <div className="merchant-document-grid">{workspace.customerDocuments.filter((item) => item.status === 'Available').map((document) => <DocumentCard key={document.id} document={document} onOpen={onOpen} />)}</div>
       </section>
@@ -170,7 +174,7 @@ function CustomerEvidence({ workspace, onOpen, openTool }) {
       <section className="merchant-lifecycle-panel merchant-needed-panel">
         <header><span className="merchant-panel-icon">REQ</span><div><h3>Open document requests</h3><p>Only requested items that fit this claim scenario are shown.</p></div></header>
         <ul>{workspace.customerRequirements.map((item) => <li key={item}><span aria-hidden="true">○</span>{item}</li>)}</ul>
-        <button type="button" className="merchant-inline-action" onClick={() => openTool('Document Viewer')}>Open document request center</button>
+        <button type="button" className="merchant-inline-action" onClick={() => openTool('Document Request')}>Open document request center</button>
       </section>
     </div>
   );
@@ -240,6 +244,9 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
         <FieldGrid fields={workspace.summaryFields} />
         <StatusPill tone="attention">{workspace.claimLane}</StatusPill>
       </section>
+      <section className="merchant-quick-summary" aria-label="Merchant history summary">
+        {workspace.quickSummary.map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}
+      </section>
 
       <nav className="merchant-lifecycle-tabs" aria-label="Chargeback lifecycle sections">
         {merchantIntelligenceTabs.map((tab) => <button key={tab.id} type="button" className={activeSection === tab.id ? 'active' : ''} aria-pressed={activeSection === tab.id} onClick={() => setActiveSection(tab.id)}>{tab.label}</button>)}
@@ -250,7 +257,7 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
 
       <nav className="merchant-lifecycle-actions" aria-label="Merchant Intelligence actions">
         <button type="button" onClick={() => setActiveSection('network-submission')}>View network details</button>
-        <button type="button" onClick={() => openTool('Document Viewer')}>Request customer documents</button>
+        <button type="button" onClick={() => openTool('Document Request')}>Request customer documents</button>
         <button type="button" className="primary" onClick={jumpDecision}>Continue to decision →</button>
       </nav>
 

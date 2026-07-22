@@ -40,7 +40,7 @@ const checklistByClaimType = {
     flags: [
       flag('ncb-merchant-fulfilled', 'red', 'High', 'Does the merchant packet show the agreed product or service was correctly provided?', 'Cite the receipt, policy, delivery, usage, service, or merchant response record.'),
       flag('ncb-late-cancellation', 'red', 'Medium', 'Was cancellation or refund requested after the charge or outside the applicable terms?', 'Cite the billing date, cancellation date, policy, and customer contact.'),
-      flag('ncb-recurring-history', 'red', 'Medium', 'Was the same recurring billing pattern previously accepted without dispute?', 'Cite prior charges, statements, account usage, or customer contacts.'),
+      flag('ncb-recurring-history', 'red', 'Low', 'What prior recurring billing history provides context for this dispute?', 'Cite prior charges and contacts as context only; prior payment does not prove a later cancellation was invalid.'),
       flag('ncb-cancellation-proof', 'green', 'High', 'Is there proof that cancellation or return occurred before the disputed billing?', 'Cite the confirmation, return tracking, merchant message, date, and applicable transaction.'),
       flag('ncb-billing-error', 'green', 'High', 'Do the records show a duplicate, incorrect amount, missing refund, or billing error?', 'Cite both transactions, expected amount, refund record, or merchant acknowledgment.'),
       flag('ncb-required-evidence-gap', 'green', 'Medium', 'Is the merchant missing evidence required for the selected dispute reason?', 'Cite the reason-code requirement and the missing or incomplete merchant document.'),

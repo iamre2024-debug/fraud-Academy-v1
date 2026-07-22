@@ -7,7 +7,7 @@ export const financialInvestigationTabs = [
   { id: 'cash', label: 'Cash Activity', question: 'What cash deposits, withdrawals, or advances are recorded?' },
   { id: 'digital', label: 'Digital Payments', question: 'Which digital payment rails and recipients appear?' },
   { id: 'linked', label: 'Linked Accounts', question: 'Which external payment objects are linked to this relationship?' },
-  { id: 'merchant', label: 'Merchant Intelligence', question: 'What merchant history and fulfillment context are available?' },
+  { id: 'merchant', label: 'Merchant Billing History', question: 'Which merchant transactions appear in the account history?' },
   { id: 'trends', label: 'Behavior Trends', question: 'What changed when current behavior is compared with the baseline?' },
   { id: 'funds-flow', label: 'Funds Flow', question: 'How did funds move between the recorded sources and destinations?' },
   { id: 'cash-out', label: 'Mule / Cash-Out Pattern', question: 'What retained-balance and cash-out observations are recorded?' },
@@ -61,15 +61,15 @@ const builtInProfiles = {
   'FA-CB-24007': {
     account: 'Credit card ending 8841',
     accountType: 'Consumer credit card',
-    currentBalance: 1468.32,
-    availableBalance: 5531.68,
+    currentBalance: 1048.32,
+    availableBalance: 7451.68,
     averageBalance: 1284.09,
     monthlyDeposits: 650,
     monthlyOutflow: 838.76,
     accountAge: '4 years, 8 months',
     accountStatus: 'Open',
     relationshipLength: '4 years, 8 months',
-    creditLimit: '$7,000.00',
+    creditLimit: '$8,500.00',
     overdraft: 'Not applicable',
     alert: 'Recurring billing dispute opened Jul 8, 2026',
     deposits: [
@@ -92,12 +92,12 @@ const builtInProfiles = {
     fundsFlow: [
       ['FLOW-2201', 'Established checking destination', 'Credit card ending 8841', 650, 'Jul 2, 2026', 'Card payment'],
       ['FLOW-2202', 'Credit card ending 8841', 'StreamBox Premium', 189.44, 'Jul 8, 2026', 'Recurring merchant billing'],
-      ['FLOW-2203', 'Credit card relationship', 'Current balance', 1468.32, 'Jul 8, 2026', 'Statement balance context'],
+      ['FLOW-2203', 'Credit card relationship', 'Current balance', 1048.32, 'Jul 8, 2026', 'Statement balance context'],
     ],
     cashOut: [
       ['PAT-2201', 'Cash-out rail', 'No cash-out rail recorded', 'The reviewed activity is a recurring card charge.'],
       ['PAT-2202', 'Rapid movement after payment', 'No same-day transfer recorded', 'The card payment and disputed merchant charge are separated by six days.'],
-      ['PAT-2203', 'Retained credit availability', '$5,531.68 available', 'Available credit remains after the reviewed billing activity.'],
+      ['PAT-2203', 'Retained credit availability', '$7,451.68 available', 'Available credit remains after the reviewed billing activity.'],
     ],
   },
   'FA-CR-24003': {

@@ -34,8 +34,8 @@ const claimTypeDefinitions = [
     subtypes: ['lost card', 'stolen card', 'never received card', 'counterfeit/skimming', 'CNP fraud', 'digital wallet token fraud', 'ATM/POS fraud', 'unauthorized online purchase'],
     intakePrompts: ['When did the cardholder notice the charge and when might the issue have started?', 'Was the card lost or stolen, and was it still in the cardholder possession?', 'Did anyone else have access to the card or PIN?', 'Is a digital wallet in use, and what was the last valid transaction?', 'Did the cardholder contact the merchant or travel near the transaction date?'],
     evidenceAreas: ['Card possession timeline', 'Authorization and entry mode', 'Wallet token history', 'Merchant and cardholder records', 'Prior claims and last valid transaction', ...commonEvidenceAreas],
-    availableTools: ['Customer 360', 'Transaction History', 'Merchant Intelligence', 'Financial Investigation', 'Payment Verification', 'Login History', 'Session History', 'Device Intelligence', 'Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'],
-    requiredTools: ['Case Summary', 'Customer 360', 'Transaction History', 'Merchant Intelligence', 'Payment Verification', 'Document Viewer', 'Link Analysis'],
+    availableTools: ['Customer 360', 'Transaction History', 'Merchant Intelligence', 'Login History', 'Session History', 'Device Intelligence', 'Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'],
+    requiredTools: ['Case Summary', 'Customer 360', 'Transaction History', 'Merchant Intelligence', 'Document Viewer', 'Document Request', 'Link Analysis'],
     documents: ['Cardholder statement', 'Authorization record', 'Merchant packet', 'Card status record'],
     taxonomy: { authorizationType: 'unauthorized', lifecycleStage: 'transaction', productRail: 'card', riskPattern: 'identity', customerRole: 'victim' },
     chargeback: {
@@ -60,8 +60,8 @@ const claimTypeDefinitions = [
     subtypes: ['incorrect amount', 'duplicate billing', 'refund not received', 'canceled service billed', 'item not as described', 'services not rendered', 'return credit not posted', 'subscription terms dispute'],
     intakePrompts: ['What did the customer purchase, cancel, return, or ask the merchant to refund?', 'When did the customer first notice the billing issue?', 'What contact has already occurred with the merchant?', 'Which receipt, policy, delivery, return, or refund records are available?', 'Which dispute reason and required evidence should be documented?'],
     evidenceAreas: ['Receipt or invoice', 'Merchant response', 'Cancellation or refund policy', 'Return tracking or proof of delivery', 'Customer contact with merchant', 'Reason code guide', ...commonEvidenceAreas],
-    availableTools: ['Customer 360', 'Transaction History', 'Merchant Intelligence', 'Financial Investigation', 'Business 360', 'KYB Review', 'Payment Verification', 'Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'],
-    requiredTools: ['Case Summary', 'Customer 360', 'Transaction History', 'Merchant Intelligence', 'Business 360', 'Document Viewer', 'Document Request'],
+    availableTools: ['Customer 360', 'Transaction History', 'Merchant Intelligence', 'Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'],
+    requiredTools: ['Case Summary', 'Customer 360', 'Transaction History', 'Merchant Intelligence', 'Document Viewer', 'Document Request'],
     documents: ['Customer dispute form', 'Merchant billing packet', 'Cancellation or refund evidence', 'Reason code guide'],
     taxonomy: { authorizationType: 'authorized', lifecycleStage: 'dispute', productRail: 'card', riskPattern: 'behavior', customerRole: 'victim' },
     chargeback: {
@@ -86,8 +86,8 @@ const claimTypeDefinitions = [
     subtypes: ['friendly fraud', 'household member use', 'digital goods used', 'delivery proof conflicts with claim', 'repeated non-receipt pattern', 'refund/return abuse', 'dispute after usage'],
     intakePrompts: ['What does the customer say occurred?', 'What purchase, delivery, or prior claim records are in scope?', 'Which records should be requested before documenting a conclusion?'],
     evidenceAreas: ['Customer statement', 'Order, authorization, and delivery records', 'Prior claims pattern', 'Merchant contact and refund history', ...commonEvidenceAreas],
-    availableTools: ['Customer 360', 'Transaction History', 'Merchant Intelligence', 'Financial Investigation', 'Payment Verification', 'Business 360', 'KYB Review', 'Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'],
-    requiredTools: ['Case Summary', 'Customer 360', 'Transaction History', 'Merchant Intelligence', 'Document Viewer', 'Link Analysis'],
+    availableTools: ['Customer 360', 'Transaction History', 'Merchant Intelligence', 'Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'],
+    requiredTools: ['Case Summary', 'Customer 360', 'Transaction History', 'Merchant Intelligence', 'Document Viewer', 'Document Request', 'Link Analysis'],
     documents: ['Customer statement', 'Order record', 'Delivery or service record', 'Prior claim summary'],
     taxonomy: { authorizationType: 'unclear', lifecycleStage: 'dispute', productRail: 'card', riskPattern: 'first-party', customerRole: 'both' },
     scenarios: [

@@ -17,6 +17,8 @@ test('Merchant Intelligence presents a chargeback lifecycle with inspectable sce
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Merchant Intelligence');
   await expect(toolPanel.locator('.merchant-lifecycle-summary')).toContainText('StreamBox Premium');
   await expect(toolPanel.locator('.merchant-lifecycle-summary')).toContainText('Recurring billing dispute');
+  await expect(toolPanel.locator('.merchant-quick-summary')).toContainText('2');
+  await expect(toolPanel.locator('.merchant-quick-summary')).toContainText('Challenged');
   await expect(toolPanel.locator('.merchant-lifecycle-tabs button')).toHaveCount(6);
   await expect(toolPanel.locator('[data-lifecycle-section="merchant-response"]')).toBeVisible();
   await expect(toolPanel.getByRole('heading', { name: 'Merchant response', exact: true })).toBeVisible();
@@ -48,7 +50,7 @@ test('Merchant Intelligence presents a chargeback lifecycle with inspectable sce
   await openSection('visa-requirements', 'Visa Requirements');
   await expect(toolPanel).toContainText('Merchant Intelligence does not select a reason code or decide the claim.');
   await openSection('case-status', 'Case Status');
-  await expect(toolPanel.locator('.merchant-status-timeline li')).toHaveCount(5);
+  await expect(toolPanel.locator('.merchant-status-timeline li')).toHaveCount(6);
 
   await toolPanel.getByRole('button', { name: 'Mark Merchant Intelligence reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: 'Merchant Intelligence reviewed', exact: true })).toBeVisible();

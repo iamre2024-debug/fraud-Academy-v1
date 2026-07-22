@@ -4,6 +4,7 @@ import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
 import { getFinancialInvestigation } from '../src/data/financialInvestigationRecords.js';
 import { getKybReview } from '../src/data/kybReviewRecords.js';
 import { getMerchantIntelligence } from '../src/data/merchantIntelligenceRecords.js';
+import { getCaseDocuments, getCaseDocumentRequests } from '../src/data/documentRecords.js';
 import { getReviewChoices } from '../src/data/reviewPackage.js';
 import { scenarioTemplates } from '../src/data/scenarioEngine.js';
 import { trainingCases } from '../src/data/cases.js';
@@ -30,7 +31,7 @@ for (const { claimType, scenario } of allScenarios) {
   if (!generated.caseTruth?.correctDetermination || generated.correctDetermination !== generated.caseTruth.correctDetermination) failures.push(`${scenario.id} is missing hidden case truth.`);
   if (!getReviewChoices(generated).includes(generated.correctDetermination)) failures.push(`${scenario.id} has a hidden determination that is not valid for its decision rail.`);
   if (!generated.timelineEvents?.length || !generated.evidenceDocuments?.length || !generated.intakeAnswers?.length) failures.push(`${scenario.id} is missing complete generated outputs.`);
-  if (generated.generatedPacketVersion !== 4) failures.push(`${scenario.id} is missing the complete-packet version marker.`);
+  if (generated.generatedPacketVersion !== 5) failures.push(`${scenario.id} is missing the complete-packet version marker.`);
   if (!generated.accountId?.startsWith('ACCT-')) failures.push(`${scenario.id} is missing its Account ID document lookup key.`);
   if (generatedAccountIds.has(generated.accountId)) failures.push(`${scenario.id} reused Account ID ${generated.accountId}.`);
   generatedAccountIds.add(generated.accountId);
@@ -70,12 +71,25 @@ for (const { claimType, scenario } of allScenarios) {
   const merchantLane = ['fraud-chargeback', 'non-fraud-chargeback', 'first-party-fraud'].includes(claimType.id);
   if (merchantLane) {
     const merchant = getMerchantIntelligence(generated);
+    const forbiddenChargebackTools = ['Financial Investigation', 'Payment Verification', 'Business 360', 'KYB Review', 'Employee Profile', 'Payroll History'];
+    if (generated.availableTools.some((tool) => forbiddenChargebackTools.includes(tool))) failures.push(`${scenario.id} exposes a non-chargeback tool in the chargeback workflow.`);
     const sections = new Set(merchant.records.map((item) => item.section));
     for (const section of ['overview', 'history', 'authorization', 'fulfillment', 'disputes', 'reason-code']) {
       if (!sections.has(section)) failures.push(`${scenario.id} is missing Merchant Intelligence section ${section}.`);
     }
     for (const field of ['entryMode', 'avs', 'cvv', 'threeDS', 'otp', 'walletToken', 'device', 'ip', 'attempts']) {
       if (!merchant.authorization?.[field]) failures.push(`${scenario.id} is missing merchant authorization field ${field}.`);
+    }
+    if (!merchant.response?.status || !merchant.caseStatus || merchant.quickSummary.length !== 6) failures.push(`${scenario.id} is missing the chargeback response lifecycle summary.`);
+    if (!merchant.merchantDocuments.length || !merchant.customerDocuments.length || !merchant.network.documents.length) failures.push(`${scenario.id} is missing source documents for a chargeback party.`);
+    const sourceDocuments = getCaseDocuments(generated);
+    if (!sourceDocuments.length || sourceDocuments.some((document) => /Driver License|EIN Assignment|Utility Bill|Phone Ownership/i.test(document.title))) failures.push(`${scenario.id} contains generic evidence-warehouse documents instead of chargeback source documents.`);
+    if (getCaseDocumentRequests(generated).some((document) => document.folder !== 'Customer Evidence')) failures.push(`${scenario.id} places merchant-returned evidence in the customer request queue.`);
+    if (merchant.scenario.id === 'recurring-cancellation') {
+      const claimFields = new Map(merchant.claimDetails);
+      const networkFields = new Map(merchant.network.fields);
+      if (!claimFields.get('Cancellation date') || claimFields.get('Cancellation date') !== networkFields.get('Cancellation date sent')) failures.push(`${scenario.id} does not carry one cancellation date from intake through network submission.`);
+      if (!claimFields.get('Cancellation method') || claimFields.get('Cancellation method') !== networkFields.get('Cancellation method sent')) failures.push(`${scenario.id} does not carry one cancellation method from intake through network submission.`);
     }
   } else if (generated.toolResults.merchantIntelligence) {
     failures.push(`${scenario.id} contains a merchant packet outside a merchant-review lane.`);
@@ -106,7 +120,7 @@ const [upgradedLegacyCase] = enrichTrainingCases([{
 }]);
 if (/fictional packet contains both routine and exception evidence/i.test(upgradedLegacyCase.shortSummary)) failures.push('Previously saved generated cases do not upgrade their placeholder summary when loaded.');
 if (upgradedLegacyCase.caseBriefing?.summary !== upgradedLegacyCase.shortSummary) failures.push('Upgraded generated-case briefing summary does not match its complete short summary.');
-if (upgradedLegacyCase.generatedPacketVersion !== 4 || !upgradedLegacyCase.accountId || upgradedLegacyCase.intakeAnswers.some((item) => genericIntakePattern.test(item.answer)) || upgradedLegacyCase.toolResults.business360?.length < 3 || upgradedLegacyCase.toolResults.businessIntel?.length < 4) failures.push('Previously saved generated cases do not upgrade their full investigation packet when loaded.');
+if (upgradedLegacyCase.generatedPacketVersion !== 5 || !upgradedLegacyCase.accountId || upgradedLegacyCase.intakeAnswers.some((item) => genericIntakePattern.test(item.answer)) || upgradedLegacyCase.toolResults.business360?.length < 3 || upgradedLegacyCase.toolResults.businessIntel?.length < 4) failures.push('Previously saved generated cases do not upgrade their full investigation packet when loaded.');
 
 const enrichedBuiltIns = enrichTrainingCases(trainingCases);
 const builtInAccountIds = new Set();

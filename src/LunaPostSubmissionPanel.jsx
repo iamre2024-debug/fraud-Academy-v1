@@ -264,11 +264,11 @@ export default function LunaPostSubmissionPanel({
             <div>
               <p>Investigation package quality</p>
               <strong>{state.debrief.score}/100</strong>
-              <span>{state.debrief.scoreLabel}</span>
+              <span>{state.debrief.scoreLabel} · Notes {state.debrief.notesQuality.label}</span>
             </div>
           </section>
 
-          <div className="luna-debrief-grid luna-v1-debrief-grid">
+          <div className="luna-debrief-grid luna-v1-debrief-grid" aria-label="Decision-quality breakdown">
             <section className="luna-v1-card luna-v1-user-reasoning">
               <header><span className="luna-v1-step-index" aria-hidden="true">01</span><div><p>Your decision</p><h3>What you submitted</h3></div></header>
               <dl>

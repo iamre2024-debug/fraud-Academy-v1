@@ -1,5 +1,5 @@
 import { getBusinessRecords, getFinancialRecords } from './data/caseToolData.js';
-import { getCaseDocuments } from './data/documentRecords.js';
+import { getCaseDocumentRequests, getCaseDocuments } from './data/documentRecords.js';
 import { getMerchantIntelligence } from './data/merchantIntelligenceRecords.js';
 import { getSystemAccessRecords } from './data/systemAccessRecords.js';
 
@@ -164,9 +164,10 @@ export function rowsFor(tool, activeCase) {
   }
 
   if (tool === 'Document Request') {
+    const requests = getCaseDocumentRequests(activeCase);
     return {
       columns: ['Request', 'Status', 'Document Type', 'Required', 'Due Date', 'Linked Tool', 'Reviewer Notes'],
-      rows: documents.map((item) => makeRow(item.id, [item.id, item.requestStatus, item.title, /optional/i.test(item.folder) ? 'Optional' : 'Required', 'Not set', 'Document Viewer', item.summary], item.id, 'Document request')),
+      rows: requests.map((item) => makeRow(item.id, [item.id, item.requestStatus, item.title, /optional/i.test(item.folder) ? 'Optional' : 'Required', 'Not set', 'Document Viewer', item.summary], item.id, 'Document request')),
     };
   }
 

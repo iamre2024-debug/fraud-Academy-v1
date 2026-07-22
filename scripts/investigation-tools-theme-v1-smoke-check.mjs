@@ -133,7 +133,7 @@ for (const anchor of [
   'Fictional training data only. Identity information is evidence, not a case conclusion.',
   'Mark Identity Intel / People Search reviewed',
   'TransactionHistoryWorkspace',
-  '30-day training activity view',
+  'Case activity view',
   'Transaction detail drawer',
   'Transaction account and card rail',
   'Save transaction note',
@@ -388,7 +388,7 @@ mustContain('documentRecords.js', documentRecords, 'getGeneratedKybReportDocumen
 mustContain('displayInvestigationToolsThemeV1.css', styles, '.access-history-filters');
 mustContain('displayInvestigationToolsThemeV1.css', styles, '.ip-lookup-action');
 
-for (const anchor of ['financialInvestigationTabs', 'Account Overview', 'Deposit Analysis', 'Spending Analysis', 'Cash Activity', 'Digital Payments', 'Linked Accounts', 'Merchant Intelligence', 'Behavior Trends', 'Funds Flow', 'Mule / Cash-Out Pattern', 'getFinancialInvestigation', 'financialRecordSearchText']) {
+for (const anchor of ['financialInvestigationTabs', 'Account Overview', 'Deposit Analysis', 'Spending Analysis', 'Cash Activity', 'Digital Payments', 'Linked Accounts', 'Merchant Billing History', 'Behavior Trends', 'Funds Flow', 'Mule / Cash-Out Pattern', 'getFinancialInvestigation', 'financialRecordSearchText']) {
   mustContain('financialInvestigationRecords.js', financialInvestigation, anchor);
 }
 

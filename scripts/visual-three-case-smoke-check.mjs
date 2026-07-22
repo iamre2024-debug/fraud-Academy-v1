@@ -7,7 +7,7 @@ import { getDeviceProfiles } from '../src/data/deviceRecords.js';
 import { getLoginRecords } from '../src/data/loginRecords.js';
 import { getIpRecords } from '../src/data/ipRecords.js';
 import { getSessionRecords } from '../src/data/sessionRecords.js';
-import { getCaseDocuments } from '../src/data/documentRecords.js';
+import { getCaseDocumentRequests, getCaseDocuments } from '../src/data/documentRecords.js';
 import { getCustomer360Dossier } from '../src/data/customer360Dossier.js';
 import { getIdentityIntelReport } from '../src/data/identityIntelReport.js';
 import { buildAccessHistoryReport } from '../src/data/accessHistoryReports.js';
@@ -73,6 +73,7 @@ for (const item of cases) {
   const financial = financialRecordsByCase[item.id] ?? {};
   const business = businessRecordsByCase[item.id] ?? {};
   const documents = getCaseDocuments(item);
+  const documentRequests = getCaseDocumentRequests(item);
   const customerDossier = getCustomer360Dossier(item);
   const identityReport = getIdentityIntelReport(item);
   const deviceProfiles = getDeviceProfiles(item);
@@ -89,13 +90,24 @@ for (const item of cases) {
   if (!loginRecords.some((record) => /failed|locked/i.test(record.result))) failures.push(`${prefix} has no failed or locked authentication event for comparison.`);
   requireCount(`${prefix} business relationship records`, business.business360?.length ?? 0, 1);
   requireCount(`${prefix} business intelligence records`, business.businessIntel?.length ?? 0, 1);
-  requireCount(`${prefix} document viewer records`, documents.length, 9);
-  requireCount(`${prefix} document request records`, documents.filter((document) => document.requestStatus).length, 9);
+  const chargeback = ['fraud-chargeback', 'non-fraud-chargeback', 'first-party-fraud'].includes(item.claimTypeId);
+  requireCount(`${prefix} document viewer records`, documents.length, chargeback ? 6 : 5);
+  requireCount(`${prefix} document request records`, documentRequests.length, chargeback ? 2 : 3);
   requireCount(`${prefix} Customer 360 products`, customerDossier.products.length, 1);
   requireCount(`${prefix} Customer 360 contact records`, customerDossier.recentContacts.length, 2);
   requireCount(`${prefix} Identity Intel full-report sections`, identityReport.sections.length, 17);
-  for (const title of ['Driver License Review', 'Bank Statement', 'EIN Assignment Notice', 'Tax Return Transcript', 'Utility Bill - Proof of Address', 'Phone Ownership Report']) {
-    if (!documents.some((document) => document.title === title)) failures.push(`${prefix} is missing ${title}.`);
+  if (chargeback) {
+    for (const title of ['Card-network submission record', 'Customer dispute form', 'Merchant response letter']) {
+      if (!documents.some((document) => document.title === title)) failures.push(`${prefix} is missing ${title}.`);
+    }
+    for (const title of ['Driver License Review', 'Bank Statement', 'EIN Assignment Notice', 'Tax Return Transcript', 'Utility Bill - Proof of Address', 'Phone Ownership Report']) {
+      if (documents.some((document) => document.title === title)) failures.push(`${prefix} contains irrelevant chargeback document ${title}.`);
+    }
+    if (documentRequests.some((document) => document.folder !== 'Customer Evidence')) failures.push(`${prefix} includes merchant-returned evidence in the customer document request queue.`);
+  } else {
+    if (item.availableTools.includes('Identity Intel / People Search') && !documents.some((document) => document.title === 'Driver License Review')) failures.push(`${prefix} is missing its identity document.`);
+    if (item.availableTools.includes('Financial Investigation') && !documents.some((document) => document.title === 'Bank Statement')) failures.push(`${prefix} is missing its financial statement.`);
+    if (item.availableTools.includes('Business 360') && !documents.some((document) => document.title === 'EIN Assignment Notice')) failures.push(`${prefix} is missing its business formation document.`);
   }
   requireCount(`${prefix} system access records`, systemAccessRecordsByCase[item.id]?.length ?? 0, 2);
 

@@ -15,7 +15,11 @@ export default function SubmitDecisionPanel({
   openDebrief,
 }) {
   const latestPackage = reviewPackages[0] ?? null;
-  const submissionLabel = latestPackage ? 'Decision saved' : 'Ready to submit';
+  const submissionLabel = latestPackage
+    ? 'Decision saved'
+    : /evidence pending|response pending|submission pending/i.test(activeCase.status ?? '')
+      ? 'Submission available · evidence pending'
+      : 'Ready to submit';
   const decisionGroups = getDecisionCallGroups(activeCase);
   const selectionGroups = decisionGroups.length ? decisionGroups : [{ label: 'Learner choices', options: reviewChoices }];
 

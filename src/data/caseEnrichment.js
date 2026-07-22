@@ -60,9 +60,9 @@ const caseIntake = {
     transactionInfo: 'StreamBox Premium · recurring card billing · credit card ending 8841',
     shortSummary: 'Cardholder reports recurring billing after cancellation. Review merchant billing history, customer statement, session activity, and requested document status.',
     intakeAnswers: [
-      { id: 'FA-CB-24007-INT-1', prompt: 'What did the customer purchase, cancel, return, or ask the merchant to refund?', answer: 'Jordan Ellis states the StreamBox Premium subscription was canceled but the merchant continued recurring billing on credit card ending 8841; the current disputed amount is $189.44.' },
+      { id: 'FA-CB-24007-INT-1', prompt: 'What did the customer purchase, cancel, return, or ask the merchant to refund?', answer: 'Jordan Ellis states the StreamBox Premium subscription was canceled through account settings on Jul 2, 2026, but the merchant billed $189.44 to credit card ending 8841 on Jul 8, 2026.' },
       { id: 'FA-CB-24007-INT-2', prompt: 'When did the customer first notice the billing issue?', answer: 'The recurring-billing issue begins May 8, 2026. The current $189.44 charge posted Jul 8, 2026, and Jordan opened the mobile-app dispute form at 8:19 AM.' },
-      { id: 'FA-CB-24007-INT-3', prompt: 'What contact has already occurred with the merchant?', answer: 'The customer says the subscription was canceled, but no completed merchant-contact record is included in the current intake. The merchant billing packet contains the current and prior billing records.' },
+      { id: 'FA-CB-24007-INT-3', prompt: 'What contact has already occurred with the merchant?', answer: 'The customer reports using StreamBox account settings on mobile web on Jul 2, 2026. No confirmation number or written acknowledgement was attached, and the merchant later reported that no completed cancellation request was located.' },
       { id: 'FA-CB-24007-INT-4', prompt: 'Which receipt, policy, delivery, return, or refund records are available?', answer: 'The customer dispute form and merchant billing packet are available. Cancellation confirmation remains requested, and no separate return, delivery, or refund record is listed for this subscription claim.' },
       { id: 'FA-CB-24007-INT-5', prompt: 'Which dispute reason and required evidence should be documented?', answer: 'The dispute reason is canceled service billed. The customer dispute form and current/prior merchant billing records are available; cancellation confirmation remains the required open evidence.' },
     ],
@@ -211,9 +211,19 @@ function buildClaimFields(item, context = {}) {
   });
   const briefingPacket = buildCaseBriefingPacket({ item, claimType, scenario, reportedDate });
   const availableTools = item.availableTools ?? claimType.availableTools;
-  const caseAvailableTools = systemAccessRecordsByCase[item.id]?.length
+  const caseAvailableTools = systemAccessRecordsByCase[item.id]?.length && !claimType.chargeback
     ? dedupeStrings([...availableTools, 'System Access Lane'])
     : availableTools;
+  const responseStatus = item.merchantResponse?.status ?? item.toolResults?.merchantIntelligence?.response?.status;
+  const workflowStatus = claimType.chargeback
+    ? responseStatus === 'Accepted'
+      ? 'Merchant accepted — account credit review'
+      : responseStatus === 'Challenged'
+        ? 'Merchant challenged — customer evidence pending'
+        : responseStatus === 'Pending'
+          ? 'Submitted — merchant response pending'
+          : 'Claim received — network submission pending'
+    : item.status;
 
   return {
     claimTypeId: claimType.id,
@@ -226,6 +236,7 @@ function buildClaimFields(item, context = {}) {
     scenarioFamily: item.scenarioFamily ?? scenario.family ?? claimType.lane,
     reportedDate,
     issueStartDate,
+    status: workflowStatus,
     amountExposure: item.amountExposure ?? item.amount,
     statement: { label: statementLabel, value: statementValue, source: item.statement?.source ?? item.intake?.channel ?? 'Case queue' },
     intakeAnswers,
@@ -264,7 +275,7 @@ function buildClaimFields(item, context = {}) {
 }
 
 function enrichOneCase(item) {
-  if (item.id?.includes('-G') && item.generatedPacketVersion !== 4 && item.claimTypeId && item.scenarioId) {
+  if (item.id?.includes('-G') && item.generatedPacketVersion !== 5 && item.claimTypeId && item.scenarioId) {
     const index = item.generatedAt ?? Number(String(item.id).replace(/\D/g, '').slice(-8)) ?? Date.now();
     const refreshed = createGeneratedCase({
       index,

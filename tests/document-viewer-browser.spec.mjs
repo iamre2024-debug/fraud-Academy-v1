@@ -2,12 +2,13 @@ import { test, expect } from '@playwright/test';
 import { selectToolGroup } from './workspace-page-helpers.mjs';
 
 const requiredDocuments = [
-  'Driver License Review',
-  'Bank Statement',
-  'EIN Assignment Notice',
-  'Tax Return Transcript',
-  'Utility Bill - Proof of Address',
-  'Phone Ownership Report',
+  'Card-network submission record',
+  'Customer dispute form',
+  'Merchant response letter',
+  'Subscription enrollment record',
+  'Billing history statement',
+  'Terms and cancellation policy',
+  'Account activity log',
 ];
 
 const forbiddenViewerCopy = /\b(?:fraud score|red flags?|green flags?|correct answer|AI recommendations?|fraudulent|legitimate)\b/i;
@@ -46,8 +47,8 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
   await viewer.getByRole('button', { name: 'Search account', exact: true }).click();
   await expect(viewer).toContainText('Jordan Ellis');
   await expect(viewer).toContainText('FA-CB-24007');
-  await expect(viewer.getByRole('navigation', { name: 'Document folders' }).getByRole('button')).toHaveCount(6);
-  expect(await viewer.locator('[data-document-record]').count()).toBeGreaterThanOrEqual(9);
+  await expect(viewer.getByRole('navigation', { name: 'Document folders' }).getByRole('button')).toHaveCount(4);
+  await expect(viewer.locator('[data-document-record]')).toHaveCount(8);
 
   for (const title of requiredDocuments) {
     await search.fill(title);
@@ -56,30 +57,29 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
     await expect(viewer.locator('.document-inspector')).toContainText('Extraction confidence');
   }
 
-  await search.fill('Bank Statement');
+  await search.fill('Billing history statement');
   const pageControls = viewer.getByRole('region', { name: 'Document page controls' });
-  await expect(pageControls.getByText('Page 1 of 2', { exact: true })).toBeVisible();
-  await viewer.getByRole('button', { name: 'Next page', exact: true }).click();
-  await expect(pageControls.getByText('Page 2 of 2', { exact: true })).toBeVisible();
-  await expect(viewer.locator('.document-page')).toContainText('Selected withdrawals');
+  await expect(pageControls.getByText('Page 1 of 1', { exact: true })).toBeVisible();
+  await expect(viewer.locator('.document-page')).toContainText('Account billing ledger');
+  await expect(viewer.locator('.document-page')).toContainText('StreamBox Premium');
 
   const downloadPromise = page.waitForEvent('download');
   await viewer.locator('.document-toolbar-actions').getByRole('button', { name: 'Export', exact: true }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toContain('DOC-BANK');
+  expect(download.suggestedFilename()).toContain('BILL-HIST');
 
   await search.clear();
-  const licenseRecord = viewer.locator('[data-document-record]').filter({ hasText: 'Driver License Review' });
-  const statementRecord = viewer.locator('[data-document-record]').filter({ hasText: 'Bank Statement' });
-  await licenseRecord.getByRole('button', { name: 'Compare', exact: true }).click();
+  const customerRecord = viewer.locator('[data-document-record]').filter({ hasText: 'Customer dispute form' });
+  const statementRecord = viewer.locator('[data-document-record]').filter({ hasText: 'Billing history statement' });
+  await customerRecord.getByRole('button', { name: 'Compare', exact: true }).click();
   await statementRecord.getByRole('button', { name: 'Compare', exact: true }).click();
   await expect(viewer.locator('.document-compare-grid article')).toHaveCount(2);
-  await expect(viewer.getByRole('region', { name: 'Document comparison' })).toContainText('Driver License Review');
-  await expect(viewer.getByRole('region', { name: 'Document comparison' })).toContainText('Bank Statement');
+  await expect(viewer.getByRole('region', { name: 'Document comparison' })).toContainText('Customer dispute form');
+  await expect(viewer.getByRole('region', { name: 'Document comparison' })).toContainText('Billing history statement');
 
-  await statementRecord.getByRole('button', { name: /Monthly Checking Statement|Bank Statement|Open/i }).first().click();
+  await statementRecord.getByRole('button', { name: /Billing history statement|Open/i }).first().click();
   await viewer.locator('.document-toolbar-actions').getByRole('button', { name: 'Pin', exact: true }).click();
-  await expect(page.locator('.tray-card')).toContainText('DOC-BANK');
+  await expect(page.locator('.tray-card')).toContainText('BILL-HIST');
 
   await viewer.getByRole('textbox', { name: 'Document investigator note' }).fill('Statement ownership and both pages were reviewed against the active customer record.');
   await viewer.getByRole('button', { name: 'Save note', exact: true }).click();

@@ -1,6 +1,8 @@
 import { evidenceRecordsByCase } from './evidenceRecords.js';
 import { getGeneratedAccessReportDocuments } from './accessHistoryReports.js';
+import { getCustomer360Dossier } from './customer360Dossier.js';
 import { getGeneratedKybReportDocuments } from './kybReviewReport.js';
+import { getMerchantIntelligence } from './merchantIntelligenceRecords.js';
 
 function valueOr(value, fallback) {
   return value || fallback;
@@ -59,16 +61,19 @@ function documentRecord(context, input) {
     requestStatus: 'Received',
     authenticity: 'Document quality checks recorded; investigator review remains open.',
     investigatorNote: 'Compare the document fields with Customer 360 and the related source records.',
+    requestEligible: true,
     ...input,
   };
 }
 
 function standardDocuments(activeCase) {
   const context = caseContext(activeCase);
+  const dossier = getCustomer360Dossier(activeCase);
+  const dateOfBirth = dossier.identity?.dob ?? 'Not supplied in the customer profile';
   const accountSuffix = String(context.trainingId).replace(/\D/g, '').slice(-4).padStart(4, '0');
   const einSuffix = String(context.caseId).replace(/\D/g, '').slice(-4).padStart(4, '0');
 
-  return [
+  const documents = [
     documentRecord(context, {
       id: `${context.caseId}-DOC-ID`,
       title: 'Driver License Review',
@@ -82,7 +87,7 @@ function standardDocuments(activeCase) {
       relatedEvidence: [context.trainingId, `${context.caseId}-ADDRESS`, `${context.caseId}-PHONE`],
       fields: [
         ['Name', context.person],
-        ['Date of birth', 'Apr 18, 1988'],
+        ['Date of birth', dateOfBirth],
         ['Address', context.address],
         ['Document number', `TX-*****${accountSuffix}`],
         ['Issued', 'Sep 14, 2023'],
@@ -92,7 +97,7 @@ function standardDocuments(activeCase) {
       ],
       pages: [
         page('Texas Driver License', 'FRONT IMAGE - FICTIONAL TRAINING DOCUMENT', [
-          section('Identity fields', [['Name', context.person], ['DOB', '04/18/1988'], ['Address', context.address], ['Class', 'C']]),
+          section('Identity fields', [['Name', context.person], ['DOB', dateOfBirth], ['Address', context.address], ['Class', 'C']]),
           section('Document dates', [['Issued', '09/14/2023'], ['Expires', '04/18/2031'], ['Document no.', `TX-*****${accountSuffix}`]]),
         ], { kind: 'identity-front', initials: context.initials }),
         page('Texas Driver License', 'BACK IMAGE - FICTIONAL TRAINING DOCUMENT', [
@@ -255,6 +260,25 @@ function standardDocuments(activeCase) {
       ],
     }),
   ];
+  const tools = new Set(activeCase.availableTools ?? []);
+  const includedIds = new Set();
+  if (tools.has('Customer 360') || tools.has('Identity Intel / People Search')) {
+    includedIds.add(`${context.caseId}-DOC-ID`);
+    includedIds.add(`${context.caseId}-DOC-ADDRESS`);
+    includedIds.add(`${context.caseId}-DOC-PHONE`);
+  }
+  if (tools.has('Financial Investigation') || /credit|loan/i.test(activeCase.claimTypeId ?? activeCase.type ?? '')) {
+    includedIds.add(`${context.caseId}-DOC-BANK`);
+  }
+  if (tools.has('Business 360') || tools.has('KYB Review')) {
+    includedIds.add(`${context.caseId}-DOC-EIN`);
+    includedIds.add(`${context.caseId}-DOC-TAX`);
+  }
+  if (tools.has('Employee Profile') || tools.has('Payroll History')) {
+    includedIds.add(`${context.caseId}-DOC-BANK`);
+    includedIds.add(`${context.caseId}-DOC-TAX`);
+  }
+  return documents.filter((document) => includedIds.has(document.id));
 }
 
 function legacyCaseDocuments(activeCase) {
@@ -302,9 +326,70 @@ function legacyCaseDocuments(activeCase) {
   });
 }
 
+function merchantSourceDocument(context, document) {
+  const customerEvidence = /-CUS-/i.test(document.id) || /CUSTOMER/i.test(document.classification ?? '');
+  const networkEvidence = /-NET-/i.test(document.id) || /NETWORK/i.test(document.classification ?? '');
+  const hasDocumentPage = ['Available', 'Received'].includes(document.status);
+  const fields = [
+    ['Reference', document.reference ?? document.id],
+    ['Document date', document.date ?? context.opened],
+    ['Source', document.source ?? 'Chargeback exchange'],
+    ['Classification', document.classification ?? 'SOURCE DOCUMENT'],
+    ...(document.facts ?? []),
+  ];
+  const sections = [];
+  if (document.subject) sections.push(section('Document subject', [['Subject', document.subject], ...(document.to ? [['To', document.to]] : [])]));
+  if (document.paragraphs?.length) sections.push(section('Statement', [], { paragraphs: document.paragraphs }));
+  if (document.facts?.length) sections.push(section('Recorded fields', document.facts));
+  for (const table of document.tables ?? []) sections.push(section(table.title ?? 'Source record', [], { table: { columns: table.columns, rows: table.rows } }));
+  if (document.callout) sections.push(section(document.callout.label, [], { paragraphs: [document.callout.value] }));
+  if (document.signature) sections.push(section('Submitted by', [['Name', document.signature.name], ['Role', document.signature.role]]));
+
+  return documentRecord(context, {
+    id: document.id,
+    title: document.title,
+    type: document.classification ?? 'Chargeback source document',
+    folder: customerEvidence ? 'Customer Evidence' : networkEvidence ? 'Network Exchange' : 'Merchant Evidence',
+    reference: document.reference ?? document.id,
+    status: document.status,
+    reviewStatus: hasDocumentPage ? 'Pending Review' : 'Not received',
+    requestStatus: hasDocumentPage ? 'Received' : document.status === 'Requested' ? 'Requested' : 'Pending',
+    source: document.source ?? 'Chargeback exchange',
+    received: hasDocumentPage ? document.date ?? context.opened : 'Not received',
+    updated: document.date ?? context.opened,
+    extractionConfidence: hasDocumentPage ? 'High' : 'Not available',
+    authenticity: hasDocumentPage ? 'Source-format training document available for investigator review.' : 'The requested source document has not been received.',
+    summary: document.paragraphs?.[0] ?? document.subject ?? `${document.title} from ${document.source ?? 'the chargeback exchange'}.`,
+    investigatorNote: 'Review the source document itself and compare its dates, fields, and position with the opposing party records.',
+    trainingTip: 'A party statement is evidence to compare; it is not the case decision.',
+    relatedTools: ['Merchant Intelligence', 'Timeline', ...(customerEvidence ? ['Document Request'] : [])],
+    relatedEvidence: [context.caseId, document.reference ?? document.id],
+    requestEligible: customerEvidence,
+    fields,
+    pages: hasDocumentPage ? [page(document.brand ?? document.source ?? document.title, document.classification ?? 'CHARGEBACK SOURCE DOCUMENT', sections.length ? sections : [section('Document fields', fields)], { kind: document.kind ?? 'case' })] : [],
+  });
+}
+
+function chargebackSourceDocuments(activeCase) {
+  const context = caseContext(activeCase);
+  const workspace = getMerchantIntelligence(activeCase);
+  const documents = [...workspace.network.documents, ...workspace.response.documents, ...workspace.customerDocuments];
+  return documents
+    .filter((document, index) => documents.findIndex((candidate) => candidate.id === document.id) === index)
+    .map((document) => merchantSourceDocument(context, document));
+}
+
 export function getCaseDocuments(activeCase = {}) {
-  const combined = [...standardDocuments(activeCase), ...getGeneratedAccessReportDocuments(activeCase), ...getGeneratedKybReportDocuments(activeCase), ...legacyCaseDocuments(activeCase)];
+  const chargeback = ['fraud-chargeback', 'non-fraud-chargeback', 'first-party-fraud'].includes(activeCase.claimTypeId)
+    || Boolean(activeCase.chargebackDecision);
+  const combined = chargeback
+    ? chargebackSourceDocuments(activeCase)
+    : [...standardDocuments(activeCase), ...getGeneratedAccessReportDocuments(activeCase), ...getGeneratedKybReportDocuments(activeCase), ...legacyCaseDocuments(activeCase)];
   return combined.filter((item, index) => combined.findIndex((candidate) => candidate.id === item.id) === index);
+}
+
+export function getCaseDocumentRequests(activeCase = {}) {
+  return getCaseDocuments(activeCase).filter((document) => document.requestEligible !== false);
 }
 
 export function documentSearchText(document) {
