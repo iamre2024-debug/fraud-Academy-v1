@@ -40,10 +40,10 @@ const tabCopy = {
 };
 
 const navigationItems = [
-  { key: 'dashboard', icon: '⌂', label: 'Dashboard' },
-  { key: 'cases', icon: '▣', label: 'Cases' },
-  { key: 'workspace', icon: '◈', label: 'Workspace' },
-  { key: 'academy', icon: '▱', label: 'Academy' },
+  { key: 'dashboard', icon: '🏠', label: 'Home', accessibleLabel: 'Dashboard' },
+  { key: 'cases', icon: '🔎', label: 'Cases', accessibleLabel: 'Cases' },
+  { key: 'workspace', icon: '🧭', label: 'Work', accessibleLabel: 'Workspace' },
+  { key: 'academy', icon: '🌙', label: 'Luna', accessibleLabel: 'Academy' },
 ];
 
 const storageKeys = {
@@ -144,6 +144,7 @@ export default function VisualNavigation({ activeTab = 'workspace', activeCaseId
             type="button"
             className={activeTab === item.key ? 'active' : ''}
             onClick={() => onNavigate(item.key)}
+            aria-label={item.accessibleLabel}
             aria-current={activeTab === item.key ? 'page' : undefined}
           >
             {item.icon}<span>{item.label}</span>
@@ -209,45 +210,73 @@ function NavigationPanel({ activeTab, activeCaseId, cases, snapshot, onNavigate,
 
 function DashboardPanel({ activeCaseId, cases, snapshot, onNavigate, onOpenCase }) {
   const activeCase = cases.find((item) => item.id === activeCaseId) ?? cases[0];
+  const queuedCases = cases.filter((item) => item.id !== activeCase?.id).slice(0, 2);
   const reviewedForCase = snapshot.completedByCase[activeCase?.id]?.length ?? 0;
   const notesForCase = snapshot.notesByCase[activeCase?.id]?.length ?? 0;
   const packagesForCase = snapshot.packagesByCase[activeCase?.id]?.length ?? 0;
   const progress = Math.min(100, 18 + reviewedForCase * 4 + notesForCase * 3 + packagesForCase * 20);
+  const dailyGoal = Math.min(5, reviewedForCase);
 
   return (
     <div className="dashboard-v1-shell">
-      <header className="dashboard-welcome-card">
-        <div>
-          <span className="dashboard-kicker">Welcome back</span>
-          <h3>Investigator</h3>
-          <p>Pick up your active case and keep the evidence trail moving.</p>
+      <header className="dashboard-welcome-card dashboard-mission-header">
+        <div className="dashboard-mission-brand">
+          <span aria-hidden="true">🛡️</span>
+          <div><strong>Fraud Academy</strong><small>Blue Mission Deck</small></div>
         </div>
-        <button type="button" className="dashboard-agent-mark" aria-label="Open Agent profile" onClick={() => onNavigate('profile')}>☾</button>
+        <div className="dashboard-daily-goal">
+          <span>🎯 Daily Goal</span>
+          <strong>{dailyGoal} / 5 modules</strong>
+          <div aria-label={`${dailyGoal} of 5 daily modules complete`}><span style={{ width: `${(dailyGoal / 5) * 100}%` }} /></div>
+        </div>
+        <button type="button" className="dashboard-agent-mark dashboard-luna-launcher" aria-label="Open Agent profile" onClick={() => onNavigate('profile')}>
+          <span aria-hidden="true">🐱</span><small>Luna 🌙</small>
+        </button>
+        <div className="dashboard-mission-orbit" aria-hidden="true"><i /><i /><i /></div>
       </header>
 
       {activeCase && (
-        <article className="dashboard-active-case" aria-label="Active case">
-          <div className="dashboard-active-case-copy">
-            <span className="dashboard-kicker">Active case</span>
-            <div className="dashboard-case-title-row">
-              <div>
-                <h3>{activeCase.id}</h3>
-                <p>{activeCase.type} · {activeCase.person}</p>
+        <section className="dashboard-mission-stack" aria-label="Mission case deck">
+          {queuedCases.map((item, index) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`dashboard-stack-case dashboard-stack-case-${index + 1}`}
+              onClick={() => onOpenCase(item.id)}
+            >
+              <span>{item.id}</span><small>{index ? 'In Progress' : 'Review'}</small>
+            </button>
+          ))}
+          <article className="dashboard-active-case" aria-label="Active case">
+            <MissionLighthouseArt />
+            <div className="dashboard-active-case-copy">
+              <span className="dashboard-kicker">● Active Case</span>
+              <div className="dashboard-case-title-row">
+                <div>
+                  <h3>{activeCase.id}</h3>
+                  <p>{activeCase.type}</p>
+                </div>
+                <span className={`dashboard-priority priority-${String(activeCase.priority).toLowerCase()}`}>{activeCase.priority} priority</span>
               </div>
-              <span className={`dashboard-priority priority-${String(activeCase.priority).toLowerCase()}`}>{activeCase.priority} priority</span>
-            </div>
-            <div className="dashboard-progress-row">
-              <span>Investigation progress</span>
-              <div className="dashboard-progress-track" aria-label={`${progress}% investigation progress`}>
-                <span style={{ width: `${progress}%` }} />
+              <dl className="dashboard-case-mission-facts">
+                <div><dt>👤 Customer</dt><dd>{activeCase.person}</dd></div>
+                <div><dt>📅 Reported</dt><dd>{activeCase.reportedDate ?? activeCase.opened}</dd></div>
+                <div><dt>💵 Amount</dt><dd>{activeCase.amount}</dd></div>
+              </dl>
+              <div className="dashboard-progress-row">
+                <span>Investigation progress</span>
+                <div className="dashboard-progress-track" aria-label={`${progress}% investigation progress`}>
+                  <span style={{ width: `${progress}%` }} />
+                </div>
+                <strong>{progress}%</strong>
               </div>
-              <strong>{progress}%</strong>
             </div>
-          </div>
-          <button type="button" className="dashboard-primary-action" onClick={() => onOpenCase(activeCase.id)}>
-            Open Workspace <span aria-hidden="true">→</span>
-          </button>
-        </article>
+            <div className="dashboard-investigation-ribbon" aria-hidden="true">UNDER INVESTIGATION</div>
+            <button type="button" className="dashboard-primary-action" onClick={() => onOpenCase(activeCase.id)}>
+              Open workspace <span aria-hidden="true">›</span>
+            </button>
+          </article>
+        </section>
       )}
 
       <div className="dashboard-quick-grid" aria-label="Dashboard shortcuts">
@@ -284,6 +313,37 @@ function DashboardPanel({ activeCaseId, cases, snapshot, onNavigate, onOpenCase 
         </div>
       </aside>
     </div>
+  );
+}
+
+function MissionLighthouseArt() {
+  return (
+    <svg className="dashboard-lighthouse-art" viewBox="0 0 320 330" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="mission-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#143c66" stopOpacity="0.55" />
+          <stop offset="1" stopColor="#020d1b" stopOpacity="0.96" />
+        </linearGradient>
+        <linearGradient id="mission-beam" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#9beaff" stopOpacity="0" />
+          <stop offset="0.45" stopColor="#9beaff" stopOpacity="0.55" />
+          <stop offset="1" stopColor="#9beaff" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <rect width="320" height="330" fill="url(#mission-sky)" />
+      <g fill="#7de5ff">
+        <circle cx="34" cy="44" r="1.5" /><circle cx="76" cy="83" r="1" /><circle cx="239" cy="42" r="1.2" /><circle cx="292" cy="91" r="1.4" />
+      </g>
+      <path d="M125 176 L306 129 L304 161 L126 189 Z" fill="url(#mission-beam)" />
+      <path d="M18 284 C76 245 142 269 193 250 C236 235 281 245 320 227 L320 330 L0 330 Z" fill="#06111d" />
+      <path d="M202 277 L221 149 L248 149 L266 277 Z" fill="#b7d5e5" opacity="0.86" />
+      <path d="M213 151 L218 131 L251 131 L257 151 Z" fill="#0a1726" stroke="#6fdfff" strokeWidth="2" />
+      <rect x="221" y="116" width="28" height="17" rx="2" fill="#d6f4ff" stroke="#77e5ff" strokeWidth="2" />
+      <path d="M218 116 L235 103 L252 116 Z" fill="#10253a" stroke="#77e5ff" strokeWidth="2" />
+      <rect x="230" y="92" width="9" height="13" fill="#85e9ff" />
+      <path d="M188 284 C224 270 274 275 320 255 L320 330 L166 330 Z" fill="#020914" opacity="0.9" />
+      <path d="M0 302 C65 288 99 310 157 295 C214 279 258 310 320 288" fill="none" stroke="#2fcfff" strokeOpacity="0.45" strokeWidth="2" />
+    </svg>
   );
 }
 

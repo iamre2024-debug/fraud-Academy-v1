@@ -386,7 +386,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
   return (
     <main className="visual-os-shell">
-      <section className="visual-os-frame" data-workspace-screen={workspaceScreen}>
+      <section className="visual-os-frame" data-workspace-screen={workspaceScreen} data-active-tool={activeTool}>
         <VisualShellHeader
           activeCase={activeCase}
           cases={cases}
@@ -397,6 +397,12 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
         <nav className="mobile-workspace-page-header" aria-label="Workspace page navigation">
           <button type="button" onClick={goBackWorkspaceScreen} disabled={workspaceScreen === 'briefing'} aria-label="Back to previous workspace page">‹ Back</button>
           <span><small>{activeCase.id}</small><strong>{workspaceScreenTitle}</strong></span>
+          <label className="mobile-mission-case-picker">
+            <span className="sr-only">Active case</span>
+            <select value={activeCase.id} onChange={(event) => changeCase(event.target.value)} aria-label="Choose active mission case">
+              {cases.map((item) => <option key={item.id} value={item.id}>{item.id}</option>)}
+            </select>
+          </label>
           <button type="button" onClick={() => (workspaceScreen === 'workflow' ? goBackWorkspaceScreen() : showWorkspaceScreen('workflow'))}>{workspaceScreen === 'workflow' ? 'Close' : 'Pages'}</button>
         </nav>
 
@@ -422,6 +428,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
         <section className="workflow-investigate-stage" data-workflow-stage="investigate" data-workspace-page="tool-menu" aria-label="Investigate stage categories">
           <CategoryTileRail
+            activeCase={activeCase}
             categories={visibleCategories}
             categoryKey={categoryKey}
             currentCompleted={currentCompleted}

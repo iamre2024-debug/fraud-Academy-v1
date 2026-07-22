@@ -1,10 +1,10 @@
 const workflowStages = [
-  { key: 'briefing', step: '01', label: 'Case Briefing', icon: '▣' },
-  { key: 'investigate', step: '02', label: 'Investigate', icon: '⌕' },
-  { key: 'timeline', step: '03', label: 'Timeline', icon: '◷' },
-  { key: 'indicators', step: '04', label: 'Indicators', icon: '⌘' },
-  { key: 'determination', step: '05', label: 'Determination', icon: '◇' },
-  { key: 'debrief', step: '06', label: 'Debrief', icon: '☾' },
+  { key: 'briefing', step: '01', label: 'Case Briefing', icon: '📋' },
+  { key: 'investigate', step: '02', label: 'Investigate', icon: '🔍' },
+  { key: 'timeline', step: '03', label: 'Timeline', icon: '⏱️' },
+  { key: 'indicators', step: '04', label: 'Indicators', icon: '📌' },
+  { key: 'determination', step: '05', label: 'Determination', icon: '⚖️' },
+  { key: 'debrief', step: '06', label: 'Debrief', icon: '🌙' },
 ];
 
 export default function ActiveCaseWorkflowRail({ activeStage, stageStatus, onStageSelect }) {

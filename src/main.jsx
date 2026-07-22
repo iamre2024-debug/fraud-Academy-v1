@@ -40,6 +40,7 @@ import './mobileAppPages.css';
 import './lunaManagerMobileFix.css';
 import './documentInbox.css';
 import './mobileNeonCardStack.css';
+import './mobileBlueMissionDeck.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
