@@ -2089,7 +2089,7 @@ function PaymentVerificationWorkspace({
       )}
 
       <nav className="investigation-tool-next-routes" aria-label="Payment verification next routes">
-        {relatedRoutes.slice(0, 4).map((route) => <button key={route} type="button" onClick={() => openTool(route)}>{`Open ${route}`}</button>)}
+        {relatedRoutes.map((route) => <button key={route} type="button" onClick={() => openTool(route)}>{`Open ${route}`}</button>)}
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
 

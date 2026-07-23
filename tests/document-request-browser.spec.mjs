@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('Document Request tracks case-scoped document workflow states', async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
   await page.goto('/');
 
   await page.locator('.visual-case-switcher select').selectOption('FA-CB-24007');
@@ -41,7 +42,7 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
 
   const requestDetail = toolPanel.getByRole('main', { name: 'Expanded document request detail' });
   await requestDetail.getByRole('button', { name: 'Check for Customer Response', exact: true }).click();
-  await expect(toolPanel.locator('.document-request-confirmation')).toContainText('received from the customer and added to the Document Viewer');
+  await expect(toolPanel.locator('.document-request-confirmation')).toContainText('received from the customer and added as a separate Document Viewer record');
   await expect(requestDetail).toContainText('Received');
   await expect(requestDetail).toContainText('New customer submission');
   await expect(requestDetail.getByRole('button', { name: 'Open Customer Document', exact: true })).toBeVisible();

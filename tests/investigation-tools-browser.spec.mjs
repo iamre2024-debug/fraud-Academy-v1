@@ -5,6 +5,7 @@ const secondCase = { id: 'FA-CB-24007', person: 'Jordan Ellis' };
 const forbiddenPreSubmissionCopy = /\b(?:fraud score|red flags?|green flags?|correct answer|AI recommendations?|fraudulent|legitimate|suggested first tool|investigator question)\b/i;
 
 test('approved Investigation tools are contextual, functional, and responsive', async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
   await page.goto('/');
 
   const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');

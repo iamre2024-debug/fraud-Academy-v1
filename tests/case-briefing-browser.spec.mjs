@@ -118,9 +118,9 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   await openWorkflowStage(page, /Case Briefing/);
   await quickRoutes.getByRole('button', { name: 'Merchant Intelligence', exact: true }).click();
   await expect(page.locator('.activity-panel')).toContainText('Merchant Intelligence');
-  await selectToolGroup(page, /Business & Payment Verification/);
-  await page.locator('[data-investigation-tools-screen="approved-theme-v1"]').getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Business 360');
-  await expect(page.locator('.activity-panel')).toContainText('Business 360');
+  await openWorkflowStage(page, /Case Briefing/);
+  await quickRoutes.getByRole('button', { name: 'Document Request', exact: true }).click();
+  await expect(page.locator('.activity-panel')).toContainText('Document Request');
 
   await openWorkflowStage(page, /Case Briefing/);
   await quickRoutes.getByRole('button', { name: 'Submit Decision', exact: true }).click();
