@@ -101,7 +101,8 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
   const viewer = toolPanel.locator('[data-document-viewer-screen="approved-theme-v1"]');
   await expect(viewer.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toHaveCount(0);
-  await expect(viewer.getByRole('button', { name: /Merchant Evidence/ })).toHaveClass(/active/);
+  await expect(viewer.getByRole('navigation', { name: 'Document folders' })
+    .getByRole('button', { name: /^Merchant Evidence/ })).toHaveClass(/active/);
   await expect(viewer.locator('.document-page')).toBeVisible();
   await viewer.getByRole('navigation', { name: 'Document Viewer next routes' })
     .getByRole('button', { name: 'Open Document Request', exact: true })
