@@ -128,7 +128,7 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
   await expect(luna.getByRole('heading', { name: 'How well your decision was supported', exact: true })).toBeVisible();
   await expect(luna.getByRole('heading', { name: 'What you handled well', exact: true })).toBeVisible();
   await expect(luna.getByRole('heading', { name: 'What to improve next time', exact: true })).toBeVisible();
-  await expect(luna.getByRole('region', { name: 'Decision-quality breakdown', exact: true })).toBeVisible();
+  await expect(luna.locator('[aria-label="Decision-quality breakdown"]')).toBeVisible();
   await expect(luna.getByText('Investigation package quality', { exact: true })).toBeVisible();
 
   const debriefStepNumbers = (await luna.locator('.luna-v1-step-index').allTextContents()).map((value) => value.trim());

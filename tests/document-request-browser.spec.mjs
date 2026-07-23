@@ -60,7 +60,8 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await requestDetail.getByRole('button', { name: 'Open Customer Document', exact: true }).click();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
   const customerViewer = toolPanel.locator('[data-document-viewer-screen="approved-theme-v1"]');
-  await expect(customerViewer.getByRole('button', { name: /Customer Evidence/ })).toHaveClass(/active/);
+  await expect(customerViewer.getByRole('navigation', { name: 'Document folders' })
+    .getByRole('button', { name: /^Customer Evidence/ })).toHaveClass(/active/);
   await expect(customerViewer.locator('.document-page')).toContainText('StreamBox Premium Cancellation Confirmation');
   await expect(customerViewer.locator('.document-page')).toContainText('Automatic renewal turned off');
   await customerViewer.getByRole('navigation', { name: 'Document Viewer next routes' })
