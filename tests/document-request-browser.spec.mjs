@@ -13,7 +13,28 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
 
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Request');
-  await expect(toolPanel.getByRole('heading', { name: 'What documents were requested, received, missing, or pending review for this case?', exact: true })).toBeVisible();
+  const genericQuestion = toolPanel.getByRole('heading', { name: 'What documents were requested, received, missing, or pending review for this case?', exact: true });
+  if (testInfo.project.name === 'mobile-chromium') {
+    const documentMission = page.locator('[data-document-request-page="true"]');
+    await expect(documentMission).toBeVisible();
+    await expect(documentMission.getByRole('heading', { name: 'Document Request', exact: true })).toBeVisible();
+    await expect(toolPanel.locator(':scope > .investigation-tool-header')).toBeHidden();
+    await expect(toolPanel.locator(':scope > .investigation-tool-question')).toBeHidden();
+    await expect(toolPanel.locator(':scope > .investigation-tool-controls')).toBeHidden();
+    const visibleHeadingGeometry = await documentMission.locator('h2, h3').evaluateAll((headings) => headings
+      .filter((heading) => {
+        const style = getComputedStyle(heading);
+        return style.display !== 'none' && style.visibility !== 'hidden';
+      })
+      .map((heading) => ({
+        text: heading.textContent.trim(),
+        width: heading.getBoundingClientRect().width,
+        height: heading.getBoundingClientRect().height,
+      })));
+    expect(visibleHeadingGeometry.filter(({ width, height }) => width > 0 && width < 80 && height > 70)).toEqual([]);
+  } else {
+    await expect(genericQuestion).toBeVisible();
+  }
   await expect(toolPanel.locator('.document-request-inbox')).toBeVisible();
   await expect(toolPanel.locator('.document-request-compose-button')).toHaveText('＋ Request Paperwork');
   await expect(toolPanel.locator('[data-document-request]')).toHaveCount(1);

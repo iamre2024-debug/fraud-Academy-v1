@@ -135,7 +135,11 @@ export default function MobileMissionWorkspace({
         )}
 
         {isTool && (
-          <section className="mission-tool-page" data-workflow-stage={workspaceScreen === 'timeline' ? 'timeline' : 'investigate'}>
+          <section
+            className={`mission-tool-page ${activeTool === 'Document Request' ? 'mission-document-request-page' : ''}`}
+            data-document-request-page={activeTool === 'Document Request' ? 'true' : undefined}
+            data-workflow-stage={workspaceScreen === 'timeline' ? 'timeline' : 'investigate'}
+          >
             <nav className="mission-tool-actions" aria-label="Tool page actions">
               <button type="button" onClick={() => showWorkspaceScreen('tool-menu')}>🧰 All tools</button>
               <button type="button" onClick={openNotes}>📝 Notes <span>{notes.length}</span></button>
@@ -147,6 +151,7 @@ export default function MobileMissionWorkspace({
                 <button type="button" onClick={returnToPinnedEvidence}>Back to pins</button>
               </section>
             )}
+            {activeTool === 'Document Request' && <MissionDocumentRequestHeading activeCase={activeCase} />}
             <div className="mission-tool-content">
               {activeTool === 'Customer 360' ? (
                 <Customer360Panel {...activeToolProps} />
@@ -203,6 +208,24 @@ export default function MobileMissionWorkspace({
         <span>⭐ {tray.length} pinned</span><span>📝 {notes.length} notes</span><span>📡 {actionLog.length} actions</span>
       </footer>
     </main>
+  );
+}
+
+function MissionDocumentRequestHeading({ activeCase }) {
+  return (
+    <header className="mission-document-request-heading">
+      <span className="mission-document-request-icon" aria-hidden="true">📨</span>
+      <div>
+        <p>Paperwork mission · {activeCase.id}</p>
+        <h2>Document Request</h2>
+        <small>Send a request, track the customer response, then review the returned source document.</small>
+      </div>
+      <ol aria-label="Document request workflow">
+        <li className="active"><i />Request</li>
+        <li><i />Receive</li>
+        <li><i />Review</li>
+      </ol>
+    </header>
   );
 }
 
