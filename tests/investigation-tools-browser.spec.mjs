@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { selectToolGroup } from './workspace-page-helpers.mjs';
+import { runPaymentVerification, selectToolGroup } from './workspace-page-helpers.mjs';
 
 const secondCase = { id: 'FA-CB-24007', person: 'Jordan Ellis' };
 const forbiddenPreSubmissionCopy = /\b(?:fraud score|red flags?|green flags?|correct answer|AI recommendations?|fraudulent|legitimate|suggested first tool|investigator question)\b/i;
@@ -207,6 +207,8 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Payment Verification');
   await expect(toolPanel.getByRole('heading', { name: 'Payment Verification', exact: true })).toBeVisible();
 
+  await expect(toolPanel.locator('.payment-detail-panel')).toHaveCount(0);
+  await runPaymentVerification(toolPanel, { bankCode: 'BC-441', destinationId: 'DST-CARD-4410', ownerName: 'Maya Sterling' });
   await toolPanel.getByRole('button', { name: 'Mark Payment Verification reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ Payment Verification reviewed', exact: true })).toBeVisible();
 
@@ -235,6 +237,7 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await toolPanel.getByRole('button', { name: 'Mark Payroll History reviewed', exact: true }).click();
 
   await creditToolSelect.selectOption('Payment Verification');
+  await runPaymentVerification(toolPanel, { bankCode: 'BC-204', destinationId: 'DST-7740', ownerName: 'Avery Brooks' });
 
   await toolPanel.getByRole('navigation', { name: 'Payment verification next routes' })
     .getByRole('button', { name: 'Open Timeline', exact: true })

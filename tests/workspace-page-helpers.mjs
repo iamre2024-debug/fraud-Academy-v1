@@ -49,3 +49,16 @@ export async function selectToolGroup(page, groupName) {
   await groupButton.click();
   return groups;
 }
+
+export async function runPaymentVerification(panel, {
+  bankCode,
+  destinationId,
+  ownerName,
+}) {
+  await panel.getByRole('textbox', { name: 'Bank Code', exact: true }).fill(bankCode);
+  await panel.getByRole('textbox', { name: 'Destination ID', exact: true }).fill(destinationId);
+  await panel.getByRole('textbox', { name: 'Owner or business name', exact: true }).fill(ownerName);
+  await panel.getByRole('button', { name: 'Run verification', exact: true }).click();
+  await expect(panel.locator('.payment-detail-panel')).toBeVisible();
+  return panel.locator('.payment-detail-panel');
+}

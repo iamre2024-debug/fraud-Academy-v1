@@ -1,5 +1,8 @@
 # Fraud Academy OS v1.0
 
+Payment Verification behavior is governed by the reconciled
+[build-ready acceptance checklist](docs/PAYMENT_VERIFICATION_ACCEPTANCE_CHECKLIST.md).
+
 Fraud Academy OS is a fictional fraud investigation training operating system. It teaches investigators how to think through cases, connect evidence, document findings, and make defensible decisions using training-safe fictional data.
 
 ## Source of truth

@@ -38,7 +38,7 @@ mustContain('main.jsx', entrypoint, "import './displayPhaseFour.css';");
 
 mustContain('browser-smoke.spec.mjs', browser, 'responsive investigation records stay inside the viewport');
 mustContain('browser-smoke.spec.mjs', browser, 'panelFits: withinViewport(panelElement)');
-mustContain('browser-smoke.spec.mjs', browser, 'recordOverflow: record.scrollWidth - record.clientWidth');
+mustContain('browser-smoke.spec.mjs', browser, 'summaryOverflow: summaryElement.scrollWidth - summaryElement.clientWidth');
 mustContain('browser-smoke.spec.mjs', browser, "testInfo.project.name === 'mobile-chromium'");
 mustContain('browser-smoke.spec.mjs', browser, 'fieldColumns: fieldGrid ? getComputedStyle(fieldGrid).gridTemplateColumns');
 

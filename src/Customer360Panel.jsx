@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
+import { getFinancialRecords } from './data/caseToolData.js';
 import { getCustomer360Dossier } from './data/customer360Dossier.js';
 import { getCaseDocuments } from './data/documentRecords.js';
+import { buildPaymentLookupHint } from './data/paymentVerification.js';
 import { workflows } from './visualWorkspaceModel.js';
 
 const unavailable = 'Not available in the current training packet';
@@ -252,6 +254,7 @@ export default function Customer360Panel({
   const normalizedQuery = query.trim().toLowerCase();
   const dossier = getCustomer360Dossier(activeCase);
   const documents = getCaseDocuments(activeCase);
+  const paymentRecords = getFinancialRecords(activeCase).paymentVerification ?? [];
   const sections = buildDossierSections(activeCase, dossier, currentCompleted);
   const claimContext = dossier.claimContext;
   const profileChanges = (activeCase.customer?.profileChanges ?? []).filter((item) => matchesQuery(Object.values(item).join(' '), normalizedQuery));
@@ -424,6 +427,38 @@ export default function Customer360Panel({
       </section>
 
       {(activeTab === 'accounts' || normalizedQuery) && <section className="customer-360-record-section" aria-labelledby="customer-360-product-records-heading">
+        {availableToolNames.has('Payment Verification') && paymentRecords.length > 0 && (
+          <section className="customer-360-payment-sources" aria-labelledby="customer-360-payment-inputs-heading">
+            <header className="customer-360-section-heading">
+              <div><p>Source identifiers only</p><h3 id="customer-360-payment-inputs-heading">Payment Verification Inputs</h3></div>
+              <span>{paymentRecords.length} available</span>
+            </header>
+            <p className="customer-360-payment-source-note">These source values can prefill Payment Verification. Opening the tool does not reveal a match or account result until the investigator runs the search.</p>
+            <div>
+              {paymentRecords.map((record) => {
+                const hint = buildPaymentLookupHint({
+                  bankCode: record.bankCode,
+                  destinationId: record.destinationId,
+                  ownerName: activeCase.person,
+                });
+                return (
+                  <article key={record.id}>
+                    <span>{record.id} · {record.laneVariant}</span>
+                    <strong>{record.object}</strong>
+                    <dl>
+                      <div><dt>Bank Code</dt><dd>{record.bankCode}</dd></div>
+                      <div><dt>Destination ID</dt><dd>{record.destinationId}</dd></div>
+                      <div><dt>Owner to compare</dt><dd>{activeCase.person}</dd></div>
+                    </dl>
+                    <button type="button" onClick={() => openTool('Payment Verification', 'investigate', { query: hint })}>
+                      Prefill Payment Verification
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        )}
         <header className="customer-360-section-heading"><div><p>Account-level records</p><h3 id="customer-360-product-records-heading">Accounts & Products</h3></div><span>{dossier.products.length} records</span></header>
         <div className="customer-360-structured-records">
           {dossier.products.map((product) => <article key={product.id}>

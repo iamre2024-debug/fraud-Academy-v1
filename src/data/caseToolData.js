@@ -1,6 +1,7 @@
 import { businessRecordsByCase } from './businessRecords.js';
 import { evidenceRecordsByCase } from './evidenceRecords.js';
 import { financialRecordsByCase } from './financialRecords.js';
+import { normalizePaymentRecords } from './paymentVerification.js';
 
 function fallbackTransaction(activeCase) {
   return {
@@ -87,12 +88,20 @@ function generatedResults(activeCase) {
 
 export function getFinancialRecords(activeCase = {}) {
   const staticRecords = financialRecordsByCase[activeCase.id];
-  if (staticRecords) return staticRecords;
+  if (staticRecords) {
+    return {
+      ...staticRecords,
+      paymentVerification: normalizePaymentRecords(staticRecords.paymentVerification, activeCase),
+    };
+  }
   const generated = generatedResults(activeCase);
   return {
     transactions: generated.transactions?.length ? generated.transactions : [fallbackTransaction(activeCase)],
     financialIntel: generated.financialIntel?.length ? generated.financialIntel : [{ id: `${activeCase.id}-FIN-1`, type: 'Case context', value: activeCase.amount ?? 'Not supplied', observed: activeCase.reportedDate ?? activeCase.opened ?? 'Training date', context: 'Training context available for review.' }],
-    paymentVerification: generated.paymentVerification?.length ? generated.paymentVerification : [fallbackPayment(activeCase)],
+    paymentVerification: normalizePaymentRecords(
+      generated.paymentVerification?.length ? generated.paymentVerification : [fallbackPayment(activeCase)],
+      activeCase,
+    ),
   };
 }
 

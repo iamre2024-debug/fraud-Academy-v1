@@ -203,14 +203,14 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     resetWorkspacePageScroll();
   }
 
-  function openTool(nextTool, nextStage = stageForTool(nextTool), { scroll = true } = {}) {
+  function openTool(nextTool, nextStage = stageForTool(nextTool), { scroll = true, query: nextQuery = '' } = {}) {
     if (!availableToolNames.has(nextTool)) return;
     const nextCategory = visibleCategories.find((item) => item.tools.includes(nextTool)) ?? groupForTool(nextTool) ?? visibleCategories[0];
     onNavigate('workspace');
     setActiveStage(nextStage);
     setCategoryKey(nextCategory.key);
     setTool(nextTool);
-    setQuery('');
+    setQuery(nextQuery);
     setExpandedId('');
     setOpenedPinnedEvidence(null);
     showWorkspaceScreen(nextTool === 'Timeline' ? 'timeline' : 'tool');
@@ -383,6 +383,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     openDocumentAccountCase,
     documentRequests,
     setDocumentRequestsByCase,
+    recordAction,
   };
 
   if (layoutMode === 'mobile') {
