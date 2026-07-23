@@ -169,8 +169,14 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
     await page.getByRole('combobox', { name: 'Layout mode', exact: true }).selectOption('desktop');
     await expect(page.locator('body')).toHaveAttribute('data-layout-preference', 'desktop');
     await expect(page.locator('body')).toHaveAttribute('data-layout-mode', 'desktop');
-    const desktopPreviewColumns = await page.evaluate(() => getComputedStyle(document.querySelector('.luna-v1-debrief-grid')).gridTemplateColumns.split(' ').filter(Boolean).length);
-    expect(desktopPreviewColumns).toBe(2);
+    const desktopCardsShareRow = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll('.luna-v1-debrief-grid > .luna-v1-card')];
+      if (cards.length < 2) return false;
+      const first = cards[0].getBoundingClientRect();
+      const second = cards[1].getBoundingClientRect();
+      return Math.abs(second.top - first.top) <= 2 && second.left > first.left;
+    });
+    expect(desktopCardsShareRow).toBe(true);
     await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
     await page.getByRole('group', { name: 'Layout mode', exact: true }).getByRole('button', { name: 'Auto', exact: true }).click();
     await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
