@@ -38,7 +38,7 @@ if (!stageBlock) {
 mustContain('ActiveCaseWorkflowRail.jsx', rail, 'aria-label="Active case workflow"');
 mustContain('ActiveCaseWorkflowRail.jsx', rail, "aria-current={active ? 'step' : undefined}");
 mustContain('ActiveCaseWorkflowRail.jsx', rail, 'data-workflow-stage-button={stage.key}');
-mustContain('VisualWorkspace.jsx', workspace, "const [activeStage, setActiveStage] = useState('briefing');");
+mustContain('VisualWorkspace.jsx', workspace, 'const [activeStage, setActiveStage] = useState(() => stageForWorkspaceScreen(initialWorkspaceScreen');
 mustContain('VisualWorkspace.jsx', workspace, '<ActiveCaseWorkflowRail');
 mustContain('VisualWorkspace.jsx', workspace, 'stageStatus={stageStatus}');
 mustContain('VisualWorkspace.jsx', workspace, 'data-workflow-stage="briefing"');

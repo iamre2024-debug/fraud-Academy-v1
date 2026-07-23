@@ -27,9 +27,20 @@ function stageForTool(toolName) {
   return 'investigate';
 }
 
+function stageForWorkspaceScreen(screen, toolName) {
+  if (screen === 'tool') return stageForTool(toolName);
+  if (screen === 'tool-menu') return 'investigate';
+  if (screen === 'timeline') return 'timeline';
+  if (screen === 'evidence' || screen === 'notes') return 'indicators';
+  if (screen === 'determination') return 'determination';
+  if (screen === 'debrief') return 'debrief';
+  return 'briefing';
+}
+
 export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCases(baseCases), layoutMode = 'desktop', onCaseChange, onNavigate, requestedWorkspaceScreen, onWorkspaceScreenChange }) {
-  const [activeStage, setActiveStage] = useState('briefing');
-  const [workspaceScreen, setWorkspaceScreen] = useState('briefing');
+  const initialWorkspaceScreen = requestedWorkspaceScreen || 'briefing';
+  const [activeStage, setActiveStage] = useState(() => stageForWorkspaceScreen(initialWorkspaceScreen, 'Login History'));
+  const [workspaceScreen, setWorkspaceScreen] = useState(() => initialWorkspaceScreen);
   const [categoryKey, setCategoryKey] = useState('digital');
   const [tool, setTool] = useState('Login History');
   const [query, setQuery] = useState('');
@@ -46,7 +57,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     const nextScreen = requestedWorkspaceScreen || 'briefing';
     workspaceScreenHistory.current = [];
     requestedWorkspaceScreenRef.current = nextScreen;
-    setActiveStage(nextScreen === 'tool' ? stageForTool(tool) : 'briefing');
+    setActiveStage(stageForWorkspaceScreen(nextScreen, tool));
     setWorkspaceScreen(nextScreen);
     setOpenedPinnedEvidence(null);
   }, [activeCase.id]);
@@ -58,9 +69,12 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   useEffect(() => {
     if (!requestedWorkspaceScreen || requestedWorkspaceScreen === requestedWorkspaceScreenRef.current) return;
     requestedWorkspaceScreenRef.current = requestedWorkspaceScreen;
-    if (requestedWorkspaceScreen !== workspaceScreen) setWorkspaceScreen(requestedWorkspaceScreen);
+    if (requestedWorkspaceScreen !== workspaceScreen) {
+      setActiveStage(stageForWorkspaceScreen(requestedWorkspaceScreen, tool));
+      setWorkspaceScreen(requestedWorkspaceScreen);
+    }
     resetWorkspacePageScroll();
-  }, [requestedWorkspaceScreen, workspaceScreen]);
+  }, [requestedWorkspaceScreen, tool, workspaceScreen]);
 
   const {
     tray,

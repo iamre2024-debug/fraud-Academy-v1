@@ -67,6 +67,7 @@ for (const anchor of [
 const layoutHook = fs.readFileSync(path.join(rootDir, 'src/useResponsiveLayoutMode.js'), 'utf8');
 const layoutStyles = fs.readFileSync(path.join(rootDir, 'src/responsiveLayoutMode.css'), 'utf8');
 const shellHeader = fs.readFileSync(path.join(rootDir, 'src/VisualShellHeader.jsx'), 'utf8');
+const visualWorkspace = fs.readFileSync(path.join(rootDir, 'src/VisualWorkspace.jsx'), 'utf8');
 for (const anchor of [
   "'(max-width: 720px)'",
   'dataset.layoutMode',
@@ -82,6 +83,15 @@ for (const anchor of ["['auto', 'mobile', 'desktop']", 'Detected {detectedLayout
 for (const anchor of ['body[data-layout-preference="mobile"]', '.layout-mode-control', 'grid-template-columns: minmax(0, 1fr) !important']) {
   if (!layoutStyles.includes(anchor)) fail(`responsiveLayoutMode.css is missing ${anchor}.`);
 }
+for (const anchor of [
+  'function stageForWorkspaceScreen(screen, toolName)',
+  "if (screen === 'debrief') return 'debrief';",
+  "const initialWorkspaceScreen = requestedWorkspaceScreen || 'briefing';",
+  'useState(() => stageForWorkspaceScreen(initialWorkspaceScreen',
+  'useState(() => initialWorkspaceScreen)',
+]) {
+  if (!visualWorkspace.includes(anchor)) fail(`VisualWorkspace.jsx is missing route-preserving layout anchor ${anchor}.`);
+}
 
 if (failures.length) {
   console.error('Debrief notes and layout mode smoke check failed:');
@@ -89,4 +99,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Debrief notes and layout mode smoke check passed. Notes are quality-scored, debrief steps stay unique, and responsive mode is detected and switchable.');
+console.log('Debrief notes and layout mode smoke check passed. Notes are quality-scored, debrief steps stay unique, and responsive mode switches preserve the active workspace route.');
