@@ -170,6 +170,7 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
     await expect(page.locator('body')).toHaveAttribute('data-layout-preference', 'desktop');
     await expect(page.locator('body')).toHaveAttribute('data-layout-mode', 'desktop');
     await expect(page.locator('.mission-mobile-root')).toHaveCount(0);
+    await expect(page.locator('.visual-os-frame')).toHaveAttribute('data-workspace-screen', 'debrief');
     await expect(luna).toBeVisible();
     const desktopCardsShareRow = await page.evaluate(() => {
       const visibleGrid = [...document.querySelectorAll('.luna-v1-debrief-grid')]
