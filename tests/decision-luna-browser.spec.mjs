@@ -123,19 +123,17 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
 
   const luna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');
   await expect(luna).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'Your submitted determination', exact: true })).toBeVisible();
+  await expect(luna.getByRole('heading', { name: 'What you submitted', exact: true })).toBeVisible();
   await expect(luna.getByText(learnerChoice, { exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'How Luna read the package', exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'What your package did well', exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'Next coaching focus', exact: true })).toBeVisible();
+  await expect(luna.getByRole('heading', { name: 'How well your decision was supported', exact: true })).toBeVisible();
+  await expect(luna.getByRole('heading', { name: 'What you handled well', exact: true })).toBeVisible();
+  await expect(luna.getByRole('heading', { name: 'What to improve next time', exact: true })).toBeVisible();
   await expect(luna.getByRole('heading', { name: 'Decision-quality breakdown', exact: true })).toBeVisible();
-  const notesQualityLabel = luna.getByText('Quality of notes', { exact: true });
-  await notesQualityLabel.scrollIntoViewIfNeeded();
-  await expect(notesQualityLabel).toBeVisible();
+  await expect(luna.getByText('Investigation package quality', { exact: true })).toBeVisible();
 
   const debriefStepNumbers = (await luna.locator('.luna-v1-step-index').allTextContents()).map((value) => value.trim());
   expect(new Set(debriefStepNumbers).size).toBe(debriefStepNumbers.length);
-  expect(debriefStepNumbers).toEqual(['01', '02', '03', '04', '05']);
+  expect(debriefStepNumbers).toEqual(['01', '02', '03', '04', '05', '06']);
 
   const debriefLayout = await page.evaluate(() => {
     const grid = document.querySelector('.luna-v1-debrief-grid');

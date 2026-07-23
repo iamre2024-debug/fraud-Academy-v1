@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 test('Document Request tracks case-scoped document workflow states', async ({ page }, testInfo) => {
   await page.goto('/');
 
+  await page.locator('.visual-case-switcher select').selectOption('FA-CB-24007');
   const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
   await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
 

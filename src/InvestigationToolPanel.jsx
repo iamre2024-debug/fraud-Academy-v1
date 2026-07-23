@@ -2126,6 +2126,7 @@ export default function InvestigationToolPanel({
   jumpDecision,
   documentRequests,
   setDocumentRequestsByCase,
+  recordAction,
 }) {
   const [selectedRecordId, setSelectedRecordId] = useState('');
   const displayData = buildCoreToolRecords(tool, activeCase, data) ?? data;

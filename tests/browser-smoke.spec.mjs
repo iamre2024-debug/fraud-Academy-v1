@@ -286,7 +286,7 @@ test('generated cases persist through reload and remain Evidence First', async (
     expect(generatedId).toMatch(/^FA-[A-Z]+-G\d{8}$/);
     expect(generatedIds).not.toContain(generatedId);
     generatedIds.push(generatedId);
-    await expect(page.locator('.visual-case-strip')).toContainText('Generated');
+    await expect(page.locator('.visual-case-strip')).toContainText(generatedId);
     await expect(page.locator('[data-case-briefing-screen="approved-theme-v1"]')).toBeVisible();
     await assertEvidenceFirstLock(page, generatedId);
   }

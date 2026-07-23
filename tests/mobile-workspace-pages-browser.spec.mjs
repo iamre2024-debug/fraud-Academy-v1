@@ -41,7 +41,7 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   await workflow.getByRole('button', { name: /Investigate/ }).click();
   await expect(frame).toHaveAttribute('data-workspace-screen', 'tool-menu');
   await expect(toolMenu).toBeVisible();
-  await toolMenu.getByRole('button', { name: /Login, Session, Device & IP/ }).click();
+  await toolMenu.locator('.visual-category-row > button').filter({ hasText: 'Login, Session, Device & IP' }).click();
   await expect(frame).toHaveAttribute('data-workspace-screen', 'tool');
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Login History');
   await expect(toolMenu).toBeHidden();

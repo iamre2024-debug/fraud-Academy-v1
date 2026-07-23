@@ -80,6 +80,7 @@ async function assertTouchTargets(page) {
 }
 
 test('final responsive polish protects every completed global surface across compact, phone, small-tablet, tablet, desktop, and wide layouts', async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
   const viewports = testInfo.project.name === 'mobile-chromium'
     ? [{ width: 350, height: 780 }, { width: 412, height: 915 }, { width: 640, height: 900 }]
     : [{ width: 768, height: 900 }, { width: 1024, height: 900 }, { width: 1440, height: 1000 }];

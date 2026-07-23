@@ -70,7 +70,9 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   await expect(page.locator('.mission-path-v3')).toBeVisible();
   await page.locator('.mission-path-list').getByRole('button', { name: /Investigate/ }).click();
   await expect(page.locator('.mission-evidence-page .mission-evidence-map')).toBeVisible();
-  await expect(page.locator('.mission-evidence-page .visual-category-row > button')).toHaveCount(7);
+  const categoryButtons = page.locator('.mission-evidence-page .visual-category-row > button');
+  await expect(categoryButtons).toHaveCount(6);
+  await expect(categoryButtons.filter({ hasText: 'Business & Payment Verification' })).toBeVisible();
   await assertPhoneGeometry(page);
   await capture(page, testInfo, '03-evidence-map');
 

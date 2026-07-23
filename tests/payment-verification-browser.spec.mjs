@@ -1,6 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { runPaymentVerification, selectToolGroup } from './workspace-page-helpers.mjs';
 
+test.beforeEach(async ({ page }, testInfo) => {
+  if (testInfo.project.name !== 'mobile-chromium') return;
+  await page.addInitScript(() => {
+    window.localStorage.setItem('fraud-academy-layout-mode-v1', 'mobile');
+  });
+});
+
 async function openPaymentVerification(page) {
   await selectToolGroup(page, /Business & Payment Verification/);
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
@@ -95,8 +102,7 @@ test('Payment Verification keeps partial name, ownership, status, and history se
 
 test('Customer 360 prefills identifiers without revealing the result', async ({ page }, testInfo) => {
   await page.goto('/');
-  const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
-  await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
+  await selectToolGroup(page, /Identity & Customer/);
 
   const customer = page.locator('[data-customer-360-screen="approved-theme-v1"]');
   await expect(customer).toBeVisible();
