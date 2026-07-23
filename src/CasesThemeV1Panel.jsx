@@ -108,6 +108,7 @@ export default function CasesThemeV1Panel({
   claimTypes = [],
   onGenerateCases,
   onOpenCase,
+  inline = false,
 }) {
   const [panelHost, setPanelHost] = useState(null);
   const [query, setQuery] = useState('');
@@ -126,6 +127,7 @@ export default function CasesThemeV1Panel({
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
+    if (inline) return undefined;
     const frame = document.querySelector('.visual-os-frame');
     const anchor = frame?.querySelector('.visual-react-nav-host');
     if (!frame || !anchor) return undefined;
@@ -142,7 +144,7 @@ export default function CasesThemeV1Panel({
     return () => {
       if (created) host.remove();
     };
-  }, []);
+  }, [inline]);
 
   useEffect(() => {
     const nextClaimType = selectedClaimType(claimTypes, generatorClaimTypeId);
@@ -231,7 +233,7 @@ export default function CasesThemeV1Panel({
     }
   }
 
-  if (!active || !panelHost) return null;
+  if (!active || (!inline && !panelHost)) return null;
 
   const panel = (
     <section className="cases-theme-v1-panel" data-cases-theme-v1="approved" aria-label="Case Queue">
@@ -531,5 +533,5 @@ export default function CasesThemeV1Panel({
     </section>
   );
 
-  return createPortal(panel, panelHost);
+  return inline ? panel : createPortal(panel, panelHost);
 }

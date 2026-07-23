@@ -5,6 +5,8 @@ import VisualTextCollapse from './VisualTextCollapse.jsx';
 import LunaPostSubmissionPanel from './LunaPostSubmissionPanel.jsx';
 import GeneratedCaseControls from './GeneratedCaseControls.jsx';
 import CasesThemeV1Panel from './CasesThemeV1Panel.jsx';
+import MobileMissionDeckApp from './MobileMissionDeckApp.jsx';
+import useResponsiveLayoutMode from './useResponsiveLayoutMode.js';
 import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import { coreClaimTypes } from './data/claimRegistry.js';
@@ -18,6 +20,7 @@ export default function VisualApp() {
   const [activeCaseId, setActiveCaseId] = useState(() => enrichedBaseCases[0]?.id ?? '');
   const [workspaceScreen, setWorkspaceScreen] = useState('briefing');
   const activeCase = caseCatalog.find((item) => item.id === activeCaseId) ?? caseCatalog[0];
+  const layoutController = useResponsiveLayoutMode();
 
   useEffect(() => {
     let cancelled = false;
@@ -76,6 +79,47 @@ export default function VisualApp() {
     setWorkspaceScreen('briefing');
     setActiveTab('workspace');
     window.setTimeout(() => document.querySelector('[data-workflow-stage="briefing"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  }
+
+  if (layoutController.resolvedLayout === 'mobile') {
+    return (
+      <>
+        <MobileMissionDeckApp
+          activeTab={activeTab}
+          activeCase={activeCase}
+          activeCaseId={activeCaseId}
+          cases={caseCatalog}
+          claimTypes={coreClaimTypes}
+          layoutController={layoutController}
+          onGenerateCases={handleGeneratedCases}
+          onNavigate={setActiveTab}
+          onOpenCase={openCase}
+          quickGenerator={<GeneratedCaseControls inline onCaseGenerated={handleGeneratedCase} />}
+          workspace={(
+            <VisualWorkspace
+              activeCaseId={activeCaseId}
+              cases={caseCatalog}
+              layoutMode="mobile"
+              onCaseChange={openCase}
+              onNavigate={setActiveTab}
+              requestedWorkspaceScreen={workspaceScreen}
+              onWorkspaceScreenChange={setWorkspaceScreen}
+            />
+          )}
+          luna={(
+            <LunaPostSubmissionPanel
+              activeCase={activeCase}
+              activeCaseId={activeCaseId}
+              onBackToWorkspace={returnToWorkspace}
+              onViewCaseSummary={viewCaseSummary}
+              onReturnToQueue={returnToQueue}
+              visible={activeTab === 'workspace' && workspaceScreen === 'debrief'}
+            />
+          )}
+        />
+        <VisualTextCollapse />
+      </>
+    );
   }
 
   return (

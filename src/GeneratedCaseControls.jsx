@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { generateAndSaveCase, listGeneratedCases } from './data/generatedCaseRepository.js';
 
-export default function GeneratedCaseControls({ onCaseGenerated }) {
+export default function GeneratedCaseControls({ onCaseGenerated, inline = false }) {
   const [host, setHost] = useState(null);
   const [count, setCount] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
+    listGeneratedCases().then((cases) => setCount(cases.length)).catch(() => setCount(0));
+    if (inline) return undefined;
+
     const frame = document.querySelector('.visual-os-frame');
     const anchor = document.querySelector('.case-info-bar');
     if (!frame || !anchor) return undefined;
@@ -21,12 +24,10 @@ export default function GeneratedCaseControls({ onCaseGenerated }) {
     }
 
     setHost(generatorHost);
-    listGeneratedCases().then((cases) => setCount(cases.length)).catch(() => setCount(0));
-
     return () => {
       if (created) generatorHost.remove();
     };
-  }, []);
+  }, [inline]);
 
   async function generateCase() {
     if (isGenerating) return;
@@ -53,5 +54,6 @@ export default function GeneratedCaseControls({ onCaseGenerated }) {
     </section>
   );
 
+  if (inline) return panel;
   return host ? createPortal(panel, host) : null;
 }

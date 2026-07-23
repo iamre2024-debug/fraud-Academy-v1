@@ -95,7 +95,7 @@ export default function LunaPostSubmissionPanel({
   const activeCase = suppliedActiveCase ?? cases.find((item) => item.id === activeCaseId) ?? cases[0];
 
   useEffect(() => {
-    const frame = document.querySelector('.visual-os-frame');
+    const frame = document.querySelector('.mission-workspace-v3') ?? document.querySelector('.visual-os-frame');
     const anchor = document.querySelector('.decision-luna-portal-anchor');
     if (!frame || !anchor) return undefined;
     let lunaHost = frame.querySelector('.luna-post-submission-host');

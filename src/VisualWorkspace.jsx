@@ -12,6 +12,7 @@ import TimelinePanel from './TimelinePanel.jsx';
 import useVisualWorkspaceActions from './useVisualWorkspaceActions.js';
 import useVisualWorkspaceCaseState from './useVisualWorkspaceCaseState.js';
 import VisualShellHeader from './VisualShellHeader.jsx';
+import MobileMissionWorkspace from './MobileMissionWorkspace.jsx';
 import {
   groupForTool,
   investigationToolGroups,
@@ -26,7 +27,7 @@ function stageForTool(toolName) {
   return 'investigate';
 }
 
-export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCases(baseCases), onCaseChange, onNavigate, requestedWorkspaceScreen, onWorkspaceScreenChange }) {
+export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCases(baseCases), layoutMode = 'desktop', onCaseChange, onNavigate, requestedWorkspaceScreen, onWorkspaceScreenChange }) {
   const [activeStage, setActiveStage] = useState('briefing');
   const [workspaceScreen, setWorkspaceScreen] = useState('briefing');
   const [categoryKey, setCategoryKey] = useState('digital');
@@ -383,6 +384,57 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     documentRequests,
     setDocumentRequestsByCase,
   };
+
+  if (layoutMode === 'mobile') {
+    return (
+      <MobileMissionWorkspace
+        activeCase={activeCase}
+        activeStage={activeStage}
+        activeTool={activeTool}
+        activeToolProps={activeToolProps}
+        actionLog={actionLog}
+        cases={cases}
+        categoryKey={categoryKey}
+        changeCase={changeCase}
+        currentCompleted={currentCompleted}
+        decisionDraft={decisionDraft}
+        documentRequests={documentRequests}
+        goBackWorkspaceScreen={goBackWorkspaceScreen}
+        jumpDecision={jumpDecision}
+        noteDraft={noteDraft}
+        notes={notes}
+        onNavigate={onNavigate}
+        openCaseQueue={openCaseQueue}
+        openDebrief={openDebrief}
+        openedPinnedEvidence={openedPinnedEvidence}
+        openMoreTools={openMoreTools}
+        openNotes={openNotes}
+        openPinnedEvidence={openPinnedEvidence}
+        openTool={openTool}
+        packageStatus={packageStatus}
+        pin={pin}
+        recordAction={recordAction}
+        removePin={removePin}
+        returnToPinnedEvidence={returnToPinnedEvidence}
+        reviewPackages={reviewPackages}
+        selectWorkflowStage={selectWorkflowStage}
+        setCategoryKey={setCategoryKey}
+        setExpandedId={setExpandedId}
+        setNoteDraft={setNoteDraft}
+        setTool={setTool}
+        showWorkspaceScreen={showWorkspaceScreen}
+        stageStatus={stageStatus}
+        submitDecision={submitDecision}
+        submitNote={submitNote}
+        submitRef={submitRef}
+        tray={tray}
+        updateDecision={updateDecision}
+        updateDecisionIndicator={updateDecisionIndicator}
+        visibleCategories={visibleCategories}
+        workspaceScreen={workspaceScreen}
+      />
+    );
+  }
 
   return (
     <main className="visual-os-shell">

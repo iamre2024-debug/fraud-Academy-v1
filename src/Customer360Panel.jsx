@@ -303,7 +303,7 @@ export default function Customer360Panel({
   }
 
   return (
-    <section className="ornate-card activity-panel customer-360-theme-v1" data-customer-360-screen="approved-theme-v1">
+    <section className="ornate-card activity-panel customer-360-theme-v1" data-customer-360-screen="approved-theme-v1" data-case-id={activeCase.id}>
       <header className="customer-360-header">
         <div>
           <p className="customer-360-eyebrow">Identity workspace · Evidence First</p>

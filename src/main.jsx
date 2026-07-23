@@ -39,7 +39,7 @@ import './responsiveLayoutMode.css';
 import './mobileAppPages.css';
 import './lunaManagerMobileFix.css';
 import './documentInbox.css';
-import './mobileBlueMissionDeck.css';
+import './mobileMissionDeckV3.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
