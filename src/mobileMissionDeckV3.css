@@ -34,9 +34,9 @@ body[data-layout-mode="mobile"] #root {
 
 .mission-mobile-root {
   position: relative;
-  width: min(100%, 430px);
+  width: 100%;
   min-height: 100dvh;
-  margin: 0 auto;
+  margin: 0;
   overflow: clip;
   background:
     radial-gradient(circle at 48% -8%, rgba(20, 116, 222, 0.44), transparent 27rem),
@@ -73,8 +73,8 @@ body[data-layout-mode="mobile"] #root {
   position: fixed;
   z-index: -1;
   inset: 0;
-  width: min(100%, 430px);
-  margin: auto;
+  width: 100%;
+  margin: 0;
   pointer-events: none;
   overflow: hidden;
   background-image:
@@ -203,8 +203,8 @@ body[data-layout-mode="mobile"] #root {
   position: fixed;
   z-index: 150;
   top: 76px;
-  left: max(10px, calc(50vw - 205px));
-  right: max(10px, calc(50vw - 205px));
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
   border: 1px solid rgba(94, 226, 255, 0.42);
   border-radius: 22px 8px 22px 22px;
   background: linear-gradient(145deg, rgba(8, 64, 112, 0.98), rgba(2, 20, 40, 0.99));
@@ -261,7 +261,11 @@ body[data-layout-mode="mobile"] #root {
 .mission-mobile-page {
   width: 100%;
   min-height: calc(100dvh - 68px);
-  padding: 16px 76px 110px 12px;
+  padding:
+    16px
+    max(12px, env(safe-area-inset-right))
+    calc(104px + env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
 }
 
 .mission-mobile-workspace-page {
@@ -271,29 +275,33 @@ body[data-layout-mode="mobile"] #root {
 .mission-mobile-dock {
   position: fixed;
   z-index: 130;
-  top: 50%;
-  right: max(6px, calc(50vw - 209px));
-  width: 62px;
+  top: auto;
+  right: max(8px, env(safe-area-inset-right));
+  bottom: max(8px, env(safe-area-inset-bottom));
+  left: max(8px, env(safe-area-inset-left));
+  width: auto;
   display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
-  transform: translateY(-50%);
+  transform: none;
   border: 1px solid rgba(86, 219, 255, 0.35);
-  border-radius: 31px;
-  background: linear-gradient(180deg, rgba(8, 58, 101, 0.97), rgba(1, 16, 34, 0.98));
-  padding: 8px 5px;
+  border-radius: 22px;
+  background: linear-gradient(90deg, rgba(8, 58, 101, 0.97), rgba(1, 16, 34, 0.98));
+  padding: 6px;
   box-shadow: 0 18px 48px rgba(0, 3, 12, 0.65), inset 0 0 24px rgba(24, 138, 240, 0.12);
   backdrop-filter: blur(18px);
 }
 
 .mission-mobile-dock button {
-  width: 50px;
-  min-height: 53px;
+  width: 100%;
+  min-width: 0;
+  min-height: 58px;
   display: grid;
   place-items: center;
   align-content: center;
   gap: 1px;
   border: 1px solid transparent;
-  border-radius: 24px;
+  border-radius: 16px;
   background: transparent;
   color: #b9dbea;
   padding: 4px 2px;
@@ -641,7 +649,7 @@ body[data-layout-mode="mobile"] #root {
 .mission-evidence-page .node-context { bottom: 47px; right: 18px; }
 .mission-evidence-page .node-transaction { top: 50%; left: 50%; width: 125px; min-height: 98px; transform: translate(-50%, -50%); border-color: #69e8ff; border-radius: 50%; background: radial-gradient(circle, #0a89e3, #04345e 72%); box-shadow: 0 0 30px rgba(60, 207, 255, 0.33); }
 .mission-evidence-page .mission-map-pin { position: absolute; z-index: 3; bottom: 39px; left: 17px; border: 1px solid #6be7ff; border-radius: 999px; background: #0874ce; padding: 8px 10px; color: #fff; font-size: 0.75rem; font-weight: 900; }
-.mission-evidence-page .visual-category-row { width: calc(100vw - 100px); max-width: 330px; display: flex; gap: 10px; overflow-x: auto; margin-top: 14px; padding: 5px 3px 13px; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.mission-evidence-page .visual-category-row { width: 100%; max-width: none; display: flex; gap: 10px; overflow-x: auto; margin-top: 14px; padding: 5px 3px 13px; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .mission-evidence-page .visual-category-row::-webkit-scrollbar { display: none; }
 .mission-evidence-page .visual-category-row > button { flex: 0 0 210px; min-height: 162px; display: grid; grid-template-columns: 42px minmax(0, 1fr); grid-template-rows: auto auto auto; align-content: start; gap: 7px 9px; scroll-snap-align: center; border: 1px solid var(--md-line); border-radius: 20px 8px 20px 20px; background: linear-gradient(145deg, #075f9f, #032642); padding: 13px; color: #fff; text-align: left; box-shadow: 0 13px 27px rgba(0, 3, 12, 0.35); }
 .mission-evidence-page .visual-category-row > button.active { border-color: #66e7ff; background: linear-gradient(145deg, #0a8ce7, #074e93); transform: translateY(-3px); }
@@ -2008,9 +2016,17 @@ body[data-layout-mode="mobile"] #root {
 }
 
 @media (max-width: 370px) {
-  .mission-mobile-page { padding-right: 68px; padding-left: 8px; }
-  .mission-mobile-dock { right: 3px; width: 58px; padding-inline: 4px; }
-  .mission-mobile-dock button { width: 48px; }
+  .mission-mobile-page {
+    padding-right: max(8px, env(safe-area-inset-right));
+    padding-left: max(8px, env(safe-area-inset-left));
+  }
+  .mission-mobile-dock {
+    right: max(4px, env(safe-area-inset-right));
+    left: max(4px, env(safe-area-inset-left));
+    gap: 3px;
+    padding-inline: 4px;
+  }
+  .mission-mobile-dock button { padding-inline: 1px; }
   .mission-mobile-case-chip { display: none; }
   .mission-mobile-header { grid-template-columns: minmax(0, 1fr) auto; }
   .mission-briefing-facts,

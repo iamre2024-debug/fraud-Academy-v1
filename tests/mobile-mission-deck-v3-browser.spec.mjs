@@ -22,17 +22,26 @@ async function assertPhoneGeometry(page) {
       documentWidth: document.documentElement.scrollWidth,
       rootLeft: root?.left ?? -1,
       rootRight: root?.right ?? window.innerWidth + 1,
+      rootWidth: root?.width ?? 0,
       dockLeft: dock?.left ?? -1,
       dockRight: dock?.right ?? window.innerWidth + 1,
+      dockBottom: dock?.bottom ?? window.innerHeight + 1,
+      dockWidth: dock?.width ?? 0,
+      viewportHeight: window.innerHeight,
       badHeadings,
     };
   });
 
   expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewport + 1);
   expect(geometry.rootLeft).toBeGreaterThanOrEqual(-1);
+  expect(geometry.rootLeft).toBeLessThanOrEqual(1);
+  expect(geometry.rootRight).toBeGreaterThanOrEqual(geometry.viewport - 1);
   expect(geometry.rootRight).toBeLessThanOrEqual(geometry.viewport + 1);
+  expect(geometry.rootWidth).toBeGreaterThanOrEqual(geometry.viewport - 1);
   expect(geometry.dockLeft).toBeGreaterThanOrEqual(0);
   expect(geometry.dockRight).toBeLessThanOrEqual(geometry.viewport + 1);
+  expect(geometry.dockBottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
+  expect(geometry.dockWidth).toBeGreaterThanOrEqual(geometry.viewport - 18);
   expect(geometry.badHeadings).toEqual([]);
 }
 
@@ -49,6 +58,9 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   await expect(page.locator('.visual-os-frame')).toHaveCount(0);
   await expect(page.getByRole('navigation', { name: 'Main navigation' })).toHaveCount(0);
   await expect(dock).toBeVisible();
+
+  await page.setViewportSize({ width: 628, height: 1536 });
+  await assertPhoneGeometry(page);
 
   await dock.getByRole('button', { name: /Home/ }).click();
   await expect(page.locator('.mission-case-deck')).toBeVisible();
