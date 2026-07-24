@@ -1,15 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { selectToolGroup } from './workspace-page-helpers.mjs';
 
 test('Login History keeps its evidence flow and uses the dedicated mobile authentication console', async ({ page }, testInfo) => {
   await page.goto('/');
-
-  const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
-  await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
-
-  const customer360 = page.locator('[data-customer-360-screen="approved-theme-v1"]');
-  await customer360.getByRole('navigation', { name: 'Customer 360 related tools' })
-    .getByRole('button', { name: 'Login History', exact: true })
-    .click();
+  await selectToolGroup(page, /Login, Session, Device & IP/);
 
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Login History');
