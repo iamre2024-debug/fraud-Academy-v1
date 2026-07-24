@@ -25,7 +25,7 @@ export default function SubmitDecisionPanel({
 
   function submitAndOpenDebrief(event) {
     const reviewPackage = submitDecision(event);
-    if (reviewPackage) openDebrief?.();
+    if (reviewPackage) openDebrief?.(reviewPackage);
   }
 
   return (
@@ -151,7 +151,7 @@ export default function SubmitDecisionPanel({
             <h3>Decision submitted for {latestPackage.caseId}</h3>
             <span>{latestPackage.choice || 'No determination selected'} · {latestPackage.confidence} confidence · saved {latestPackage.savedAt}</span>
           </div>
-          <button type="button" className="decision-open-debrief" onClick={openDebrief}>Open Luna Debrief</button>
+          <button type="button" className="decision-open-debrief" onClick={() => openDebrief?.(latestPackage)}>Open Luna Debrief</button>
         </section>
       )}
     </section>

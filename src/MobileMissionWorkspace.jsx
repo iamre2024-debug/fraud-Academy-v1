@@ -36,6 +36,7 @@ export default function MobileMissionWorkspace({
   changeCase,
   currentCompleted,
   decisionDraft,
+  documentRequests,
   goBackWorkspaceScreen,
   jumpDecision,
   noteDraft,
@@ -52,6 +53,7 @@ export default function MobileMissionWorkspace({
   pin,
   recordAction,
   removePin,
+  removeUnavailablePinnedEvidence,
   returnToPinnedEvidence,
   reviewPackages,
   selectWorkflowStage,
@@ -118,7 +120,7 @@ export default function MobileMissionWorkspace({
         )}
 
         {workspaceScreen === 'tool-menu' && (
-          <section className="mission-evidence-page" data-workflow-stage="investigate">
+          <section className="mission-evidence-page" data-workflow-stage="investigate" data-workspace-page="tool-menu">
             <header className="mission-evidence-heading"><span>🧬</span><div><p>Connected evidence map</p><h2>Choose where to investigate</h2><small>Every tool opens as its own full mission screen.</small></div></header>
             <CategoryTileRail
               activeCase={activeCase}
@@ -144,6 +146,7 @@ export default function MobileMissionWorkspace({
             data-document-request-page={activeTool === 'Document Request' ? 'true' : undefined}
             data-login-history-page={activeTool === 'Login History' ? 'true' : undefined}
             data-workflow-stage={workspaceScreen === 'timeline' ? 'timeline' : 'investigate'}
+            data-workspace-page={workspaceScreen === 'timeline' ? 'timeline' : 'tool'}
           >
             <nav className="mission-tool-actions" aria-label="Tool page actions">
               <button type="button" onClick={() => showWorkspaceScreen('tool-menu')}>🧰 All tools</button>
@@ -156,7 +159,7 @@ export default function MobileMissionWorkspace({
                 <button type="button" onClick={returnToPinnedEvidence}>Back to pins</button>
               </section>
             )}
-            {activeTool === 'Document Request' && <MissionDocumentRequestHeading activeCase={activeCase} />}
+            {activeTool === 'Document Request' && <MissionDocumentRequestHeading activeCase={activeCase} documentRequests={documentRequests} />}
             {activeTool === 'Login History' && <MissionLoginHistoryHeading activeCase={activeCase} />}
             <div className="mission-tool-content">
               {activeTool === 'Customer 360' ? (
@@ -171,8 +174,21 @@ export default function MobileMissionWorkspace({
         )}
 
         {(workspaceScreen === 'evidence' || workspaceScreen === 'notes') && (
-          <section className="mission-evidence-notebook" data-workflow-stage="indicators">
+          <section className="mission-evidence-notebook" data-workflow-stage="indicators" data-workspace-page="indicators">
             <header><span>{workspaceScreen === 'evidence' ? '⭐' : '📝'}</span><div><p>Case fieldwork</p><h2>{workspaceScreen === 'evidence' ? 'Pinned evidence deck' : 'Investigation notebook'}</h2></div></header>
+            {workspaceScreen === 'evidence' && openedPinnedEvidence?.unresolved && (
+              <section className="pinned-evidence-unavailable" role="alert">
+                <div>
+                  <p>Source record unavailable</p>
+                  <h2>{openedPinnedEvidence.value}</h2>
+                  <span>This pin is still saved, but its source record is not available in this case.</span>
+                </div>
+                <nav aria-label="Unavailable pinned evidence actions">
+                  <button type="button" onClick={() => openPinnedEvidence(openedPinnedEvidence.value)}>Retry source lookup</button>
+                  <button type="button" onClick={() => removeUnavailablePinnedEvidence(openedPinnedEvidence.value)}>Remove pin</button>
+                </nav>
+              </section>
+            )}
             <BottomInvestigationGrid
               tray={tray}
               removePin={removePin}
@@ -217,7 +233,16 @@ export default function MobileMissionWorkspace({
   );
 }
 
-function MissionDocumentRequestHeading({ activeCase }) {
+function documentRequestProgress(documentRequests = {}) {
+  const attempts = Object.values(documentRequests).flatMap((request) => request?.attempts ?? []);
+  if (!attempts.length) return 0;
+  if (attempts.some((attempt) => attempt.customerSubmission?.pages?.length)) return 2;
+  return 1;
+}
+
+function MissionDocumentRequestHeading({ activeCase, documentRequests }) {
+  const activeStep = documentRequestProgress(documentRequests);
+  const steps = ['Request', 'Receive', 'Review'];
   return (
     <header className="mission-document-request-heading">
       <span className="mission-document-request-icon" aria-hidden="true">📨</span>
@@ -227,9 +252,16 @@ function MissionDocumentRequestHeading({ activeCase }) {
         <small>Send a request, track the customer response, then review the returned source document.</small>
       </div>
       <ol aria-label="Document request workflow">
-        <li className="active"><i />Request</li>
-        <li><i />Receive</li>
-        <li><i />Review</li>
+        {steps.map((step, index) => (
+          <li
+            key={step}
+            className={index < activeStep ? 'complete' : index === activeStep ? 'active' : ''}
+            aria-current={index === activeStep ? 'step' : undefined}
+            data-document-request-step={step.toLowerCase()}
+          >
+            <i />{step}
+          </li>
+        ))}
       </ol>
     </header>
   );
@@ -256,12 +288,19 @@ function MissionLoginHistoryHeading({ activeCase }) {
 
 function MissionPath({ activeCase, activeStage, onSelect, stageStatus }) {
   return (
-    <section className="mission-path-v3">
+    <section className="mission-path-v3" data-workspace-page="workflow">
       <header><span>🧭</span><div><p>{activeCase.id}</p><h2>Investigation mission path</h2><small>Jump between pages without losing your place.</small></div></header>
       <div className="mission-path-line" aria-hidden="true"><i /><i /><i /></div>
       <div className="mission-path-list">
         {missionStages.map(([key, icon, title, detail], index) => (
-          <button key={key} type="button" className={activeStage === key ? 'active' : ''} onClick={() => onSelect(key)}>
+          <button
+            key={key}
+            type="button"
+            className={activeStage === key ? 'active' : ''}
+            onClick={() => onSelect(key)}
+            disabled={stageStatus[key]?.state === 'locked'}
+            aria-disabled={stageStatus[key]?.state === 'locked' ? 'true' : undefined}
+          >
             <span>{icon}</span>
             <span><small>0{index + 1}</small><strong>{title}</strong><p>{detail}</p></span>
             <em data-state={stageStatus[key]?.state}>{stageStatus[key]?.label}</em>

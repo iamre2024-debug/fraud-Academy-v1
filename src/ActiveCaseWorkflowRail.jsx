@@ -27,6 +27,8 @@ export default function ActiveCaseWorkflowRail({ activeStage, stageStatus, onSta
                 type="button"
                 className={`${active ? 'active' : ''} ${status.state ?? 'open'}`}
                 onClick={() => onStageSelect(stage.key)}
+                disabled={status.state === 'locked'}
+                aria-disabled={status.state === 'locked' ? 'true' : undefined}
                 aria-current={active ? 'step' : undefined}
                 data-workflow-stage-button={stage.key}
               >

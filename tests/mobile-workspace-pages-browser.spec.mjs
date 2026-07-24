@@ -1,16 +1,17 @@
 import { test, expect } from '@playwright/test';
+import { openWorkspacePages } from './workspace-page-helpers.mjs';
 
 test('workspace uses separate pages and pinned evidence reopens its source record', async ({ page }, testInfo) => {
   await page.addInitScript(() => {
     window.localStorage.setItem('fraud-academy-visual-tray-v1', JSON.stringify({
-      'FA-ATO-24018': ['TRN-8842-19', 'LOG-1005'],
+      'FA-ATO-24018': ['TRN-8842-19', 'LOG-1005', 'ZZZ-NOT-A-SOURCE'],
     }));
   });
   await page.goto('/');
 
-  const frame = page.locator('.visual-os-frame');
+  const frame = page.locator('.visual-os-frame, .mission-workspace-v3');
   const briefing = page.locator('[data-workspace-page="briefing"]');
-  const workflow = page.getByRole('navigation', { name: 'Active case workflow' });
+  const workflow = page.locator('.active-case-workflow, .mission-path-v3');
   const toolMenu = page.locator('[data-workspace-page="tool-menu"]');
   const toolPage = page.locator('[data-workspace-page="tool"]');
   const indicators = page.locator('[data-workspace-page="indicators"]');
@@ -24,20 +25,24 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   await expect(page.locator('.luna-visual-panel')).toBeHidden();
 
   if (testInfo.project.name === 'mobile-chromium') {
-    const briefingPager = page.getByRole('navigation', { name: 'Case Briefing pages' });
-    await expect(briefingPager).toContainText('Page 1 of 6');
-    await briefingPager.getByRole('button', { name: 'Next' }).click();
-    await expect(briefingPager).toContainText('Briefing summary');
-    await expect(page.locator('[data-mobile-briefing-page="1"]')).toBeHidden();
-    await expect(page.locator('[data-mobile-briefing-page="2"]').first()).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Case briefing files' }).getByRole('button')).toHaveCount(6);
+    const briefingPager = page.getByRole('navigation', { name: 'Briefing page controls' });
+    await expect(briefingPager).toContainText('01');
+    await expect(briefingPager).toContainText('of 06');
+    await briefingPager.getByRole('button', { name: /Next/ }).click();
+    await expect(page.locator('[data-mission-briefing-page="intake"]')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Claim intake', exact: true })).toBeVisible();
+    await page.getByRole('navigation', { name: 'Case briefing files' })
+      .getByRole('button', { name: 'Investigation launchpad' })
+      .click();
   }
 
-  await page.getByRole('button', { name: /Begin Investigation/ }).click();
+  await page.getByRole('button', { name: /Begin investigation/i }).click();
   await expect(frame).toHaveAttribute('data-workspace-screen', 'tool');
   await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')).toBeVisible();
   await expect(briefing).toBeHidden();
 
-  await page.getByRole('button', { name: 'Pages' }).click();
+  await openWorkspacePages(page);
   await workflow.getByRole('button', { name: /Investigate/ }).click();
   await expect(frame).toHaveAttribute('data-workspace-screen', 'tool-menu');
   await expect(toolMenu).toBeVisible();
@@ -46,9 +51,25 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Login History');
   await expect(toolMenu).toBeHidden();
 
-  await page.getByRole('button', { name: 'Pages' }).click();
+  const loginSearch = page.getByRole('textbox', { name: 'Search Login History records' });
+  await loginSearch.fill('LOG-1005');
+  await openWorkspacePages(page);
+  await workflow.getByRole('button', { name: /Investigate/ }).click();
+  await toolMenu.locator('.visual-category-row > button').filter({ hasText: 'Identity & Customer' }).click();
+  await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')).toBeVisible();
+  const backButton = page.getByRole('button', { name: /Back to previous (?:workspace page|mission screen)/ });
+  await backButton.click();
+  await expect(frame).toHaveAttribute('data-workspace-screen', 'tool-menu');
+  await backButton.click();
+  await expect(frame).toHaveAttribute('data-workspace-screen', 'workflow');
+  await backButton.click();
+  await expect(frame).toHaveAttribute('data-workspace-screen', 'tool');
+  await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Login History');
+  await expect(loginSearch).toHaveValue('LOG-1005');
+
+  await openWorkspacePages(page);
   await expect(workflow).toBeVisible();
-  await workflow.getByRole('button', { name: /Indicators/ }).click();
+  await workflow.getByRole('button', { name: /Indicators|Evidence/ }).click();
   await expect(frame).toHaveAttribute('data-workspace-screen', 'evidence');
   await expect(indicators).toBeVisible();
   await expect(page.locator('.tray-card')).toBeVisible();
@@ -71,11 +92,20 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   });
   expect(pinnedEvidenceVisibility).toBe(true);
 
-  await page.getByRole('button', { name: 'Back to Pinned Evidence' }).click();
+  await page.getByRole('button', { name: /Back to (?:Pinned Evidence|pins)/i }).click();
   await expect(frame).toHaveAttribute('data-workspace-screen', 'evidence');
   await page.getByRole('button', { name: 'Remove LOG-1005 from pinned evidence' }).click();
   await expect(page.getByRole('button', { name: 'Open pinned evidence LOG-1005' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Open pinned evidence TRN-8842-19' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Open pinned evidence ZZZ-NOT-A-SOURCE' }).click();
+  const unavailablePin = page.getByRole('alert').filter({ hasText: 'ZZZ-NOT-A-SOURCE' });
+  await expect(unavailablePin).toBeVisible();
+  await expect(unavailablePin).toContainText('Source record unavailable');
+  await unavailablePin.getByRole('button', { name: 'Retry source lookup' }).click();
+  await expect(unavailablePin).toBeVisible();
+  await unavailablePin.getByRole('button', { name: 'Remove pin' }).click();
+  await expect(page.getByRole('button', { name: 'Open pinned evidence ZZZ-NOT-A-SOURCE' })).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Notes', exact: true }).click();
   await expect(frame).toHaveAttribute('data-workspace-screen', 'notes');
@@ -85,7 +115,7 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   const widths = await page.evaluate(() => ({
     viewport: window.innerWidth,
     document: document.documentElement.scrollWidth,
-    frame: document.querySelector('.visual-os-frame')?.scrollWidth ?? 0,
+    frame: document.querySelector('.visual-os-frame, .mission-workspace-v3')?.scrollWidth ?? 0,
   }));
   expect(widths.document).toBeLessThanOrEqual(widths.viewport + 1);
   expect(widths.frame).toBeLessThanOrEqual(widths.viewport + 1);

@@ -1,19 +1,15 @@
 import { test, expect } from '@playwright/test';
+import { selectToolGroup } from './workspace-page-helpers.mjs';
 
 test('Document Request tracks case-scoped document workflow states', async ({ page }, testInfo) => {
   test.setTimeout(90_000);
   await page.goto('/');
 
   await page.locator('.visual-case-switcher select').selectOption('FA-CB-24007');
-  const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
-  await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
-
-  const customer360 = page.locator('[data-customer-360-screen="approved-theme-v1"]');
-  await customer360.getByRole('navigation', { name: 'Customer 360 related tools' })
-    .getByRole('button', { name: 'Document Request', exact: true })
-    .click();
+  await selectToolGroup(page, /Documents & Requests/);
 
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
+  await toolPanel.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Document Request');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Request');
   const genericQuestion = toolPanel.getByRole('heading', { name: 'What documents were requested, received, missing, or pending review for this case?', exact: true });
   if (testInfo.project.name === 'mobile-chromium') {
@@ -34,6 +30,7 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
         height: heading.getBoundingClientRect().height,
       })));
     expect(visibleHeadingGeometry.filter(({ width, height }) => width > 0 && width < 80 && height > 70)).toEqual([]);
+    await expect(documentMission.locator('[data-document-request-step="request"]')).toHaveAttribute('aria-current', 'step');
   } else {
     await expect(genericQuestion).toBeVisible();
   }
@@ -56,6 +53,9 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('Requested');
   await expect(toolPanel.locator('[data-document-request]')).toHaveCount(2);
   await expect(toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation request' })).toContainText('Requested');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(page.locator('[data-document-request-step="receive"]')).toHaveAttribute('aria-current', 'step');
+  }
 
   const savedRequest = await page.evaluate(() => JSON.parse(localStorage.getItem('fraud-academy-document-requests-v2') || '{}'));
   expect(savedRequest['FA-CB-24007']).toBeTruthy();
@@ -70,6 +70,9 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(toolPanel.locator('[data-document-request]')).toHaveCount(3);
   await expect(toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation request' })).toContainText('Requested');
   await expect(toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation' }).filter({ hasText: 'Received' })).toHaveCount(1);
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(page.locator('[data-document-request-step="review"]')).toHaveAttribute('aria-current', 'step');
+  }
 
   const receivedRequest = await page.evaluate(() => JSON.parse(localStorage.getItem('fraud-academy-document-requests-v2') || '{}'));
   const cancellationSubmission = Object.values(receivedRequest['FA-CB-24007'])

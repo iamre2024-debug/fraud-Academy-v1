@@ -7,9 +7,11 @@ const app = read('src/VisualApp.jsx');
 const entrypoint = read('src/main.jsx');
 const shell = read('src/MobileMissionDeckApp.jsx');
 const workspace = read('src/MobileMissionWorkspace.jsx');
+const workspaceController = read('src/VisualWorkspace.jsx');
 const briefing = read('src/MobileMissionCaseBriefing.jsx');
 const styles = read('src/mobileMissionDeckV3.css');
 const legacyStyles = read('src/mobileBlueMissionDeck.css');
+const playwrightConfig = read('playwright.config.mjs');
 const failures = [];
 
 function requireAnchor(label, content, anchor) {
@@ -59,7 +61,17 @@ for (const anchor of [
   '<BottomInvestigationGrid',
   '<SubmitDecisionPanel',
   'decision-luna-portal-anchor',
+  'Source record unavailable',
+  'data-document-request-step',
+  'disabled={stageStatus[key]?.state === \'locked\'}',
 ]) requireAnchor('MobileMissionWorkspace.jsx', workspace, anchor);
+
+for (const anchor of [
+  'currentWorkspaceSnapshot',
+  'forceHistory',
+  'removeUnavailablePinnedEvidence',
+  "nextStage === 'debrief' && !hasReviewPackage",
+]) requireAnchor('VisualWorkspace.jsx', workspaceController, anchor);
 
 for (const anchor of [
   'mission-briefing-file',
@@ -91,6 +103,19 @@ if (importantCount > 12) failures.push(`Mission Deck v3 has ${importantCount} !i
 if (/body\[data-layout-mode="desktop"\]/.test(styles)) failures.push('Mission Deck v3 must not alter the desktop layout.');
 if (/#ff4fd8|#d76bff|#ff9be9/i.test(styles)) failures.push('Mission Deck v3 contains the retired pink/purple palette.');
 if (styles.length >= legacyStyles.length * 1.4) failures.push('Mission Deck v3 has grown into another oversized legacy override layer.');
+const undersizedMobileRemValues = [...styles.matchAll(/font-size:\s*(0\.\d+)rem/g)]
+  .map((match) => Number(match[1]))
+  .filter((value) => value < 0.75);
+if (undersizedMobileRemValues.length) {
+  failures.push(`Mission Deck v3 contains ${undersizedMobileRemValues.length} rem font sizes below the 12px mobile floor.`);
+}
+
+for (const browserSpec of [
+  'mobile-workspace-pages-browser',
+  'document-request-browser',
+  'decision-luna-browser',
+  'final-responsive-browser',
+]) requireAnchor('playwright.config.mjs mobile project', playwrightConfig, browserSpec);
 
 if (failures.length) {
   console.error('Mobile Blue Mission Deck structural smoke check failed:');
