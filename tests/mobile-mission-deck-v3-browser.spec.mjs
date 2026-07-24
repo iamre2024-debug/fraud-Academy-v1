@@ -19,6 +19,7 @@ async function assertPhoneGeometry(page) {
       .map((element) => element.textContent.trim());
     return {
       viewport: window.innerWidth,
+      expectedShellWidth: Math.min(window.innerWidth, 480),
       documentWidth: document.documentElement.scrollWidth,
       rootLeft: root?.left ?? -1,
       rootRight: root?.right ?? window.innerWidth + 1,
@@ -33,15 +34,16 @@ async function assertPhoneGeometry(page) {
   });
 
   expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewport + 1);
-  expect(geometry.rootLeft).toBeGreaterThanOrEqual(-1);
-  expect(geometry.rootLeft).toBeLessThanOrEqual(1);
-  expect(geometry.rootRight).toBeGreaterThanOrEqual(geometry.viewport - 1);
+  expect(geometry.rootLeft).toBeGreaterThanOrEqual(((geometry.viewport - geometry.expectedShellWidth) / 2) - 1);
+  expect(geometry.rootLeft).toBeLessThanOrEqual(((geometry.viewport - geometry.expectedShellWidth) / 2) + 1);
+  expect(geometry.rootRight).toBeGreaterThanOrEqual(((geometry.viewport + geometry.expectedShellWidth) / 2) - 1);
   expect(geometry.rootRight).toBeLessThanOrEqual(geometry.viewport + 1);
-  expect(geometry.rootWidth).toBeGreaterThanOrEqual(geometry.viewport - 1);
-  expect(geometry.dockLeft).toBeGreaterThanOrEqual(0);
-  expect(geometry.dockRight).toBeLessThanOrEqual(geometry.viewport + 1);
+  expect(geometry.rootWidth).toBeGreaterThanOrEqual(geometry.expectedShellWidth - 1);
+  expect(geometry.rootWidth).toBeLessThanOrEqual(geometry.expectedShellWidth + 1);
+  expect(geometry.dockLeft).toBeGreaterThanOrEqual(geometry.rootLeft + 7);
+  expect(geometry.dockRight).toBeLessThanOrEqual(geometry.rootRight - 7);
   expect(geometry.dockBottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
-  expect(geometry.dockWidth).toBeGreaterThanOrEqual(geometry.viewport - 18);
+  expect(geometry.dockWidth).toBeGreaterThanOrEqual(geometry.expectedShellWidth - 18);
   expect(geometry.badHeadings).toEqual([]);
 }
 

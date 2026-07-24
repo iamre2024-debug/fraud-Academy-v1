@@ -103,7 +103,8 @@ if (importantCount > 12) failures.push(`Mission Deck v3 has ${importantCount} !i
 if (/body\[data-layout-mode="desktop"\]/.test(styles)) failures.push('Mission Deck v3 must not alter the desktop layout.');
 if (/#ff4fd8|#d76bff|#ff9be9/i.test(styles)) failures.push('Mission Deck v3 contains the retired pink/purple palette.');
 if (/width:\s*min\(100%,\s*430px\)/.test(styles)) failures.push('Mission Deck v3 must fill the phone viewport instead of using the retired 430px shell cap.');
-if (/right:\s*max\([^;]*calc\(50vw/.test(styles)) failures.push('Mission Deck v3 must not position controls against a centered 430px shell.');
+if (!styles.includes('--md-shell-width: 480px;')) failures.push('Mission Deck v3 must preserve the approved slender 480px adaptive phone shell.');
+if (/calc\(50vw\s*-\s*(?:205|209)px\)/.test(styles)) failures.push('Mission Deck v3 must not position controls against the retired 430px shell.');
 if (!/\.mission-mobile-dock\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/s.test(styles)) {
   failures.push('Mission Deck v3 must keep primary navigation in a five-column bottom dock.');
 }
