@@ -179,7 +179,7 @@ export default function MobileMissionCaseBriefing({
   const current = pages[page] ?? pages[0];
 
   return (
-    <section className="mission-briefing-v3" data-mission-briefing-page={current.id}>
+    <section className="mission-briefing-v3" data-mission-briefing-page={current.id} data-workspace-page="briefing">
       <header className="mission-briefing-header-v3">
         <div><span>{current.icon}</span><p>{current.eyebrow}</p><h1>{current.title}</h1></div>
         <button type="button" aria-label="Pin active case" onClick={() => pin(activeCase.id)}>⭐</button>

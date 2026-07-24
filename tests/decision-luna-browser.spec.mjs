@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openWorkflowStage } from './workspace-page-helpers.mjs';
+import { openWorkflowStage, openWorkspacePages } from './workspace-page-helpers.mjs';
 
 const caseId = 'FA-ATO-24018';
 const learnerChoice = 'Insufficient Evidence';
@@ -34,9 +34,15 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
   await expect(page.locator('body')).toHaveAttribute('data-layout-mode', detectedLayout);
   const settingsButton = page.getByRole('button', { name: 'Open Settings', exact: true });
   await settingsButton.click();
-  const layoutControl = page.getByRole('group', { name: 'Layout mode', exact: true });
-  await expect(layoutControl.getByRole('button')).toHaveCount(3);
-  await expect(layoutControl.getByRole('button', { name: 'Auto', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  const layoutControl = testInfo.project.name === 'mobile-chromium'
+    ? page.getByRole('combobox', { name: 'Layout mode', exact: true })
+    : page.getByRole('group', { name: 'Layout mode', exact: true });
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(layoutControl).toHaveValue('auto');
+  } else {
+    await expect(layoutControl.getByRole('button')).toHaveCount(3);
+    await expect(layoutControl.getByRole('button', { name: 'Auto', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  }
   await settingsButton.click();
 
   const decision = await openDecision(page);
@@ -74,18 +80,12 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
   const lockedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="locked"]');
   await expect(lockedLuna).toBeAttached();
   await expect(lockedLuna).toBeHidden();
-  await openWorkflowStage(page, /Debrief/);
-  await expect(lockedLuna).toBeVisible();
-  await expect(lockedLuna).toContainText('Evidence First lock is active.');
-  await expect(lockedLuna.locator('.luna-v1-unlock-grid article')).toHaveCount(4);
+  const workflow = await openWorkspacePages(page);
+  const lockedDebriefStage = workflow.getByRole('button', { name: /Debrief/ });
+  await expect(lockedDebriefStage).toBeDisabled();
+  await expect(lockedDebriefStage).toHaveAttribute('aria-disabled', 'true');
+  await expect(lockedLuna).toBeHidden();
   expect(await lockedLuna.innerText()).not.toMatch(forbiddenLockedCopy);
-
-  const lockedLayout = await page.evaluate(() => {
-    const lockedGrid = document.querySelector('.luna-v1-unlock-grid');
-    return {
-      lockedColumns: lockedGrid ? getComputedStyle(lockedGrid).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-    };
-  });
 
   expect(decisionLayout.documentWidth).toBeLessThanOrEqual(decisionLayout.viewportWidth + 1);
   expect(decisionLayout.panelOverflow).toBeLessThanOrEqual(4);
@@ -94,12 +94,10 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
     expect(decisionLayout.workspaceColumns).toBe(1);
     expect(decisionLayout.metricColumns).toBe(1);
     expect(decisionLayout.flagColumns).toBe(1);
-    expect(lockedLayout.lockedColumns).toBe(1);
   } else {
     expect(decisionLayout.workspaceColumns).toBe(1);
     expect(decisionLayout.metricColumns).toBe(4);
     expect(decisionLayout.flagColumns).toBe(2);
-    expect(lockedLayout.lockedColumns).toBe(4);
   }
 
   await openDecision(page);
@@ -110,7 +108,7 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
   await expect(savePackage).toBeVisible();
   await savePackage.click();
 
-  await expect(page.locator('.visual-os-frame')).toHaveAttribute('data-workspace-screen', 'debrief');
+  await expect(page.locator('.visual-os-frame, .mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'debrief');
   const savedPackage = await page.evaluate((activeCaseId) => {
     const packages = JSON.parse(localStorage.getItem('fraud-academy-review-packages-v1') || '{}');
     return packages[activeCaseId]?.[0] ?? null;
@@ -170,7 +168,7 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
     await expect(page.locator('body')).toHaveAttribute('data-layout-preference', 'desktop');
     await expect(page.locator('body')).toHaveAttribute('data-layout-mode', 'desktop');
     await expect(page.locator('.mission-mobile-root')).toHaveCount(0);
-    await expect(page.locator('.visual-os-frame')).toHaveAttribute('data-workspace-screen', 'debrief');
+    await expect(page.locator('.visual-os-frame, .mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'debrief');
     await expect(luna).toBeVisible();
     const desktopCardsShareRow = await page.evaluate(() => {
       const visibleGrid = [...document.querySelectorAll('.luna-v1-debrief-grid')]

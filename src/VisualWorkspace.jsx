@@ -70,6 +70,10 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     if (!requestedWorkspaceScreen || requestedWorkspaceScreen === requestedWorkspaceScreenRef.current) return;
     requestedWorkspaceScreenRef.current = requestedWorkspaceScreen;
     if (requestedWorkspaceScreen !== workspaceScreen) {
+      workspaceScreenHistory.current = [
+        ...workspaceScreenHistory.current,
+        currentWorkspaceSnapshot(),
+      ].slice(-16);
       setActiveStage(stageForWorkspaceScreen(requestedWorkspaceScreen, tool));
       setWorkspaceScreen(requestedWorkspaceScreen);
     }
@@ -192,28 +196,48 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     window.setTimeout(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }), 0);
   }
 
-  function showWorkspaceScreen(nextScreen, { replace = false } = {}) {
-    setWorkspaceScreen((current) => {
-      if (current === nextScreen) return current;
-      if (!replace) workspaceScreenHistory.current = [...workspaceScreenHistory.current, current].slice(-16);
-      return nextScreen;
-    });
+  function currentWorkspaceSnapshot(screen = workspaceScreen) {
+    return {
+      screen,
+      activeStage,
+      categoryKey,
+      tool: activeTool,
+      query,
+      expandedId,
+      openedPinnedEvidence,
+    };
+  }
+
+  function showWorkspaceScreen(nextScreen, { replace = false, forceHistory = false } = {}) {
+    if (!replace && (workspaceScreen !== nextScreen || forceHistory)) {
+      workspaceScreenHistory.current = [
+        ...workspaceScreenHistory.current,
+        currentWorkspaceSnapshot(),
+      ].slice(-16);
+    }
+    setWorkspaceScreen(nextScreen);
     resetWorkspacePageScroll();
   }
 
   function goBackWorkspaceScreen() {
     const history = [...workspaceScreenHistory.current];
-    const previous = history.pop() ?? 'briefing';
+    const previous = history.pop() ?? {
+      screen: 'briefing',
+      activeStage: 'briefing',
+      categoryKey,
+      tool: activeTool,
+      query: '',
+      expandedId: '',
+      openedPinnedEvidence: null,
+    };
     workspaceScreenHistory.current = history;
-    setWorkspaceScreen(previous);
-    const previousStage = previous === 'tool-menu' || previous === 'tool'
-      ? 'investigate'
-      : previous === 'evidence' || previous === 'notes'
-        ? 'indicators'
-        : previous === 'workflow'
-          ? null
-          : previous;
-    if (previousStage) setActiveStage(previousStage);
+    setWorkspaceScreen(previous.screen);
+    setActiveStage(previous.activeStage ?? stageForWorkspaceScreen(previous.screen, previous.tool));
+    setCategoryKey(previous.categoryKey ?? categoryKey);
+    setTool(previous.tool ?? activeTool);
+    setQuery(previous.query ?? '');
+    setExpandedId(previous.expandedId ?? '');
+    setOpenedPinnedEvidence(previous.openedPinnedEvidence ?? null);
     resetWorkspacePageScroll();
   }
 
@@ -227,7 +251,10 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setQuery(nextQuery);
     setExpandedId('');
     setOpenedPinnedEvidence(null);
-    showWorkspaceScreen(nextTool === 'Timeline' ? 'timeline' : 'tool');
+    const nextScreen = nextTool === 'Timeline' ? 'timeline' : 'tool';
+    showWorkspaceScreen(nextScreen, {
+      forceHistory: workspaceScreen === nextScreen && activeTool !== nextTool,
+    });
     if (!scroll || isMobileLayout()) return;
     scrollToWorkspace('.activity-panel');
   }
@@ -260,6 +287,11 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setOpenedPinnedEvidence(null);
     setActiveStage('indicators');
     showWorkspaceScreen('evidence');
+  }
+
+  function removeUnavailablePinnedEvidence(item) {
+    removePin(item);
+    setOpenedPinnedEvidence(null);
   }
 
   function changeCase(nextCaseId) {
@@ -308,7 +340,11 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     scrollToWorkspace('.notebook-card', 80);
   }
 
-  function openDebrief() {
+  function openDebrief(reviewPackageOverride = null) {
+    if (!reviewPackageOverride && !hasReviewPackage) {
+      jumpDecision();
+      return;
+    }
     onNavigate('workspace');
     setActiveStage('debrief');
     showWorkspaceScreen('debrief');
@@ -330,6 +366,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
   function selectWorkflowStage(nextStage) {
     onNavigate('workspace');
+    if (nextStage === 'debrief' && !hasReviewPackage) return;
     setActiveStage(nextStage);
 
     if (nextStage === 'briefing') {
@@ -430,6 +467,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
         pin={pin}
         recordAction={recordAction}
         removePin={removePin}
+        removeUnavailablePinnedEvidence={removeUnavailablePinnedEvidence}
         returnToPinnedEvidence={returnToPinnedEvidence}
         reviewPackages={reviewPackages}
         selectWorkflowStage={selectWorkflowStage}
@@ -540,6 +578,19 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
         </div>
 
         <div data-workflow-stage="indicators" data-workspace-page="indicators" data-mobile-indicator-view={workspaceScreen}>
+          {openedPinnedEvidence?.unresolved && (
+            <section className="pinned-evidence-unavailable" role="alert">
+              <div>
+                <p>Source record unavailable</p>
+                <h2>{openedPinnedEvidence.value}</h2>
+                <span>This pin is still saved, but its source record is not available in this case.</span>
+              </div>
+              <nav aria-label="Unavailable pinned evidence actions">
+                <button type="button" onClick={() => openPinnedEvidence(openedPinnedEvidence.value)}>Retry source lookup</button>
+                <button type="button" onClick={() => removeUnavailablePinnedEvidence(openedPinnedEvidence.value)}>Remove pin</button>
+              </nav>
+            </section>
+          )}
           <BottomInvestigationGrid
             tray={tray}
             removePin={removePin}
