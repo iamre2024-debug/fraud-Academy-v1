@@ -4,8 +4,8 @@
  */
 
 body[data-layout-mode="mobile"] {
-  --md-shell-width: 480px;
-  --md-shell-half: 240px;
+  --md-shell-width: 94vw;
+  --md-shell-gutter: 3vw;
   --md-ink: #010713;
   --md-night: #02152b;
   --md-panel: #062c52;
@@ -205,8 +205,8 @@ body[data-layout-mode="mobile"] #root {
   position: fixed;
   z-index: 150;
   top: 76px;
-  left: max(10px, calc(50vw - var(--md-shell-half) + 10px), env(safe-area-inset-left));
-  right: max(10px, calc(50vw - var(--md-shell-half) + 10px), env(safe-area-inset-right));
+  left: max(calc(var(--md-shell-gutter) + 10px), env(safe-area-inset-left));
+  right: max(calc(var(--md-shell-gutter) + 10px), env(safe-area-inset-right));
   border: 1px solid rgba(94, 226, 255, 0.42);
   border-radius: 22px 8px 22px 22px;
   background: linear-gradient(145deg, rgba(8, 64, 112, 0.98), rgba(2, 20, 40, 0.99));
@@ -278,9 +278,9 @@ body[data-layout-mode="mobile"] #root {
   position: fixed;
   z-index: 130;
   top: auto;
-  right: max(8px, calc(50vw - var(--md-shell-half) + 8px), env(safe-area-inset-right));
+  right: max(calc(var(--md-shell-gutter) + 8px), env(safe-area-inset-right));
   bottom: max(8px, env(safe-area-inset-bottom));
-  left: max(8px, calc(50vw - var(--md-shell-half) + 8px), env(safe-area-inset-left));
+  left: max(calc(var(--md-shell-gutter) + 8px), env(safe-area-inset-left));
   width: auto;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -2023,8 +2023,8 @@ body[data-layout-mode="mobile"] #root {
     padding-left: max(8px, env(safe-area-inset-left));
   }
   .mission-mobile-dock {
-    right: max(4px, env(safe-area-inset-right));
-    left: max(4px, env(safe-area-inset-left));
+    right: max(calc(var(--md-shell-gutter) + 4px), env(safe-area-inset-right));
+    left: max(calc(var(--md-shell-gutter) + 4px), env(safe-area-inset-left));
     gap: 3px;
     padding-inline: 4px;
   }

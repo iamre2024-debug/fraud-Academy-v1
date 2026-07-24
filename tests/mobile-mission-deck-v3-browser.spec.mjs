@@ -19,7 +19,7 @@ async function assertPhoneGeometry(page) {
       .map((element) => element.textContent.trim());
     return {
       viewport: window.innerWidth,
-      expectedShellWidth: Math.min(window.innerWidth, 480),
+      expectedShellWidth: window.innerWidth * 0.94,
       documentWidth: document.documentElement.scrollWidth,
       rootLeft: root?.left ?? -1,
       rootRight: root?.right ?? window.innerWidth + 1,
@@ -61,8 +61,11 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   await expect(page.getByRole('navigation', { name: 'Main navigation' })).toHaveCount(0);
   await expect(dock).toBeVisible();
 
+  for (const width of [628, 980]) {
+    await page.setViewportSize({ width, height: 1536 });
+    await assertPhoneGeometry(page);
+  }
   await page.setViewportSize({ width: 628, height: 1536 });
-  await assertPhoneGeometry(page);
 
   await dock.getByRole('button', { name: /Home/ }).click();
   await expect(page.locator('.mission-case-deck')).toBeVisible();
