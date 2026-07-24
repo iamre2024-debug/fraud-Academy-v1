@@ -136,8 +136,13 @@ export default function MobileMissionWorkspace({
 
         {isTool && (
           <section
-            className={`mission-tool-page ${activeTool === 'Document Request' ? 'mission-document-request-page' : ''}`}
+            className={[
+              'mission-tool-page',
+              activeTool === 'Document Request' ? 'mission-document-request-page' : '',
+              activeTool === 'Login History' ? 'mission-login-history-page' : '',
+            ].filter(Boolean).join(' ')}
             data-document-request-page={activeTool === 'Document Request' ? 'true' : undefined}
+            data-login-history-page={activeTool === 'Login History' ? 'true' : undefined}
             data-workflow-stage={workspaceScreen === 'timeline' ? 'timeline' : 'investigate'}
           >
             <nav className="mission-tool-actions" aria-label="Tool page actions">
@@ -152,6 +157,7 @@ export default function MobileMissionWorkspace({
               </section>
             )}
             {activeTool === 'Document Request' && <MissionDocumentRequestHeading activeCase={activeCase} />}
+            {activeTool === 'Login History' && <MissionLoginHistoryHeading activeCase={activeCase} />}
             <div className="mission-tool-content">
               {activeTool === 'Customer 360' ? (
                 <Customer360Panel {...activeToolProps} />
@@ -224,6 +230,25 @@ function MissionDocumentRequestHeading({ activeCase }) {
         <li className="active"><i />Request</li>
         <li><i />Receive</li>
         <li><i />Review</li>
+      </ol>
+    </header>
+  );
+}
+
+function MissionLoginHistoryHeading({ activeCase }) {
+  return (
+    <header className="mission-login-history-heading">
+      <span className="mission-login-history-icon" aria-hidden="true">🛡️</span>
+      <div>
+        <p>Authentication mission · {activeCase.id}</p>
+        <h2>Login History</h2>
+        <small>Trace the access attempt, compare authentication signals, and connect the session without deciding the claim early.</small>
+      </div>
+      <ol aria-label="Login history evidence workflow">
+        <li className="active"><i />Locate</li>
+        <li><i />Compare</li>
+        <li><i />Connect</li>
+        <li><i />Document</li>
       </ol>
     </header>
   );
