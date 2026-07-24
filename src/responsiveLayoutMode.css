@@ -71,6 +71,10 @@ body[data-layout-preference="mobile"] .luna-v1-user-reasoning dl {
   grid-template-columns: minmax(0, 1fr) !important;
 }
 
+body[data-layout-preference="mobile"] .luna-v1-debrief-grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
 body[data-layout-preference="mobile"] .luna-v1-breakdown,
 body[data-layout-preference="mobile"] .decision-v1-form > header,
 body[data-layout-preference="mobile"] .decision-v1-form .decision-rationale,

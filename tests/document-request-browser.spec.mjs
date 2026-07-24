@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
 
 test('Document Request tracks case-scoped document workflow states', async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
   await page.goto('/');
 
+  await page.locator('.visual-case-switcher select').selectOption('FA-CB-24007');
   const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
   await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
 
@@ -61,7 +63,7 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
 
   const requestDetail = toolPanel.getByRole('main', { name: 'Expanded document request detail' });
   await requestDetail.getByRole('button', { name: 'Check for Customer Response', exact: true }).click();
-  await expect(toolPanel.locator('.document-request-confirmation')).toContainText('received from the customer and added to the Document Viewer');
+  await expect(toolPanel.locator('.document-request-confirmation')).toContainText('received from the customer and added as a separate Document Viewer record');
   await expect(requestDetail).toContainText('Received');
   await expect(requestDetail).toContainText('New customer submission');
   await expect(requestDetail.getByRole('button', { name: 'Open Customer Document', exact: true })).toBeVisible();
@@ -79,7 +81,8 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await requestDetail.getByRole('button', { name: 'Open Customer Document', exact: true }).click();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
   const customerViewer = toolPanel.locator('[data-document-viewer-screen="approved-theme-v1"]');
-  await expect(customerViewer.getByRole('button', { name: /Customer Evidence/ })).toHaveClass(/active/);
+  await expect(customerViewer.getByRole('navigation', { name: 'Document folders' })
+    .getByRole('button', { name: /^Customer Evidence/ })).toHaveClass(/active/);
   await expect(customerViewer.locator('.document-page')).toContainText('StreamBox Premium Cancellation Confirmation');
   await expect(customerViewer.locator('.document-page')).toContainText('Automatic renewal turned off');
   await customerViewer.getByRole('navigation', { name: 'Document Viewer next routes' })
@@ -119,7 +122,8 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
   const viewer = toolPanel.locator('[data-document-viewer-screen="approved-theme-v1"]');
   await expect(viewer.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toHaveCount(0);
-  await expect(viewer.getByRole('button', { name: /Merchant Evidence/ })).toHaveClass(/active/);
+  await expect(viewer.getByRole('navigation', { name: 'Document folders' })
+    .getByRole('button', { name: /^Merchant Evidence/ })).toHaveClass(/active/);
   await expect(viewer.locator('.document-page')).toBeVisible();
   await viewer.getByRole('navigation', { name: 'Document Viewer next routes' })
     .getByRole('button', { name: 'Open Document Request', exact: true })

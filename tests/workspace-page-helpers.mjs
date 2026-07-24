@@ -1,12 +1,21 @@
 import { expect } from '@playwright/test';
 
 export async function openWorkspacePages(page) {
-  const workflow = page.locator('.active-case-workflow');
-  if (await workflow.isVisible()) return workflow;
+  const desktopWorkflow = page.locator('.active-case-workflow');
+  if (await desktopWorkflow.isVisible()) return desktopWorkflow;
 
-  const pagesButton = page.getByRole('button', { name: 'Pages', exact: true });
+  const mobileWorkflow = page.locator('.mission-path-v3');
+  if (await mobileWorkflow.isVisible()) return mobileWorkflow;
+
+  const desktopPagesButton = page.getByRole('button', { name: 'Pages', exact: true });
+  const usesDesktopPages = await desktopPagesButton.count() > 0;
+  const pagesButton = usesDesktopPages
+    ? desktopPagesButton
+    : page.getByRole('button', { name: 'Open mission pages', exact: true });
   await expect(pagesButton).toBeVisible();
   await pagesButton.click();
+
+  const workflow = usesDesktopPages ? desktopWorkflow : mobileWorkflow;
   await expect(workflow).toBeVisible();
   return workflow;
 }
@@ -26,7 +35,7 @@ export async function openWorkflowStage(page, stageName) {
   await stageButton.click();
 
   if (expectedScreen) {
-    await expect(page.locator('.visual-os-frame')).toHaveAttribute('data-workspace-screen', expectedScreen);
+    await expect(page.locator('.visual-os-frame, .mission-workspace-v3')).toHaveAttribute('data-workspace-screen', expectedScreen);
   }
   if (expectedScreen === 'debrief') {
     await expect(page.locator('[data-luna-screen="approved-theme-v1"]')).toBeVisible();
@@ -44,8 +53,22 @@ export async function openToolGroups(page) {
 
 export async function selectToolGroup(page, groupName) {
   const groups = await openToolGroups(page);
-  const groupButton = groups.getByRole('button', { name: groupName });
+  const groupButton = groups.locator('.visual-category-row > button').filter({ hasText: groupName });
   await expect(groupButton).toBeVisible();
   await groupButton.click();
   return groups;
+}
+
+export async function runPaymentVerification(panel, {
+  bankCode,
+  destinationId,
+  ownerName,
+  person,
+}) {
+  await panel.getByRole('textbox', { name: 'Bank Code', exact: true }).fill(bankCode);
+  await panel.getByRole('textbox', { name: 'Destination ID', exact: true }).fill(destinationId);
+  await panel.getByRole('textbox', { name: 'Owner or business name', exact: true }).fill(ownerName ?? person);
+  await panel.getByRole('button', { name: 'Run verification', exact: true }).click();
+  await expect(panel.locator('.payment-detail-panel')).toBeVisible();
+  return panel.locator('.payment-detail-panel');
 }

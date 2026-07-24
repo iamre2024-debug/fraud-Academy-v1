@@ -123,19 +123,17 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
 
   const luna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');
   await expect(luna).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'Your submitted determination', exact: true })).toBeVisible();
+  await expect(luna.getByRole('heading', { name: 'What you submitted', exact: true })).toBeVisible();
   await expect(luna.getByText(learnerChoice, { exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'How Luna read the package', exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'What your package did well', exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'Next coaching focus', exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'Decision-quality breakdown', exact: true })).toBeVisible();
-  const notesQualityLabel = luna.getByText('Quality of notes', { exact: true });
-  await notesQualityLabel.scrollIntoViewIfNeeded();
-  await expect(notesQualityLabel).toBeVisible();
+  await expect(luna.getByRole('heading', { name: 'How well your decision was supported', exact: true })).toBeVisible();
+  await expect(luna.getByRole('heading', { name: 'What you handled well', exact: true })).toBeVisible();
+  await expect(luna.getByRole('heading', { name: 'What to improve next time', exact: true })).toBeVisible();
+  await expect(luna.locator('[aria-label="Decision-quality breakdown"]')).toBeVisible();
+  await expect(luna.getByText('Investigation package quality', { exact: true })).toBeVisible();
 
   const debriefStepNumbers = (await luna.locator('.luna-v1-step-index').allTextContents()).map((value) => value.trim());
   expect(new Set(debriefStepNumbers).size).toBe(debriefStepNumbers.length);
-  expect(debriefStepNumbers).toEqual(['01', '02', '03', '04', '05']);
+  expect(debriefStepNumbers).toEqual(['01', '02', '03', '04', '05', '06']);
 
   const debriefLayout = await page.evaluate(() => {
     const grid = document.querySelector('.luna-v1-debrief-grid');
@@ -153,20 +151,43 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
     await layoutControl.getByRole('button', { name: 'Mobile', exact: true }).click();
     await expect(page.locator('body')).toHaveAttribute('data-layout-preference', 'mobile');
     await expect(page.locator('body')).toHaveAttribute('data-layout-mode', 'mobile');
+    await expect(page.locator('.mission-mobile-root')).toBeVisible();
     const mobilePreview = await page.evaluate(() => ({
-      frameWidth: document.querySelector('.visual-os-frame')?.getBoundingClientRect().width ?? Number.POSITIVE_INFINITY,
-      columns: getComputedStyle(document.querySelector('.luna-v1-debrief-grid')).gridTemplateColumns.split(' ').filter(Boolean).length,
+      frameWidth: document.querySelector('.mission-mobile-root')?.getBoundingClientRect().width ?? Number.POSITIVE_INFINITY,
+      stackedCards: (() => {
+        const cards = [...document.querySelectorAll('.luna-v1-debrief-grid > .luna-v1-card')];
+        if (cards.length < 2) return false;
+        const first = cards[0].getBoundingClientRect();
+        const second = cards[1].getBoundingClientRect();
+        return second.top >= first.bottom - 1;
+      })(),
     }));
     expect(mobilePreview.frameWidth).toBeLessThanOrEqual(460);
-    expect(mobilePreview.columns).toBe(1);
+    expect(mobilePreview.stackedCards).toBe(true);
 
-    await layoutControl.getByRole('button', { name: 'Desktop', exact: true }).click();
+    await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
+    await page.getByRole('combobox', { name: 'Layout mode', exact: true }).selectOption('desktop');
     await expect(page.locator('body')).toHaveAttribute('data-layout-preference', 'desktop');
     await expect(page.locator('body')).toHaveAttribute('data-layout-mode', 'desktop');
-    const desktopPreviewColumns = await page.evaluate(() => getComputedStyle(document.querySelector('.luna-v1-debrief-grid')).gridTemplateColumns.split(' ').filter(Boolean).length);
-    expect(desktopPreviewColumns).toBe(2);
-    await layoutControl.getByRole('button', { name: 'Auto', exact: true }).click();
-    await settingsButton.click();
+    await expect(page.locator('.mission-mobile-root')).toHaveCount(0);
+    await expect(page.locator('.visual-os-frame')).toHaveAttribute('data-workspace-screen', 'debrief');
+    await expect(luna).toBeVisible();
+    const desktopCardsShareRow = await page.evaluate(() => {
+      const visibleGrid = [...document.querySelectorAll('.luna-v1-debrief-grid')]
+        .find((grid) => {
+          const rect = grid.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        });
+      const cards = visibleGrid ? [...visibleGrid.querySelectorAll(':scope > .luna-v1-card')] : [];
+      if (cards.length < 2) return false;
+      const first = cards[0].getBoundingClientRect();
+      const second = cards[1].getBoundingClientRect();
+      return Math.abs(second.top - first.top) <= 2 && second.left > first.left;
+    });
+    expect(desktopCardsShareRow).toBe(true);
+    await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
+    await page.getByRole('group', { name: 'Layout mode', exact: true }).getByRole('button', { name: 'Auto', exact: true }).click();
+    await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
   }
 
   await luna.getByRole('button', { name: 'View Case Summary', exact: true }).click();

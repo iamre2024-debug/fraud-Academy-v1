@@ -17,6 +17,11 @@ import {
 import { financialInvestigationTabs, financialRecordSearchText, getFinancialInvestigation } from './data/financialInvestigationRecords.js';
 import { getIdentityIntelReport, matchesIdentityIntelSearch } from './data/identityIntelReport.js';
 import { getLoginRecords } from './data/loginRecords.js';
+import {
+  buildPaymentLookupHint,
+  parsePaymentLookupHint,
+  resolvePaymentLookup,
+} from './data/paymentVerification.js';
 import { getIpRecords } from './data/ipRecords.js';
 import { getKybReview, kybRecordSearchText, kybReviewTabs, matchesKybReviewLookup } from './data/kybReviewRecords.js';
 import { generateKybReviewReport, hasGeneratedKybReport, kybReportExportText } from './data/kybReviewReport.js';
@@ -135,42 +140,11 @@ function searchableText(row) {
   return `${row.id} ${row.label} ${row.detail} ${row.values.join(' ')}`.toLowerCase();
 }
 
-function paymentRecordSearchText(record) {
-  return [
-    record.id,
-    record.type,
-    record.object,
-    record.bankName,
-    record.accountType,
-    record.accountHolder,
-    record.ownerMatch,
-    record.accountStatus,
-    record.standing,
-    record.priorUse,
-    record.firstSeen,
-    record.verificationMethod,
-    record.recoverability,
-    record.bankCode,
-    record.destinationId,
-    record.oldDestination,
-    record.newDestination,
-    record.changeComparison,
-    record.status,
-    record.lastSeen,
-    record.verificationOutcome,
-    record.context,
-    record.notes,
-    ...(record.relatedRecords ?? []),
-    ...(record.actions ?? []),
-    ...(record.verificationLog ?? []).flatMap((entry) => [entry.time, entry.method, entry.result, entry.note]),
-  ].filter(Boolean).join(' ').toLowerCase();
-}
-
 function statusTone(value = '') {
   const normalized = value.toLowerCase();
-  if (/(name match|open|good|answered|confirmed|available|active)/.test(normalized)) return 'good';
+  if (/(^match$|open|good|answered|confirmed|available|active)/.test(normalized)) return 'good';
   if (/(partial|pending|callback|more information|manual|recorded|tokenized)/.test(normalized)) return 'warn';
-  if (/(no match|closed|frozen|fraud|nsf|unable|wrong|not confirmed|no answer)/.test(normalized)) return 'alert';
+  if (/(no match|not found|closed|frozen|nsf|unable|wrong|not confirmed|no answer)/.test(normalized)) return 'alert';
   return 'neutral';
 }
 
@@ -979,6 +953,7 @@ function DocumentRequestWorkspace({
   jumpDecision,
   documentRequests,
   setDocumentRequestsByCase,
+  recordAction,
 }) {
   const [selectedRequestId, setSelectedRequestId] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -1563,6 +1538,17 @@ function FinancialInvestigationWorkspace({ activeCase, pin, saveNote, markReview
     saveNote(`Financial Investigation: ${record.id} - ${record.detail}`, 'Financial investigation');
   }
 
+  function handPaymentIdentifiers(record) {
+    const fields = new Map(record.fields);
+    openTool('Payment Verification', 'investigate', {
+      query: buildPaymentLookupHint({
+        bankCode: fields.get('Bank Code') ?? '',
+        destinationId: fields.get('Destination ID') ?? '',
+        ownerName: activeCase.person,
+      }),
+    });
+  }
+
   return (
     <>
       <section className="financial-investigation-kpis" aria-label="Financial Investigation account metrics">
@@ -1611,6 +1597,7 @@ function FinancialInvestigationWorkspace({ activeCase, pin, saveNote, markReview
             <dl>{activeRecord.fields.map(([label, value]) => <div key={`${activeRecord.id}-${label}`}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
             <article><span>Recorded context</span><p>{activeRecord.detail}</p></article>
             <div className="financial-related-records"><span>Related records</span><div>{activeRecord.relatedRecords.map((item) => <button key={item} type="button" onClick={() => pin(item)}>{item}</button>)}</div></div>
+            {activeTab === 'linked' && <button type="button" onClick={() => handPaymentIdentifiers(activeRecord)}>Prefill Payment Verification</button>}
             <button type="button" onClick={() => saveFinancialNote(activeRecord)}>Save evidence note</button>
           </section> : <div className="investigation-tool-empty" role="status">Choose a financial record to open its details.</div>}
         </main>
@@ -1792,58 +1779,175 @@ function PaymentVerificationWorkspace({
   reviewed,
   openTool,
   jumpDecision,
+  recordAction,
 }) {
-  const [selectedPaymentId, setSelectedPaymentId] = useState('');
-  const financial = getFinancialRecords(activeCase);
+  const financial = useMemo(() => getFinancialRecords(activeCase), [activeCase]);
   const records = financial.paymentVerification ?? [];
-  const normalizedQuery = query.trim().toLowerCase();
-  const filteredRecords = records.filter((record) => !normalizedQuery || paymentRecordSearchText(record).includes(normalizedQuery));
-  const activeRecord = filteredRecords.find((record) => record.id === selectedPaymentId) ?? filteredRecords[0] ?? records[0];
+  const [lookup, setLookup] = useState({ bankCode: '', destinationId: '', ownerName: '' });
+  const [lookupResult, setLookupResult] = useState(null);
+  const [lookupError, setLookupError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [lookupHistory, setLookupHistory] = useState([]);
+  const activeRecord = lookupResult?.record ?? null;
 
   useEffect(() => {
-    setSelectedPaymentId('');
+    setLookup({ bankCode: '', destinationId: '', ownerName: '' });
+    setLookupResult(null);
+    setLookupError('');
+    setLoading(false);
+    setLookupHistory([]);
   }, [activeCase.id]);
+
+  useEffect(() => {
+    const hint = parsePaymentLookupHint(query);
+    if (!hint) return;
+    setLookup(hint);
+    setLookupResult(null);
+    setLookupError('');
+  }, [query]);
+
+  function updateLookup(field, value) {
+    if (parsePaymentLookupHint(query)) setQuery('');
+    setLookup((current) => ({ ...current, [field]: value }));
+    setLookupResult(null);
+    setLookupError('');
+  }
+
+  function resetLookup() {
+    setLookup({ bankCode: '', destinationId: '', ownerName: '' });
+    setLookupResult(null);
+    setLookupError('');
+    setQuery('');
+  }
+
+  async function runLookup(event) {
+    event.preventDefault();
+    if (!lookup.bankCode.trim() || !lookup.destinationId.trim() || !lookup.ownerName.trim()) {
+      setLookupError('Bank Code, Destination ID, and owner or business name are required.');
+      setLookupResult(null);
+      return;
+    }
+
+    setLookupError('');
+    setLoading(true);
+    await new Promise((resolve) => window.setTimeout(resolve, 180));
+    const result = resolvePaymentLookup(records, lookup);
+    setLookupResult(result);
+    setLoading(false);
+
+    const historyItem = {
+      id: `${Date.now()}-${lookup.bankCode}-${lookup.destinationId}`,
+      bankCode: lookup.bankCode.trim(),
+      destinationId: lookup.destinationId.trim(),
+      ownerName: lookup.ownerName.trim(),
+      outcome: result.nameMatchResult,
+      recordId: result.record?.id ?? null,
+    };
+    const nextHistory = [historyItem, ...lookupHistory].slice(0, 8);
+    setLookupHistory(nextHistory);
+    recordAction?.(
+      'Payment Verification lookup completed',
+      `${historyItem.bankCode} / ${historyItem.destinationId}: ${historyItem.outcome}.`,
+      'Payment Verification',
+    );
+  }
 
   function savePaymentNote(message) {
     saveNote(`Payment Verification: ${message}`, 'Payment verification');
   }
 
+  function logAction(action) {
+    const message = `${action} recorded for ${activeRecord.id}.`;
+    savePaymentNote(message);
+    recordAction?.('Payment Verification action recorded', message, 'Payment Verification');
+  }
+
+  const relatedRoutes = [
+    'Customer 360',
+    'Financial Investigation',
+    'Employee Profile',
+    'Payroll History',
+    'Business 360',
+    'Timeline',
+  ].filter((item) => activeCase.availableTools?.includes(item) || item === 'Timeline');
+  const showCallback = activeRecord && !/^No callback requirement/i.test(activeRecord.callbackStatus);
+
   return (
     <>
-      <section className="payment-verification-findbar" aria-label="Find payment verification information">
-        <div>
-          <p>Find the answer here</p>
-          <h3>Search Bank Code, Destination ID, account holder, status, match result, prior use, recovery, or action.</h3>
-        </div>
-        <label>
-          <span>Search Payment Verification</span>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Try: name match, DST-7740, callback, open, NSF, fraud..."
-            aria-label="Search Payment Verification records"
-          />
-        </label>
-        <span aria-live="polite">{filteredRecords.length} of {records.length} records shown</span>
+      <section className="payment-verification-gate" aria-label="Payment Verification search">
+        <header>
+          <div>
+            <p>Search before reveal</p>
+            <h3>Verify a specific payment destination</h3>
+            <span>Enter the identifiers from Customer 360, Financial Investigation, Employee Profile, or Business 360. No account result is exposed until the lookup runs.</span>
+          </div>
+          {lookupResult && <button type="button" onClick={resetLookup}>Reset lookup</button>}
+        </header>
+
+        <form onSubmit={runLookup} noValidate>
+          <label>
+            <span>Bank Code</span>
+            <input
+              value={lookup.bankCode}
+              onChange={(event) => updateLookup('bankCode', event.target.value)}
+              placeholder="Example: BC-204"
+              aria-label="Bank Code"
+              autoComplete="off"
+            />
+          </label>
+          <label>
+            <span>Destination ID</span>
+            <input
+              value={lookup.destinationId}
+              onChange={(event) => updateLookup('destinationId', event.target.value)}
+              placeholder="Example: DST-7740"
+              aria-label="Destination ID"
+              autoComplete="off"
+            />
+          </label>
+          <label>
+            <span>Owner or business name</span>
+            <input
+              value={lookup.ownerName}
+              onChange={(event) => updateLookup('ownerName', event.target.value)}
+              placeholder="Name to compare"
+              aria-label="Owner or business name"
+              autoComplete="off"
+            />
+          </label>
+          <button type="submit" className="investigation-tool-primary" disabled={loading}>
+            {loading ? 'Checking destination…' : 'Run verification'}
+          </button>
+        </form>
+        {lookupError && <div className="payment-verification-form-error" role="alert">{lookupError}</div>}
+        {loading && <div className="payment-verification-loading" role="status">Retrieving the matching training record…</div>}
       </section>
 
-      {activeRecord ? (
+      {!loading && lookupResult?.state === 'not-found' && (
+        <section className="payment-verification-not-found" role="status" aria-label="Payment destination not found">
+          <span className="payment-status-chip alert">Destination Not Found</span>
+          <h3>No exact Bank Code and Destination ID pair was located.</h3>
+          <p>Check both identifiers against the source record. A missing destination does not determine the case outcome.</p>
+        </section>
+      )}
+
+      {!loading && activeRecord ? (
         <>
           <section className="payment-verification-snapshot" aria-label="Account snapshot">
             <article className="payment-verification-hero">
               <p>Account Snapshot</p>
               <h3>{activeRecord.object}</h3>
               <div className="payment-chip-row">
-                <span className={`payment-status-chip ${statusTone(activeRecord.ownerMatch)}`}>{activeRecord.ownerMatch}</span>
-                <span className={`payment-status-chip ${statusTone(activeRecord.accountStatus)}`}>{activeRecord.accountStatus}</span>
-                <span className={`payment-status-chip ${statusTone(activeRecord.standing)}`}>{activeRecord.standing}</span>
+                <span className={`payment-status-chip ${statusTone(lookupResult.nameMatchResult)}`}>{lookupResult.nameMatchResult}</span>
+                <span className={`payment-status-chip ${statusTone(activeRecord.operationalStatus)}`}>{activeRecord.operationalStatus}</span>
+                <span className={`payment-status-chip ${statusTone(activeRecord.standingStatus)}`}>{activeRecord.standingStatus}</span>
               </div>
             </article>
             {[
-              ['Owner match', activeRecord.ownerMatch],
-              ['Account status', activeRecord.accountStatus],
-              ['Prior use', activeRecord.priorUse],
-              ['Recoverability', activeRecord.recoverability],
+              ['Name match result', lookupResult.nameMatchResult],
+              ['Ownership status', activeRecord.ownershipStatus],
+              ['Operational account status', activeRecord.operationalStatus],
+              ['Prior use', activeRecord.priorUseHistory],
             ].map(([label, value]) => (
               <article key={label}>
                 <span>{label}</span>
@@ -1852,30 +1956,7 @@ function PaymentVerificationWorkspace({
             ))}
           </section>
 
-          <div className="payment-verification-workspace">
-            <section className="payment-record-list" aria-label="Payment verification records">
-              <header>
-                <p>Record list</p>
-                <h3>Choose the object to verify</h3>
-              </header>
-              {filteredRecords.map((record) => (
-                <button
-                  key={record.id}
-                  type="button"
-                  className={record.id === activeRecord.id ? 'active' : ''}
-                  onClick={() => setSelectedPaymentId(record.id)}
-                  data-payment-verification-record={record.id}
-                >
-                  <span>{record.id}</span>
-                  <strong>{record.object}</strong>
-                  <small>{record.bankName} · {record.ownerMatch} · {record.accountStatus}</small>
-                </button>
-              ))}
-              {!filteredRecords.length && (
-                <div className="investigation-tool-empty" role="status">No payment verification records match this search.</div>
-              )}
-            </section>
-
+          <div className="payment-verification-workspace payment-verification-workspace-revealed">
             <section className="payment-detail-panel" aria-label="Expanded payment verification detail">
               <header>
                 <div>
@@ -1888,14 +1969,19 @@ function PaymentVerificationWorkspace({
 
               <dl className="payment-detail-grid">
                 {[
+                  ['Name match result', lookupResult.nameMatchResult],
                   ['Account holder', activeRecord.accountHolder],
+                  ['Ownership status', activeRecord.ownershipStatus],
                   ['Bank name', activeRecord.bankName],
-                  ['Account type', activeRecord.accountType],
+                  ['Operational account status', activeRecord.operationalStatus],
+                  ['Standing', activeRecord.standingStatus],
+                  ['Payment type', activeRecord.paymentType],
+                  ['Payment status', activeRecord.paymentStatus],
                   ['Bank Code', activeRecord.bankCode],
                   ['Destination ID', activeRecord.destinationId],
+                  ['Variant', activeRecord.laneVariant],
                   ['First seen', activeRecord.firstSeen],
                   ['Verification method', activeRecord.verificationMethod],
-                  ['Verification outcome', activeRecord.verificationOutcome],
                 ].map(([label, value]) => (
                   <div key={label}>
                     <dt>{label}</dt>
@@ -1919,24 +2005,38 @@ function PaymentVerificationWorkspace({
                 </article>
               </section>
 
-              <section className="payment-related-records" aria-label="Related records">
-                <p>Related Records</p>
-                <div>
-                  {(activeRecord.relatedRecords ?? []).map((item) => <span key={item}>{item}</span>)}
-                </div>
+              <section className="payment-history-grid" aria-label="Ownership and prior-use history">
+                <article><span>Ownership history</span><strong>{activeRecord.ownershipHistory}</strong></article>
+                <article><span>Prior-use history</span><strong>{activeRecord.priorUseHistory}</strong></article>
+                <article><span>Return / NSF history</span><strong>{activeRecord.returnHistory}</strong></article>
+                <article><span>Trusted contact source</span><strong>{activeRecord.trustedContactSource}</strong></article>
               </section>
             </section>
+
+            <aside className="payment-verification-case-rail" aria-label="Payment Verification evidence summary">
+              <header>
+                <p>Evidence-first summary</p>
+                <h3>{activeRecord.id}</h3>
+              </header>
+              <p>{activeRecord.evidenceSummary}</p>
+              <dl>
+                <div><dt>Customer / entity link</dt><dd>{activeRecord.customerLink}</dd></div>
+                <div><dt>Review context</dt><dd>{activeRecord.reviewContext}</dd></div>
+                <div><dt>Recoverability context</dt><dd>{activeRecord.recoverability}</dd></div>
+              </dl>
+              <button type="button" onClick={() => pin(`${activeRecord.id} · ${activeRecord.object}`)}>Pin verified record</button>
+            </aside>
           </div>
 
-          <section className="payment-verification-lower-grid" aria-label="Verification log and action panel">
-            <article className="payment-call-drawer">
+          <section className="payment-verification-lower-grid" aria-label="Verification attempts and evidence actions">
+            <article className="payment-attempt-panel">
               <header>
-                <p>Verification Call Drawer</p>
-                <h3>{activeRecord.verificationOutcome}</h3>
+                <p>Verification attempts</p>
+                <h3>{activeRecord.verificationAttempts.length} recorded attempt{activeRecord.verificationAttempts.length === 1 ? '' : 's'}</h3>
               </header>
               <div className="payment-log-list">
-                {(activeRecord.verificationLog ?? []).map((entry) => (
-                  <div key={`${activeRecord.id}-${entry.time}`}>
+                {activeRecord.verificationAttempts.map((entry) => (
+                  <div key={entry.id}>
                     <span>{entry.time}</span>
                     <strong>{entry.method} · {entry.result}</strong>
                     <p>{entry.note}</p>
@@ -1945,47 +2045,60 @@ function PaymentVerificationWorkspace({
               </div>
             </article>
 
-            <article className="payment-action-panel">
+            {showCallback && <article className="payment-call-drawer">
               <header>
-                <p>Action Panel</p>
-                <h3>Available next actions</h3>
+                <p>Verification Call Drawer</p>
+                <h3>Callback evidence</h3>
               </header>
+              <p>{activeRecord.callbackStatus}</p>
+              <dl>
+                <div><dt>Trusted source</dt><dd>{activeRecord.trustedContactSource}</dd></div>
+                <div><dt>Recorded outcome</dt><dd>{activeRecord.verificationOutcome}</dd></div>
+              </dl>
+            </article>}
+
+            <article className="payment-action-panel">
+              <header><p>Evidence actions</p><h3>Document, compare, or route</h3></header>
               <div>
-                {(activeRecord.actions ?? []).map((action) => (
-                  <button key={action} type="button" onClick={() => savePaymentNote(`${action} selected for ${activeRecord.id}.`)}>
-                    {action}
-                  </button>
-                ))}
+                {(activeRecord.actions ?? []).map((action) => <button key={action} type="button" onClick={() => logAction(action)}>{action}</button>)}
+                <button type="button" onClick={() => savePaymentNote(`${activeRecord.id} reviewed: ${activeRecord.notes}`)}>Save evidence note</button>
               </div>
             </article>
 
-            <article className="payment-notes-panel">
-              <header>
-                <p>Investigator Notes</p>
-                <h3>What this record is for</h3>
-              </header>
-              <p>{activeRecord.notes}</p>
-              <div>
-                <button type="button" onClick={() => savePaymentNote(`${activeRecord.id} reviewed: ${activeRecord.notes}`)}>Save verification note</button>
-              </div>
+            <article className="payment-related-records" aria-label="Related records">
+              <p>Related Records</p>
+              <div>{(activeRecord.relatedRecords ?? []).map((item) => <button key={item} type="button" onClick={() => pin(item)}>{item}</button>)}</div>
             </article>
           </section>
         </>
-      ) : (
-        <div className="investigation-tool-empty" role="status">No payment verification records are available for this case.</div>
+      ) : null}
+
+      {lookupHistory.length > 0 && (
+        <section className="payment-lookup-history" aria-label="Payment Verification lookup history">
+          <header><p>Lookup history</p><h3>Recent searches for this case</h3></header>
+          <div>
+            {lookupHistory.map((item) => (
+              <article key={item.id}>
+                <span>{item.bankCode} · {item.destinationId}</span>
+                <strong>{item.ownerName}</strong>
+                <small>{item.outcome}</small>
+              </article>
+            ))}
+          </div>
+        </section>
       )}
 
       <nav className="investigation-tool-next-routes" aria-label="Payment verification next routes">
-        <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
+        {relatedRoutes.map((route) => <button key={route} type="button" onClick={() => openTool(route)}>{`Open ${route}`}</button>)}
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
 
       <footer className="investigation-tool-review-bar">
         <div>
           <strong>Payment Verification review</strong>
-          <span>Mark reviewed after checking ownership, status, prior use, comparison, verification log, related records, and actions.</span>
+          <span>Run a lookup before marking reviewed. Then check the name result, ownership, operational status, standing, prior use, attempts, and evidence source.</span>
         </div>
-        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Payment Verification')}>
+        <button type="button" disabled={!lookupResult} className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Payment Verification')}>
           {reviewed ? '✓ Payment Verification reviewed' : 'Mark Payment Verification reviewed'}
         </button>
       </footer>
@@ -2013,6 +2126,7 @@ export default function InvestigationToolPanel({
   jumpDecision,
   documentRequests,
   setDocumentRequestsByCase,
+  recordAction,
 }) {
   const [selectedRecordId, setSelectedRecordId] = useState('');
   const displayData = buildCoreToolRecords(tool, activeCase, data) ?? data;
@@ -2099,6 +2213,7 @@ export default function InvestigationToolPanel({
           reviewed={reviewed}
           openTool={openTool}
           jumpDecision={jumpDecision}
+          recordAction={recordAction}
         />
       ) : tool === 'Transaction History' ? (
         <TransactionHistoryWorkspace
@@ -2217,6 +2332,7 @@ export default function InvestigationToolPanel({
           reviewed={reviewed}
           openTool={openTool}
           jumpDecision={jumpDecision}
+          recordAction={recordAction}
         />
       ) : tool === 'Document Viewer' ? (
         <DocumentViewerWorkspace

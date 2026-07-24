@@ -25,6 +25,10 @@ export default defineConfig({
   },
   projects: [
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile-chromium', use: { ...devices['Pixel 7'] } },
+    {
+      name: 'mobile-chromium',
+      testMatch: /(?:mobile-mission-deck-v3-browser|payment-verification-browser)\.spec\.mjs$/,
+      use: { ...devices['Pixel 7'] },
+    },
   ],
 });

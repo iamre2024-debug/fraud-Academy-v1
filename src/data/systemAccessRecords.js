@@ -72,7 +72,7 @@ export const systemAccessRecordsByCase = {
       object: 'Bank Code + Destination ID token',
       observed: 'Jul 8, 2026 · 7:32 AM',
       status: 'Available for review',
-      context: 'Open-banking style connection data can support Payment Verification review without exposing real account numbers.',
+      context: 'Open-banking style connection data can support Payment Verification review without exposing raw destination credentials.',
     },
     {
       id: 'SYS-CR-002',

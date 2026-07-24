@@ -76,7 +76,7 @@ test('approved Profile opens from the agent avatar and preserves neutral respons
   await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'workspace');
   await expect(page.locator('.visual-case-strip')).toContainText(caseId);
 
-  await page.getByRole('button', { name: /Dashboard/ }).click();
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Dashboard', exact: true }).click();
   await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'dashboard');
   await page.locator('.dashboard-agent-mark').click();
   await expect(page.locator('[data-profile-screen="approved-theme-v1"]')).toBeVisible();

@@ -56,6 +56,9 @@ jobs:
       - name: Remaining module depth smoke check
         run: npm run remaining-module-depth-smoke-check
 
+      - name: Payment Verification acceptance smoke check
+        run: npm run payment-verification-smoke-check
+
       - name: Navigation direct-collapse smoke check
         run: npm run navigation-direct-collapse-smoke-check
 

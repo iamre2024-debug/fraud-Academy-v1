@@ -22,7 +22,7 @@ function detectLayout() {
 }
 
 export default function useResponsiveLayoutMode() {
-  const [preference, setPreference] = useState(readPreference);
+  const [preference, setPreferenceState] = useState(readPreference);
   const [detectedLayout, setDetectedLayout] = useState(detectLayout);
   const resolvedLayout = useMemo(
     () => (preference === 'auto' ? detectedLayout : preference),
@@ -47,6 +47,17 @@ export default function useResponsiveLayoutMode() {
   }, []);
 
   useEffect(() => {
+    function syncPreference(event) {
+      const nextPreference = event.detail?.preference;
+      if (!validPreferences.has(nextPreference)) return;
+      setPreferenceState((current) => current === nextPreference ? current : nextPreference);
+    }
+
+    window.addEventListener('fraud-academy:layout-mode-changed', syncPreference);
+    return () => window.removeEventListener('fraud-academy:layout-mode-changed', syncPreference);
+  }, []);
+
+  useEffect(() => {
     document.body.dataset.layoutPreference = preference;
     document.body.dataset.layoutDetected = detectedLayout;
     document.body.dataset.layoutMode = resolvedLayout;
@@ -62,6 +73,23 @@ export default function useResponsiveLayoutMode() {
       detail: { preference, detectedLayout, resolvedLayout },
     }));
   }, [detectedLayout, preference, resolvedLayout]);
+
+  function setPreference(nextPreference) {
+    if (!validPreferences.has(nextPreference)) return;
+    try {
+      window.localStorage.setItem(layoutModeStorageKey, nextPreference);
+    } catch {
+      // The current session still switches immediately when storage is unavailable.
+    }
+    setPreferenceState(nextPreference);
+    window.dispatchEvent(new CustomEvent('fraud-academy:layout-mode-changed', {
+      detail: {
+        preference: nextPreference,
+        detectedLayout,
+        resolvedLayout: nextPreference === 'auto' ? detectedLayout : nextPreference,
+      },
+    }));
+  }
 
   return {
     preference,

@@ -2030,6 +2030,268 @@ body[data-visual-tab="workspace"] .ip-notes-panel button:last-child { border-col
   }
 }
 
+/* Payment Verification search-before-reveal contract */
+body[data-visual-tab="workspace"] .payment-verification-gate,
+body[data-visual-tab="workspace"] .payment-verification-not-found,
+body[data-visual-tab="workspace"] .payment-lookup-history,
+body[data-visual-tab="workspace"] .payment-verification-case-rail {
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.13);
+  border-radius: 16px;
+  background: #faf8ff;
+  padding: 14px;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-gate {
+  display: grid;
+  gap: 12px;
+  border-color: rgba(91, 62, 154, 0.2);
+  background: linear-gradient(135deg, #f8f4ff, #fff);
+}
+
+body[data-visual-tab="workspace"] .payment-verification-gate > header,
+body[data-visual-tab="workspace"] .payment-lookup-history > header,
+body[data-visual-tab="workspace"] .payment-verification-case-rail > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-gate p,
+body[data-visual-tab="workspace"] .payment-lookup-history p,
+body[data-visual-tab="workspace"] .payment-verification-case-rail header p,
+body[data-visual-tab="workspace"] .payment-history-grid span,
+body[data-visual-tab="workspace"] .payment-verification-case-rail dt {
+  margin: 0;
+  color: #7551c8;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-gate h3,
+body[data-visual-tab="workspace"] .payment-lookup-history h3,
+body[data-visual-tab="workspace"] .payment-verification-case-rail h3 {
+  margin: 3px 0 0;
+  color: #21184a;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-gate header span,
+body[data-visual-tab="workspace"] .payment-verification-not-found p,
+body[data-visual-tab="workspace"] .payment-verification-case-rail > p {
+  display: block;
+  max-width: 760px;
+  margin-top: 5px;
+  color: #706786;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-gate form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 9px;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-gate label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: #655989;
+  font-size: 0.68rem;
+  font-weight: 850;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-gate input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid rgba(91, 62, 154, 0.2);
+  border-radius: 11px;
+  background: #fff;
+  padding: 10px 11px;
+  color: #241b4c;
+  font: 750 0.76rem/1.2 Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-gate button,
+body[data-visual-tab="workspace"] .payment-verification-case-rail button,
+body[data-visual-tab="workspace"] .payment-related-records button {
+  min-height: 44px;
+  border: 1px solid rgba(91, 62, 154, 0.18);
+  border-radius: 11px;
+  background: #f1ebff;
+  padding: 9px 11px;
+  color: #513196;
+  font: 850 0.7rem/1.15 Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-gate button:disabled,
+body[data-visual-tab="workspace"] .investigation-tool-review-bar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-form-error,
+body[data-visual-tab="workspace"] .payment-verification-loading {
+  border-radius: 10px;
+  padding: 9px 11px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-form-error {
+  background: #fff0f5;
+  color: #9b2451;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-loading {
+  background: #f0ebff;
+  color: #5b3aaa;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-not-found {
+  display: grid;
+  gap: 6px;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-not-found h3 {
+  margin: 3px 0 0;
+  color: #32244f;
+  font-size: 0.93rem;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-workspace-revealed {
+  grid-template-columns: minmax(0, 1.45fr) minmax(220px, 0.55fr);
+}
+
+body[data-visual-tab="workspace"] .payment-verification-case-rail {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-case-rail dl {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-case-rail dl > div,
+body[data-visual-tab="workspace"] .payment-history-grid article {
+  border: 1px solid rgba(91, 62, 154, 0.09);
+  border-radius: 11px;
+  background: #fff;
+  padding: 10px;
+}
+
+body[data-visual-tab="workspace"] .payment-verification-case-rail dd {
+  margin: 4px 0 0;
+  color: #312650;
+  font-size: 0.72rem;
+  font-weight: 750;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .payment-history-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 11px;
+}
+
+body[data-visual-tab="workspace"] .payment-history-grid article {
+  display: grid;
+  gap: 5px;
+}
+
+body[data-visual-tab="workspace"] .payment-history-grid strong {
+  color: #30254f;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .payment-attempt-panel,
+body[data-visual-tab="workspace"] .payment-related-records {
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.11);
+  border-radius: 14px;
+  background: #faf8ff;
+  padding: 12px;
+}
+
+body[data-visual-tab="workspace"] .payment-related-records > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-history {
+  display: grid;
+  gap: 10px;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-history > div {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-history article {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  border-radius: 10px;
+  background: #fff;
+  padding: 9px;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-history article span,
+body[data-visual-tab="workspace"] .payment-lookup-history article small {
+  color: #756b8c;
+  font-size: 0.63rem;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .payment-lookup-history article strong {
+  color: #30254f;
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1100px) {
+  body[data-visual-tab="workspace"] .payment-verification-gate form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-visual-tab="workspace"] .payment-lookup-history > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  body[data-visual-tab="workspace"] .payment-verification-gate form,
+  body[data-visual-tab="workspace"] .payment-verification-workspace-revealed,
+  body[data-visual-tab="workspace"] .payment-history-grid,
+  body[data-visual-tab="workspace"] .payment-lookup-history > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .payment-verification-gate > header,
+  body[data-visual-tab="workspace"] .payment-lookup-history > header,
+  body[data-visual-tab="workspace"] .payment-verification-case-rail > header {
+    display: grid;
+  }
+}
+
 body[data-visual-tab="workspace"] .merchant-intelligence-command,
 body[data-visual-tab="workspace"] .merchant-intelligence-profile,
 body[data-visual-tab="workspace"] .merchant-intelligence-findbar,
