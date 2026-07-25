@@ -627,14 +627,70 @@ body[data-layout-mode="mobile"] #root {
 .mission-path-list button.active { border-color: #67e6ff; background: linear-gradient(90deg, #0874ca, #04345f); box-shadow: 0 0 24px rgba(38, 170, 246, 0.28); }
 .mission-path-list button.active > span:first-child { background: #087eda; box-shadow: 0 0 18px rgba(80, 220, 255, 0.38); }
 
-/* Evidence map and horizontal tool deck. */
-.mission-evidence-page .visual-categories,
-.mission-evidence-page .investigation-tool-groups-theme-v1 { width: 100%; margin: 0; border: 0; background: transparent; padding: 0; box-shadow: none; }
-.mission-evidence-page .investigation-tool-groups-heading { display: none; }
-.mission-evidence-page .mission-evidence-map { position: relative; min-height: 390px; overflow: hidden; border: 1px solid rgba(85, 220, 255, 0.4); border-radius: 28px 8px 28px 28px; background: radial-gradient(circle at 50% 48%, rgba(14, 122, 211, 0.34), transparent 38%), linear-gradient(180deg, #062f58, #020d1d); box-shadow: inset 0 0 40px rgba(35, 151, 238, 0.13), 0 20px 45px rgba(0, 3, 12, 0.45); }
+/* Evidence map: every investigation group lives inside one connected blue canvas. */
+body[data-layout-mode="mobile"] .mission-evidence-page .visual-categories,
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--md-ice);
+  box-shadow: none;
+}
+
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 {
+  display: grid;
+  gap: 14px;
+  overflow: visible;
+}
+
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-heading {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(116, 86, 180, 0.16);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 15px;
+  color: #21184a;
+  box-shadow: 0 14px 28px rgba(0, 4, 14, 0.28);
+}
+
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-heading > div {
+  min-width: 0;
+}
+
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-heading p {
+  color: #7551c8;
+}
+
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-heading h2 {
+  color: #21184a;
+  font-size: 1rem;
+}
+
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-heading small {
+  color: #716987;
+  font-size: 0.75rem;
+}
+
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-heading > button {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(117, 81, 200, 0.2);
+  border-radius: 13px;
+  background: #f7f3ff;
+  color: #5f3cad;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.mission-evidence-page .mission-evidence-map { position: relative; min-height: 690px; overflow: hidden; border: 1px solid rgba(85, 220, 255, 0.4); border-radius: 28px 8px 28px 28px; background: radial-gradient(circle at 50% 48%, rgba(14, 122, 211, 0.34), transparent 38%), linear-gradient(180deg, #062f58, #020d1d); box-shadow: inset 0 0 40px rgba(35, 151, 238, 0.13), 0 20px 45px rgba(0, 3, 12, 0.45); }
 .mission-evidence-page .mission-evidence-map::before,
 .mission-evidence-page .mission-evidence-map::after { content: ""; position: absolute; inset: 74px 34px; border: 1px solid rgba(79, 212, 255, 0.24); border-radius: 50%; transform: rotate(-13deg); }
 .mission-evidence-page .mission-evidence-map::after { inset: 126px 15px; transform: rotate(19deg); }
+.mission-map-category-nodes { display: none; }
 .mission-evidence-page .mission-map-stars { position: absolute; inset: 0; }
 .mission-evidence-page .mission-map-stars i { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #8eeeff; box-shadow: 0 0 8px #54dcff; }
 .mission-evidence-page .mission-map-stars i:nth-child(1) { top: 12%; left: 17%; }
@@ -651,90 +707,86 @@ body[data-layout-mode="mobile"] #root {
 .mission-evidence-page .node-context { bottom: 47px; right: 18px; }
 .mission-evidence-page .node-transaction { top: 50%; left: 50%; width: 125px; min-height: 98px; transform: translate(-50%, -50%); border-color: #69e8ff; border-radius: 50%; background: radial-gradient(circle, #0a89e3, #04345e 72%); box-shadow: 0 0 30px rgba(60, 207, 255, 0.33); }
 .mission-evidence-page .mission-map-pin { position: absolute; z-index: 3; bottom: 39px; left: 17px; border: 1px solid #6be7ff; border-radius: 999px; background: #0874ce; padding: 8px 10px; color: #fff; font-size: 0.75rem; font-weight: 900; }
-body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 .visual-category-row {
-  width: 100% !important;
-  max-width: none;
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  grid-auto-flow: row !important;
-  grid-auto-columns: unset !important;
-  gap: 10px;
-  overflow: visible;
-  margin-top: 14px;
-  padding: 5px 3px 13px;
+
+body[data-layout-mode="mobile"] .mission-evidence-page :is(.node-customer, .node-device, .node-context, .mission-map-pin) {
+  display: none;
 }
 
-body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 .visual-category-row > button {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  min-height: 164px;
-  display: grid !important;
-  grid-template-columns: 40px minmax(0, 1fr) !important;
-  grid-template-rows: auto auto auto auto !important;
-  align-content: start;
-  align-items: start;
-  gap: 7px 9px;
-  padding: 12px;
+body[data-layout-mode="mobile"] .mission-evidence-page .mission-map-category-nodes {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  display: block;
 }
 
-body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 .visual-category-row > button > span:first-child {
-  width: 40px;
-  height: 40px;
-  grid-column: 1;
-  grid-row: 1;
-  font-size: 1rem;
-}
-
-body[data-layout-mode="mobile"] .mission-evidence-page .investigation-category-copy {
-  min-width: 0;
+body[data-layout-mode="mobile"] .mission-evidence-page .mission-map-tool-node {
+  position: absolute;
+  width: min(40%, 138px);
+  min-height: 118px;
   display: grid;
+  justify-items: center;
+  align-content: center;
   gap: 4px;
-  grid-column: 2;
-  grid-row: 1;
+  border: 1px solid rgba(92, 223, 255, 0.62);
+  border-radius: 22px 9px 22px 22px;
+  background: linear-gradient(145deg, rgba(9, 103, 171, 0.98), rgba(3, 41, 76, 0.99));
+  padding: 10px 8px;
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 0 22px rgba(48, 184, 246, 0.2), inset 0 0 22px rgba(54, 173, 239, 0.08);
 }
 
-body[data-layout-mode="mobile"] .mission-evidence-page .investigation-category-copy strong {
-  color: #2a214e;
-  font-size: 0.9rem;
-  line-height: 1.25;
+body[data-layout-mode="mobile"] .mission-evidence-page .mission-map-tool-node > span {
+  font-size: 1.35rem;
+}
+
+body[data-layout-mode="mobile"] .mission-evidence-page .mission-map-tool-node strong {
+  width: 100%;
+  color: #fff;
+  font-size: 0.78rem;
+  line-height: 1.22;
   overflow-wrap: break-word;
   word-break: normal;
 }
 
-body[data-layout-mode="mobile"] .mission-evidence-page .investigation-category-copy small {
-  display: -webkit-box;
-  overflow: hidden;
-  color: #776e90;
-  font-size: 0.75rem;
-  line-height: 1.35;
-  overflow-wrap: break-word;
-  word-break: normal;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 .visual-category-row > button > em,
-body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 .category-status-copy {
+body[data-layout-mode="mobile"] .mission-evidence-page .mission-map-tool-node small {
+  color: #8ee8ff;
   font-size: 0.75rem;
   line-height: 1.2;
 }
 
-body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 .visual-category-row > button > em {
-  grid-column: 1 / -1;
-  grid-row: 2;
-  justify-self: start;
+body[data-layout-mode="mobile"] .mission-evidence-page .mission-map-tool-node.active {
+  border-color: #b4f5ff;
+  background: linear-gradient(145deg, #0b8ce5, #064c8c);
+  box-shadow: 0 0 28px rgba(68, 211, 255, 0.42), inset 0 0 22px rgba(125, 231, 255, 0.12);
 }
 
-body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 .category-status-copy {
-  grid-column: 1 / -1;
-  grid-row: 3;
-  align-self: end;
+body[data-layout-mode="mobile"] .mission-evidence-page .mission-map-tool-node.reviewed::after {
+  content: "✓";
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 21px;
+  height: 21px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(111, 242, 214, 0.72);
+  border-radius: 50%;
+  background: #063e62;
+  color: #79f4d6;
+  font-size: 0.75rem;
+  font-weight: 950;
 }
 
-body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 .category-progress-track {
-  grid-column: 1 / -1;
-  grid-row: 4;
+body[data-layout-mode="mobile"] .mission-evidence-page .node-tool-1 { top: 28px; left: 16px; }
+body[data-layout-mode="mobile"] .mission-evidence-page .node-tool-2 { top: 28px; right: 16px; }
+body[data-layout-mode="mobile"] .mission-evidence-page .node-tool-3 { top: 190px; left: 12px; }
+body[data-layout-mode="mobile"] .mission-evidence-page .node-tool-4 { top: 190px; right: 12px; }
+body[data-layout-mode="mobile"] .mission-evidence-page .node-tool-5 { bottom: 30px; left: 25px; }
+body[data-layout-mode="mobile"] .mission-evidence-page .node-tool-6 { right: 25px; bottom: 30px; }
+
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 > .visual-category-row {
+  display: none;
 }
 
 /* Focused tool screen. Existing tool logic is rendered inside this new surface. */
