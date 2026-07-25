@@ -613,6 +613,37 @@ body[data-layout-mode="desktop"] .desktop-setting-row select {
   padding: 0 9px;
 }
 
+body[data-layout-mode="desktop"] .desktop-layout-mode-control {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(62px, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--desktop-line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+body[data-layout-mode="desktop"] .desktop-layout-mode-control button {
+  min-height: 40px;
+  border: 0;
+  border-right: 1px solid var(--desktop-line);
+  background: #fff;
+  color: var(--desktop-muted);
+  padding: 0 10px;
+  font-size: 0.72rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+body[data-layout-mode="desktop"] .desktop-layout-mode-control button:last-child {
+  border-right: 0;
+}
+
+body[data-layout-mode="desktop"] .desktop-layout-mode-control button[aria-pressed="true"] {
+  background: linear-gradient(145deg, #4778be, #294f89);
+  color: #fff;
+}
+
 body[data-layout-mode="desktop"] .desktop-setting-row input {
   width: 20px;
   height: 20px;
@@ -1439,6 +1470,52 @@ body[data-layout-mode="desktop"] .desktop-progress-page .nav-progress-list > art
 
 body[data-layout-mode="desktop"] .desktop-progress-page :is(strong, span, p, small, b) {
   overflow-wrap: anywhere;
+}
+
+body[data-layout-mode="desktop"] .desktop-section-intro,
+body[data-layout-mode="desktop"] .desktop-workspace-generator {
+  min-width: 0;
+  margin-bottom: 16px;
+  border: 1px solid var(--desktop-line);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: clamp(18px, 2.2vw, 28px);
+  box-shadow: 0 12px 30px rgba(39, 71, 116, 0.07);
+}
+
+body[data-layout-mode="desktop"] .desktop-section-intro h2,
+body[data-layout-mode="desktop"] .desktop-section-intro p,
+body[data-layout-mode="desktop"] .desktop-workspace-generator h2,
+body[data-layout-mode="desktop"] .desktop-workspace-generator p {
+  margin: 0;
+}
+
+body[data-layout-mode="desktop"] .desktop-section-intro h2,
+body[data-layout-mode="desktop"] .desktop-workspace-generator h2 {
+  margin-top: 5px;
+  color: var(--desktop-navy);
+  font-size: clamp(1.15rem, 1.8vw, 1.55rem);
+}
+
+body[data-layout-mode="desktop"] .desktop-section-intro p,
+body[data-layout-mode="desktop"] .desktop-workspace-generator > header > p {
+  margin-top: 7px;
+  color: var(--desktop-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-generator > header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-generator > header > p {
+  max-width: 430px;
+  text-align: right;
 }
 
 /* The approved workspace keeps its behavior and gains the full command-center width. */

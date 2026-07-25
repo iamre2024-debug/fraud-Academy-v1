@@ -116,6 +116,7 @@ export default function DesktopMissionControlApp({
   onOpenCase,
   onOpenWorkspaceRoute,
   quickGenerator,
+  workspaceGenerator,
   workspace,
 }) {
   const [control, setControl] = useState('');
@@ -216,15 +217,15 @@ export default function DesktopMissionControlApp({
             <button type="button" className="desktop-active-case-chip" onClick={() => openWorkspace('briefing')}>
               <span>Active case</span><strong>{activeCase?.id}</strong>
             </button>
-            <button type="button" aria-label="Open Help" aria-expanded={control === 'help'} onClick={() => setControl((current) => current === 'help' ? '' : 'help')}>?</button>
-            <button type="button" aria-label="Open Settings" aria-expanded={control === 'settings'} onClick={() => setControl((current) => current === 'settings' ? '' : 'settings')}>⚙</button>
-            <button type="button" className="desktop-agent-button" aria-label="Open Agent profile" onClick={() => navigate('profile')}>LA</button>
+            <button type="button" aria-label="Open Help" aria-controls="visual-header-control-panel" aria-expanded={control === 'help'} onClick={() => setControl((current) => current === 'help' ? '' : 'help')}>?</button>
+            <button type="button" aria-label="Open Settings" aria-controls="visual-header-control-panel" aria-expanded={control === 'settings'} onClick={() => setControl((current) => current === 'settings' ? '' : 'settings')}>⚙</button>
+            <button type="button" className="desktop-agent-button dashboard-agent-mark" aria-label="Open Agent profile" onClick={() => navigate('profile')}>LA</button>
           </div>
         </header>
 
         {control && (
-          <section className="desktop-control-drawer" aria-live="polite" data-control={control}>
-            <button type="button" className="desktop-control-close" aria-label="Close" onClick={() => setControl('')}>×</button>
+          <section id="visual-header-control-panel" className="desktop-control-drawer" aria-live="polite" data-control={control}>
+            <button type="button" className="desktop-control-close" aria-label="Close header panel" onClick={() => setControl('')}>×</button>
             {control === 'help' ? (
               <>
                 <div>
@@ -251,14 +252,21 @@ export default function DesktopMissionControlApp({
                   <span>Your case work still saves locally first and syncs to the connected cloud account when available.</span>
                 </div>
                 <div className="desktop-setting-grid">
-                  <label className="desktop-setting-row">
+                  <div className="desktop-setting-row">
                     <span><strong>Layout</strong><small>Detected {layoutController.detectedLayout}; using {layoutController.resolvedLayout}.</small></span>
-                    <select value={layoutController.preference} onChange={(event) => layoutController.setPreference(event.target.value)} aria-label="Layout mode">
-                      <option value="auto">Auto</option>
-                      <option value="mobile">Mobile</option>
-                      <option value="desktop">Desktop</option>
-                    </select>
-                  </label>
+                    <div className="desktop-layout-mode-control" role="group" aria-label="Layout mode">
+                      {['auto', 'mobile', 'desktop'].map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          aria-pressed={layoutController.preference === mode}
+                          onClick={() => layoutController.setPreference(mode)}
+                        >
+                          {mode[0].toUpperCase() + mode.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <label className="desktop-setting-row">
                     <span><strong>Reduce motion</strong><small>Use immediate page changes and quieter animation.</small></span>
                     <input type="checkbox" checked={reducedMotion} onChange={(event) => setReducedMotion(event.target.checked)} />
@@ -299,6 +307,13 @@ export default function DesktopMissionControlApp({
           </section>
 
           <section className="desktop-page desktop-workspace-page" hidden={activeTab !== 'workspace'} data-desktop-surface="workspace">
+            <section className="desktop-workspace-generator" aria-label="Scenario generator">
+              <header>
+                <div><span className="desktop-eyebrow">Scenario lab</span><h2>Generate another training case</h2></div>
+                <p>Create and open a fictional case without leaving the investigation workspace.</p>
+              </header>
+              {workspaceGenerator}
+            </section>
             {workspace}
             {luna}
           </section>
@@ -309,7 +324,14 @@ export default function DesktopMissionControlApp({
 
           <section className="desktop-page desktop-progress-page" hidden={activeTab !== 'progress'} data-desktop-surface="progress">
             {activeTab === 'progress' && (
-              <AcademyProgressPanel cases={cases} packagesByCase={snapshot.packagesByCase} onOpenCase={onOpenCase} />
+              <>
+                <header className="desktop-section-intro">
+                  <span className="desktop-eyebrow">Academy progress</span>
+                  <h2>Saved package progress</h2>
+                  <p>Review submitted training packages and reopen the cases with completed debriefs.</p>
+                </header>
+                <AcademyProgressPanel cases={cases} packagesByCase={snapshot.packagesByCase} onOpenCase={onOpenCase} />
+              </>
             )}
           </section>
 

@@ -29,6 +29,7 @@ export default function VisualApp() {
   const [workspaceScreen, setWorkspaceScreen] = useState(() => initialResumeSession?.workspaceScreen ?? 'briefing');
   const [workspaceTool, setWorkspaceTool] = useState(() => initialResumeSession?.activeTool ?? 'Login History');
   const skipInitialResumeWrite = useRef(true);
+  const userNavigationRef = useRef(false);
   const activeCase = caseCatalog.find((item) => item.id === activeCaseId) ?? caseCatalog[0];
   const layoutController = useResponsiveLayoutMode();
 
@@ -53,6 +54,7 @@ export default function VisualApp() {
           }
           return;
         }
+        if (userNavigationRef.current) return;
         const session = readResumeSession();
         if (!session) return;
         const nextCaseId = nextCatalog.some((item) => item.id === session.activeCaseId)
@@ -108,6 +110,7 @@ export default function VisualApp() {
   }, [activeTab]);
 
   function openCase(caseId, nextWorkspaceScreen = 'briefing') {
+    userNavigationRef.current = true;
     setActiveCaseId(caseId);
     setWorkspaceScreen(nextWorkspaceScreen);
     setActiveTab('workspace');
@@ -129,31 +132,41 @@ export default function VisualApp() {
   }
 
   function returnToQueue() {
+    userNavigationRef.current = true;
     setActiveTab('cases');
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
   }
 
   function returnToWorkspace() {
+    userNavigationRef.current = true;
     setWorkspaceScreen('tool-menu');
     setActiveTab('workspace');
     window.setTimeout(() => document.querySelector('.active-case-workflow')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   }
 
   function openMobileWorkspace(nextWorkspaceScreen = 'briefing') {
+    userNavigationRef.current = true;
     setWorkspaceScreen(nextWorkspaceScreen);
     setActiveTab('workspace');
   }
 
   function openDesktopWorkspace(nextWorkspaceScreen = workspaceScreen, nextWorkspaceTool = '') {
+    userNavigationRef.current = true;
     if (nextWorkspaceTool) setWorkspaceTool(nextWorkspaceTool);
     setWorkspaceScreen(nextWorkspaceScreen);
     setActiveTab('workspace');
   }
 
   function viewCaseSummary() {
+    userNavigationRef.current = true;
     setWorkspaceScreen('briefing');
     setActiveTab('workspace');
     window.setTimeout(() => document.querySelector('[data-workflow-stage="briefing"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  }
+
+  function navigateToTab(tab) {
+    userNavigationRef.current = true;
+    setActiveTab(tab);
   }
 
   if (layoutController.resolvedLayout === 'mobile') {
@@ -167,7 +180,7 @@ export default function VisualApp() {
           claimTypes={coreClaimTypes}
           layoutController={layoutController}
           onGenerateCases={handleGeneratedCases}
-          onNavigate={setActiveTab}
+          onNavigate={navigateToTab}
           onOpenWorkspace={openMobileWorkspace}
           onOpenCase={openCase}
           quickGenerator={<GeneratedCaseControls inline onCaseGenerated={handleGeneratedCase} />}
@@ -177,7 +190,7 @@ export default function VisualApp() {
               cases={caseCatalog}
               layoutMode="mobile"
               onCaseChange={openCase}
-              onNavigate={setActiveTab}
+              onNavigate={navigateToTab}
               requestedWorkspaceScreen={workspaceScreen}
               onWorkspaceScreenChange={setWorkspaceScreen}
               requestedWorkspaceTool={workspaceTool}
@@ -221,16 +234,17 @@ export default function VisualApp() {
           />
         )}
         onGenerateCases={handleGeneratedCases}
-        onNavigate={setActiveTab}
+        onNavigate={navigateToTab}
         onOpenCase={openCase}
         onOpenWorkspaceRoute={openDesktopWorkspace}
         quickGenerator={<GeneratedCaseControls inline onCaseGenerated={handleGeneratedCase} />}
+        workspaceGenerator={<GeneratedCaseControls inline onCaseGenerated={handleGeneratedCase} />}
         workspace={(
           <VisualWorkspace
             activeCaseId={activeCaseId}
             cases={caseCatalog}
             onCaseChange={openCase}
-            onNavigate={setActiveTab}
+            onNavigate={navigateToTab}
             requestedWorkspaceScreen={workspaceScreen}
             onWorkspaceScreenChange={setWorkspaceScreen}
             requestedWorkspaceTool={workspaceTool}
