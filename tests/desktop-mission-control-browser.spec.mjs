@@ -96,7 +96,9 @@ test('desktop mission control renders complete wide pages and exact workspace sh
 test('desktop day, auto, and night themes share one stable layout and persist locally', async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem('fraud-academy-layout-mode-v1', 'desktop');
-    window.localStorage.setItem('fraud-academy-desktop-theme-v1', 'day');
+    if (!window.localStorage.getItem('fraud-academy-desktop-theme-v1')) {
+      window.localStorage.setItem('fraud-academy-desktop-theme-v1', 'day');
+    }
   });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.emulateMedia({ colorScheme: 'light' });
