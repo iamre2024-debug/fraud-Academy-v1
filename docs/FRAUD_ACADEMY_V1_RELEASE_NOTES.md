@@ -46,4 +46,4 @@ Fraud Academy v1.0.0 is the verified internal training release. It is ready for 
 
 ## Screenshot
 
-The current Android release view is stored at `docs/screenshots/fraud-academy-v1-mobile.png`.
+The current Android release view is stored at `docs/screenshots/fraud-academy-v1-mobile.jpg`.
