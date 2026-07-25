@@ -544,7 +544,7 @@ function DesktopCaseUtilityRail({
       </header>
 
       <UtilityCard
-        actionLabel="Open Quick Pad"
+        actionLabel="View Quick Pad"
         eyebrow="Working clipboard"
         icon="▤"
         onAction={() => onOpenQuickPad('ids')}
