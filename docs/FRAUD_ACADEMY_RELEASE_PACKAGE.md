@@ -180,7 +180,7 @@ GitHub Actions uses Node.js 24 and runs the named verification chain before desk
 - Permanent production URL: not yet recorded
 - Build command: `npm run build`
 - Output directory: `dist`
-- Release screenshot: `docs/screenshots/fraud-academy-v1-mobile.png`
+- Release screenshot: `docs/screenshots/fraud-academy-v1-mobile.jpg`
 - Authentication: not implemented
 - Backend API: not implemented
 - Hosted database: not implemented
