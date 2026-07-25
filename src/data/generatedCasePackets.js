@@ -339,6 +339,7 @@ function makePaymentVerification({ id, claimType, scenario, person, business, re
   const rail = scenario.taxonomyTags?.productRail ?? claimType.taxonomy.productRail;
   const destinationType = rail === 'payroll' ? 'Payroll destination' : rail === 'wire' ? 'Beneficiary destination' : /credit|loan/.test(rail) ? 'Payment account' : 'Card authorization object';
   const destination = `DST-${String(seed).slice(-7).padStart(7, '0')}`;
+  const bankCode = `BC-${String(seed).slice(-5)}`;
   const tone = claimType.id === 'non-fraud-chargeback' ? 'established' : /credit|loan/.test(rail) ? creditDeterminationTone(scenario) : determinationTone(scenario);
   const recordedOwner = rail === 'wire' || rail === 'loan' ? business : person;
   return [{
@@ -353,7 +354,7 @@ function makePaymentVerification({ id, claimType, scenario, person, business, re
     ownerMatch: tone === 'established' ? 'Match' : tone === 'mixed' ? 'Partial Match' : 'No Match',
     accountStatus: 'Open', standing: tone === 'exception' ? 'Limited history' : 'Good standing', priorUse: tone === 'established' ? 'Prior use recorded' : 'No prior use located', firstSeen: issueStartDate,
     verificationMethod: rail === 'card' ? 'Network authorization packet' : 'Training ownership and history comparison', recoverability: rail === 'wire' ? 'Recall status pending receiving-bank response' : 'Review path documented in the payment packet',
-    bankCode: `BC-${String(seed).slice(-5)}`, destinationId: destination, oldDestination: rail === 'payroll' || rail === 'wire' ? 'Established destination ending 2204' : 'Prior payment object on file', newDestination: `Destination ID ${destination}`,
+    bankCode, destinationId: destination, oldDestination: rail === 'payroll' || rail === 'wire' ? 'Established destination ending 2204' : 'Prior payment object on file', newDestination: `Bank Code ${bankCode} · Destination ID ${destination}`,
     changeComparison: `${destination} was ${tone === 'established' ? 'used before the current activity window' : `first observed ${issueStartDate}`}.`, verificationOutcome: `${destinationType}, ownership, status, prior use, and first-seen date recorded`, relatedRecords: transactions.map((item) => item.id),
     actions: ['Compare ownership and prior use', 'Document the trusted verification source'], verificationLog: [{ time: `${reportedDate} - 9:30 AM`, method: 'Training lookup', result: tone === 'mixed' ? 'Unable to Verify' : 'Recorded', note: 'The log records source evidence only.' }], notes: `Generated payment object ${index} for ${scenario.subtype}.`,
   }];

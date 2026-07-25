@@ -3,7 +3,7 @@ import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import { getFinancialRecords } from './data/caseToolData.js';
 import { getCustomer360Dossier } from './data/customer360Dossier.js';
 import { getCaseDocuments } from './data/documentRecords.js';
-import { buildPaymentLookupHint } from './data/paymentVerification.js';
+import { buildPaymentLookupHint, paymentChangeMetadata } from './data/paymentVerification.js';
 import { workflows } from './visualWorkspaceModel.js';
 
 const unavailable = 'Not available in the current training packet';
@@ -233,6 +233,98 @@ function profileEventMetadata(event) {
   ];
 }
 
+function canonicalPaymentRecords(records = []) {
+  const seen = new Set();
+  return records.filter((record) => {
+    const key = `${record.bankCode ?? ''}|${record.destinationId ?? ''}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function paymentSourceFields(record) {
+  return [
+    ['Bank Code', record.bankCode ?? 'Not supplied'],
+    ['Destination ID', record.destinationId ?? 'Not supplied'],
+    ['Previous account / destination', record.previousDestination ?? record.oldDestination ?? 'Not supplied'],
+    ['New account / destination', record.newDestination ?? 'Not supplied'],
+    ['Change comparison', record.changeComparison ?? record.reviewContext ?? 'Not supplied'],
+  ];
+}
+
+function PaymentSourcePanel({
+  records,
+  activeCase,
+  openTool,
+  compact = false,
+  headingId,
+  heading,
+}) {
+  const sourceRecords = compact ? canonicalPaymentRecords(records).slice(0, 1) : records;
+  if (!sourceRecords.length) return null;
+
+  return (
+    <section
+      className={`customer-360-payment-sources${compact ? ' customer-360-payment-sources-compact' : ''}`}
+      aria-labelledby={headingId}
+    >
+      <header className="customer-360-section-heading">
+        <div>
+          <p>{compact ? 'Source identifiers · result stays hidden' : 'Source identifiers only'}</p>
+          <h3 id={headingId}>{heading}</h3>
+        </div>
+        {!compact && <span>{sourceRecords.length} available</span>}
+      </header>
+      <p className="customer-360-payment-source-note">
+        These source values can prefill Payment Verification. No name match, account status, or verification result appears until the investigator runs the search.
+      </p>
+      <div>
+        {sourceRecords.map((record) => {
+          const hint = buildPaymentLookupHint({
+            bankCode: record.bankCode,
+            destinationId: record.destinationId,
+            ownerName: activeCase.person,
+          });
+          return (
+            <article key={record.id}>
+              <span>{record.id} · {record.laneVariant}</span>
+              <strong>{record.bankCode} · {record.destinationId}</strong>
+              <dl>
+                {paymentSourceFields(record).map(([label, value]) => (
+                  <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+                ))}
+              </dl>
+              <button type="button" onClick={() => openTool('Payment Verification', 'investigate', { query: hint })}>
+                Prefill Payment Verification
+              </button>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function PaymentAccountChangeDetail({ event, records }) {
+  const fields = paymentChangeMetadata(event, records);
+  if (!fields.length) return null;
+
+  return (
+    <section
+      className="customer-360-account-change-detail"
+      aria-label={`Payment account change details for ${event.id}`}
+    >
+      <p>Payment account change</p>
+      <dl>
+        {fields.map(([label, value]) => (
+          <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
 export default function Customer360Panel({
   activeCategory,
   activeCase,
@@ -286,16 +378,23 @@ export default function Customer360Panel({
       `Customer: ${activeCase.person}`,
       'Fictional training data only',
       '',
-      ...(activeCase.customer?.profileChanges ?? []).flatMap((event) => [
-        `${event.date}${event.time ? ` · ${event.time}` : ''} | ${event.eventType ?? 'Profile maintenance'} | ${event.item}`,
-        `Old value: ${event.oldValue ?? 'Not supplied'}`,
-        `New value: ${event.newValue ?? 'Not supplied'}`,
-        `Channel/source: ${event.channel ?? 'Not supplied'} | ${event.source ?? 'Not supplied'}`,
-        `Actor/device/session: ${event.user ?? 'Not supplied'} | ${event.device ?? 'Not supplied'} | ${event.session ?? 'Not supplied'}`,
-        `IP/MFA: ${event.ip ?? 'Not supplied'} | ${event.mfaMethod ?? 'Not supplied'}`,
-        `Notes: ${event.notes ?? event.detail ?? 'No note supplied'}`,
-        '',
-      ]),
+      ...(activeCase.customer?.profileChanges ?? []).flatMap((event) => {
+        const accountChangeFields = paymentChangeMetadata(event, paymentRecords);
+        return [
+          `${event.date}${event.time ? ` · ${event.time}` : ''} | ${event.eventType ?? 'Profile maintenance'} | ${event.item}`,
+          `Old value: ${event.oldValue ?? 'Not supplied'}`,
+          `New value: ${event.newValue ?? 'Not supplied'}`,
+          ...(accountChangeFields.length ? [
+            'Payment account change:',
+            ...accountChangeFields.map(([label, value]) => `${label}: ${value}`),
+          ] : []),
+          `Channel/source: ${event.channel ?? 'Not supplied'} | ${event.source ?? 'Not supplied'}`,
+          `Actor/device/session: ${event.user ?? 'Not supplied'} | ${event.device ?? 'Not supplied'} | ${event.session ?? 'Not supplied'}`,
+          `IP/MFA: ${event.ip ?? 'Not supplied'} | ${event.mfaMethod ?? 'Not supplied'}`,
+          `Notes: ${event.notes ?? event.detail ?? 'No note supplied'}`,
+          '',
+        ];
+      }),
     ];
     const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain' }));
     const link = document.createElement('a');
@@ -426,38 +525,26 @@ export default function Customer360Panel({
         )}
       </section>
 
+      {activeTab === 'overview' && !normalizedQuery && availableToolNames.has('Payment Verification') && (
+        <PaymentSourcePanel
+          records={paymentRecords}
+          activeCase={activeCase}
+          openTool={openTool}
+          compact
+          headingId="customer-360-payment-change-heading"
+          heading="Payment Account Change"
+        />
+      )}
+
       {(activeTab === 'accounts' || normalizedQuery) && <section className="customer-360-record-section" aria-labelledby="customer-360-product-records-heading">
         {availableToolNames.has('Payment Verification') && paymentRecords.length > 0 && (
-          <section className="customer-360-payment-sources" aria-labelledby="customer-360-payment-inputs-heading">
-            <header className="customer-360-section-heading">
-              <div><p>Source identifiers only</p><h3 id="customer-360-payment-inputs-heading">Payment Verification Inputs</h3></div>
-              <span>{paymentRecords.length} available</span>
-            </header>
-            <p className="customer-360-payment-source-note">These source values can prefill Payment Verification. Opening the tool does not reveal a match or account result until the investigator runs the search.</p>
-            <div>
-              {paymentRecords.map((record) => {
-                const hint = buildPaymentLookupHint({
-                  bankCode: record.bankCode,
-                  destinationId: record.destinationId,
-                  ownerName: activeCase.person,
-                });
-                return (
-                  <article key={record.id}>
-                    <span>{record.id} · {record.laneVariant}</span>
-                    <strong>{record.object}</strong>
-                    <dl>
-                      <div><dt>Bank Code</dt><dd>{record.bankCode}</dd></div>
-                      <div><dt>Destination ID</dt><dd>{record.destinationId}</dd></div>
-                      <div><dt>Owner to compare</dt><dd>{activeCase.person}</dd></div>
-                    </dl>
-                    <button type="button" onClick={() => openTool('Payment Verification', 'investigate', { query: hint })}>
-                      Prefill Payment Verification
-                    </button>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
+          <PaymentSourcePanel
+            records={paymentRecords}
+            activeCase={activeCase}
+            openTool={openTool}
+            headingId="customer-360-payment-inputs-heading"
+            heading="Payment Verification Inputs"
+          />
         )}
         <header className="customer-360-section-heading"><div><p>Account-level records</p><h3 id="customer-360-product-records-heading">Accounts & Products</h3></div><span>{dossier.products.length} records</span></header>
         <div className="customer-360-structured-records">
@@ -505,6 +592,7 @@ export default function Customer360Panel({
               <div className="customer-360-event-copy">
                 <h4>{event.item}</h4>
                 <DirectCollapsibleText lines={2} mobileLines={3}>{event.detail}</DirectCollapsibleText>
+                <PaymentAccountChangeDetail event={event} records={paymentRecords} />
                 <dl>{profileEventMetadata(event).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
               </div>
               <div className="customer-360-event-actions">

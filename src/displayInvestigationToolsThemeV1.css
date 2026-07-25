@@ -5375,6 +5375,94 @@ body[data-visual-tab="workspace"] .payroll-history-summary strong {
   overflow-wrap: anywhere;
 }
 
+body[data-visual-tab="workspace"] .payment-source-handoff {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.55fr) minmax(0, 1.45fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.18);
+  border-left: 4px solid #7551c8;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #f5f0ff, #fff);
+  padding: 11px;
+}
+
+body[data-visual-tab="workspace"] .payment-source-handoff > header {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .payment-source-handoff > header p {
+  margin: 0;
+  color: #7551c8;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .payment-source-handoff > header h3 {
+  margin: 0;
+  color: #28204e;
+  font-size: 0.94rem;
+  line-height: 1.25;
+}
+
+body[data-visual-tab="workspace"] .payment-source-handoff > header span,
+body[data-visual-tab="workspace"] .payment-source-handoff > header > strong {
+  color: #706786;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+body[data-visual-tab="workspace"] .payment-source-handoff > header > strong {
+  color: #5c3ea2;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .payment-source-handoff > dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+}
+
+body[data-visual-tab="workspace"] .payment-source-handoff > dl > div {
+  min-width: 0;
+  border-radius: 9px;
+  background: #fff;
+  padding: 7px 8px;
+}
+
+body[data-visual-tab="workspace"] .payment-source-handoff dt {
+  color: #766d8d;
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
+body[data-visual-tab="workspace"] .payment-source-handoff dd {
+  margin: 3px 0 0;
+  color: #312650;
+  font-size: 0.76rem;
+  font-weight: 750;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .payment-source-handoff > button {
+  min-height: 44px;
+  border: 1px solid rgba(91, 62, 154, 0.2);
+  border-radius: 11px;
+  background: #7551c8;
+  padding: 9px 11px;
+  color: #fff;
+  font: 850 0.75rem/1.2 Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
 body[data-visual-tab="workspace"] .transaction-history-workspace,
 body[data-visual-tab="workspace"] .business-360-workspace,
 body[data-visual-tab="workspace"] .employee-profile-workspace,
@@ -5587,6 +5675,14 @@ body[data-visual-tab="workspace"] .business-360-evidence article small {
 }
 
 @media (max-width: 1100px) {
+  body[data-visual-tab="workspace"] .payment-source-handoff {
+    grid-template-columns: minmax(180px, 0.55fr) minmax(0, 1.45fr);
+  }
+
+  body[data-visual-tab="workspace"] .payment-source-handoff > button {
+    grid-column: 1 / -1;
+  }
+
   body[data-visual-tab="workspace"] .transaction-history-workspace,
   body[data-visual-tab="workspace"] .business-360-workspace,
   body[data-visual-tab="workspace"] .employee-profile-workspace,
@@ -5607,6 +5703,14 @@ body[data-visual-tab="workspace"] .business-360-evidence article small {
 }
 
 @media (max-width: 720px) {
+  body[data-visual-tab="workspace"] .payment-source-handoff {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .payment-source-handoff > button {
+    grid-column: auto;
+  }
+
   body[data-visual-tab="workspace"] .transaction-history-findbar,
   body[data-visual-tab="workspace"] .payroll-history-findbar,
   body[data-visual-tab="workspace"] .transaction-history-workspace,
@@ -5632,6 +5736,10 @@ body[data-visual-tab="workspace"] .business-360-evidence article small {
 }
 
 @media (max-width: 430px) {
+  body[data-visual-tab="workspace"] .payment-source-handoff > dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   body[data-visual-tab="workspace"] .transaction-history-summary,
   body[data-visual-tab="workspace"] .employee-profile-summary,
   body[data-visual-tab="workspace"] .payroll-history-summary,
