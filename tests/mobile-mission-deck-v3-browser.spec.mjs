@@ -33,6 +33,11 @@ async function assertPhoneGeometry(page) {
       viewportHeight: window.innerHeight,
       badHeadings,
       categoryCardWidths: categoryCards.map((element) => element.getBoundingClientRect().width),
+      categoryTitleGeometry: categoryCards.map((element) => {
+        const title = element.querySelector('.investigation-category-copy strong');
+        const rect = title?.getBoundingClientRect();
+        return { width: rect?.width ?? 0, height: rect?.height ?? 0 };
+      }),
       categoryFontSizes: categoryCards.flatMap((element) => (
         [...element.querySelectorAll('.investigation-category-copy strong, .investigation-category-copy small, .category-status-copy')]
           .map((text) => Number.parseFloat(getComputedStyle(text).fontSize))
@@ -52,7 +57,8 @@ async function assertPhoneGeometry(page) {
   expect(geometry.dockBottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
   expect(geometry.dockWidth).toBeGreaterThanOrEqual(geometry.expectedShellWidth - 18);
   expect(geometry.badHeadings).toEqual([]);
-  expect(geometry.categoryCardWidths.every((width) => width >= 150)).toBe(true);
+  expect(geometry.categoryCardWidths.every((width) => width >= 140)).toBe(true);
+  expect(geometry.categoryTitleGeometry.every(({ width, height }) => width >= 70 && height <= 74)).toBe(true);
   expect(geometry.categoryFontSizes.every((size) => size >= 12)).toBe(true);
 }
 
@@ -70,11 +76,11 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   await expect(page.getByRole('navigation', { name: 'Main navigation' })).toHaveCount(0);
   await expect(dock).toBeVisible();
 
-  for (const width of [628, 980]) {
+  for (const width of [360, 393, 412, 628, 980]) {
     await page.setViewportSize({ width, height: 1536 });
     await assertPhoneGeometry(page);
   }
-  await page.setViewportSize({ width: 628, height: 1536 });
+  await page.setViewportSize({ width: 393, height: 1536 });
 
   await dock.getByRole('button', { name: /Home/ }).click();
   await expect(page.locator('.mission-case-deck')).toBeVisible();
