@@ -63,7 +63,7 @@ test('desktop mission control renders complete wide pages and exact workspace sh
   expect(Math.min(...detailWidths)).toBeGreaterThanOrEqual(140);
   await assertDesktopWidthSafe(page, 'Dashboard');
 
-  await page.locator('.desktop-utility-rail').getByRole('button', { name: 'Open Quick Pad', exact: true }).click();
+  await page.locator('.desktop-utility-rail').getByRole('button', { name: 'View Quick Pad', exact: true }).click();
   await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'workspace');
   await expect(page.getByRole('dialog', { name: 'Keep lookup details close' })).toBeVisible();
   await page.getByRole('button', { name: 'Close Quick Pad', exact: true }).click();
