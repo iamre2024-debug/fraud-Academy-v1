@@ -7,6 +7,10 @@ function fieldValue(document, label) {
   return document?.fields?.find(([field]) => field === label)?.[1] ?? 'Not recorded';
 }
 
+function fieldValueMatching(document, pattern, fallback = 'Not recorded') {
+  return document?.fields?.find(([field]) => pattern.test(field))?.[1] ?? fallback;
+}
+
 function folderIcon(folder = '') {
   if (/customer/i.test(folder)) return '👤';
   if (/merchant/i.test(folder)) return '🏪';
@@ -130,6 +134,7 @@ export default function DocumentViewerWorkspace({
   const [compareIds, setCompareIds] = useState([]);
   const [noteDraft, setNoteDraft] = useState('');
   const [mobilePane, setMobilePane] = useState('inbox');
+  const [mobileReviewStep, setMobileReviewStep] = useState('fields');
   const normalizedQuery = query.trim().toLowerCase();
   const filteredDocuments = documents.filter((document) => (
     (folder === 'All Documents' || document.folder === folder)
@@ -151,6 +156,7 @@ export default function DocumentViewerWorkspace({
     setCompareIds([]);
     setNoteDraft('');
     setMobilePane(directRoute?.pane ?? 'inbox');
+    setMobileReviewStep('fields');
     if (directRoute) {
       setMatchedAccountId(normalizeAccountId(activeCase.accountId));
       setAccountLookup(activeCase.accountId);
@@ -170,6 +176,7 @@ export default function DocumentViewerWorkspace({
     setSelectedDocumentId(documentId);
     setPageIndex(0);
     setMobilePane('reader');
+    setMobileReviewStep('fields');
   }
 
   function toggleCompare(documentId) {
@@ -218,6 +225,19 @@ export default function DocumentViewerWorkspace({
     setLookupError('');
     setQuery('');
     openDocumentAccountCase?.(match.id);
+  }
+
+  const mobileReviewSteps = [
+    { key: 'document', label: 'Document', icon: '📄' },
+    { key: 'status', label: 'Status', icon: '✓' },
+    { key: 'fields', label: 'Fields', icon: '▦' },
+    { key: 'notes', label: 'Notes', icon: '✎' },
+  ];
+  const mobileReviewIndex = mobileReviewSteps.findIndex((step) => step.key === mobileReviewStep);
+
+  function moveMobileReview(direction) {
+    const nextIndex = Math.min(mobileReviewSteps.length - 1, Math.max(0, mobileReviewIndex + direction));
+    setMobileReviewStep(mobileReviewSteps[nextIndex].key);
   }
 
   return (
@@ -278,7 +298,119 @@ export default function DocumentViewerWorkspace({
         <button type="button" onClick={jumpDecision}><i />Decide</button>
       </aside>
 
-      <div className="document-viewer-layout" data-mobile-pane={mobilePane}>
+      <div className="document-viewer-layout" data-mobile-pane={mobilePane} data-mobile-review-step={mobileReviewStep}>
+        {activeDocument && (
+          <section className="document-mobile-review-shell" aria-label="Mobile document review">
+            <header className="document-mobile-summary-header">
+              <button type="button" className="document-mobile-back" onClick={() => setMobilePane('inbox')}>‹ Inbox</button>
+              <div>
+                <p>{activeDocument.type}</p>
+                <h3>{activeDocument.title}</h3>
+                <span>{activeDocument.source} · {activeDocument.reviewStatus}</span>
+              </div>
+              <div className="document-mobile-summary-actions">
+                <button type="button" onClick={() => pin(`${activeDocument.id} | ${activeDocument.title}`)}>Pin</button>
+                <button type="button" onClick={exportDocument}>Export</button>
+              </div>
+            </header>
+
+            <nav className="document-mobile-review-tabs" role="tablist" aria-label="Document review pages">
+              {mobileReviewSteps.map((step, index) => (
+                <button
+                  key={step.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={mobileReviewStep === step.key}
+                  onClick={() => setMobileReviewStep(step.key)}
+                >
+                  <i>{index + 1}</i>
+                  <span aria-hidden="true">{step.icon}</span>
+                  <strong>{step.label}</strong>
+                </button>
+              ))}
+            </nav>
+
+            <div className="document-mobile-review-panels">
+              <section className="document-mobile-review-panel" data-review-panel="document" aria-label="Document page">
+                <div className="document-page-controls" aria-label="Document page controls">
+                  <button type="button" disabled={pageIndex <= 0} onClick={() => setPageIndex((current) => Math.max(0, current - 1))}>Previous page</button>
+                  <span>Page {activeDocument.pages.length ? pageIndex + 1 : 0} of {activeDocument.pages.length}</span>
+                  <button type="button" disabled={pageIndex >= activeDocument.pages.length - 1} onClick={() => setPageIndex((current) => Math.min(activeDocument.pages.length - 1, current + 1))}>Next page</button>
+                </div>
+                <div className="document-page-stage">
+                  {activePage ? (
+                    <DocumentPage document={activeDocument} page={activePage} pageNumber={pageIndex + 1} zoom={90} />
+                  ) : (
+                    <div className="document-not-received" role="status">
+                      <span>Document not received</span>
+                      <h3>{activeDocument.title}</h3>
+                      <button type="button" onClick={() => openTool('Document Request')}>Open Document Request</button>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className="document-mobile-review-panel document-mobile-status-panel" data-review-panel="status" aria-label="Document status">
+                <header><p>Document status</p><span>{activeDocument.reviewStatus}</span></header>
+                <dl>
+                  <div><dt>Case</dt><dd>{activeDocument.caseId}</dd></div>
+                  <div><dt>Customer</dt><dd>{activeDocument.customer}</dd></div>
+                  <div><dt>Source</dt><dd>{activeDocument.source}</dd></div>
+                  <div><dt>Received</dt><dd>{activeDocument.received}</dd></div>
+                  <div><dt>Request status</dt><dd>{activeDocument.requestStatus}</dd></div>
+                  <div><dt>Confidence</dt><dd>{activeDocument.extractionConfidence}</dd></div>
+                </dl>
+                <details>
+                  <summary>All status details</summary>
+                  <dl>
+                    <div><dt>Account ID</dt><dd>{activeDocument.accountId}</dd></div>
+                    <div><dt>Claim type</dt><dd>{activeDocument.claimType}</dd></div>
+                    <div><dt>Quality review</dt><dd>{activeDocument.authenticity}</dd></div>
+                    {activeDocument.requestDueDate && <div><dt>Request due</dt><dd>{activeDocument.requestDueDate}</dd></div>}
+                  </dl>
+                </details>
+              </section>
+
+              <section className="document-mobile-review-panel document-mobile-fields-panel" data-review-panel="fields" aria-label="Evidence-first field summary">
+                <header><p>Key evidence</p><span>{activeDocument.fields.length} fields</span></header>
+                <dl>
+                  <div><dt>Customer</dt><dd>{activeDocument.customer}</dd></div>
+                  <div><dt>Source</dt><dd>{activeDocument.source}</dd></div>
+                  <div><dt>Amount</dt><dd>{fieldValueMatching(activeDocument, /amount/i, activeCase.amount)}</dd></div>
+                  <div><dt>Transaction</dt><dd>{fieldValueMatching(activeDocument, /transaction date|activity date|document date/i, activeDocument.received)}</dd></div>
+                  <div><dt>Response</dt><dd>{fieldValueMatching(activeDocument, /response|decision|outcome/i, activeDocument.reviewStatus)}</dd></div>
+                  <div><dt>Confidence</dt><dd>{activeDocument.extractionConfidence}</dd></div>
+                </dl>
+                <details>
+                  <summary>All document details · {activeDocument.fields.length} fields</summary>
+                  <dl>{activeDocument.fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+                </details>
+                <div className="document-mobile-evidence-actions">
+                  <button type="button" onClick={() => pin(`${activeDocument.id} | ${activeDocument.title}`)}>Pin evidence</button>
+                  <button type="button" onClick={addDocumentToSummary}>Add to summary</button>
+                </div>
+              </section>
+
+              <section className="document-mobile-review-panel document-mobile-notes-panel" data-review-panel="notes" aria-label="Investigator notes">
+                <header><p>Investigator notes</p><span>{noteDraft.trim() ? 'Draft ready' : 'Not started'}</span></header>
+                <p>{activeDocument.investigatorNote}</p>
+                <textarea value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} placeholder="Record what this document proves, contradicts, or leaves unresolved..." aria-label="Mobile document investigator note" />
+                <div>
+                  <button type="button" disabled={!noteDraft.trim()} onClick={saveDocumentNote}>Save note</button>
+                  <button type="button" onClick={addDocumentToSummary}>Add to summary</button>
+                </div>
+              </section>
+            </div>
+
+            <nav className="document-mobile-step-controls" aria-label="Document review step controls">
+              <button type="button" disabled={mobileReviewIndex <= 0} onClick={() => moveMobileReview(-1)}>‹ Back</button>
+              <span>{mobileReviewIndex + 1} of {mobileReviewSteps.length}</span>
+              {mobileReviewIndex < mobileReviewSteps.length - 1
+                ? <button type="button" onClick={() => moveMobileReview(1)}>Next ›</button>
+                : <button type="button" onClick={jumpDecision}>Continue to decision ›</button>}
+            </nav>
+          </section>
+        )}
         <nav className="document-folder-nav" aria-label="Document folders">
           <p>Mailboxes</p>
           {folders.map((item) => {
