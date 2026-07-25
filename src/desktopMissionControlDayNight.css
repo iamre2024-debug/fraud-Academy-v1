@@ -1596,6 +1596,11 @@ body[data-layout-mode="desktop"] .desktop-profile-page :is(
   color: var(--deck-text);
 }
 
+body[data-layout-mode="desktop"] .desktop-profile-page .profile-badge-grid :is(strong, small) {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
 body[data-layout-mode="desktop"] .desktop-profile-page .profile-secondary-action {
   border-color: var(--deck-line);
   background: var(--deck-surface-soft);
