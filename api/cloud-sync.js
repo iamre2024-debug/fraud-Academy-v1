@@ -4,16 +4,8 @@ const MAX_BODY_BYTES = 4_500_000;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 120;
 const requestWindows = new Map();
-
-const compareAndSetScript = `
-local currentRevision = redis.call('HGET', KEYS[1], 'revision')
-local normalizedRevision = currentRevision or '0'
-if normalizedRevision ~= ARGV[1] then
-  return {0, normalizedRevision, redis.call('HGET', KEYS[1], 'payload') or ''}
-end
-redis.call('HSET', KEYS[1], 'revision', ARGV[2], 'payload', ARGV[3], 'updatedAt', ARGV[4])
-return {1, ARGV[2]}
-`;
+const snapshotTable = 'fraud_academy_cloud_snapshots';
+const compareAndSetFunction = 'fraud_academy_compare_and_set_cloud_snapshot';
 
 function configuredOrigins() {
   return String(process.env.CLOUD_SYNC_ALLOWED_ORIGIN || '')
@@ -74,8 +66,8 @@ function exceedsRateLimit(req, res) {
 
 function hasCloudConfiguration() {
   return Boolean(
-    process.env.UPSTASH_REDIS_REST_URL
-      && process.env.UPSTASH_REDIS_REST_TOKEN
+    process.env.SUPABASE_URL
+      && (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)
       && String(process.env.CLOUD_SYNC_HMAC_SECRET || '').length >= 32,
   );
 }
@@ -84,43 +76,39 @@ function cleanSyncIdentifier(req) {
   return String(req.headers?.['x-fraud-academy-sync-id'] || '').trim().toLowerCase();
 }
 
-function redisStorageKey(syncIdentifier) {
-  const digest = createHmac('sha256', process.env.CLOUD_SYNC_HMAC_SECRET)
+function storageDigest(syncIdentifier) {
+  return createHmac('sha256', process.env.CLOUD_SYNC_HMAC_SECRET)
     .update(syncIdentifier)
     .digest('hex');
-  return `fraud-academy:cloud:v1:${digest}`;
 }
 
-async function redisCommand(command) {
-  const response = await fetch(process.env.UPSTASH_REDIS_REST_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(command),
+function supabaseApiKey() {
+  return process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+}
+
+function supabaseHeaders() {
+  const apiKey = supabaseApiKey();
+  const headers = {
+    apikey: apiKey,
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+  if (!process.env.SUPABASE_SECRET_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+  return headers;
+}
+
+async function supabaseRequest(path, { method = 'GET', body } = {}) {
+  const baseUrl = String(process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+  const response = await fetch(`${baseUrl}/rest/v1/${path}`, {
+    method,
+    headers: supabaseHeaders(),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok || body.error) throw new Error('Cloud storage request failed.');
-  return body.result;
-}
-
-function hashFields(values) {
-  const fields = {};
-  if (!Array.isArray(values)) return fields;
-  for (let index = 0; index < values.length; index += 2) {
-    fields[String(values[index])] = values[index + 1];
-  }
-  return fields;
-}
-
-function parsePayload(value) {
-  if (!value) return null;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return null;
-  }
+  const result = await response.json().catch(() => null);
+  if (!response.ok) throw new Error('Cloud storage request failed.');
+  return result;
 }
 
 export default async function handler(req, res) {
@@ -140,15 +128,17 @@ export default async function handler(req, res) {
   if (!/^[a-f0-9]{64}$/.test(syncIdentifier)) {
     return send(req, res, 401, { error: 'A valid cloud sync identifier is required' });
   }
-  const storageKey = redisStorageKey(syncIdentifier);
+  const syncKey = storageDigest(syncIdentifier);
 
   try {
     if (req.method === 'GET') {
-      const fields = hashFields(await redisCommand(['HGETALL', storageKey]));
+      const query = `${snapshotTable}?sync_key=eq.${encodeURIComponent(syncKey)}&select=revision,payload,updated_at&limit=1`;
+      const records = await supabaseRequest(query);
+      const record = Array.isArray(records) ? records[0] : null;
       return send(req, res, 200, {
-        revision: Number(fields.revision) || 0,
-        payload: parsePayload(fields.payload),
-        updatedAt: fields.updatedAt || null,
+        revision: Number(record?.revision) || 0,
+        payload: record?.payload || null,
+        updatedAt: record?.updated_at || null,
       });
     }
 
@@ -170,28 +160,27 @@ export default async function handler(req, res) {
       return send(req, res, 413, { error: 'Cloud recovery payload is too large' });
     }
 
-    const nextRevision = baseRevision + 1;
-    const updatedAt = new Date().toISOString();
-    const result = await redisCommand([
-      'EVAL',
-      compareAndSetScript,
-      '1',
-      storageKey,
-      String(baseRevision),
-      String(nextRevision),
-      payloadJson,
-      updatedAt,
-    ]);
-
-    if (!Array.isArray(result) || Number(result[0]) !== 1) {
+    const result = await supabaseRequest(`rpc/${compareAndSetFunction}`, {
+      method: 'POST',
+      body: {
+        p_sync_key: syncKey,
+        p_base_revision: baseRevision,
+        p_payload: payload,
+      },
+    });
+    const record = Array.isArray(result) ? result[0] : result;
+    if (!record || record.saved !== true) {
       return send(req, res, 409, {
         error: 'Cloud recovery changed on another device',
-        revision: Number(result?.[1]) || 0,
-        payload: parsePayload(result?.[2]),
+        revision: Number(record?.revision) || 0,
+        payload: record?.payload || null,
       });
     }
 
-    return send(req, res, 200, { revision: nextRevision, updatedAt });
+    return send(req, res, 200, {
+      revision: Number(record.revision) || baseRevision + 1,
+      updatedAt: record.updated_at || null,
+    });
   } catch {
     return send(req, res, 502, { error: 'Cloud storage is temporarily unavailable' });
   }

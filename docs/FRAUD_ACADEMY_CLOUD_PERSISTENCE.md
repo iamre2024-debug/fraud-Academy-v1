@@ -16,15 +16,27 @@ Fraud Academy keeps its existing offline recovery paths and adds encrypted, clou
 
 ## Required production environment variables
 
-Create an Upstash Redis database, open its **Connect** section, choose **REST**, and copy the HTTPS REST URL and read/write REST token.
+Use an existing or new Supabase project. First apply the versioned database migration:
 
-Set these server-side variables in the Vercel project:
+1. Open **Supabase → SQL Editor → New query**.
+2. Copy the complete contents of `supabase/migrations/202607250001_fraud_academy_cloud_sync.sql`.
+3. Press **Run**.
+
+The migration creates:
+
+- `public.fraud_academy_cloud_snapshots`, containing only an HMAC lookup digest, revision, encrypted payload, and timestamp;
+- row-level security with no browser-facing policies;
+- `public.fraud_academy_compare_and_set_cloud_snapshot`, an atomic revision-check function executable only by `service_role`.
+
+Open **Supabase → Project Settings → API Keys**. Copy the Project URL and create a server-side **Secret key** with the `sb_secret_` prefix. Set these server-side variables in the Vercel project:
 
 ```text
-UPSTASH_REDIS_REST_URL=https://YOUR-DATABASE.upstash.io
-UPSTASH_REDIS_REST_TOKEN=YOUR_READ_WRITE_REST_TOKEN
+SUPABASE_URL=https://YOUR-PROJECT-REF.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_YOUR_SERVER_ONLY_KEY
 CLOUD_SYNC_HMAC_SECRET=YOUR_64_CHARACTER_RANDOM_HEX_VALUE
 ```
+
+If the project has not enabled new Secret keys yet, `SUPABASE_SERVICE_ROLE_KEY` is accepted as a temporary legacy fallback. Do not set both.
 
 Generate the HMAC secret locally:
 
@@ -40,18 +52,18 @@ CLOUD_SYNC_ALLOWED_ORIGIN=https://fraud-academy-v1.vercel.app
 
 Leave `CLOUD_SYNC_ALLOWED_ORIGIN` blank to allow only the current deployment origin. Add comma-separated exact origins when both Production and named Preview deployments must use cloud sync.
 
-Do not create `VITE_UPSTASH_*` variables. The Upstash token and HMAC secret must stay in the serverless function environment and must never be embedded in the browser bundle.
+Do not create `VITE_SUPABASE_*` variables for this feature. The Supabase Secret key and HMAC secret must stay in the serverless function environment and must never be embedded in the browser bundle.
 
 ### Vercel steps
 
 1. Open the `fraud-academy-v1` Vercel project.
 2. Open **Settings → Environment Variables**.
 3. Add the three required variables above to **Production**. Add them to **Preview** only if preview deployments should use the same recovery database.
-4. Mark the REST token and HMAC secret as sensitive values.
+4. Mark the Supabase Secret key and HMAC secret as sensitive values.
 5. Redeploy Production. Vercel applies changed environment variables only to a new deployment.
 6. Open the app, go to **Settings → Cloud save**, and press **Sync now**. The status should become **Cloud current**.
 
-Upstash exposes the expected `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` values in the database Connect view. Its REST API accepts Redis commands over HTTPS with bearer-token authorization. Vercel environment variables are scoped by deployment environment and require a redeploy after a value changes.
+Supabase exposes the Project URL and API keys in the project settings. A new `sb_secret_` key is preferred over the legacy `service_role` JWT. Vercel environment variables are scoped by deployment environment and require a redeploy after a value changes.
 
 ## Device recovery flow
 
@@ -74,7 +86,7 @@ The migration is additive and non-destructive:
 5. No local case, note, pin, package, or scenario is cleared merely because the cloud is empty or unavailable.
 6. Existing saved learner packages still unlock Luna. When a learner opens an unlocked debrief for the first time, the completed deterministic/API review is persisted under `fraud-academy-completed-debriefs-v1` and joins subsequent cloud snapshots.
 
-When the required server environment variables are absent or Upstash is unavailable, Settings reports **Local recovery** or **Sync paused**. The browser-local and IndexedDB recovery copies remain active, and pending changes retry later.
+When the required server environment variables are absent, the Supabase migration has not been applied, or Supabase is unavailable, Settings reports **Local recovery** or **Sync paused**. The browser-local and IndexedDB recovery copies remain active, and pending changes retry later.
 
 ## Verification
 

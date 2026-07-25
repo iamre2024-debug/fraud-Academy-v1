@@ -151,7 +151,7 @@ Use these files before making architecture, UI, navigation, responsive, tool, sc
 - Insider / Vendor / API / Open Banking remains the single Connections → System Access Lane sub-tool inside the workspace, powered by `src/data/systemAccessRecords.js`.
 - `src/data/generatedCaseRepository.js` is the generated-case storage boundary. IndexedDB is primary, localStorage remains a fallback, and existing localStorage-generated cases migrate once into IndexedDB.
 - `src/data/cloudSyncClient.js`, `src/data/persistenceMerge.js`, and `api/cloud-sync.js` add encrypted cloud recovery without replacing localStorage or IndexedDB. Recovery snapshots merge case-scoped work and generated scenarios across devices, retry after offline work, and use compare-and-set revisions instead of last-request-wins overwrites.
-- `src/data/persistenceKeys.js` centralizes the established case-scoped keys and adds completed-debrief persistence. `docs/FRAUD_ACADEMY_CLOUD_PERSISTENCE.md` records the exact Upstash/Vercel environment setup, recovery-code flow, migration behavior, and validation commands.
+- `src/data/persistenceKeys.js` centralizes the established case-scoped keys and adds completed-debrief persistence. `docs/FRAUD_ACADEMY_CLOUD_PERSISTENCE.md` records the exact Supabase/Vercel environment setup, recovery-code flow, migration behavior, and validation commands.
 - Generated cases are added to the live React case catalog, opened without page refresh, preserved after reload, and kept behind a backend-ready repository contract.
 - The generated queue has no arbitrary application count cap. A monotonic sequence prevents rapid-generation ID collisions, and `scripts/generated-case-smoke-check.mjs` verifies more than 50 cases remain unique and available.
 - The old `src/visualInvestigationRepair.js` DOM route patch is retired and not loaded by the app entrypoint.
@@ -256,7 +256,7 @@ npm run build
 
 ## Cloud recovery setup
 
-Cloud recovery uses the existing Vercel serverless stack plus an Upstash Redis REST database. Set `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, and a random `CLOUD_SYNC_HMAC_SECRET` in the deployment environment, then redeploy. Do not expose any of those values through `VITE_*`.
+Cloud recovery uses the existing Vercel serverless stack plus a private Supabase Postgres table. Apply `supabase/migrations/202607250001_fraud_academy_cloud_sync.sql`, then set `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and a random `CLOUD_SYNC_HMAC_SECRET` in the deployment environment before redeploying. Do not expose any of those values through `VITE_*`.
 
 The complete setup and migration contract is in [`docs/FRAUD_ACADEMY_CLOUD_PERSISTENCE.md`](docs/FRAUD_ACADEMY_CLOUD_PERSISTENCE.md).
 

@@ -119,23 +119,26 @@ const [
   keySource,
   generatedRepositorySource,
   lunaSource,
+  supabaseMigrationSource,
 ] = await Promise.all([
   readFile(new URL('../api/cloud-sync.js', import.meta.url), 'utf8'),
   readFile(new URL('../src/data/cloudSyncClient.js', import.meta.url), 'utf8'),
   readFile(new URL('../src/data/persistenceKeys.js', import.meta.url), 'utf8'),
   readFile(new URL('../src/data/generatedCaseRepository.js', import.meta.url), 'utf8'),
   readFile(new URL('../src/LunaPostSubmissionPanel.jsx', import.meta.url), 'utf8'),
+  readFile(new URL('../supabase/migrations/202607250001_fraud_academy_cloud_sync.sql', import.meta.url), 'utf8'),
 ]);
 
 for (const environmentKey of [
-  'UPSTASH_REDIS_REST_URL',
-  'UPSTASH_REDIS_REST_TOKEN',
+  'SUPABASE_URL',
+  'SUPABASE_SECRET_KEY',
+  'SUPABASE_SERVICE_ROLE_KEY',
   'CLOUD_SYNC_HMAC_SECRET',
   'CLOUD_SYNC_ALLOWED_ORIGIN',
 ]) {
   assert.match(apiSource, new RegExp(`process\\.env\\.${environmentKey}`));
 }
-assert.doesNotMatch(apiSource, /https:\/\/[^'"]+\.upstash\.io/);
+assert.doesNotMatch(apiSource, /https:\/\/[^'"]+\.supabase\.co/);
 assert.match(clientSource, /AES-GCM/);
 assert.match(clientSource, /PBKDF2/);
 assert.match(clientSource, /X-Fraud-Academy-Sync-Id/);
@@ -145,6 +148,11 @@ assert.match(clientSource, /window\.addEventListener\('online'/);
 assert.match(keySource, /completed-debriefs-v1/);
 assert.match(generatedRepositorySource, /mergeGeneratedCases/);
 assert.match(lunaSource, /fraud-academy:debrief-completed/);
+assert.match(supabaseMigrationSource, /enable row level security/i);
+assert.match(supabaseMigrationSource, /revoke all .* from public, anon, authenticated/i);
+assert.match(supabaseMigrationSource, /fraud_academy_compare_and_set_cloud_snapshot/);
+assert.match(supabaseMigrationSource, /snapshot\.revision = p_base_revision/);
+assert.match(supabaseMigrationSource, /grant execute .*[\s\S]*to service_role/i);
 
 function mockResponse() {
   return {
@@ -181,42 +189,76 @@ async function callApi(method, body) {
 
 const originalFetch = globalThis.fetch;
 const originalEnvironment = {
-  UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
-  UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+  SUPABASE_URL: process.env.SUPABASE_URL,
+  SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY,
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   CLOUD_SYNC_HMAC_SECRET: process.env.CLOUD_SYNC_HMAC_SECRET,
   CLOUD_SYNC_ALLOWED_ORIGIN: process.env.CLOUD_SYNC_ALLOWED_ORIGIN,
 };
-process.env.UPSTASH_REDIS_REST_URL = 'https://redis.test';
-process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+process.env.SUPABASE_URL = 'https://database.test';
+process.env.SUPABASE_SECRET_KEY = 'sb_secret_test-key';
+delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 process.env.CLOUD_SYNC_HMAC_SECRET = '1234567890abcdef1234567890abcdef';
 process.env.CLOUD_SYNC_ALLOWED_ORIGIN = 'https://fraud-academy.test';
 
-let redisMode = 'empty';
-let lastRedisCommand = [];
-globalThis.fetch = async (_url, options) => {
-  lastRedisCommand = JSON.parse(options.body);
-  if (redisMode === 'empty') return new Response(JSON.stringify({ result: [] }), { status: 200 });
-  if (redisMode === 'saved') return new Response(JSON.stringify({ result: [1, '1'] }), { status: 200 });
-  return new Response(JSON.stringify({ result: [0, '3', JSON.stringify(encrypted)] }), { status: 200 });
+let supabaseMode = 'empty';
+let lastSupabaseUrl = '';
+let lastSupabaseRequest = {};
+globalThis.fetch = async (url, options) => {
+  lastSupabaseUrl = String(url);
+  lastSupabaseRequest = options;
+  if (options.method === 'GET') {
+    return new Response(JSON.stringify([]), { status: 200 });
+  }
+  if (supabaseMode === 'saved') {
+    return new Response(JSON.stringify([{
+      saved: true,
+      revision: 1,
+      payload: encrypted,
+      updated_at: '2026-07-25T15:00:00.000Z',
+    }]), { status: 200 });
+  }
+  return new Response(JSON.stringify([{
+    saved: false,
+    revision: 3,
+    payload: encrypted,
+    updated_at: '2026-07-25T15:01:00.000Z',
+  }]), { status: 200 });
 };
 
 const emptyCloud = await callApi('GET');
 assert.equal(emptyCloud.status, 200);
 assert.equal(emptyCloud.body.revision, 0);
-assert.equal(lastRedisCommand[0], 'HGETALL');
-assert.ok(!lastRedisCommand.join(' ').includes(recoveryCode), 'The Redis key must not expose the recovery code.');
+assert.match(lastSupabaseUrl, /fraud_academy_cloud_snapshots\?/);
+assert.equal(lastSupabaseRequest.headers.apikey, 'sb_secret_test-key');
+assert.equal(lastSupabaseRequest.headers.Authorization, undefined);
+assert.ok(!lastSupabaseUrl.includes(recoveryCode), 'The Supabase lookup must not expose the recovery code.');
 
-redisMode = 'saved';
+supabaseMode = 'saved';
 const savedCloud = await callApi('PUT', { baseRevision: 0, payload: encrypted });
 assert.equal(savedCloud.status, 200);
 assert.equal(savedCloud.body.revision, 1);
-assert.equal(lastRedisCommand[0], 'EVAL');
+assert.match(lastSupabaseUrl, /rpc\/fraud_academy_compare_and_set_cloud_snapshot$/);
+const savedRequestBody = JSON.parse(lastSupabaseRequest.body);
+assert.equal(savedRequestBody.p_base_revision, 0);
+assert.match(savedRequestBody.p_sync_key, /^[a-f0-9]{64}$/);
+assert.ok(!lastSupabaseRequest.body.includes(recoveryCode), 'The Supabase request must not expose the recovery code.');
 
-redisMode = 'conflict';
+supabaseMode = 'conflict';
 const conflictedCloud = await callApi('PUT', { baseRevision: 1, payload: encrypted });
 assert.equal(conflictedCloud.status, 409);
 assert.equal(conflictedCloud.body.revision, 3);
 assert.deepEqual(conflictedCloud.body.payload, encrypted);
+
+delete process.env.SUPABASE_SECRET_KEY;
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'legacy-service-role-token';
+const legacyCloud = await callApi('GET');
+assert.equal(legacyCloud.status, 200);
+assert.equal(lastSupabaseRequest.headers.apikey, 'legacy-service-role-token');
+assert.equal(
+  lastSupabaseRequest.headers.Authorization,
+  'Bearer legacy-service-role-token',
+);
 
 globalThis.fetch = originalFetch;
 for (const [key, value] of Object.entries(originalEnvironment)) {

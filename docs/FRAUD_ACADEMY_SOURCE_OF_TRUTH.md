@@ -240,7 +240,7 @@ Includes Investigation Tray, Notebook, Timeline, Case Report, submit decision fl
 - IndexedDB is the primary generated-case store. Existing localStorage cases and sequence metadata migrate once into IndexedDB, while localStorage remains a safe fallback when IndexedDB is unavailable.
 - `src/data/cloudSyncClient.js` may list and merge generated cases only through that repository API. It must not replace IndexedDB or make generated-case availability depend on connectivity.
 - `src/data/persistenceMerge.js` owns item-level offline merge behavior, removal tombstones, and case-value version comparison. `api/cloud-sync.js` stores only client-encrypted recovery payloads behind compare-and-set revisions and server-only environment credentials.
-- The cloud recovery code must remain user-controlled, must never be hard-coded, and must derive the browser-side encryption key. Upstash and HMAC credentials must remain server-side without a `VITE_` prefix.
+- The cloud recovery code must remain user-controlled, must never be hard-coded, and must derive the browser-side encryption key. Supabase and HMAC credentials must remain server-side without a `VITE_` prefix.
 - Cloud failure must degrade to the established localStorage/IndexedDB recovery path. Pending offline changes retry when connectivity returns, and an empty or unavailable cloud record must never clear local work.
 - Completed Luna debriefs may persist only after a valid learner package unlocks the post-submission panel. Cloud hydration must not bypass Luna's Evidence First lock.
 - The generated-case queue must not impose an arbitrary application count cap. Unique IDs must survive rapid generation, and automated verification must cover more than 50 generated cases.
