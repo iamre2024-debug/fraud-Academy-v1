@@ -10,6 +10,8 @@ The mobile Blue Mission Deck remains a separate renderer and is not restyled by 
 
 - `src/DesktopMissionControlApp.jsx` directly renders Home, Cases, Workspace, Academy, Progress, and Profile inside one desktop shell.
 - `src/desktopMissionControlV2.css` owns the light blue, navy, and peach desktop theme, fixed desktop sidebar, wide cards, wrapping rules, compact rail, and forced-desktop narrow fallback.
+- `src/desktopMissionControlDayNight.css` applies the approved matched Day and Night presentation to that shared layout, including the active-case hero, workflow path, wide tools, recent cases, and permanent utility rail.
+- `src/useDesktopThemeMode.js` owns the device-local Day / Auto / Night preference. Auto follows `prefers-color-scheme`, while manual choices remain stable across reloads.
 - `src/VisualApp.jsx` remains the owner of active case, global tab, workspace page, active tool, generated case catalog, resume state, and cloud initialization.
 - `src/VisualWorkspace.jsx` remains the investigation workspace. It is mounted inside the desktop shell so case-scoped notes, pinned evidence, review state, decision drafts, and resume behavior retain their existing boundaries.
 - `src/LunaPostSubmissionPanel.jsx` supports direct inline desktop composition while preserving its existing portal path for the mobile workspace.
@@ -17,6 +19,8 @@ The mobile Blue Mission Deck remains a separate renderer and is not restyled by 
 ## Navigation behavior
 
 The desktop sidebar has four primary destinations: Dashboard, Cases, Workspace, and Academy. Progress and Agent Profile remain contextual destinations.
+
+The Dashboard uses one stable structure in both themes: left navigation, a broad active-case workspace, a six-step Evidence First workflow, wide tool shortcuts, recent cases, and a right rail for Quick Pad, pinned evidence, case notes, and neutral Luna guidance. Switching themes never moves those controls.
 
 Home shortcuts route to the exact requested surface:
 
@@ -40,6 +44,7 @@ This is a presentation and routing migration. It creates no new saved-data forma
 - Existing localStorage and IndexedDB records are reused.
 - Existing encrypted Supabase recovery snapshots remain compatible.
 - The desktop/mobile layout preference remains device-local.
+- The desktop Day / Auto / Night preference is also device-local and is intentionally excluded from the encrypted cloud snapshot.
 - Active tab, active case, workspace page, and active tool continue to use the existing cloud-backed resume resource.
 - Offline writes still save locally first and use the existing revision-safe sync queue when connectivity returns.
 

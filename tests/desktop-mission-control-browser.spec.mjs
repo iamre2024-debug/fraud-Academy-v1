@@ -46,8 +46,16 @@ test('desktop mission control renders complete wide pages and exact workspace sh
   await expect(page.locator('.desktop-mission-control-v2')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Investigator dashboard', exact: true })).toBeVisible();
   await expect(page.locator('.desktop-active-case')).toBeVisible();
+  await expect(page.locator('.desktop-case-path').getByRole('button')).toHaveCount(6);
+  await expect(page.locator('.desktop-utility-rail > section')).toHaveCount(4);
   await expect(page.locator('.desktop-shortcuts .dashboard-quick-grid > button')).toHaveCount(8);
   await assertDesktopWidthSafe(page, 'Dashboard');
+
+  await page.locator('.desktop-utility-rail').getByRole('button', { name: 'Open Quick Pad', exact: true }).click();
+  await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'workspace');
+  await expect(page.getByRole('dialog', { name: 'Keep lookup details close' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close Quick Pad', exact: true }).click();
+  await openDashboard(page);
 
   const shortcuts = page.locator('.desktop-shortcuts');
   await shortcuts.getByRole('button', { name: /Timeline/ }).click();
@@ -83,4 +91,47 @@ test('desktop mission control renders complete wide pages and exact workspace sh
   await page.getByRole('button', { name: 'Open Agent profile', exact: true }).first().click();
   await expect(page.locator('[data-profile-screen="approved-theme-v1"]')).toBeVisible();
   await assertDesktopWidthSafe(page, 'Profile');
+});
+
+test('desktop day, auto, and night themes share one stable layout and persist locally', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('fraud-academy-layout-mode-v1', 'desktop');
+    window.localStorage.setItem('fraud-academy-desktop-theme-v1', 'day');
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.goto('/');
+  await openDashboard(page);
+
+  const root = page.locator('.desktop-mission-control-v2');
+  const themeControl = page.getByRole('group', { name: 'Desktop theme', exact: true });
+  await expect(root).toHaveAttribute('data-desktop-theme', 'day');
+  await expect(themeControl.getByRole('button', { name: 'Day theme', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  const dayLayout = await page.evaluate(() => {
+    const hero = document.querySelector('.desktop-case-hero')?.getBoundingClientRect();
+    const rail = document.querySelector('.desktop-utility-rail')?.getBoundingClientRect();
+    return { hero: [hero?.x, hero?.y, hero?.width, hero?.height], rail: [rail?.x, rail?.y, rail?.width] };
+  });
+
+  await themeControl.getByRole('button', { name: 'Night theme', exact: true }).click();
+  await expect(root).toHaveAttribute('data-desktop-theme', 'night');
+  await expect(page.locator('body')).toHaveAttribute('data-desktop-theme', 'night');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('fraud-academy-desktop-theme-v1'))).toBe('night');
+  const nightLayout = await page.evaluate(() => {
+    const hero = document.querySelector('.desktop-case-hero')?.getBoundingClientRect();
+    const rail = document.querySelector('.desktop-utility-rail')?.getBoundingClientRect();
+    return { hero: [hero?.x, hero?.y, hero?.width, hero?.height], rail: [rail?.x, rail?.y, rail?.width] };
+  });
+  expect(nightLayout).toEqual(dayLayout);
+
+  await page.reload();
+  await expect(root).toHaveAttribute('data-desktop-theme', 'night');
+
+  await themeControl.getByRole('button', { name: 'Auto theme', exact: true }).click();
+  await expect(root).toHaveAttribute('data-desktop-theme-preference', 'auto');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(root).toHaveAttribute('data-desktop-theme', 'night');
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expect(root).toHaveAttribute('data-desktop-theme', 'day');
+  await assertDesktopWidthSafe(page, 'Day theme');
 });

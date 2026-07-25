@@ -5,6 +5,7 @@ import CasesThemeV1Panel from './CasesThemeV1Panel.jsx';
 import CloudSyncControl from './CloudSyncControl.jsx';
 import LunaApiAccessSetting from './LunaApiAccessSetting.jsx';
 import ProfileThemeV1Panel from './ProfileThemeV1Panel.jsx';
+import useDesktopThemeMode, { desktopThemeModes } from './useDesktopThemeMode.js';
 
 const reducedMotionKey = 'fraud-academy-reduced-motion-v1';
 
@@ -12,6 +13,8 @@ const storageKeys = {
   completed: 'fraud-academy-completed-tools-v1',
   notes: 'fraud-academy-notes-v1',
   packages: 'fraud-academy-review-packages-v1',
+  quickPad: 'fraud-academy-quick-pad-v1',
+  tray: 'fraud-academy-visual-tray-v1',
 };
 
 const primaryRoutes = [
@@ -72,10 +75,14 @@ function readSnapshot() {
   const completedByCase = readJson(storageKeys.completed, {});
   const notesByCase = readJson(storageKeys.notes, {});
   const packagesByCase = readJson(storageKeys.packages, {});
+  const quickPadByCase = readJson(storageKeys.quickPad, {});
+  const trayByCase = readJson(storageKeys.tray, {});
   return {
     completedByCase,
     notesByCase,
     packagesByCase,
+    quickPadByCase,
+    trayByCase,
     reviewed: countCaseValues(completedByCase),
     notes: countCaseValues(notesByCase),
     packages: countCaseValues(packagesByCase),
@@ -122,6 +129,7 @@ export default function DesktopMissionControlApp({
   const [control, setControl] = useState('');
   const [reducedMotion, setReducedMotion] = useState(readReducedMotion);
   const [snapshotVersion, setSnapshotVersion] = useState(0);
+  const desktopTheme = useDesktopThemeMode();
   const snapshot = useMemo(readSnapshot, [activeTab, snapshotVersion]);
   const copy = pageCopy[activeTab] ?? pageCopy.dashboard;
 
@@ -162,8 +170,22 @@ export default function DesktopMissionControlApp({
     scrollPageTop();
   }
 
+  function openQuickPad(tab = 'ids') {
+    openWorkspace('briefing');
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('fraud-academy:quick-pad-open', {
+        detail: { caseId: activeCaseId, tab },
+      }));
+    }, 80);
+  }
+
   return (
-    <div className="desktop-mission-control-v2" data-desktop-page={activeTab}>
+    <div
+      className="desktop-mission-control-v2"
+      data-desktop-page={activeTab}
+      data-desktop-theme={desktopTheme.resolvedTheme}
+      data-desktop-theme-preference={desktopTheme.preference}
+    >
       <DesktopAtmosphere />
 
       <aside className="desktop-mission-sidebar">
@@ -210,13 +232,16 @@ export default function DesktopMissionControlApp({
         <header className="desktop-mission-topbar">
           <div className="desktop-page-title">
             <p>{copy.eyebrow}</p>
-            <h1>{copy.title}</h1>
+            <h1 aria-label={activeTab === 'dashboard' ? 'Investigator dashboard' : undefined}>
+              {activeTab === 'dashboard' ? 'Mission Control' : copy.title}
+            </h1>
             <span>{copy.text}</span>
           </div>
           <div className="desktop-topbar-actions">
             <button type="button" className="desktop-active-case-chip" onClick={() => openWorkspace('briefing')}>
               <span>Active case</span><strong>{activeCase?.id}</strong>
             </button>
+            <DesktopThemeControl controller={desktopTheme} />
             <button type="button" aria-label="Open Help" aria-controls="visual-header-control-panel" aria-expanded={control === 'help'} onClick={() => setControl((current) => current === 'help' ? '' : 'help')}>?</button>
             <button type="button" aria-label="Open Settings" aria-controls="visual-header-control-panel" aria-expanded={control === 'settings'} onClick={() => setControl((current) => current === 'settings' ? '' : 'settings')}>⚙</button>
             <button type="button" className="desktop-agent-button dashboard-agent-mark" aria-label="Open Agent profile" onClick={() => navigate('profile')}>LA</button>
@@ -267,6 +292,10 @@ export default function DesktopMissionControlApp({
                       ))}
                     </div>
                   </div>
+                  <div className="desktop-setting-row">
+                    <span><strong>Desktop theme</strong><small>Using {desktopTheme.resolvedTheme} mode; Auto follows this computer.</small></span>
+                    <DesktopThemeControl controller={desktopTheme} compact />
+                  </div>
                   <label className="desktop-setting-row">
                     <span><strong>Reduce motion</strong><small>Use immediate page changes and quieter animation.</small></span>
                     <input type="checkbox" checked={reducedMotion} onChange={(event) => setReducedMotion(event.target.checked)} />
@@ -287,6 +316,7 @@ export default function DesktopMissionControlApp({
                 cases={cases}
                 onNavigate={navigate}
                 onOpenCase={onOpenCase}
+                onOpenQuickPad={openQuickPad}
                 onOpenWorkspace={openWorkspace}
                 quickGenerator={quickGenerator}
                 snapshot={snapshot}
@@ -357,124 +387,235 @@ function DesktopDashboard({
   cases,
   onNavigate,
   onOpenCase,
+  onOpenQuickPad,
   onOpenWorkspace,
   quickGenerator,
   snapshot,
 }) {
-  const queuedCases = cases.filter((item) => item.id !== activeCase?.id).slice(0, 3);
+  const queuedCases = cases.filter((item) => item.id !== activeCase?.id).slice(0, 4);
   const progress = getActivityProgress(activeCase, snapshot);
   const reviewedForCase = snapshot.completedByCase[activeCase?.id]?.length ?? 0;
-  const notesForCase = snapshot.notesByCase[activeCase?.id]?.length ?? 0;
+  const caseNotes = snapshot.notesByCase[activeCase?.id] ?? [];
+  const notesForCase = caseNotes.length;
   const packagesForCase = snapshot.packagesByCase[activeCase?.id]?.length ?? 0;
+  const pinnedEvidence = snapshot.trayByCase[activeCase?.id] ?? [];
+  const quickPad = snapshot.quickPadByCase[activeCase?.id] ?? { items: [], scratch: '' };
+  const workflowSteps = [
+    { icon: '⌕', label: 'Briefing', screen: 'briefing' },
+    { icon: '▦', label: 'Investigate', screen: 'tool-menu' },
+    { icon: '◷', label: 'Timeline', screen: 'timeline', tool: 'Timeline' },
+    { icon: '⌁', label: 'Evidence', screen: 'evidence' },
+    { icon: '⚖', label: 'Decision', screen: 'determination' },
+    { icon: '✦', label: 'Debrief', screen: 'debrief', locked: packagesForCase === 0 },
+  ];
 
   return (
     <div className="desktop-dashboard dashboard-v1-shell" data-react-navigation-panel="dashboard">
-      <section className="desktop-dashboard-hero">
-        <div className="desktop-dashboard-welcome">
-          <span className="desktop-eyebrow">Fraud Academy · Blue Mission Deck</span>
-          <h2>Welcome back, Investigator.</h2>
-          <p>Your command center keeps the active case, saved evidence, notes, and next actions together without exposing protected answers.</p>
-          <div>
-            <button type="button" className="desktop-hero-primary dashboard-primary-action" onClick={() => onOpenWorkspace('briefing')}>Continue investigation <span aria-hidden="true">→</span></button>
-            <button type="button" onClick={() => onNavigate('cases')}>View case queue</button>
-          </div>
-        </div>
-        <div className="desktop-dashboard-orbit" aria-hidden="true">
-          <span>✦</span><i /><i /><b />
-        </div>
-        <div className="desktop-daily-goal">
-          <span>Today’s practice</span>
-          <strong>{Math.min(5, reviewedForCase)} <small>/ 5 modules</small></strong>
-          <div><span style={{ width: `${(Math.min(5, reviewedForCase) / 5) * 100}%` }} /></div>
-          <p>Activity reflects reviewed tools only—not case correctness.</p>
-        </div>
-      </section>
-
-      <div className="desktop-dashboard-grid">
-        <article className="desktop-active-case dashboard-active-case">
-          <header>
-            <div><span>● Active case</span><strong>{activeCase?.id}</strong></div>
-            <em>{activeCase?.priority} priority</em>
-          </header>
-          <div className="desktop-active-case-body">
-            <div>
-              <p>Investigation lane</p>
-              <h3>{activeCase?.type}</h3>
+      <div className="desktop-command-deck">
+        <div className="desktop-command-main">
+          <article className="desktop-case-hero desktop-active-case dashboard-active-case">
+            <div className="desktop-case-hero-copy">
+              <span className="desktop-eyebrow">Active case · Evidence First</span>
+              <h2>{activeCase?.id}</h2>
+              <p>{activeCase?.summary ?? `${activeCase?.type} training investigation for ${activeCase?.person}.`}</p>
               <dl>
                 <div><dt>Customer</dt><dd>{activeCase?.person}</dd></div>
+                <div><dt>Case type</dt><dd>{activeCase?.type}</dd></div>
                 <div><dt>Amount</dt><dd>{activeCase?.amount}</dd></div>
-                <div><dt>Reported</dt><dd>{activeCase?.reportedDate ?? activeCase?.opened}</dd></div>
-                <div><dt>Status</dt><dd>{activeCase?.status}</dd></div>
+                <div><dt>Priority</dt><dd>{activeCase?.priority}</dd></div>
               </dl>
+              <div className="desktop-case-hero-actions">
+                <button type="button" className="desktop-hero-primary dashboard-primary-action" onClick={() => onOpenWorkspace('briefing')}>
+                  Continue Investigation <span aria-hidden="true">→</span>
+                </button>
+                <button type="button" onClick={() => onNavigate('cases')}>View Case Queue</button>
+              </div>
             </div>
-            <div className="desktop-case-compass" aria-hidden="true"><span>FA</span><i /><b /></div>
-          </div>
-          <footer>
-            <div>
+            <div className="desktop-case-sky" aria-hidden="true">
+              <span className="desktop-observatory">FA</span>
+              <i /><i /><b />
+            </div>
+            <footer>
               <span>Investigation activity</span>
               <div aria-label={`${progress}% investigation progress`}><span style={{ width: `${progress}%` }} /></div>
               <strong>{progress}%</strong>
-            </div>
-            <button type="button" onClick={() => onOpenWorkspace('briefing')}>Open workspace</button>
-          </footer>
-        </article>
+            </footer>
+          </article>
 
-        <section className="desktop-fieldwork-summary" aria-label="Saved fieldwork summary">
-          <header><span className="desktop-eyebrow">Saved fieldwork</span><h3>Active-case snapshot</h3></header>
-          <div>
-            <article><span aria-hidden="true">✓</span><strong>{reviewedForCase}</strong><small>Tools reviewed</small></article>
-            <article><span aria-hidden="true">✎</span><strong>{notesForCase}</strong><small>Notes saved</small></article>
-            <article><span aria-hidden="true">▤</span><strong>{packagesForCase}</strong><small>Packages submitted</small></article>
-          </div>
-          <button type="button" onClick={() => onNavigate('progress')}>Review all progress <span aria-hidden="true">→</span></button>
-        </section>
-      </div>
-
-      <section className="desktop-shortcuts">
-        <header><div><span className="desktop-eyebrow">Direct routes</span><h3>Open the exact workspace you need</h3></div><p>Every shortcut keeps the current case selected.</p></header>
-        <div className="dashboard-quick-grid">
-          <Shortcut icon="▦" title="Case Queue" detail={`${cases.length} available cases`} onClick={() => onNavigate('cases')} />
-          <Shortcut icon="◈" title="Investigation Workspace" detail="Open the case briefing" onClick={() => onOpenWorkspace('briefing')} />
-          <Shortcut icon="◷" title="Timeline" detail="Review case events" onClick={() => onOpenWorkspace('timeline', 'Timeline')} />
-          <Shortcut icon="⌁" title="Pinned Evidence" detail="Reopen saved objects" onClick={() => onOpenWorkspace('evidence')} />
-          <Shortcut icon="✎" title="Case Notes" detail={`${notesForCase} saved for this case`} onClick={() => onOpenWorkspace('notes')} />
-          <Shortcut icon="⌘" title="Tool Library" detail="Choose an investigation tool" onClick={() => onOpenWorkspace('tool-menu')} />
-          <Shortcut icon="◎" title="Progress" detail={`${snapshot.packages} packages saved`} onClick={() => onNavigate('progress')} />
-          <Shortcut icon="✦" title="Academy" detail="Continue learning modules" onClick={() => onNavigate('academy')} />
-        </div>
-      </section>
-
-      <div className="desktop-dashboard-lower">
-        <section className="desktop-queue-preview">
-          <header>
-            <div><span className="desktop-eyebrow">Case queue</span><h3>Ready for review</h3></div>
-            <button type="button" onClick={() => onNavigate('cases')}>See all cases</button>
-          </header>
-          <div>
-            {queuedCases.map((item) => (
-              <article key={item.id}>
-                <span>{item.priority}</span>
-                <div><strong>{item.id}</strong><h4>{item.type}</h4><p>{item.person} · {item.amount}</p></div>
-                <button type="button" aria-label={`Open ${item.id}`} onClick={() => onOpenCase(item.id)}>Open <span aria-hidden="true">→</span></button>
-              </article>
+          <nav className="desktop-case-path" aria-label="Active case workflow">
+            {workflowSteps.map((step) => (
+              <button
+                key={step.label}
+                type="button"
+                disabled={step.locked}
+                aria-disabled={step.locked}
+                onClick={() => onOpenWorkspace(step.screen, step.tool)}
+              >
+                <span aria-hidden="true">{step.icon}</span>
+                <strong>{step.label}</strong>
+                {step.locked && <small>Submit first</small>}
+              </button>
             ))}
-          </div>
-        </section>
+          </nav>
 
-        <aside className="desktop-luna-guide">
-          <span className="desktop-luna-mark" aria-hidden="true">L</span>
-          <div><span className="desktop-eyebrow">Luna guide</span><h3>Evidence first, answers later.</h3></div>
-          <p>Process coaching can guide your next step. Outcome feedback stays locked until your decision package is submitted.</p>
-          <button type="button" onClick={() => onNavigate('academy')}>Visit Luna Academy</button>
+          <section className="desktop-shortcuts">
+            <header>
+              <div><span className="desktop-eyebrow">Investigation tools</span><h3>Open the exact workspace you need</h3></div>
+              <p>Every route keeps {activeCase?.id} selected.</p>
+            </header>
+            <div className="dashboard-quick-grid">
+              <Shortcut icon="▦" title="Case Queue" detail={`${cases.length} available cases`} onClick={() => onNavigate('cases')} />
+              <Shortcut icon="◈" title="Investigation Workspace" detail="Open the case briefing" onClick={() => onOpenWorkspace('briefing')} />
+              <Shortcut icon="◷" title="Timeline" detail="Review case events" onClick={() => onOpenWorkspace('timeline', 'Timeline')} />
+              <Shortcut icon="⌁" title="Pinned Evidence" detail={`${pinnedEvidence.length} saved objects`} onClick={() => onOpenWorkspace('evidence')} />
+              <Shortcut icon="✎" title="Case Notes" detail={`${notesForCase} saved for this case`} onClick={() => onOpenWorkspace('notes')} />
+              <Shortcut icon="⌘" title="Tool Library" detail="Choose an investigation tool" onClick={() => onOpenWorkspace('tool-menu')} />
+              <Shortcut icon="◎" title="Progress" detail={`${snapshot.packages} packages saved`} onClick={() => onNavigate('progress')} />
+              <Shortcut icon="✦" title="Academy" detail="Continue learning modules" onClick={() => onNavigate('academy')} />
+            </div>
+          </section>
+
+          <section className="desktop-recent-cases">
+            <header>
+              <div><span className="desktop-eyebrow">Recent cases</span><h3>Continue another investigation</h3></div>
+              <button type="button" onClick={() => onNavigate('cases')}>View all cases <span aria-hidden="true">→</span></button>
+            </header>
+            <div>
+              {queuedCases.map((item) => (
+                <article key={item.id}>
+                  <span aria-hidden="true">▦</span>
+                  <div><strong>{item.id}</strong><p>{item.type}</p><small>{item.person} · {item.amount}</small></div>
+                  <button type="button" aria-label={`Open ${item.id}`} onClick={() => onOpenCase(item.id)}>Open <span aria-hidden="true">→</span></button>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="desktop-generator-panel">
+            <header><div><span className="desktop-eyebrow">Scenario lab</span><h3>Generate a fictional training case</h3></div><p>New scenarios save locally first and join cloud sync when connected.</p></header>
+            {quickGenerator}
+          </section>
+        </div>
+
+        <aside className="desktop-utility-rail" aria-label="Case utilities">
+          <UtilityCard
+            actionLabel="Open Quick Pad"
+            eyebrow="Working clipboard"
+            icon="▤"
+            onAction={() => onOpenQuickPad('ids')}
+            title="Quick Pad"
+          >
+            {quickPad.items?.length ? (
+              <ul>
+                {quickPad.items.slice(0, 3).map((item) => (
+                  <li key={item.id}><span>{item.label}</span><strong>{item.value}</strong></li>
+                ))}
+              </ul>
+            ) : (
+              <p>No lookup IDs saved yet. Add an Account ID, Bank Code, Destination ID, or Device ID while reviewing records.</p>
+            )}
+            {quickPad.scratch?.trim() && <blockquote>{quickPad.scratch}</blockquote>}
+          </UtilityCard>
+
+          <UtilityCard
+            actionLabel="View Pinned Evidence"
+            eyebrow={`${pinnedEvidence.length} saved`}
+            icon="⌁"
+            onAction={() => onOpenWorkspace('evidence')}
+            title="Pinned Evidence"
+          >
+            {pinnedEvidence.length ? (
+              <ul>
+                {pinnedEvidence.slice(0, 3).map((item, index) => (
+                  <li key={`${String(item)}-${index}`}><span>Evidence {index + 1}</span><strong>{formatPinnedEvidence(item)}</strong></li>
+                ))}
+              </ul>
+            ) : <p>Evidence you pin during record review will remain available here.</p>}
+          </UtilityCard>
+
+          <UtilityCard
+            actionLabel="Open Case Notes"
+            eyebrow={`${notesForCase} saved`}
+            icon="✎"
+            onAction={() => onOpenWorkspace('notes')}
+            title="Case Notes"
+          >
+            {caseNotes.length ? (
+              <ul>
+                {caseNotes.slice(-2).reverse().map((note, index) => (
+                  <li key={`${String(note)}-${index}`}><span>Saved note</span><strong>{formatNote(note)}</strong></li>
+                ))}
+              </ul>
+            ) : <p>Document neutral observations and evidence connections without recording a protected answer.</p>}
+          </UtilityCard>
+
+          <section className="desktop-luna-card">
+            <div className="desktop-luna-orbit" aria-hidden="true"><span>L</span></div>
+            <span className="desktop-eyebrow">Luna</span>
+            <h3>Evidence first, answers later.</h3>
+            <p>Process guidance is available now. Outcome feedback unlocks only after a valid decision is submitted.</p>
+            <div>
+              <span><strong>{reviewedForCase}</strong><small>Tools reviewed</small></span>
+              <span><strong>{packagesForCase}</strong><small>Packages</small></span>
+            </div>
+            <button type="button" onClick={() => onNavigate('academy')}>Visit Luna Academy</button>
+          </section>
         </aside>
       </div>
-
-      <section className="desktop-generator-panel">
-        <header><div><span className="desktop-eyebrow">Scenario lab</span><h3>Generate a fictional training case</h3></div><p>New scenarios save locally first and join cloud sync when connected.</p></header>
-        {quickGenerator}
-      </section>
     </div>
   );
+}
+
+function DesktopThemeControl({ compact = false, controller }) {
+  const labels = {
+    day: { icon: '☀', text: 'Day' },
+    auto: { icon: '◐', text: 'Auto' },
+    night: { icon: '☾', text: 'Night' },
+  };
+  return (
+    <div
+      className={`desktop-theme-control${compact ? ' compact' : ''}`}
+      role="group"
+      aria-label={compact ? 'Desktop theme settings' : 'Desktop theme'}
+    >
+      {desktopThemeModes.map((mode) => (
+        <button
+          key={mode}
+          type="button"
+          aria-label={`${labels[mode].text} theme`}
+          aria-pressed={controller.preference === mode}
+          title={`${labels[mode].text} theme`}
+          onClick={() => controller.setPreference(mode)}
+        >
+          <span aria-hidden="true">{labels[mode].icon}</span>
+          {(mode === 'auto' || compact) && <small>{labels[mode].text}</small>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function UtilityCard({ actionLabel, children, eyebrow, icon, onAction, title }) {
+  return (
+    <section className="desktop-utility-card">
+      <header>
+        <span aria-hidden="true">{icon}</span>
+        <div><small>{eyebrow}</small><h3>{title}</h3></div>
+      </header>
+      <div>{children}</div>
+      <button type="button" onClick={onAction}>{actionLabel} <span aria-hidden="true">→</span></button>
+    </section>
+  );
+}
+
+function formatPinnedEvidence(item) {
+  if (typeof item === 'string') return item;
+  return item?.value ?? item?.pin ?? item?.id ?? 'Saved evidence';
+}
+
+function formatNote(note) {
+  if (typeof note === 'string') return note;
+  return note?.text ?? note?.body ?? note?.note ?? 'Saved case note';
 }
 
 function Shortcut({ detail, icon, onClick, title }) {
