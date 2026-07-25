@@ -21,30 +21,40 @@ for (const [claimIndex, claimType] of coreClaimTypes.entries()) {
   }
 }
 
-const repeatedSubtypeCases = Array.from({ length: 16 }, (_, offset) => createGeneratedCase({
-  index: 3_000_000 + offset,
-  claimTypeId: 'account-takeover',
-  scenarioId: 'ato-phishing-wallet',
-  difficulty: 'deep',
-  evidenceDepth: 'deep',
-}));
-const storyFingerprints = new Set(repeatedSubtypeCases.map((item) => [
-  item.scenarioVariantId,
-  item.amount,
-  item.transactionInfo,
-  item.intake.channel,
-  item.documents.map((document) => `${document.name}:${document.status}`).join('|'),
-].join('::')));
-const amountValues = new Set(repeatedSubtypeCases.map((item) => item.amount));
-const intakeRoutes = new Set(repeatedSubtypeCases.map((item) => item.intake.channel));
-const documentPatterns = new Set(repeatedSubtypeCases.map((item) => item.documents.map((document) => document.status).join('|')));
+const repeatedCasesPerClaim = 8;
+const repeatedClaimCases = [];
 
-if (storyFingerprints.size !== repeatedSubtypeCases.length) failures.push('Repeated generation of one subtype produced duplicate full story fingerprints.');
-if (amountValues.size < 6) failures.push(`Repeated subtype generation produced only ${amountValues.size} amount variants.`);
-if (intakeRoutes.size < 4) failures.push(`Repeated subtype generation produced only ${intakeRoutes.size} intake routes.`);
-if (documentPatterns.size < 3) failures.push(`Repeated subtype generation produced only ${documentPatterns.size} document-availability patterns.`);
-if (repeatedSubtypeCases.some((item) => item.generatedPacketVersion !== 6 || !item.scenarioVariantId || !item.scenarioVariant)) {
-  failures.push('Generated cases are missing version 6 scenario-variation metadata.');
+for (const [claimIndex, claimType] of coreClaimTypes.entries()) {
+  const scenario = claimType.scenarios[0];
+  const generated = Array.from({ length: repeatedCasesPerClaim }, (_, offset) => createGeneratedCase({
+    index: 3_000_000 + (claimIndex * 10_000) + offset,
+    claimTypeId: claimType.id,
+    scenarioId: scenario.id,
+    difficulty: 'deep',
+    evidenceDepth: 'deep',
+  }));
+  repeatedClaimCases.push(...generated);
+
+  const storyFingerprints = new Set(generated.map((item) => [
+    item.scenarioVariantId,
+    item.amount,
+    item.transactionInfo,
+    item.intake.channel,
+    item.documents.map((document) => `${document.name}:${document.status}`).join('|'),
+  ].join('::')));
+  const amountValues = new Set(generated.map((item) => item.amount));
+  const hasMonetaryAmount = generated.some((item) => Number.parseFloat(String(item.amount).replace(/[$,]/g, '')) > 0);
+  const intakeRoutes = new Set(generated.map((item) => item.intake.channel));
+  const documentPatterns = new Set(generated.map((item) => item.documents.map((document) => document.status).join('|')));
+
+  if (storyFingerprints.size !== generated.length) failures.push(`${claimType.label} produced duplicate repeated-case story fingerprints.`);
+  if (hasMonetaryAmount && amountValues.size < 6) failures.push(`${claimType.label} produced only ${amountValues.size} repeated-case amount variants.`);
+  if (intakeRoutes.size < 4) failures.push(`${claimType.label} produced only ${intakeRoutes.size} repeated-case intake routes.`);
+  if (documentPatterns.size < 3) failures.push(`${claimType.label} produced only ${documentPatterns.size} repeated-case document patterns.`);
+}
+
+if (repeatedClaimCases.some((item) => item.generatedPacketVersion !== 6 || !item.scenarioVariantId || !item.scenarioVariant)) {
+  failures.push('Repeated generated cases are missing version 6 scenario-variation metadata.');
 }
 
 const determinations = new Set(allAutoCases.map((item) => item.correctDetermination).filter(Boolean));
@@ -70,4 +80,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log(`Generated scenario diversity smoke check passed for ${allAutoCases.length} catalog scenarios and ${repeatedSubtypeCases.length} repeated-subtype variants.`);
+console.log(`Generated scenario diversity smoke check passed for ${allAutoCases.length} catalog scenarios and ${repeatedClaimCases.length} repeated cases across ${coreClaimTypes.length} claim types.`);
