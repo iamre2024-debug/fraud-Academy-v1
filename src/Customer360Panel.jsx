@@ -257,6 +257,7 @@ function PaymentSourcePanel({
   records,
   activeCase,
   openTool,
+  quickPin,
   compact = false,
   headingId,
   heading,
@@ -298,6 +299,14 @@ function PaymentSourcePanel({
               <button type="button" onClick={() => openTool('Payment Verification', 'investigate', { query: hint })}>
                 Prefill Payment Verification
               </button>
+              <div className="quick-pad-source-actions">
+                <button type="button" onClick={() => quickPin({ label: 'Bank Code', value: record.bankCode, sourceTool: 'Customer 360', sourceRecordId: record.id })}>
+                  Quick Pad bank code
+                </button>
+                <button type="button" onClick={() => quickPin({ label: 'Destination ID', value: record.destinationId, sourceTool: 'Customer 360', sourceRecordId: record.id })}>
+                  Quick Pad destination ID
+                </button>
+              </div>
             </article>
           );
         })}
@@ -341,6 +350,7 @@ export default function Customer360Panel({
   currentCompleted,
   jumpDecision,
   notes = [],
+  quickPin,
 }) {
   const [activeTab, setActiveTab] = useState('overview');
   const normalizedQuery = query.trim().toLowerCase();
@@ -415,6 +425,7 @@ export default function Customer360Panel({
         <div className="customer-360-header-actions">
           <span className="customer-360-status">{activeCase.status}</span>
           <button type="button" onClick={() => pin(`${activeCase.id} · ${activeCase.person}`)}>Pin customer</button>
+          <button type="button" onClick={() => quickPin({ label: 'Customer ID', value: activeCase.trainingId, sourceTool: 'Customer 360' })}>Quick Pad ID</button>
         </div>
       </header>
 
@@ -530,6 +541,7 @@ export default function Customer360Panel({
           records={paymentRecords}
           activeCase={activeCase}
           openTool={openTool}
+          quickPin={quickPin}
           compact
           headingId="customer-360-payment-change-heading"
           heading="Payment Account Change"
@@ -542,17 +554,21 @@ export default function Customer360Panel({
             records={paymentRecords}
             activeCase={activeCase}
             openTool={openTool}
+            quickPin={quickPin}
             headingId="customer-360-payment-inputs-heading"
             heading="Payment Verification Inputs"
           />
         )}
         <header className="customer-360-section-heading"><div><p>Account-level records</p><h3 id="customer-360-product-records-heading">Accounts & Products</h3></div><span>{dossier.products.length} records</span></header>
         <div className="customer-360-structured-records">
-          {dossier.products.map((product) => <article key={product.id}>
+          {dossier.products.map((product) => <article key={product.id} data-customer-account={product.id}>
             <header><span>{product.id}</span><strong>{product.product} · {product.maskedNumber}</strong></header>
             <dl>
               <div><dt>Opened</dt><dd>{product.opened}</dd></div><div><dt>Status</dt><dd>{product.status}</dd></div><div><dt>Balance</dt><dd>{product.balance}</dd></div><div><dt>Limit</dt><dd>{product.limit}</dd></div><div><dt>Standing</dt><dd>{product.standing}</dd></div>
             </dl>
+            <div className="quick-pad-source-actions">
+              <button type="button" onClick={() => quickPin({ label: 'Account ID', value: product.id, sourceTool: 'Customer 360', sourceRecordId: product.id })} aria-label={`Add ${product.id} to Quick Pad`}>Quick Pad account ID</button>
+            </div>
           </article>)}
         </div>
       </section>}

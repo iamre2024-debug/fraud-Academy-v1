@@ -1,0 +1,209 @@
+.case-quick-pad {
+  position: fixed;
+  right: 18px;
+  bottom: 110px;
+  z-index: 160;
+  width: min(360px, calc(100vw - 24px));
+  pointer-events: none;
+  font-family: inherit;
+}
+
+.case-quick-pad button,
+.case-quick-pad textarea { font: inherit; }
+
+.case-quick-pad-trigger {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  min-height: 40px;
+  padding: 7px 12px;
+  color: #f5fbff;
+  font-weight: 800;
+  border: 1px solid rgba(54, 201, 255, .75);
+  border-radius: 14px;
+  background: linear-gradient(135deg, #087abc, #075282);
+  box-shadow: 0 10px 24px rgba(0, 9, 22, .45), inset 0 1px rgba(255,255,255,.16);
+}
+
+.case-quick-pad-trigger strong {
+  min-width: 20px;
+  padding: 2px 5px;
+  border-radius: 10px;
+  color: #07162d;
+  background: #8ce8ff;
+}
+
+.case-quick-pad-panel {
+  pointer-events: auto;
+  overflow: hidden;
+  max-height: min(320px, 38dvh);
+  margin-bottom: 8px;
+  color: #eaf7ff;
+  border: 1px solid rgba(54, 201, 255, .68);
+  border-radius: 18px;
+  background: linear-gradient(155deg, rgba(4, 39, 69, .98), rgba(2, 18, 38, .99));
+  box-shadow: 0 20px 46px rgba(0, 5, 18, .62), inset 0 1px rgba(255,255,255,.1);
+}
+
+.case-quick-pad-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 13px 8px;
+}
+
+.case-quick-pad-panel header span,
+.case-quick-pad-list article span {
+  display: block;
+  color: #65d9ff;
+  font-size: .66rem;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.case-quick-pad-panel h2 {
+  margin: 2px 0 0;
+  color: white;
+  font-size: .95rem;
+}
+
+.case-quick-pad-close {
+  width: 32px;
+  height: 32px;
+  color: white;
+  border: 1px solid rgba(126, 220, 255, .35);
+  border-radius: 10px;
+  background: rgba(10, 86, 132, .65);
+}
+
+.case-quick-pad-panel > nav {
+  display: flex;
+  padding: 0 10px;
+  border-bottom: 1px solid rgba(91, 202, 255, .2);
+}
+
+.case-quick-pad-panel > nav button {
+  flex: 1;
+  padding: 8px;
+  color: #a9cbe0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font-weight: 800;
+}
+
+.case-quick-pad-panel > nav button.active {
+  color: white;
+  border-bottom-color: #51d7ff;
+}
+
+.case-quick-pad-panel > nav span {
+  display: inline;
+  margin-left: 4px;
+}
+
+.case-quick-pad-list {
+  overflow-y: auto;
+  max-height: 205px;
+  padding: 8px 10px 10px;
+}
+
+.case-quick-pad-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 8px;
+  border-bottom: 1px solid rgba(98, 191, 232, .16);
+}
+
+.case-quick-pad-list article strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: white;
+  font-size: .86rem;
+}
+
+.case-quick-pad-list article small { color: #96b7cc; }
+
+.case-quick-pad-actions {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 4px;
+}
+
+.case-quick-pad-actions button,
+.case-quick-pad-note button {
+  padding: 5px 7px;
+  color: #e8f8ff;
+  border: 1px solid rgba(101, 214, 255, .3);
+  border-radius: 8px;
+  background: rgba(10, 97, 151, .5);
+  font-size: .68rem;
+  font-weight: 800;
+}
+
+.case-quick-pad-empty {
+  margin: 4px;
+  color: #b8d3e2;
+  font-size: .78rem;
+  line-height: 1.45;
+}
+
+.case-quick-pad-note { padding: 10px; }
+.case-quick-pad-note textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 78px;
+  resize: vertical;
+  padding: 9px;
+  color: #10203a;
+  border: 2px solid #b9d7ef;
+  border-radius: 11px;
+  background: #f7f6fc;
+}
+.case-quick-pad-note > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 7px;
+  color: #9fc3d8;
+  font-size: .7rem;
+}
+.case-quick-pad-note button:disabled { opacity: .45; }
+
+@media (max-width: 700px) {
+  .case-quick-pad {
+    right: 12px;
+    bottom: calc(88px + env(safe-area-inset-bottom));
+    width: min(340px, calc(100vw - 24px));
+  }
+  .case-quick-pad-panel { max-height: min(300px, 36dvh); }
+  .case-quick-pad-trigger { min-height: 38px; font-size: .76rem; }
+}
+
+body:has(iframe[title="Netlify Drawer"]) .case-quick-pad {
+  bottom: calc(130px + env(safe-area-inset-bottom));
+}
+
+.quick-pad-source-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.quick-pad-source-actions button {
+  min-height: 34px;
+  padding: 6px 9px;
+  color: #eaf9ff;
+  border: 1px solid rgba(76, 205, 255, .55);
+  border-radius: 9px;
+  background: linear-gradient(135deg, #0879b7, #07517f);
+  font-size: .72rem;
+  font-weight: 800;
+}

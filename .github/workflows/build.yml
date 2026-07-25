@@ -92,6 +92,9 @@ jobs:
       - name: Pinned evidence navigation smoke check
         run: npm run pinned-evidence-navigation-smoke-check
 
+      - name: Case Quick Pad smoke check
+        run: npm run quick-pad-smoke-check
+
       - name: PWA install and offline smoke check
         run: npm run pwa-smoke-check
 

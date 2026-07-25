@@ -29,6 +29,7 @@ export default function useVisualWorkspaceCaseState(activeCase) {
   const [packagesByCase, setPackagesByCase] = useState(() => readStorage(storageKeys.packages, {}));
   const [actionsByCase, setActionsByCase] = useState(() => readStorage(storageKeys.actions, {}));
   const [documentRequestsByCase, setDocumentRequestsByCase] = useState(() => readStorage(storageKeys.documentRequests, {}));
+  const [quickPadByCase, setQuickPadByCase] = useState(() => readStorage(storageKeys.quickPad, {}));
 
   useEffect(() => writeStorage(storageKeys.tray, trayByCase), [trayByCase]);
   useEffect(() => writeStorage(storageKeys.notes, notesByCase), [notesByCase]);
@@ -41,6 +42,7 @@ export default function useVisualWorkspaceCaseState(activeCase) {
   }, [packagesByCase]);
   useEffect(() => writeStorage(storageKeys.actions, actionsByCase), [actionsByCase]);
   useEffect(() => writeStorage(storageKeys.documentRequests, documentRequestsByCase), [documentRequestsByCase]);
+  useEffect(() => writeStorage(storageKeys.quickPad, quickPadByCase), [quickPadByCase]);
 
   const caseId = activeCase.id;
   const noteDraft = noteDraftsByCase[caseId] ?? '';
@@ -62,6 +64,7 @@ export default function useVisualWorkspaceCaseState(activeCase) {
     reviewPackages,
     actionLog: [...(actionsByCase[caseId] ?? []), ...(activeCase.actionLog ?? [])],
     documentRequests: documentRequestsByCase[caseId] ?? {},
+    quickPad: quickPadByCase[caseId] ?? { items: [], scratch: '' },
     setTrayByCase,
     setNotesByCase,
     setNoteDraft,
@@ -70,5 +73,6 @@ export default function useVisualWorkspaceCaseState(activeCase) {
     setPackagesByCase,
     setActionsByCase,
     setDocumentRequestsByCase,
+    setQuickPadByCase,
   };
 }

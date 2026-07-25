@@ -40,6 +40,7 @@ import './mobileAppPages.css';
 import './lunaManagerMobileFix.css';
 import './documentInbox.css';
 import './mobileMissionDeckV3.css';
+import './caseQuickPad.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
