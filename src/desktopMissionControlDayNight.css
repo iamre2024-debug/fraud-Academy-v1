@@ -1439,6 +1439,317 @@ body[data-layout-mode="desktop"] .desktop-profile-page .profile-main-grid {
   grid-template-columns: 1fr;
 }
 
+body[data-layout-mode="desktop"] .desktop-cases-page .cases-theme-v1-panel {
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
+}
+
+body[data-layout-mode="desktop"] .desktop-cases-page .cases-theme-v1-panel > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body[data-layout-mode="desktop"] .desktop-cases-page .case-queue-controls {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body[data-layout-mode="desktop"] .desktop-cases-page .case-queue-search,
+body[data-layout-mode="desktop"] .desktop-cases-page .case-queue-view-toggle {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+body[data-layout-mode="desktop"] .desktop-cases-page .cases-theme-v1-heading h2,
+body[data-layout-mode="desktop"] .desktop-cases-page .case-generator-v2 h3,
+body[data-layout-mode="desktop"] .desktop-cases-page :is(.case-queue-item, .nav-case-card, .case-queue-preview) :is(h3, strong) {
+  color: var(--deck-heading);
+}
+
+body[data-layout-mode="desktop"] .desktop-cases-page .cases-theme-v1-heading p,
+body[data-layout-mode="desktop"] .desktop-cases-page .case-generator-v2 p {
+  color: var(--deck-peach-strong);
+}
+
+body[data-layout-mode="desktop"] .desktop-cases-page .cases-theme-v1-heading > div:first-child > span,
+body[data-layout-mode="desktop"] .desktop-cases-page .case-generator-v2 header > div > span,
+body[data-layout-mode="desktop"] .desktop-cases-page :is(.case-queue-summary, .case-queue-controls, .case-queue-item, .nav-case-card, .case-queue-preview) :is(span, small, p, label) {
+  color: var(--deck-muted);
+}
+
+body[data-layout-mode="desktop"] .desktop-cases-page .case-generator-v2,
+body[data-layout-mode="desktop"] .desktop-cases-page .case-queue-summary article,
+body[data-layout-mode="desktop"] .desktop-cases-page .case-queue-controls,
+body[data-layout-mode="desktop"] .desktop-cases-page :is(.case-queue-item, .nav-case-card, .case-queue-preview, .case-queue-empty) {
+  border-color: var(--deck-line);
+  background: var(--deck-surface-soft);
+  color: var(--deck-text);
+  box-shadow: none;
+}
+
+body[data-layout-mode="desktop"] .desktop-cases-page .case-generator-v2-context span,
+body[data-layout-mode="desktop"] .desktop-cases-page .case-generator-v2-count,
+body[data-layout-mode="desktop"] .desktop-cases-page .case-queue-status-filters button {
+  border-color: var(--deck-line);
+  background: var(--deck-lavender-soft);
+  color: var(--deck-lavender);
+}
+
+body[data-layout-mode="desktop"] .desktop-academy-page {
+  --academy-ink: var(--deck-heading);
+  --academy-muted: var(--deck-muted);
+  --academy-purple: var(--deck-lavender);
+  --academy-purple-deep: var(--deck-lavender);
+  --academy-pink: var(--deck-peach-strong);
+  --academy-line: var(--deck-line);
+  --academy-panel: var(--deck-surface);
+  --academy-lavender: var(--deck-lavender-soft);
+  --academy-lavender-deep: var(--deck-lavender-soft);
+  --academy-shadow: var(--deck-shadow);
+}
+
+body[data-layout-mode="desktop"] .desktop-academy-page .academy-hero {
+  border-color: var(--deck-line);
+  background:
+    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--deck-lavender) 26%, transparent), transparent 29%),
+    linear-gradient(135deg, var(--deck-surface) 0%, var(--deck-surface-tint) 100%);
+}
+
+body[data-layout-mode="desktop"] .desktop-academy-page :is(
+  .academy-stat-grid article,
+  .academy-learning-center,
+  .academy-library-card,
+  .academy-achievement-card,
+  .academy-path-card,
+  .academy-library-list article,
+  .academy-practice-banner
+) {
+  border-color: var(--deck-line);
+  background: var(--deck-surface);
+  color: var(--deck-text);
+}
+
+body[data-layout-mode="desktop"] .desktop-academy-page .academy-hero-mark,
+body[data-layout-mode="desktop"] .desktop-academy-page .academy-secondary-action,
+body[data-layout-mode="desktop"] .desktop-academy-page .academy-path-topline small {
+  border-color: var(--deck-line);
+  background: var(--deck-surface-soft);
+  color: var(--deck-lavender);
+}
+
+body[data-layout-mode="desktop"] .desktop-academy-page :is(
+  .academy-hero h3,
+  .academy-section-heading h4,
+  .academy-library-card h4,
+  .academy-achievement-card h4,
+  .academy-path-card h5
+) {
+  color: var(--deck-heading);
+}
+
+body[data-layout-mode="desktop"] .desktop-academy-page :is(
+  .academy-hero p,
+  .academy-section-heading > p,
+  .academy-library-card > p,
+  .academy-achievement-card > p,
+  .academy-path-card p,
+  .academy-stat-grid span
+) {
+  color: var(--deck-muted);
+}
+
+body[data-layout-mode="desktop"] .desktop-profile-page {
+  --profile-ink: var(--deck-heading);
+  --profile-muted: var(--deck-muted);
+  --profile-purple: var(--deck-lavender);
+  --profile-purple-deep: var(--deck-lavender);
+  --profile-pink: var(--deck-peach-strong);
+  --profile-line: var(--deck-line);
+  --profile-panel: var(--deck-surface);
+  --profile-lavender: var(--deck-lavender-soft);
+  --profile-lavender-deep: var(--deck-lavender-soft);
+  --profile-shadow: var(--deck-shadow);
+}
+
+body[data-layout-mode="desktop"] .desktop-profile-page .profile-hero {
+  border-color: var(--deck-line);
+  background:
+    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--deck-lavender) 26%, transparent), transparent 29%),
+    linear-gradient(135deg, var(--deck-surface) 0%, var(--deck-surface-tint) 100%);
+}
+
+body[data-layout-mode="desktop"] .desktop-profile-page :is(
+  .profile-stat-grid article,
+  .profile-skills-card,
+  .profile-badges-card,
+  .profile-activity-card,
+  .profile-goals-card,
+  .profile-active-assignment,
+  .profile-skill-list article,
+  .profile-badge-grid article,
+  .profile-goal-grid article
+) {
+  border-color: var(--deck-line);
+  background: var(--deck-surface);
+  color: var(--deck-text);
+}
+
+body[data-layout-mode="desktop"] .desktop-profile-page .profile-secondary-action {
+  border-color: var(--deck-line);
+  background: var(--deck-surface-soft);
+  color: var(--deck-lavender);
+}
+
+body[data-layout-mode="desktop"] .desktop-profile-page :is(
+  .profile-hero h3,
+  .profile-section-heading h4,
+  .profile-skills-card h4,
+  .profile-badges-card h4,
+  .profile-activity-card h4,
+  .profile-goals-card h4,
+  .profile-active-assignment strong
+) {
+  color: var(--deck-heading);
+}
+
+body[data-layout-mode="desktop"] .desktop-profile-page :is(
+  .profile-hero p,
+  .profile-section-heading > p,
+  .profile-stat-grid span,
+  .profile-skill-copy span,
+  .profile-active-assignment small
+) {
+  color: var(--deck-muted);
+}
+
+body[data-layout-mode="desktop"] .desktop-page .text-more-button {
+  border-color: color-mix(in srgb, var(--deck-peach) 38%, var(--deck-line));
+  background: var(--deck-peach-soft);
+  color: var(--deck-peach-strong);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .visual-case-strip {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-color: var(--deck-line);
+  background: var(--deck-surface);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .visual-case-switcher {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--deck-line);
+  background: var(--deck-surface-soft);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .visual-case-strip div {
+  border-color: var(--deck-line);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .visual-case-strip div > span {
+  background: var(--deck-lavender-soft);
+  color: var(--deck-lavender);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .visual-case-strip strong,
+body[data-layout-mode="desktop"] .desktop-workspace-page .visual-case-switcher span {
+  color: var(--deck-muted);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .visual-case-strip em {
+  color: var(--deck-heading);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .mobile-workspace-page-header {
+  position: static;
+  border-color: var(--deck-line);
+  border-radius: 16px;
+  background: var(--deck-surface);
+  box-shadow: var(--deck-shadow);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .mobile-workspace-page-header small {
+  color: var(--deck-muted);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .mobile-workspace-page-header strong {
+  color: var(--deck-heading);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .mobile-workspace-page-header button,
+body[data-layout-mode="desktop"] .desktop-workspace-page .visual-case-switcher select {
+  border-color: var(--deck-line);
+  background: var(--deck-surface-soft);
+  color: var(--deck-lavender);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page :is(
+  .generated-case-controls,
+  .case-briefing-theme-v1,
+  .case-briefing-card
+) {
+  border-color: var(--deck-line);
+  background: var(--deck-surface);
+  color: var(--deck-text);
+  box-shadow: var(--deck-shadow);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page :is(
+  .case-briefing-summary-card,
+  .case-briefing-statement-card,
+  .case-briefing-detail-card,
+  .case-briefing-chargeback-card,
+  .case-briefing-credit-card,
+  .case-briefing-empty
+) {
+  border-color: var(--deck-line);
+  background: var(--deck-surface-soft);
+  color: var(--deck-text);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page :is(
+  .workspace-shell-heading h1,
+  .case-briefing-header h2,
+  .case-briefing-card-heading h3
+) {
+  color: var(--deck-heading);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page :is(
+  .workspace-shell-heading div > span,
+  .case-briefing-header > div:first-child > p:last-child,
+  .case-briefing-card p,
+  .case-briefing-card span,
+  .case-briefing-card small
+) {
+  color: var(--deck-muted);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page :is(
+  .workspace-shell-heading p,
+  .case-briefing-eyebrow
+) {
+  color: var(--deck-peach-strong);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .case-briefing-card-heading > span {
+  background: var(--deck-lavender-soft);
+  color: var(--deck-lavender);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page :is(
+  .case-briefing-overview-card,
+  .case-briefing-summary-card,
+  .case-briefing-intake-card,
+  .case-briefing-statement-card,
+  .case-briefing-facts-card,
+  .case-briefing-parties-card,
+  .case-briefing-detail-card
+) {
+  grid-column: 1 / -1;
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .case-briefing-utilities {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 body[data-layout-mode="desktop"] .desktop-cases-page :is(
   .cases-theme-v1-panel,
   .case-generator-v2,
