@@ -1691,6 +1691,20 @@ body[data-layout-mode="desktop"] .desktop-workspace-page :is(
   box-shadow: var(--deck-shadow);
 }
 
+body[data-layout-mode="desktop"] .desktop-workspace-page .generated-case-controls strong {
+  color: var(--deck-heading);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .generated-case-controls span {
+  color: var(--deck-muted);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .generated-case-controls button {
+  border-color: var(--deck-line);
+  background: var(--deck-lavender-soft);
+  color: var(--deck-lavender);
+}
+
 body[data-layout-mode="desktop"] .desktop-workspace-page :is(
   .case-briefing-summary-card,
   .case-briefing-statement-card,
