@@ -156,6 +156,7 @@ test('a choice-only decision saves and unlocks Luna on desktop and mobile', asyn
     await expect(page.locator('body')).toHaveAttribute('data-layout-preference', 'mobile');
     await expect(page.locator('body')).toHaveAttribute('data-layout-mode', 'mobile');
     await expect(page.locator('.mission-mobile-root')).toBeVisible();
+    await expect(page.locator('.mission-mobile-root .luna-v1-debrief-grid')).toBeVisible();
     const mobilePreview = await page.evaluate(() => ({
       viewportWidth: window.innerWidth,
       frameWidth: document.querySelector('.mission-mobile-root')?.getBoundingClientRect().width ?? Number.POSITIVE_INFINITY,
