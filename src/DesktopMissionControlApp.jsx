@@ -308,75 +308,84 @@ export default function DesktopMissionControlApp({
           </section>
         )}
 
-        <main className="desktop-mission-content">
-          <section className="desktop-page desktop-dashboard-page" hidden={activeTab !== 'dashboard'} data-desktop-surface="dashboard">
-            {activeTab === 'dashboard' && (
-              <DesktopDashboard
-                activeCase={activeCase}
-                cases={cases}
-                onNavigate={navigate}
-                onOpenCase={onOpenCase}
-                onOpenQuickPad={openQuickPad}
-                onOpenWorkspace={openWorkspace}
-                quickGenerator={quickGenerator}
-                snapshot={snapshot}
-              />
-            )}
-          </section>
-
-          <section className="desktop-page desktop-cases-page" hidden={activeTab !== 'cases'} data-desktop-surface="cases">
-            <CasesThemeV1Panel
-              active={activeTab === 'cases'}
-              activeCaseId={activeCaseId}
-              cases={cases}
-              claimTypes={claimTypes}
-              inline
-              onGenerateCases={onGenerateCases}
-              onOpenCase={onOpenCase}
-            />
-          </section>
-
-          <section className="desktop-page desktop-workspace-page" hidden={activeTab !== 'workspace'} data-desktop-surface="workspace">
-            <section className="desktop-workspace-generator" aria-label="Scenario generator">
-              <header>
-                <div><span className="desktop-eyebrow">Scenario lab</span><h2>Generate another training case</h2></div>
-                <p>Create and open a fictional case without leaving the investigation workspace.</p>
-              </header>
-              {workspaceGenerator}
+        <div className="desktop-stage-grid">
+          <main className="desktop-mission-content">
+            <section className="desktop-page desktop-dashboard-page" hidden={activeTab !== 'dashboard'} data-desktop-surface="dashboard">
+              {activeTab === 'dashboard' && (
+                <DesktopDashboard
+                  activeCase={activeCase}
+                  cases={cases}
+                  onNavigate={navigate}
+                  onOpenCase={onOpenCase}
+                  onOpenWorkspace={openWorkspace}
+                  quickGenerator={quickGenerator}
+                  snapshot={snapshot}
+                />
+              )}
             </section>
-            {workspace}
-            {luna}
-          </section>
 
-          <section className="desktop-page desktop-academy-page" hidden={activeTab !== 'academy'} data-desktop-surface="academy">
-            {activeTab === 'academy' && <AcademyThemeV1Panel onNavigate={navigate} />}
-          </section>
-
-          <section className="desktop-page desktop-progress-page" hidden={activeTab !== 'progress'} data-desktop-surface="progress">
-            {activeTab === 'progress' && (
-              <>
-                <header className="desktop-section-intro">
-                  <span className="desktop-eyebrow">Academy progress</span>
-                  <h2>Saved package progress</h2>
-                  <p>Review submitted training packages and reopen the cases with completed debriefs.</p>
-                </header>
-                <AcademyProgressPanel cases={cases} packagesByCase={snapshot.packagesByCase} onOpenCase={onOpenCase} />
-              </>
-            )}
-          </section>
-
-          <section className="desktop-page desktop-profile-page" hidden={activeTab !== 'profile'} data-desktop-surface="profile">
-            {activeTab === 'profile' && (
-              <ProfileThemeV1Panel
+            <section className="desktop-page desktop-cases-page" hidden={activeTab !== 'cases'} data-desktop-surface="cases">
+              <CasesThemeV1Panel
+                active={activeTab === 'cases'}
                 activeCaseId={activeCaseId}
                 cases={cases}
-                snapshot={snapshot}
-                onNavigate={navigate}
+                claimTypes={claimTypes}
+                inline
+                onGenerateCases={onGenerateCases}
                 onOpenCase={onOpenCase}
               />
-            )}
-          </section>
-        </main>
+            </section>
+
+            <section className="desktop-page desktop-workspace-page" hidden={activeTab !== 'workspace'} data-desktop-surface="workspace">
+              <section className="desktop-workspace-generator" aria-label="Scenario generator">
+                <header>
+                  <div><span className="desktop-eyebrow">Scenario lab</span><h2>Generate another training case</h2></div>
+                  <p>Create and open a fictional case without leaving the investigation workspace.</p>
+                </header>
+                {workspaceGenerator}
+              </section>
+              {workspace}
+              {luna}
+            </section>
+
+            <section className="desktop-page desktop-academy-page" hidden={activeTab !== 'academy'} data-desktop-surface="academy">
+              {activeTab === 'academy' && <AcademyThemeV1Panel onNavigate={navigate} />}
+            </section>
+
+            <section className="desktop-page desktop-progress-page" hidden={activeTab !== 'progress'} data-desktop-surface="progress">
+              {activeTab === 'progress' && (
+                <>
+                  <header className="desktop-section-intro">
+                    <span className="desktop-eyebrow">Academy progress</span>
+                    <h2>Saved package progress</h2>
+                    <p>Review submitted training packages and reopen the cases with completed debriefs.</p>
+                  </header>
+                  <AcademyProgressPanel cases={cases} packagesByCase={snapshot.packagesByCase} onOpenCase={onOpenCase} />
+                </>
+              )}
+            </section>
+
+            <section className="desktop-page desktop-profile-page" hidden={activeTab !== 'profile'} data-desktop-surface="profile">
+              {activeTab === 'profile' && (
+                <ProfileThemeV1Panel
+                  activeCaseId={activeCaseId}
+                  cases={cases}
+                  snapshot={snapshot}
+                  onNavigate={navigate}
+                  onOpenCase={onOpenCase}
+                />
+              )}
+            </section>
+          </main>
+
+          <DesktopCaseUtilityRail
+            activeCase={activeCase}
+            onNavigate={navigate}
+            onOpenQuickPad={openQuickPad}
+            onOpenWorkspace={openWorkspace}
+            snapshot={snapshot}
+          />
+        </div>
       </div>
     </div>
   );
@@ -387,19 +396,16 @@ function DesktopDashboard({
   cases,
   onNavigate,
   onOpenCase,
-  onOpenQuickPad,
   onOpenWorkspace,
   quickGenerator,
   snapshot,
 }) {
   const queuedCases = cases.filter((item) => item.id !== activeCase?.id).slice(0, 4);
   const progress = getActivityProgress(activeCase, snapshot);
-  const reviewedForCase = snapshot.completedByCase[activeCase?.id]?.length ?? 0;
   const caseNotes = snapshot.notesByCase[activeCase?.id] ?? [];
   const notesForCase = caseNotes.length;
   const packagesForCase = snapshot.packagesByCase[activeCase?.id]?.length ?? 0;
   const pinnedEvidence = snapshot.trayByCase[activeCase?.id] ?? [];
-  const quickPad = snapshot.quickPadByCase[activeCase?.id] ?? { items: [], scratch: '' };
   const workflowSteps = [
     { icon: '⌕', label: 'Briefing', screen: 'briefing' },
     { icon: '▦', label: 'Investigate', screen: 'tool-menu' },
@@ -432,8 +438,19 @@ function DesktopDashboard({
               </div>
             </div>
             <div className="desktop-case-sky" aria-hidden="true">
-              <span className="desktop-observatory">FA</span>
-              <i /><i /><b />
+              <div className="desktop-case-visual-label">
+                <span>Current focus</span>
+                <strong>Build the evidence trail</strong>
+              </div>
+              <div className="desktop-case-orbit">
+                <i /><i />
+                <span className="desktop-observatory">FA</span>
+              </div>
+              <div className="desktop-case-signal">
+                <span><b />Records</span>
+                <span><b />Evidence</span>
+                <span><b />Decision</span>
+              </div>
             </div>
             <footer>
               <span>Investigation activity</span>
@@ -497,72 +514,98 @@ function DesktopDashboard({
           </section>
         </div>
 
-        <aside className="desktop-utility-rail" aria-label="Case utilities">
-          <UtilityCard
-            actionLabel="Open Quick Pad"
-            eyebrow="Working clipboard"
-            icon="▤"
-            onAction={() => onOpenQuickPad('ids')}
-            title="Quick Pad"
-          >
-            {quickPad.items?.length ? (
-              <ul>
-                {quickPad.items.slice(0, 3).map((item) => (
-                  <li key={item.id}><span>{item.label}</span><strong>{item.value}</strong></li>
-                ))}
-              </ul>
-            ) : (
-              <p>No lookup IDs saved yet. Add an Account ID, Bank Code, Destination ID, or Device ID while reviewing records.</p>
-            )}
-            {quickPad.scratch?.trim() && <blockquote>{quickPad.scratch}</blockquote>}
-          </UtilityCard>
-
-          <UtilityCard
-            actionLabel="View Pinned Evidence"
-            eyebrow={`${pinnedEvidence.length} saved`}
-            icon="⌁"
-            onAction={() => onOpenWorkspace('evidence')}
-            title="Pinned Evidence"
-          >
-            {pinnedEvidence.length ? (
-              <ul>
-                {pinnedEvidence.slice(0, 3).map((item, index) => (
-                  <li key={`${String(item)}-${index}`}><span>Evidence {index + 1}</span><strong>{formatPinnedEvidence(item)}</strong></li>
-                ))}
-              </ul>
-            ) : <p>Evidence you pin during record review will remain available here.</p>}
-          </UtilityCard>
-
-          <UtilityCard
-            actionLabel="Open Case Notes"
-            eyebrow={`${notesForCase} saved`}
-            icon="✎"
-            onAction={() => onOpenWorkspace('notes')}
-            title="Case Notes"
-          >
-            {caseNotes.length ? (
-              <ul>
-                {caseNotes.slice(-2).reverse().map((note, index) => (
-                  <li key={`${String(note)}-${index}`}><span>Saved note</span><strong>{formatNote(note)}</strong></li>
-                ))}
-              </ul>
-            ) : <p>Document neutral observations and evidence connections without recording a protected answer.</p>}
-          </UtilityCard>
-
-          <section className="desktop-luna-card">
-            <div className="desktop-luna-orbit" aria-hidden="true"><span>L</span></div>
-            <span className="desktop-eyebrow">Luna</span>
-            <h3>Evidence first, answers later.</h3>
-            <p>Process guidance is available now. Outcome feedback unlocks only after a valid decision is submitted.</p>
-            <div>
-              <span><strong>{reviewedForCase}</strong><small>Tools reviewed</small></span>
-              <span><strong>{packagesForCase}</strong><small>Packages</small></span>
-            </div>
-            <button type="button" onClick={() => onNavigate('academy')}>Visit Luna Academy</button>
-          </section>
-        </aside>
       </div>
     </div>
+  );
+}
+
+function DesktopCaseUtilityRail({
+  activeCase,
+  onNavigate,
+  onOpenQuickPad,
+  onOpenWorkspace,
+  snapshot,
+}) {
+  const caseNotes = snapshot.notesByCase[activeCase?.id] ?? [];
+  const notesForCase = caseNotes.length;
+  const packagesForCase = snapshot.packagesByCase[activeCase?.id]?.length ?? 0;
+  const pinnedEvidence = snapshot.trayByCase[activeCase?.id] ?? [];
+  const quickPad = snapshot.quickPadByCase[activeCase?.id] ?? { items: [], scratch: '' };
+  const reviewedForCase = snapshot.completedByCase[activeCase?.id]?.length ?? 0;
+
+  return (
+    <aside className="desktop-utility-rail" aria-label="Case utilities">
+      <header className="desktop-utility-rail-heading">
+        <div>
+          <span className="desktop-eyebrow">Case desk</span>
+          <h2>{activeCase?.id ?? 'No active case'}</h2>
+        </div>
+        <span className="desktop-utility-live"><i /> Saved</span>
+      </header>
+
+      <UtilityCard
+        actionLabel="Open Quick Pad"
+        eyebrow="Working clipboard"
+        icon="▤"
+        onAction={() => onOpenQuickPad('ids')}
+        title="Quick Pad"
+      >
+        {quickPad.items?.length ? (
+          <ul>
+            {quickPad.items.slice(0, 3).map((item) => (
+              <li key={item.id}><span>{item.label}</span><strong>{item.value}</strong></li>
+            ))}
+          </ul>
+        ) : (
+          <p>No lookup IDs saved yet. Add an Account ID, Bank Code, Destination ID, or Device ID while reviewing records.</p>
+        )}
+        {quickPad.scratch?.trim() && <blockquote>{quickPad.scratch}</blockquote>}
+      </UtilityCard>
+
+      <UtilityCard
+        actionLabel="View Pinned Evidence"
+        eyebrow={`${pinnedEvidence.length} saved`}
+        icon="⌁"
+        onAction={() => onOpenWorkspace('evidence')}
+        title="Pinned Evidence"
+      >
+        {pinnedEvidence.length ? (
+          <ul>
+            {pinnedEvidence.slice(0, 3).map((item, index) => (
+              <li key={`${String(item)}-${index}`}><span>Evidence {index + 1}</span><strong>{formatPinnedEvidence(item)}</strong></li>
+            ))}
+          </ul>
+        ) : <p>Evidence you pin during record review will remain available here.</p>}
+      </UtilityCard>
+
+      <UtilityCard
+        actionLabel="Open Case Notes"
+        eyebrow={`${notesForCase} saved`}
+        icon="✎"
+        onAction={() => onOpenWorkspace('notes')}
+        title="Case Notes"
+      >
+        {caseNotes.length ? (
+          <ul>
+            {caseNotes.slice(-2).reverse().map((note, index) => (
+              <li key={`${String(note)}-${index}`}><span>Saved note</span><strong>{formatNote(note)}</strong></li>
+            ))}
+          </ul>
+        ) : <p>Document neutral observations and evidence connections without recording a protected answer.</p>}
+      </UtilityCard>
+
+      <section className="desktop-luna-card">
+        <div className="desktop-luna-orbit" aria-hidden="true"><span>L</span></div>
+        <span className="desktop-eyebrow">Luna</span>
+        <h3>Evidence first, answers later.</h3>
+        <p>Process guidance is available now. Outcome feedback unlocks only after a valid decision is submitted.</p>
+        <div>
+          <span><strong>{reviewedForCase}</strong><small>Tools reviewed</small></span>
+          <span><strong>{packagesForCase}</strong><small>Packages</small></span>
+        </div>
+        <button type="button" onClick={() => onNavigate('academy')}>Visit Luna Academy</button>
+      </section>
+    </aside>
   );
 }
 
