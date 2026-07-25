@@ -2021,6 +2021,14 @@ body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-group
   display: none;
 }
 
+.mission-tool-content .document-viewer:has(.document-viewer-layout[data-mobile-pane="reader"]) > :is(
+  .document-compare-workspace,
+  .investigation-tool-next-routes,
+  .investigation-tool-review-bar
+) {
+  display: none;
+}
+
 .mission-tool-content .document-mobile-summary-header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -2225,7 +2233,7 @@ body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-group
 .mission-tool-content :is(.document-mobile-status-panel, .document-mobile-fields-panel) dd {
   margin: 0;
   color: #fff;
-  font-size: 0.78rem;
+  font-size: 0.86rem;
   font-weight: 850;
   line-height: 1.25;
   overflow-wrap: break-word;
