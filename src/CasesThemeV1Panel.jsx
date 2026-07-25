@@ -166,11 +166,13 @@ export default function CasesThemeV1Panel({
     window.addEventListener('focus', refresh);
     window.addEventListener('fraud-academy:package-saved', refresh);
     window.addEventListener('fraud-academy:packages-updated', refresh);
+    window.addEventListener('fraud-academy:cloud-hydrated', refresh);
     return () => {
       window.removeEventListener('storage', refresh);
       window.removeEventListener('focus', refresh);
       window.removeEventListener('fraud-academy:package-saved', refresh);
       window.removeEventListener('fraud-academy:packages-updated', refresh);
+      window.removeEventListener('fraud-academy:cloud-hydrated', refresh);
     };
   }, []);
 

@@ -101,6 +101,9 @@ jobs:
       - name: PWA install and offline smoke check
         run: npm run pwa-smoke-check
 
+      - name: Encrypted cloud persistence smoke check
+        run: npm run cloud-persistence-smoke-check
+
       - name: Display handoff smoke check
         run: npm run display-handoff-smoke-check
 

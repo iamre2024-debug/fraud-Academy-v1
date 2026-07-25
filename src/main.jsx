@@ -41,6 +41,7 @@ import './lunaManagerMobileFix.css';
 import './documentInbox.css';
 import './mobileMissionDeckV3.css';
 import './caseQuickPad.css';
+import './cloudSync.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

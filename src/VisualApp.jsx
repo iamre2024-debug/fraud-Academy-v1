@@ -11,6 +11,7 @@ import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import { coreClaimTypes } from './data/claimRegistry.js';
 import { combineCaseCatalog, generateAndSaveCases, listGeneratedCases } from './data/generatedCaseRepository.js';
+import { initializeCloudSync } from './data/cloudSyncClient.js';
 
 const enrichedBaseCases = enrichTrainingCases(baseCases);
 
@@ -25,17 +26,24 @@ export default function VisualApp() {
   useEffect(() => {
     let cancelled = false;
 
-    listGeneratedCases()
-      .then((generatedCases) => {
-        if (cancelled) return;
-        setCaseCatalog(enrichTrainingCases(combineCaseCatalog(baseCases, generatedCases)));
-      })
-      .catch(() => {
-        if (!cancelled) setCaseCatalog(enrichedBaseCases);
-      });
+    const refreshGeneratedCases = () => {
+      listGeneratedCases()
+        .then((generatedCases) => {
+          if (cancelled) return;
+          setCaseCatalog(enrichTrainingCases(combineCaseCatalog(baseCases, generatedCases)));
+        })
+        .catch(() => {
+          if (!cancelled) setCaseCatalog(enrichedBaseCases);
+        });
+    };
+
+    initializeCloudSync();
+    refreshGeneratedCases();
+    window.addEventListener('fraud-academy:generated-cases-updated', refreshGeneratedCases);
 
     return () => {
       cancelled = true;
+      window.removeEventListener('fraud-academy:generated-cases-updated', refreshGeneratedCases);
     };
   }, []);
 

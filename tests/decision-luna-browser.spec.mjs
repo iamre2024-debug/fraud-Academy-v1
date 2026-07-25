@@ -156,11 +156,17 @@ test('a choice-only decision saves and unlocks Luna on desktop and mobile', asyn
     await expect(page.locator('body')).toHaveAttribute('data-layout-preference', 'mobile');
     await expect(page.locator('body')).toHaveAttribute('data-layout-mode', 'mobile');
     await expect(page.locator('.mission-mobile-root')).toBeVisible();
+    await expect(page.locator('.mission-mobile-root .luna-v1-debrief-grid')).toBeVisible();
     const mobilePreview = await page.evaluate(() => ({
       viewportWidth: window.innerWidth,
       frameWidth: document.querySelector('.mission-mobile-root')?.getBoundingClientRect().width ?? Number.POSITIVE_INFINITY,
       stackedCards: (() => {
-        const cards = [...document.querySelectorAll('.luna-v1-debrief-grid > .luna-v1-card')];
+        const visibleGrid = [...document.querySelectorAll('.luna-v1-debrief-grid')]
+          .find((grid) => {
+            const rect = grid.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
+          });
+        const cards = visibleGrid ? [...visibleGrid.querySelectorAll(':scope > .luna-v1-card')] : [];
         if (cards.length < 2) return false;
         const first = cards[0].getBoundingClientRect();
         const second = cards[1].getBoundingClientRect();
