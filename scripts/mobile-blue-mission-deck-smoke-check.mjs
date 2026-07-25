@@ -9,6 +9,7 @@ const shell = read('src/MobileMissionDeckApp.jsx');
 const workspace = read('src/MobileMissionWorkspace.jsx');
 const workspaceController = read('src/VisualWorkspace.jsx');
 const briefing = read('src/MobileMissionCaseBriefing.jsx');
+const documentViewer = read('src/DocumentViewerWorkspace.jsx');
 const styles = read('src/mobileMissionDeckV3.css');
 const legacyStyles = read('src/mobileBlueMissionDeck.css');
 const playwrightConfig = read('playwright.config.mjs');
@@ -83,6 +84,15 @@ for (const anchor of [
 ]) requireAnchor('MobileMissionCaseBriefing.jsx', briefing, anchor);
 
 for (const anchor of [
+  'mobileReviewStep',
+  'data-mobile-review-step',
+  'document-mobile-review-shell',
+  'Document review pages',
+  'Evidence-first field summary',
+  'Continue to decision',
+]) requireAnchor('DocumentViewerWorkspace.jsx', documentViewer, anchor);
+
+for (const anchor of [
   'A dedicated mobile component system',
   '.mission-mobile-root',
   '.mission-mobile-dock',
@@ -94,6 +104,10 @@ for (const anchor of [
   '.mission-login-history-heading',
   '.mission-login-history-page .login-history-workspace',
   '.mission-tool-content .document-preview-workspace',
+  '.document-mobile-review-shell',
+  '.document-mobile-review-tabs',
+  '.document-mobile-fields-panel',
+  '.document-mobile-step-controls',
   '.mission-decision-page .mission-decision-progress',
   '@media (max-width: 370px)',
 ]) requireAnchor('mobileMissionDeckV3.css', styles, anchor);
