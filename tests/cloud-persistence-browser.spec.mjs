@@ -106,6 +106,7 @@ async function generateOneCase(page, mobile) {
   const selector = mobile
     ? page.locator('.mission-workspace-case-selector select')
     : page.locator('.visual-case-switcher select');
+  await expect.poll(() => selector.inputValue()).toMatch(/-G\d+$/);
   const generatedCaseId = await selector.inputValue();
   expect(generatedCaseId).toMatch(/-G\d+$/);
   return generatedCaseId;

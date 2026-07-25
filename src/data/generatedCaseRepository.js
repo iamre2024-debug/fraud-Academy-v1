@@ -230,6 +230,10 @@ export async function generateAndSaveCases({ count = 1, ...config } = {}) {
 }
 
 export function combineCaseCatalog(baseCases = [], generatedCases = []) {
-  const seen = new Set(baseCases.map((item) => item.id));
-  return [...baseCases, ...generatedCases.filter((item) => !seen.has(item.id))];
+  const seen = new Set();
+  return [...baseCases, ...generatedCases].filter((item) => {
+    if (!item?.id || seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
 }
