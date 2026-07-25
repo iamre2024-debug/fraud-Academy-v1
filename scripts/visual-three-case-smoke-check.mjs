@@ -204,7 +204,8 @@ const main = read('src/main.jsx');
 
 for (const required of [
   "const [activeCaseId, setActiveCaseId]",
-  "const [activeTab, setActiveTab] = useState('workspace')",
+  'initialResumeSession?.activeTab',
+  'requestedWorkspaceTool={workspaceTool}',
   "function openCase(caseId, nextWorkspaceScreen = 'briefing')",
   'onCaseChange={openCase}',
   'onOpenCase={openCase}',

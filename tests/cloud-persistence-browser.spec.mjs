@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { selectToolGroup } from './workspace-page-helpers.mjs';
 
 const recoveryCode = 'fa-browser-recovery-code-1234567890';
 const caseId = 'FA-ATO-24018';
@@ -112,6 +113,32 @@ async function generateOneCase(page, mobile) {
   return generatedCaseId;
 }
 
+function activeCaseSelector(page, mobile) {
+  return mobile
+    ? page.locator('.mission-workspace-case-selector select')
+    : page.locator('.visual-case-switcher select');
+}
+
+async function openGeneratedCaseTool(page, mobile, generatedCaseId) {
+  await expect(activeCaseSelector(page, mobile)).toHaveValue(generatedCaseId);
+  await selectToolGroup(page, 'Login, Session, Device & IP');
+  const frame = page.locator('.visual-os-frame, .mission-workspace-v3');
+  await expect(frame).toHaveAttribute('data-workspace-screen', 'tool');
+  await expect(frame).toHaveAttribute('data-active-tool', 'Login History');
+}
+
+async function expectResumePoint(page, generatedCaseId) {
+  await expect.poll(() => page.evaluate(() => (
+    JSON.parse(localStorage.getItem('fraud-academy-resume-session-v1') || '{}').current
+  ))).toEqual({
+    schemaVersion: 1,
+    activeTab: 'workspace',
+    activeCaseId: generatedCaseId,
+    workspaceScreen: 'tool',
+    activeTool: 'Login History',
+  });
+}
+
 async function expectRecoveredSlices(page) {
   await expect.poll(() => page.evaluate(({ activeCaseId }) => {
     const read = (key) => JSON.parse(localStorage.getItem(key) || '{}');
@@ -141,14 +168,20 @@ test('cloud recovery survives close/reopen and restores cases on a clean device'
   const revisionBeforeGeneratedCase = cloud.revision();
   const generatedCaseId = await generateOneCase(page, mobile);
   await expect.poll(() => cloud.revision()).toBeGreaterThan(revisionBeforeGeneratedCase);
+  const revisionBeforeResumePoint = cloud.revision();
+  await openGeneratedCaseTool(page, mobile, generatedCaseId);
+  await expectResumePoint(page, generatedCaseId);
+  await expect.poll(() => cloud.revision()).toBeGreaterThan(revisionBeforeResumePoint);
 
   const originalContext = page.context();
   await page.close();
   const reopenedPage = await originalContext.newPage();
   await reopenedPage.goto('/');
   await expectRecoveredSlices(reopenedPage);
-  await openCases(reopenedPage, mobile);
-  await expect(reopenedPage.locator('[data-case-origin="generated"]').filter({ hasText: generatedCaseId })).toBeVisible();
+  await expect(activeCaseSelector(reopenedPage, mobile)).toHaveValue(generatedCaseId);
+  await expect(reopenedPage.locator('.visual-os-frame, .mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'tool');
+  await expect(reopenedPage.locator('.visual-os-frame, .mission-workspace-v3')).toHaveAttribute('data-active-tool', 'Login History');
+  await expectResumePoint(reopenedPage, generatedCaseId);
 
   const restoredContext = await browser.newContext(mobile
     ? { viewport: { width: 412, height: 915 }, isMobile: true, hasTouch: true }
@@ -161,8 +194,10 @@ test('cloud recovery survives close/reopen and restores cases on a clean device'
   const restoredPage = await restoredContext.newPage();
   await restoredPage.goto('/');
   await expectRecoveredSlices(restoredPage);
-  await openCases(restoredPage, mobile);
-  await expect(restoredPage.locator('[data-case-origin="generated"]').filter({ hasText: generatedCaseId })).toBeVisible();
+  await expect(activeCaseSelector(restoredPage, mobile)).toHaveValue(generatedCaseId);
+  await expect(restoredPage.locator('.visual-os-frame, .mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'tool');
+  await expect(restoredPage.locator('.visual-os-frame, .mission-workspace-v3')).toHaveAttribute('data-active-tool', 'Login History');
+  await expectResumePoint(restoredPage, generatedCaseId);
   await restoredContext.close();
 });
 
@@ -184,6 +219,11 @@ test('offline Quick Pad changes retry a cloud conflict when connectivity returns
   await expect.poll(() => page.evaluate(({ activeCaseId }) => (
     JSON.parse(localStorage.getItem('fraud-academy-quick-pad-v1') || '{}')[activeCaseId]?.scratch
   ), { activeCaseId: caseId })).toBe(offlineText);
+  await quickPad.getByRole('button', { name: 'Close Quick Pad' }).click();
+  await openCases(page, mobile);
+  await expect.poll(() => page.evaluate(() => (
+    JSON.parse(localStorage.getItem('fraud-academy-resume-session-v1') || '{}').current?.activeTab
+  ))).toBe('cases');
 
   cloud.forceConflict();
   await page.context().setOffline(false);
@@ -194,6 +234,10 @@ test('offline Quick Pad changes retry a cloud conflict when connectivity returns
   ))).toBeTruthy();
 
   await page.reload();
+  await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'cases');
+  await expect(page.locator('[data-cases-theme-v1="approved"]')).toBeVisible();
+  const navigation = page.getByRole('navigation', { name: mobile ? 'Mission navigation' : 'Main navigation' });
+  await navigation.getByRole('button', { name: mobile ? /Mission/ : /Workspace/ }).click();
   await page.getByRole('button', { name: /Open Quick Pad/ }).click();
   const restoredPad = page.getByRole('dialog', { name: 'Keep lookup details close' });
   await restoredPad.getByRole('button', { name: 'Scratch note', exact: true }).click();

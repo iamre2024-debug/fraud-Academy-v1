@@ -10,6 +10,11 @@ import {
   seedMetadata,
 } from '../src/data/persistenceMerge.js';
 import { storageKeys } from '../src/data/persistenceKeys.js';
+import {
+  makeResumeSessionResource,
+  normalizeResumeSession,
+  resumeSessionSchemaVersion,
+} from '../src/data/resumeSession.js';
 import { decryptCloudSnapshot, encryptCloudSnapshot } from '../src/data/cloudSyncClient.js';
 import cloudSyncHandler from '../api/cloud-sync.js';
 
@@ -27,6 +32,7 @@ function rawState(overrides = {}) {
     [storageKeys.documentRequests]: {},
     [storageKeys.quickPad]: {},
     [storageKeys.debriefs]: {},
+    [storageKeys.resumeSession]: {},
     ...overrides,
   };
 }
@@ -46,17 +52,29 @@ const deviceARaw = rawState({
       managerReview: { managerVerdict: 'Saved debrief' },
     }],
   },
+  [storageKeys.resumeSession]: makeResumeSessionResource({
+    activeTab: 'dashboard',
+    activeCaseId: caseId,
+    workspaceScreen: 'notes',
+    activeTool: 'Login History',
+  }),
 });
 const deviceBRaw = rawState({
   [storageKeys.notes]: { [caseId]: ['Jul 25 · Investigation note · Added while mobile was offline.'] },
   [storageKeys.tray]: { [caseId]: ['TRN-8842-19', 'EVT-MOBILE'] },
   [storageKeys.packages]: { [caseId]: [{ id: 'PKG-1', caseId }] },
+  [storageKeys.resumeSession]: makeResumeSessionResource({
+    activeTab: 'workspace',
+    activeCaseId: 'FA-CB-G00000002',
+    workspaceScreen: 'tool',
+    activeTool: 'Customer 360',
+  }),
 });
 
 const generatedA = [{ id: 'FA-ATO-G00000001', generatedAt: 1001, person: 'Generated A' }];
 const generatedB = [{ id: 'FA-CB-G00000002', generatedAt: 1002, person: 'Generated B' }];
 const snapshotA = snapshotFor(deviceARaw, 'desktop-device', 1000, generatedA);
-const snapshotB = snapshotFor(deviceBRaw, 'mobile-device', 1000, generatedB);
+const snapshotB = snapshotFor(deviceBRaw, 'mobile-device', 2000, generatedB);
 const merged = mergeCloudSnapshots(snapshotA, snapshotB);
 const materialized = materializeCloudSnapshot(merged);
 
@@ -79,6 +97,29 @@ assert.deepEqual(new Set(materialized.generatedCases.map((item) => item.id)), ne
   'FA-ATO-G00000001',
   'FA-CB-G00000002',
 ]));
+assert.deepEqual(materialized.rawByKey[storageKeys.resumeSession], {
+  current: {
+    schemaVersion: resumeSessionSchemaVersion,
+    activeTab: 'workspace',
+    activeCaseId: 'FA-CB-G00000002',
+    workspaceScreen: 'tool',
+    activeTool: 'Customer 360',
+  },
+}, 'The newer device resume point should win as one complete navigation record.');
+
+assert.deepEqual(normalizeResumeSession({
+  activeTab: 'unknown-tab',
+  activeCaseId: '  FA-ATO-24018  ',
+  workspaceScreen: 'unknown-screen',
+  activeTool: '',
+  layoutMode: 'mobile',
+}), {
+  schemaVersion: resumeSessionSchemaVersion,
+  activeTab: 'workspace',
+  activeCaseId: caseId,
+  workspaceScreen: 'briefing',
+  activeTool: 'Login History',
+}, 'Invalid or obsolete resume fields should fall back safely without cloud-syncing device layout.');
 
 const mergedMetadata = metadataFromCloudSnapshot(merged);
 const trayBeforeRemoval = materialized.rawByKey[storageKeys.tray];
@@ -119,6 +160,7 @@ const [
   keySource,
   generatedRepositorySource,
   lunaSource,
+  resumeSource,
   supabaseMigrationSource,
 ] = await Promise.all([
   readFile(new URL('../api/cloud-sync.js', import.meta.url), 'utf8'),
@@ -126,6 +168,7 @@ const [
   readFile(new URL('../src/data/persistenceKeys.js', import.meta.url), 'utf8'),
   readFile(new URL('../src/data/generatedCaseRepository.js', import.meta.url), 'utf8'),
   readFile(new URL('../src/LunaPostSubmissionPanel.jsx', import.meta.url), 'utf8'),
+  readFile(new URL('../src/data/resumeSession.js', import.meta.url), 'utf8'),
   readFile(new URL('../supabase/migrations/202607250001_fraud_academy_cloud_sync.sql', import.meta.url), 'utf8'),
 ]);
 
@@ -146,6 +189,9 @@ assert.doesNotMatch(clientSource, /X-Fraud-Academy-Sync-Key/);
 assert.match(clientSource, /response\.status === 409/);
 assert.match(clientSource, /window\.addEventListener\('online'/);
 assert.match(keySource, /completed-debriefs-v1/);
+assert.match(keySource, /fraud-academy-resume-session-v1/);
+assert.match(resumeSource, /resumeWorkspaceScreens/);
+assert.doesNotMatch(resumeSource, /layout-mode-v1/);
 assert.match(generatedRepositorySource, /mergeGeneratedCases/);
 assert.match(lunaSource, /fraud-academy:debrief-completed/);
 assert.match(supabaseMigrationSource, /enable row level security/i);

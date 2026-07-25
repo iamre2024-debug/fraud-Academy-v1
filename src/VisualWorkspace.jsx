@@ -38,18 +38,32 @@ function stageForWorkspaceScreen(screen, toolName) {
   return 'briefing';
 }
 
-export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCases(baseCases), layoutMode = 'desktop', onCaseChange, onNavigate, requestedWorkspaceScreen, onWorkspaceScreenChange }) {
+export default function VisualWorkspace({
+  activeCaseId,
+  cases = enrichTrainingCases(baseCases),
+  layoutMode = 'desktop',
+  onCaseChange,
+  onNavigate,
+  requestedWorkspaceScreen,
+  onWorkspaceScreenChange,
+  requestedWorkspaceTool,
+  onWorkspaceToolChange,
+}) {
   const initialWorkspaceScreen = requestedWorkspaceScreen || 'briefing';
-  const [activeStage, setActiveStage] = useState(() => stageForWorkspaceScreen(initialWorkspaceScreen, 'Login History'));
+  const initialWorkspaceTool = typeof requestedWorkspaceTool === 'string' && requestedWorkspaceTool.trim()
+    ? requestedWorkspaceTool.trim()
+    : 'Login History';
+  const [activeStage, setActiveStage] = useState(() => stageForWorkspaceScreen(initialWorkspaceScreen, initialWorkspaceTool));
   const [workspaceScreen, setWorkspaceScreen] = useState(() => initialWorkspaceScreen);
   const [categoryKey, setCategoryKey] = useState('digital');
-  const [tool, setTool] = useState('Login History');
+  const [tool, setTool] = useState(() => initialWorkspaceTool);
   const [query, setQuery] = useState('');
   const [expandedId, setExpandedId] = useState('');
   const [openedPinnedEvidence, setOpenedPinnedEvidence] = useState(null);
   const submitRef = useRef(null);
   const workspaceScreenHistory = useRef([]);
   const requestedWorkspaceScreenRef = useRef(requestedWorkspaceScreen);
+  const requestedWorkspaceToolRef = useRef(requestedWorkspaceTool);
 
   const activeCase = cases.find((item) => item.id === activeCaseId) ?? cases[0];
 
@@ -114,6 +128,30 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   const data = rowsFor(activeTool, activeCase);
   const rows = useMemo(() => data.rows.filter((row) => !query || row.detail.toLowerCase().includes(query.toLowerCase())), [data.rows, query]);
   const activeRow = rows.find((row) => row.id === expandedId) ?? rows[0];
+
+  useEffect(() => {
+    onWorkspaceToolChange?.(activeTool);
+  }, [activeTool, onWorkspaceToolChange]);
+
+  useEffect(() => {
+    const nextRequestedTool = typeof requestedWorkspaceTool === 'string' && requestedWorkspaceTool.trim()
+      ? requestedWorkspaceTool.trim()
+      : 'Login History';
+    if (nextRequestedTool === requestedWorkspaceToolRef.current) return;
+    requestedWorkspaceToolRef.current = nextRequestedTool;
+    const nextTool = visibleWorkspaceTools.includes(nextRequestedTool)
+      ? nextRequestedTool
+      : visibleWorkspaceTools[0] ?? nextRequestedTool;
+    setTool(nextTool);
+    setCategoryKey(visibleCategories.find((item) => item.tools.includes(nextTool))?.key ?? categoryKey);
+    setActiveStage(stageForWorkspaceScreen(workspaceScreen, nextTool));
+  }, [
+    categoryKey,
+    requestedWorkspaceTool,
+    visibleCategories,
+    visibleWorkspaceTools,
+    workspaceScreen,
+  ]);
   const {
     packageStatus,
     pin,
