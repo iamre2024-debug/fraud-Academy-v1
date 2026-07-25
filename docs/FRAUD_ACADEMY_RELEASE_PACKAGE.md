@@ -12,7 +12,7 @@ This document collects the external handoff information that was previously dist
 - Authority order: Fraud Academy Bible v2.1, Fraud Academy Display Bible v1.0 - New Design Exploration, `docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md`, `docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md`, then the latest verified `main`
 - Historical PR #2, stale branches, retired DOM patches, and parked System Access portal modules are reference-only
 
-The remaining external handoff items are a user-selected license, a permanent production URL, a committed desktop screenshot, original-Bible visual sign-off, and broader manual accessibility and browser validation.
+The remaining external handoff items are a user-selected license, a committed desktop screenshot, original-Bible visual sign-off, and broader manual accessibility and browser validation.
 
 ## Product boundary
 
@@ -175,9 +175,9 @@ GitHub Actions uses Node.js 24 and runs the named verification chain before desk
 
 - Repository status: `main` verified at `573ea1db64c309719a23df1031be1e4ba6fa4ca6`
 - Vercel deployment status: successful for the audited `main` commit
+- Production URL: `https://fraud-academy-v1.vercel.app/`
 - Verified public release-candidate demo: `https://deploy-preview-80--glittery-custard-26e360.netlify.app/`
 - Vercel deployment record: `https://vercel.com/iamre2024-debugs-projects/fraud-academy-v1/DpMwF6VPN2aKQKVT9UPhPdQtizpp`
-- Permanent production URL: not yet recorded
 - Build command: `npm run build`
 - Output directory: `dist`
 - Release screenshot: `docs/screenshots/fraud-academy-v1-mobile.jpg`
@@ -186,7 +186,7 @@ GitHub Actions uses Node.js 24 and runs the named verification chain before desk
 - Hosted database: not implemented
 - Environment secrets: not required by the current browser-local fictional runtime
 
-Rollback is performed by redeploying the last known-good GitHub commit through the configured hosting project. The Vercel project should expose a permanent production alias before the package is described as a public production release.
+Rollback is performed by redeploying the last known-good GitHub commit through the configured hosting project.
 
 ## Known limitations
 
@@ -200,7 +200,6 @@ Rollback is performed by redeploying the last known-good GitHub commit through t
 8. The current Android screenshot is versioned; a matching committed desktop screenshot is still pending.
 9. The original Bible v2.1 and Display Bible source files are not versioned in this repository.
 10. No repository license has been selected, so external reuse terms are not yet defined.
-11. A verified release-candidate demo is recorded, but a permanent production alias is not.
 
 ## Post-v1 backlog
 
@@ -231,7 +230,7 @@ The parked ten-module System Access portal is not a backlog commitment. Any futu
 - [x] Current Android release screenshot
 - [ ] Original Bible visual sign-off against current screenshots
 - [ ] Matching committed desktop screenshot
-- [ ] Permanent production URL
+- [x] Permanent production URL
 - [ ] Manual accessibility and non-Chromium browser validation
 - [ ] Repository license selected by the owner
 
