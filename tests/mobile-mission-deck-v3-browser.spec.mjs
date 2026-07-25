@@ -17,6 +17,8 @@ async function assertPhoneGeometry(page) {
         return rect.width > 0 && rect.width < 58 && rect.height > 80;
       })
       .map((element) => element.textContent.trim());
+    const categoryCards = [...document.querySelectorAll('.mission-evidence-page .visual-category-row > button')]
+      .filter((element) => element.getBoundingClientRect().width > 0);
     return {
       viewport: window.innerWidth,
       expectedShellWidth: window.innerWidth * 0.94,
@@ -30,6 +32,11 @@ async function assertPhoneGeometry(page) {
       dockWidth: dock?.width ?? 0,
       viewportHeight: window.innerHeight,
       badHeadings,
+      categoryCardWidths: categoryCards.map((element) => element.getBoundingClientRect().width),
+      categoryFontSizes: categoryCards.flatMap((element) => (
+        [...element.querySelectorAll('.investigation-category-copy strong, .investigation-category-copy small, .category-status-copy')]
+          .map((text) => Number.parseFloat(getComputedStyle(text).fontSize))
+      )),
     };
   });
 
@@ -45,6 +52,8 @@ async function assertPhoneGeometry(page) {
   expect(geometry.dockBottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
   expect(geometry.dockWidth).toBeGreaterThanOrEqual(geometry.expectedShellWidth - 18);
   expect(geometry.badHeadings).toEqual([]);
+  expect(geometry.categoryCardWidths.every((width) => width >= 150)).toBe(true);
+  expect(geometry.categoryFontSizes.every((size) => size >= 12)).toBe(true);
 }
 
 test('mobile mounts the dedicated Mission Deck and a generated case inherits every route', async ({ page }, testInfo) => {

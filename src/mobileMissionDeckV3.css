@@ -651,18 +651,76 @@ body[data-layout-mode="mobile"] #root {
 .mission-evidence-page .node-context { bottom: 47px; right: 18px; }
 .mission-evidence-page .node-transaction { top: 50%; left: 50%; width: 125px; min-height: 98px; transform: translate(-50%, -50%); border-color: #69e8ff; border-radius: 50%; background: radial-gradient(circle, #0a89e3, #04345e 72%); box-shadow: 0 0 30px rgba(60, 207, 255, 0.33); }
 .mission-evidence-page .mission-map-pin { position: absolute; z-index: 3; bottom: 39px; left: 17px; border: 1px solid #6be7ff; border-radius: 999px; background: #0874ce; padding: 8px 10px; color: #fff; font-size: 0.75rem; font-weight: 900; }
-.mission-evidence-page .visual-category-row { width: 100%; max-width: none; display: flex; gap: 10px; overflow-x: auto; margin-top: 14px; padding: 5px 3px 13px; scroll-snap-type: x mandatory; scrollbar-width: none; }
-.mission-evidence-page .visual-category-row::-webkit-scrollbar { display: none; }
-.mission-evidence-page .visual-category-row > button { flex: 0 0 210px; min-height: 162px; display: grid; grid-template-columns: 42px minmax(0, 1fr); grid-template-rows: auto auto auto; align-content: start; gap: 7px 9px; scroll-snap-align: center; border: 1px solid var(--md-line); border-radius: 20px 8px 20px 20px; background: linear-gradient(145deg, #075f9f, #032642); padding: 13px; color: #fff; text-align: left; box-shadow: 0 13px 27px rgba(0, 3, 12, 0.35); }
-.mission-evidence-page .visual-category-row > button.active { border-color: #66e7ff; background: linear-gradient(145deg, #0a8ce7, #074e93); transform: translateY(-3px); }
-.mission-evidence-page .visual-category-row > button > span:first-child { grid-row: 1 / 3; width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid #67e6ff; border-radius: 14px 14px 5px 14px; background: #d9f9ff; color: #07517e; font-size: 1.25rem; }
-.mission-evidence-page .investigation-category-copy { display: grid; gap: 3px; }
-.mission-evidence-page .investigation-category-copy strong { font-size: 0.75rem; }
-.mission-evidence-page .investigation-category-copy small { color: #b2d3e1; font-size: 0.75rem; line-height: 1.35; }
-.mission-evidence-page .visual-category-row > button > em { grid-column: 1; align-self: end; border: 1px solid rgba(93, 221, 255, 0.28); border-radius: 999px; background: rgba(0, 14, 28, 0.58); padding: 4px 6px; color: #d5f4ff; font-size: 0.75rem; font-style: normal; text-align: center; }
-.mission-evidence-page .category-status-copy { grid-column: 2; align-self: end; color: #b6d8e5; font-size: 0.75rem; }
-.mission-evidence-page .category-progress-track { grid-column: 1 / -1; height: 5px; border-radius: 999px; background: rgba(0, 12, 25, 0.58); }
-.mission-evidence-page .category-progress-track b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #56ddff, #72f2d3); }
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 .visual-category-row {
+  width: 100%;
+  max-width: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  overflow: visible;
+  margin-top: 14px;
+  padding: 5px 3px 13px;
+}
+
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 .visual-category-row > button {
+  min-width: 0;
+  min-height: 154px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(38px, auto) auto auto;
+  align-content: start;
+  align-items: start;
+  gap: 7px 9px;
+  padding: 12px;
+}
+
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 .visual-category-row > button > span:first-child {
+  width: 40px;
+  height: 40px;
+  grid-row: 1 / 3;
+  font-size: 1rem;
+}
+
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-category-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-category-copy strong {
+  color: #2a214e;
+  font-size: 0.82rem;
+  line-height: 1.25;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-category-copy small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #776e90;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+  word-break: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 .visual-category-row > button > em,
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 .category-status-copy {
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 .category-status-copy {
+  grid-column: 2 / -1;
+  align-self: end;
+}
+
+body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-groups-theme-v1 .category-progress-track {
+  grid-column: 1 / -1;
+}
 
 /* Focused tool screen. Existing tool logic is rendered inside this new surface. */
 .mission-tool-actions { display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 7px; margin-bottom: 10px; }
