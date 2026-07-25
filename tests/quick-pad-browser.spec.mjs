@@ -18,7 +18,10 @@ test('Quick Pad keeps an account ID available across tools and reloads', async (
       .getByRole('button', { name: 'Investigation launchpad' })
       .click();
   }
-  await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
+  const beginInvestigation = test.info().project.name === 'mobile-chromium'
+    ? page.getByRole('button', { name: /Begin investigation/i })
+    : briefing.getByRole('button', { name: /Begin Investigation/ });
+  await beginInvestigation.click();
 
   const customer = page.locator('[data-customer-360-screen="approved-theme-v1"]');
   await customer.getByRole('tab', { name: 'Accounts', exact: true }).click();
