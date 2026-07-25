@@ -166,6 +166,9 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
   expect(layout.layoutColumns).toBe(testInfo.project.name === 'mobile-chromium' ? 1 : 3);
   expect(await page.locator('body').innerText()).not.toMatch(forbiddenViewerCopy);
 
+  if (testInfo.project.name === 'mobile-chromium') {
+    await viewer.getByRole('button', { name: '‹ Inbox', exact: true }).click();
+  }
   await viewer.getByRole('button', { name: 'Mark Document Viewer reviewed', exact: true }).click();
   await expect(viewer.getByRole('button', { name: 'Document Viewer reviewed', exact: true })).toBeVisible();
   await viewer.getByRole('navigation', { name: 'Document Viewer next routes' })
