@@ -40,6 +40,16 @@ export default function CaseQuickPad({
     setTab('ids');
   }, [activeCase.id]);
 
+  useEffect(() => {
+    const openFromDesktop = (event) => {
+      if (event.detail?.caseId && event.detail.caseId !== activeCase.id) return;
+      setTab(event.detail?.tab === 'note' ? 'note' : 'ids');
+      setOpen(true);
+    };
+    window.addEventListener('fraud-academy:quick-pad-open', openFromDesktop);
+    return () => window.removeEventListener('fraud-academy:quick-pad-open', openFromDesktop);
+  }, [activeCase.id]);
+
   async function copyItem(item) {
     await copyText(item.value);
     setCopiedId(item.id);

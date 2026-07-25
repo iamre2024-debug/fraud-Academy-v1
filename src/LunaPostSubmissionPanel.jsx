@@ -68,6 +68,7 @@ function buildManagerFallback(debrief, reviewPackage) {
 export default function LunaPostSubmissionPanel({
   activeCase: suppliedActiveCase,
   activeCaseId,
+  inline = false,
   onBackToWorkspace,
   onViewCaseSummary,
   onReturnToQueue,
@@ -81,6 +82,7 @@ export default function LunaPostSubmissionPanel({
   const activeCase = suppliedActiveCase ?? cases.find((item) => item.id === activeCaseId) ?? cases[0];
 
   useEffect(() => {
+    if (inline) return undefined;
     const frame = document.querySelector('.mission-workspace-v3') ?? document.querySelector('.visual-os-frame');
     const anchor = document.querySelector('.decision-luna-portal-anchor');
     if (!frame || !anchor) return undefined;
@@ -95,7 +97,7 @@ export default function LunaPostSubmissionPanel({
     return () => {
       if (created) lunaHost.remove();
     };
-  }, []);
+  }, [inline]);
 
   useEffect(() => {
     setSubmittedPackage(null);
@@ -373,5 +375,6 @@ export default function LunaPostSubmissionPanel({
     </section>
   );
 
+  if (inline) return panel;
   return host ? createPortal(panel, host) : null;
 }

@@ -42,6 +42,8 @@ import './documentInbox.css';
 import './mobileMissionDeckV3.css';
 import './caseQuickPad.css';
 import './cloudSync.css';
+import './desktopMissionControlV2.css';
+import './desktopMissionControlDayNight.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

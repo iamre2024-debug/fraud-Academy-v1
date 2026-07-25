@@ -20,7 +20,8 @@ const checks = [
     label: 'React visual app coordinator',
     mustContain: [
       '<VisualWorkspace',
-      '<VisualNavigation',
+      '<DesktopMissionControlApp',
+      '<MobileMissionDeckApp',
       '<VisualTextCollapse',
       '<LunaPostSubmissionPanel',
       '<GeneratedCaseControls',
@@ -28,7 +29,9 @@ const checks = [
       'function handleGeneratedCase(nextCase)',
       'cases={caseCatalog}',
       'onCaseGenerated={handleGeneratedCase}',
-      "const [activeTab, setActiveTab] = useState('workspace')",
+      'initialResumeSession?.activeTab',
+      'storageKeys.resumeSession',
+      'requestedWorkspaceTool={workspaceTool}',
       "function openCase(caseId, nextWorkspaceScreen = 'briefing')",
     ],
     mustNotContain: [

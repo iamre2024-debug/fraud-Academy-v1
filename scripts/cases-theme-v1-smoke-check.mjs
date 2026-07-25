@@ -5,6 +5,7 @@ const rootDir = process.cwd();
 const panel = fs.readFileSync(path.join(rootDir, 'src/CasesThemeV1Panel.jsx'), 'utf8');
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayCasesThemeV1.css'), 'utf8');
 const app = fs.readFileSync(path.join(rootDir, 'src/VisualApp.jsx'), 'utf8');
+const desktop = fs.readFileSync(path.join(rootDir, 'src/DesktopMissionControlApp.jsx'), 'utf8');
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/browser-smoke.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_CASES_THEME_V1.md'), 'utf8');
@@ -46,8 +47,8 @@ for (const anchor of [
   mustContain('CasesThemeV1Panel.jsx', panel, anchor);
 }
 
-mustContain('VisualApp.jsx', app, "import CasesThemeV1Panel from './CasesThemeV1Panel.jsx';");
-mustContain('VisualApp.jsx', app, "active={activeTab === 'cases'}");
+mustContain('DesktopMissionControlApp.jsx', desktop, "import CasesThemeV1Panel from './CasesThemeV1Panel.jsx';");
+mustContain('DesktopMissionControlApp.jsx', desktop, "active={activeTab === 'cases'}");
 mustContain('VisualApp.jsx', app, "import { coreClaimTypes } from './data/claimRegistry.js';");
 mustContain('VisualApp.jsx', app, 'generateAndSaveCases');
 mustContain('VisualApp.jsx', app, 'onGenerateCases={handleGeneratedCases}');
