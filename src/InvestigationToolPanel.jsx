@@ -795,8 +795,11 @@ function DeviceIntelligenceWorkspace({
   const records = getDeviceProfiles(activeCase);
   const normalizedQuery = query.trim().toLowerCase();
   const filteredRecords = records.filter((record) => !normalizedQuery || deviceRecordSearchText(record).includes(normalizedQuery));
-  const activeRecord = filteredRecords.find((record) => record.id === selectedDeviceId) ?? filteredRecords[0] ?? records[0];
   const lookupHasRun = normalizedQuery.length > 0;
+  const activeRecord = filteredRecords.find((record) => record.id === selectedDeviceId)
+    ?? filteredRecords[0]
+    ?? (lookupHasRun ? null : records[0]);
+  const lookupMatched = lookupHasRun && Boolean(activeRecord);
 
   useEffect(() => {
     setSelectedDeviceId('');
@@ -826,7 +829,13 @@ function DeviceIntelligenceWorkspace({
             aria-label="Search Device Intelligence records"
           />
         </label>
-        <span aria-live="polite">{lookupHasRun ? `${filteredRecords.length} of ${records.length} records shown` : 'Lookup required'}</span>
+        <span aria-live="polite">
+          {lookupHasRun
+            ? filteredRecords.length
+              ? `${filteredRecords.length} of ${records.length} records returned`
+              : 'No matching device record returned'
+            : 'Lookup required'}
+        </span>
       </section>
 
       {activeRecord ? (
@@ -954,7 +963,11 @@ function DeviceIntelligenceWorkspace({
           </section>
         </>
       ) : (
-        <div className="investigation-tool-empty" role="status">No device intelligence records are available for this case.</div>
+        <div className="investigation-tool-empty" role="status">
+          {lookupHasRun && records.length
+            ? 'No device intelligence records match this lookup. Check the Device ID, fingerprint, browser, session, profile, wallet, or location and try again.'
+            : 'No device intelligence records are available for this case.'}
+        </div>
       )}
 
       <nav className="investigation-tool-next-routes" aria-label="Device intelligence next routes">
@@ -968,7 +981,12 @@ function DeviceIntelligenceWorkspace({
           <strong>Device Intelligence review</strong>
           <span>Mark reviewed after searching the device, checking fingerprint/history, and comparing it to normal behavior.</span>
         </div>
-        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Device Intelligence')}>
+        <button
+          type="button"
+          className={reviewed ? '' : 'investigation-tool-primary'}
+          disabled={!reviewed && !lookupMatched}
+          onClick={() => markReviewed('Device Intelligence')}
+        >
           {reviewed ? '✓ Device Intelligence reviewed' : 'Mark Device Intelligence reviewed'}
         </button>
       </footer>

@@ -1,3 +1,10 @@
+import {
+  fullAccessTimestamp,
+  hasCreatedSession,
+  stableAccessNumber,
+  uniqueAccessValues,
+} from './accessHistoryUtils.js';
+
 const deviceProfilesByCase = {
   'FA-ATO-24018': [
     {
@@ -140,39 +147,109 @@ const deviceProfilesByCase = {
   ],
 };
 
+function inferredDeviceType(login = {}) {
+  const source = `${login.device ?? ''} ${login.authChannel ?? ''} ${login.browserSource ?? ''}`.toLowerCase();
+  if (/desktop|windows|macos/.test(source)) return 'Desktop browser';
+  if (/mobile app|bank app|training app/.test(source)) return 'Mobile app device';
+  if (/mobile|iphone|android|safari|webview/.test(source)) return 'Mobile browser';
+  return 'Device / browser';
+}
+
+function accessTimeValue(activeCase, login) {
+  const parsed = Date.parse(fullAccessTimestamp(activeCase, login.time).replace('·', ''));
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function deviceSignal(logins, field, fallback) {
+  return logins.find((login) => login[field])?.[field] ?? fallback;
+}
+
+function generatedDeviceStatus(id, logins) {
+  const successfulLogins = logins.filter(hasCreatedSession);
+  const source = `${id} ${logins.map((login) => login.device).join(' ')}`.toLowerCase();
+  if (!successfulLogins.length) return 'No successful session returned';
+  if (/-n\b|new training|newly observed/.test(source)) return 'Newly observed device';
+  if (successfulLogins.length > 1 || /-m\b|established|trusted|known/.test(source)) return 'Established device history';
+  return 'Limited device history';
+}
+
+function generatedNormalBehavior(activeCase, id, logins) {
+  const successfulLogins = logins.filter(hasCreatedSession);
+  const locations = uniqueAccessValues(logins.map((login) => login.location));
+  const locationSummary = locations.join(' · ') || activeCase.intake?.customerLocation || 'No location returned';
+  const source = `${id} ${logins.map((login) => login.device).join(' ')}`.toLowerCase();
+
+  if (!successfulLogins.length) {
+    return `Only failed or locked authentication events returned from ${locationSummary}; no successful device baseline is established.`;
+  }
+  if (/-n\b|new training|newly observed/.test(source)) {
+    return `First observed in ${locationSummary}; compare this device with the established-device and customer-location history.`;
+  }
+  if (successfulLogins.length > 1 || /-m\b|established|trusted|known/.test(source)) {
+    return `${successfulLogins.length} successful session${successfulLogins.length === 1 ? '' : 's'} returned across ${locationSummary}; compare timing and activity with the active claim.`;
+  }
+  return `One successful session returned from ${locationSummary}; compare it with earlier device and login history.`;
+}
+
 function fallbackDeviceProfiles(activeCase) {
   const devices = new Map();
   for (const login of activeCase.loginHistory ?? []) {
     const id = login.deviceId ?? `DEV-${login.id}`;
-    const profile = devices.get(id) ?? {
-      id,
-      deviceName: login.device,
-      deviceType: login.device?.includes('Desktop') ? 'Desktop browser' : 'Device/browser',
-      operatingSystem: 'Training OS not recorded',
-      browser: login.device,
-      deviceFingerprint: `FP-${id}`,
-      browserFingerprint: `BR-${id}`,
-      firstSeen: login.time,
-      lastSeen: login.time,
-      trustedStatus: 'Lookup needed',
-      rootedJailbroken: 'Lookup needed',
-      emulatorIndicator: 'Lookup needed',
-      vpnProxyIndicator: 'Lookup needed',
-      sharedDeviceDetection: 'Lookup needed',
-      linkedProfiles: [activeCase.trainingId],
-      walletUsage: 'Lookup needed',
-      normalBehavior: 'Compare against login history',
-      lookupResult: 'Lookup needed',
-      history: [],
-      relatedRecords: [],
-      investigatorUse: 'Use this profile to compare device behavior against the case story.',
-    };
-    profile.lastSeen = login.time;
-    profile.history.push(`${login.time} · ${login.method} · ${login.location} · ${login.session}`);
-    profile.relatedRecords.push(login.id, login.session);
-    devices.set(id, profile);
+    const deviceLogins = devices.get(id) ?? [];
+    deviceLogins.push(login);
+    devices.set(id, deviceLogins);
   }
-  return [...devices.values()];
+
+  return [...devices.entries()].map(([id, deviceLogins]) => {
+    const sortedLogins = [...deviceLogins].sort((left, right) => accessTimeValue(activeCase, right) - accessTimeValue(activeCase, left));
+    const newestLogin = sortedLogins[0] ?? {};
+    const oldestLogin = sortedLogins.at(-1) ?? newestLogin;
+    const relatedProfileChanges = (activeCase.customer?.profileChanges ?? []).filter((event) => event.device === id);
+    const linkedProfiles = uniqueAccessValues([
+      ...deviceLogins.map((login) => login.trainingId),
+      activeCase.trainingId,
+    ]);
+    const browserSources = uniqueAccessValues(deviceLogins.map((login) => login.browserSource ?? login.browser ?? login.device));
+    const operatingSystems = uniqueAccessValues(deviceLogins.map((login) => login.operatingSystem));
+    const deviceNames = uniqueAccessValues(deviceLogins.map((login) => login.device));
+    const walletEvents = relatedProfileChanges.filter((event) => /wallet|token|payee/i.test(`${event.eventType} ${event.item}`));
+    const fingerprintSuffix = stableAccessNumber(`${activeCase.id}-${id}`).toString(16).toUpperCase().padStart(4, '0');
+    const browserSuffix = stableAccessNumber(`${id}-${browserSources.join('-')}`).toString(16).toUpperCase().padStart(4, '0');
+
+    return {
+      id,
+      deviceName: deviceNames.join(' · ') || id,
+      deviceType: inferredDeviceType(newestLogin),
+      operatingSystem: operatingSystems.join(' · ') || 'Operating system not supplied by source',
+      browser: browserSources.join(' · ') || 'Browser not supplied by source',
+      deviceFingerprint: deviceSignal(deviceLogins, 'deviceFingerprint', `FP-${id}-${fingerprintSuffix}`),
+      browserFingerprint: deviceSignal(deviceLogins, 'browserFingerprint', `BR-${id}-${browserSuffix}`),
+      firstSeen: fullAccessTimestamp(activeCase, oldestLogin.time),
+      lastSeen: fullAccessTimestamp(activeCase, newestLogin.time),
+      trustedStatus: deviceSignal(deviceLogins, 'trustedStatus', generatedDeviceStatus(id, deviceLogins)),
+      rootedJailbroken: deviceSignal(deviceLogins, 'rootedJailbroken', 'No rooted or jailbroken indicator returned'),
+      emulatorIndicator: deviceSignal(deviceLogins, 'emulatorIndicator', 'No emulator-like indicator returned'),
+      vpnProxyIndicator: deviceSignal(deviceLogins, 'vpnProxyIndicator', 'No device-level VPN or proxy indicator returned'),
+      sharedDeviceDetection: deviceSignal(deviceLogins, 'sharedDeviceDetection', linkedProfiles.length > 1
+        ? `${linkedProfiles.length} linked training profiles returned`
+        : 'No additional linked training profile returned'),
+      linkedProfiles: linkedProfiles.length ? linkedProfiles : ['No linked training profile returned'],
+      walletUsage: deviceSignal(deviceLogins, 'walletUsage', walletEvents.length
+        ? walletEvents.map((event) => `${event.id} · ${event.item}`).join(' · ')
+        : 'No wallet, token, or payee activity returned for this device'),
+      normalBehavior: generatedNormalBehavior(activeCase, id, deviceLogins),
+      lookupResult: `${deviceLogins.length} authentication event${deviceLogins.length === 1 ? '' : 's'} returned for ${id}`,
+      history: sortedLogins.map((login) => (
+        `${fullAccessTimestamp(activeCase, login.time)} · ${login.result} · ${login.method} · ${login.location} · ${hasCreatedSession(login) ? login.session : 'No session created'}`
+      )),
+      relatedRecords: uniqueAccessValues(deviceLogins.flatMap((login) => [
+        login.id,
+        hasCreatedSession(login) ? login.session : null,
+        login.ip ? `IP-${login.ip}` : null,
+      ]).concat(relatedProfileChanges.map((event) => event.id))),
+      investigatorUse: 'Use this returned profile to compare device timing, authentication, browser, network, and profile activity against the case story.',
+    };
+  });
 }
 
 export function getDeviceProfiles(activeCase) {
