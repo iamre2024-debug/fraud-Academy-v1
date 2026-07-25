@@ -638,7 +638,7 @@ body[data-layout-mode="desktop"] .desktop-case-hero-copy dl {
   width: 100%;
   max-width: 690px;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 9px;
   margin: 20px 0 0;
 }
@@ -663,6 +663,7 @@ body[data-layout-mode="desktop"] .desktop-case-hero-copy dt {
   font-weight: 850;
   letter-spacing: 0.09em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 body[data-layout-mode="desktop"] .desktop-case-hero-copy dd {
@@ -1045,23 +1046,14 @@ body[data-layout-mode="desktop"] .desktop-shortcuts .dashboard-quick-grid > butt
   overflow: hidden;
   border: 1px solid var(--deck-line);
   border-radius: 18px;
-  background: var(--deck-surface-soft);
+  background:
+    radial-gradient(circle at 106% 114%, color-mix(in srgb, var(--deck-lavender) 12%, transparent) 0 58px, transparent 59px),
+    var(--deck-surface-soft);
   color: var(--deck-text);
   padding: 14px;
   text-align: left;
   box-shadow: none;
   cursor: pointer;
-}
-
-body[data-layout-mode="desktop"] .desktop-shortcuts .dashboard-quick-grid > button::after {
-  content: "";
-  position: absolute;
-  width: 76px;
-  height: 76px;
-  right: -44px;
-  bottom: -49px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--deck-lavender) 12%, transparent);
 }
 
 body[data-layout-mode="desktop"] .desktop-shortcuts .dashboard-quick-grid > button:hover {
