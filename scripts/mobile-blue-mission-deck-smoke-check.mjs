@@ -105,8 +105,9 @@ if (/#ff4fd8|#d76bff|#ff9be9/i.test(styles)) failures.push('Mission Deck v3 cont
 if (/width:\s*min\(100%,\s*430px\)/.test(styles)) failures.push('Mission Deck v3 must fill the phone viewport instead of using the retired 430px shell cap.');
 if (!styles.includes('--md-shell-width: 94vw;')) failures.push('Mission Deck v3 must preserve a proportional phone shell across browser zoom levels.');
 if (/calc\(50vw\s*-\s*(?:205|209)px\)/.test(styles)) failures.push('Mission Deck v3 must not position controls against the retired 430px shell.');
-if (!/\.mission-evidence-page .*\.visual-category-row\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s.test(styles)) {
-  failures.push('Mission evidence category cards must use two readable mobile columns.');
+if (!styles.includes('.mission-map-tool-node')) failures.push('Mission evidence groups must render as connected blue map nodes.');
+if (!/\.investigation-tool-groups-theme-v1\s*>\s*\.visual-category-row\s*\{[^}]*display:\s*none/s.test(styles)) {
+  failures.push('Mission evidence map must remove the retired separate category-card row.');
 }
 if (!/\.mission-mobile-dock\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/s.test(styles)) {
   failures.push('Mission Deck v3 must keep primary navigation in a five-column bottom dock.');
