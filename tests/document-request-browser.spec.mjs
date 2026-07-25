@@ -86,8 +86,14 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   const customerViewer = toolPanel.locator('[data-document-viewer-screen="approved-theme-v1"]');
   await expect(customerViewer.getByRole('navigation', { name: 'Document folders' })
     .getByRole('button', { name: /^Customer Evidence/ })).toHaveClass(/active/);
-  await expect(customerViewer.locator('.document-page')).toContainText('StreamBox Premium Cancellation Confirmation');
-  await expect(customerViewer.locator('.document-page')).toContainText('Automatic renewal turned off');
+  const customerDocumentSurface = testInfo.project.name === 'mobile-chromium'
+    ? customerViewer.locator('.document-mobile-review-shell')
+    : customerViewer;
+  if (testInfo.project.name === 'mobile-chromium') {
+    await customerDocumentSurface.getByRole('tab', { name: /Document/ }).click();
+  }
+  await expect(customerDocumentSurface.locator('.document-page')).toContainText('StreamBox Premium Cancellation Confirmation');
+  await expect(customerDocumentSurface.locator('.document-page')).toContainText('Automatic renewal turned off');
   await customerViewer.getByRole('navigation', { name: 'Document Viewer next routes' })
     .getByRole('button', { name: 'Open Document Request', exact: true })
     .click();
@@ -127,7 +133,13 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(viewer.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toHaveCount(0);
   await expect(viewer.getByRole('navigation', { name: 'Document folders' })
     .getByRole('button', { name: /^Merchant Evidence/ })).toHaveClass(/active/);
-  await expect(viewer.locator('.document-page')).toBeVisible();
+  const merchantDocumentSurface = testInfo.project.name === 'mobile-chromium'
+    ? viewer.locator('.document-mobile-review-shell')
+    : viewer;
+  if (testInfo.project.name === 'mobile-chromium') {
+    await merchantDocumentSurface.getByRole('tab', { name: /Document/ }).click();
+  }
+  await expect(merchantDocumentSurface.locator('.document-page')).toBeVisible();
   await viewer.getByRole('navigation', { name: 'Document Viewer next routes' })
     .getByRole('button', { name: 'Open Document Request', exact: true })
     .click();
