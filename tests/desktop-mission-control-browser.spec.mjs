@@ -37,6 +37,13 @@ async function openDashboard(page) {
   await expect(page.locator('[data-react-navigation-panel="dashboard"]')).toBeVisible();
 }
 
+async function assertCaseDeskVisible(page) {
+  const rail = page.locator('.desktop-utility-rail');
+  await expect(rail).toBeVisible();
+  await expect(rail.getByText('Case desk', { exact: true })).toBeVisible();
+  await expect(rail.locator(':scope > section')).toHaveCount(4);
+}
+
 test('desktop mission control renders complete wide pages and exact workspace shortcuts', async ({ page }) => {
   await page.addInitScript(() => window.localStorage.setItem('fraud-academy-layout-mode-v1', 'desktop'));
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -49,6 +56,11 @@ test('desktop mission control renders complete wide pages and exact workspace sh
   await expect(page.locator('.desktop-case-path').getByRole('button')).toHaveCount(6);
   await expect(page.locator('.desktop-utility-rail > section')).toHaveCount(4);
   await expect(page.locator('.desktop-shortcuts .dashboard-quick-grid > button')).toHaveCount(8);
+  await assertCaseDeskVisible(page);
+  const detailWidths = await page.locator('.desktop-case-hero-copy dl > div').evaluateAll(
+    (items) => items.map((item) => item.getBoundingClientRect().width),
+  );
+  expect(Math.min(...detailWidths)).toBeGreaterThanOrEqual(140);
   await assertDesktopWidthSafe(page, 'Dashboard');
 
   await page.locator('.desktop-utility-rail').getByRole('button', { name: 'Open Quick Pad', exact: true }).click();
@@ -73,6 +85,7 @@ test('desktop mission control renders complete wide pages and exact workspace sh
   await openDashboard(page);
   await shortcuts.getByRole('button', { name: /Tool Library/ }).click();
   await expect(page.locator('.visual-os-frame')).toHaveAttribute('data-workspace-screen', 'tool-menu');
+  await assertCaseDeskVisible(page);
   await assertDesktopWidthSafe(page, 'Workspace');
 
   await page.reload();
@@ -82,14 +95,17 @@ test('desktop mission control renders complete wide pages and exact workspace sh
   const navigation = page.getByRole('navigation', { name: 'Main navigation' });
   await navigation.getByRole('button', { name: 'Cases', exact: true }).click();
   await expect(page.locator('[data-cases-theme-v1="approved"]')).toBeVisible();
+  await assertCaseDeskVisible(page);
   await assertDesktopWidthSafe(page, 'Cases');
 
   await navigation.getByRole('button', { name: 'Academy', exact: true }).click();
   await expect(page.locator('[data-academy-screen="approved-theme-v1"]')).toBeVisible();
+  await assertCaseDeskVisible(page);
   await assertDesktopWidthSafe(page, 'Academy');
 
   await page.getByRole('button', { name: 'Open Agent profile', exact: true }).first().click();
   await expect(page.locator('[data-profile-screen="approved-theme-v1"]')).toBeVisible();
+  await assertCaseDeskVisible(page);
   await assertDesktopWidthSafe(page, 'Profile');
 });
 
