@@ -19,6 +19,9 @@ async function assertPhoneGeometry(page) {
       .map((element) => element.textContent.trim());
     const categoryCards = [...document.querySelectorAll('.mission-evidence-page .mission-map-tool-node')]
       .filter((element) => element.getBoundingClientRect().width > 0);
+    const brandText = document.querySelector('.mission-mobile-brand > span:last-child')?.getBoundingClientRect();
+    const dockLabelHeights = [...document.querySelectorAll('.mission-mobile-dock button small')]
+      .map((element) => element.getBoundingClientRect().height);
     return {
       viewport: window.innerWidth,
       expectedShellWidth: window.innerWidth * 0.94,
@@ -43,6 +46,8 @@ async function assertPhoneGeometry(page) {
         [...element.querySelectorAll('strong, small')]
           .map((text) => Number.parseFloat(getComputedStyle(text).fontSize))
       )),
+      brandTextHeight: brandText?.height ?? 0,
+      dockLabelHeights,
     };
   });
 
@@ -61,6 +66,8 @@ async function assertPhoneGeometry(page) {
   expect(geometry.categoryCardWidths.every((width) => width >= 118)).toBe(true);
   expect(geometry.categoryTitleGeometry.every(({ width, height }) => width >= 90 && height <= 74)).toBe(true);
   expect(geometry.categoryFontSizes.every((size) => size >= 12)).toBe(true);
+  expect(geometry.brandTextHeight).toBeLessThanOrEqual(34);
+  expect(geometry.dockLabelHeights.every((height) => height <= 18)).toBe(true);
 }
 
 test('mobile mounts the dedicated Mission Deck and a generated case inherits every route', async ({ page }, testInfo) => {
@@ -153,7 +160,9 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   await page.getByRole('button', { name: 'Open mission pages' }).click();
   await page.locator('.mission-path-list').getByRole('button', { name: /Investigate/ }).click();
   await expect(page.locator('.mission-evidence-page .mission-evidence-map')).toBeVisible();
-  await page.locator('.mission-evidence-page .mission-map-node.node-customer').click();
+  await page.locator('.mission-evidence-page .mission-map-tool-node')
+    .filter({ hasText: 'Identity & Customer' })
+    .click();
   await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')).toHaveAttribute('data-case-id', generatedCaseId);
   await assertPhoneGeometry(page);
   await capture(page, testInfo, '06-generated-customer-360');

@@ -16,13 +16,18 @@ const forbiddenViewerCopy = /\b(?:fraud score|red flags?|green flags?|correct an
 test('Document Viewer requires an Account ID, then compares, annotates, and exports matching customer documents', async ({ page }, testInfo) => {
   await page.goto('/');
 
-  const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
+  const briefing = testInfo.project.name === 'mobile-chromium'
+    ? page.locator('.mission-briefing-v3')
+    : page.locator('[data-case-briefing-screen="approved-theme-v1"]');
   await expect(briefing.getByRole('button', { name: 'Open Document Viewer', exact: true })).toHaveCount(0);
-  await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
-
-  await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')
-    .getByRole('button', { name: 'Document Viewer', exact: true })).toHaveCount(0);
-  await expect(page.locator('.tray-card').getByRole('button', { name: /Document Viewer/ })).toHaveCount(0);
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(briefing.getByRole('button', { name: /Tools/ })).toBeVisible();
+  } else {
+    await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
+    await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')
+      .getByRole('button', { name: 'Document Viewer', exact: true })).toHaveCount(0);
+    await expect(page.locator('.tray-card').getByRole('button', { name: /Document Viewer/ })).toHaveCount(0);
+  }
 
   await selectToolGroup(page, /Documents & Requests/);
 
@@ -60,7 +65,11 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
   await search.fill('no-matching-document-record');
   await expect(viewer.locator('[data-document-record]')).toHaveCount(0);
   await expect(viewer.locator('.document-record-list .document-viewer-empty')).toContainText('No documents match the current folder, status, and search.');
-  await expect(viewer.getByRole('main', { name: 'Document preview' })).toContainText('Choose a document to open its viewer.');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(viewer.locator('.document-mobile-review-shell')).toHaveCount(0);
+  } else {
+    await expect(viewer.getByRole('main', { name: 'Document preview' })).toContainText('Choose a document to open its viewer.');
+  }
   await search.clear();
 
   for (const title of requiredDocuments) {
@@ -199,8 +208,10 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
 
 test('Document Viewer keeps prefilled access locked and restores isolated per-document drafts after reload', async ({ page }, testInfo) => {
   async function openActiveCaseViewer() {
-    const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
-    await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
+    if (testInfo.project.name !== 'mobile-chromium') {
+      const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
+      await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
+    }
     await selectToolGroup(page, /Documents & Requests/);
     const viewer = page.locator('[data-document-viewer-screen="approved-theme-v1"]');
     const accountSearch = viewer.getByRole('textbox', { name: 'Search by Account ID' });

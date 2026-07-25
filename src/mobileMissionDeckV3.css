@@ -172,10 +172,20 @@ body[data-layout-mode="mobile"] #root {
 .mission-mobile-brand > span:last-child {
   display: grid;
   gap: 1px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .mission-mobile-brand strong { font-size: 0.78rem; letter-spacing: 0.03em; }
 .mission-mobile-brand small { color: var(--md-cyan); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.14em; }
+
+.mission-mobile-brand :is(strong, small),
+.mission-mobile-case-chip :is(span, strong) {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .mission-mobile-case-chip {
   display: grid;
@@ -359,7 +369,15 @@ body[data-layout-mode="mobile"] #root {
 }
 
 .mission-mobile-dock button > span { font-size: 1.25rem; }
-.mission-mobile-dock button small { font-size: 0.75rem; font-weight: 850; }
+.mission-mobile-dock button small {
+  width: 100%;
+  overflow: hidden;
+  font-size: 0.75rem;
+  font-weight: 850;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .mission-mobile-dock button.active {
   border-color: rgba(105, 230, 255, 0.7);
   background: radial-gradient(circle at 50% 22%, #168fe1, #0752a0 70%);
@@ -2538,6 +2556,57 @@ body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-group
   font-size: 0.75rem;
   font-weight: 850;
   overflow-wrap: anywhere;
+}
+
+@media (min-width: 371px) and (max-width: 430px) {
+  .mission-mobile-header {
+    grid-template-columns: minmax(0, 1fr) 120px auto;
+    gap: 5px;
+    padding-inline: 6px;
+  }
+
+  .mission-mobile-brand {
+    gap: 6px;
+  }
+
+  .mission-mobile-brand > span:first-child {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+
+  .mission-mobile-brand strong {
+    font-size: 0.75rem;
+  }
+
+  .mission-mobile-brand small {
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+  }
+
+  .mission-mobile-case-chip {
+    width: 120px;
+    min-width: 0;
+    padding: 5px 7px;
+  }
+
+  .mission-mobile-case-chip span {
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+  }
+
+  .mission-mobile-case-chip strong {
+    font-size: 0.75rem;
+  }
+
+  .mission-mobile-header-actions {
+    gap: 3px;
+  }
+
+  .mission-mobile-header-actions button {
+    width: 30px;
+    height: 30px;
+  }
 }
 
 @media (max-width: 370px) {

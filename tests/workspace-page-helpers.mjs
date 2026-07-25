@@ -1,5 +1,21 @@
 import { expect } from '@playwright/test';
 
+const workflowStages = [
+  { names: ['briefing', 'case briefing'], buttonName: /\b(?:case )?briefing\b/i, screen: 'briefing' },
+  { names: ['investigate'], buttonName: /\binvestigate\b/i, screen: 'tool-menu' },
+  { names: ['timeline'], buttonName: /\btimeline\b/i, screen: 'timeline' },
+  { names: ['determination', 'decision'], buttonName: /\b(?:determination|decision)\b/i, screen: 'determination' },
+  { names: ['debrief'], buttonName: /\bdebrief\b/i, screen: 'debrief' },
+];
+
+function matchesStageRequest(stageName, candidate) {
+  if (stageName instanceof RegExp) {
+    const flags = stageName.flags.includes('i') ? stageName.flags : `${stageName.flags}i`;
+    return new RegExp(stageName.source, flags).test(candidate);
+  }
+  return String(stageName).trim().toLowerCase() === candidate;
+}
+
 export async function openWorkspacePages(page) {
   const desktopWorkflow = page.locator('.active-case-workflow');
   if (await desktopWorkflow.isVisible()) return desktopWorkflow;
@@ -22,16 +38,11 @@ export async function openWorkspacePages(page) {
 
 export async function openWorkflowStage(page, stageName) {
   const workflow = await openWorkspacePages(page);
-  const stageButton = workflow.getByRole('button', { name: stageName });
-  const label = (await stageButton.innerText()).toLowerCase();
-  const expectedScreen = [
-    ['briefing', 'briefing'],
-    ['investigate', 'tool-menu'],
-    ['timeline', 'timeline'],
-    ['determination', 'determination'],
-    ['debrief', 'debrief'],
-  ].find(([stage]) => label.includes(stage))?.[1];
+  const stage = workflowStages.find(({ names }) => names.some((name) => matchesStageRequest(stageName, name)));
+  const stageButton = workflow.getByRole('button', { name: stage?.buttonName ?? stageName });
+  const expectedScreen = stage?.screen;
 
+  await expect(stageButton).toBeVisible();
   await stageButton.click();
 
   if (expectedScreen) {

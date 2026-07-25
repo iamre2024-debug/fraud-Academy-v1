@@ -84,13 +84,16 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await requestDetail.getByRole('button', { name: 'Open Customer Document', exact: true }).click();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
   const customerViewer = toolPanel.locator('[data-document-viewer-screen="approved-theme-v1"]');
-  await expect(customerViewer.getByRole('navigation', { name: 'Document folders' })
-    .getByRole('button', { name: /^Customer Evidence/ })).toHaveClass(/active/);
   const customerDocumentSurface = testInfo.project.name === 'mobile-chromium'
     ? customerViewer.locator('.document-mobile-review-shell')
     : customerViewer.locator('.document-preview-workspace');
   if (testInfo.project.name === 'mobile-chromium') {
+    await expect(customerDocumentSurface).toBeVisible();
+    await expect(customerDocumentSurface.locator('.document-mobile-summary-header p')).toHaveText(/Customer Evidence/i);
     await customerDocumentSurface.getByRole('tab', { name: /Document/ }).click();
+  } else {
+    await expect(customerViewer.getByRole('navigation', { name: 'Document folders' })
+      .getByRole('button', { name: /^Customer Evidence/ })).toHaveClass(/active/);
   }
   await expect(customerDocumentSurface.locator('.document-page')).toContainText('StreamBox Premium Cancellation Confirmation');
   await expect(customerDocumentSurface.locator('.document-page')).toContainText('Automatic renewal turned off');
@@ -103,7 +106,7 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Request');
 
   if (testInfo.project.name === 'mobile-chromium') {
-    await toolPanel.getByRole('button', { name: '‹ Inbox', exact: true }).click();
+    await expect(toolPanel.locator('.document-request-inbox')).toHaveAttribute('data-mobile-pane', 'inbox');
   }
 
   const records = toolPanel.locator('[data-document-request]');
@@ -116,7 +119,11 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(records).toHaveCount(1);
   await search.fill('no-matching-paperwork-record');
   await expect(records).toHaveCount(0);
-  await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('No document requests are available for this case.');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(toolPanel.locator('.document-request-list .investigation-tool-empty')).toContainText('No document requests match this filter or search.');
+  } else {
+    await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('No document requests are available for this case.');
+  }
   await search.clear();
 
   await records.first().click();
@@ -134,13 +141,16 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
   const viewer = toolPanel.locator('[data-document-viewer-screen="approved-theme-v1"]');
   await expect(viewer.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toHaveCount(0);
-  await expect(viewer.getByRole('navigation', { name: 'Document folders' })
-    .getByRole('button', { name: /^Merchant Evidence/ })).toHaveClass(/active/);
   const merchantDocumentSurface = testInfo.project.name === 'mobile-chromium'
     ? viewer.locator('.document-mobile-review-shell')
     : viewer.locator('.document-preview-workspace');
   if (testInfo.project.name === 'mobile-chromium') {
+    await expect(merchantDocumentSurface).toBeVisible();
+    await expect(merchantDocumentSurface.locator('.document-mobile-summary-header p')).toHaveText(/Merchant Response/i);
     await merchantDocumentSurface.getByRole('tab', { name: /Document/ }).click();
+  } else {
+    await expect(viewer.getByRole('navigation', { name: 'Document folders' })
+      .getByRole('button', { name: /^Merchant Evidence/ })).toHaveClass(/active/);
   }
   await expect(merchantDocumentSurface.locator('.document-page')).toBeVisible();
   if (testInfo.project.name === 'mobile-chromium') {
