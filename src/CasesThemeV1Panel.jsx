@@ -120,7 +120,7 @@ export default function CasesThemeV1Panel({
   const [selectedCaseId, setSelectedCaseId] = useState(activeCaseId || cases[0]?.id || '');
   const [packagesByCase, setPackagesByCase] = useState(readPackagesByCase);
   const [generatorClaimTypeId, setGeneratorClaimTypeId] = useState(claimTypes[0]?.id ?? 'account-takeover');
-  const [generatorScenarioId, setGeneratorScenarioId] = useState(claimTypes[0]?.scenarios?.[0]?.id ?? '');
+  const [generatorScenarioId, setGeneratorScenarioId] = useState('auto');
   const [generatorDifficulty, setGeneratorDifficulty] = useState('standard');
   const [generatorDepth, setGeneratorDepth] = useState('standard');
   const [generatorCount, setGeneratorCount] = useState('1');
@@ -150,8 +150,8 @@ export default function CasesThemeV1Panel({
     const nextClaimType = selectedClaimType(claimTypes, generatorClaimTypeId);
     if (!nextClaimType) return;
     if (nextClaimType.id !== generatorClaimTypeId) setGeneratorClaimTypeId(nextClaimType.id);
-    if (!nextClaimType.scenarios.some((scenario) => scenario.id === generatorScenarioId)) {
-      setGeneratorScenarioId(nextClaimType.scenarios[0]?.id ?? '');
+    if (generatorScenarioId !== 'auto' && !nextClaimType.scenarios.some((scenario) => scenario.id === generatorScenarioId)) {
+      setGeneratorScenarioId('auto');
     }
   }, [claimTypes, generatorClaimTypeId, generatorScenarioId]);
 
@@ -266,6 +266,7 @@ export default function CasesThemeV1Panel({
           <label>
             <span>Scenario</span>
             <select value={generatorScenarioId} onChange={(event) => setGeneratorScenarioId(event.target.value)} aria-label="Generate case scenario">
+              <option value="auto">Auto mix — rotate scenario and evidence pattern</option>
               {(generatorClaimType?.scenarios ?? []).map((scenario) => <option key={scenario.id} value={scenario.id}>{scenario.title}</option>)}
             </select>
           </label>
