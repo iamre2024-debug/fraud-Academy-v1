@@ -1433,10 +1433,13 @@ body[data-layout-mode="desktop"] .desktop-section-intro p {
   color: var(--deck-muted);
 }
 
-body[data-layout-mode="desktop"] .desktop-cases-page .case-queue-layout,
+body[data-layout-mode="desktop"] .desktop-cases-page .case-queue-layout {
+  grid-template-columns: 1fr;
+}
+
 body[data-layout-mode="desktop"] .desktop-academy-page .academy-main-grid,
 body[data-layout-mode="desktop"] .desktop-profile-page .profile-main-grid {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1.35fr) minmax(200px, 0.65fr);
 }
 
 body[data-layout-mode="desktop"] .desktop-cases-page .cases-theme-v1-panel {
@@ -1748,19 +1751,27 @@ body[data-layout-mode="desktop"] .desktop-workspace-page .case-briefing-card-hea
   color: var(--deck-lavender);
 }
 
-body[data-layout-mode="desktop"] .desktop-workspace-page :is(
-  .case-briefing-overview-card,
-  .case-briefing-summary-card,
-  .case-briefing-intake-card,
-  .case-briefing-statement-card,
-  .case-briefing-facts-card,
-  .case-briefing-parties-card,
-  .case-briefing-detail-card
-) {
+body[data-layout-mode="desktop"] .desktop-workspace-page .case-briefing-overview-card,
+body[data-layout-mode="desktop"] .desktop-workspace-page .case-briefing-intake-card,
+body[data-layout-mode="desktop"] .desktop-workspace-page .case-briefing-parties-card {
+  grid-column: span 7;
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .case-briefing-summary-card,
+body[data-layout-mode="desktop"] .desktop-workspace-page .case-briefing-statement-card,
+body[data-layout-mode="desktop"] .desktop-workspace-page .case-briefing-facts-card {
+  grid-column: span 5;
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .case-briefing-detail-card {
   grid-column: 1 / -1;
 }
 
-body[data-layout-mode="desktop"] .desktop-workspace-page .case-briefing-utilities {
+body[data-layout-mode="desktop"] .desktop-workspace-page .case-briefing-utilities:not(.case-briefing-quick-routes) {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(120px, 1.25fr);
+}
+
+body[data-layout-mode="desktop"] .desktop-workspace-page .case-briefing-quick-routes {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
