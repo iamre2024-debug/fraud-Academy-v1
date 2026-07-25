@@ -275,7 +275,7 @@ function buildClaimFields(item, context = {}) {
 }
 
 function enrichOneCase(item) {
-  if (item.id?.includes('-G') && item.generatedPacketVersion !== 5 && item.claimTypeId && item.scenarioId) {
+  if (item.id?.includes('-G') && item.generatedPacketVersion !== 6 && item.claimTypeId && item.scenarioId) {
     const index = item.generatedAt ?? Number(String(item.id).replace(/\D/g, '').slice(-8)) ?? Date.now();
     const refreshed = createGeneratedCase({
       index,
