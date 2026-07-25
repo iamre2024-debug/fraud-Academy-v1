@@ -94,6 +94,9 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   }
   await expect(customerDocumentSurface.locator('.document-page')).toContainText('StreamBox Premium Cancellation Confirmation');
   await expect(customerDocumentSurface.locator('.document-page')).toContainText('Automatic renewal turned off');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await customerViewer.getByRole('button', { name: '‹ Inbox', exact: true }).click();
+  }
   await customerViewer.getByRole('navigation', { name: 'Document Viewer next routes' })
     .getByRole('button', { name: 'Open Document Request', exact: true })
     .click();
@@ -140,6 +143,9 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
     await merchantDocumentSurface.getByRole('tab', { name: /Document/ }).click();
   }
   await expect(merchantDocumentSurface.locator('.document-page')).toBeVisible();
+  if (testInfo.project.name === 'mobile-chromium') {
+    await viewer.getByRole('button', { name: '‹ Inbox', exact: true }).click();
+  }
   await viewer.getByRole('navigation', { name: 'Document Viewer next routes' })
     .getByRole('button', { name: 'Open Document Request', exact: true })
     .click();
