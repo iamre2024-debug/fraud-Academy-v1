@@ -73,6 +73,12 @@ The approved Profile handoff lives in:
 docs/FRAUD_ACADEMY_PROFILE_THEME_V1.md
 ```
 
+The desktop command-center replacement lives in:
+
+```text
+docs/FRAUD_ACADEMY_DESKTOP_MISSION_CONTROL_V2.md
+```
+
 The completed Phase 5 release-readiness audit lives in:
 
 ```text
@@ -112,6 +118,7 @@ Use these files before making architecture, UI, navigation, responsive, tool, sc
 - The Decision and Luna approved theme v1 replacement uses `src/SubmitDecisionPanel.jsx`, `src/LunaPostSubmissionPanel.jsx`, `src/displayDecisionLunaThemeV1.css`, and `src/displayDecisionLunaLayoutSafetyV1.css` for the Evidence First determination workspace, package readiness, lane-organized learner choices, responsive package saving, the protected pre-submission Luna lock, and the case-scoped post-submission debrief.
 - The Academy approved theme v1 replacement uses `src/AcademyThemeV1Panel.jsx`, `src/displayAcademyThemeV1.css`, and `src/displayAcademyThemeV1Safety.css` for four Evidence First learning paths, Fraud Library topics, neutral achievement guidance, contextual Academy Progress, functional Cases and Workspace routes, and responsive isolation from unreplaced Workspace surfaces.
 - The Profile approved theme v1 replacement uses `src/ProfileThemeV1Panel.jsx`, `src/displayProfileThemeV1.css`, and `src/displayProfileThemeV1Safety.css` for the contextual avatar-owned profile, activity-based rank, neutral saved-work metrics, skill proficiency, badges, active-case goals, Workspace, Academy, and Academy Progress routes, and responsive isolation.
+- Desktop Mission Control v2 uses `src/DesktopMissionControlApp.jsx` and `src/desktopMissionControlV2.css` for a direct, full-width blue-and-peach command center with a persistent sidebar, larger wrapping cards, direct Cases/Academy/Progress/Profile rendering, and exact Timeline, Pinned Evidence, Case Notes, and Tool Library shortcuts. Mobile remains on the separate Blue Mission Deck renderer.
 - `docs/FRAUD_ACADEMY_CASES_THEME_V1.md` records the isolated Cases scope and completed verification.
 - `docs/FRAUD_ACADEMY_WORKSPACE_SHELL_THEME_V1.md` records the isolated Workspace shell scope, protected behavior, and desktop/mobile verification gate.
 - `docs/FRAUD_ACADEMY_CASE_BRIEFING_THEME_V1.md` records the isolated Case Briefing scope, protected route behavior, and desktop/mobile verification gate.
@@ -125,7 +132,7 @@ Use these files before making architecture, UI, navigation, responsive, tool, sc
 - `src/VisualWorkspace.jsx` coordinates the core investigation workspace while `src/useVisualWorkspaceCaseState.js` owns case-scoped persistence and `src/useVisualWorkspaceActions.js` owns investigation actions and learner-package submission.
 - `src/VisualShellHeader.jsx` owns the compact approved Workspace header, active case strip, Case Queue dropdown, and functional Help, Settings, and Agent-profile controls while unreplaced surfaces retain their existing presentation.
 - The Help control routes to Academy and Cases, Settings persists a reduced-motion preference, and Agent profile exposes the current assignment plus Progress and Workspace routes.
-- `src/VisualNavigation.jsx` renders exactly four global destinations: Dashboard, Cases, Workspace, and Academy.
+- `src/DesktopMissionControlApp.jsx` renders the four desktop global destinations—Dashboard, Cases, Workspace, and Academy—plus contextual Progress and Profile routes. `src/VisualNavigation.jsx` remains an unmounted compatibility reference for earlier approved-theme guards.
 - Academy Progress remains active through contextual Dashboard, Academy, and Agent-profile actions rather than a fifth equal navigation item.
 - `src/ActiveCaseWorkflowRail.jsx` renders Case Briefing, Investigate, Timeline, Summary, Indicators, Determination, and Debrief with neutral status text and accessible current-step state.
 - `src/CategoryTileRail.jsx` renders the six approved contextual tool groups inside Investigate; Timeline and Case Report remain on the workflow rail.
@@ -262,4 +269,4 @@ The complete setup and migration contract is in [`docs/FRAUD_ACADEMY_CLOUD_PERSI
 
 ## Test status
 
-`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, encrypted cloud-persistence merge/recovery smoke, Luna single-module smoke, review-package smoke, remaining-module depth, navigation direct-collapse, Academy Progress package-flow, summary direct-collapse, workspace case-state hook, workspace action-controller, display-handoff, Display Phase 1 global-shell, Display Phase 2 workflow-rail, Display Phase 3 hierarchy-and-glow, Display Phase 4 responsive-record, Display Phase 5 release-readiness, Dashboard approved-theme v1, Cases approved-theme v1, Workspace shell approved-theme v1, Case Briefing approved-theme v1, Customer 360 approved-theme v1, Investigation tools approved-theme v1, Timeline approved-theme v1, Decision and Luna approved-theme v1, Academy approved-theme v1, Profile approved-theme v1, release-package documentation, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for the approved surfaces plus close/reopen recovery, clean-device cloud restore, generated-scenario recovery, and offline-to-online conflict retry.
+`npm run verify` includes Evidence First, functional smoke, visual three-case smoke, generated-case repository smoke, encrypted cloud-persistence merge/recovery smoke, mobile Blue Mission Deck isolation, Desktop Mission Control v2, Luna single-module smoke, review-package smoke, remaining-module depth, navigation direct-collapse, Academy Progress package-flow, summary direct-collapse, workspace case-state hook, workspace action-controller, display-handoff, Display Phase 1 global-shell, Display Phase 2 workflow-rail, Display Phase 3 hierarchy-and-glow, Display Phase 4 responsive-record, Display Phase 5 release-readiness, Dashboard approved-theme v1, Cases approved-theme v1, Workspace shell approved-theme v1, Case Briefing approved-theme v1, Customer 360 approved-theme v1, Investigation tools approved-theme v1, Timeline approved-theme v1, Decision and Luna approved-theme v1, Academy approved-theme v1, Profile approved-theme v1, release-package documentation, and production build checks. GitHub Actions also runs Playwright against desktop Chromium and a Pixel 7 mobile profile for the approved surfaces plus desktop shortcut routing, close/reopen recovery, clean-device cloud restore, generated-scenario recovery, and offline-to-online conflict retry.

@@ -59,6 +59,9 @@ jobs:
       - name: Mobile Blue Mission Deck smoke check
         run: npm run mobile-blue-mission-deck-smoke-check
 
+      - name: Desktop Mission Control v2 smoke check
+        run: npm run desktop-mission-control-v2-smoke-check
+
       - name: Luna single-module smoke check
         run: npm run luna-single-module-smoke-check
 

@@ -20,7 +20,8 @@ const checks = [
     label: 'React visual app coordinator',
     mustContain: [
       '<VisualWorkspace',
-      '<VisualNavigation',
+      '<DesktopMissionControlApp',
+      '<MobileMissionDeckApp',
       '<VisualTextCollapse',
       '<LunaPostSubmissionPanel',
       '<GeneratedCaseControls',

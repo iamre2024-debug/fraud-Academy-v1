@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import VisualWorkspace from './VisualWorkspace.jsx';
-import VisualNavigation from './VisualNavigation.jsx';
 import VisualTextCollapse from './VisualTextCollapse.jsx';
 import LunaPostSubmissionPanel from './LunaPostSubmissionPanel.jsx';
 import GeneratedCaseControls from './GeneratedCaseControls.jsx';
-import CasesThemeV1Panel from './CasesThemeV1Panel.jsx';
+import DesktopMissionControlApp from './DesktopMissionControlApp.jsx';
 import MobileMissionDeckApp from './MobileMissionDeckApp.jsx';
 import useResponsiveLayoutMode from './useResponsiveLayoutMode.js';
 import { trainingCases as baseCases } from './data/cases.js';
@@ -145,6 +144,12 @@ export default function VisualApp() {
     setActiveTab('workspace');
   }
 
+  function openDesktopWorkspace(nextWorkspaceScreen = workspaceScreen, nextWorkspaceTool = '') {
+    if (nextWorkspaceTool) setWorkspaceTool(nextWorkspaceTool);
+    setWorkspaceScreen(nextWorkspaceScreen);
+    setActiveTab('workspace');
+  }
+
   function viewCaseSummary() {
     setWorkspaceScreen('briefing');
     setActiveTab('workspace');
@@ -197,39 +202,41 @@ export default function VisualApp() {
 
   return (
     <>
-      <VisualWorkspace
-        activeCaseId={activeCaseId}
-        cases={caseCatalog}
-        onCaseChange={openCase}
-        onNavigate={setActiveTab}
-        requestedWorkspaceScreen={workspaceScreen}
-        onWorkspaceScreenChange={setWorkspaceScreen}
-        requestedWorkspaceTool={workspaceTool}
-        onWorkspaceToolChange={setWorkspaceTool}
-      />
-      <GeneratedCaseControls onCaseGenerated={handleGeneratedCase} />
-      <LunaPostSubmissionPanel
-        activeCase={activeCase}
-        activeCaseId={activeCaseId}
-        onBackToWorkspace={returnToWorkspace}
-        onViewCaseSummary={viewCaseSummary}
-        onReturnToQueue={returnToQueue}
-        visible={activeTab === 'workspace' && workspaceScreen === 'debrief'}
-      />
-      <VisualNavigation
+      <DesktopMissionControlApp
         activeTab={activeTab}
-        activeCaseId={activeCaseId}
-        cases={caseCatalog}
-        onNavigate={setActiveTab}
-        onOpenCase={openCase}
-      />
-      <CasesThemeV1Panel
-        active={activeTab === 'cases'}
+        activeCase={activeCase}
         activeCaseId={activeCaseId}
         cases={caseCatalog}
         claimTypes={coreClaimTypes}
+        layoutController={layoutController}
+        luna={(
+          <LunaPostSubmissionPanel
+            activeCase={activeCase}
+            activeCaseId={activeCaseId}
+            inline
+            onBackToWorkspace={returnToWorkspace}
+            onViewCaseSummary={viewCaseSummary}
+            onReturnToQueue={returnToQueue}
+            visible={activeTab === 'workspace' && workspaceScreen === 'debrief'}
+          />
+        )}
         onGenerateCases={handleGeneratedCases}
+        onNavigate={setActiveTab}
         onOpenCase={openCase}
+        onOpenWorkspaceRoute={openDesktopWorkspace}
+        quickGenerator={<GeneratedCaseControls inline onCaseGenerated={handleGeneratedCase} />}
+        workspace={(
+          <VisualWorkspace
+            activeCaseId={activeCaseId}
+            cases={caseCatalog}
+            onCaseChange={openCase}
+            onNavigate={setActiveTab}
+            requestedWorkspaceScreen={workspaceScreen}
+            onWorkspaceScreenChange={setWorkspaceScreen}
+            requestedWorkspaceTool={workspaceTool}
+            onWorkspaceToolChange={setWorkspaceTool}
+          />
+        )}
       />
       <VisualTextCollapse />
     </>
