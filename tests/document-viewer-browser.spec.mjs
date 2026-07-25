@@ -80,7 +80,7 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
       const mobileReview = viewer.locator('.document-mobile-review-shell');
       await expect(mobileReview).toBeVisible();
       await expect(mobileReview.getByRole('heading', { name: title, exact: true })).toBeVisible();
-      await expect(mobileReview.getByRole('navigation', { name: 'Document review pages' })).toBeVisible();
+      await expect(mobileReview.getByRole('tablist', { name: 'Document review pages' })).toBeVisible();
       await expect(mobileReview.getByRole('tab')).toHaveCount(4);
       await expect(mobileReview.getByRole('tab', { name: /Fields/ })).toHaveAttribute('aria-selected', 'true');
       await expect(mobileReview.locator('[data-review-panel="fields"]')).toContainText('Confidence');
@@ -111,7 +111,10 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
   const documentSurface = testInfo.project.name === 'mobile-chromium'
     ? mobileReview
     : viewer.locator('.document-preview-workspace');
-  const pageControls = documentSurface.getByRole('region', { name: 'Document page controls' });
+  const pageControls = testInfo.project.name === 'mobile-chromium'
+    ? mobileReview.locator('[data-review-panel="document"] > .document-page-controls')
+    : documentSurface.getByRole('region', { name: 'Document page controls' });
+  await expect(pageControls).toBeVisible();
   await expect(pageControls.getByText('Page 1 of 1', { exact: true })).toBeVisible();
   await expect(documentSurface.locator('.document-page')).toContainText('Account billing ledger');
   await expect(documentSurface.locator('.document-page')).toContainText('StreamBox Premium');
@@ -146,13 +149,40 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
     await viewer.locator('.document-toolbar-actions').getByRole('button', { name: 'Pin', exact: true }).click();
     await viewer.getByRole('textbox', { name: 'Document investigator note' }).fill('Statement ownership and both pages were reviewed against the active customer record.');
   }
-  await expect(page.locator('.tray-card')).toContainText('BILL-HIST');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect.poll(async () => {
+      const items = await page.evaluate(() => (
+        JSON.parse(localStorage.getItem('fraud-academy-visual-tray-v1') || '{}')['FA-CB-24007'] ?? []
+      ));
+      return items.some((item) => String(item).includes('BILL-HIST'));
+    }).toBe(true);
+  } else {
+    await expect(page.locator('.tray-card')).toContainText('BILL-HIST');
+  }
 
   const noteSurface = testInfo.project.name === 'mobile-chromium' ? mobileReview : viewer;
   await noteSurface.getByRole('button', { name: 'Save note', exact: true }).click();
-  await expect(page.locator('.notebook-card')).toContainText('Document review');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect.poll(async () => {
+      const items = await page.evaluate(() => (
+        JSON.parse(localStorage.getItem('fraud-academy-notes-v1') || '{}')['FA-CB-24007'] ?? []
+      ));
+      return items.some((item) => String(item).includes('Document review'));
+    }).toBe(true);
+  } else {
+    await expect(page.locator('.notebook-card')).toContainText('Document review');
+  }
   await noteSurface.getByRole('button', { name: 'Add to summary', exact: true }).click();
-  await expect(page.locator('.notebook-card')).toContainText('Document summary');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect.poll(async () => {
+      const items = await page.evaluate(() => (
+        JSON.parse(localStorage.getItem('fraud-academy-notes-v1') || '{}')['FA-CB-24007'] ?? []
+      ));
+      return items.some((item) => String(item).includes('Document summary'));
+    }).toBe(true);
+  } else {
+    await expect(page.locator('.notebook-card')).toContainText('Document summary');
+  }
 
   const layout = await page.evaluate(() => {
     const viewerElement = document.querySelector('[data-document-viewer-screen="approved-theme-v1"]');

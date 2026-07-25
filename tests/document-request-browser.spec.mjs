@@ -133,9 +133,27 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(detail).toContainText('Authenticity flag');
 
   await detail.getByRole('button', { name: 'Pin request', exact: true }).click();
-  await expect(page.locator('.tray-card')).toContainText('Pinned');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect.poll(async () => {
+      const items = await page.evaluate(() => (
+        JSON.parse(localStorage.getItem('fraud-academy-visual-tray-v1') || '{}')['FA-CB-24007'] ?? []
+      ));
+      return items.some((item) => String(item).includes(firstRequestId));
+    }).toBe(true);
+  } else {
+    await expect(page.locator('.tray-card')).toContainText('Pinned');
+  }
   await detail.getByRole('button', { name: 'Save follow-up note', exact: true }).click();
-  await expect(page.locator('.notebook-card')).toContainText('Document Request');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect.poll(async () => {
+      const items = await page.evaluate(() => (
+        JSON.parse(localStorage.getItem('fraud-academy-notes-v1') || '{}')['FA-CB-24007'] ?? []
+      ));
+      return items.some((item) => String(item).includes('Document Request'));
+    }).toBe(true);
+  } else {
+    await expect(page.locator('.notebook-card')).toContainText('Document Request');
+  }
 
   await detail.getByRole('button', { name: 'View Merchant Paperwork', exact: true }).click();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');

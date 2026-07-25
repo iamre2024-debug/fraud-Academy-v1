@@ -197,7 +197,12 @@ test('a choice-only decision saves and unlocks Luna on desktop and mobile', asyn
   }
 
   await luna.getByRole('button', { name: 'View Case Summary', exact: true }).click();
-  await expect(page.locator('[data-case-briefing-screen="approved-theme-v1"]')).toBeVisible();
+  await expect(page.locator('.visual-os-frame, .mission-workspace-v3'))
+    .toHaveAttribute('data-workspace-screen', 'briefing');
+  const summary = testInfo.project.name === 'mobile-chromium'
+    ? page.locator('.mission-briefing-v3')
+    : page.locator('[data-case-briefing-screen="approved-theme-v1"]');
+  await expect(summary).toBeVisible();
 
   await page.reload();
   const persistedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');
