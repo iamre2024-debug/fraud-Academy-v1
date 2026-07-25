@@ -5,6 +5,7 @@ import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import { buildLunaDebrief } from './data/lunaDebrief.js';
 import { requestLunaApiCoaching } from './data/lunaApi.js';
+import { isValidReviewPackage } from './data/reviewPackage.js';
 
 const cases = enrichTrainingCases(baseCases);
 const storageKeys = {
@@ -144,8 +145,11 @@ export default function LunaPostSubmissionPanel({
     const completedByCase = readJson(storageKeys.completed, {});
     const trayByCase = readJson(storageKeys.tray, {});
     const notesByCase = readJson(storageKeys.notes, {});
-    const storedPackage = (packagesByCase[activeCase.id] ?? [])[0] ?? null;
-    const reviewPackage = submittedPackage?.caseId === activeCase.id ? submittedPackage : storedPackage;
+    const storedPackage = (packagesByCase[activeCase.id] ?? [])
+      .find((reviewPackage) => isValidReviewPackage(activeCase, reviewPackage)) ?? null;
+    const submittedPackageIsValid = submittedPackage?.caseId === activeCase.id
+      && isValidReviewPackage(activeCase, submittedPackage);
+    const reviewPackage = submittedPackageIsValid ? submittedPackage : storedPackage;
     const debrief = buildLunaDebrief({
       activeCase,
       reviewPackage,
@@ -167,13 +171,16 @@ export default function LunaPostSubmissionPanel({
       signal: controller.signal,
     })
       .then((coaching) => {
-        if (!coaching) return;
+        if (!coaching) {
+          setApiCoaching(null);
+          setApiStatus('fallback');
+          return;
+        }
         setApiCoaching(coaching);
         setApiStatus('ready');
       })
       .catch((error) => {
         if (error.name === 'AbortError') return;
-        console.warn('Luna manager API unavailable; using guarded fallback.', error);
         setApiCoaching(null);
         setApiStatus('fallback');
       });

@@ -5,6 +5,7 @@ import {
   storageKeys,
   writeStorage,
 } from './visualWorkspaceModel.js';
+import { isValidReviewPackage } from './data/reviewPackage.js';
 
 const legacyToolNames = {
   'Evidence Center': 'Document Viewer',
@@ -22,6 +23,7 @@ function migrateCompletedTools(saved) {
 export default function useVisualWorkspaceCaseState(activeCase) {
   const [trayByCase, setTrayByCase] = useState(() => readStorage(storageKeys.tray, {}));
   const [notesByCase, setNotesByCase] = useState(() => readStorage(storageKeys.notes, {}));
+  const [noteDraftsByCase, setNoteDraftsByCase] = useState(() => readStorage(storageKeys.noteDrafts, {}));
   const [completedByCase, setCompletedByCase] = useState(() => migrateCompletedTools(readStorage(storageKeys.completed, {})));
   const [decisionByCase, setDecisionByCase] = useState(() => readStorage(storageKeys.decisions, {}));
   const [packagesByCase, setPackagesByCase] = useState(() => readStorage(storageKeys.packages, {}));
@@ -30,6 +32,7 @@ export default function useVisualWorkspaceCaseState(activeCase) {
 
   useEffect(() => writeStorage(storageKeys.tray, trayByCase), [trayByCase]);
   useEffect(() => writeStorage(storageKeys.notes, notesByCase), [notesByCase]);
+  useEffect(() => writeStorage(storageKeys.noteDrafts, noteDraftsByCase), [noteDraftsByCase]);
   useEffect(() => writeStorage(storageKeys.completed, completedByCase), [completedByCase]);
   useEffect(() => writeStorage(storageKeys.decisions, decisionByCase), [decisionByCase]);
   useEffect(() => {
@@ -40,17 +43,28 @@ export default function useVisualWorkspaceCaseState(activeCase) {
   useEffect(() => writeStorage(storageKeys.documentRequests, documentRequestsByCase), [documentRequestsByCase]);
 
   const caseId = activeCase.id;
+  const noteDraft = noteDraftsByCase[caseId] ?? '';
+  const reviewPackages = (packagesByCase[caseId] ?? []).filter((reviewPackage) => isValidReviewPackage(activeCase, reviewPackage));
+
+  function setNoteDraft(nextValue) {
+    setNoteDraftsByCase((current) => ({
+      ...current,
+      [caseId]: typeof nextValue === 'function' ? nextValue(current[caseId] ?? '') : nextValue,
+    }));
+  }
 
   return {
     tray: trayByCase[caseId] ?? [activeCase.trainingId],
     notes: notesByCase[caseId] ?? [],
+    noteDraft,
     currentCompleted: completedByCase[caseId] ?? ['Case Summary'],
     decisionDraft: decisionByCase[caseId] ?? defaultDecisionDraft,
-    reviewPackages: packagesByCase[caseId] ?? [],
+    reviewPackages,
     actionLog: [...(actionsByCase[caseId] ?? []), ...(activeCase.actionLog ?? [])],
     documentRequests: documentRequestsByCase[caseId] ?? {},
     setTrayByCase,
     setNotesByCase,
+    setNoteDraft,
     setCompletedByCase,
     setDecisionByCase,
     setPackagesByCase,

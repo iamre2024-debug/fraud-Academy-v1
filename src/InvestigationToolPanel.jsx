@@ -1320,7 +1320,7 @@ function IdentityIntelWorkspace({
           <span>Fictional training data only. Identity information is evidence, not a case conclusion.</span>
         </div>
         <div className="identity-intel-search-fields">
-          <label><span>Search method</span><select value={searchMode} onChange={(event) => setSearchMode(event.target.value)} aria-label="Choose People Search method"><option value="id">SSN / Training ID</option><option value="name-dob">Name + DOB</option></select></label>
+          <label><span>Search method</span><select value={searchMode} onChange={(event) => setSearchMode(event.target.value)} aria-label="Choose People Search method"><option value="id">Training ID</option><option value="name-dob">Name + DOB</option></select></label>
           {searchMode === 'id' ? <label><span>Fictional Training ID</span><input value={idDraft} onChange={(event) => setIdDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') runSearch(); }} placeholder="TRN-8842-19" aria-label="Search Identity Intel by Training ID" /></label> : <>
             <label><span>Full name</span><input value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') runSearch(); }} placeholder="Maya Sterling" aria-label="Search Identity Intel by name" /></label>
             <label><span>Date of birth</span><input value={dobDraft} onChange={(event) => setDobDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') runSearch(); }} placeholder="Feb 14, 1988" aria-label="Search Identity Intel by date of birth" /></label>

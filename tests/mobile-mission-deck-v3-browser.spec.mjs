@@ -22,6 +22,7 @@ async function assertPhoneGeometry(page) {
     return {
       viewport: window.innerWidth,
       expectedShellWidth: window.innerWidth * 0.94,
+      expectedDockInset: window.innerWidth <= 370 ? 4 : 8,
       documentWidth: document.documentElement.scrollWidth,
       rootLeft: root?.left ?? -1,
       rootRight: root?.right ?? window.innerWidth + 1,
@@ -52,8 +53,8 @@ async function assertPhoneGeometry(page) {
   expect(geometry.rootRight).toBeLessThanOrEqual(geometry.viewport + 1);
   expect(geometry.rootWidth).toBeGreaterThanOrEqual(geometry.expectedShellWidth - 1);
   expect(geometry.rootWidth).toBeLessThanOrEqual(geometry.expectedShellWidth + 1);
-  expect(geometry.dockLeft).toBeGreaterThanOrEqual(geometry.rootLeft + 7);
-  expect(geometry.dockRight).toBeLessThanOrEqual(geometry.rootRight - 7);
+  expect(geometry.dockLeft).toBeGreaterThanOrEqual(geometry.rootLeft + geometry.expectedDockInset - 1);
+  expect(geometry.dockRight).toBeLessThanOrEqual(geometry.rootRight - geometry.expectedDockInset + 1);
   expect(geometry.dockBottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
   expect(geometry.dockWidth).toBeGreaterThanOrEqual(geometry.expectedShellWidth - 18);
   expect(geometry.badHeadings).toEqual([]);
@@ -90,7 +91,20 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   await assertPhoneGeometry(page);
   await capture(page, testInfo, '01-dashboard');
 
+  await page.locator('.mission-command-drawers').getByRole('button', { name: /Evidence Map/ }).click();
+  await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'tool-menu');
+  await expect(page.locator('.mission-evidence-page .mission-evidence-map')).toBeVisible();
+
+  await dock.getByRole('button', { name: /Academy/ }).click();
+  await expect(page.locator('[data-mission-page="academy"]')).toBeVisible();
+  await expect(page.locator('[data-academy-screen="approved-theme-v1"]')).toBeVisible();
+
+  await dock.getByRole('button', { name: /Cases/ }).click();
+  await expect(page.locator('[data-mission-page="cases"]')).toBeVisible();
+  await expect(page.locator('.cases-theme-v1-panel')).toBeVisible();
+
   await dock.getByRole('button', { name: /Mission/ }).click();
+  await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'briefing');
   await expect(page.locator('.mission-briefing-v3')).toBeVisible();
   await expect(page.locator('.case-summary-visual')).toHaveCount(0);
   await expect(page.locator('.mission-briefing-tabs button')).toHaveCount(6);
@@ -112,7 +126,11 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   await page.locator('.mission-evidence-page .mission-map-tool-node').filter({ hasText: 'Documents & Requests' }).click();
   await expect(page.locator('.mission-tool-page')).toBeVisible();
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Document Viewer');
-  await page.getByRole('button', { name: 'Open active case documents' }).click();
+  const accountSearch = page.getByRole('textbox', { name: 'Search by Account ID' });
+  await page.getByRole('button', { name: 'Use active case Account ID', exact: true }).click();
+  await expect(accountSearch).not.toHaveValue('');
+  await expect(page.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Search account', exact: true }).click();
   await expect(page.locator('.document-folder-nav')).toBeVisible();
   await capture(page, testInfo, '04-document-folders');
 

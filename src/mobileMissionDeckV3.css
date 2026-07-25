@@ -256,6 +256,55 @@ body[data-layout-mode="mobile"] #root {
 .mission-setting-row small { color: var(--md-muted); font-size: 0.75rem; }
 .mission-setting-row input { width: 22px; height: 22px; accent-color: var(--md-blue); }
 
+.mission-mobile-root .luna-api-access-setting {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--md-line);
+  padding-top: 12px;
+}
+
+.mission-mobile-root .luna-api-access-setting > span {
+  display: grid;
+  gap: 3px;
+}
+
+.mission-mobile-root .luna-api-access-setting small {
+  color: var(--md-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.mission-mobile-root .luna-api-access-setting > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+}
+
+.mission-mobile-root .luna-api-access-setting input,
+.mission-mobile-root .luna-api-access-setting button {
+  min-height: 42px;
+  border: 1px solid var(--md-line);
+  border-radius: 10px;
+}
+
+.mission-mobile-root .luna-api-access-setting input {
+  min-width: 0;
+  background: #01172c;
+  padding: 8px 10px;
+  color: #fff;
+}
+
+.mission-mobile-root .luna-api-access-setting button {
+  background: #075e9f;
+  padding: 8px 12px;
+  color: #fff;
+  font-weight: 850;
+}
+
+.mission-mobile-root .luna-api-access-setting button:disabled {
+  opacity: 0.45;
+}
+
 .mission-mobile-viewport {
   min-height: calc(100dvh - 68px);
 }
@@ -316,6 +365,15 @@ body[data-layout-mode="mobile"] #root {
   background: radial-gradient(circle at 50% 22%, #168fe1, #0752a0 70%);
   color: #fff;
   box-shadow: 0 0 19px rgba(73, 216, 255, 0.38);
+}
+
+/* Keep deploy-preview controls from covering the middle dock routes. */
+body:has(iframe[title="Netlify Drawer"]) .mission-mobile-dock {
+  bottom: max(64px, env(safe-area-inset-bottom));
+}
+
+body:has(iframe[title="Netlify Drawer"]) .mission-mobile-page {
+  padding-bottom: calc(160px + env(safe-area-inset-bottom));
 }
 
 .mission-page-heading {

@@ -1,22 +1,101 @@
-const ALLOWED_ORIGIN = process.env.LUNA_ALLOWED_ORIGIN || '*';
+import { timingSafeEqual } from 'node:crypto';
 
-function send(res, status, body) {
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_REQUESTS = 10;
+const MAX_BODY_BYTES = 50_000;
+const requestWindows = new Map();
+
+function configuredOrigins() {
+  return String(process.env.LUNA_ALLOWED_ORIGIN || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+function requestOrigin(req) {
+  const forwardedProtocol = String(req.headers?.['x-forwarded-proto'] || 'https').split(',')[0].trim();
+  const host = String(req.headers?.['x-forwarded-host'] || req.headers?.host || '').split(',')[0].trim();
+  return host ? `${forwardedProtocol}://${host}` : '';
+}
+
+function allowedCorsOrigin(req) {
+  const origin = String(req.headers?.origin || '');
+  const allowed = configuredOrigins();
+  if (!origin) return allowed[0] || requestOrigin(req);
+  if (allowed.length) return allowed.includes(origin) ? origin : '';
+  return origin === requestOrigin(req) ? origin : '';
+}
+
+function send(req, res, status, body) {
+  const corsOrigin = allowedCorsOrigin(req);
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  if (corsOrigin) res.setHeader('Access-Control-Allow-Origin', corsOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Luna-Access-Token');
   res.end(JSON.stringify(body));
 }
 
+function requestIp(req) {
+  return String(req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown')
+    .split(',')[0]
+    .trim();
+}
+
+function exceedsRateLimit(req, res) {
+  const now = Date.now();
+  const ip = requestIp(req);
+  const current = requestWindows.get(ip);
+  const windowState = !current || now - current.startedAt >= RATE_LIMIT_WINDOW_MS
+    ? { startedAt: now, count: 0 }
+    : current;
+  windowState.count += 1;
+  requestWindows.set(ip, windowState);
+
+  const remaining = Math.max(0, RATE_LIMIT_MAX_REQUESTS - windowState.count);
+  res.setHeader('RateLimit-Limit', String(RATE_LIMIT_MAX_REQUESTS));
+  res.setHeader('RateLimit-Remaining', String(remaining));
+  res.setHeader('RateLimit-Reset', String(Math.ceil((windowState.startedAt + RATE_LIMIT_WINDOW_MS) / 1000)));
+  return windowState.count > RATE_LIMIT_MAX_REQUESTS;
+}
+
+function cleanText(value, maximumLength) {
+  return String(value || '').trim().slice(0, maximumLength);
+}
+
+function hasValidAccessToken(req) {
+  const expected = String(process.env.LUNA_API_ACCESS_TOKEN || '');
+  const supplied = String(req.headers?.['x-luna-access-token'] || '');
+  if (expected.length < 24 || supplied.length !== expected.length) return false;
+  return timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
+}
+
 function cleanList(value, fallback = []) {
-  return Array.isArray(value) ? value.filter((item) => typeof item === 'string').slice(0, 6) : fallback;
+  return Array.isArray(value)
+    ? value.filter((item) => typeof item === 'string').slice(0, 6).map((item) => item.slice(0, 500))
+    : fallback;
 }
 
 export default async function handler(req, res) {
-  if (req.method === 'OPTIONS') return send(res, 204, {});
-  if (req.method !== 'POST') return send(res, 405, { error: 'Method not allowed' });
-  if (!process.env.OPENAI_API_KEY) return send(res, 503, { error: 'Luna API is not configured' });
+  const origin = String(req.headers?.origin || '');
+  if (origin && !allowedCorsOrigin(req)) return send(req, res, 403, { error: 'Origin not allowed' });
+  if (req.method === 'OPTIONS') return send(req, res, 204, {});
+  if (req.method !== 'POST') return send(req, res, 405, { error: 'Method not allowed' });
+  if (Number(req.headers?.['content-length'] || 0) > MAX_BODY_BYTES) {
+    return send(req, res, 413, { error: 'Request body is too large' });
+  }
+  if (exceedsRateLimit(req, res)) {
+    res.setHeader('Retry-After', '60');
+    return send(req, res, 429, { error: 'Too many Luna requests. Try again in one minute.' });
+  }
+  if (!process.env.LUNA_API_ACCESS_TOKEN || String(process.env.LUNA_API_ACCESS_TOKEN).length < 24) {
+    return send(req, res, 503, { error: 'Luna private access is not configured' });
+  }
+  if (!hasValidAccessToken(req)) return send(req, res, 401, { error: 'Luna private access is required' });
+  if (!process.env.OPENAI_API_KEY) return send(req, res, 503, { error: 'Luna API is not configured' });
 
   const body = req.body || {};
   const deterministic = body.deterministicResult || {};
@@ -26,7 +105,7 @@ export default async function handler(req, res) {
     || deterministic.determinationMatched === null;
 
   if (!body.caseId || !body.submittedDecision || !hasMatchField || !matchValueIsValid) {
-    return send(res, 400, { error: 'Missing guarded debrief inputs' });
+    return send(req, res, 400, { error: 'Missing guarded debrief inputs' });
   }
 
   const reviewStatus = deterministic.determinationMatched === true
@@ -36,12 +115,12 @@ export default async function handler(req, res) {
       : 'ungraded';
 
   const guardedFacts = {
-    caseId: String(body.caseId),
-    caseType: String(body.caseType || ''),
-    allegation: String(body.allegation || ''),
-    submittedDecision: String(body.submittedDecision),
-    confidence: String(body.confidence || ''),
-    rationale: String(body.rationale || '').slice(0, 4000),
+    caseId: cleanText(body.caseId, 100),
+    caseType: cleanText(body.caseType, 200),
+    allegation: cleanText(body.allegation, 1000),
+    submittedDecision: cleanText(body.submittedDecision, 200),
+    confidence: cleanText(body.confidence, 100),
+    rationale: cleanText(body.rationale, 4000),
     reviewStatus,
     determinationMatched: deterministic.determinationMatched,
     expectedDetermination: deterministic.expectedDetermination || null,
@@ -108,13 +187,13 @@ export default async function handler(req, res) {
     if (!apiResponse.ok) {
       const details = await apiResponse.text();
       console.error('OpenAI Luna request failed', apiResponse.status, details.slice(0, 1000));
-      return send(res, 502, { error: 'Luna manager review failed' });
+      return send(req, res, 502, { error: 'Luna manager review failed' });
     }
 
     const result = await apiResponse.json();
     const outputText = result.output_text || result.output?.flatMap((item) => item.content || []).find((item) => item.type === 'output_text')?.text;
     const review = JSON.parse(outputText || '{}');
-    return send(res, 200, {
+    return send(req, res, 200, {
       managerVerdict: String(review.managerVerdict || ''),
       decisionMeaning: String(review.decisionMeaning || ''),
       actualCaseOutcome: String(review.actualCaseOutcome || ''),
@@ -126,6 +205,6 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Luna manager debrief error', error);
-    return send(res, 500, { error: 'Unable to generate Luna manager review' });
+    return send(req, res, 500, { error: 'Unable to generate Luna manager review' });
   }
 }

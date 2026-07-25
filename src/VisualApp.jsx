@@ -75,6 +75,11 @@ export default function VisualApp() {
     window.setTimeout(() => document.querySelector('.active-case-workflow')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   }
 
+  function openMobileWorkspace(nextWorkspaceScreen = 'briefing') {
+    setWorkspaceScreen(nextWorkspaceScreen);
+    setActiveTab('workspace');
+  }
+
   function viewCaseSummary() {
     setWorkspaceScreen('briefing');
     setActiveTab('workspace');
@@ -93,6 +98,7 @@ export default function VisualApp() {
           layoutController={layoutController}
           onGenerateCases={handleGeneratedCases}
           onNavigate={setActiveTab}
+          onOpenWorkspace={openMobileWorkspace}
           onOpenCase={openCase}
           quickGenerator={<GeneratedCaseControls inline onCaseGenerated={handleGeneratedCase} />}
           workspace={(

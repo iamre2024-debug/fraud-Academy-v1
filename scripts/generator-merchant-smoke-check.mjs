@@ -29,6 +29,7 @@ for (const { claimType, scenario } of allScenarios) {
   const generated = createGeneratedCase({ index: sequence, claimTypeId: claimType.id, scenarioId: scenario.id, difficulty: 'deep', evidenceDepth: 'deep' });
   sequence += 1;
 
+  if (/\bSSN\b/.test(JSON.stringify(generated))) failures.push(`${scenario.id} generated unsafe SSN wording instead of Training ID.`);
   if (generated.subtype !== scenario.subtype || generated.scenarioId !== scenario.id) failures.push(`${scenario.id} did not preserve its selected subtype.`);
   if (!generated.caseTruth?.correctDetermination || generated.correctDetermination !== generated.caseTruth.correctDetermination) failures.push(`${scenario.id} is missing hidden case truth.`);
   if (!getReviewChoices(generated).includes(generated.correctDetermination)) failures.push(`${scenario.id} has a hidden determination that is not valid for its decision rail.`);

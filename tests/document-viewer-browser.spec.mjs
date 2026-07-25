@@ -38,6 +38,12 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
   await expect(viewer.getByRole('navigation', { name: 'Document folders' })).toHaveCount(0);
 
   const accountSearch = viewer.getByRole('textbox', { name: 'Search by Account ID' });
+  await viewer.getByRole('button', { name: 'Use active case Account ID', exact: true }).click();
+  await expect(accountSearch).not.toHaveValue('');
+  await expect(viewer.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toBeVisible();
+  await expect(viewer.locator('[data-document-record]')).toHaveCount(0);
+  await expect(viewer.locator('.document-account-lookup-result')).toContainText('Select Search account to confirm the match');
+
   await accountSearch.fill('ACCT-NOT-FOUND');
   await viewer.getByRole('button', { name: 'Search account', exact: true }).click();
   await expect(viewer).toContainText('No case was found for that Account ID');
@@ -66,8 +72,20 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
       await expect(mobileReview).toBeVisible();
       await expect(mobileReview.getByRole('heading', { name: title, exact: true })).toBeVisible();
       await expect(mobileReview.getByRole('navigation', { name: 'Document review pages' })).toBeVisible();
+      await expect(mobileReview.getByRole('tab')).toHaveCount(4);
       await expect(mobileReview.getByRole('tab', { name: /Fields/ })).toHaveAttribute('aria-selected', 'true');
       await expect(mobileReview.locator('[data-review-panel="fields"]')).toContainText('Confidence');
+      if (title === requiredDocuments[0]) {
+        await mobileReview.getByRole('tab', { name: /Status/ }).click();
+        await expect(mobileReview.locator('[data-review-panel="status"]')).toBeVisible();
+        await expect(mobileReview.locator('[data-review-panel="status"]')).toContainText('Request status');
+        const stepControls = mobileReview.getByRole('navigation', { name: 'Document review step controls' });
+        await stepControls.getByRole('button', { name: '‹ Back', exact: true }).click();
+        await expect(mobileReview.locator('[data-review-panel="document"]')).toBeVisible();
+        await stepControls.getByRole('button', { name: 'Next ›', exact: true }).click();
+        await expect(mobileReview.locator('[data-review-panel="status"]')).toBeVisible();
+        await mobileReview.getByRole('tab', { name: /Fields/ }).click();
+      }
       await viewer.getByRole('button', { name: '‹ Inbox', exact: true }).click();
     } else {
       await expect(viewer.getByRole('heading', { name: title, exact: true }).first()).toBeVisible();
@@ -81,7 +99,9 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
   if (testInfo.project.name === 'mobile-chromium') {
     await mobileReview.getByRole('tab', { name: /Document/ }).click();
   }
-  const documentSurface = testInfo.project.name === 'mobile-chromium' ? mobileReview : viewer;
+  const documentSurface = testInfo.project.name === 'mobile-chromium'
+    ? mobileReview
+    : viewer.locator('.document-preview-workspace');
   const pageControls = documentSurface.getByRole('region', { name: 'Document page controls' });
   await expect(pageControls.getByText('Page 1 of 1', { exact: true })).toBeVisible();
   await expect(documentSurface.locator('.document-page')).toContainText('Account billing ledger');
@@ -175,4 +195,60 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
     .getByRole('button', { name: 'Open Document Request', exact: true })
     .click();
   await expect(panel).toHaveAttribute('data-tool-name', 'Document Request');
+});
+
+test('Document Viewer keeps prefilled access locked and restores isolated per-document drafts after reload', async ({ page }, testInfo) => {
+  async function openActiveCaseViewer() {
+    const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
+    await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
+    await selectToolGroup(page, /Documents & Requests/);
+    const viewer = page.locator('[data-document-viewer-screen="approved-theme-v1"]');
+    const accountSearch = viewer.getByRole('textbox', { name: 'Search by Account ID' });
+    await viewer.getByRole('button', { name: 'Use active case Account ID', exact: true }).click();
+    await expect(accountSearch).not.toHaveValue('');
+    await expect(viewer.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toBeVisible();
+    await expect(viewer.locator('[data-document-record]')).toHaveCount(0);
+    await viewer.getByRole('button', { name: 'Search account', exact: true }).click();
+    await expect(viewer.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toHaveCount(0);
+    await expect(viewer.locator('[data-document-record]').first()).toBeVisible();
+    return viewer;
+  }
+
+  async function openNotes(viewer, documentRecord) {
+    await documentRecord.locator('.document-record-open').click();
+    if (testInfo.project.name === 'mobile-chromium') {
+      const mobileReview = viewer.locator('.document-mobile-review-shell');
+      await mobileReview.getByRole('tab', { name: /Notes/ }).click();
+      return mobileReview.getByRole('textbox', { name: 'Mobile document investigator note' });
+    }
+    return viewer.getByRole('textbox', { name: 'Document investigator note' });
+  }
+
+  await page.goto('/');
+  let viewer = await openActiveCaseViewer();
+  const activeCaseId = await page.locator('.visual-case-switcher select').inputValue();
+  const firstRecord = viewer.locator('[data-document-record]').first();
+  const firstDocumentId = await firstRecord.getAttribute('data-document-record');
+  const draft = `Unsaved document draft for ${firstDocumentId}`;
+  const firstDraftKey = `fraud-academy-document-draft:${activeCaseId}:${firstDocumentId}`;
+  const firstNote = await openNotes(viewer, firstRecord);
+  await firstNote.fill(draft);
+  await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), firstDraftKey)).toBe(draft);
+
+  await page.reload();
+  viewer = await openActiveCaseViewer();
+  const restoredRecord = viewer.locator(`[data-document-record="${firstDocumentId}"]`);
+  await expect(restoredRecord).toBeVisible();
+  const restoredNote = await openNotes(viewer, restoredRecord);
+  await expect(restoredNote).toHaveValue(draft);
+
+  if (testInfo.project.name === 'mobile-chromium') {
+    await viewer.getByRole('button', { name: '‹ Inbox', exact: true }).click();
+  }
+  const secondRecord = viewer.locator('[data-document-record]').nth(1);
+  const secondDocumentId = await secondRecord.getAttribute('data-document-record');
+  const secondNote = await openNotes(viewer, secondRecord);
+  await expect(secondNote).toHaveValue('');
+  const secondDraftKey = `fraud-academy-document-draft:${activeCaseId}:${secondDocumentId}`;
+  expect(await page.evaluate((key) => localStorage.getItem(key), secondDraftKey)).toBeNull();
 });

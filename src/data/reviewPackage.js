@@ -218,11 +218,16 @@ export function getReviewChoices(activeCase = {}) {
   return unique(getDecisionCallGroups(activeCase).flatMap((group) => group.options));
 }
 
+export function isValidReviewPackage(activeCase = {}, reviewPackage = {}) {
+  return Boolean(reviewPackage?.choice) && getReviewChoices(activeCase).includes(reviewPackage.choice);
+}
+
 export function getReviewPackageStatus({ activeCase, completedTools = [], tray = [], notes = [], draft = {} }) {
   const requiredTools = getRequiredReviewTools(activeCase);
   const validChoices = getReviewChoices(activeCase);
   const missingTools = requiredTools.filter((tool) => !completedTools.includes(tool));
   const blockers = [];
+  const coachingGaps = [];
   const messages = [];
   const rationaleWordCount = wordCount(draft.reason);
   const hasRationale = Boolean(draft.reason?.trim());
@@ -230,27 +235,23 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
   const packageInputSummary = buildPackageInputSummary({ completedTools, tray, notes, indicatorSummary });
   const conflictsWithCriticalRed = indicatorSummary.overrideIndicators.length > 0 && isSupportiveDecision(draft.choice);
 
-  if (!indicatorSummary.selectedCount) blockers.push('select at least one case flag');
-  if (indicatorSummary.incompleteIndicators.length) blockers.push(`add proof and explanation for: ${indicatorSummary.incompleteIndicators.map((item) => item.prompt).join(' | ')}`);
   if (!draft.choice) blockers.push('select a learner choice');
   if (draft.choice && !validChoices.includes(draft.choice)) blockers.push('select a valid learner choice from the current decision call list');
-  if (conflictsWithCriticalRed) blockers.push('resolve the determination conflict with the documented critical red flag');
-  if (!hasRationale) blockers.push('write the learner rationale');
-  if (hasRationale && rationaleWordCount < minimumRationaleWords) blockers.push(`expand learner rationale to at least ${minimumRationaleWords} words`);
+  if (!indicatorSummary.selectedCount) coachingGaps.push('no case flags selected');
+  if (indicatorSummary.incompleteIndicators.length) coachingGaps.push(`proof or explanation missing for: ${indicatorSummary.incompleteIndicators.map((item) => item.prompt).join(' | ')}`);
+  if (conflictsWithCriticalRed) coachingGaps.push('the determination conflicts with a documented critical red flag');
+  if (!hasRationale) coachingGaps.push('no learner rationale supplied');
+  if (hasRationale && rationaleWordCount < minimumRationaleWords) coachingGaps.push(`learner rationale is shorter than ${minimumRationaleWords} words`);
 
   if (blockers.length) {
-    messages.push(`Unfinished submission details: ${blockers.join('; ')}.`);
-    if (!indicatorSummary.selectedCount) messages.push('Select the case flags that apply based on the reviewed evidence.');
-    if (indicatorSummary.incompleteIndicators.length) messages.push('Every selected flag requires an exact proof reference and a short explanation.');
+    messages.push(`Submission requirement: ${blockers.join('; ')}.`);
     if (!draft.choice) messages.push('Select the learner decision choice.');
     if (draft.choice && !validChoices.includes(draft.choice)) messages.push('The selected learner choice is no longer in the current decision call list.');
-    if (!hasRationale) messages.push('Write the evidence-based learner rationale.');
-    if (hasRationale && rationaleWordCount < minimumRationaleWords) messages.push(`Add more evidence detail to the learner rationale (${rationaleWordCount}/${minimumRationaleWords} words).`);
-    if (conflictsWithCriticalRed) messages.push('A critical red flag carries override weight. Select a non-supporting, hold, information, or escalation determination, or unmark the flag if the evidence does not prove it.');
   } else {
-    messages.push('The case-specific checklist and determination are complete. You may submit without reviewing every tool.');
+    messages.push('A valid determination is selected. You may submit without reviewing every tool.');
   }
 
+  if (coachingGaps.length) messages.push(`Optional coaching details: ${coachingGaps.join('; ')}.`);
   if (missingTools.length) messages.push(`Optional tools not reviewed: ${missingTools.join(', ')}. Open only the records needed for this case.`);
   if (!tray.length && !notes.length) messages.push('Pinned objects and investigation notes are optional supporting context for this decision.');
 
@@ -263,18 +264,13 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
     validChoices,
     missingTools,
     blockers,
+    coachingGaps,
     messages,
     rationaleWordCount,
     minimumRationaleWords,
     packageInputSummary,
     indicatorSummary,
-    ready: indicatorSummary.selectedCount > 0
-      && indicatorSummary.incompleteIndicators.length === 0
-      && Boolean(draft.choice)
-      && validChoices.includes(draft.choice)
-      && !conflictsWithCriticalRed
-      && hasRationale
-      && rationaleWordCount >= minimumRationaleWords,
+    ready: Boolean(draft.choice) && validChoices.includes(draft.choice),
   };
 }
 
@@ -299,6 +295,7 @@ export function buildReviewPackage({ caseId, agentId, activeCase, draft, complet
     totalRequired: packageStatus?.totalRequired ?? requiredTools.length,
     missingTools: packageStatus?.missingTools ?? [],
     blockers: packageStatus?.blockers ?? [],
+    coachingGaps: packageStatus?.coachingGaps ?? [],
     decisionIndicators: packageStatus?.indicatorSummary?.selectedIndicators ?? [],
     indicatorSummary: packageStatus?.indicatorSummary ? {
       selectedCount: packageStatus.indicatorSummary.selectedCount,
@@ -313,7 +310,7 @@ export function buildReviewPackage({ caseId, agentId, activeCase, draft, complet
 }
 
 function buildPackageInputSummary({ completedTools = [], tray = [], notes = [], indicatorSummary }) {
-  return `Decision package preview: ${completedTools.length} reviewed tool(s), ${tray.length} optional pinned object(s), ${notes.length} optional note(s), and ${indicatorSummary?.selectedCount ?? 0} proven flag(s) will be saved.`;
+  return `Decision package preview: ${completedTools.length} reviewed tool(s), ${tray.length} optional pinned object(s), ${notes.length} optional note(s), and ${indicatorSummary?.selectedCount ?? 0} selected flag(s) will be saved.`;
 }
 
 function wordCount(text = '') {

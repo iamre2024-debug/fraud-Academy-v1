@@ -1,11 +1,42 @@
 const DEFAULT_ENDPOINT = '/api/luna-debrief';
+const ACCESS_TOKEN_KEY = 'fraud-academy-luna-api-access-v1';
+
+export function readLunaApiAccessToken() {
+  if (typeof window === 'undefined') return '';
+  try {
+    return window.sessionStorage.getItem(ACCESS_TOKEN_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+export function saveLunaApiAccessToken(value) {
+  if (typeof window === 'undefined') return false;
+  const clean = String(value || '').trim();
+  try {
+    if (clean) window.sessionStorage.setItem(ACCESS_TOKEN_KEY, clean);
+    else window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+    return Boolean(clean);
+  } catch {
+    return false;
+  }
+}
+
+export function clearLunaApiAccessToken() {
+  saveLunaApiAccessToken('');
+}
 
 export async function requestLunaApiCoaching({ activeCase, reviewPackage, deterministicDebrief, signal }) {
   if (!activeCase || !reviewPackage || !deterministicDebrief) return null;
+  const accessToken = readLunaApiAccessToken();
+  if (!accessToken) return null;
 
   const response = await fetch(import.meta.env.VITE_LUNA_API_URL || DEFAULT_ENDPOINT, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Luna-Access-Token': accessToken,
+    },
     signal,
     body: JSON.stringify({
       caseId: activeCase.id,

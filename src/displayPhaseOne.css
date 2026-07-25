@@ -171,6 +171,60 @@
   accent-color: #ad4cff;
 }
 
+.luna-api-access-setting {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  max-width: 620px;
+  border: 1px solid rgba(255, 92, 218, 0.22);
+  border-radius: 16px;
+  background: rgba(7, 3, 14, 0.5);
+  padding: 14px 16px;
+  color: #fff1fb;
+}
+
+.luna-api-access-setting > span {
+  display: grid;
+  gap: 4px;
+}
+
+.luna-api-access-setting small {
+  color: rgba(255, 241, 251, 0.68);
+  line-height: 1.35;
+}
+
+.luna-api-access-setting > div {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) auto;
+  gap: 7px;
+}
+
+.luna-api-access-setting input,
+.luna-api-access-setting button {
+  min-height: 40px;
+  border: 1px solid rgba(255, 92, 218, 0.28);
+  border-radius: 10px;
+}
+
+.luna-api-access-setting input {
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 8px 10px;
+  color: #fff;
+}
+
+.luna-api-access-setting button {
+  background: #7c2eb4;
+  padding: 8px 12px;
+  color: #fff;
+  font-weight: 800;
+}
+
+.luna-api-access-setting button:disabled {
+  opacity: 0.45;
+}
+
 .nav-context-card {
   display: flex;
   justify-content: space-between;
@@ -264,6 +318,14 @@ body[data-visual-motion="reduced"] *::after {
 
   .header-setting-row {
     align-items: flex-start;
+  }
+
+  .luna-api-access-setting {
+    grid-template-columns: 1fr;
+  }
+
+  .luna-api-access-setting > div {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .nav-context-card button {

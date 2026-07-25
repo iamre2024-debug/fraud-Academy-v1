@@ -174,7 +174,12 @@ export default function MobileMissionWorkspace({
         )}
 
         {(workspaceScreen === 'evidence' || workspaceScreen === 'notes') && (
-          <section className="mission-evidence-notebook" data-workflow-stage="indicators" data-workspace-page="indicators">
+          <section
+            className="mission-evidence-notebook"
+            data-workflow-stage="indicators"
+            data-workspace-page="indicators"
+            data-mobile-indicator-view={workspaceScreen}
+          >
             <header><span>{workspaceScreen === 'evidence' ? '⭐' : '📝'}</span><div><p>Case fieldwork</p><h2>{workspaceScreen === 'evidence' ? 'Pinned evidence deck' : 'Investigation notebook'}</h2></div></header>
             {workspaceScreen === 'evidence' && openedPinnedEvidence?.unresolved && (
               <section className="pinned-evidence-unavailable" role="alert">

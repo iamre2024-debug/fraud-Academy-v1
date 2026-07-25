@@ -47,8 +47,20 @@ jobs:
       - name: All-scenario generated packet smoke check
         run: npm run generator-merchant-smoke-check
 
+      - name: Document Request workflow smoke check
+        run: npm run document-request-workflow-smoke-check
+
+      - name: Retired mobile theme isolation smoke check
+        run: npm run mobile-neon-card-stack-smoke-check
+
+      - name: Mobile Blue Mission Deck smoke check
+        run: npm run mobile-blue-mission-deck-smoke-check
+
       - name: Luna single-module smoke check
         run: npm run luna-single-module-smoke-check
+
+      - name: Luna API security smoke check
+        run: npm run luna-api-security-smoke-check
 
       - name: Review package smoke check
         run: npm run review-package-smoke-check
@@ -73,6 +85,12 @@ jobs:
 
       - name: Workspace action controller smoke check
         run: npm run workspace-actions-controller-smoke-check
+
+      - name: Pinned evidence navigation smoke check
+        run: npm run pinned-evidence-navigation-smoke-check
+
+      - name: PWA install and offline smoke check
+        run: npm run pwa-smoke-check
 
       - name: Display handoff smoke check
         run: npm run display-handoff-smoke-check
@@ -115,6 +133,9 @@ jobs:
 
       - name: Decision and Luna approved-theme v1 smoke check
         run: npm run decision-luna-theme-v1-smoke-check
+
+      - name: Debrief notes and layout smoke check
+        run: npm run debrief-notes-layout-smoke-check
 
       - name: Academy approved-theme v1 smoke check
         run: npm run academy-theme-v1-smoke-check

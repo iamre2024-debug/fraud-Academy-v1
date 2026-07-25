@@ -8,7 +8,7 @@ export async function openWorkspacePages(page) {
   if (await mobileWorkflow.isVisible()) return mobileWorkflow;
 
   const desktopPagesButton = page.getByRole('button', { name: 'Pages', exact: true });
-  const usesDesktopPages = await desktopPagesButton.count() > 0;
+  const usesDesktopPages = await desktopPagesButton.isVisible();
   const pagesButton = usesDesktopPages
     ? desktopPagesButton
     : page.getByRole('button', { name: 'Open mission pages', exact: true });
@@ -53,7 +53,9 @@ export async function openToolGroups(page) {
 
 export async function selectToolGroup(page, groupName) {
   const groups = await openToolGroups(page);
-  const groupButton = groups.locator('.visual-category-row > button').filter({ hasText: groupName });
+  const evidenceMapButton = groups.locator('.mission-map-tool-node').filter({ hasText: groupName });
+  const legacyRowButton = groups.locator('.visual-category-row > button').filter({ hasText: groupName });
+  const groupButton = await evidenceMapButton.isVisible() ? evidenceMapButton : legacyRowButton;
   await expect(groupButton).toBeVisible();
   await groupButton.click();
   return groups;

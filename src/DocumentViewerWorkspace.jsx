@@ -3,8 +3,33 @@ import { documentSearchText, getCaseDocuments } from './data/documentRecords.js'
 import { buildCustomerResponseDocuments } from './data/documentRequestWorkflow.js';
 import { clearDocumentViewerRoute, readDocumentViewerRoute } from './documentViewerRoute.js';
 
+const DOCUMENT_DRAFT_PREFIX = 'fraud-academy-document-draft:';
+
 function fieldValue(document, label) {
   return document?.fields?.find(([field]) => field === label)?.[1] ?? 'Not recorded';
+}
+
+function documentDraftKey(caseId, documentId) {
+  return `${DOCUMENT_DRAFT_PREFIX}${caseId}:${documentId}`;
+}
+
+function readDocumentDraft(key) {
+  if (!key || typeof window === 'undefined') return '';
+  try {
+    return window.localStorage.getItem(key) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function writeDocumentDraft(key, value) {
+  if (!key || typeof window === 'undefined') return;
+  try {
+    if (value) window.localStorage.setItem(key, value);
+    else window.localStorage.removeItem(key);
+  } catch {
+    // Draft persistence is a convenience; the active in-memory draft still works.
+  }
 }
 
 function fieldValueMatching(document, pattern, fallback = 'Not recorded') {
@@ -132,7 +157,7 @@ export default function DocumentViewerWorkspace({
   const [pageIndex, setPageIndex] = useState(0);
   const [zoom, setZoom] = useState(100);
   const [compareIds, setCompareIds] = useState([]);
-  const [noteDraft, setNoteDraft] = useState('');
+  const [noteDrafts, setNoteDrafts] = useState({});
   const [mobilePane, setMobilePane] = useState('inbox');
   const [mobileReviewStep, setMobileReviewStep] = useState('fields');
   const normalizedQuery = query.trim().toLowerCase();
@@ -145,6 +170,8 @@ export default function DocumentViewerWorkspace({
     ?? filteredDocuments[0];
   const activePage = activeDocument?.pages?.[pageIndex] ?? activeDocument?.pages?.[0];
   const comparedDocuments = compareIds.map((id) => documents.find((document) => document.id === id)).filter(Boolean);
+  const activeDraftKey = activeDocument ? documentDraftKey(activeCase.id, activeDocument.id) : '';
+  const noteDraft = activeDraftKey ? noteDrafts[activeDraftKey] ?? '' : '';
 
   useEffect(() => {
     const directRoute = readDocumentViewerRoute(activeCase.id);
@@ -154,7 +181,6 @@ export default function DocumentViewerWorkspace({
     setPageIndex(0);
     setZoom(100);
     setCompareIds([]);
-    setNoteDraft('');
     setMobilePane(directRoute?.pane ?? 'inbox');
     setMobileReviewStep('fields');
     if (directRoute) {
@@ -171,6 +197,20 @@ export default function DocumentViewerWorkspace({
   useEffect(() => {
     setPageIndex(0);
   }, [activeDocument?.id]);
+
+  useEffect(() => {
+    if (!activeDraftKey) return;
+    setNoteDrafts((current) => {
+      if (Object.prototype.hasOwnProperty.call(current, activeDraftKey)) return current;
+      return { ...current, [activeDraftKey]: readDocumentDraft(activeDraftKey) };
+    });
+  }, [activeDraftKey]);
+
+  function updateDocumentDraft(value) {
+    if (!activeDraftKey) return;
+    setNoteDrafts((current) => ({ ...current, [activeDraftKey]: value }));
+    writeDocumentDraft(activeDraftKey, value);
+  }
 
   function openDocument(documentId) {
     setSelectedDocumentId(documentId);
@@ -195,7 +235,8 @@ export default function DocumentViewerWorkspace({
     const clean = noteDraft.trim();
     if (!clean || !activeDocument) return;
     saveNote(`${activeDocument.id}: ${clean}`, 'Document review');
-    setNoteDraft('');
+    setNoteDrafts((current) => ({ ...current, [activeDraftKey]: '' }));
+    writeDocumentDraft(activeDraftKey, '');
   }
 
   function exportDocument() {
@@ -269,7 +310,16 @@ export default function DocumentViewerWorkspace({
           <span aria-hidden="true">ID</span>
           <h3>Customer documents are locked</h3>
           <p>Search with an exact Account ID to open the matching case documents.</p>
-          <button type="button" onClick={() => { setAccountLookup(activeCase.accountId); setMatchedAccountId(normalizeAccountId(activeCase.accountId)); setLookupError(''); }}>Open active case documents</button>
+          <button
+            type="button"
+            onClick={() => {
+              setAccountLookup(activeCase.accountId);
+              setMatchedAccountId('');
+              setLookupError('Account ID added. Select Search account to confirm the match.');
+            }}
+          >
+            Use active case Account ID
+          </button>
         </section>
       ) : <>
       <section className="document-viewer-findbar" aria-label="Filter matched customer documents">
@@ -392,9 +442,9 @@ export default function DocumentViewerWorkspace({
               </section>
 
               <section className="document-mobile-review-panel document-mobile-notes-panel" data-review-panel="notes" aria-label="Investigator notes">
-                <header><p>Investigator notes</p><span>{noteDraft.trim() ? 'Draft ready' : 'Not started'}</span></header>
+                <header><p>Investigator notes</p><span>{noteDraft.trim() ? 'Draft auto-saved' : 'Not started'}</span></header>
                 <p>{activeDocument.investigatorNote}</p>
-                <textarea value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} placeholder="Record what this document proves, contradicts, or leaves unresolved..." aria-label="Mobile document investigator note" />
+                <textarea value={noteDraft} onChange={(event) => updateDocumentDraft(event.target.value)} placeholder="Record what this document proves, contradicts, or leaves unresolved..." aria-label="Mobile document investigator note" />
                 <div>
                   <button type="button" disabled={!noteDraft.trim()} onClick={saveDocumentNote}>Save note</button>
                   <button type="button" onClick={addDocumentToSummary}>Add to summary</button>
@@ -526,7 +576,8 @@ export default function DocumentViewerWorkspace({
             <section className="document-review-note">
               <p>Investigator notes</p>
               <span>{activeDocument.investigatorNote}</span>
-              <textarea value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} placeholder="Record what this document proves, contradicts, or leaves unresolved..." aria-label="Document investigator note" />
+              <small>{noteDraft.trim() ? 'Draft auto-saved on this device.' : 'Drafts auto-save on this device.'}</small>
+              <textarea value={noteDraft} onChange={(event) => updateDocumentDraft(event.target.value)} placeholder="Record what this document proves, contradicts, or leaves unresolved..." aria-label="Document investigator note" />
               <div><button type="button" disabled={!noteDraft.trim()} onClick={saveDocumentNote}>Save note</button><button type="button" onClick={addDocumentToSummary}>Add to summary</button></div>
             </section>
 

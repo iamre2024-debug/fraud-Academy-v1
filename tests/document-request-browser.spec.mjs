@@ -88,7 +88,7 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
     .getByRole('button', { name: /^Customer Evidence/ })).toHaveClass(/active/);
   const customerDocumentSurface = testInfo.project.name === 'mobile-chromium'
     ? customerViewer.locator('.document-mobile-review-shell')
-    : customerViewer;
+    : customerViewer.locator('.document-preview-workspace');
   if (testInfo.project.name === 'mobile-chromium') {
     await customerDocumentSurface.getByRole('tab', { name: /Document/ }).click();
   }
@@ -138,7 +138,7 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
     .getByRole('button', { name: /^Merchant Evidence/ })).toHaveClass(/active/);
   const merchantDocumentSurface = testInfo.project.name === 'mobile-chromium'
     ? viewer.locator('.document-mobile-review-shell')
-    : viewer;
+    : viewer.locator('.document-preview-workspace');
   if (testInfo.project.name === 'mobile-chromium') {
     await merchantDocumentSurface.getByRole('tab', { name: /Document/ }).click();
   }

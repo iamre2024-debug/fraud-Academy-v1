@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import AcademyProgressPanel from './AcademyProgressPanel.jsx';
 import AcademyThemeV1Panel from './AcademyThemeV1Panel.jsx';
 import CasesThemeV1Panel from './CasesThemeV1Panel.jsx';
+import LunaApiAccessSetting from './LunaApiAccessSetting.jsx';
 import ProfileThemeV1Panel from './ProfileThemeV1Panel.jsx';
 
 const reducedMotionKey = 'fraud-academy-reduced-motion-v1';
@@ -68,6 +69,7 @@ export default function MobileMissionDeckApp({
   onGenerateCases,
   onNavigate,
   onOpenCase,
+  onOpenWorkspace,
   quickGenerator,
   workspace,
 }) {
@@ -99,9 +101,13 @@ export default function MobileMissionDeckApp({
     }
   }, [reducedMotion]);
 
-  function navigate(tab) {
+  function navigate(tab, nextWorkspaceScreen = 'briefing') {
     setControl('');
-    onNavigate(tab);
+    if (tab === 'workspace' && onOpenWorkspace) {
+      onOpenWorkspace(nextWorkspaceScreen);
+    } else {
+      onNavigate(tab);
+    }
     window.setTimeout(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }), 0);
   }
 
@@ -113,7 +119,7 @@ export default function MobileMissionDeckApp({
           <span aria-hidden="true">🛡️</span>
           <span><strong>Fraud Academy</strong><small>Mission Deck</small></span>
         </button>
-        <button type="button" className="mission-mobile-case-chip" onClick={() => navigate('workspace')}>
+        <button type="button" className="mission-mobile-case-chip" onClick={() => navigate('workspace', 'briefing')}>
           <span>Active mission</span><strong>{activeCase?.id}</strong>
         </button>
         <div className="mission-mobile-header-actions">
@@ -155,6 +161,7 @@ export default function MobileMissionDeckApp({
                 <span><strong>Reduce motion</strong><small>Use immediate page changes and quieter animation.</small></span>
                 <input type="checkbox" checked={reducedMotion} onChange={(event) => setReducedMotion(event.target.checked)} />
               </label>
+              <LunaApiAccessSetting variant="mobile" />
             </>
           )}
         </section>
@@ -290,7 +297,7 @@ function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGene
 
       <section className="mission-command-drawers" aria-label="Mission shortcuts">
         <button type="button" onClick={() => onNavigate('cases')}><span>🗂️</span><strong>Case Queue</strong><small>{cases.length} files ready</small></button>
-        <button type="button" onClick={() => onNavigate('workspace')}><span>🧬</span><strong>Evidence Map</strong><small>{reviewed} tools reviewed</small></button>
+        <button type="button" onClick={() => onNavigate('workspace', 'tool-menu')}><span>🧬</span><strong>Evidence Map</strong><small>{reviewed} tools reviewed</small></button>
         <button type="button" onClick={() => onNavigate('progress')}><span>🏅</span><strong>Progress</strong><small>{snapshot.packages} saved packages</small></button>
       </section>
 

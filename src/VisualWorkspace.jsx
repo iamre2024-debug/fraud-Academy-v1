@@ -45,7 +45,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   const [tool, setTool] = useState('Login History');
   const [query, setQuery] = useState('');
   const [expandedId, setExpandedId] = useState('');
-  const [noteDraft, setNoteDraft] = useState('');
   const [openedPinnedEvidence, setOpenedPinnedEvidence] = useState(null);
   const submitRef = useRef(null);
   const workspaceScreenHistory = useRef([]);
@@ -83,6 +82,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   const {
     tray,
     notes,
+    noteDraft,
     currentCompleted,
     decisionDraft,
     reviewPackages,
@@ -90,6 +90,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     documentRequests,
     setTrayByCase,
     setNotesByCase,
+    setNoteDraft,
     setCompletedByCase,
     setDecisionByCase,
     setPackagesByCase,

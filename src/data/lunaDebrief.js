@@ -87,6 +87,7 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
   const noteSnapshot = reviewPackage.noteSnapshot?.length ? reviewPackage.noteSnapshot : notes;
   const rationale = reviewPackage.reason ?? '';
   const decisionIndicators = reviewPackage.decisionIndicators ?? [];
+  const provenDecisionIndicators = decisionIndicators.filter((item) => item.proof && item.explanation);
   const caseTruth = activeCase.caseTruth ?? null;
   const acceptedDeterminations = caseTruth?.acceptedDeterminations?.length
     ? caseTruth.acceptedDeterminations
@@ -116,7 +117,7 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
   const noteScore = notesQuality.points;
   const focusScore = Math.round((focusCoverage.filter((area) => area.covered).length / focusCoverage.length) * 14);
   const confidenceScore = reviewPackage.confidence === 'High' ? 4 : reviewPackage.confidence === 'Medium' ? 3 : 2;
-  const indicatorScore = Math.min(10, decisionIndicators.filter((item) => item.proof && item.explanation).length * 3);
+  const indicatorScore = Math.min(10, provenDecisionIndicators.length * 3);
   const determinationScore = caseTruth ? (determinationMatched ? 20 : 0) : 10;
   const score = Math.min(100, toolScore + pinScore + noteScore + focusScore + confidenceScore + indicatorScore + determinationScore);
   const followUps = focusCoverage.filter((area) => !area.covered).map((area) => area.label);
@@ -128,7 +129,7 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
     coachIntro: guide.coachIntro,
     score,
     scoreLabel: score >= 86 ? 'Strong package' : score >= 70 ? 'Solid package' : score >= 54 ? 'Developing package' : 'Needs more support',
-    strengths: buildStrengths({ coveredRequired, pinnedEvidence, notesQuality, rationale, focusCoverage, decisionIndicators, determinationMatched }),
+    strengths: buildStrengths({ coveredRequired, pinnedEvidence, notesQuality, rationale, focusCoverage, provenDecisionIndicators, determinationMatched }),
     followUps: followUps.length ? followUps : ['No required focus gaps detected in this saved package.'],
     notesQuality,
     determinationMatched,
@@ -143,7 +144,7 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
       { label: 'Pinned evidence support', value: `${pinnedEvidence.length} object(s)`, points: pinScore },
       { label: 'Quality of notes', value: notesQuality.summary, points: noteScore },
       { label: 'Case focus coverage', value: `${focusCoverage.filter((area) => area.covered).length}/${focusCoverage.length}`, points: focusScore },
-      { label: 'Weighted flag documentation', value: `${decisionIndicators.length} proven flag(s)`, points: indicatorScore },
+      { label: 'Weighted flag documentation', value: `${provenDecisionIndicators.length} proven flag(s)`, points: indicatorScore },
       { label: 'Scenario determination', value: caseTruth ? (determinationMatched ? 'Matched' : 'Did not match') : 'Base-case calibration', points: determinationScore },
       { label: 'Confidence calibration', value: reviewPackage.confidence, points: confidenceScore },
     ],
@@ -209,7 +210,7 @@ function analyzeNote(note = '') {
   };
 }
 
-function buildStrengths({ coveredRequired, pinnedEvidence, notesQuality, rationale, focusCoverage, decisionIndicators, determinationMatched }) {
+function buildStrengths({ coveredRequired, pinnedEvidence, notesQuality, rationale, focusCoverage, provenDecisionIndicators, determinationMatched }) {
   const strengths = [];
 
   if (coveredRequired >= 6) strengths.push('The package covers most required investigation tools before debrief.');
@@ -217,7 +218,7 @@ function buildStrengths({ coveredRequired, pinnedEvidence, notesQuality, rationa
   if (notesQuality.points >= 9) strengths.push(`Notebook quality is ${notesQuality.label.toLowerCase()} and connects evidence to investigator reasoning.`);
   if (wordCount(rationale) >= 20) strengths.push('The rationale has enough substance for coaching review.');
   if (focusCoverage.some((area) => area.covered)) strengths.push('At least one case-specific focus area is visible in the saved package.');
-  if (decisionIndicators.length) strengths.push('The selected case flags include proof and an investigator explanation.');
+  if (provenDecisionIndicators.length) strengths.push('The selected case flags include proof and an investigator explanation.');
   if (determinationMatched) strengths.push('The submitted determination matches the hidden scenario truth.');
 
   return strengths.length ? strengths : ['The package was saved, but Luna needs more documented support to coach from.'];

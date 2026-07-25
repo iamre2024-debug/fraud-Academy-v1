@@ -31,6 +31,7 @@ for (const anchor of [
   "layoutController.resolvedLayout === 'mobile'",
   '<MobileMissionDeckApp',
   'layoutMode="mobile"',
+  'onOpenWorkspace={openMobileWorkspace}',
   'quickGenerator={<GeneratedCaseControls inline',
 ]) requireAnchor('VisualApp.jsx', app, anchor);
 
@@ -45,6 +46,8 @@ for (const anchor of [
   'AcademyThemeV1Panel',
   'ProfileThemeV1Panel',
   'mission-mobile-workspace-page',
+  "onOpenWorkspace(nextWorkspaceScreen)",
+  "onNavigate('workspace', 'tool-menu')",
 ]) requireAnchor('MobileMissionDeckApp.jsx', shell, anchor);
 
 for (const anchor of [
@@ -64,6 +67,7 @@ for (const anchor of [
   'decision-luna-portal-anchor',
   'Source record unavailable',
   'data-document-request-step',
+  'data-mobile-indicator-view={workspaceScreen}',
   'disabled={stageStatus[key]?.state === \'locked\'}',
 ]) requireAnchor('MobileMissionWorkspace.jsx', workspace, anchor);
 
@@ -109,6 +113,7 @@ for (const anchor of [
   '.document-mobile-fields-panel',
   '.document-mobile-step-controls',
   '.mission-decision-page .mission-decision-progress',
+  'body:has(iframe[title="Netlify Drawer"]) .mission-mobile-dock',
   '@media (max-width: 370px)',
 ]) requireAnchor('mobileMissionDeckV3.css', styles, anchor);
 

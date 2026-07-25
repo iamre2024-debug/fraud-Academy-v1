@@ -5,6 +5,7 @@ import {
   getRequiredReviewTools,
   getReviewChoices,
   getReviewPackageStatus,
+  isValidReviewPackage,
   minimumRationaleWords,
   requiredReviewTools,
   reviewChoices,
@@ -51,19 +52,33 @@ const invalidChoiceStatus = buildStatus({ draft: { choice: 'Unsupported decision
 assert(!invalidChoiceStatus.ready, 'Package should stay locked when the learner choice is not in the current decision list.');
 assert(invalidChoiceStatus.blockers.some((blocker) => blocker.includes('valid learner choice')), 'Invalid learner choice should be named as a blocker.');
 
+const missingChoiceStatus = buildStatus({ draft: { choice: '', confidence: 'Medium', reason: '', indicators: {} } });
+assert(!missingChoiceStatus.ready, 'Package should stay locked until the learner selects a determination.');
+assert(missingChoiceStatus.blockers.some((blocker) => blocker.includes('learner choice')), 'Missing determination should be named as the submission blocker.');
+assert(!isValidReviewPackage(accountTakeoverCase, { choice: '' }), 'A legacy package without a determination must not unlock Luna.');
+assert(!isValidReviewPackage(accountTakeoverCase, { choice: 'Unsupported decision value' }), 'A legacy package with a stale determination must not unlock Luna.');
+assert(isValidReviewPackage(accountTakeoverCase, { choice: accountTakeoverChoice }), 'A package with a current valid determination should unlock Luna.');
+
 const missingToolStatus = buildStatus({ completedTools: requiredToolSet.filter((tool) => tool !== 'Document Viewer') });
 assert(missingToolStatus.ready, 'A decision should be submittable when an optional tool was not reviewed.');
 assert(missingToolStatus.missingTools.includes('Document Viewer'), 'Unreviewed optional tools should remain visible in the package status.');
 assert(missingToolStatus.messages.some((message) => message.includes('Optional tools not reviewed')), 'Optional tool coverage should be explained without blocking submission.');
 
-const directDecisionStatus = buildStatus({ completedTools: [], tray: [], notes: [] });
-assert(directDecisionStatus.ready, 'A learner should be able to submit directly without tool reviews, pins, or notebook notes.');
+const directDecisionStatus = buildStatus({
+  completedTools: [],
+  tray: [],
+  notes: [],
+  draft: { choice: accountTakeoverChoice, confidence: 'Medium', reason: '', indicators: {} },
+});
+assert(directDecisionStatus.ready, 'A valid determination should submit without tool reviews, flags, pins, notebook notes, or rationale.');
+assert(directDecisionStatus.blockers.length === 0, 'Optional investigation context should not create submission blockers.');
+assert(directDecisionStatus.coachingGaps.length > 0, 'Missing optional context should remain available as coaching detail.');
 assert(directDecisionStatus.messages.some((message) => message.includes('without reviewing every tool')), 'Direct-decision readiness should be explicit.');
 
 const shortRationaleStatus = buildStatus({ draft: { choice: accountTakeoverChoice, confidence: 'High', reason: 'Too short.', indicators: accountTakeoverIndicators } });
-assert(!shortRationaleStatus.ready, 'Package should stay locked when rationale is too short.');
+assert(shortRationaleStatus.ready, 'A short optional rationale should not block a valid determination.');
 assert(shortRationaleStatus.rationaleWordCount < minimumRationaleWords, 'Short rationale count should be tracked.');
-assert(shortRationaleStatus.blockers.some((blocker) => blocker.includes(`${minimumRationaleWords}`)), 'Rationale blocker should include the minimum word count.');
+assert(shortRationaleStatus.coachingGaps.some((gap) => gap.includes(`${minimumRationaleWords}`)), 'Short rationale should be retained as a coaching gap.');
 
 const readyStatus = buildStatus();
 assert(readyStatus.ready, 'Package should be ready when all required inputs are present.');
@@ -79,8 +94,8 @@ const missingProofStatus = buildStatus({
     indicators: { 'ato-new-device': { selected: true, proof: '', explanation: '' } },
   },
 });
-assert(!missingProofStatus.ready, 'A selected flag should block submission until proof and explanation are entered.');
-assert(missingProofStatus.blockers.some((blocker) => blocker.includes('proof and explanation')), 'Missing flag proof should be named as a blocker.');
+assert(missingProofStatus.ready, 'Incomplete optional flag detail should not block a valid determination.');
+assert(missingProofStatus.coachingGaps.some((gap) => gap.includes('proof or explanation')), 'Missing flag proof should be retained as a coaching gap.');
 
 const chargebackCase = {
   claimTypeId: 'non-fraud-chargeback',
@@ -164,6 +179,7 @@ const savedPackage = buildReviewPackage({
 assert(savedPackage.reviewedRequired === creditCase.requiredTools.length, 'Saved package should snapshot required tool coverage.');
 assert(savedPackage.lane === 'Credit decision review', 'Saved package should retain the case lane.');
 assert(savedPackage.blockers.length === 0, 'Saved ready package should not retain blockers.');
+assert(Array.isArray(savedPackage.coachingGaps), 'Saved package should snapshot optional coaching gaps separately from blockers.');
 assert(savedPackage.decisionIndicators.length === 1, 'Saved package should snapshot proven weighted flags.');
 
-console.log('Review package smoke check passed. Direct submission, claim and subtype-specific flags, rationale depth, optional investigation context, and saved package snapshots are working.');
+console.log('Review package smoke check passed. A valid determination is required; tools, flags, pins, notes, and rationale remain optional coaching context.');

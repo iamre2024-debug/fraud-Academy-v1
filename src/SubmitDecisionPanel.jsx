@@ -17,9 +17,11 @@ export default function SubmitDecisionPanel({
   const latestPackage = reviewPackages[0] ?? null;
   const submissionLabel = latestPackage
     ? 'Decision saved'
-    : /evidence pending|response pending|submission pending/i.test(activeCase.status ?? '')
-      ? 'Submission available · evidence pending'
-      : 'Ready to submit';
+    : packageStatus.ready
+      ? /evidence pending|response pending|submission pending/i.test(activeCase.status ?? '')
+        ? 'Submission available · evidence pending'
+        : 'Ready to submit'
+      : 'Select a determination';
   const decisionGroups = getDecisionCallGroups(activeCase);
   const selectionGroups = decisionGroups.length ? decisionGroups : [{ label: 'Learner choices', options: reviewChoices }];
 
@@ -44,7 +46,7 @@ export default function SubmitDecisionPanel({
         <div>
           <p className="decision-v1-eyebrow">Determination · Evidence First</p>
           <h2>Submit Decision</h2>
-          <p>Use the checklist matched to this case, prove every selected flag, and record the determination supported by the evidence.</p>
+          <p>Use the checklist matched to this case, document support for the flags you select, and record the determination supported by the evidence.</p>
         </div>
         <div className="decision-v1-header-status">
           <span>{activeCase.id}</span>
@@ -57,7 +59,7 @@ export default function SubmitDecisionPanel({
         <div>
           <p>Evidence First protection</p>
           <h3>Luna debrief stays locked until this case has a saved learner package.</h3>
-          <span>You can submit at any time. Unfinished checklist details are saved for coaching and never prevent Luna from unlocking.</span>
+          <span>You can submit after selecting a valid determination. Unfinished checklist details are saved for coaching and never prevent Luna from unlocking.</span>
         </div>
       </section>
 
@@ -65,7 +67,7 @@ export default function SubmitDecisionPanel({
         <article><span>Tools reviewed</span><strong>{packageStatus.reviewedRequired}/{packageStatus.totalRequired}</strong><small>Optional</small></article>
         <article><span>Pinned objects</span><strong>{tray.length}</strong><small>Optional</small></article>
         <article><span>Investigation notes</span><strong>{notes.length}</strong><small>Optional</small></article>
-        <article><span>Proven flags</span><strong>{packageStatus.indicatorSummary.selectedCount}</strong><small>Optional</small></article>
+        <article><span>Selected flags</span><strong>{packageStatus.indicatorSummary.selectedCount}</strong><small>Optional</small></article>
       </section>
 
       <p className="decision-direct-submit-note" role="note">
@@ -137,9 +139,20 @@ export default function SubmitDecisionPanel({
             <small id="decision-rationale-help">Optional. Use reviewed records, pinned objects, notes, and unresolved gaps when they are relevant.</small>
           </label>
 
-          <button className="primary-action" type="submit" aria-label="Submit Decision">
+          <button
+            className="primary-action"
+            type="submit"
+            aria-label="Submit Decision"
+            aria-describedby="decision-submit-help"
+            disabled={!packageStatus.ready}
+          >
             Submit Decision
           </button>
+          <small id="decision-submit-help" className="decision-submit-help">
+            {packageStatus.ready
+              ? 'Ready to save this determination and unlock Luna.'
+              : 'Select one valid determination before submitting. Tools, flags, pins, notes, and rationale remain optional.'}
+          </small>
         </form>
       </div>
 

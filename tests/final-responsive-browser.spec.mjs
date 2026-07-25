@@ -83,6 +83,8 @@ test('final responsive polish protects every completed global surface across com
   test.setTimeout(120_000);
   await page.addInitScript(() => {
     window.localStorage.setItem('fraud-academy-layout-mode-v1', 'desktop');
+    window.localStorage.removeItem('fraud-academy-review-packages-v1');
+    window.localStorage.removeItem('fraud-academy-decision-drafts-v1');
   });
   const viewports = testInfo.project.name === 'mobile-chromium'
     ? [{ width: 350, height: 780 }, { width: 412, height: 915 }, { width: 640, height: 900 }]
@@ -112,10 +114,24 @@ test('final responsive polish protects every completed global surface across com
     await openWorkspacePages(page);
     await assertViewportSafe(page, '.visual-os-frame', `Workspace ${viewport.width}`);
 
-    for (const stage of ['briefing', 'investigate', 'timeline', 'determination', 'debrief']) {
+    const workspaceStages = ['briefing', 'investigate', 'timeline', 'determination', 'debrief'];
+    for (const stage of workspaceStages.filter((item) => item !== 'debrief')) {
       await openWorkflowStage(page, new RegExp(stage, 'i'));
       await assertViewportSafe(page, '.visual-os-frame', `Workspace ${stage} ${viewport.width}`);
     }
+
+    const lockedWorkflow = await openWorkspacePages(page);
+    await expect(lockedWorkflow.getByRole('button', { name: /Debrief/ })).toBeDisabled();
+    await openWorkflowStage(page, /Determination/);
+    const decision = page.locator('[data-decision-screen="approved-theme-v1"]');
+    await decision.getByRole('radio').first().check();
+    await decision.getByRole('button', { name: 'Submit Decision', exact: true }).click();
+    await expect(page.locator('.visual-os-frame, .mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'debrief');
+
+    const unlockedWorkflow = await openWorkspacePages(page);
+    await expect(unlockedWorkflow.getByRole('button', { name: /Debrief/ })).toBeEnabled();
+    await openWorkflowStage(page, /Debrief/);
+    await assertViewportSafe(page, '.visual-os-frame', `Workspace debrief ${viewport.width}`);
 
     if (viewport.width <= 430) await assertTouchTargets(page);
   }
