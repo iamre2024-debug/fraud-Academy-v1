@@ -2,7 +2,10 @@ import { test, expect } from '@playwright/test';
 
 test.beforeEach(async ({ page }, testInfo) => {
   await page.addInitScript(({ mobile }) => {
-    window.localStorage.removeItem('fraud-academy-quick-pad-v1');
+    if (!window.sessionStorage.getItem('quick-pad-test-ready')) {
+      window.localStorage.removeItem('fraud-academy-quick-pad-v1');
+      window.sessionStorage.setItem('quick-pad-test-ready', 'true');
+    }
     if (mobile) window.localStorage.setItem('fraud-academy-layout-mode-v1', 'mobile');
   }, { mobile: testInfo.project.name === 'mobile-chromium' });
 });
@@ -10,6 +13,11 @@ test.beforeEach(async ({ page }, testInfo) => {
 test('Quick Pad keeps an account ID available across tools and reloads', async ({ page }) => {
   await page.goto('/');
   const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
+  if (test.info().project.name === 'mobile-chromium') {
+    await page.getByRole('navigation', { name: 'Case briefing files' })
+      .getByRole('button', { name: 'Investigation launchpad' })
+      .click();
+  }
   await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
 
   const customer = page.locator('[data-customer-360-screen="approved-theme-v1"]');
@@ -41,6 +49,7 @@ test('Quick Pad scratch note is case-scoped and can become a formal note', async
   const pad = page.getByRole('dialog', { name: 'Keep lookup details close' });
   await pad.getByRole('button', { name: 'Scratch note', exact: true }).click();
   await pad.getByRole('textbox', { name: 'Case Quick Pad scratch note' }).fill('Confirm the destination ID against Payment Verification.');
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('fraud-academy-quick-pad-v1') || '{}')['FA-ATO-24018']?.scratch)).toBe('Confirm the destination ID against Payment Verification.');
   await page.reload();
   await page.getByRole('button', { name: 'Open Quick Pad, 0 saved items' }).click();
   const restored = page.getByRole('dialog', { name: 'Keep lookup details close' });

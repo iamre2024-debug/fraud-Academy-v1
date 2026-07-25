@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 
 async function copyText(value) {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value);
-    return;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return;
+    }
+  } catch {
+    // Preview browsers can deny clipboard permission; use the selection fallback.
   }
   const field = document.createElement('textarea');
   field.value = value;
