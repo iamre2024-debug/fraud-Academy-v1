@@ -9,6 +9,7 @@ export const storageKeys = {
   documentRequests: 'fraud-academy-document-requests-v2',
   quickPad: 'fraud-academy-quick-pad-v1',
   debriefs: 'fraud-academy-completed-debriefs-v1',
+  resumeSession: 'fraud-academy-resume-session-v1',
 };
 
 export const cloudResourceModes = {
@@ -22,6 +23,7 @@ export const cloudResourceModes = {
   [storageKeys.documentRequests]: 'value',
   [storageKeys.quickPad]: 'value',
   [storageKeys.debriefs]: 'array',
+  [storageKeys.resumeSession]: 'value',
 };
 
 export const cloudResourceKeys = Object.keys(cloudResourceModes);

@@ -238,12 +238,14 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
 
 test('Document Viewer keeps prefilled access locked and restores isolated per-document drafts after reload', async ({ page }, testInfo) => {
   async function openActiveCaseViewer() {
-    if (testInfo.project.name !== 'mobile-chromium') {
-      const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
-      await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
-    }
-    await selectToolGroup(page, /Documents & Requests/);
     const viewer = page.locator('[data-document-viewer-screen="approved-theme-v1"]');
+    if (!await viewer.isVisible()) {
+      if (testInfo.project.name !== 'mobile-chromium') {
+        const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
+        await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
+      }
+      await selectToolGroup(page, /Documents & Requests/);
+    }
     const accountSearch = viewer.getByRole('textbox', { name: 'Search by Account ID' });
     await viewer.getByRole('button', { name: 'Use active case Account ID', exact: true }).click();
     await expect(accountSearch).not.toHaveValue('');

@@ -103,6 +103,7 @@ Each active tool returns a column list plus normalized rows. Mobile presentation
 | IndexedDB database `fraud-academy-os-v1` | Primary generated-case persistence | Stores generated cases in `generatedCases` and repository metadata in `metadata`. |
 | localStorage generated-case keys | Migration source and fallback | Existing cases and sequence metadata migrate once into IndexedDB; localStorage remains the fallback when IndexedDB is unavailable. |
 | Repository sequence | Unique generated IDs | Uses a monotonic sequence and collision loop so rapid generation and queues above 50 cases remain unique. |
+| Encrypted Supabase snapshot | Cross-device recovery | Stores only the browser-encrypted recovery envelope behind a server-side HMAC lookup and compare-and-set revision. IndexedDB and localStorage remain the immediate offline recovery sources. |
 
 The public repository-facing operations are asynchronous: list generated cases, generate and save a case, and combine generated cases with the built-in catalog. A future backend must preserve that behavior instead of forcing UI rewrites.
 
@@ -118,8 +119,11 @@ The following localStorage records are keyed by case ID:
 | Decision drafts | `fraud-academy-decision-drafts-v1` |
 | Saved learner packages | `fraud-academy-review-packages-v1` |
 | Case Report packets | `fraud-academy-case-report-packets-v1` |
+| Completed Luna debriefs | `fraud-academy-completed-debriefs-v1` |
 
-This browser-local state is appropriate for the current fictional training runtime. It is not multi-user, server-synchronized, encrypted case storage.
+The last active case, navigation tab, workspace page/tool, and Luna debrief location are stored as one validated record under `fraud-academy-resume-session-v1`. It is cloud-backed with last-writer-wins semantics. The explicit responsive-layout choice remains device-local under `fraud-academy-layout-mode-v1`.
+
+This fictional training state is immediately recoverable from browser storage and can be synchronized between devices through the encrypted recovery-code flow. It is not multi-user case management or an authenticated employee record system.
 
 ## Fictional-data and training-safety statement
 
@@ -182,18 +186,18 @@ GitHub Actions uses Node.js 24 and runs the named verification chain before desk
 - Output directory: `dist`
 - Release screenshot: `docs/screenshots/fraud-academy-v1-mobile.jpg`
 - Authentication: not implemented
-- Backend API: not implemented
-- Hosted database: not implemented
-- Environment secrets: not required by the current browser-local fictional runtime
+- Backend API: same-origin encrypted cloud-recovery endpoint implemented
+- Hosted database: private Supabase recovery-envelope table implemented
+- Environment secrets: required only by the server-side Vercel function; no credential is embedded in the browser bundle
 
 Rollback is performed by redeploying the last known-good GitHub commit through the configured hosting project.
 
 ## Known limitations
 
-1. Browser-local investigation state is not synchronized across devices or users.
-2. Clearing browser storage removes generated cases and case-scoped learner work.
+1. Recovery-code synchronization connects devices but does not provide named user accounts, instructors, or shared multi-user cases.
+2. Clearing browser storage requires the private recovery code to restore cloud-backed work; losing both local data and the recovery code prevents recovery.
 3. There is no authentication, role-based access, learner roster, instructor console, or server audit trail.
-4. There is no production backend, managed database, cloud backup, or conflict resolution.
+4. Cloud storage is an encrypted recovery envelope, not a queryable case-management backend or server audit log.
 5. Generated-case logic is training-oriented and is not a production fraud-modeling service.
 6. Firefox and Safari are not yet part of the automated browser matrix.
 7. A formal manual accessibility audit has not been recorded.

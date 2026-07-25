@@ -13,6 +13,8 @@ Fraud Academy keeps its existing offline recovery paths and adds encrypted, clou
 - compare-and-set cloud revisions prevent a stale device from silently overwriting a newer snapshot;
 - newer item tombstones preserve explicit pinned-evidence removals;
 - offline writes remain local and retry automatically after the browser emits the `online` event.
+- the last active case, navigation area, workspace page/tool, and Luna debrief location resume after reopening or moving to another device;
+- each device's explicit desktop/mobile/automatic layout preference remains local so a phone cannot force a desktop into the phone layout.
 
 ## Required production environment variables
 
@@ -85,6 +87,11 @@ The migration is additive and non-destructive:
 4. The merged result is written back to the established localStorage keys and IndexedDB generated-case store.
 5. No local case, note, pin, package, or scenario is cleared merely because the cloud is empty or unavailable.
 6. Existing saved learner packages still unlock Luna. When a learner opens an unlocked debrief for the first time, the completed deterministic/API review is persisted under `fraud-academy-completed-debriefs-v1` and joins subsequent cloud snapshots.
+7. Existing browsers begin saving a validated resume record under `fraud-academy-resume-session-v1` after the learner navigates. Clean browsers do not publish the default case or page before cloud hydration, so an established cloud resume point is not overwritten during recovery.
+8. Resume state is a single last-writer-wins record. The newest complete case/tab/page/tool combination wins, while notes, pins, progress, packages, and debriefs continue their item-level merge behavior.
+9. The responsive layout preference remains under the existing device-local `fraud-academy-layout-mode-v1` key and is intentionally excluded from cloud snapshots.
+
+The resume addition uses the existing encrypted JSON snapshot schema, table, and API. It requires no additional Supabase migration, environment variable, or Vercel redeploy beyond deploying the updated application code.
 
 When the required server environment variables are absent, the Supabase migration has not been applied, or Supabase is unavailable, Settings reports **Local recovery** or **Sync paused**. The browser-local and IndexedDB recovery copies remain active, and pending changes retry later.
 
@@ -96,4 +103,4 @@ npm run build
 npx playwright test tests/cloud-persistence-browser.spec.mjs
 ```
 
-The static/pure test covers encryption round trips, concurrent offline note and pin merges, generated-case union, debrief persistence, pin-removal tombstones, API environment boundaries, and conflict handling anchors. Playwright runs the recovery flow on desktop Chromium and Pixel 7, closes and reopens the app, restores a clean device from the recovery code, and verifies an offline Quick Pad edit survives a forced cloud revision conflict.
+The static/pure test covers encryption round trips, concurrent offline note and pin merges, generated-case union, debrief persistence, pin-removal tombstones, last-writer-wins resume conflicts, route validation, API environment boundaries, and conflict handling anchors. Playwright runs the recovery flow on desktop Chromium and Pixel 7, opens a generated case and exact investigation tool, closes and reopens the app, restores a clean device from the recovery code, and verifies offline Quick Pad and navigation changes survive a forced cloud revision conflict.
