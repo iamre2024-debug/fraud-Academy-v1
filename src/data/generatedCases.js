@@ -88,6 +88,57 @@ function selectClaimType(index, claimTypeId) {
   return coreClaimTypes[safeIndex(index) % coreClaimTypes.length];
 }
 
+const scenarioVariantPatterns = [
+  'overnight mobile activity',
+  'business-hours desktop activity',
+  'weekend cross-channel activity',
+  'staggered multi-day activity',
+  'single-session rapid activity',
+  'prior-relationship comparison',
+  'new-contact and established-device comparison',
+  'established-contact and new-device comparison',
+];
+
+const intakeRoutes = {
+  consumer: ['Mobile app claim form', 'Secure message', 'Phone claim intake', 'Branch escalation', 'Digital fraud intake'],
+  employee: ['Employer payroll inquiry', 'Employee service ticket', 'Payroll operations queue', 'HR escalation'],
+  business: ['Business operations inquiry', 'Payments operations queue', 'Secure business message', 'Treasury callback record'],
+  applicant: ['Online application review', 'Application verification queue', 'Document follow-up queue', 'Identity review escalation'],
+};
+
+function scenarioForGeneration(claimType, index, scenarioId) {
+  if (scenarioId && scenarioId !== 'auto') return getScenario(claimType.id, scenarioId);
+  return claimType.scenarios[safeIndex(index) % claimType.scenarios.length] ?? claimType.scenarios[0];
+}
+
+function scenarioVariant(baseScenario, index) {
+  const seed = safeIndex(index);
+  const baseAmount = Number(String(baseScenario.amount ?? '').replace(/[^0-9.-]+/g, '')) || 0;
+  const amountFactors = [0.74, 0.86, 0.93, 1, 1.08, 1.17, 1.31, 1.46];
+  const amount = baseAmount
+    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Math.max(1, Math.round(baseAmount * amountFactors[seed % amountFactors.length] * 100) / 100))
+    : '$0.00';
+  const reference = String((seed * 7919) % 10000).padStart(4, '0');
+  const role = String(baseScenario.entityRole ?? '').toLowerCase();
+  const routeKey = /employee/.test(role) ? 'employee' : /business|vendor|payment contact|owner/.test(role) ? 'business' : /applicant/.test(role) ? 'applicant' : 'consumer';
+  const channels = intakeRoutes[routeKey];
+  const channel = channels[seed % channels.length];
+  const pattern = scenarioVariantPatterns[seed % scenarioVariantPatterns.length];
+  const transactionInfo = /ending \d{4}/i.test(baseScenario.transactionInfo)
+    ? baseScenario.transactionInfo.replace(/ending \d{4}/i, `ending ${reference}`)
+    : `${baseScenario.transactionInfo} · training reference ${reference}`;
+
+  return {
+    ...baseScenario,
+    amount,
+    channel,
+    transactionInfo,
+    statement: `${endSentence(baseScenario.statement)} Please compare the dated records across the ${pattern}.`,
+    variationId: `${baseScenario.id}-V${padded(seed, 8)}`,
+    variationLabel: pattern,
+  };
+}
+
 function makeLoginHistory({ id, index, city, recordCount, claimType, scenario, difficulty }) {
   if (!claimType.availableTools.includes('Login History')) return [];
   const suffix = padded(index);
@@ -291,10 +342,17 @@ function documentDetail({ name, status, scenario, person, business, employer, ad
   return `${name} records ${scenario.title}, ${scenario.transactionInfo}, the ${scenario.amount} amount in scope, and the ${reportedDate} report date.`;
 }
 
-function makeDocuments({ id, claimType, scenario, recordCount, difficulty, person, business, employer, address, trainingId, reportedDate, issueStartDate }) {
+function makeDocuments({ id, index, claimType, scenario, recordCount, difficulty, person, business, employer, address, trainingId, reportedDate, issueStartDate }) {
   const documentCount = Math.min(claimType.documents.length, Math.max(4, recordCount));
+  const requestedSlot = safeIndex(index) % documentCount;
+  const secondaryRequestedSlot = (requestedSlot + 2) % documentCount;
+  const receivedSlot = (requestedSlot + 1) % documentCount;
   return claimType.documents.slice(0, documentCount).map((name, itemIndex) => {
-    const status = itemIndex === 2 || (difficulty === 'deep' && itemIndex === documentCount - 1) ? 'Requested' : itemIndex === 0 ? 'Received' : 'Available';
+    const status = itemIndex === requestedSlot || (difficulty === 'deep' && itemIndex === secondaryRequestedSlot)
+      ? 'Requested'
+      : itemIndex === receivedSlot
+        ? 'Received'
+        : 'Available';
     return {
       id: `${id}-DOC-${itemIndex + 1}`,
       status,
@@ -333,7 +391,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const config = generatorOptions(indexOrOptions, options);
   const index = safeIndex(config.index);
   const claimType = selectClaimType(index, config.claimTypeId);
-  const scenario = getScenario(claimType.id, config.scenarioId);
+  const scenario = scenarioVariant(scenarioForGeneration(claimType, index, config.scenarioId), index);
   const caseClaimType = { ...claimType, availableTools: scenario.toolkitTools ?? claimType.availableTools };
   const difficulty = ['light', 'standard', 'deep'].includes(config.difficulty) ? config.difficulty : 'standard';
   const depth = depthConfig[config.evidenceDepth] ?? depthConfig.standard;
@@ -347,7 +405,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const accountId = `ACCT-${claimType.prefix}-${suffix}`;
   const reportedDate = dateFor(index);
   const issueStartDate = dateFor(index, 2);
-  const documents = makeDocuments({ id, claimType, scenario, recordCount, difficulty, person, business, employer, address, trainingId, reportedDate, issueStartDate });
+  const documents = makeDocuments({ id, index, claimType, scenario, recordCount, difficulty, person, business, employer, address, trainingId, reportedDate, issueStartDate });
   const toolResults = buildGeneratedToolResults({ id, index, person, city, employer, business, claimType: caseClaimType, scenario, documents, recordCount, trainingId, reportedDate, issueStartDate, difficulty });
   const claimDetails = makeClaimDetails({ scenario, reportedDate, issueStartDate, transactionId: toolResults.transactions?.[0]?.id ?? `${id}-TXN-1` });
   const loginHistory = makeLoginHistory({ id, index, city, recordCount, claimType: caseClaimType, scenario, difficulty });
@@ -445,13 +503,15 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     subtype: scenario.subtype,
     scenarioId: scenario.id,
     scenarioTitle: scenario.title,
+    scenarioVariantId: scenario.variationId,
+    scenarioVariant: scenario.variationLabel,
     scenarioFamily: scenario.family ?? claimType.lane,
     plainEnglishMeaning: scenario.plainEnglishMeaning,
     howItHappens: scenario.howItHappens,
     timelinePattern: scenario.timelinePattern,
     commonMistake: scenario.commonMistake,
     miniExample: scenario.miniExample,
-    generatedPacketVersion: 5,
+    generatedPacketVersion: 6,
     difficulty,
     evidenceDepth: depth.label,
     priority: scenario.priority,
@@ -487,6 +547,8 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
       focusAreas: claimType.intakePrompts,
       evidenceAreas: claimType.evidenceAreas,
       scenarioTitle: scenario.title,
+      scenarioVariantId: scenario.variationId,
+      scenarioVariant: scenario.variationLabel,
       complexity: difficultyProfile.label,
       assignedInvestigator: briefingPacket.assignedInvestigator,
       assignedDate: briefingPacket.assignedDate,
