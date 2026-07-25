@@ -32,6 +32,7 @@ Fraud Academy v1.0.0 is the verified internal training release. It is ready for 
 
 ## Deployment
 
+- Production app: `https://fraud-academy-v1.vercel.app/`
 - Verified release-candidate demo: `https://deploy-preview-80--glittery-custard-26e360.netlify.app/`
 - Vercel deployment status: successful for the release commit
 - Vercel deployment record: `https://vercel.com/iamre2024-debugs-projects/fraud-academy-v1/DpMwF6VPN2aKQKVT9UPhPdQtizpp`
@@ -41,7 +42,7 @@ Fraud Academy v1.0.0 is the verified internal training release. It is ready for 
 - Learner state and generated cases are stored in the current browser and do not synchronize across devices.
 - Authentication, instructor administration, a hosted backend, and a managed database are not included.
 - Firefox, Safari, and a formal manual accessibility audit remain pending.
-- A permanent production alias and matching committed desktop release screenshot remain pending.
+- A matching committed desktop release screenshot remains pending.
 - No repository license has been selected.
 
 ## Screenshot

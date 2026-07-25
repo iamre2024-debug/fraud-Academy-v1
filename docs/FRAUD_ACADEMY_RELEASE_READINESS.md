@@ -17,7 +17,7 @@ This audit records the exact release-readiness handoff after Display Phase 4 mer
 
 **Commercial/public release package: NOT YET COMPLETE.**
 
-The verified runtime preserves the core Fraud Academy investigation experience and protected architecture. The owner-led live audit exercised generated cases across all ten claim types, separate mobile pages, pinned evidence, Quick Pad persistence, document requests, device and payment searches, direct decision submission, and Luna debrief. The repository now includes a focused release package, v1.0 release notes, a current Android screenshot, and a verified public release-candidate demo.
+The verified runtime preserves the core Fraud Academy investigation experience and protected architecture. The owner-led live audit exercised generated cases across all ten claim types, separate mobile pages, pinned evidence, Quick Pad persistence, document requests, device and payment searches, direct decision submission, and Luna debrief. The repository now includes a focused release package, v1.0 release notes, a current Android screenshot, a verified public release-candidate demo, and the permanent Vercel production URL.
 
 ## Protected runtime checks
 
@@ -42,10 +42,9 @@ The documentation bundle is complete for the facts currently available. These re
 
 1. The original Bible v2.1 and Display Bible files are not versioned in this repository. Final visual sign-off should compare current screenshots with those original sources.
 2. No repository license has been selected.
-3. A verified release-candidate demo is recorded, but a permanent production URL is not.
-4. A current Android screenshot is stored in the repository; a matching committed desktop screenshot remains pending.
-5. A manual keyboard, screen-reader, zoom, contrast, and reduced-motion audit has not been recorded.
-6. Firefox and Safari are not yet part of the validated browser matrix.
+3. A current Android screenshot is stored in the repository; a matching committed desktop screenshot remains pending.
+4. A manual keyboard, screen-reader, zoom, contrast, and reduced-motion audit has not been recorded.
+5. Firefox and Safari are not yet part of the validated browser matrix.
 
 ## Release decision
 
@@ -57,7 +56,6 @@ Complete only the remaining external handoff items when their inputs are availab
 
 - compare current screenshots with the original Bible sources
 - commit the matching desktop release screenshot
-- assign a permanent production alias to the verified deployed commit
 - perform manual accessibility and non-Chromium browser validation
 - add a license after the owner selects the intended terms
 
