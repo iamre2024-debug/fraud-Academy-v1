@@ -2001,6 +2001,338 @@ body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-group
 .mission-tool-content .document-inspector :is(h3, strong, dd) { color: #fff; }
 .mission-tool-content .document-inspector :is(p, span, dt) { color: #a4cadb; }
 
+.document-mobile-review-shell { display: none; }
+
+.mission-tool-content .document-viewer-layout[data-mobile-pane="reader"] > .document-mobile-review-shell {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  border: 1px solid rgba(87, 220, 255, 0.35);
+  border-radius: 22px 8px 22px 22px;
+  background:
+    radial-gradient(circle at 50% 25%, rgba(14, 123, 210, 0.2), transparent 43%),
+    linear-gradient(180deg, #042747, #010f20);
+  padding: 12px;
+  color: #fff;
+  box-shadow: 0 20px 44px rgba(0, 3, 12, 0.42);
+}
+
+.mission-tool-content .document-viewer-layout[data-mobile-pane="reader"] > :is(.document-preview-workspace, .document-inspector) {
+  display: none;
+}
+
+.mission-tool-content .document-mobile-summary-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(78, 210, 251, 0.24);
+  border-radius: 16px 6px 16px 16px;
+  background: rgba(3, 43, 77, 0.88);
+  padding: 10px;
+}
+
+.mission-tool-content .document-mobile-summary-header > div:not(.document-mobile-summary-actions) {
+  min-width: 0;
+}
+
+.mission-tool-content .document-mobile-summary-header p {
+  margin: 0;
+  color: var(--md-cyan);
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mission-tool-content .document-mobile-summary-header h3 {
+  margin: 2px 0;
+  color: #fff;
+  font-size: 0.9rem;
+  line-height: 1.15;
+}
+
+.mission-tool-content .document-mobile-summary-header span {
+  display: block;
+  overflow: hidden;
+  color: #a9cedd;
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mission-tool-content .document-mobile-summary-header > button,
+.mission-tool-content .document-mobile-summary-actions button {
+  min-height: 38px;
+  border: 1px solid #5ddfff;
+  border-radius: 11px;
+  background: #075f9f;
+  padding: 7px 9px;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.mission-tool-content .document-mobile-summary-actions {
+  display: grid;
+  gap: 5px;
+}
+
+.mission-tool-content .document-mobile-summary-header .document-mobile-back {
+  background: #032b4d;
+  color: #e9faff;
+}
+
+.mission-tool-content .document-mobile-review-tabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  border: 1px solid rgba(79, 211, 252, 0.2);
+  border-radius: 16px;
+  background: rgba(0, 15, 31, 0.62);
+  padding: 7px 5px;
+}
+
+.mission-tool-content .document-mobile-review-tabs::before {
+  content: "";
+  position: absolute;
+  top: 22px;
+  right: 12%;
+  left: 12%;
+  height: 1px;
+  background: rgba(77, 210, 255, 0.35);
+}
+
+.mission-tool-content .document-mobile-review-tabs button {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  min-height: 62px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 1px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  padding: 4px 2px;
+  color: #a9cfde;
+}
+
+.mission-tool-content .document-mobile-review-tabs button i {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #48d6ff;
+  border-radius: 50%;
+  background: #052c50;
+  color: #fff;
+  font-size: 0.75rem;
+  font-style: normal;
+}
+
+.mission-tool-content .document-mobile-review-tabs button > span {
+  font-size: 0.9rem;
+}
+
+.mission-tool-content .document-mobile-review-tabs button strong {
+  font-size: 0.75rem;
+}
+
+.mission-tool-content .document-mobile-review-tabs button[aria-selected="true"] {
+  border-color: rgba(94, 226, 255, 0.66);
+  background: linear-gradient(180deg, rgba(9, 125, 218, 0.68), rgba(4, 66, 119, 0.68));
+  color: #fff;
+  box-shadow: 0 0 18px rgba(57, 198, 255, 0.26);
+}
+
+.mission-tool-content .document-mobile-review-tabs button[aria-selected="true"] i {
+  background: #0b8ae8;
+  box-shadow: 0 0 12px rgba(82, 220, 255, 0.5);
+}
+
+.mission-tool-content .document-mobile-review-panel {
+  display: none;
+  min-width: 0;
+  border: 1px solid rgba(80, 215, 255, 0.3);
+  border-radius: 18px 7px 18px 18px;
+  background: linear-gradient(145deg, rgba(5, 56, 98, 0.96), rgba(1, 25, 48, 0.99));
+  padding: 12px;
+  color: #fff;
+  box-shadow: inset 0 0 24px rgba(40, 151, 224, 0.08);
+}
+
+.mission-tool-content .document-viewer-layout[data-mobile-review-step="document"] [data-review-panel="document"],
+.mission-tool-content .document-viewer-layout[data-mobile-review-step="status"] [data-review-panel="status"],
+.mission-tool-content .document-viewer-layout[data-mobile-review-step="fields"] [data-review-panel="fields"],
+.mission-tool-content .document-viewer-layout[data-mobile-review-step="notes"] [data-review-panel="notes"] {
+  display: block;
+}
+
+.mission-tool-content .document-mobile-review-panel > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.mission-tool-content .document-mobile-review-panel > header p {
+  margin: 0;
+  color: var(--md-cyan);
+  font-size: 0.78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+
+.mission-tool-content .document-mobile-review-panel > header span {
+  border: 1px solid rgba(89, 220, 255, 0.3);
+  border-radius: 999px;
+  background: #063d69;
+  padding: 5px 7px;
+  color: #c9f5ff;
+  font-size: 0.75rem;
+}
+
+.mission-tool-content :is(.document-mobile-status-panel, .document-mobile-fields-panel) > dl,
+.mission-tool-content :is(.document-mobile-status-panel, .document-mobile-fields-panel) details dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+
+.mission-tool-content :is(.document-mobile-status-panel, .document-mobile-fields-panel) dl > div {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-height: 72px;
+  border: 1px solid rgba(75, 204, 246, 0.19);
+  border-radius: 12px;
+  background: rgba(1, 22, 43, 0.7);
+  padding: 9px;
+}
+
+.mission-tool-content :is(.document-mobile-status-panel, .document-mobile-fields-panel) dt {
+  color: #7edff7;
+  font-size: 0.75rem;
+}
+
+.mission-tool-content :is(.document-mobile-status-panel, .document-mobile-fields-panel) dd {
+  margin: 0;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 850;
+  line-height: 1.25;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.mission-tool-content .document-mobile-review-panel details {
+  margin-top: 9px;
+  border: 1px solid rgba(73, 206, 249, 0.22);
+  border-radius: 12px;
+  background: rgba(0, 14, 29, 0.54);
+  padding: 9px;
+}
+
+.mission-tool-content .document-mobile-review-panel summary {
+  color: #d7f7ff;
+  font-size: 0.75rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.mission-tool-content .document-mobile-review-panel details dl {
+  margin-top: 9px;
+}
+
+.mission-tool-content .document-mobile-evidence-actions,
+.mission-tool-content .document-mobile-notes-panel > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.mission-tool-content :is(.document-mobile-evidence-actions, .document-mobile-notes-panel > div) button {
+  min-height: 42px;
+  border: 1px solid rgba(88, 221, 255, 0.48);
+  border-radius: 11px;
+  background: #075e9f;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.mission-tool-content .document-mobile-notes-panel > p {
+  margin: 0 0 9px;
+  color: #a8cedd;
+  font-size: 0.75rem;
+}
+
+.mission-tool-content .document-mobile-notes-panel textarea {
+  width: 100%;
+  min-height: 180px;
+  border: 1px solid rgba(87, 219, 255, 0.35);
+  border-radius: 13px;
+  background: #01172c;
+  padding: 10px;
+  color: #fff;
+  resize: vertical;
+}
+
+.mission-tool-content .document-mobile-review-panel[data-review-panel="document"] {
+  padding: 0;
+  overflow: hidden;
+  background: #d1dde5;
+}
+
+.mission-tool-content .document-mobile-review-panel[data-review-panel="document"] .document-page-stage {
+  max-height: 52dvh;
+  overflow: auto;
+}
+
+.mission-tool-content .document-mobile-review-panel[data-review-panel="document"] .document-page {
+  min-width: 0;
+  transform: none;
+}
+
+.mission-tool-content .document-mobile-step-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.25fr);
+  align-items: center;
+  gap: 7px;
+}
+
+.mission-tool-content .document-mobile-step-controls button {
+  min-height: 45px;
+  border: 1px solid rgba(85, 218, 255, 0.42);
+  border-radius: 12px;
+  background: #04365e;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.mission-tool-content .document-mobile-step-controls button:last-child {
+  background: linear-gradient(180deg, #0a89ef, #075ac5);
+}
+
+.mission-tool-content .document-mobile-step-controls button:disabled {
+  opacity: 0.38;
+}
+
+.mission-tool-content .document-mobile-step-controls span {
+  color: #d5f5ff;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
 /* Existing queue, Academy, Progress, Profile, and Luna content sits in new page canvases. */
 .mission-mobile-root .cases-theme-v1-panel,
 .mission-mobile-root .academy-theme-v1,
