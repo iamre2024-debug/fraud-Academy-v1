@@ -36,8 +36,11 @@ test('generated Device ID lookup returns a complete profile and never leaks a st
   await selectToolGroup(page, /Login, Session, Device & IP/);
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  const toolSelector = panel.getByRole('combobox', { name: 'Choose investigation tool' });
-  await toolSelector.selectOption('Device Intelligence');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await panel.getByRole('button', { name: 'Open Device Intelligence', exact: true }).click();
+  } else {
+    await panel.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Device Intelligence');
+  }
   await expect(panel).toHaveAttribute('data-tool-name', 'Device Intelligence');
 
   const search = panel.getByRole('textbox', { name: 'Search Device Intelligence records' });
@@ -57,7 +60,7 @@ test('generated Device ID lookup returns a complete profile and never leaks a st
   await expect(detail).toContainText(deviceId);
   await expect(detail).toContainText('Training Mobile OS 18');
   await expect(detail).toContainText('Chrome Mobile training browser');
-  await expect(detail.getByText(/^FP-/)).toBeVisible();
+  await expect(panel.locator('.device-intel-snapshot').getByText(/^FP-/)).toBeVisible();
   await expect(detail.getByText(/^BR-/)).toBeVisible();
   await expect(detail).not.toContainText(/Lookup needed|Run a device lookup to reveal/i);
   await expect(panel.locator('.device-history-panel')).toContainText(/Successful|Failed|Account locked/);
