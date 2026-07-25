@@ -189,7 +189,7 @@ test('generated payroll carries one exact account change from Payroll History in
   await queue.getByLabel('Generate case count').selectOption('1');
   await queue.getByRole('button', { name: 'Generate cases', exact: true }).click();
 
-  const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
+  const briefing = page.locator('[data-workspace-page="briefing"]');
   await expect(briefing).toBeVisible();
   const generatedCaseId = await page.locator('.visual-case-switcher select').inputValue();
   expect(generatedCaseId).toMatch(/^FA-PAY-G\d+$/);
