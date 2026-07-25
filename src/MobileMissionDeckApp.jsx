@@ -3,6 +3,7 @@ import AcademyProgressPanel from './AcademyProgressPanel.jsx';
 import AcademyThemeV1Panel from './AcademyThemeV1Panel.jsx';
 import CasesThemeV1Panel from './CasesThemeV1Panel.jsx';
 import LunaApiAccessSetting from './LunaApiAccessSetting.jsx';
+import CloudSyncControl from './CloudSyncControl.jsx';
 import ProfileThemeV1Panel from './ProfileThemeV1Panel.jsx';
 
 const reducedMotionKey = 'fraud-academy-reduced-motion-v1';
@@ -84,11 +85,13 @@ export default function MobileMissionDeckApp({
     window.addEventListener('focus', refresh);
     window.addEventListener('fraud-academy:package-saved', refresh);
     window.addEventListener('fraud-academy:packages-updated', refresh);
+    window.addEventListener('fraud-academy:cloud-hydrated', refresh);
     return () => {
       window.removeEventListener('storage', refresh);
       window.removeEventListener('focus', refresh);
       window.removeEventListener('fraud-academy:package-saved', refresh);
       window.removeEventListener('fraud-academy:packages-updated', refresh);
+      window.removeEventListener('fraud-academy:cloud-hydrated', refresh);
     };
   }, []);
 
@@ -161,6 +164,7 @@ export default function MobileMissionDeckApp({
                 <span><strong>Reduce motion</strong><small>Use immediate page changes and quieter animation.</small></span>
                 <input type="checkbox" checked={reducedMotion} onChange={(event) => setReducedMotion(event.target.checked)} />
               </label>
+              <CloudSyncControl variant="mobile" />
               <LunaApiAccessSetting variant="mobile" />
             </>
           )}

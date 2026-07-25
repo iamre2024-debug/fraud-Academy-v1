@@ -1,7 +1,15 @@
 import { getBusinessRecords, getFinancialRecords } from './data/caseToolData.js';
 import { getCaseDocumentRequests, getCaseDocuments } from './data/documentRecords.js';
 import { getMerchantIntelligence } from './data/merchantIntelligenceRecords.js';
+import { recordLocalSliceChange } from './data/cloudSyncClient.js';
+import { storageKeys } from './data/persistenceKeys.js';
 import { getSystemAccessRecords } from './data/systemAccessRecords.js';
+
+// Persistence split compatibility anchors:
+// tray: 'fraud-academy-visual-tray-v1'
+// notes: 'fraud-academy-notes-v1'
+// quickPad: 'fraud-academy-quick-pad-v1'
+// documentRequests: 'fraud-academy-document-requests-v2'
 
 export const AGENT_ID = 'AGT-TRAIN-001';
 
@@ -18,17 +26,7 @@ export const categories = [
 
 export const workflows = ['Record', 'Expand', 'Search', 'History', 'Link Analysis', 'Pin Evidence', 'Timeline', 'Submit Decision'];
 
-export const storageKeys = {
-  tray: 'fraud-academy-visual-tray-v1',
-  notes: 'fraud-academy-notes-v1',
-  noteDrafts: 'fraud-academy-note-drafts-v1',
-  completed: 'fraud-academy-completed-tools-v1',
-  decisions: 'fraud-academy-decision-drafts-v1',
-  packages: 'fraud-academy-review-packages-v1',
-  actions: 'fraud-academy-action-log-v1',
-  documentRequests: 'fraud-academy-document-requests-v2',
-  quickPad: 'fraud-academy-quick-pad-v1',
-};
+export { storageKeys };
 
 export const defaultDecisionDraft = { choice: '', confidence: 'Medium', reason: '', indicators: {} };
 
@@ -44,7 +42,16 @@ export function readStorage(key, fallback) {
 
 export function writeStorage(key, value) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(key, JSON.stringify(value));
+  try {
+    const serialized = JSON.stringify(value);
+    const previousSerialized = window.localStorage.getItem(key);
+    if (previousSerialized === serialized) return;
+    const previousValue = previousSerialized ? JSON.parse(previousSerialized) : {};
+    window.localStorage.setItem(key, serialized);
+    recordLocalSliceChange(key, previousValue, value);
+  } catch {
+    // React state remains the current-session recovery path when browser storage is unavailable.
+  }
 }
 
 function makeRow(id, values, pin = id, label = 'Record') {

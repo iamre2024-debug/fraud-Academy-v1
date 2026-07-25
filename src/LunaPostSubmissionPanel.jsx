@@ -6,24 +6,9 @@ import { enrichTrainingCases } from './data/caseEnrichment.js';
 import { buildLunaDebrief } from './data/lunaDebrief.js';
 import { requestLunaApiCoaching } from './data/lunaApi.js';
 import { isValidReviewPackage } from './data/reviewPackage.js';
+import { readStorage, storageKeys, writeStorage } from './visualWorkspaceModel.js';
 
 const cases = enrichTrainingCases(baseCases);
-const storageKeys = {
-  packages: 'fraud-academy-review-packages-v1',
-  completed: 'fraud-academy-completed-tools-v1',
-  tray: 'fraud-academy-visual-tray-v1',
-  notes: 'fraud-academy-notes-v1',
-};
-
-function readJson(key, fallback) {
-  if (typeof window === 'undefined') return fallback;
-  try {
-    const saved = window.localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 function explainDecisionMeaning(choice) {
   const normalized = String(choice || '').toLowerCase();
@@ -132,24 +117,29 @@ export default function LunaPostSubmissionPanel({
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
     window.addEventListener('fraud-academy:package-saved', saved);
+    window.addEventListener('fraud-academy:cloud-hydrated', refresh);
     return () => {
       window.removeEventListener('storage', refresh);
       window.removeEventListener('focus', refresh);
       window.removeEventListener('fraud-academy:package-saved', saved);
+      window.removeEventListener('fraud-academy:cloud-hydrated', refresh);
       if (timer !== null) window.clearTimeout(timer);
     };
   }, [activeCase.id]);
 
   const state = useMemo(() => {
-    const packagesByCase = readJson(storageKeys.packages, {});
-    const completedByCase = readJson(storageKeys.completed, {});
-    const trayByCase = readJson(storageKeys.tray, {});
-    const notesByCase = readJson(storageKeys.notes, {});
+    const packagesByCase = readStorage(storageKeys.packages, {});
+    const completedByCase = readStorage(storageKeys.completed, {});
+    const trayByCase = readStorage(storageKeys.tray, {});
+    const notesByCase = readStorage(storageKeys.notes, {});
+    const debriefsByCase = readStorage(storageKeys.debriefs, {});
     const storedPackage = (packagesByCase[activeCase.id] ?? [])
       .find((reviewPackage) => isValidReviewPackage(activeCase, reviewPackage)) ?? null;
     const submittedPackageIsValid = submittedPackage?.caseId === activeCase.id
       && isValidReviewPackage(activeCase, submittedPackage);
     const reviewPackage = submittedPackageIsValid ? submittedPackage : storedPackage;
+    const savedDebrief = (debriefsByCase[activeCase.id] ?? [])
+      .find((debriefRecord) => debriefRecord.packageId === reviewPackage?.id) ?? null;
     const debrief = buildLunaDebrief({
       activeCase,
       reviewPackage,
@@ -157,11 +147,15 @@ export default function LunaPostSubmissionPanel({
       tray: trayByCase[activeCase.id] ?? [],
       notes: notesByCase[activeCase.id] ?? [],
     });
-    return { reviewPackage, debrief };
+    return { reviewPackage, debrief, savedDebrief };
   }, [activeCase, submittedPackage, version]);
 
   useEffect(() => {
     if (!visible || !state.reviewPackage || !state.debrief) return undefined;
+    if (state.savedDebrief) {
+      setApiStatus('saved');
+      return undefined;
+    }
     const controller = new AbortController();
     setApiStatus('loading');
     requestLunaApiCoaching({
@@ -185,21 +179,67 @@ export default function LunaPostSubmissionPanel({
         setApiStatus('fallback');
       });
     return () => controller.abort();
-  }, [activeCase, state.reviewPackage, state.debrief, visible]);
+  }, [activeCase, state.reviewPackage, state.debrief, state.savedDebrief, visible]);
 
   const locked = !state.reviewPackage || !state.debrief;
   const reviewStatus = locked ? 'locked' : getReviewStatus(state.debrief);
   const fallbackReview = !locked ? buildManagerFallback(state.debrief, state.reviewPackage) : null;
+  const savedCoaching = state.savedDebrief?.managerReview ?? null;
+  const activeCoaching = apiCoaching || savedCoaching;
   const managerReview = !locked
     ? {
         ...fallbackReview,
-        ...(apiCoaching || {}),
+        ...(activeCoaching || {}),
         managerVerdict: fallbackReview.managerVerdict,
         decisionMeaning: fallbackReview.decisionMeaning,
-        actualCaseOutcome: reviewStatus === 'ungraded' ? fallbackReview.actualCaseOutcome : (apiCoaching?.actualCaseOutcome || fallbackReview.actualCaseOutcome),
-        managerExplanation: reviewStatus === 'ungraded' ? fallbackReview.managerExplanation : (apiCoaching?.managerExplanation || fallbackReview.managerExplanation),
+        actualCaseOutcome: reviewStatus === 'ungraded' ? fallbackReview.actualCaseOutcome : (activeCoaching?.actualCaseOutcome || fallbackReview.actualCaseOutcome),
+        managerExplanation: reviewStatus === 'ungraded' ? fallbackReview.managerExplanation : (activeCoaching?.managerExplanation || fallbackReview.managerExplanation),
       }
     : null;
+  const coachingSource = apiCoaching
+    ? 'api'
+    : state.savedDebrief?.source ?? 'deterministic';
+
+  useEffect(() => {
+    if (!visible || locked || !managerReview || !state.reviewPackage?.id) return;
+    const debriefsByCase = readStorage(storageKeys.debriefs, {});
+    const currentDebriefs = debriefsByCase[activeCase.id] ?? [];
+    const recordId = `${state.reviewPackage.id}:debrief`;
+    const existing = currentDebriefs.find((item) => item.id === recordId);
+    const nextRecord = {
+      id: recordId,
+      caseId: activeCase.id,
+      packageId: state.reviewPackage.id,
+      completedAt: existing?.completedAt ?? new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      reviewStatus,
+      source: coachingSource,
+      deterministicDebrief: state.debrief,
+      managerReview,
+    };
+    const unchanged = existing
+      && existing.reviewStatus === nextRecord.reviewStatus
+      && existing.source === nextRecord.source
+      && JSON.stringify(existing.deterministicDebrief) === JSON.stringify(nextRecord.deterministicDebrief)
+      && JSON.stringify(existing.managerReview) === JSON.stringify(nextRecord.managerReview);
+    if (unchanged) return;
+    writeStorage(storageKeys.debriefs, {
+      ...debriefsByCase,
+      [activeCase.id]: [nextRecord, ...currentDebriefs.filter((item) => item.id !== recordId)],
+    });
+    window.dispatchEvent(new CustomEvent('fraud-academy:debrief-completed', {
+      detail: { caseId: activeCase.id, packageId: state.reviewPackage.id, debriefId: recordId },
+    }));
+  }, [
+    activeCase.id,
+    coachingSource,
+    locked,
+    managerReview,
+    reviewStatus,
+    state.debrief,
+    state.reviewPackage,
+    visible,
+  ]);
   const verdictLabel = reviewStatus === 'matched'
     ? 'Right call'
     : reviewStatus === 'mismatched'
@@ -226,7 +266,7 @@ export default function LunaPostSubmissionPanel({
       data-case-id={activeCase.id}
       data-luna-state={locked ? 'locked' : 'unlocked'}
       data-luna-review-status={reviewStatus}
-      data-luna-coaching-source={apiCoaching ? 'api' : 'deterministic'}
+      data-luna-coaching-source={coachingSource}
       data-luna-api-status={apiStatus}
       data-workspace-screen-visible={visible ? 'true' : 'false'}
       aria-hidden={visible ? undefined : 'true'}

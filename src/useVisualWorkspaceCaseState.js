@@ -44,6 +44,22 @@ export default function useVisualWorkspaceCaseState(activeCase) {
   useEffect(() => writeStorage(storageKeys.documentRequests, documentRequestsByCase), [documentRequestsByCase]);
   useEffect(() => writeStorage(storageKeys.quickPad, quickPadByCase), [quickPadByCase]);
 
+  useEffect(() => {
+    const hydrateFromRecovery = () => {
+      setTrayByCase(readStorage(storageKeys.tray, {}));
+      setNotesByCase(readStorage(storageKeys.notes, {}));
+      setNoteDraftsByCase(readStorage(storageKeys.noteDrafts, {}));
+      setCompletedByCase(migrateCompletedTools(readStorage(storageKeys.completed, {})));
+      setDecisionByCase(readStorage(storageKeys.decisions, {}));
+      setPackagesByCase(readStorage(storageKeys.packages, {}));
+      setActionsByCase(readStorage(storageKeys.actions, {}));
+      setDocumentRequestsByCase(readStorage(storageKeys.documentRequests, {}));
+      setQuickPadByCase(readStorage(storageKeys.quickPad, {}));
+    };
+    window.addEventListener('fraud-academy:cloud-hydrated', hydrateFromRecovery);
+    return () => window.removeEventListener('fraud-academy:cloud-hydrated', hydrateFromRecovery);
+  }, []);
+
   const caseId = activeCase.id;
   const noteDraft = noteDraftsByCase[caseId] ?? '';
   const reviewPackages = (packagesByCase[caseId] ?? []).filter((reviewPackage) => isValidReviewPackage(activeCase, reviewPackage));

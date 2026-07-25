@@ -81,10 +81,12 @@ export default function AcademyProgress() {
     const interval = window.setInterval(refresh, 1200);
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
+    window.addEventListener('fraud-academy:cloud-hydrated', refresh);
     return () => {
       window.clearInterval(interval);
       window.removeEventListener('storage', refresh);
       window.removeEventListener('focus', refresh);
+      window.removeEventListener('fraud-academy:cloud-hydrated', refresh);
     };
   }, []);
 

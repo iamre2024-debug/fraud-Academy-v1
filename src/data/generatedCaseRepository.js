@@ -162,6 +162,35 @@ export async function listGeneratedCases() {
   return repository.list();
 }
 
+function notifyGeneratedCasesChanged(reason = 'updated') {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function' || typeof CustomEvent === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('fraud-academy:generated-cases-updated', {
+    detail: { reason },
+  }));
+}
+
+export async function mergeGeneratedCases(items = []) {
+  const repository = await getGeneratedCaseRepository();
+  const existing = await repository.list();
+  const existingById = new Map(existing.map((item) => [item.id, item]));
+  const incoming = items.filter((item) => item?.id && !existingById.has(item.id));
+  if (!incoming.length) return existing;
+
+  if (typeof repository.putMany === 'function') {
+    await repository.putMany(incoming);
+  } else {
+    for (const item of incoming) await repository.put(item);
+  }
+
+  const highestSequence = incoming.reduce(
+    (highest, item) => Math.max(highest, Number(item.generatedAt) || 0),
+    Number(await repository.getSequence()) || 0,
+  );
+  if (highestSequence) await repository.setSequence(highestSequence);
+  notifyGeneratedCasesChanged('cloud-merge');
+  return repository.list();
+}
+
 function generatorConfig(config = {}) {
   return {
     claimTypeId: config.claimTypeId,
@@ -187,6 +216,7 @@ export async function generateAndSaveCase(config = {}) {
 
   await repository.setSequence(seed);
   await repository.put(nextCase);
+  notifyGeneratedCasesChanged('generated');
   return nextCase;
 }
 
