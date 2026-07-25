@@ -17,7 +17,7 @@ async function assertPhoneGeometry(page) {
         return rect.width > 0 && rect.width < 58 && rect.height > 80;
       })
       .map((element) => element.textContent.trim());
-    const categoryCards = [...document.querySelectorAll('.mission-evidence-page .visual-category-row > button')]
+    const categoryCards = [...document.querySelectorAll('.mission-evidence-page .mission-map-tool-node')]
       .filter((element) => element.getBoundingClientRect().width > 0);
     return {
       viewport: window.innerWidth,
@@ -34,12 +34,12 @@ async function assertPhoneGeometry(page) {
       badHeadings,
       categoryCardWidths: categoryCards.map((element) => element.getBoundingClientRect().width),
       categoryTitleGeometry: categoryCards.map((element) => {
-        const title = element.querySelector('.investigation-category-copy strong');
+        const title = element.querySelector('strong');
         const rect = title?.getBoundingClientRect();
         return { width: rect?.width ?? 0, height: rect?.height ?? 0 };
       }),
       categoryFontSizes: categoryCards.flatMap((element) => (
-        [...element.querySelectorAll('.investigation-category-copy strong, .investigation-category-copy small, .category-status-copy')]
+        [...element.querySelectorAll('strong, small')]
           .map((text) => Number.parseFloat(getComputedStyle(text).fontSize))
       )),
     };
@@ -57,8 +57,8 @@ async function assertPhoneGeometry(page) {
   expect(geometry.dockBottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
   expect(geometry.dockWidth).toBeGreaterThanOrEqual(geometry.expectedShellWidth - 18);
   expect(geometry.badHeadings).toEqual([]);
-  expect(geometry.categoryCardWidths.every((width) => width >= 140)).toBe(true);
-  expect(geometry.categoryTitleGeometry.every(({ width, height }) => width >= 70 && height <= 74)).toBe(true);
+  expect(geometry.categoryCardWidths.every((width) => width >= 118)).toBe(true);
+  expect(geometry.categoryTitleGeometry.every(({ width, height }) => width >= 90 && height <= 74)).toBe(true);
   expect(geometry.categoryFontSizes.every((size) => size >= 12)).toBe(true);
 }
 
@@ -102,13 +102,14 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   await expect(page.locator('.mission-path-v3')).toBeVisible();
   await page.locator('.mission-path-list').getByRole('button', { name: /Investigate/ }).click();
   await expect(page.locator('.mission-evidence-page .mission-evidence-map')).toBeVisible();
-  const categoryButtons = page.locator('.mission-evidence-page .visual-category-row > button');
+  const categoryButtons = page.locator('.mission-evidence-page .mission-map-tool-node');
   await expect(categoryButtons).toHaveCount(6);
   await expect(categoryButtons.filter({ hasText: 'Business & Payment Verification' })).toBeVisible();
+  await expect(page.locator('.mission-evidence-page .visual-category-row')).toBeHidden();
   await assertPhoneGeometry(page);
   await capture(page, testInfo, '03-evidence-map');
 
-  await page.locator('.mission-evidence-page .visual-category-row > button').filter({ hasText: 'Documents & Requests' }).click();
+  await page.locator('.mission-evidence-page .mission-map-tool-node').filter({ hasText: 'Documents & Requests' }).click();
   await expect(page.locator('.mission-tool-page')).toBeVisible();
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Document Viewer');
   await page.getByRole('button', { name: 'Open active case documents' }).click();
