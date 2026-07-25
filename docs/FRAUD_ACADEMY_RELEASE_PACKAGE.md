@@ -4,13 +4,15 @@ This document collects the external handoff information that was previously dist
 
 ## Release position
 
-- Audited runtime base: `ea71a00d5d48e07793b278b9ddd36a3aa771960a`
+- Audited runtime base: `573ea1db64c309719a23df1031be1e4ba6fa4ca6`
+- Version label: `v1.0.0`
+- Verification date: July 25, 2026
 - Runtime candidate: approved for internal user acceptance testing
 - Commercial/public package: not yet complete
 - Authority order: Fraud Academy Bible v2.1, Fraud Academy Display Bible v1.0 - New Design Exploration, `docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md`, `docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md`, then the latest verified `main`
 - Historical PR #2, stale branches, retired DOM patches, and parked System Access portal modules are reference-only
 
-The remaining external handoff items are a user-selected license, a deployment or demo URL, current desktop/mobile screenshots, original-Bible visual sign-off, and broader manual accessibility and browser validation.
+The remaining external handoff items are a user-selected license, a permanent production URL, a committed desktop screenshot, original-Bible visual sign-off, and broader manual accessibility and browser validation.
 
 ## Product boundary
 
@@ -171,15 +173,20 @@ GitHub Actions uses Node.js 24 and runs the named verification chain before desk
 
 ## Deployment status
 
-- Repository status: source repository only
-- Production deployment: not recorded
-- Demo URL: not recorded
+- Repository status: `main` verified at `573ea1db64c309719a23df1031be1e4ba6fa4ca6`
+- Vercel deployment status: successful for the audited `main` commit
+- Verified public release-candidate demo: `https://deploy-preview-80--glittery-custard-26e360.netlify.app/`
+- Vercel deployment record: `https://vercel.com/iamre2024-debugs-projects/fraud-academy-v1/DpMwF6VPN2aKQKVT9UPhPdQtizpp`
+- Permanent production URL: not yet recorded
+- Build command: `npm run build`
+- Output directory: `dist`
+- Release screenshot: `docs/screenshots/fraud-academy-v1-mobile.jpg`
 - Authentication: not implemented
 - Backend API: not implemented
 - Hosted database: not implemented
 - Environment secrets: not required by the current browser-local fictional runtime
 
-A deployment handoff should record the hosting provider, build command, output directory, public URL, environment variables, rollback procedure, and the exact deployed commit.
+Rollback is performed by redeploying the last known-good GitHub commit through the configured hosting project. The Vercel project should expose a permanent production alias before the package is described as a public production release.
 
 ## Known limitations
 
@@ -190,10 +197,10 @@ A deployment handoff should record the hosting provider, build command, output d
 5. Generated-case logic is training-oriented and is not a production fraud-modeling service.
 6. Firefox and Safari are not yet part of the automated browser matrix.
 7. A formal manual accessibility audit has not been recorded.
-8. Current approved desktop and mobile screenshots are not versioned in the repository.
+8. The current Android screenshot is versioned; a matching committed desktop screenshot is still pending.
 9. The original Bible v2.1 and Display Bible source files are not versioned in this repository.
 10. No repository license has been selected, so external reuse terms are not yet defined.
-11. No production or demo URL is recorded.
+11. A verified release-candidate demo is recorded, but a permanent production alias is not.
 
 ## Post-v1 backlog
 
@@ -207,7 +214,7 @@ Backlog items must preserve Evidence First, neutral pre-submission wording, Luna
 - Expanded automated Firefox and WebKit coverage
 - Formal accessibility audit and remediation record
 - Deployment runbook, monitoring, backup, and rollback documentation
-- Curated release screenshots and demo environment
+- Complete the curated desktop/mobile release screenshot pair
 - Owner-selected repository license
 
 The parked ten-module System Access portal is not a backlog commitment. Any future System Access expansion requires a new approved scope and must not be inferred from historical PR #1 or stale branches.
@@ -220,9 +227,11 @@ The parked ten-module System Access portal is not a backlog commitment. Any futu
 - [x] Accessibility and supported-browser notes
 - [x] Known limitations and post-v1 backlog
 - [x] Deployment status recorded honestly
+- [x] Verified release-candidate demo URL
+- [x] Current Android release screenshot
 - [ ] Original Bible visual sign-off against current screenshots
-- [ ] Current desktop and mobile screenshot set
-- [ ] Production deployment or demo URL
+- [ ] Matching committed desktop screenshot
+- [ ] Permanent production URL
 - [ ] Manual accessibility and non-Chromium browser validation
 - [ ] Repository license selected by the owner
 

@@ -6,6 +6,8 @@ This audit records the exact release-readiness handoff after Display Phase 4 mer
 
 - Phase 5 runtime audit base: `0c5dfb5eee82235b1024b020a55833841672daeb`
 - Documentation-package base: `ea71a00d5d48e07793b278b9ddd36a3aa771960a`
+- v1.0 runtime audit base: `573ea1db64c309719a23df1031be1e4ba6fa4ca6`
+- v1.0 verification date: July 25, 2026
 - Authority chain: Fraud Academy Bible v2.1, Fraud Academy Display Bible v1.0 - New Design Exploration, `docs/FRAUD_ACADEMY_DISPLAY_HANDOFF.md`, `docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md`, `docs/FRAUD_ACADEMY_RELEASE_PACKAGE.md`, and the latest verified `main`
 - Historical PR #2, stale branches, retired DOM patches, and parked System Access portal modules remain non-authoritative
 
@@ -15,7 +17,7 @@ This audit records the exact release-readiness handoff after Display Phase 4 mer
 
 **Commercial/public release package: NOT YET COMPLETE.**
 
-The verified runtime preserves the core Fraud Academy investigation experience and protected architecture. The repository now includes a focused release package covering architecture, data and persistence, fictional-data safety, accessibility/browser status, deployment status, known limitations, and backlog. External handoff still needs owner-selected and environment-specific artifacts.
+The verified runtime preserves the core Fraud Academy investigation experience and protected architecture. The owner-led live audit exercised generated cases across all ten claim types, separate mobile pages, pinned evidence, Quick Pad persistence, document requests, device and payment searches, direct decision submission, and Luna debrief. The repository now includes a focused release package, v1.0 release notes, a current Android screenshot, and a verified public release-candidate demo.
 
 ## Protected runtime checks
 
@@ -31,6 +33,8 @@ The verified runtime preserves the core Fraud Academy investigation experience a
 | Responsive behavior | Pass | Desktop record headers remain visible; Pixel 7 records become labeled cards with thumb-friendly actions and no required record-surface or page overflow. |
 | Build stability | Pass | The named verification chain, production build, desktop Chromium, and Pixel 7 Chromium remain required CI gates. |
 | Documentation package | Pass | `docs/FRAUD_ACADEMY_RELEASE_PACKAGE.md` centralizes the runtime architecture, data model, persistence boundaries, fictional-data statement, accessibility/browser status, deployment status, limitations, and backlog. |
+| Live v1.0 audit | Pass | All ten claim types generated successfully; an 80-case repeated generation audit confirmed varied people, amounts, events, evidence, and document availability. |
+| Decision and debrief | Pass | A decision submitted with one of six tools reviewed, saved successfully, unlocked Luna, displayed manager feedback, and returned to the saved decision through back navigation. |
 
 ## Release-package gaps
 
@@ -38,22 +42,22 @@ The documentation bundle is complete for the facts currently available. These re
 
 1. The original Bible v2.1 and Display Bible files are not versioned in this repository. Final visual sign-off should compare current screenshots with those original sources.
 2. No repository license has been selected.
-3. No production deployment or demo URL is recorded.
-4. No curated current desktop/mobile screenshot set is stored in the repository.
+3. A verified release-candidate demo is recorded, but a permanent production URL is not.
+4. A current Android screenshot is stored in the repository; a matching committed desktop screenshot remains pending.
 5. A manual keyboard, screen-reader, zoom, contrast, and reduced-motion audit has not been recorded.
 6. Firefox and Safari are not yet part of the validated browser matrix.
 
 ## Release decision
 
-The current tree is safe to move into internal user acceptance testing and screenshot review. Do not describe it as a finished commercial package until the remaining external handoff items are resolved or explicitly accepted.
+The current tree is approved as the Fraud Academy `v1.0.0` internal release. Do not describe it as a finished commercial package until the remaining external handoff items are resolved or explicitly accepted.
 
 ## Next safe item
 
 Complete only the remaining external handoff items when their inputs are available:
 
 - compare current screenshots with the original Bible sources
-- commit a curated desktop/mobile screenshot set
-- record a deployment or demo URL and exact deployed commit
+- commit the matching desktop release screenshot
+- assign a permanent production alias to the verified deployed commit
 - perform manual accessibility and non-Chromium browser validation
 - add a license after the owner selects the intended terms
 
