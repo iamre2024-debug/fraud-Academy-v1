@@ -61,22 +61,38 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
     await search.fill(title);
     await expect(viewer.locator('[data-document-record]')).toHaveCount(1);
     await viewer.locator('[data-document-record] .document-record-open').click();
-    await expect(viewer.getByRole('heading', { name: title, exact: true }).first()).toBeVisible();
-    await expect(viewer.locator('.document-inspector')).toContainText('Extraction confidence');
     if (testInfo.project.name === 'mobile-chromium') {
+      const mobileReview = viewer.locator('.document-mobile-review-shell');
+      await expect(mobileReview).toBeVisible();
+      await expect(mobileReview.getByRole('heading', { name: title, exact: true })).toBeVisible();
+      await expect(mobileReview.getByRole('navigation', { name: 'Document review pages' })).toBeVisible();
+      await expect(mobileReview.getByRole('tab', { name: /Fields/ })).toHaveAttribute('aria-selected', 'true');
+      await expect(mobileReview.locator('[data-review-panel="fields"]')).toContainText('Confidence');
       await viewer.getByRole('button', { name: '‹ Inbox', exact: true }).click();
+    } else {
+      await expect(viewer.getByRole('heading', { name: title, exact: true }).first()).toBeVisible();
+      await expect(viewer.locator('.document-inspector')).toContainText('Extraction confidence');
     }
   }
 
   await search.fill('Billing history statement');
   await viewer.locator('[data-document-record] .document-record-open').click();
-  const pageControls = viewer.getByRole('region', { name: 'Document page controls' });
+  const mobileReview = viewer.locator('.document-mobile-review-shell');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await mobileReview.getByRole('tab', { name: /Document/ }).click();
+  }
+  const documentSurface = testInfo.project.name === 'mobile-chromium' ? mobileReview : viewer;
+  const pageControls = documentSurface.getByRole('region', { name: 'Document page controls' });
   await expect(pageControls.getByText('Page 1 of 1', { exact: true })).toBeVisible();
-  await expect(viewer.locator('.document-page')).toContainText('Account billing ledger');
-  await expect(viewer.locator('.document-page')).toContainText('StreamBox Premium');
+  await expect(documentSurface.locator('.document-page')).toContainText('Account billing ledger');
+  await expect(documentSurface.locator('.document-page')).toContainText('StreamBox Premium');
 
   const downloadPromise = page.waitForEvent('download');
-  await viewer.locator('.document-toolbar-actions').getByRole('button', { name: 'Export', exact: true }).click();
+  if (testInfo.project.name === 'mobile-chromium') {
+    await mobileReview.getByRole('button', { name: 'Export', exact: true }).click();
+  } else {
+    await viewer.locator('.document-toolbar-actions').getByRole('button', { name: 'Export', exact: true }).click();
+  }
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toContain('BILL-HIST');
 
@@ -93,13 +109,20 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
   await expect(viewer.getByRole('region', { name: 'Document comparison' })).toContainText('Billing history statement');
 
   await statementRecord.getByRole('button', { name: /Billing history statement|Open/i }).first().click();
-  await viewer.locator('.document-toolbar-actions').getByRole('button', { name: 'Pin', exact: true }).click();
+  if (testInfo.project.name === 'mobile-chromium') {
+    await mobileReview.getByRole('button', { name: 'Pin', exact: true }).click();
+    await mobileReview.getByRole('tab', { name: /Notes/ }).click();
+    await mobileReview.getByRole('textbox', { name: 'Mobile document investigator note' }).fill('Statement ownership and both pages were reviewed against the active customer record.');
+  } else {
+    await viewer.locator('.document-toolbar-actions').getByRole('button', { name: 'Pin', exact: true }).click();
+    await viewer.getByRole('textbox', { name: 'Document investigator note' }).fill('Statement ownership and both pages were reviewed against the active customer record.');
+  }
   await expect(page.locator('.tray-card')).toContainText('BILL-HIST');
 
-  await viewer.getByRole('textbox', { name: 'Document investigator note' }).fill('Statement ownership and both pages were reviewed against the active customer record.');
-  await viewer.getByRole('button', { name: 'Save note', exact: true }).click();
+  const noteSurface = testInfo.project.name === 'mobile-chromium' ? mobileReview : viewer;
+  await noteSurface.getByRole('button', { name: 'Save note', exact: true }).click();
   await expect(page.locator('.notebook-card')).toContainText('Document review');
-  await viewer.getByRole('button', { name: 'Add to summary', exact: true }).click();
+  await noteSurface.getByRole('button', { name: 'Add to summary', exact: true }).click();
   await expect(page.locator('.notebook-card')).toContainText('Document summary');
 
   const layout = await page.evaluate(() => {
@@ -107,6 +130,11 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
     const preview = document.querySelector('.document-preview-workspace');
     const pageStage = document.querySelector('.document-page-stage');
     const inspector = document.querySelector('.document-inspector');
+    const mobileReviewShell = document.querySelector('.document-mobile-review-shell');
+    const mobileStep = document.querySelector('.document-viewer-layout')?.dataset.mobileReviewStep;
+    const activeReviewPanel = mobileStep
+      ? document.querySelector(`[data-review-panel="${mobileStep}"]`)
+      : null;
     const viewportWidth = window.innerWidth;
     const fits = (element) => {
       const box = element?.getBoundingClientRect();
@@ -119,15 +147,22 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
       previewFits: fits(preview),
       pageStageFits: fits(pageStage),
       inspectorFits: fits(inspector),
+      mobileReviewFits: fits(mobileReviewShell),
+      activeReviewPanelFits: fits(activeReviewPanel),
       layoutColumns: viewerElement ? getComputedStyle(document.querySelector('.document-viewer-layout')).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
     };
   });
 
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
   expect(layout.viewerFits).toBe(true);
-  expect(layout.previewFits).toBe(true);
-  expect(layout.pageStageFits).toBe(true);
-  expect(layout.inspectorFits).toBe(true);
+  if (testInfo.project.name === 'mobile-chromium') {
+    expect(layout.mobileReviewFits).toBe(true);
+    expect(layout.activeReviewPanelFits).toBe(true);
+  } else {
+    expect(layout.previewFits).toBe(true);
+    expect(layout.pageStageFits).toBe(true);
+    expect(layout.inspectorFits).toBe(true);
+  }
   expect(layout.layoutColumns).toBe(testInfo.project.name === 'mobile-chromium' ? 1 : 3);
   expect(await page.locator('body').innerText()).not.toMatch(forbiddenViewerCopy);
 
