@@ -84,17 +84,29 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await requestDetail.getByRole('button', { name: 'Open Customer Document', exact: true }).click();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
   const customerViewer = toolPanel.locator('[data-document-viewer-screen="approved-theme-v1"]');
-  await expect(customerViewer.getByRole('navigation', { name: 'Document folders' })
-    .getByRole('button', { name: /^Customer Evidence/ })).toHaveClass(/active/);
-  await expect(customerViewer.locator('.document-page')).toContainText('StreamBox Premium Cancellation Confirmation');
-  await expect(customerViewer.locator('.document-page')).toContainText('Automatic renewal turned off');
+  const customerDocumentSurface = testInfo.project.name === 'mobile-chromium'
+    ? customerViewer.locator('.document-mobile-review-shell')
+    : customerViewer.locator('.document-preview-workspace');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(customerDocumentSurface).toBeVisible();
+    await expect(customerDocumentSurface.locator('.document-mobile-summary-header p')).toHaveText(/Customer Evidence/i);
+    await customerDocumentSurface.getByRole('tab', { name: /Document/ }).click();
+  } else {
+    await expect(customerViewer.getByRole('navigation', { name: 'Document folders' })
+      .getByRole('button', { name: /^Customer Evidence/ })).toHaveClass(/active/);
+  }
+  await expect(customerDocumentSurface.locator('.document-page')).toContainText('StreamBox Premium Cancellation Confirmation');
+  await expect(customerDocumentSurface.locator('.document-page')).toContainText('Automatic renewal turned off');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await customerViewer.getByRole('button', { name: '‹ Inbox', exact: true }).click();
+  }
   await customerViewer.getByRole('navigation', { name: 'Document Viewer next routes' })
     .getByRole('button', { name: 'Open Document Request', exact: true })
     .click();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Request');
 
   if (testInfo.project.name === 'mobile-chromium') {
-    await toolPanel.getByRole('button', { name: '‹ Inbox', exact: true }).click();
+    await expect(toolPanel.locator('.document-request-inbox')).toHaveAttribute('data-mobile-pane', 'inbox');
   }
 
   const records = toolPanel.locator('[data-document-request]');
@@ -107,7 +119,11 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(records).toHaveCount(1);
   await search.fill('no-matching-paperwork-record');
   await expect(records).toHaveCount(0);
-  await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('No document requests are available for this case.');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(toolPanel.locator('.document-request-list .investigation-tool-empty')).toContainText('No document requests match this filter or search.');
+  } else {
+    await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('No document requests are available for this case.');
+  }
   await search.clear();
 
   await records.first().click();
@@ -117,17 +133,47 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(detail).toContainText('Authenticity flag');
 
   await detail.getByRole('button', { name: 'Pin request', exact: true }).click();
-  await expect(page.locator('.tray-card')).toContainText('Pinned');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect.poll(async () => {
+      const items = await page.evaluate(() => (
+        JSON.parse(localStorage.getItem('fraud-academy-visual-tray-v1') || '{}')['FA-CB-24007'] ?? []
+      ));
+      return items.some((item) => String(item).includes(firstRequestId));
+    }).toBe(true);
+  } else {
+    await expect(page.locator('.tray-card')).toContainText('Pinned');
+  }
   await detail.getByRole('button', { name: 'Save follow-up note', exact: true }).click();
-  await expect(page.locator('.notebook-card')).toContainText('Document Request');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect.poll(async () => {
+      const items = await page.evaluate(() => (
+        JSON.parse(localStorage.getItem('fraud-academy-notes-v1') || '{}')['FA-CB-24007'] ?? []
+      ));
+      return items.some((item) => String(item).includes('Document Request'));
+    }).toBe(true);
+  } else {
+    await expect(page.locator('.notebook-card')).toContainText('Document Request');
+  }
 
   await detail.getByRole('button', { name: 'View Merchant Paperwork', exact: true }).click();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
   const viewer = toolPanel.locator('[data-document-viewer-screen="approved-theme-v1"]');
   await expect(viewer.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toHaveCount(0);
-  await expect(viewer.getByRole('navigation', { name: 'Document folders' })
-    .getByRole('button', { name: /^Merchant Evidence/ })).toHaveClass(/active/);
-  await expect(viewer.locator('.document-page')).toBeVisible();
+  const merchantDocumentSurface = testInfo.project.name === 'mobile-chromium'
+    ? viewer.locator('.document-mobile-review-shell')
+    : viewer.locator('.document-preview-workspace');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(merchantDocumentSurface).toBeVisible();
+    await expect(merchantDocumentSurface.locator('.document-mobile-summary-header p')).toHaveText(/Merchant Response/i);
+    await merchantDocumentSurface.getByRole('tab', { name: /Document/ }).click();
+  } else {
+    await expect(viewer.getByRole('navigation', { name: 'Document folders' })
+      .getByRole('button', { name: /^Merchant Evidence/ })).toHaveClass(/active/);
+  }
+  await expect(merchantDocumentSurface.locator('.document-page')).toBeVisible();
+  if (testInfo.project.name === 'mobile-chromium') {
+    await viewer.getByRole('button', { name: '‹ Inbox', exact: true }).click();
+  }
   await viewer.getByRole('navigation', { name: 'Document Viewer next routes' })
     .getByRole('button', { name: 'Open Document Request', exact: true })
     .click();

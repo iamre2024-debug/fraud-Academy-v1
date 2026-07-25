@@ -40,9 +40,16 @@ import './mobileAppPages.css';
 import './lunaManagerMobileFix.css';
 import './documentInbox.css';
 import './mobileMissionDeckV3.css';
+import './caseQuickPad.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <VisualApp />
   </React.StrictMode>,
 );
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then((registration) => registration.update()).catch(() => {});
+  });
+}

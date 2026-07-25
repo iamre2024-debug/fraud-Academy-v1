@@ -3,8 +3,37 @@ import { documentSearchText, getCaseDocuments } from './data/documentRecords.js'
 import { buildCustomerResponseDocuments } from './data/documentRequestWorkflow.js';
 import { clearDocumentViewerRoute, readDocumentViewerRoute } from './documentViewerRoute.js';
 
+const DOCUMENT_DRAFT_PREFIX = 'fraud-academy-document-draft:';
+
 function fieldValue(document, label) {
   return document?.fields?.find(([field]) => field === label)?.[1] ?? 'Not recorded';
+}
+
+function documentDraftKey(caseId, documentId) {
+  return `${DOCUMENT_DRAFT_PREFIX}${caseId}:${documentId}`;
+}
+
+function readDocumentDraft(key) {
+  if (!key || typeof window === 'undefined') return '';
+  try {
+    return window.localStorage.getItem(key) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function writeDocumentDraft(key, value) {
+  if (!key || typeof window === 'undefined') return;
+  try {
+    if (value) window.localStorage.setItem(key, value);
+    else window.localStorage.removeItem(key);
+  } catch {
+    // Draft persistence is a convenience; the active in-memory draft still works.
+  }
+}
+
+function fieldValueMatching(document, pattern, fallback = 'Not recorded') {
+  return document?.fields?.find(([field]) => pattern.test(field))?.[1] ?? fallback;
 }
 
 function folderIcon(folder = '') {
@@ -128,8 +157,9 @@ export default function DocumentViewerWorkspace({
   const [pageIndex, setPageIndex] = useState(0);
   const [zoom, setZoom] = useState(100);
   const [compareIds, setCompareIds] = useState([]);
-  const [noteDraft, setNoteDraft] = useState('');
+  const [noteDrafts, setNoteDrafts] = useState({});
   const [mobilePane, setMobilePane] = useState('inbox');
+  const [mobileReviewStep, setMobileReviewStep] = useState('fields');
   const normalizedQuery = query.trim().toLowerCase();
   const filteredDocuments = documents.filter((document) => (
     (folder === 'All Documents' || document.folder === folder)
@@ -140,6 +170,8 @@ export default function DocumentViewerWorkspace({
     ?? filteredDocuments[0];
   const activePage = activeDocument?.pages?.[pageIndex] ?? activeDocument?.pages?.[0];
   const comparedDocuments = compareIds.map((id) => documents.find((document) => document.id === id)).filter(Boolean);
+  const activeDraftKey = activeDocument ? documentDraftKey(activeCase.id, activeDocument.id) : '';
+  const noteDraft = activeDraftKey ? noteDrafts[activeDraftKey] ?? '' : '';
 
   useEffect(() => {
     const directRoute = readDocumentViewerRoute(activeCase.id);
@@ -149,8 +181,8 @@ export default function DocumentViewerWorkspace({
     setPageIndex(0);
     setZoom(100);
     setCompareIds([]);
-    setNoteDraft('');
     setMobilePane(directRoute?.pane ?? 'inbox');
+    setMobileReviewStep('fields');
     if (directRoute) {
       setMatchedAccountId(normalizeAccountId(activeCase.accountId));
       setAccountLookup(activeCase.accountId);
@@ -166,10 +198,25 @@ export default function DocumentViewerWorkspace({
     setPageIndex(0);
   }, [activeDocument?.id]);
 
+  useEffect(() => {
+    if (!activeDraftKey) return;
+    setNoteDrafts((current) => {
+      if (Object.prototype.hasOwnProperty.call(current, activeDraftKey)) return current;
+      return { ...current, [activeDraftKey]: readDocumentDraft(activeDraftKey) };
+    });
+  }, [activeDraftKey]);
+
+  function updateDocumentDraft(value) {
+    if (!activeDraftKey) return;
+    setNoteDrafts((current) => ({ ...current, [activeDraftKey]: value }));
+    writeDocumentDraft(activeDraftKey, value);
+  }
+
   function openDocument(documentId) {
     setSelectedDocumentId(documentId);
     setPageIndex(0);
     setMobilePane('reader');
+    setMobileReviewStep('fields');
   }
 
   function toggleCompare(documentId) {
@@ -188,7 +235,8 @@ export default function DocumentViewerWorkspace({
     const clean = noteDraft.trim();
     if (!clean || !activeDocument) return;
     saveNote(`${activeDocument.id}: ${clean}`, 'Document review');
-    setNoteDraft('');
+    setNoteDrafts((current) => ({ ...current, [activeDraftKey]: '' }));
+    writeDocumentDraft(activeDraftKey, '');
   }
 
   function exportDocument() {
@@ -220,6 +268,19 @@ export default function DocumentViewerWorkspace({
     openDocumentAccountCase?.(match.id);
   }
 
+  const mobileReviewSteps = [
+    { key: 'document', label: 'Document', icon: '📄' },
+    { key: 'status', label: 'Status', icon: '✓' },
+    { key: 'fields', label: 'Fields', icon: '▦' },
+    { key: 'notes', label: 'Notes', icon: '✎' },
+  ];
+  const mobileReviewIndex = mobileReviewSteps.findIndex((step) => step.key === mobileReviewStep);
+
+  function moveMobileReview(direction) {
+    const nextIndex = Math.min(mobileReviewSteps.length - 1, Math.max(0, mobileReviewIndex + direction));
+    setMobileReviewStep(mobileReviewSteps[nextIndex].key);
+  }
+
   return (
     <div className="document-viewer" data-document-viewer-screen="approved-theme-v1" data-case-id={activeCase.id}>
       <form className="document-account-lookup" aria-label="Find customer documents by Account ID" onSubmit={searchByAccountId}>
@@ -249,7 +310,16 @@ export default function DocumentViewerWorkspace({
           <span aria-hidden="true">ID</span>
           <h3>Customer documents are locked</h3>
           <p>Search with an exact Account ID to open the matching case documents.</p>
-          <button type="button" onClick={() => { setAccountLookup(activeCase.accountId); setMatchedAccountId(normalizeAccountId(activeCase.accountId)); setLookupError(''); }}>Open active case documents</button>
+          <button
+            type="button"
+            onClick={() => {
+              setAccountLookup(activeCase.accountId);
+              setMatchedAccountId('');
+              setLookupError('Account ID added. Select Search account to confirm the match.');
+            }}
+          >
+            Use active case Account ID
+          </button>
         </section>
       ) : <>
       <section className="document-viewer-findbar" aria-label="Filter matched customer documents">
@@ -278,7 +348,119 @@ export default function DocumentViewerWorkspace({
         <button type="button" onClick={jumpDecision}><i />Decide</button>
       </aside>
 
-      <div className="document-viewer-layout" data-mobile-pane={mobilePane}>
+      <div className="document-viewer-layout" data-mobile-pane={mobilePane} data-mobile-review-step={mobileReviewStep}>
+        {activeDocument && (
+          <section className="document-mobile-review-shell" aria-label="Mobile document review">
+            <header className="document-mobile-summary-header">
+              <button type="button" className="document-mobile-back" onClick={() => setMobilePane('inbox')}>‹ Inbox</button>
+              <div>
+                <p>{activeDocument.type}</p>
+                <h3>{activeDocument.title}</h3>
+                <span>{activeDocument.source} · {activeDocument.reviewStatus}</span>
+              </div>
+              <div className="document-mobile-summary-actions">
+                <button type="button" onClick={() => pin(`${activeDocument.id} | ${activeDocument.title}`)}>Pin</button>
+                <button type="button" onClick={exportDocument}>Export</button>
+              </div>
+            </header>
+
+            <nav className="document-mobile-review-tabs" role="tablist" aria-label="Document review pages">
+              {mobileReviewSteps.map((step, index) => (
+                <button
+                  key={step.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={mobileReviewStep === step.key}
+                  onClick={() => setMobileReviewStep(step.key)}
+                >
+                  <i>{index + 1}</i>
+                  <span aria-hidden="true">{step.icon}</span>
+                  <strong>{step.label}</strong>
+                </button>
+              ))}
+            </nav>
+
+            <div className="document-mobile-review-panels">
+              <section className="document-mobile-review-panel" data-review-panel="document" aria-label="Document page">
+                <div className="document-page-controls" aria-label="Document page controls">
+                  <button type="button" disabled={pageIndex <= 0} onClick={() => setPageIndex((current) => Math.max(0, current - 1))}>Previous page</button>
+                  <span>Page {activeDocument.pages.length ? pageIndex + 1 : 0} of {activeDocument.pages.length}</span>
+                  <button type="button" disabled={pageIndex >= activeDocument.pages.length - 1} onClick={() => setPageIndex((current) => Math.min(activeDocument.pages.length - 1, current + 1))}>Next page</button>
+                </div>
+                <div className="document-page-stage">
+                  {activePage ? (
+                    <DocumentPage document={activeDocument} page={activePage} pageNumber={pageIndex + 1} zoom={90} />
+                  ) : (
+                    <div className="document-not-received" role="status">
+                      <span>Document not received</span>
+                      <h3>{activeDocument.title}</h3>
+                      <button type="button" onClick={() => openTool('Document Request')}>Open Document Request</button>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className="document-mobile-review-panel document-mobile-status-panel" data-review-panel="status" aria-label="Document status">
+                <header><p>Document status</p><span>{activeDocument.reviewStatus}</span></header>
+                <dl>
+                  <div><dt>Case</dt><dd>{activeDocument.caseId}</dd></div>
+                  <div><dt>Customer</dt><dd>{activeDocument.customer}</dd></div>
+                  <div><dt>Source</dt><dd>{activeDocument.source}</dd></div>
+                  <div><dt>Received</dt><dd>{activeDocument.received}</dd></div>
+                  <div><dt>Request status</dt><dd>{activeDocument.requestStatus}</dd></div>
+                  <div><dt>Confidence</dt><dd>{activeDocument.extractionConfidence}</dd></div>
+                </dl>
+                <details>
+                  <summary>All status details</summary>
+                  <dl>
+                    <div><dt>Account ID</dt><dd>{activeDocument.accountId}</dd></div>
+                    <div><dt>Claim type</dt><dd>{activeDocument.claimType}</dd></div>
+                    <div><dt>Quality review</dt><dd>{activeDocument.authenticity}</dd></div>
+                    {activeDocument.requestDueDate && <div><dt>Request due</dt><dd>{activeDocument.requestDueDate}</dd></div>}
+                  </dl>
+                </details>
+              </section>
+
+              <section className="document-mobile-review-panel document-mobile-fields-panel" data-review-panel="fields" aria-label="Evidence-first field summary">
+                <header><p>Key evidence</p><span>{activeDocument.fields.length} fields</span></header>
+                <dl>
+                  <div><dt>Customer</dt><dd>{activeDocument.customer}</dd></div>
+                  <div><dt>Source</dt><dd>{activeDocument.source}</dd></div>
+                  <div><dt>Amount</dt><dd>{fieldValueMatching(activeDocument, /amount/i, activeCase.amount)}</dd></div>
+                  <div><dt>Transaction</dt><dd>{fieldValueMatching(activeDocument, /transaction date|activity date|document date/i, activeDocument.received)}</dd></div>
+                  <div><dt>Response</dt><dd>{fieldValueMatching(activeDocument, /response|decision|outcome/i, activeDocument.reviewStatus)}</dd></div>
+                  <div><dt>Confidence</dt><dd>{activeDocument.extractionConfidence}</dd></div>
+                </dl>
+                <details>
+                  <summary>All document details · {activeDocument.fields.length} fields</summary>
+                  <dl>{activeDocument.fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+                </details>
+                <div className="document-mobile-evidence-actions">
+                  <button type="button" onClick={() => pin(`${activeDocument.id} | ${activeDocument.title}`)}>Pin evidence</button>
+                  <button type="button" onClick={addDocumentToSummary}>Add to summary</button>
+                </div>
+              </section>
+
+              <section className="document-mobile-review-panel document-mobile-notes-panel" data-review-panel="notes" aria-label="Investigator notes">
+                <header><p>Investigator notes</p><span>{noteDraft.trim() ? 'Draft auto-saved' : 'Not started'}</span></header>
+                <p>{activeDocument.investigatorNote}</p>
+                <textarea value={noteDraft} onChange={(event) => updateDocumentDraft(event.target.value)} placeholder="Record what this document proves, contradicts, or leaves unresolved..." aria-label="Mobile document investigator note" />
+                <div>
+                  <button type="button" disabled={!noteDraft.trim()} onClick={saveDocumentNote}>Save note</button>
+                  <button type="button" onClick={addDocumentToSummary}>Add to summary</button>
+                </div>
+              </section>
+            </div>
+
+            <nav className="document-mobile-step-controls" aria-label="Document review step controls">
+              <button type="button" disabled={mobileReviewIndex <= 0} onClick={() => moveMobileReview(-1)}>‹ Back</button>
+              <span>{mobileReviewIndex + 1} of {mobileReviewSteps.length}</span>
+              {mobileReviewIndex < mobileReviewSteps.length - 1
+                ? <button type="button" onClick={() => moveMobileReview(1)}>Next ›</button>
+                : <button type="button" onClick={jumpDecision}>Continue to decision ›</button>}
+            </nav>
+          </section>
+        )}
         <nav className="document-folder-nav" aria-label="Document folders">
           <p>Mailboxes</p>
           {folders.map((item) => {
@@ -394,7 +576,8 @@ export default function DocumentViewerWorkspace({
             <section className="document-review-note">
               <p>Investigator notes</p>
               <span>{activeDocument.investigatorNote}</span>
-              <textarea value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} placeholder="Record what this document proves, contradicts, or leaves unresolved..." aria-label="Document investigator note" />
+              <small>{noteDraft.trim() ? 'Draft auto-saved on this device.' : 'Drafts auto-save on this device.'}</small>
+              <textarea value={noteDraft} onChange={(event) => updateDocumentDraft(event.target.value)} placeholder="Record what this document proves, contradicts, or leaves unresolved..." aria-label="Document investigator note" />
               <div><button type="button" disabled={!noteDraft.trim()} onClick={saveDocumentNote}>Save note</button><button type="button" onClick={addDocumentToSummary}>Add to summary</button></div>
             </section>
 

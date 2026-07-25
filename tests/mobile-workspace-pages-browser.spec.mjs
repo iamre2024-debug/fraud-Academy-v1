@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { openWorkspacePages } from './workspace-page-helpers.mjs';
+import { openWorkspacePages, selectToolGroup } from './workspace-page-helpers.mjs';
 
 test('workspace uses separate pages and pinned evidence reopens its source record', async ({ page }, testInfo) => {
   await page.addInitScript(() => {
     window.localStorage.setItem('fraud-academy-visual-tray-v1', JSON.stringify({
       'FA-ATO-24018': ['TRN-8842-19', 'LOG-1005', 'ZZZ-NOT-A-SOURCE'],
     }));
+    window.localStorage.removeItem('fraud-academy-note-drafts-v1');
   });
   await page.goto('/');
 
@@ -46,7 +47,7 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   await workflow.getByRole('button', { name: /Investigate/ }).click();
   await expect(frame).toHaveAttribute('data-workspace-screen', 'tool-menu');
   await expect(toolMenu).toBeVisible();
-  await toolMenu.locator('.visual-category-row > button').filter({ hasText: 'Login, Session, Device & IP' }).click();
+  await selectToolGroup(page, 'Login, Session, Device & IP');
   await expect(frame).toHaveAttribute('data-workspace-screen', 'tool');
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Login History');
   await expect(toolMenu).toBeHidden();
@@ -55,7 +56,7 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   await loginSearch.fill('LOG-1005');
   await openWorkspacePages(page);
   await workflow.getByRole('button', { name: /Investigate/ }).click();
-  await toolMenu.locator('.visual-category-row > button').filter({ hasText: 'Identity & Customer' }).click();
+  await selectToolGroup(page, 'Identity & Customer');
   await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')).toBeVisible();
   const backButton = page.getByRole('button', { name: /Back to previous (?:workspace page|mission screen)/ });
   await backButton.click();
@@ -111,6 +112,29 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   await expect(frame).toHaveAttribute('data-workspace-screen', 'notes');
   await expect(page.locator('.notebook-card')).toBeVisible();
   await expect(page.locator('.tray-card')).toBeHidden();
+
+  const caseOneDraft = 'Compare LOG-1005 with the first-seen device before deciding.';
+  const caseTwoDraft = 'Check the cancellation record against the recurring charge.';
+  const noteComposer = page.locator('.notebook-card textarea');
+  await noteComposer.fill(caseOneDraft);
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('fraud-academy-note-drafts-v1') || '{}')['FA-ATO-24018'])).toBe(caseOneDraft);
+
+  const caseSwitcher = testInfo.project.name === 'mobile-chromium'
+    ? page.getByRole('combobox', { name: 'Choose active mission case' })
+    : page.locator('.visual-case-strip .visual-case-switcher select');
+  await caseSwitcher.selectOption('FA-CB-24007');
+  let caseWorkflow = await openWorkspacePages(page);
+  await caseWorkflow.getByRole('button', { name: /Indicators|Evidence/ }).click();
+  await page.getByRole('button', { name: 'Notes', exact: true }).click();
+  await expect(noteComposer).toHaveValue('');
+  await noteComposer.fill(caseTwoDraft);
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('fraud-academy-note-drafts-v1') || '{}')['FA-CB-24007'])).toBe(caseTwoDraft);
+
+  await caseSwitcher.selectOption('FA-ATO-24018');
+  caseWorkflow = await openWorkspacePages(page);
+  await caseWorkflow.getByRole('button', { name: /Indicators|Evidence/ }).click();
+  await page.getByRole('button', { name: 'Notes', exact: true }).click();
+  await expect(noteComposer).toHaveValue(caseOneDraft);
 
   const widths = await page.evaluate(() => ({
     viewport: window.innerWidth,

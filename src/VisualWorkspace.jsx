@@ -13,6 +13,7 @@ import useVisualWorkspaceActions from './useVisualWorkspaceActions.js';
 import useVisualWorkspaceCaseState from './useVisualWorkspaceCaseState.js';
 import VisualShellHeader from './VisualShellHeader.jsx';
 import MobileMissionWorkspace from './MobileMissionWorkspace.jsx';
+import CaseQuickPad from './CaseQuickPad.jsx';
 import {
   groupForTool,
   investigationToolGroups,
@@ -45,7 +46,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   const [tool, setTool] = useState('Login History');
   const [query, setQuery] = useState('');
   const [expandedId, setExpandedId] = useState('');
-  const [noteDraft, setNoteDraft] = useState('');
   const [openedPinnedEvidence, setOpenedPinnedEvidence] = useState(null);
   const submitRef = useRef(null);
   const workspaceScreenHistory = useRef([]);
@@ -83,18 +83,22 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   const {
     tray,
     notes,
+    noteDraft,
     currentCompleted,
     decisionDraft,
     reviewPackages,
     actionLog,
     documentRequests,
+    quickPad,
     setTrayByCase,
     setNotesByCase,
+    setNoteDraft,
     setCompletedByCase,
     setDecisionByCase,
     setPackagesByCase,
     setActionsByCase,
     setDocumentRequestsByCase,
+    setQuickPadByCase,
   } = useVisualWorkspaceCaseState(activeCase);
   const availableToolNames = useMemo(() => new Set(activeCase.availableTools?.length ? activeCase.availableTools : workspaceTools), [activeCase]);
   const visibleCategories = useMemo(() => investigationToolGroups
@@ -364,6 +368,54 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     onNavigate('cases');
   }
 
+  function updateQuickPad(updater) {
+    setQuickPadByCase((current) => {
+      const currentPad = current[activeCase.id] ?? { items: [], scratch: '' };
+      return { ...current, [activeCase.id]: updater(currentPad) };
+    });
+  }
+
+  function quickPin({ label, value, sourceTool = activeTool, sourceRecordId = '' }) {
+    if (!value) return;
+    updateQuickPad((current) => {
+      const id = `${sourceTool}:${label}:${value}`;
+      const item = { id, label, value: String(value), sourceTool, sourceRecordId };
+      return {
+        ...current,
+        items: [item, ...(current.items ?? []).filter((saved) => saved.id !== id)],
+      };
+    });
+    recordAction('Saved to Quick Pad', `${label} ${value} kept available for lookup.`, sourceTool);
+  }
+
+  function removeQuickPadItem(itemId) {
+    updateQuickPad((current) => ({
+      ...current,
+      items: (current.items ?? []).filter((item) => item.id !== itemId),
+    }));
+  }
+
+  function setQuickPadScratch(scratch) {
+    updateQuickPad((current) => ({ ...current, scratch }));
+  }
+
+  function saveQuickPadScratch() {
+    if (!quickPad.scratch.trim()) return;
+    saveNote(quickPad.scratch, 'Quick Pad note');
+    setQuickPadScratch('');
+  }
+
+  function useQuickPadItem(item) {
+    setQuery(item.value);
+    recordAction('Used Quick Pad value', `${item.label} entered in ${activeTool} search.`, 'Quick Pad');
+  }
+
+  function openQuickPadSource(item) {
+    openTool(item.sourceTool, stageForTool(item.sourceTool), { query: item.value });
+    setExpandedId(item.sourceRecordId ?? '');
+    recordAction('Opened Quick Pad source', `${item.label} reopened in ${item.sourceTool}.`, 'Quick Pad');
+  }
+
   function selectWorkflowStage(nextStage) {
     onNavigate('workspace');
     if (nextStage === 'debrief' && !hasReviewPackage) return;
@@ -435,11 +487,26 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     documentRequests,
     setDocumentRequestsByCase,
     recordAction,
+    quickPin,
   };
+
+  const quickPadLayer = (
+    <CaseQuickPad
+      activeCase={activeCase}
+      items={quickPad.items ?? []}
+      scratch={quickPad.scratch ?? ''}
+      onScratchChange={setQuickPadScratch}
+      onRemove={removeQuickPadItem}
+      onUse={useQuickPadItem}
+      onOpenSource={openQuickPadSource}
+      onSaveToNotes={saveQuickPadScratch}
+    />
+  );
 
   if (layoutMode === 'mobile') {
     return (
-      <MobileMissionWorkspace
+      <>
+        <MobileMissionWorkspace
         activeCase={activeCase}
         activeStage={activeStage}
         activeTool={activeTool}
@@ -485,11 +552,14 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
         updateDecisionIndicator={updateDecisionIndicator}
         visibleCategories={visibleCategories}
         workspaceScreen={workspaceScreen}
-      />
+        />
+        {quickPadLayer}
+      </>
     );
   }
 
   return (
+    <>
     <main className="visual-os-shell">
       <section className="visual-os-frame mission-deck-frame" data-workspace-screen={workspaceScreen} data-active-tool={activeTool}>
         <div className="mission-deck-atmosphere" aria-hidden="true">
@@ -625,5 +695,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
         <nav className="visual-bottom-nav" aria-hidden="true" />
       </section>
     </main>
+    {quickPadLayer}
+    </>
   );
 }

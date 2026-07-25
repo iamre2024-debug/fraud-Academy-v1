@@ -24,9 +24,15 @@ mustContain('useVisualWorkspaceCaseState.js', hook, "import { useEffect, useStat
 mustContain('useVisualWorkspaceCaseState.js', hook, 'tray: trayByCase[caseId] ?? [activeCase.trainingId]');
 mustContain('useVisualWorkspaceCaseState.js', hook, "currentCompleted: completedByCase[caseId] ?? ['Case Summary']");
 mustContain('useVisualWorkspaceCaseState.js', hook, 'decisionDraft: decisionByCase[caseId] ?? defaultDecisionDraft');
-mustContain('useVisualWorkspaceCaseState.js', hook, 'reviewPackages: packagesByCase[caseId] ?? []');
+mustContain('useVisualWorkspaceCaseState.js', hook, 'const reviewPackages =');
+mustContain('useVisualWorkspaceCaseState.js', hook, 'isValidReviewPackage(activeCase, reviewPackage)');
+mustContain('useVisualWorkspaceCaseState.js', hook, 'reviewPackages,');
+mustContain('useVisualWorkspaceCaseState.js', hook, 'noteDraft,');
+mustContain('useVisualWorkspaceCaseState.js', hook, 'noteDraftsByCase[caseId]');
+mustContain('useVisualWorkspaceCaseState.js', hook, 'setNoteDraft,');
+mustContain('useVisualWorkspaceCaseState.js', hook, 'writeStorage(storageKeys.noteDrafts, noteDraftsByCase)');
 
-for (const key of ['tray', 'notes', 'completed', 'decisions', 'packages']) {
+for (const key of ['tray', 'notes', 'noteDrafts', 'completed', 'decisions', 'packages']) {
   mustContain('useVisualWorkspaceCaseState.js', hook, `storageKeys.${key}`);
 }
 
@@ -36,4 +42,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Workspace case-state hook smoke check passed. Case-scoped persistence is isolated from VisualWorkspace rendering and action orchestration.');
+console.log('Workspace case-state hook smoke check passed. Case-scoped data and auto-saved note drafts are isolated from VisualWorkspace rendering and action orchestration.');

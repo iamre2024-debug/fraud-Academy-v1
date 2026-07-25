@@ -9,6 +9,7 @@ const shell = read('src/MobileMissionDeckApp.jsx');
 const workspace = read('src/MobileMissionWorkspace.jsx');
 const workspaceController = read('src/VisualWorkspace.jsx');
 const briefing = read('src/MobileMissionCaseBriefing.jsx');
+const documentViewer = read('src/DocumentViewerWorkspace.jsx');
 const styles = read('src/mobileMissionDeckV3.css');
 const legacyStyles = read('src/mobileBlueMissionDeck.css');
 const playwrightConfig = read('playwright.config.mjs');
@@ -30,6 +31,7 @@ for (const anchor of [
   "layoutController.resolvedLayout === 'mobile'",
   '<MobileMissionDeckApp',
   'layoutMode="mobile"',
+  'onOpenWorkspace={openMobileWorkspace}',
   'quickGenerator={<GeneratedCaseControls inline',
 ]) requireAnchor('VisualApp.jsx', app, anchor);
 
@@ -44,6 +46,8 @@ for (const anchor of [
   'AcademyThemeV1Panel',
   'ProfileThemeV1Panel',
   'mission-mobile-workspace-page',
+  "onOpenWorkspace(nextWorkspaceScreen)",
+  "onNavigate('workspace', 'tool-menu')",
 ]) requireAnchor('MobileMissionDeckApp.jsx', shell, anchor);
 
 for (const anchor of [
@@ -63,6 +67,7 @@ for (const anchor of [
   'decision-luna-portal-anchor',
   'Source record unavailable',
   'data-document-request-step',
+  'data-mobile-indicator-view={workspaceScreen}',
   'disabled={stageStatus[key]?.state === \'locked\'}',
 ]) requireAnchor('MobileMissionWorkspace.jsx', workspace, anchor);
 
@@ -83,6 +88,15 @@ for (const anchor of [
 ]) requireAnchor('MobileMissionCaseBriefing.jsx', briefing, anchor);
 
 for (const anchor of [
+  'mobileReviewStep',
+  'data-mobile-review-step',
+  'document-mobile-review-shell',
+  'Document review pages',
+  'Evidence-first field summary',
+  'Continue to decision',
+]) requireAnchor('DocumentViewerWorkspace.jsx', documentViewer, anchor);
+
+for (const anchor of [
   'A dedicated mobile component system',
   '.mission-mobile-root',
   '.mission-mobile-dock',
@@ -94,7 +108,12 @@ for (const anchor of [
   '.mission-login-history-heading',
   '.mission-login-history-page .login-history-workspace',
   '.mission-tool-content .document-preview-workspace',
+  '.document-mobile-review-shell',
+  '.document-mobile-review-tabs',
+  '.document-mobile-fields-panel',
+  '.document-mobile-step-controls',
   '.mission-decision-page .mission-decision-progress',
+  'body:has(iframe[title="Netlify Drawer"]) .mission-mobile-dock',
   '@media (max-width: 370px)',
 ]) requireAnchor('mobileMissionDeckV3.css', styles, anchor);
 
@@ -102,6 +121,16 @@ const importantCount = (styles.match(/!important/g) ?? []).length;
 if (importantCount > 12) failures.push(`Mission Deck v3 has ${importantCount} !important overrides; it must remain structurally scoped.`);
 if (/body\[data-layout-mode="desktop"\]/.test(styles)) failures.push('Mission Deck v3 must not alter the desktop layout.');
 if (/#ff4fd8|#d76bff|#ff9be9/i.test(styles)) failures.push('Mission Deck v3 contains the retired pink/purple palette.');
+if (/width:\s*min\(100%,\s*430px\)/.test(styles)) failures.push('Mission Deck v3 must fill the phone viewport instead of using the retired 430px shell cap.');
+if (!styles.includes('--md-shell-width: 94vw;')) failures.push('Mission Deck v3 must preserve a proportional phone shell across browser zoom levels.');
+if (/calc\(50vw\s*-\s*(?:205|209)px\)/.test(styles)) failures.push('Mission Deck v3 must not position controls against the retired 430px shell.');
+if (!styles.includes('.mission-map-tool-node')) failures.push('Mission evidence groups must render as connected blue map nodes.');
+if (!/\.investigation-tool-groups-theme-v1\s*>\s*\.visual-category-row\s*\{[^}]*display:\s*none/s.test(styles)) {
+  failures.push('Mission evidence map must remove the retired separate category-card row.');
+}
+if (!/\.mission-mobile-dock\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/s.test(styles)) {
+  failures.push('Mission Deck v3 must keep primary navigation in a five-column bottom dock.');
+}
 if (styles.length >= legacyStyles.length * 1.4) failures.push('Mission Deck v3 has grown into another oversized legacy override layer.');
 const undersizedMobileRemValues = [...styles.matchAll(/font-size:\s*(0\.\d+)rem/g)]
   .map((match) => Number(match[1]))

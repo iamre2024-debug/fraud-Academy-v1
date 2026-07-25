@@ -81,6 +81,16 @@ body[data-visual-tab="workspace"] .luna-theme-v1 .primary-action:hover {
   color: #ffffff;
 }
 
+body[data-visual-tab="workspace"] .decision-theme-v1 .primary-action:disabled,
+body[data-visual-tab="workspace"] .decision-theme-v1 .primary-action:disabled:hover {
+  border-color: #a9a0b8;
+  background: #827a90;
+  color: #f8f6fb;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
 body[data-visual-tab="workspace"] .decision-theme-v1 button:focus-visible,
 body[data-visual-tab="workspace"] .decision-theme-v1 select:focus-visible,
 body[data-visual-tab="workspace"] .decision-theme-v1 textarea:focus-visible,
@@ -693,8 +703,16 @@ body[data-visual-tab="workspace"] .decision-v1-form {
 body[data-visual-tab="workspace"] .decision-v1-form > header,
 body[data-visual-tab="workspace"] .decision-v1-form .decision-choice-fieldset,
 body[data-visual-tab="workspace"] .decision-v1-form .decision-rationale,
-body[data-visual-tab="workspace"] .decision-v1-form > button {
+body[data-visual-tab="workspace"] .decision-v1-form > button,
+body[data-visual-tab="workspace"] .decision-v1-form .decision-submit-help {
   grid-column: 1 / -1;
+}
+
+body[data-visual-tab="workspace"] .decision-v1-form .decision-submit-help {
+  margin-top: -8px;
+  color: var(--decision-muted);
+  font-size: 0.76rem;
+  line-height: 1.4;
 }
 
 body[data-visual-tab="workspace"] .decision-v1-form header > span {

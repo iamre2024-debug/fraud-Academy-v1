@@ -1,4 +1,5 @@
 import { getBusinessRecords, getFinancialRecords } from './caseToolData.js';
+import { isPaymentProfileEvent } from './paymentVerification.js';
 
 const businessProfiles = {
   'FA-ATO-24018': {
@@ -46,6 +47,29 @@ function amountValue(value = '') {
   return Number(String(value).replace(/[^0-9.]/g, '')) || 0;
 }
 
+function toPaymentSource(record, activeCase) {
+  if (!record) return null;
+  const businessOwnerLane = ['email-bec', 'business-loan-bust-out', 'ach-wire-check'].includes(activeCase.claimTypeId);
+  return {
+    recordId: record.id,
+    bankCode: record.bankCode,
+    destinationId: record.destinationId,
+    ownerToCompare: businessOwnerLane
+      ? activeCase.profile?.business ?? activeCase.person
+      : activeCase.person,
+    previousDestination: record.oldDestination,
+    newDestination: record.newDestination,
+    changeComparison: record.changeComparison,
+    callbackStatus: record.callbackStatus,
+    relatedRecords: record.relatedRecords ?? [],
+  };
+}
+
+function getPaymentSources(activeCase) {
+  if (!activeCase.availableTools?.includes('Payment Verification')) return [];
+  return getFinancialRecords(activeCase).paymentVerification.map((record) => toPaymentSource(record, activeCase));
+}
+
 function transactionCategory(item) {
   if (/recurring/i.test(item.channel)) return 'Recurring';
   if (/transfer|destination|account request|payment setup/i.test(`${item.merchant} ${item.channel}`)) return 'Account activity';
@@ -85,6 +109,7 @@ export function getTransactionHistory(activeCase) {
 
 export function getBusiness360Workspace(activeCase) {
   const records = getBusinessRecords(activeCase);
+  const paymentSources = getPaymentSources(activeCase);
   const primary = records.business360?.[0] ?? { entity: 'No business entity recorded', id: 'BIZ-NONE', relationship: 'No relationship recorded', status: 'Not supplied', observed: 'Not supplied', context: 'No current business record.' };
   const profile = activeCase.businessProfile ?? businessProfiles[activeCase.id] ?? {
     entityType: activeCase.profile?.entityType ?? 'Generated training entity',
@@ -109,36 +134,74 @@ export function getBusiness360Workspace(activeCase) {
     relationships: records.business360 ?? [],
     intelligence: records.businessIntel ?? [],
     documents: activeCase.documents ?? [],
+    paymentSources,
+    paymentSource: paymentSources[0] ?? null,
   };
 }
 
 export function getEmployeeProfiles(activeCase) {
   const records = getBusinessRecords(activeCase);
   const payroll = records.payrollHistory ?? [];
+  const paymentSource = getPaymentSources(activeCase)[0] ?? null;
   return (records.employeeProfile ?? []).map((item, index) => ({
     ...item,
     department: /payroll/i.test(`${item.role} ${item.name}`) ? 'Payroll operations' : 'Operations / training record',
     hireDate: index === 0 && activeCase.id === 'FA-CR-24003' ? 'Training employment date on file' : 'Not supplied in current packet',
     employmentTimeline: item.lastSeen ? `Current record last observed ${item.lastSeen}` : 'No timeline supplied',
     officialContact: /payroll/i.test(`${item.role} ${item.name}`) ? 'Training payroll callback channel' : 'Official callback channel not supplied',
-    directDeposit: payroll.length ? `${payroll.length} payroll record${payroll.length === 1 ? '' : 's'} available for comparison` : 'No payroll history supplied',
+    directDeposit: paymentSource
+      ? `Bank Code ${paymentSource.bankCode} · Destination ID ${paymentSource.destinationId}; ${paymentSource.previousDestination} → ${paymentSource.newDestination}`
+      : payroll.length ? `${payroll.length} payroll record${payroll.length === 1 ? '' : 's'} available for comparison` : 'No payroll history supplied',
     linkedPayroll: payroll.map((record) => record.id),
+    paymentSource,
   }));
 }
 
 export function getPayrollHistory(activeCase) {
   const records = getBusinessRecords(activeCase);
   const employees = records.employeeProfile ?? [];
-  return (records.payrollHistory ?? []).map((item, index) => ({
-    ...item,
-    employee: employees.find((employee) => employee.employer === item.employer)?.name ?? activeCase.person,
-    destination: /direct deposit/i.test(item.channel) ? `Fictional destination ending ${String(index + 1).padStart(4, '0')}` : 'No payroll destination in current packet',
-    priorDestination: /direct deposit/i.test(item.channel) ? 'Prior fictional destination not changed in current packet' : 'Not applicable',
-    effectiveDate: item.period,
-    changeRequest: /direct deposit/i.test(item.channel) ? 'No payroll change request is included in this training packet' : 'Not applicable',
-    adminActivity: /direct deposit/i.test(item.channel) ? 'No payroll admin change activity recorded in this packet' : 'Not applicable',
-    callback: /direct deposit/i.test(item.channel) ? 'Trusted callback status not recorded' : 'Not applicable',
-    runStatus: item.status,
-    relatedRecords: [item.id, ...employees.filter((employee) => employee.employer === item.employer).map((employee) => employee.id)],
-  }));
+  const paymentSources = getPaymentSources(activeCase);
+  const paymentProfileEvent = (activeCase.customer?.profileChanges ?? []).find(isPaymentProfileEvent);
+  return (records.payrollHistory ?? []).map((item, index) => {
+    const paymentSource = paymentSources.find((source) => source.relatedRecords.includes(item.id))
+      ?? paymentSources[0]
+      ?? null;
+    const hasDestinationContext = /direct deposit/i.test(item.channel)
+      || activeCase.claimTypeId === 'payroll-direct-deposit';
+    const exactDestination = paymentSource
+      ? `Bank Code ${paymentSource.bankCode} · Destination ID ${paymentSource.destinationId}`
+      : 'No payroll destination in current packet';
+    return {
+      ...item,
+      employee: employees.find((employee) => employee.employer === item.employer)?.name ?? activeCase.person,
+      bankCode: hasDestinationContext ? paymentSource?.bankCode ?? 'Not supplied' : 'Not applicable',
+      destinationId: hasDestinationContext ? paymentSource?.destinationId ?? 'Not supplied' : 'Not applicable',
+      destination: hasDestinationContext
+        ? index === 0 ? exactDestination : paymentSource?.previousDestination ?? exactDestination
+        : 'No payroll destination in current packet',
+      priorDestination: hasDestinationContext ? paymentSource?.previousDestination ?? 'Not supplied' : 'Not applicable',
+      oldDestination: hasDestinationContext ? paymentSource?.previousDestination ?? 'Not supplied' : 'Not applicable',
+      newDestination: hasDestinationContext ? paymentSource?.newDestination ?? exactDestination : 'Not applicable',
+      effectiveDate: item.period,
+      changeRequest: hasDestinationContext
+        ? paymentSource?.changeComparison ?? paymentProfileEvent?.detail ?? 'No change comparison supplied'
+        : 'Not applicable',
+      adminActivity: hasDestinationContext
+        ? paymentProfileEvent
+          ? `${paymentProfileEvent.id} · ${paymentProfileEvent.oldValue} → ${paymentProfileEvent.newValue}`
+          : 'No linked payment-profile event supplied'
+        : 'Not applicable',
+      callback: hasDestinationContext ? paymentSource?.callbackStatus ?? 'Trusted callback status not recorded' : 'Not applicable',
+      changeComparison: hasDestinationContext ? paymentSource?.changeComparison ?? 'Not supplied' : 'Not applicable',
+      paymentRecordId: hasDestinationContext ? paymentSource?.recordId ?? null : null,
+      paymentSource: hasDestinationContext ? paymentSource : null,
+      runStatus: item.status,
+      relatedRecords: [
+        item.id,
+        ...employees.filter((employee) => employee.employer === item.employer).map((employee) => employee.id),
+        ...(paymentSource?.recordId ? [paymentSource.recordId] : []),
+        ...(paymentProfileEvent?.id ? [paymentProfileEvent.id] : []),
+      ],
+    };
+  });
 }

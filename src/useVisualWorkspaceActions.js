@@ -145,6 +145,7 @@ export default function useVisualWorkspaceActions({
       notes,
       draft: decisionDraft,
     });
+    if (!status.ready) return null;
 
     const reviewPackage = buildReviewPackage({
       caseId: activeCase.id,

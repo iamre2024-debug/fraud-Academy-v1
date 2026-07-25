@@ -114,13 +114,13 @@ for (const anchor of [
 
 for (const anchor of [
   'function submitDecision(event)',
+  'if (!status.ready) return null;',
   'const reviewPackage = buildReviewPackage({',
   "window.dispatchEvent(new CustomEvent('fraud-academy:package-saved'",
   "markReviewed('Submit Decision')",
 ]) {
   mustContain('useVisualWorkspaceActions.js', actions, anchor);
 }
-mustNotContain('useVisualWorkspaceActions.js', actions, 'if (!status.ready)');
 
 for (const anchor of [
   'readStorage(storageKeys.decisions',
@@ -185,7 +185,7 @@ for (const anchor of [
 
 mustContain('main.jsx', entrypoint, "import './displayDecisionLunaThemeV1.css';");
 mustContain('main.jsx', entrypoint, "import './displayDecisionLunaLayoutSafetyV1.css';");
-mustContain('decision-luna-browser.spec.mjs', browser, 'an incomplete decision saves and unlocks Luna on desktop and mobile');
+mustContain('decision-luna-browser.spec.mjs', browser, 'a choice-only decision saves and unlocks Luna on desktop and mobile');
 mustContain('decision-luna-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('decision-luna-browser.spec.mjs', browser, 'data-decision-screen="approved-theme-v1"');
 mustContain('decision-luna-browser.spec.mjs', browser, 'data-luna-state="locked"');

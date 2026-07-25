@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import LunaApiAccessSetting from './LunaApiAccessSetting.jsx';
 import useResponsiveLayoutMode from './useResponsiveLayoutMode.js';
 
 const reducedMotionKey = 'fraud-academy-reduced-motion-v1';
@@ -96,6 +97,7 @@ export default function VisualShellHeader({ activeCase, cases, changeCase, onNav
                 </div>
               </div>
               <label className="header-setting-row"><span><strong>Reduce motion</strong><small>Use immediate scrolling and limit interface animation.</small></span><input type="checkbox" checked={reducedMotion} onChange={(event) => setReducedMotion(event.target.checked)} /></label>
+              <LunaApiAccessSetting />
             </>
           )}
         </section>

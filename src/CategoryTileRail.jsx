@@ -36,6 +36,27 @@ export default function CategoryTileRail({
         </header>
         <section className="mission-evidence-map" aria-label="Mission evidence map">
           <div className="mission-map-stars" aria-hidden="true"><i /><i /><i /><i /><i /></div>
+          <div className="mission-map-category-nodes">
+            {categories.map((item, index) => {
+              const reviewedCount = item.tools.filter((toolName) => currentCompleted.includes(toolName)).length;
+              const complete = reviewedCount === item.tools.length;
+              const status = complete ? 'Complete' : reviewedCount > 0 ? 'In progress' : 'Open';
+              const active = categoryKey === item.key;
+              return (
+                <button
+                  key={`map-${item.key}`}
+                  type="button"
+                  className={`mission-map-tool-node node-tool-${index + 1} ${active ? 'active' : ''} ${complete ? 'reviewed' : ''}`}
+                  aria-pressed={active}
+                  onClick={() => openCategory(item, item.tools[0])}
+                >
+                  <span aria-hidden="true">{item.icon}</span>
+                  <strong>{item.label}</strong>
+                  <small>Reviewed {reviewedCount}/{item.tools.length} · {status}</small>
+                </button>
+              );
+            })}
+          </div>
           <button type="button" className="mission-map-node node-customer" onClick={() => openCategory(identityCategory, 'Customer 360')}>
             <span aria-hidden="true">👤</span><strong>Customer</strong><small>{activeCase?.person ?? 'Case party'}</small>
           </button>

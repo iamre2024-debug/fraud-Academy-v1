@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { trainingCases } from '../src/data/cases.js';
+import { getPayrollHistory } from '../src/data/businessPayrollWorkspace.js';
 import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
 import { getFinancialRecords } from '../src/data/caseToolData.js';
 import { coreClaimTypes } from '../src/data/claimRegistry.js';
@@ -31,9 +32,38 @@ const requiredFields = [
   'callbackStatus',
   'evidenceSummary',
 ];
+const canonicalChangeFields = [
+  'bankCode',
+  'destinationId',
+  'oldDestination',
+  'newDestination',
+];
+const paymentChangeEventPattern = /bank|destination|beneficiary|payment account|direct deposit|payroll/i;
+const generatedPaymentChangeLanes = new Set([
+  'payroll-direct-deposit',
+  'email-bec',
+  'credit-risk',
+  'business-loan-bust-out',
+  'application-verification',
+  'ach-wire-check',
+]);
+const placeholderOrNoChangePattern = /•{2,}|\bplaceholder\b|no new destination(?: added)?/i;
 
 function fail(message) {
   failures.push(message);
+}
+
+function present(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function paymentChangeEvents(activeCase) {
+  return (activeCase.customer?.profileChanges ?? []).filter((event) => paymentChangeEventPattern.test([
+    event.eventType,
+    event.item,
+    event.oldValue,
+    event.newValue,
+  ].filter(Boolean).join(' ')));
 }
 
 for (const activeCase of cases.filter((item) => item.availableTools?.includes('Payment Verification'))) {
@@ -42,6 +72,9 @@ for (const activeCase of cases.filter((item) => item.availableTools?.includes('P
   for (const record of records) {
     for (const field of requiredFields) {
       if (record[field] === undefined || record[field] === '') fail(`${record.id} is missing ${field}.`);
+    }
+    for (const field of canonicalChangeFields) {
+      if (!present(record[field])) fail(`${record.id} is missing canonical ${field}.`);
     }
     if (!PAYMENT_NAME_RESULTS.includes(record.nameMatchResult)) fail(`${record.id} has a non-canonical stored name result.`);
     if (/fraud/i.test(record.operationalStatus)) fail(`${record.id} incorrectly uses fraud as operational account status.`);
@@ -90,6 +123,11 @@ for (const claimType of coreClaimTypes) {
       for (const field of requiredFields) {
         if (record[field] === undefined || record[field] === '') fail(`${scenario.id}/${record.id} is missing ${field}.`);
       }
+      for (const field of canonicalChangeFields) {
+        if (!present(record[field])) fail(`${scenario.id}/${record.id} is missing canonical ${field}.`);
+      }
+      if (!/^BC-[A-Z0-9-]+$/i.test(record.bankCode ?? '')) fail(`${scenario.id}/${record.id} has a non-canonical Bank Code.`);
+      if (!/^DST-[A-Z0-9-]+$/i.test(record.destinationId ?? '')) fail(`${scenario.id}/${record.id} has a non-canonical Destination ID.`);
       if (!PAYMENT_NAME_RESULTS.includes(record.nameMatchResult)) fail(`${scenario.id}/${record.id} has a non-canonical stored name result.`);
       if (/fraud/i.test(record.operationalStatus)) fail(`${scenario.id}/${record.id} uses fraud as operational status.`);
       if (!Array.isArray(record.verificationAttempts) || !record.verificationAttempts.length) fail(`${scenario.id}/${record.id} has no verification attempts.`);
@@ -100,6 +138,61 @@ for (const claimType of coreClaimTypes) {
       });
       if (resolved.state !== 'found' || !PAYMENT_NAME_RESULTS.includes(resolved.nameMatchResult)) {
         fail(`${scenario.id}/${record.id} cannot be retrieved through the canonical lookup.`);
+      }
+    }
+
+    if (generatedPaymentChangeLanes.has(generated.claimTypeId)) {
+      const canonicalRecord = records[0];
+      const matchingEvents = paymentChangeEvents(generated);
+      if (!matchingEvents.length) {
+        fail(`${scenario.id} has Payment Verification but no payment-related profile event.`);
+      }
+      for (const event of matchingEvents) {
+        for (const field of canonicalChangeFields) {
+          if (event[field] !== canonicalRecord[field]) {
+            fail(`${scenario.id}/${event.id} ${field} does not match ${canonicalRecord.id}.`);
+          }
+        }
+        const eventText = [
+          event.detail,
+          event.oldValue,
+          event.newValue,
+          event.bankCode,
+          event.destinationId,
+          event.oldDestination,
+          event.newDestination,
+        ].filter(Boolean).join(' ');
+        if (!eventText.includes(canonicalRecord.bankCode) || !eventText.includes(canonicalRecord.destinationId)) {
+          fail(`${scenario.id}/${event.id} does not expose the canonical Bank Code and Destination ID.`);
+        }
+        if (!eventText.includes(canonicalRecord.oldDestination) || !eventText.includes(canonicalRecord.newDestination)) {
+          fail(`${scenario.id}/${event.id} does not expose the canonical previous and new destination.`);
+        }
+        if (placeholderOrNoChangePattern.test(eventText)) {
+          fail(`${scenario.id}/${event.id} contains a masked, placeholder, or contradictory no-change destination.`);
+        }
+      }
+    }
+
+    if (generated.claimTypeId === 'payroll-direct-deposit') {
+      const canonicalRecord = records[0];
+      const payrollRecords = getPayrollHistory(generated);
+      if (!payrollRecords.length) {
+        fail(`${scenario.id} has no generated Payroll History records.`);
+      }
+      for (const payrollRecord of payrollRecords) {
+        for (const field of canonicalChangeFields) {
+          if (payrollRecord[field] !== canonicalRecord[field]) {
+            fail(`${scenario.id}/${payrollRecord.id} ${field} does not match ${canonicalRecord.id}.`);
+          }
+        }
+        const payrollText = Object.values(payrollRecord).filter((value) => typeof value === 'string').join(' ');
+        if (!payrollText.includes(canonicalRecord.bankCode) || !payrollText.includes(canonicalRecord.destinationId)) {
+          fail(`${scenario.id}/${payrollRecord.id} omits the canonical Bank Code or Destination ID.`);
+        }
+        if (placeholderOrNoChangePattern.test(payrollText)) {
+          fail(`${scenario.id}/${payrollRecord.id} contains a masked, placeholder, or contradictory no-change destination.`);
+        }
       }
     }
   }
@@ -141,7 +234,18 @@ for (const anchor of [
 ]) {
   if (!panel.includes(anchor)) fail(`Payment Verification UI is missing: ${anchor}`);
 }
-for (const anchor of ['Payment Verification Inputs', 'Prefill Payment Verification', 'buildPaymentLookupHint']) {
+for (const anchor of [
+  'Payment Account Change',
+  'Payment Verification Inputs',
+  'Bank Code',
+  'Destination ID',
+  'Previous account / destination',
+  'New account / destination',
+  'Change comparison',
+  'Payment account change details for',
+  'Prefill Payment Verification',
+  'buildPaymentLookupHint',
+]) {
   if (!customer.includes(anchor)) fail(`Customer 360 handoff is missing: ${anchor}`);
 }
 
@@ -150,4 +254,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log(`Payment Verification smoke check passed for all ${eligibleGeneratedCases} eligible generated scenarios plus every built-in and fallback case. Search-before-reveal, canonical name results, ownership and prior-use history, split statuses, lane variants, attempts, source handoffs, and Evidence First wording are intact.`);
+console.log(`Payment Verification smoke check passed for all ${eligibleGeneratedCases} eligible generated scenarios plus every built-in and fallback case. Search-before-reveal, canonical Bank Code and Destination ID values, exact account-change history, canonical name results, ownership and prior-use history, split statuses, lane variants, attempts, source handoffs, and Evidence First wording are intact.`);

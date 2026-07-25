@@ -108,13 +108,37 @@ function makeLoginHistory({ id, index, city, recordCount, claimType, scenario, d
   return records.slice(0, recordCount);
 }
 
-export function makeGeneratedProfileChanges({ id, index, person, city, claimType, scenario, reportedDate, issueStartDate, loginHistory }) {
+export function makeGeneratedProfileChanges({
+  id,
+  index,
+  person,
+  city,
+  claimType,
+  scenario,
+  reportedDate,
+  issueStartDate,
+  loginHistory,
+  paymentRecord,
+}) {
   const currentLogin = loginHistory[0] ?? {};
   const priorLogin = loginHistory.find((item, itemIndex) => itemIndex > 0 && /successful/i.test(item.result)) ?? currentLogin;
   const hasAccessHistory = loginHistory.length > 0;
   const dateFromLogin = (value, fallback) => String(value ?? '').match(/^[A-Z][a-z]{2} \d{2}, \d{4}/)?.[0] ?? fallback;
   const claim = `${claimType.id} ${claimType.lane} ${scenario.subtype}`.toLowerCase();
   const email = `${person.toLowerCase().replace(/\s+/g, '.')}@training.example.test`;
+  const previousPaymentDestination = paymentRecord?.oldDestination ?? 'No prior account / destination supplied';
+  const currentPaymentDestination = paymentRecord
+    ? `Bank Code ${paymentRecord.bankCode} · Destination ID ${paymentRecord.destinationId}`
+    : `Destination ID ••••${padded(index, 4)}`;
+  const paymentLink = paymentRecord ? {
+    paymentRecordId: paymentRecord.id,
+    bankCode: paymentRecord.bankCode,
+    destinationId: paymentRecord.destinationId,
+    oldDestination: previousPaymentDestination,
+    newDestination: paymentRecord.newDestination ?? currentPaymentDestination,
+    changeComparison: paymentRecord.changeComparison
+      ?? `${previousPaymentDestination} changed to ${currentPaymentDestination}.`,
+  } : {};
   let scenarioEvent = {
     eventType: 'Contact preference change',
     item: 'Preferred contact channel updated',
@@ -123,7 +147,15 @@ export function makeGeneratedProfileChanges({ id, index, person, city, claimType
     notes: 'Compare the maintenance event with the active claim channel and recent contact history.',
   };
 
-  if (claim.includes('account-takeover') || claim.includes('account takeover')) scenarioEvent = {
+  if ((claim.includes('account-takeover') || claim.includes('account takeover')) && /payee|external account add/.test(claim)) scenarioEvent = {
+    eventType: 'Payment destination change',
+    item: 'External payee destination updated',
+    oldValue: previousPaymentDestination,
+    newValue: currentPaymentDestination,
+    notes: 'Compare the destination with Login History, Session History, ownership, prior use, and the active transfer sequence.',
+    ...paymentLink,
+  };
+  else if (claim.includes('account-takeover') || claim.includes('account takeover')) scenarioEvent = {
     eventType: 'Recovery email change',
     item: 'Recovery email updated',
     oldValue: email,
@@ -133,23 +165,26 @@ export function makeGeneratedProfileChanges({ id, index, person, city, claimType
   else if (claim.includes('payroll')) scenarioEvent = {
     eventType: 'Payroll bank-profile change',
     item: 'Direct deposit destination updated',
-    oldValue: 'Destination ID ••••1042',
-    newValue: `Destination ID ••••${padded(index, 4)}`,
+    oldValue: previousPaymentDestination,
+    newValue: currentPaymentDestination,
     notes: 'Compare employee authorization, callback records, ownership, prior use, and payroll timing.',
+    ...paymentLink,
   };
   else if (claim.includes('bec') || claim.includes('vendor') || claim.includes('wire')) scenarioEvent = {
     eventType: 'Beneficiary profile change',
     item: 'Payment beneficiary destination updated',
-    oldValue: 'Destination ID ••••2204',
-    newValue: `Destination ID ••••${padded(index, 4)}`,
+    oldValue: previousPaymentDestination,
+    newValue: currentPaymentDestination,
     notes: 'Compare the instruction source, callback, ownership, prior use, and payment-release sequence.',
+    ...paymentLink,
   };
   else if (claim.includes('credit') || claim.includes('application') || claim.includes('bust')) scenarioEvent = {
     eventType: 'Payment profile change',
     item: 'External payment account linked',
-    oldValue: 'No external destination',
-    newValue: `Destination ID ••••${padded(index, 4)}`,
+    oldValue: previousPaymentDestination,
+    newValue: currentPaymentDestination,
     notes: 'Compare ownership, application data, documents, prior use, and account age.',
+    ...paymentLink,
   };
   else if (claim.includes('chargeback') || claim.includes('card')) scenarioEvent = {
     eventType: 'Billing alert preference change',
@@ -172,7 +207,7 @@ export function makeGeneratedProfileChanges({ id, index, person, city, claimType
       ip: currentLogin.ip ?? 'No network record required for this lane',
       session: currentLogin.session ?? `${id}-PROFILE-1`,
       mfaMethod: currentLogin.method ?? 'Profile verification',
-      detail: `${scenarioEvent.item} changed from ${scenarioEvent.oldValue} to ${scenarioEvent.newValue} during the ${scenario.subtype} activity window.`,
+      detail: `${scenarioEvent.item} changed from ${scenarioEvent.oldValue} to ${scenarioEvent.newValue} during the ${scenario.subtype} activity window.${scenarioEvent.paymentRecordId && paymentRecord?.changeComparison ? ` ${paymentRecord.changeComparison}` : ''}`,
     },
     hasAccessHistory ? {
       id: `${id}-PCH-2`,
@@ -316,7 +351,18 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const toolResults = buildGeneratedToolResults({ id, index, person, city, employer, business, claimType: caseClaimType, scenario, documents, recordCount, trainingId, reportedDate, issueStartDate, difficulty });
   const claimDetails = makeClaimDetails({ scenario, reportedDate, issueStartDate, transactionId: toolResults.transactions?.[0]?.id ?? `${id}-TXN-1` });
   const loginHistory = makeLoginHistory({ id, index, city, recordCount, claimType: caseClaimType, scenario, difficulty });
-  const profileChanges = makeGeneratedProfileChanges({ id, index, person, city, claimType, scenario, reportedDate, issueStartDate, loginHistory });
+  const profileChanges = makeGeneratedProfileChanges({
+    id,
+    index,
+    person,
+    city,
+    claimType,
+    scenario,
+    reportedDate,
+    issueStartDate,
+    loginHistory,
+    paymentRecord: toolResults.paymentVerification?.[0],
+  });
   const statementLabel = /business|vendor|payment contact/i.test(scenario.entityRole) ? 'Business statement' : /employee/i.test(scenario.entityRole) ? 'Employee statement' : /applicant/i.test(scenario.entityRole) ? 'Applicant statement' : 'Customer statement';
   const events = buildScenarioEvents({ id, scenario, claimType, reportedDate, issueStartDate, difficulty, evidenceDepth: depth.label, documents });
   const intake = { channel: scenario.channel, contactTime: `${reportedDate} - 9:05 AM`, customerLocation: city, statedDevice: loginHistory[0]?.device ?? 'No device statement required for this lane' };

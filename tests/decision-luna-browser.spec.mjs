@@ -11,7 +11,9 @@ async function seedIncompleteCase(page) {
     localStorage.setItem('fraud-academy-completed-tools-v1', JSON.stringify({ [activeCaseId]: completedTools }));
     localStorage.setItem('fraud-academy-visual-tray-v1', JSON.stringify({ [activeCaseId]: [] }));
     localStorage.setItem('fraud-academy-notes-v1', JSON.stringify({ [activeCaseId]: [] }));
-    localStorage.removeItem('fraud-academy-review-packages-v1');
+    localStorage.setItem('fraud-academy-review-packages-v1', JSON.stringify({
+      [activeCaseId]: [{ id: 'legacy-empty-choice-package', caseId: activeCaseId, choice: '' }],
+    }));
     localStorage.removeItem('fraud-academy-decision-drafts-v1');
     localStorage.removeItem('fraud-academy-layout-mode-v1');
     sessionStorage.setItem('fraud-academy-decision-luna-test-seeded', 'yes');
@@ -25,7 +27,7 @@ async function openDecision(page) {
   return decision;
 }
 
-test('an incomplete decision saves and unlocks Luna on desktop and mobile', async ({ page }, testInfo) => {
+test('a choice-only decision saves and unlocks Luna on desktop and mobile', async ({ page }, testInfo) => {
   await seedIncompleteCase(page);
   await page.goto('/');
 
@@ -58,6 +60,10 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
   await expect(decision.getByText('Matched to this case: phishing', { exact: true })).toBeVisible();
   await expect(decision.getByRole('heading', { name: 'Decision readiness', exact: true })).toHaveCount(0);
   await expect(decision.getByText(/Decision needs attention/i)).toHaveCount(0);
+  const savePackage = decision.getByRole('button', { name: 'Submit Decision', exact: true });
+  await expect(savePackage).toBeVisible();
+  await expect(savePackage).toBeDisabled();
+  await expect(decision.getByText('Select one valid determination before submitting. Tools, flags, pins, notes, and rationale remain optional.', { exact: true })).toBeVisible();
 
   const decisionLayout = await page.evaluate(() => {
     const panel = document.querySelector('[data-decision-screen="approved-theme-v1"]');
@@ -104,8 +110,7 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
 
   await decision.getByRole('radio', { name: learnerChoice, exact: true }).check();
   await decision.getByRole('combobox', { name: 'Learner confidence' }).selectOption('High');
-  const savePackage = decision.getByRole('button', { name: 'Submit Decision', exact: true });
-  await expect(savePackage).toBeVisible();
+  await expect(savePackage).toBeEnabled();
   await savePackage.click();
 
   await expect(page.locator('.visual-os-frame, .mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'debrief');
@@ -117,7 +122,8 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
   expect(savedPackage.completedTools).toEqual([]);
   expect(savedPackage.decisionIndicators).toEqual([]);
   expect(savedPackage.reason).toBe('');
-  expect(savedPackage.blockers.length).toBeGreaterThan(0);
+  expect(savedPackage.blockers).toEqual([]);
+  expect(savedPackage.coachingGaps.length).toBeGreaterThan(0);
 
   const luna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');
   await expect(luna).toBeVisible();
@@ -151,6 +157,7 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
     await expect(page.locator('body')).toHaveAttribute('data-layout-mode', 'mobile');
     await expect(page.locator('.mission-mobile-root')).toBeVisible();
     const mobilePreview = await page.evaluate(() => ({
+      viewportWidth: window.innerWidth,
       frameWidth: document.querySelector('.mission-mobile-root')?.getBoundingClientRect().width ?? Number.POSITIVE_INFINITY,
       stackedCards: (() => {
         const cards = [...document.querySelectorAll('.luna-v1-debrief-grid > .luna-v1-card')];
@@ -160,7 +167,8 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
         return second.top >= first.bottom - 1;
       })(),
     }));
-    expect(mobilePreview.frameWidth).toBeLessThanOrEqual(460);
+    expect(mobilePreview.frameWidth).toBeGreaterThanOrEqual((mobilePreview.viewportWidth * 0.94) - 1);
+    expect(mobilePreview.frameWidth).toBeLessThanOrEqual((mobilePreview.viewportWidth * 0.94) + 1);
     expect(mobilePreview.stackedCards).toBe(true);
 
     await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
@@ -189,7 +197,12 @@ test('an incomplete decision saves and unlocks Luna on desktop and mobile', asyn
   }
 
   await luna.getByRole('button', { name: 'View Case Summary', exact: true }).click();
-  await expect(page.locator('[data-case-briefing-screen="approved-theme-v1"]')).toBeVisible();
+  await expect(page.locator('.visual-os-frame, .mission-workspace-v3'))
+    .toHaveAttribute('data-workspace-screen', 'briefing');
+  const summary = testInfo.project.name === 'mobile-chromium'
+    ? page.locator('.mission-briefing-v3')
+    : page.locator('[data-case-briefing-screen="approved-theme-v1"]');
+  await expect(summary).toBeVisible();
 
   await page.reload();
   const persistedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');

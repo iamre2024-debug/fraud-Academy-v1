@@ -345,7 +345,10 @@ for (const anchor of [
   'getEmployeeProfiles',
   'getPayrollHistory',
   'Card not present',
-  'Fictional destination ending',
+  'ownerToCompare',
+  'oldDestination',
+  'newDestination',
+  'changeComparison',
   'Training payroll callback channel',
 ]) {
   mustContain('businessPayrollWorkspace.js', businessPayrollWorkspace, anchor);

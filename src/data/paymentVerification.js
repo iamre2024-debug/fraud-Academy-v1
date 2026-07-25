@@ -98,6 +98,15 @@ function correctedHolder(activeCase, record) {
     ?? text(record.accountHolder, activeCase.person);
 }
 
+function exactDestinationLabel(bankCode, destinationId) {
+  return `Bank Code ${bankCode} · Destination ID ${destinationId}`;
+}
+
+function normalizedNewDestination(value, bankCode, destinationId) {
+  const supplied = String(value ?? '').trim();
+  return supplied || exactDestinationLabel(bankCode, destinationId);
+}
+
 export function normalizePaymentRecord(record = {}, activeCase = {}) {
   const accountHolder = correctedHolder(activeCase, record);
   const storedNameResult = canonicalStoredResult(record.nameMatchResult ?? record.ownerMatch);
@@ -113,6 +122,14 @@ export function normalizePaymentRecord(record = {}, activeCase = {}) {
   const firstSeen = text(record.firstSeen, record.lastSeen ?? activeCase.opened);
   const priorUseHistory = text(record.priorUse, 'Prior-use history unavailable');
   const standingStatus = text(record.standing, 'Standing unavailable');
+  const bankCode = text(record.bankCode);
+  const destinationId = text(record.destinationId);
+  const oldDestination = text(record.oldDestination, 'No prior account / destination supplied');
+  const newDestination = normalizedNewDestination(record.newDestination, bankCode, destinationId);
+  const changeComparison = text(
+    record.changeComparison,
+    `${oldDestination} changed to ${newDestination}.`,
+  );
   const returnHistory = /no nsf|no return/i.test(standingStatus)
     ? 'No NSF or returned-payment record found'
     : /nsf|return/i.test(`${standingStatus} ${record.notes ?? ''}`)
@@ -122,8 +139,11 @@ export function normalizePaymentRecord(record = {}, activeCase = {}) {
   return {
     ...record,
     id: text(record.id, `${activeCase.id ?? 'CASE'}-PV-1`),
-    bankCode: text(record.bankCode),
-    destinationId: text(record.destinationId),
+    bankCode,
+    destinationId,
+    oldDestination,
+    newDestination,
+    changeComparison,
     accountHolder,
     ownerMatch: storedNameResult,
     nameMatchResult: storedNameResult,
@@ -155,7 +175,7 @@ export function normalizePaymentRecord(record = {}, activeCase = {}) {
           : 'Customer 360 contact record',
     ),
     customerLink: text(record.customerLink, `${activeCase.id ?? 'Case'} · ${activeCase.person ?? accountHolder}`),
-    reviewContext: text(record.reviewContext, record.changeComparison ?? record.context),
+    reviewContext: text(record.reviewContext, changeComparison || record.context),
     evidenceSummary: text(
       record.evidenceSummary,
       `${storedNameResult}; ${operationalStatus(record.accountStatus)} operational status; ${priorUseHistory}.`,
@@ -168,6 +188,62 @@ export function normalizePaymentRecord(record = {}, activeCase = {}) {
 
 export function normalizePaymentRecords(records = [], activeCase = {}) {
   return records.map((record) => normalizePaymentRecord(record, activeCase));
+}
+
+export function isPaymentProfileEvent(event = {}) {
+  return /\b(?:bank|destination|beneficiary|payee|direct deposit|external (?:payment )?account|payment (?:profile|method|account))\b/i.test(
+    `${event.eventType ?? ''} ${event.item ?? ''}`,
+  );
+}
+
+export function findPaymentRecordForProfileEvent(event = {}, records = []) {
+  if (!isPaymentProfileEvent(event) || !records.length) return null;
+  if (event.paymentRecordId) {
+    const linked = records.find((record) => record.id === event.paymentRecordId);
+    if (linked) return linked;
+  }
+
+  const eventText = [
+    event.oldValue,
+    event.newValue,
+    event.detail,
+    event.notes,
+  ].filter(Boolean).join(' ').toLowerCase();
+  const exact = records.find((record) => [record.bankCode, record.destinationId]
+    .filter(Boolean)
+    .some((value) => eventText.includes(String(value).toLowerCase())));
+  if (exact) return exact;
+
+  const compared = records.find((record) => [record.oldDestination, record.newDestination]
+    .filter(Boolean)
+    .some((value) => eventText.includes(String(value).toLowerCase())));
+  if (compared) return compared;
+  return records.length === 1 ? records[0] : null;
+}
+
+export function paymentChangeMetadata(event = {}, records = []) {
+  if (!isPaymentProfileEvent(event)) return [];
+  const record = findPaymentRecordForProfileEvent(event, records);
+  const bankCode = text(record?.bankCode ?? event.bankCode);
+  const destinationId = text(record?.destinationId ?? event.destinationId);
+  const previousDestination = text(
+    record?.oldDestination ?? event.oldDestination ?? event.oldValue,
+    'No prior account / destination supplied',
+  );
+  const newDestination = record
+    ? normalizedNewDestination(record.newDestination, bankCode, destinationId)
+    : text(event.newDestination ?? event.newValue);
+  const changeComparison = text(
+    record?.changeComparison ?? event.changeComparison ?? event.detail,
+    `${previousDestination} changed to ${newDestination}.`,
+  );
+  return [
+    ['Bank Code', bankCode],
+    ['Destination ID', destinationId],
+    ['Previous account / destination', previousDestination],
+    ['New account / destination', newDestination],
+    ['Change comparison', changeComparison],
+  ];
 }
 
 export function findPaymentDestination(records = [], bankCode, destinationId) {

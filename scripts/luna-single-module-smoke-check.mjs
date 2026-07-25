@@ -5,6 +5,7 @@ const rootDir = process.cwd();
 const workspace = fs.readFileSync(path.join(rootDir, 'src/VisualWorkspace.jsx'), 'utf8');
 const workspaceActions = fs.readFileSync(path.join(rootDir, 'src/useVisualWorkspaceActions.js'), 'utf8');
 const lunaPanel = fs.readFileSync(path.join(rootDir, 'src/LunaPostSubmissionPanel.jsx'), 'utf8');
+const lunaApiClient = fs.readFileSync(path.join(rootDir, 'src/data/lunaApi.js'), 'utf8');
 const lunaApi = fs.readFileSync(path.join(rootDir, 'api/luna-debrief.js'), 'utf8');
 const visualTextCollapse = fs.readFileSync(path.join(rootDir, 'src/VisualTextCollapse.jsx'), 'utf8');
 const failures = [];
@@ -43,11 +44,26 @@ for (const anchor of [
   'fraud manager conducting a post-decision case review',
   'Do Not Support means the available evidence does not support the customer fraud claim',
   'Separate the quality of the investigator decision at the time from what became known later',
+  'RATE_LIMIT_MAX_REQUESTS',
+  'MAX_BODY_BYTES',
+  'LUNA_API_ACCESS_TOKEN',
+  'hasValidAccessToken',
+  'Luna private access is required',
+  'Origin not allowed',
+  "'Cache-Control', 'no-store'",
   'managerVerdict',
   'actualCaseOutcome',
   'managerExplanation',
 ]) {
   mustContain('api/luna-debrief.js', lunaApi, anchor);
+}
+
+for (const anchor of [
+  'window.sessionStorage',
+  'X-Luna-Access-Token',
+  'readLunaApiAccessToken',
+]) {
+  mustContain('src/data/lunaApi.js', lunaApiClient, anchor);
 }
 
 const directWrapperCount = (lunaPanel.match(/<DirectCollapsibleText/g) ?? []).length;

@@ -26,7 +26,7 @@ export default function DecisionFlagChecklist({
         </div>
         <div className="decision-flag-progress" aria-label={`${indicatorSummary.selectedCount} flags selected`}>
           <strong>{indicatorSummary.selectedCount}</strong>
-          <span>proven flags</span>
+          <span>selected flags</span>
         </div>
       </header>
 
@@ -39,7 +39,7 @@ export default function DecisionFlagChecklist({
       {indicatorSummary.overrideIndicators.length > 0 && (
         <div className="decision-critical-notice" role="status">
           <strong>Critical red flag documented.</strong>
-          <span>This evidence carries override weight and must be addressed in the determination and rationale.</span>
+          <span>This evidence carries override weight. Consider it in the determination and explain it in the optional rationale when useful.</span>
         </div>
       )}
 
@@ -88,7 +88,6 @@ export default function DecisionFlagChecklist({
                               onChange={(event) => updateDecisionIndicator(item.id, 'proof', event.target.value)}
                               placeholder="Transaction ID, timestamp, document, device, or record"
                               aria-label={`Proof for ${item.prompt}`}
-                              required
                             />
                           </label>
                           <label>
@@ -98,10 +97,9 @@ export default function DecisionFlagChecklist({
                               onChange={(event) => updateDecisionIndicator(item.id, 'explanation', event.target.value)}
                               placeholder="Explain the connection between the record and this flag."
                               aria-label={`Explanation for ${item.prompt}`}
-                              required
                             />
                           </label>
-                          <small>{complete ? 'Proof complete' : 'Proof and explanation are required before submission.'}</small>
+                          <small>{complete ? 'Proof complete' : 'Optional coaching detail: add proof and an explanation when available.'}</small>
                         </div>
                       )}
                     </article>

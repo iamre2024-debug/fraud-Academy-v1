@@ -21,11 +21,13 @@ export const workflows = ['Record', 'Expand', 'Search', 'History', 'Link Analysi
 export const storageKeys = {
   tray: 'fraud-academy-visual-tray-v1',
   notes: 'fraud-academy-notes-v1',
+  noteDrafts: 'fraud-academy-note-drafts-v1',
   completed: 'fraud-academy-completed-tools-v1',
   decisions: 'fraud-academy-decision-drafts-v1',
   packages: 'fraud-academy-review-packages-v1',
   actions: 'fraud-academy-action-log-v1',
   documentRequests: 'fraud-academy-document-requests-v2',
+  quickPad: 'fraud-academy-quick-pad-v1',
 };
 
 export const defaultDecisionDraft = { choice: '', confidence: 'Medium', reason: '', indicators: {} };
