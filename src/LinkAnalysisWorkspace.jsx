@@ -191,10 +191,6 @@ function AccountDetail({
             <div><dt>Matched value</dt><dd>{account.identifierValue}</dd></div>
             <div><dt>Source record</dt><dd>{account.sourceRecordId}</dd></div>
           </dl>
-          <section className="link-linked-case-summary">
-            <h4>Case record summary</h4>
-            <p>{linkedCase.summary}</p>
-          </section>
           <p className="link-detail-context">
             This linked record is provided for investigation context. Verify the underlying dates and records before documenting what the relationship means.
           </p>

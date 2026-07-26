@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  expectReadableMobileCards,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 const documentRequestStorageKey = 'fraud-academy-document-requests-v2';
 const decisionStorageKey = 'fraud-academy-decision-drafts-v1';
@@ -47,11 +50,21 @@ test('Document Viewer rotates, compares, exports, and saves evidence assessment 
 
   await expect(viewer.getByRole('navigation', { name: 'Document folders' })).toBeVisible();
   await expect(viewer.locator('[data-document-record]')).toHaveCount(8);
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expectReadableMobileCards(viewer.locator('.document-record-list article:visible'), {
+      minimumCardWidth: 220,
+      textSelector: '.document-record-open strong, .document-record-open small, .document-record-open span, .document-record-open em, .document-record-compare',
+    });
+  }
   const { search } = await openDocument(viewer, 'Billing history statement');
 
   const mobileReview = viewer.locator('.document-mobile-review-shell');
   if (testInfo.project.name === 'mobile-chromium') {
     await expect(mobileReview).toBeVisible();
+    await expectReadableMobileCards(mobileReview, {
+      minimumCardWidth: 220,
+      textSelector: '.document-mobile-summary-header h3, .document-mobile-summary-header p, .document-mobile-summary-header span, .document-mobile-review-tabs button',
+    });
     await mobileReview.getByRole('tab', { name: /Document/ }).click();
   }
   const documentSurface = testInfo.project.name === 'mobile-chromium'

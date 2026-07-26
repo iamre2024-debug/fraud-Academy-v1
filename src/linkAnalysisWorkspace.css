@@ -1107,8 +1107,7 @@ body[data-visual-tab="workspace"] .investigation-tools-theme-v1[data-tool-name="
   padding-top: 11px;
 }
 
-.link-detail-section h4,
-.link-linked-case-summary h4 {
+.link-detail-section h4 {
   color: var(--link-heading);
   font-size: 0.66rem;
   letter-spacing: 0.03em;
@@ -1138,23 +1137,11 @@ body[data-visual-tab="workspace"] .investigation-tools-theme-v1[data-tool-name="
   font-weight: 700;
 }
 
-.link-detail-context,
-.link-linked-case-summary {
+.link-detail-context {
   border: 1px solid var(--link-line);
   border-radius: 9px;
   background: var(--link-panel-soft);
   padding: 9px;
-  color: var(--link-muted);
-  font-size: 0.61rem;
-  line-height: 1.45;
-}
-
-.link-linked-case-summary {
-  display: grid;
-  gap: 5px;
-}
-
-.link-linked-case-summary p {
   color: var(--link-muted);
   font-size: 0.61rem;
   line-height: 1.45;

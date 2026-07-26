@@ -85,3 +85,75 @@ export async function runPaymentVerification(panel, {
   await expect(panel.locator('.payment-detail-panel')).toBeVisible();
   return panel.locator('.payment-detail-panel');
 }
+
+/**
+ * Guards the mobile card regressions where a grid track shrank to only a few
+ * pixels and rendered otherwise normal labels as vertical, one-letter stacks.
+ * The check deliberately measures rendered geometry instead of depending on a
+ * particular CSS declaration.
+ */
+export async function expectReadableMobileCards(cards, {
+  minimumCardWidth = 220,
+  textSelector = 'h2, h3, h4, strong, small, p, dt, dd, em, button',
+} = {}) {
+  await expect(cards.first()).toBeVisible();
+  const measurements = await cards.evaluateAll((nodes, options) => {
+    const visible = (element) => {
+      const style = getComputedStyle(element);
+      const box = element.getBoundingClientRect();
+      return style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && box.width > 0
+        && box.height > 0;
+    };
+    const normalizedText = (element) => String(element.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const viewportWidth = window.innerWidth;
+    const renderedCards = nodes.filter(visible);
+    const narrowText = [];
+    const nonHorizontalText = [];
+    const breakAllText = [];
+
+    renderedCards.forEach((card, cardIndex) => {
+      card.querySelectorAll(options.textSelector).forEach((element) => {
+        if (!visible(element)) return;
+        const text = normalizedText(element);
+        if (text.length < 4) return;
+        const box = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        const fontSize = Number.parseFloat(style.fontSize) || 12;
+        if (box.width < fontSize * 2.25 && box.height > fontSize * 2.2) {
+          narrowText.push({ cardIndex, text, width: box.width, height: box.height, fontSize });
+        }
+        if (!String(style.writingMode).startsWith('horizontal')) {
+          nonHorizontalText.push({ cardIndex, text, writingMode: style.writingMode });
+        }
+        if (style.wordBreak === 'break-all') {
+          breakAllText.push({ cardIndex, text });
+        }
+      });
+    });
+
+    return {
+      cardCount: renderedCards.length,
+      cards: renderedCards.map((card) => {
+        const box = card.getBoundingClientRect();
+        return {
+          width: box.width,
+          left: box.left,
+          right: box.right,
+          insideViewport: box.left >= -1 && box.right <= viewportWidth + 1,
+        };
+      }),
+      narrowText,
+      nonHorizontalText,
+      breakAllText,
+    };
+  }, { textSelector });
+
+  expect(measurements.cardCount).toBeGreaterThan(0);
+  expect(measurements.cards.every(({ width }) => width >= minimumCardWidth)).toBe(true);
+  expect(measurements.cards.every(({ insideViewport }) => insideViewport)).toBe(true);
+  expect(measurements.narrowText).toEqual([]);
+  expect(measurements.nonHorizontalText).toEqual([]);
+  expect(measurements.breakAllText).toEqual([]);
+}

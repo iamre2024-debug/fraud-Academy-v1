@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  expectReadableMobileCards,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 const documentRequestStorageKey = 'fraud-academy-document-requests-v2';
 
@@ -143,6 +146,12 @@ test('Link Analysis keeps match summaries neutral and opens filterable account a
   await expect(summary).toContainText('Review-required context');
   expect(await summary.innerText()).not.toMatch(/\b(?:this is fraud|fraud confirmed|fraudulent account)\b/i);
 
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expectReadableMobileCards(workspace.locator('.link-account-mobile-card:visible'), {
+      minimumCardWidth: 240,
+    });
+  }
+
   const filters = workspace.locator('.link-filter-list');
   await filters.getByLabel('On Hold', { exact: true }).check();
   const visibleResults = testInfo.project.name === 'mobile-chromium'
@@ -172,8 +181,17 @@ test('Link Analysis keeps match summaries neutral and opens filterable account a
 
   const caseDetail = workspace.getByRole('complementary', { name: 'Linked case details' });
   await expect(caseDetail).toBeVisible();
-  await expect(caseDetail).toContainText('Case record summary');
+  await expect(caseDetail).not.toContainText(/case record summary/i);
   await expect(caseDetail).toContainText('Verify the underlying dates and records');
+  await expect(caseDetail.getByRole('button', { name: 'Open Account', exact: true })).toBeVisible();
+  await expect(caseDetail.getByRole('button', { name: 'Open Linked Case', exact: true })).toBeVisible();
+  await expect(caseDetail.getByRole('button', { name: 'Pin Linked Record', exact: true })).toBeVisible();
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expectReadableMobileCards(caseDetail, {
+      minimumCardWidth: 240,
+      textSelector: 'h3, h4, strong, p, dt, dd, small, button',
+    });
+  }
   await caseDetail.getByRole('button', { name: 'Add to Case Notes', exact: true }).click();
   await expect.poll(async () => {
     const notes = await page.evaluate(() => (
