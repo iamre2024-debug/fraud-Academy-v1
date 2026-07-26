@@ -1,3 +1,5 @@
+import { evaluateDecisionDefensibility } from './decisionEvaluation.js';
+
 const debriefGuides = {
   'FA-ATO-24018': {
     theme: 'Account access and purchase timeline',
@@ -89,10 +91,9 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
   const decisionIndicators = reviewPackage.decisionIndicators ?? [];
   const provenDecisionIndicators = decisionIndicators.filter((item) => item.proof && item.explanation);
   const caseTruth = activeCase.caseTruth ?? null;
-  const acceptedDeterminations = caseTruth?.acceptedDeterminations?.length
-    ? caseTruth.acceptedDeterminations
-    : caseTruth?.correctDetermination ? [caseTruth.correctDetermination] : [];
-  const determinationMatched = caseTruth ? acceptedDeterminations.includes(reviewPackage.choice) : null;
+  const decisionEvaluation = evaluateDecisionDefensibility({ activeCase, reviewPackage });
+  const acceptedDeterminations = decisionEvaluation.acceptedDeterminations;
+  const determinationMatched = decisionEvaluation.determinationMatched;
 
   const haystack = [
     activeCase.type,
@@ -121,7 +122,13 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
   const determinationScore = caseTruth ? (determinationMatched ? 20 : 0) : 10;
   const score = Math.min(100, toolScore + pinScore + noteScore + focusScore + confidenceScore + indicatorScore + determinationScore);
   const followUps = focusCoverage.filter((area) => !area.covered).map((area) => area.label);
-  if (caseTruth && !determinationMatched) followUps.unshift(`Compare the submitted determination with the scenario truth: ${caseTruth.correctDetermination}.`);
+  if (caseTruth && !determinationMatched) followUps.unshift(decisionEvaluation.explanation);
+  if (decisionEvaluation.documentSummary.started && !decisionEvaluation.documentSummary.coherent) {
+    followUps.unshift(`Clarify the document assessment: ${[
+      ...decisionEvaluation.documentSummary.missingFields,
+      ...decisionEvaluation.documentSummary.conflicts,
+    ].join('; ')}.`);
+  }
   if (notesQuality.points < 9) followUps.unshift(notesQuality.nextStep);
 
   return {
@@ -129,15 +136,33 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
     coachIntro: guide.coachIntro,
     score,
     scoreLabel: score >= 86 ? 'Strong package' : score >= 70 ? 'Solid package' : score >= 54 ? 'Developing package' : 'Needs more support',
-    strengths: buildStrengths({ coveredRequired, pinnedEvidence, notesQuality, rationale, focusCoverage, provenDecisionIndicators, determinationMatched }),
+    strengths: buildStrengths({
+      coveredRequired,
+      pinnedEvidence,
+      notesQuality,
+      rationale,
+      focusCoverage,
+      provenDecisionIndicators,
+      decisionEvaluation,
+    }),
     followUps: followUps.length ? followUps : ['No required focus gaps detected in this saved package.'],
     notesQuality,
     determinationMatched,
+    decisionEvaluation: {
+      basis: decisionEvaluation.basis,
+      explanation: decisionEvaluation.explanation,
+      documentAssessment: decisionEvaluation.documentSummary.assessment,
+      documentAssessmentLabel: decisionEvaluation.documentSummary.label,
+    },
     truthReveal: caseTruth ? {
       classification: caseTruth.classification,
-      correctDetermination: caseTruth.correctDetermination,
+      correctDetermination: decisionEvaluation.displayExpectedDetermination,
+      primaryDetermination: caseTruth.correctDetermination,
       acceptedDeterminations,
-      rationale: caseTruth.rationale,
+      rationale: decisionEvaluation.basis === 'document-context'
+        ? `${caseTruth.rationale} ${decisionEvaluation.explanation}`
+        : caseTruth.rationale,
+      evaluationBasis: decisionEvaluation.basis,
     } : null,
     breakdown: [
       { label: 'Required tool coverage', value: `${coveredRequired}/${totalRequired}`, points: toolScore },
@@ -145,7 +170,15 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
       { label: 'Quality of notes', value: notesQuality.summary, points: noteScore },
       { label: 'Case focus coverage', value: `${focusCoverage.filter((area) => area.covered).length}/${focusCoverage.length}`, points: focusScore },
       { label: 'Weighted flag documentation', value: `${provenDecisionIndicators.length} proven flag(s)`, points: indicatorScore },
-      { label: 'Scenario determination', value: caseTruth ? (determinationMatched ? 'Matched' : 'Did not match') : 'Base-case calibration', points: determinationScore },
+      {
+        label: 'Decision defensibility',
+        value: caseTruth
+          ? determinationMatched
+            ? decisionEvaluation.basis === 'exact' ? 'Calibrated outcome' : 'Reasoned alternative'
+            : 'Needs support'
+          : 'Coaching only',
+        points: determinationScore,
+      },
       { label: 'Confidence calibration', value: reviewPackage.confidence, points: confidenceScore },
     ],
   };
@@ -210,7 +243,15 @@ function analyzeNote(note = '') {
   };
 }
 
-function buildStrengths({ coveredRequired, pinnedEvidence, notesQuality, rationale, focusCoverage, provenDecisionIndicators, determinationMatched }) {
+function buildStrengths({
+  coveredRequired,
+  pinnedEvidence,
+  notesQuality,
+  rationale,
+  focusCoverage,
+  provenDecisionIndicators,
+  decisionEvaluation,
+}) {
   const strengths = [];
 
   if (coveredRequired >= 6) strengths.push('The package covers most required investigation tools before debrief.');
@@ -219,7 +260,10 @@ function buildStrengths({ coveredRequired, pinnedEvidence, notesQuality, rationa
   if (wordCount(rationale) >= 20) strengths.push('The rationale has enough substance for coaching review.');
   if (focusCoverage.some((area) => area.covered)) strengths.push('At least one case-specific focus area is visible in the saved package.');
   if (provenDecisionIndicators.length) strengths.push('The selected case flags include proof and an investigator explanation.');
-  if (determinationMatched) strengths.push('The submitted determination matches the hidden scenario truth.');
+  if (decisionEvaluation.basis === 'exact') strengths.push('The submitted determination matches the calibrated scenario outcome.');
+  if (decisionEvaluation.basis === 'semantic') strengths.push('The determination uses different wording but reaches the same lane outcome.');
+  if (decisionEvaluation.basis === 'document-context') strengths.push(decisionEvaluation.explanation);
+  if (decisionEvaluation.documentSummary.coherent) strengths.push(`The saved package separates document sufficiency from the final outcome: ${decisionEvaluation.documentSummary.label.toLowerCase()}.`);
 
   return strengths.length ? strengths : ['The package was saved, but Luna needs more documented support to coach from.'];
 }

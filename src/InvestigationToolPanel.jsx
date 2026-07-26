@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
+import DocumentRequestWorkspaceV2 from './DocumentRequestWorkspace.jsx';
 import DocumentViewerWorkspace from './DocumentViewerWorkspace.jsx';
+import LinkAnalysisWorkspace from './LinkAnalysisWorkspace.jsx';
 import MerchantIntelligenceWorkspace from './MerchantIntelligenceWorkspace.jsx';
 import { accessReportExportText, generateAccessHistoryReport, generatedAccessReportTypes } from './data/accessHistoryReports.js';
 import { buildCoreToolRecords } from './data/coreToolRecords.js';
@@ -2208,6 +2210,8 @@ export default function InvestigationToolPanel({
   setDocumentRequestsByCase,
   recordAction,
   quickPin,
+  decisionDraft,
+  updateDecision,
 }) {
   const [selectedRecordId, setSelectedRecordId] = useState('');
   const displayData = buildCoreToolRecords(tool, activeCase, data) ?? data;
@@ -2316,6 +2320,10 @@ export default function InvestigationToolPanel({
           openTool={openTool}
           jumpDecision={jumpDecision}
           documentRequests={documentRequests}
+          setDocumentRequestsByCase={setDocumentRequestsByCase}
+          decisionDraft={decisionDraft}
+          updateDecision={updateDecision}
+          recordAction={recordAction}
         />
       ) : tool === 'Financial Investigation' ? (
         <FinancialInvestigationWorkspace
@@ -2415,6 +2423,18 @@ export default function InvestigationToolPanel({
           jumpDecision={jumpDecision}
           recordAction={recordAction}
         />
+      ) : tool === 'Link Analysis' ? (
+        <LinkAnalysisWorkspace
+          activeCase={activeCase}
+          cases={cases}
+          pin={pin}
+          saveNote={saveNote}
+          markReviewed={markReviewed}
+          reviewed={reviewed}
+          openTool={openTool}
+          jumpDecision={jumpDecision}
+          recordAction={recordAction}
+        />
       ) : tool === 'Document Viewer' ? (
         <DocumentViewerWorkspace
           activeCase={activeCase}
@@ -2431,7 +2451,7 @@ export default function InvestigationToolPanel({
           documentRequests={documentRequests}
         />
       ) : tool === 'Document Request' ? (
-        <DocumentRequestWorkspace
+        <DocumentRequestWorkspaceV2
           activeCase={activeCase}
           query={query}
           setQuery={setQuery}
@@ -2443,6 +2463,7 @@ export default function InvestigationToolPanel({
           jumpDecision={jumpDecision}
           documentRequests={documentRequests}
           setDocumentRequestsByCase={setDocumentRequestsByCase}
+          recordAction={recordAction}
         />
       ) : tool === 'Device Intelligence' ? (
         <DeviceIntelligenceWorkspace

@@ -1,0 +1,84 @@
+body[data-visual-tab="workspace"] .decision-document-assessment {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--decision-border, currentColor);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+body[data-visual-tab="workspace"] .decision-document-assessment > legend {
+  color: var(--decision-ink, currentColor);
+  padding: 0 7px;
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+body[data-visual-tab="workspace"] .decision-document-assessment > legend span {
+  margin-left: 6px;
+  color: var(--decision-muted, currentColor);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+body[data-visual-tab="workspace"] .decision-document-assessment-intro {
+  margin-bottom: 13px;
+  border-left: 3px solid var(--decision-purple, currentColor);
+  padding: 2px 0 2px 11px;
+}
+
+body[data-visual-tab="workspace"] .decision-document-assessment-intro strong,
+body[data-visual-tab="workspace"] .decision-document-assessment-intro p {
+  display: block;
+}
+
+body[data-visual-tab="workspace"] .decision-document-assessment-intro p {
+  margin: 4px 0 0;
+  color: var(--decision-muted, currentColor);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+body[data-visual-tab="workspace"] .decision-document-assessment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 11px;
+}
+
+body[data-visual-tab="workspace"] .decision-document-assessment-reasoning {
+  margin-top: 12px;
+}
+
+body[data-visual-tab="workspace"] .decision-v1-form .decision-document-assessment-reasoning textarea {
+  min-height: 100px;
+}
+
+@media (max-width: 960px) {
+  body[data-visual-tab="workspace"] .decision-document-assessment-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  body[data-visual-tab="workspace"] .decision-document-assessment {
+    grid-column: auto;
+    padding: 12px;
+  }
+
+  body[data-visual-tab="workspace"] .decision-document-assessment-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .decision-document-assessment > legend span {
+    display: block;
+    margin: 3px 0 0;
+  }
+}
+
+body[data-layout-preference="mobile"] .decision-document-assessment {
+  grid-column: auto !important;
+}
+
+body[data-layout-preference="mobile"] .decision-document-assessment-grid {
+  grid-template-columns: minmax(0, 1fr);
+}

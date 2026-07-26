@@ -45,6 +45,15 @@ function snapshotFor(rawByKey, deviceId, timestamp, generatedCases = []) {
 const deviceARaw = rawState({
   [storageKeys.notes]: { [caseId]: ['Jul 25 · Investigation note · Added while desktop was offline.'] },
   [storageKeys.completed]: { [caseId]: ['Case Summary', 'Login History'] },
+  [storageKeys.documentRequests]: {
+    [caseId]: {
+      'DOC-BANK': {
+        schemaVersion: 3,
+        sourceDocumentId: 'DOC-BANK',
+        attempts: [{ attemptId: 'ATT-DESKTOP', requestId: 'REQ-DESKTOP' }],
+      },
+    },
+  },
   [storageKeys.debriefs]: {
     [caseId]: [{
       id: 'PKG-1:debrief',
@@ -63,6 +72,16 @@ const deviceBRaw = rawState({
   [storageKeys.notes]: { [caseId]: ['Jul 25 · Investigation note · Added while mobile was offline.'] },
   [storageKeys.tray]: { [caseId]: ['TRN-8842-19', 'EVT-MOBILE'] },
   [storageKeys.packages]: { [caseId]: [{ id: 'PKG-1', caseId }] },
+  [storageKeys.documentRequests]: {
+    [caseId]: {
+      'DOC-ID::viewer-review': {
+        schemaVersion: 3,
+        sourceDocumentId: 'DOC-ID',
+        attempts: [],
+        viewerReview: { action: 'verified', updatedAt: 'Jul 25, 4:30 PM' },
+      },
+    },
+  },
   [storageKeys.resumeSession]: makeResumeSessionResource({
     activeTab: 'workspace',
     activeCaseId: 'FA-CB-G00000002',
@@ -90,6 +109,53 @@ assert.deepEqual(
   new Set(materialized.rawByKey[storageKeys.tray][caseId]),
   new Set(['TRN-8842-19', 'EVT-MOBILE']),
   'Pinned evidence should merge as item-level records.',
+);
+assert.equal(
+  materialized.rawByKey[storageKeys.documentRequests][caseId]['DOC-BANK'].attempts[0].attemptId,
+  'ATT-DESKTOP',
+  'A document request saved offline on one device should survive the merge.',
+);
+assert.equal(
+  materialized.rawByKey[storageKeys.documentRequests][caseId]['DOC-ID::viewer-review'].viewerReview.action,
+  'verified',
+  'A different document review saved offline on another device should merge without replacing the request.',
+);
+const legacyDocumentSnapshot = {
+  ...snapshotB,
+  schemaVersion: 1,
+  resources: {
+    ...snapshotB.resources,
+    [storageKeys.documentRequests]: {
+      mode: 'value',
+      entries: {
+        [caseId]: {
+          mode: 'value',
+          value: {
+            'DOC-LEGACY': {
+              schemaVersion: 2,
+              sourceDocumentId: 'DOC-LEGACY',
+              attempts: [{ attemptId: 'ATT-LEGACY', requestId: 'REQ-LEGACY' }],
+            },
+          },
+          version: { at: 1500, deviceId: 'legacy-device' },
+          deleted: false,
+        },
+      },
+    },
+  },
+};
+const migratedDocumentState = materializeCloudSnapshot(
+  mergeCloudSnapshots(snapshotB, legacyDocumentSnapshot),
+).rawByKey[storageKeys.documentRequests][caseId];
+assert.equal(
+  migratedDocumentState['DOC-LEGACY'].attempts[0].attemptId,
+  'ATT-LEGACY',
+  'Version-one case-level document request snapshots should migrate into the per-document merge format.',
+);
+assert.equal(
+  migratedDocumentState['DOC-ID::viewer-review'].viewerReview.action,
+  'verified',
+  'Migrating a legacy document request snapshot should preserve newer per-document review state.',
 );
 assert.equal(materialized.rawByKey[storageKeys.debriefs][caseId][0].id, 'PKG-1:debrief');
 assert.equal(materialized.rawByKey[storageKeys.packages][caseId][0].id, 'PKG-1');

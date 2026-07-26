@@ -1,4 +1,8 @@
 import { summarizeDecisionIndicators } from './decisionChecklist.js';
+import {
+  normalizeDocumentAssessment,
+  summarizeDocumentAssessment,
+} from './decisionEvaluation.js';
 
 export const reviewChoices = [
   'Approve claim / customer claim supported',
@@ -232,7 +236,14 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
   const rationaleWordCount = wordCount(draft.reason);
   const hasRationale = Boolean(draft.reason?.trim());
   const indicatorSummary = summarizeDecisionIndicators(activeCase, draft.indicators);
-  const packageInputSummary = buildPackageInputSummary({ completedTools, tray, notes, indicatorSummary });
+  const documentAssessmentSummary = summarizeDocumentAssessment(draft.documentAssessment);
+  const packageInputSummary = buildPackageInputSummary({
+    completedTools,
+    tray,
+    notes,
+    indicatorSummary,
+    documentAssessmentSummary,
+  });
   const conflictsWithCriticalRed = indicatorSummary.overrideIndicators.length > 0 && isSupportiveDecision(draft.choice);
 
   if (!draft.choice) blockers.push('select a learner choice');
@@ -242,6 +253,12 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
   if (conflictsWithCriticalRed) coachingGaps.push('the determination conflicts with a documented critical red flag');
   if (!hasRationale) coachingGaps.push('no learner rationale supplied');
   if (hasRationale && rationaleWordCount < minimumRationaleWords) coachingGaps.push(`learner rationale is shorter than ${minimumRationaleWords} words`);
+  if (documentAssessmentSummary.started && documentAssessmentSummary.missingFields.length) {
+    coachingGaps.push(`document assessment missing: ${documentAssessmentSummary.missingFields.join(', ')}`);
+  }
+  if (documentAssessmentSummary.started && documentAssessmentSummary.conflicts.length) {
+    coachingGaps.push(`document assessment needs clarification: ${documentAssessmentSummary.conflicts.join(' | ')}`);
+  }
 
   if (blockers.length) {
     messages.push(`Submission requirement: ${blockers.join('; ')}.`);
@@ -270,6 +287,7 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
     minimumRationaleWords,
     packageInputSummary,
     indicatorSummary,
+    documentAssessmentSummary,
     ready: Boolean(draft.choice) && validChoices.includes(draft.choice),
   };
 }
@@ -278,6 +296,8 @@ export function buildReviewPackage({ caseId, agentId, activeCase, draft, complet
   const requiredTools = packageStatus?.requiredTools ?? getRequiredReviewTools(activeCase);
   return {
     id: `${caseId}-${Date.now()}`,
+    packageSchemaVersion: 2,
+    decisionEvaluationVersion: 2,
     caseId,
     agentId,
     claimTypeId: activeCase?.claimTypeId ?? null,
@@ -286,6 +306,10 @@ export function buildReviewPackage({ caseId, agentId, activeCase, draft, complet
     choice: draft.choice,
     confidence: draft.confidence || 'Medium',
     reason: draft.reason,
+    documentAssessment: normalizeDocumentAssessment(draft.documentAssessment),
+    documentAssessmentSummary: snapshotDocumentAssessmentSummary(
+      packageStatus?.documentAssessmentSummary ?? summarizeDocumentAssessment(draft.documentAssessment),
+    ),
     rationaleWordCount: packageStatus?.rationaleWordCount ?? wordCount(draft.reason),
     completedTools: [...completedTools],
     pinnedEvidence: [...tray],
@@ -309,8 +333,34 @@ export function buildReviewPackage({ caseId, agentId, activeCase, draft, complet
   };
 }
 
-function buildPackageInputSummary({ completedTools = [], tray = [], notes = [], indicatorSummary }) {
-  return `Decision package preview: ${completedTools.length} reviewed tool(s), ${tray.length} optional pinned object(s), ${notes.length} optional note(s), and ${indicatorSummary?.selectedCount ?? 0} selected flag(s) will be saved.`;
+function buildPackageInputSummary({
+  completedTools = [],
+  tray = [],
+  notes = [],
+  indicatorSummary,
+  documentAssessmentSummary,
+}) {
+  const documentContext = documentAssessmentSummary?.started
+    ? ` Document assessment: ${documentAssessmentSummary.label}.`
+    : ' Structured document assessment not added.';
+  return `Decision package preview: ${completedTools.length} reviewed tool(s), ${tray.length} optional pinned object(s), ${notes.length} optional note(s), and ${indicatorSummary?.selectedCount ?? 0} selected flag(s) will be saved.${documentContext}`;
+}
+
+function snapshotDocumentAssessmentSummary(summary = {}) {
+  return {
+    started: Boolean(summary.started),
+    coherent: Boolean(summary.coherent),
+    decisive: Boolean(summary.decisive),
+    completeReadable: Boolean(summary.completeReadable),
+    supportive: Boolean(summary.supportive),
+    nonSupportive: Boolean(summary.nonSupportive),
+    unresolved: Boolean(summary.unresolved),
+    needsMoreEvidence: Boolean(summary.needsMoreEvidence),
+    missingFields: [...(summary.missingFields ?? [])],
+    conflicts: [...(summary.conflicts ?? [])],
+    reasoningWordCount: summary.reasoningWordCount ?? 0,
+    label: summary.label ?? 'Not assessed',
+  };
 }
 
 function wordCount(text = '') {

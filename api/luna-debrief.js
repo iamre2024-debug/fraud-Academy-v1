@@ -79,6 +79,19 @@ function cleanList(value, fallback = []) {
     : fallback;
 }
 
+function cleanDocumentAssessment(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return {
+    received: cleanText(value.received, 40),
+    readability: cleanText(value.readability, 40),
+    completeness: cleanText(value.completeness, 40),
+    identityMatch: cleanText(value.identityMatch, 40),
+    claimEffect: cleanText(value.claimEffect, 80),
+    additionalEvidenceNeeded: cleanText(value.additionalEvidenceNeeded, 20),
+    reasoning: cleanText(value.reasoning, 2000),
+  };
+}
+
 export default async function handler(req, res) {
   const origin = String(req.headers?.origin || '');
   if (origin && !allowedCorsOrigin(req)) return send(req, res, 403, { error: 'Origin not allowed' });
@@ -123,6 +136,9 @@ export default async function handler(req, res) {
     rationale: cleanText(body.rationale, 4000),
     reviewStatus,
     determinationMatched: deterministic.determinationMatched,
+    evaluationBasis: cleanText(deterministic.evaluationBasis, 100) || 'ungraded',
+    evaluationExplanation: cleanText(deterministic.evaluationExplanation, 1000),
+    documentAssessmentLabel: cleanText(deterministic.documentAssessmentLabel, 300),
     expectedDetermination: deterministic.expectedDetermination || null,
     acceptedDeterminations: cleanList(deterministic.acceptedDeterminations),
     classification: deterministic.classification || null,
@@ -133,14 +149,18 @@ export default async function handler(req, res) {
     completedTools: cleanList(body.packageFacts?.completedTools),
     pinnedEvidence: cleanList(body.packageFacts?.pinnedEvidence),
     noteSnapshot: cleanList(body.packageFacts?.noteSnapshot),
+    documentAssessment: cleanDocumentAssessment(body.packageFacts?.documentAssessment),
   };
 
   const instructions = [
     'You are Luna, the fraud manager conducting a post-decision case review inside a training app.',
     'Speak like an experienced manager reviewing an investigator decision, not like a generic tutor or scorecard.',
     'The deterministic fields are authoritative. Never reverse or override reviewStatus, determinationMatched, expectedDetermination, acceptedDeterminations, classification, truthRationale, or score.',
-    'When reviewStatus is matched, say the investigator made the correct call.',
-    'When reviewStatus is mismatched, say the determination needs correction and explain why from the supplied truth.',
+    'When reviewStatus is matched and evaluationBasis is exact, say the investigator made the calibrated call.',
+    'When evaluationBasis is semantic, explain that different wording reached the same lane outcome.',
+    'When evaluationBasis is document-context, call the decision defensible from the saved document assessment; do not claim it matched the original answer key.',
+    'When evaluationBasis is context-conflict, explain the conflict between the selected button and the saved document reasoning before suggesting a correction.',
+    'When reviewStatus is mismatched for another reason, say the determination needs more support and explain why from the supplied facts.',
     'When reviewStatus is ungraded, never call the decision right, wrong, matched, mismatched, or in need of correction. State that the case has no hidden outcome and review only the investigation quality and reasoning.',
     'Explain what the submitted decision means. Do Not Support means the available evidence does not support the customer fraud claim; it never means fraud was confirmed.',
     'Explain what the case actually was only when classification or truthRationale is supplied. Do not invent a downstream outcome.',

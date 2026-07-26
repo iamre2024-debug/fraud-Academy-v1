@@ -309,7 +309,7 @@ for (const anchor of [
 }
 
 for (const anchor of [
-  'data-document-viewer-screen="approved-theme-v1"',
+  'data-document-viewer-screen="evidence-workspace-v2"',
   'Search by Account ID',
   'Customer documents are locked',
   'Search Document Viewer records',
@@ -426,7 +426,7 @@ for (const anchor of ['.document-request-inbox', '.document-request-compose-butt
 }
 mustContain('investigation-tools-browser.spec.mjs', browser, 'approved Investigation tools are contextual, functional, and responsive');
 mustContain('investigation-tools-browser.spec.mjs', browser, 'mobile-chromium');
-mustContain('document-viewer-browser.spec.mjs', documentBrowser, 'requires an Account ID');
+mustContain('document-viewer-browser.spec.mjs', documentBrowser, 'Customer documents are locked');
 mustContain('document-viewer-browser.spec.mjs', documentBrowser, 'Document comparison');
 mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'Financial Investigation and KYB Review provide complete responsive workspaces');
 mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'Open in Document Viewer');

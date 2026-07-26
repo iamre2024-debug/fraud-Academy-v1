@@ -20,7 +20,9 @@ export const cloudResourceModes = {
   [storageKeys.decisions]: 'value',
   [storageKeys.packages]: 'array',
   [storageKeys.actions]: 'array',
-  [storageKeys.documentRequests]: 'value',
+  // Each document is merged independently so concurrent offline request,
+  // reminder, draft, and review changes do not replace the whole case record.
+  [storageKeys.documentRequests]: 'map',
   [storageKeys.quickPad]: 'value',
   [storageKeys.debriefs]: 'array',
   [storageKeys.resumeSession]: 'value',

@@ -125,6 +125,7 @@ export default function DesktopMissionControlApp({
   quickGenerator,
   workspaceGenerator,
   workspace,
+  workspaceTool,
 }) {
   const [control, setControl] = useState('');
   const [reducedMotion, setReducedMotion] = useState(readReducedMotion);
@@ -308,7 +309,11 @@ export default function DesktopMissionControlApp({
           </section>
         )}
 
-        <div className="desktop-stage-grid">
+        <div
+          className="desktop-stage-grid"
+          data-workspace-focus={activeTab === 'workspace' && ['Link Analysis', 'Document Request', 'Document Viewer'].includes(workspaceTool) ? 'immersive' : 'standard'}
+          data-workspace-tool={workspaceTool || ''}
+        >
           <main className="desktop-mission-content">
             <section className="desktop-page desktop-dashboard-page" hidden={activeTab !== 'dashboard'} data-desktop-surface="dashboard">
               {activeTab === 'dashboard' && (

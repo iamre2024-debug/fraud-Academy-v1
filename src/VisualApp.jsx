@@ -239,6 +239,7 @@ export default function VisualApp() {
         onOpenWorkspaceRoute={openDesktopWorkspace}
         quickGenerator={<GeneratedCaseControls inline onCaseGenerated={handleGeneratedCase} />}
         workspaceGenerator={<GeneratedCaseControls inline onCaseGenerated={handleGeneratedCase} />}
+        workspaceTool={workspaceTool}
         workspace={(
           <VisualWorkspace
             activeCaseId={activeCaseId}

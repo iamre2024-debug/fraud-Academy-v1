@@ -526,6 +526,8 @@ export default function VisualWorkspace({
     setDocumentRequestsByCase,
     recordAction,
     quickPin,
+    decisionDraft,
+    updateDecision,
   };
 
   const quickPadLayer = (

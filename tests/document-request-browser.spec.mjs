@@ -1,189 +1,198 @@
 import { test, expect } from '@playwright/test';
 import { selectToolGroup } from './workspace-page-helpers.mjs';
 
-test('Document Request tracks case-scoped document workflow states', async ({ page }, testInfo) => {
-  test.setTimeout(90_000);
-  await page.goto('/');
+const documentRequestStorageKey = 'fraud-academy-document-requests-v2';
 
+function investigationPanel(page) {
+  return page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
+}
+
+async function openDocumentRequest(page) {
   await page.locator('.visual-case-switcher select').selectOption('FA-CB-24007');
   await selectToolGroup(page, /Documents & Requests/);
+  const panel = investigationPanel(page);
+  await panel.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Document Request');
+  await expect(panel).toHaveAttribute('data-tool-name', 'Document Request');
+  const workspace = panel.locator('[data-document-request-screen="reference-dashboard-v2"]');
+  await expect(workspace).toBeVisible();
+  return { panel, workspace };
+}
 
-  const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  await toolPanel.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Document Request');
-  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Request');
-  const genericQuestion = toolPanel.getByRole('heading', { name: 'What documents were requested, received, missing, or pending review for this case?', exact: true });
-  if (testInfo.project.name === 'mobile-chromium') {
-    const documentMission = page.locator('[data-document-request-page="true"]');
-    await expect(documentMission).toBeVisible();
-    await expect(documentMission.getByRole('heading', { name: 'Document Request', exact: true })).toBeVisible();
-    await expect(toolPanel.locator(':scope > .investigation-tool-header')).toBeHidden();
-    await expect(toolPanel.locator(':scope > .investigation-tool-question')).toBeHidden();
-    await expect(toolPanel.locator(':scope > .investigation-tool-controls')).toBeHidden();
-    const visibleHeadingGeometry = await documentMission.locator('h2, h3').evaluateAll((headings) => headings
-      .filter((heading) => {
-        const style = getComputedStyle(heading);
-        return style.display !== 'none' && style.visibility !== 'hidden';
-      })
-      .map((heading) => ({
-        text: heading.textContent.trim(),
-        width: heading.getBoundingClientRect().width,
-        height: heading.getBoundingClientRect().height,
-      })));
-    expect(visibleHeadingGeometry.filter(({ width, height }) => width > 0 && width < 80 && height > 70)).toEqual([]);
-    await expect(documentMission.locator('[data-document-request-step="request"]')).toHaveAttribute('aria-current', 'step');
-  } else {
-    await expect(genericQuestion).toBeVisible();
-  }
-  await expect(toolPanel.locator('.document-request-inbox')).toBeVisible();
-  await expect(toolPanel.locator('.document-request-compose-button')).toHaveText('＋ Request Paperwork');
-  await expect(toolPanel.locator('[data-document-request]')).toHaveCount(1);
-  await expect(toolPanel.locator('[data-document-request]').first()).toContainText('Customer dispute form');
-  await expect(toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation' })).toHaveCount(0);
+function readDocumentAttempt(page, documentId) {
+  return page.evaluate(({ key, caseId, id }) => {
+    const saved = JSON.parse(localStorage.getItem(key) || '{}');
+    const entry = saved?.[caseId]?.[id];
+    const attempts = Array.isArray(entry) ? entry : entry?.attempts ?? [];
+    return attempts.at(-1) ?? null;
+  }, { key: documentRequestStorageKey, caseId: 'FA-CB-24007', id: documentId });
+}
 
-  await toolPanel.locator('.document-request-compose-button').click();
-  const composer = toolPanel.getByRole('main', { name: 'Compose paperwork request' });
-  await expect(composer.getByRole('heading', { name: 'Request Paperwork', exact: true })).toBeVisible();
-  await composer.getByRole('combobox', { name: 'Paperwork to request' }).selectOption({ label: 'Cancellation confirmation' });
-  await composer.getByRole('combobox', { name: 'Paperwork request delivery method' }).selectOption('Email');
-  await composer.getByRole('textbox', { name: 'Paperwork request reason' }).fill('Please send the cancellation confirmation showing the date and method used before renewal.');
-  await composer.getByRole('button', { name: 'Send Request', exact: true }).click();
+test('Document Request records outbound requests, reminders, and receipts without creating customer evidence', async ({ page }) => {
+  test.setTimeout(75_000);
+  await page.goto('/');
 
-  await expect(toolPanel.locator('.document-request-confirmation')).toContainText('Cancellation confirmation request sent');
-  await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('Email');
-  await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('Requested');
-  await expect(toolPanel.locator('[data-document-request]')).toHaveCount(2);
-  await expect(toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation request' })).toContainText('Requested');
-  if (testInfo.project.name === 'mobile-chromium') {
-    await expect(page.locator('[data-document-request-step="receive"]')).toHaveAttribute('aria-current', 'step');
-  }
+  const { panel, workspace } = await openDocumentRequest(page);
+  await expect(workspace.getByRole('heading', { name: 'Document Request', exact: true })).toBeVisible();
+  await expect(workspace.getByRole('region', { name: 'Document request summary' })).toContainText('Requested');
+  await expect(workspace.getByRole('columnheader', { name: 'Document Type' })).toBeVisible();
+  await expect(workspace.getByRole('columnheader', { name: 'Last Reminder' })).toBeVisible();
 
-  const savedRequest = await page.evaluate(() => JSON.parse(localStorage.getItem('fraud-academy-document-requests-v2') || '{}'));
-  expect(savedRequest['FA-CB-24007']).toBeTruthy();
-  expect(Object.values(savedRequest['FA-CB-24007']).some((request) => request.attempts?.some((attempt) => attempt.requestDeliveryChannel === 'Email'))).toBe(true);
+  let cancellationRow = workspace.locator('[data-document-request-row="DOC-511"]');
+  await expect(cancellationRow).toContainText('Cancellation confirmation');
+  await expect(cancellationRow).toContainText('Not Requested');
+  await expect(cancellationRow.getByRole('button', { name: /View Documents/ })).toHaveCount(0);
 
-  const requestDetail = toolPanel.getByRole('main', { name: 'Expanded document request detail' });
-  await requestDetail.getByRole('button', { name: 'Check for Customer Response', exact: true }).click();
-  await expect(toolPanel.locator('.document-request-confirmation')).toContainText('received from the customer and added as a separate Document Viewer record');
-  await expect(requestDetail).toContainText('Received');
-  await expect(requestDetail).toContainText('New customer submission');
-  await expect(requestDetail.getByRole('button', { name: 'Open Customer Document', exact: true })).toBeVisible();
-  await expect(toolPanel.locator('[data-document-request]')).toHaveCount(3);
-  await expect(toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation request' })).toContainText('Requested');
-  await expect(toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation' }).filter({ hasText: 'Received' })).toHaveCount(1);
-  if (testInfo.project.name === 'mobile-chromium') {
-    await expect(page.locator('[data-document-request-step="review"]')).toHaveAttribute('aria-current', 'step');
-  }
+  await workspace.getByRole('button', { name: '＋ Request Document', exact: true }).click();
+  const requestDialog = workspace.getByRole('dialog', { name: 'Request Document' });
+  await expect(requestDialog).toBeVisible();
+  await expect(requestDialog).toContainText('does not create a customer response or document');
+  await requestDialog.getByLabel('Document').selectOption('DOC-511');
+  await requestDialog.getByLabel('Delivery method').selectOption('Email');
+  await requestDialog.getByLabel('Message / reason').fill(
+    'Please provide the complete cancellation confirmation, including the cancellation date and method.',
+  );
+  await requestDialog.getByRole('button', { name: 'Send Request', exact: true }).click();
 
-  const receivedRequest = await page.evaluate(() => JSON.parse(localStorage.getItem('fraud-academy-document-requests-v2') || '{}'));
-  const cancellationSubmission = Object.values(receivedRequest['FA-CB-24007'])
-    .flatMap((request) => request.attempts ?? [])
-    .find((attempt) => attempt.responseStatus === 'Received');
-  expect(cancellationSubmission?.customerSubmission?.pages?.length).toBe(1);
-  expect(cancellationSubmission?.customerSubmission?.pages?.[0]?.title).toContain('StreamBox Premium Cancellation Confirmation');
+  await expect(workspace.getByRole('status')).toContainText('Cancellation confirmation requested through Email');
+  cancellationRow = workspace.locator('[data-document-request-row="DOC-511"]');
+  await expect(cancellationRow).toContainText('Awaiting');
+  await expect(cancellationRow.getByRole('button', { name: /Send Reminder/ })).toBeVisible();
+  await expect(cancellationRow.getByRole('button', { name: /Record Received/ })).toBeVisible();
 
-  await requestDetail.getByRole('button', { name: 'Open Customer Document', exact: true }).click();
-  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
-  const customerViewer = toolPanel.locator('[data-document-viewer-screen="approved-theme-v1"]');
-  const customerDocumentSurface = testInfo.project.name === 'mobile-chromium'
-    ? customerViewer.locator('.document-mobile-review-shell')
-    : customerViewer.locator('.document-preview-workspace');
-  if (testInfo.project.name === 'mobile-chromium') {
-    await expect(customerDocumentSurface).toBeVisible();
-    await expect(customerDocumentSurface.locator('.document-mobile-summary-header p')).toHaveText(/Customer Evidence/i);
-    await customerDocumentSurface.getByRole('tab', { name: /Document/ }).click();
-  } else {
-    await expect(customerViewer.getByRole('navigation', { name: 'Document folders' })
-      .getByRole('button', { name: /^Customer Evidence/ })).toHaveClass(/active/);
-  }
-  await expect(customerDocumentSurface.locator('.document-page')).toContainText('StreamBox Premium Cancellation Confirmation');
-  await expect(customerDocumentSurface.locator('.document-page')).toContainText('Automatic renewal turned off');
-  if (testInfo.project.name === 'mobile-chromium') {
-    await customerViewer.getByRole('button', { name: '‹ Inbox', exact: true }).click();
-  }
-  await customerViewer.getByRole('navigation', { name: 'Document Viewer next routes' })
-    .getByRole('button', { name: 'Open Document Request', exact: true })
+  let attempt = await readDocumentAttempt(page, 'DOC-511');
+  expect(attempt).toMatchObject({
+    sourceDocumentId: 'DOC-511',
+    documentTitle: 'Cancellation confirmation',
+    requestDeliveryChannel: 'Email',
+    responseStatus: '',
+    fileCount: 0,
+    customerSubmission: null,
+  });
+
+  await cancellationRow.getByRole('button', { name: /Send Reminder/ }).click();
+  await expect(workspace.getByRole('status')).toContainText('Cancellation confirmation reminder sent through Email');
+  attempt = await readDocumentAttempt(page, 'DOC-511');
+  expect(attempt.reminders).toHaveLength(1);
+  expect(attempt.customerSubmission).toBeNull();
+
+  await cancellationRow.getByRole('button', { name: /Record Received/ }).click();
+  const receiptDialog = workspace.getByRole('dialog', { name: 'Record Received Document' });
+  await expect(receiptDialog).toBeVisible();
+  await expect(receiptDialog).toContainText('never generates a document image or customer submission');
+  await receiptDialog.getByLabel('Receipt status').selectOption('Received');
+  await receiptDialog.getByLabel('Files received').fill('2');
+  await receiptDialog.getByLabel('Receipt note').fill(
+    'Two files were received outside the simulator; source pages still require separate evidence intake.',
+  );
+  await receiptDialog.getByRole('button', { name: 'Record Receipt', exact: true }).click();
+
+  await expect(workspace.getByRole('status')).toContainText('No training document was generated automatically');
+  await expect(cancellationRow).toContainText('Received');
+  await expect(cancellationRow).toContainText('Metadata only');
+  await expect(cancellationRow.getByText('2', { exact: true })).toBeVisible();
+  await expect(cancellationRow.getByRole('button', { name: /View Documents/ })).toHaveCount(0);
+
+  attempt = await readDocumentAttempt(page, 'DOC-511');
+  expect(attempt.responseStatus).toBe('Received');
+  expect(attempt.fileCount).toBe(2);
+  expect(attempt.customerSubmission).toBeNull();
+  expect(attempt.manualReceipt).toMatchObject({
+    status: 'Received',
+    fileCount: 2,
+  });
+
+  await page.reload();
+  const reopened = await openDocumentRequest(page);
+  cancellationRow = reopened.workspace.locator('[data-document-request-row="DOC-511"]');
+  await expect(cancellationRow).toContainText('Received');
+  await expect(cancellationRow).toContainText('Metadata only');
+  await expect(cancellationRow.getByRole('button', { name: /View Documents/ })).toHaveCount(0);
+
+  await reopened.workspace.getByRole('textbox', { name: 'Search Document Request records' }).fill('Cancellation confirmation');
+  await expect(reopened.workspace.locator('[data-document-request-row]')).toHaveCount(1);
+  await reopened.workspace.getByRole('button', { name: 'Mark Document Request reviewed', exact: true }).click();
+  await expect(reopened.workspace.getByRole('button', { name: '✓ Document Request reviewed', exact: true })).toBeVisible();
+  await reopened.workspace.getByRole('navigation', { name: 'Document request next routes' })
+    .getByRole('button', { name: 'Open Submit Decision', exact: true })
     .click();
-  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Request');
+  await expect(panel.locator('.submit-decision-panel')).toBeVisible();
+});
 
-  if (testInfo.project.name === 'mobile-chromium') {
-    await expect(toolPanel.locator('.document-request-inbox')).toHaveAttribute('data-mobile-pane', 'inbox');
+test('Link Analysis keeps match summaries neutral and opens filterable account and case details', async ({ page }, testInfo) => {
+  test.setTimeout(75_000);
+  if (testInfo.project.name === 'desktop-chromium') {
+    await page.addInitScript(() => {
+      localStorage.setItem('fraud-academy-layout-mode-v1', 'desktop');
+      localStorage.setItem('fraud-academy-desktop-theme-v1', 'day');
+    });
+  }
+  await page.goto('/');
+
+  await selectToolGroup(page, /Connections/);
+  const panel = investigationPanel(page);
+  await panel.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Link Analysis');
+  await expect(panel).toHaveAttribute('data-tool-name', 'Link Analysis');
+  const workspace = panel.locator('[data-link-analysis-screen="reference-v1"]');
+  await expect(workspace).toBeVisible();
+
+  const summary = workspace.getByRole('region', { name: /Link summary for/i });
+  await expect(summary).toContainText('20 matched accounts');
+  await expect(summary.getByRole('heading', { name: 'Luna Link Summary', exact: true })).toBeVisible();
+  await expect(summary).toContainText('A match count alone does not establish misuse');
+  await expect(summary).toContainText('Common shared-use context');
+  await expect(summary).toContainText('Review-required context');
+  expect(await summary.innerText()).not.toMatch(/\b(?:this is fraud|fraud confirmed|fraudulent account)\b/i);
+
+  const filters = workspace.locator('.link-filter-list');
+  await filters.getByLabel('On Hold', { exact: true }).check();
+  const visibleResults = testInfo.project.name === 'mobile-chromium'
+    ? workspace.locator('.link-account-mobile-card:visible')
+    : workspace.locator('.link-account-table tbody tr:visible');
+  await expect(visibleResults).toHaveCount(2);
+  for (let index = 0; index < 2; index += 1) {
+    await expect(visibleResults.nth(index)).toContainText('On Hold');
   }
 
-  const records = toolPanel.locator('[data-document-request]');
-  await expect(records.first()).toBeVisible();
-  const firstRequestId = await records.first().getAttribute('data-document-request');
-  expect(firstRequestId).toBeTruthy();
-
-  const search = toolPanel.getByRole('textbox', { name: 'Search Document Request records' });
-  await search.fill(firstRequestId);
-  await expect(records).toHaveCount(1);
-  await search.fill('no-matching-paperwork-record');
-  await expect(records).toHaveCount(0);
+  await filters.getByLabel('All Linked Accounts', { exact: true }).check();
+  const firstResult = testInfo.project.name === 'mobile-chromium'
+    ? workspace.locator('.link-account-mobile-card:visible').first()
+    : workspace.locator('.link-account-table tbody tr:visible').first();
   if (testInfo.project.name === 'mobile-chromium') {
-    await expect(toolPanel.locator('.document-request-list .investigation-tool-empty')).toContainText('No document requests match this filter or search.');
+    await firstResult.getByRole('button', { name: 'Open account', exact: true }).click();
   } else {
-    await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('No document requests are available for this case.');
-  }
-  await search.clear();
-
-  await records.first().click();
-  const detail = toolPanel.getByRole('main', { name: 'Expanded document request detail' });
-  await expect(detail).toContainText(firstRequestId);
-  await expect(detail).toContainText('Required / optional');
-  await expect(detail).toContainText('Authenticity flag');
-
-  await detail.getByRole('button', { name: 'Pin request', exact: true }).click();
-  if (testInfo.project.name === 'mobile-chromium') {
-    await expect.poll(async () => {
-      const items = await page.evaluate(() => (
-        JSON.parse(localStorage.getItem('fraud-academy-visual-tray-v1') || '{}')['FA-CB-24007'] ?? []
-      ));
-      return items.some((item) => String(item).includes(firstRequestId));
-    }).toBe(true);
-  } else {
-    await expect(page.locator('.tray-card')).toContainText('Pinned');
-  }
-  await detail.getByRole('button', { name: 'Save follow-up note', exact: true }).click();
-  if (testInfo.project.name === 'mobile-chromium') {
-    await expect.poll(async () => {
-      const items = await page.evaluate(() => (
-        JSON.parse(localStorage.getItem('fraud-academy-notes-v1') || '{}')['FA-CB-24007'] ?? []
-      ));
-      return items.some((item) => String(item).includes('Document Request'));
-    }).toBe(true);
-  } else {
-    await expect(page.locator('.notebook-card')).toContainText('Document Request');
+    await firstResult.getByRole('button', { name: /Open account ACCT-/ }).click();
   }
 
-  await detail.getByRole('button', { name: 'View Merchant Paperwork', exact: true }).click();
-  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Viewer');
-  const viewer = toolPanel.locator('[data-document-viewer-screen="approved-theme-v1"]');
-  await expect(viewer.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toHaveCount(0);
-  const merchantDocumentSurface = testInfo.project.name === 'mobile-chromium'
-    ? viewer.locator('.document-mobile-review-shell')
-    : viewer.locator('.document-preview-workspace');
-  if (testInfo.project.name === 'mobile-chromium') {
-    await expect(merchantDocumentSurface).toBeVisible();
-    await expect(merchantDocumentSurface.locator('.document-mobile-summary-header p')).toHaveText(/Merchant Response/i);
-    await merchantDocumentSurface.getByRole('tab', { name: /Document/ }).click();
-  } else {
-    await expect(viewer.getByRole('navigation', { name: 'Document folders' })
-      .getByRole('button', { name: /^Merchant Evidence/ })).toHaveClass(/active/);
-  }
-  await expect(merchantDocumentSurface.locator('.document-page')).toBeVisible();
-  if (testInfo.project.name === 'mobile-chromium') {
-    await viewer.getByRole('button', { name: '‹ Inbox', exact: true }).click();
-  }
-  await viewer.getByRole('navigation', { name: 'Document Viewer next routes' })
-    .getByRole('button', { name: 'Open Document Request', exact: true })
-    .click();
-  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Request');
+  const accountDetail = workspace.getByRole('complementary', { name: 'Linked account details' });
+  await expect(accountDetail).toBeVisible();
+  await expect(accountDetail).toContainText('Status information');
+  await expect(accountDetail).toContainText('Identifier relationship');
+  await expect(accountDetail).toContainText('Recorded history');
+  await accountDetail.getByRole('button', { name: 'Open Linked Case', exact: true }).click();
 
-  await toolPanel.getByRole('button', { name: 'Mark Document Request reviewed', exact: true }).click();
-  await expect(toolPanel.getByRole('button', { name: '✓ Document Request reviewed', exact: true })).toBeVisible();
+  const caseDetail = workspace.getByRole('complementary', { name: 'Linked case details' });
+  await expect(caseDetail).toBeVisible();
+  await expect(caseDetail).toContainText('Case record summary');
+  await expect(caseDetail).toContainText('Verify the underlying dates and records');
+  await caseDetail.getByRole('button', { name: 'Add to Case Notes', exact: true }).click();
+  await expect.poll(async () => {
+    const notes = await page.evaluate(() => (
+      JSON.parse(localStorage.getItem('fraud-academy-notes-v1') || '{}')
+    ));
+    return (notes[Object.keys(notes)[0]] ?? []).some((note) => String(note).includes('Link Analysis'));
+  }).toBe(true);
 
-  const nextRoutes = toolPanel.getByRole('navigation', { name: 'Document request next routes' });
-  await expect(nextRoutes.getByRole('button', { name: 'Open Document Viewer', exact: true })).toHaveCount(0);
-  await nextRoutes.getByRole('button', { name: 'Open Submit Decision', exact: true }).click();
-  await expect(page.locator('.submit-decision-panel')).toBeVisible();
+  await workspace.getByLabel('Choose Link Analysis identifier type').selectOption('email');
+  const recordedEmail = await workspace.getByLabel('Search Link Analysis exact identifier').inputValue();
+  expect(recordedEmail).toContain('@');
+  await workspace.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(workspace.getByRole('region', { name: /Link summary for/i })).toContainText('matched accounts');
+
+  if (testInfo.project.name === 'desktop-chromium') {
+    await page.locator('button[aria-label="Night theme"]:visible').click();
+    await expect(page.locator('body')).toHaveAttribute('data-desktop-theme', 'night');
+    await expect(workspace).toBeVisible();
+    await page.locator('button[aria-label="Day theme"]:visible').click();
+    await expect(page.locator('body')).toHaveAttribute('data-desktop-theme', 'day');
+  }
 });

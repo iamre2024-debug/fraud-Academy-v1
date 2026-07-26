@@ -1,0 +1,366 @@
+/* Document investigation workspace v2.
+   Loaded last so the Day/Night desktop tokens and the mobile mission deck stay coherent. */
+
+body[data-visual-tab="workspace"] .document-viewer-v2 {
+  --doc-bg: #f5f8fd;
+  --doc-panel: #ffffff;
+  --doc-panel-strong: #f8fbff;
+  --doc-panel-muted: #edf3fb;
+  --doc-line: #cbd8ea;
+  --doc-line-strong: #9eb5d2;
+  --doc-text: #142943;
+  --doc-heading: #071a31;
+  --doc-muted: #60728a;
+  --doc-accent: #1768cf;
+  --doc-accent-soft: #e7f1ff;
+  --doc-green: #17825e;
+  --doc-amber: #b66b00;
+  --doc-red: #bb3e4d;
+  --doc-purple: #7947b8;
+  --doc-shadow: 0 20px 55px rgba(25, 52, 84, 0.12);
+  color: var(--doc-text);
+}
+
+body[data-layout-mode="desktop"] .desktop-mission-control-v2[data-desktop-theme="night"] .document-viewer-v2 {
+  --doc-bg: #061426;
+  --doc-panel: #0a1c32;
+  --doc-panel-strong: #0e2540;
+  --doc-panel-muted: #102943;
+  --doc-line: #244665;
+  --doc-line-strong: #3b668b;
+  --doc-text: #d9e8fa;
+  --doc-heading: #f4f9ff;
+  --doc-muted: #9fb4cc;
+  --doc-accent: #4d9cff;
+  --doc-accent-soft: rgba(42, 118, 209, 0.19);
+  --doc-green: #53d2a3;
+  --doc-amber: #ffc45f;
+  --doc-red: #ff7884;
+  --doc-purple: #c797ff;
+  --doc-shadow: 0 25px 70px rgba(0, 0, 0, 0.34);
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 :is(
+  .document-account-lookup,
+  .document-viewer-findbar,
+  .document-viewer-layout,
+  .document-compare-workspace,
+  .investigation-tool-review-bar
+) {
+  border-color: var(--doc-line);
+  background: var(--doc-panel);
+  color: var(--doc-text);
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 :is(h2, h3, h4, strong, dt) {
+  color: var(--doc-heading);
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 :is(p, span, small, dd, em) {
+  color: var(--doc-muted);
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 :is(input, select, textarea) {
+  border-color: var(--doc-line);
+  background: var(--doc-panel-strong);
+  color: var(--doc-text);
+}
+
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .document-viewer-v2 .document-viewer-findbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(170px, 0.32fr) auto auto;
+  align-items: end;
+  gap: 12px;
+  border: 1px solid var(--doc-line);
+  border-radius: 16px 16px 0 0;
+  padding: 13px;
+}
+
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .document-viewer-v2 .document-viewer-layout {
+  grid-template-columns: minmax(210px, 0.58fr) minmax(500px, 1.72fr) minmax(270px, 0.78fr);
+  min-height: 760px;
+  border: 1px solid var(--doc-line);
+  border-top: 0;
+  border-radius: 0 0 18px 18px;
+  background: var(--doc-bg);
+  box-shadow: var(--doc-shadow);
+}
+
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .document-viewer-v2 .document-folder-nav {
+  display: none;
+}
+
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .document-viewer-v2 .document-record-browser {
+  grid-column: 1;
+  min-height: 760px;
+  max-height: 980px;
+  overflow: hidden;
+  border-right: 1px solid var(--doc-line);
+  background: var(--doc-panel);
+}
+
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .document-viewer-v2 .document-record-list {
+  max-height: 900px;
+  overflow-y: auto;
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-record-list article {
+  border-color: var(--doc-line);
+  background: var(--doc-panel);
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-record-list article.active {
+  background: var(--doc-accent-soft);
+  box-shadow: inset 4px 0 var(--doc-accent);
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-record-open {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  column-gap: 10px;
+  align-items: start;
+  width: 100%;
+  text-align: left;
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-record-open > :not(.document-record-thumb) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-record-thumb {
+  grid-column: 1;
+  grid-row: 1 / span 4;
+  position: relative;
+  width: 44px;
+  height: 58px;
+  overflow: hidden;
+  border: 1px solid #bcc8d6;
+  border-radius: 3px;
+  background:
+    linear-gradient(180deg, transparent 0 14%, rgba(21, 54, 89, 0.12) 14% 16%, transparent 16% 27%, rgba(21, 54, 89, 0.08) 27% 30%, transparent 30%),
+    #faf9f4;
+  box-shadow: 0 4px 9px rgba(12, 28, 48, 0.14);
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-record-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 23px 6px 8px;
+  background: repeating-linear-gradient(180deg, rgba(24, 45, 67, 0.24) 0 1px, transparent 1px 5px);
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-record-thumb i {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  z-index: 1;
+  border-radius: 3px;
+  background: #17314e;
+  padding: 2px 4px;
+  color: #fff;
+  font: 800 0.52rem/1 ui-sans-serif, system-ui, sans-serif;
+}
+
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .document-viewer-v2 .document-preview-workspace {
+  grid-column: 2;
+  min-height: 760px;
+  overflow: hidden;
+  border-right: 1px solid var(--doc-line);
+  background:
+    radial-gradient(circle at 25% 10%, color-mix(in srgb, var(--doc-accent) 8%, transparent), transparent 38%),
+    var(--doc-bg);
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-preview-toolbar,
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-record-browser > header {
+  border-color: var(--doc-line);
+  background: var(--doc-panel);
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-page-controls {
+  border-color: var(--doc-line);
+  background: var(--doc-panel-strong);
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-page-controls button,
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-toolbar-actions button {
+  border-color: var(--doc-line);
+  background: var(--doc-panel-muted);
+  color: var(--doc-text);
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-page-stage {
+  min-height: 650px;
+  overflow: auto;
+  padding: 26px;
+  background:
+    linear-gradient(135deg, rgba(0, 0, 0, 0.035) 25%, transparent 25%) 0 0 / 14px 14px,
+    var(--doc-bg);
+  perspective: 1400px;
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-page {
+  position: relative;
+  width: min(760px, 92%);
+  min-height: 900px;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(58, 68, 76, 0.25);
+  border-radius: 2px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.84)),
+    url("/assets/documents/fictional-paper-scan-v1.jpg") center / cover,
+    #f8f6ee;
+  color: #172233;
+  box-shadow: 0 18px 35px rgba(10, 25, 40, 0.24);
+  transform: scale(var(--document-zoom)) rotate(var(--document-rotation, 0deg));
+  transform-origin: top center;
+  transition: transform 180ms ease;
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-page::before {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(87, 74, 56, 0.07), transparent 7%, transparent 94%, rgba(87, 74, 56, 0.05)),
+    radial-gradient(circle at 87% 8%, rgba(255, 255, 255, 0.42), transparent 21%);
+  mix-blend-mode: multiply;
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-page :is(h3, h4, strong, dt, dd, p, span, small, td, th) {
+  color: #172233;
+}
+
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .document-viewer-v2 .document-inspector {
+  grid-column: 3;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 10px;
+  min-height: 760px;
+  max-height: 980px;
+  overflow-y: auto;
+  border: 0;
+  background: var(--doc-panel);
+  padding: 10px;
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-inspector > section {
+  border-color: var(--doc-line);
+  background: var(--doc-panel-strong);
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-evidence-actions > header,
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-quality-block > header,
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-assessment-block > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-evidence-actions > div {
+  display: grid;
+  gap: 7px;
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-evidence-actions button {
+  min-height: 37px;
+  border: 1px solid var(--doc-line);
+  border-radius: 8px;
+  background: transparent;
+  padding: 8px 10px;
+  color: var(--doc-text);
+  font-weight: 780;
+  text-align: left;
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-evidence-actions button[data-action-tone="blue"] { border-color: color-mix(in srgb, var(--doc-accent) 58%, var(--doc-line)); color: var(--doc-accent); }
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-evidence-actions button[data-action-tone="green"] { border-color: color-mix(in srgb, var(--doc-green) 58%, var(--doc-line)); color: var(--doc-green); }
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-evidence-actions button[data-action-tone="red"] { border-color: color-mix(in srgb, var(--doc-red) 58%, var(--doc-line)); color: var(--doc-red); }
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-evidence-actions button[data-action-tone="amber"] { border-color: color-mix(in srgb, var(--doc-amber) 58%, var(--doc-line)); color: var(--doc-amber); }
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-evidence-actions button[data-action-tone="purple"] { border-color: color-mix(in srgb, var(--doc-purple) 58%, var(--doc-line)); color: var(--doc-purple); }
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-evidence-actions button[aria-pressed="true"] {
+  background: var(--doc-accent-soft);
+  box-shadow: inset 3px 0 currentColor;
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-quality-block meter {
+  width: 100%;
+  height: 12px;
+  accent-color: var(--doc-green);
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-assessment-block {
+  display: grid;
+  gap: 8px;
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-assessment-block label {
+  display: grid;
+  gap: 4px;
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-assessment-block label > span {
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-assessment-block select {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--doc-line);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-assessment-reasoning textarea {
+  min-height: 88px;
+  resize: vertical;
+  border: 1px solid var(--doc-line);
+  border-radius: 8px;
+  padding: 8px;
+  font: inherit;
+  line-height: 1.4;
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2 .document-compare-workspace {
+  margin-top: 16px;
+  border: 1px solid var(--doc-line);
+  box-shadow: var(--doc-shadow);
+}
+
+body[data-visual-tab="workspace"] .document-viewer-v2.document-viewer-fullscreen,
+body[data-visual-tab="workspace"] .document-viewer-v2:fullscreen {
+  position: fixed;
+  z-index: 9999;
+  inset: 0;
+  overflow: auto;
+  background: var(--doc-bg);
+  padding: 16px;
+}
+
+@media (max-width: 1180px) {
+  body[data-layout-mode="desktop"][data-visual-tab="workspace"] .document-viewer-v2 .document-viewer-layout {
+    grid-template-columns: minmax(190px, 0.5fr) minmax(430px, 1.5fr) minmax(245px, 0.72fr);
+  }
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .document-viewer-v2 .document-page {
+  width: 94%;
+  min-height: 680px;
+  transform: scale(var(--document-zoom)) rotate(var(--document-rotation, 0deg));
+}
+
+body[data-layout-mode="mobile"][data-visual-tab="workspace"] .document-viewer-v2 .document-record-open {
+  grid-template-columns: 48px minmax(0, 1fr);
+}

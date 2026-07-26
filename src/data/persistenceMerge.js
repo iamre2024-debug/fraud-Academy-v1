@@ -1,6 +1,6 @@
 import { cloudResourceKeys, cloudResourceModes } from './persistenceKeys.js';
 
-export const cloudSnapshotSchemaVersion = 1;
+export const cloudSnapshotSchemaVersion = 2;
 
 function stableStringify(value) {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
@@ -43,9 +43,9 @@ function cloneMetadata(metadata = {}) {
         key,
         Object.fromEntries(Object.entries(entries ?? {}).map(([entryId, entry]) => [
           entryId,
-          entry.mode === 'array'
+          entry.mode === 'array' || entry.mode === 'map'
             ? {
-                mode: 'array',
+                mode: entry.mode,
                 items: Object.fromEntries(Object.entries(entry.items ?? {}).map(([itemId, item]) => [
                   itemId,
                   { version: { ...item.version }, deleted: Boolean(item.deleted) },
@@ -65,6 +65,21 @@ function nextVersion(metadata, deviceId, now) {
 
 function arrayMap(value) {
   return new Map((Array.isArray(value) ? value : []).map((item) => [itemIdentity(item), item]));
+}
+
+function objectMap(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function legacyMapMetadata(entry, keys) {
+  if (entry?.mode !== 'value') return {};
+  return Object.fromEntries([...keys].map((key) => [
+    key,
+    {
+      version: { ...(entry.version ?? defaultVersion()) },
+      deleted: Boolean(entry.deleted),
+    },
+  ]));
 }
 
 export function applyRawResourceChange(metadata, key, previousMap, nextMap, deviceId, now = Date.now()) {
@@ -93,6 +108,39 @@ export function applyRawResourceChange(metadata, key, previousMap, nextMap, devi
         entry.items[itemId] = {
           version: nextVersion(nextMetadata, deviceId, now),
           deleted: !nextItems.has(itemId),
+        };
+      }
+
+      if (Object.keys(entry.items).length) resource[caseId] = entry;
+      continue;
+    }
+
+    if (mode === 'map') {
+      const previousItems = objectMap(previous[caseId]);
+      const nextItems = objectMap(next[caseId]);
+      const itemIds = new Set([
+        ...Object.keys(previousItems),
+        ...Object.keys(nextItems),
+        ...Object.keys(resource[caseId]?.items ?? {}),
+      ]);
+      const entry = {
+        mode: 'map',
+        items: {
+          ...legacyMapMetadata(resource[caseId], itemIds),
+          ...(resource[caseId]?.items ?? {}),
+        },
+      };
+
+      for (const itemId of itemIds) {
+        const previousHasValue = Object.prototype.hasOwnProperty.call(previousItems, itemId);
+        const nextHasValue = Object.prototype.hasOwnProperty.call(nextItems, itemId);
+        if (
+          previousHasValue === nextHasValue
+          && stableStringify(previousItems[itemId]) === stableStringify(nextItems[itemId])
+        ) continue;
+        entry.items[itemId] = {
+          version: nextVersion(nextMetadata, deviceId, now),
+          deleted: !nextHasValue,
         };
       }
 
@@ -160,6 +208,26 @@ export function buildCloudSnapshot({ rawByKey, metadata, generatedCases = [], de
           };
         }
         entries[caseId] = { mode: 'array', items };
+      } else if (mode === 'map') {
+        const values = objectMap(rawEntries[caseId]);
+        const entryMeta = metaEntries[caseId];
+        const metaItems = {
+          ...legacyMapMetadata(entryMeta, new Set(Object.keys(values))),
+          ...(entryMeta?.items ?? {}),
+        };
+        const itemIds = new Set([...Object.keys(values), ...Object.keys(metaItems)]);
+        const items = {};
+
+        for (const itemId of itemIds) {
+          const hasValue = Object.prototype.hasOwnProperty.call(values, itemId);
+          const itemMeta = metaItems[itemId];
+          items[itemId] = {
+            value: values[itemId],
+            version: itemMeta?.version ?? defaultVersion(deviceId),
+            deleted: itemMeta?.deleted ?? !hasValue,
+          };
+        }
+        entries[caseId] = { mode: 'map', items };
       } else {
         const hasValue = Object.prototype.hasOwnProperty.call(rawEntries, caseId);
         const entryMeta = metaEntries[caseId];
@@ -213,6 +281,22 @@ function mergeArrayItems(leftItems = {}, rightItems = {}) {
   ]));
 }
 
+function mapItemsFromEntry(entry) {
+  if (!entry) return {};
+  if (entry.mode === 'map') return entry.items ?? {};
+  if (entry.mode !== 'value' || entry.deleted || !entry.value || typeof entry.value !== 'object' || Array.isArray(entry.value)) {
+    return {};
+  }
+  return Object.fromEntries(Object.entries(entry.value).map(([key, value]) => [
+    key,
+    {
+      value,
+      version: entry.version ?? defaultVersion('legacy-map'),
+      deleted: false,
+    },
+  ]));
+}
+
 export function mergeCloudSnapshots(left = {}, right = {}) {
   const resources = {};
   const resourceKeys = new Set([
@@ -233,6 +317,14 @@ export function mergeCloudSnapshots(left = {}, right = {}) {
         entries[caseId] = {
           mode: 'array',
           items: mergeArrayItems(leftEntries[caseId]?.items, rightEntries[caseId]?.items),
+        };
+      } else if (mode === 'map') {
+        entries[caseId] = {
+          mode: 'map',
+          items: mergeArrayItems(
+            mapItemsFromEntry(leftEntries[caseId]),
+            mapItemsFromEntry(rightEntries[caseId]),
+          ),
         };
       } else {
         entries[caseId] = winningEntry(leftEntries[caseId], rightEntries[caseId]);
@@ -263,6 +355,12 @@ function visibleArray(items = {}) {
     .map((item) => item.value);
 }
 
+function visibleMap(items = {}) {
+  return Object.fromEntries(Object.entries(items)
+    .filter(([, item]) => !item.deleted && item.value !== undefined)
+    .map(([key, item]) => [key, item.value]));
+}
+
 export function materializeCloudSnapshot(snapshot) {
   const rawByKey = {};
 
@@ -273,6 +371,9 @@ export function materializeCloudSnapshot(snapshot) {
       if (resource.mode === 'array') {
         const values = visibleArray(entry.items);
         if (values.length || Object.keys(entry.items ?? {}).length) rawEntries[caseId] = values;
+      } else if (resource.mode === 'map') {
+        const values = visibleMap(mapItemsFromEntry(entry));
+        if (Object.keys(values).length || Object.keys(entry.items ?? {}).length) rawEntries[caseId] = values;
       } else if (!entry.deleted && entry.value !== undefined) {
         rawEntries[caseId] = entry.value;
       }
@@ -294,9 +395,9 @@ export function metadataFromCloudSnapshot(snapshot) {
     const resource = snapshot.resources?.[key];
     const entries = {};
     for (const [caseId, entry] of Object.entries(resource?.entries ?? {})) {
-      if (resource.mode === 'array') {
+      if (resource.mode === 'array' || resource.mode === 'map') {
         entries[caseId] = {
-          mode: 'array',
+          mode: resource.mode,
           items: Object.fromEntries(Object.entries(entry.items ?? {}).map(([itemId, item]) => {
             clock = Math.max(clock, Number(item.version?.at) || 0);
             return [itemId, { version: item.version, deleted: Boolean(item.deleted) }];

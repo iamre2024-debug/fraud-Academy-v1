@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { buildLunaDebrief, scoreNotesQuality } from '../src/data/lunaDebrief.js';
+import { coreClaimTypes } from '../src/data/claimRegistry.js';
 
 const rootDir = process.cwd();
 const failures = [];
@@ -52,6 +53,168 @@ if (!notesBreakdown || notesBreakdown.points !== strongScore.points) {
 }
 if (debrief.breakdown.some((item) => item.label === 'Notebook and rationale depth')) {
   fail('The old note-count scoring label is still present.');
+}
+
+function decisionPackage(choice, documentAssessment) {
+  return {
+    choice,
+    confidence: 'Medium',
+    reason: 'The learner compared the available document fields with the claim and explained the resulting evidence state.',
+    completedTools: [],
+    pinnedEvidence: [],
+    noteSnapshot: [],
+    reviewedRequired: 0,
+    totalRequired: 1,
+    decisionIndicators: [],
+    documentAssessment,
+  };
+}
+
+const completeNonSupportingAssessment = {
+  received: 'Received',
+  readability: 'Readable',
+  completeness: 'Complete',
+  identityMatch: 'Matches',
+  claimEffect: 'Does not support claim',
+  additionalEvidenceNeeded: 'No',
+  reasoning: 'Every requested page and date is present, but the records do not establish the reported claim.',
+};
+const incompleteAssessment = {
+  received: 'Received',
+  readability: 'Readable',
+  completeness: 'Incomplete',
+  identityMatch: 'Matches',
+  claimEffect: '',
+  additionalEvidenceNeeded: 'Yes',
+  reasoning: 'The disputed date range and the second statement page are missing from the received upload.',
+};
+
+const nonSupportingCreditDebrief = buildLunaDebrief({
+  activeCase: {
+    id: 'FA-DOC-NON-SUPPORT',
+    claimTypeId: 'credit-risk',
+    caseTruth: {
+      classification: 'The requested document review was expected to remain open.',
+      correctDetermination: 'More Information Needed',
+      acceptedDeterminations: ['More Information Needed'],
+      rationale: 'The original calibration expected another document request.',
+    },
+  },
+  reviewPackage: decisionPackage('Do Not Support Credit Request', completeNonSupportingAssessment),
+});
+if (nonSupportingCreditDebrief.determinationMatched !== true
+  || nonSupportingCreditDebrief.decisionEvaluation.basis !== 'document-context') {
+  fail('Complete, readable, non-supportive documents should make the supported final adverse decision defensible instead of forcing More Information Needed.');
+}
+if (nonSupportingCreditDebrief.truthReveal.primaryDetermination !== 'More Information Needed'
+  || !nonSupportingCreditDebrief.truthReveal.acceptedDeterminations.includes('Do Not Support Credit Request')) {
+  fail('A defensible document-based alternative should preserve the primary calibration and disclose the accepted submitted outcome.');
+}
+
+const prematureCreditDebrief = buildLunaDebrief({
+  activeCase: {
+    id: 'FA-DOC-PREMATURE',
+    claimTypeId: 'credit-risk',
+    caseTruth: {
+      classification: 'The document packet remains incomplete.',
+      correctDetermination: 'More Information Needed',
+      acceptedDeterminations: ['More Information Needed'],
+      rationale: 'A required statement page is missing.',
+    },
+  },
+  reviewPackage: decisionPackage('Do Not Support Credit Request', incompleteAssessment),
+});
+if (prematureCreditDebrief.determinationMatched !== false) {
+  fail('An incomplete packet that explicitly needs more evidence must not support a final adverse decision.');
+}
+
+const evidenceGapDebrief = buildLunaDebrief({
+  activeCase: {
+    id: 'FA-DOC-GAP',
+    claimTypeId: 'fraud-chargeback',
+    caseTruth: {
+      classification: 'The calibrated downstream outcome supports the customer.',
+      correctDetermination: 'Support Customer Claim',
+      acceptedDeterminations: ['Support Customer Claim'],
+      rationale: 'The complete scenario packet supports the claim.',
+    },
+  },
+  reviewPackage: decisionPackage('Insufficient Evidence', incompleteAssessment),
+});
+if (evidenceGapDebrief.determinationMatched !== true
+  || evidenceGapDebrief.decisionEvaluation.basis !== 'document-context') {
+  fail('A specific missing-document gap should make a provisional decision defensible at the time of submission.');
+}
+
+const exactButPrematureDebrief = buildLunaDebrief({
+  activeCase: {
+    id: 'FA-DOC-EXACT',
+    claimTypeId: 'credit-risk',
+    caseTruth: {
+      classification: 'The document packet remains incomplete.',
+      correctDetermination: 'More Information Needed',
+      acceptedDeterminations: ['More Information Needed'],
+      rationale: 'A required statement page is missing.',
+    },
+  },
+  reviewPackage: decisionPackage('More Information Needed', completeNonSupportingAssessment),
+});
+if (exactButPrematureDebrief.determinationMatched !== false
+  || exactButPrematureDebrief.decisionEvaluation.basis !== 'context-conflict') {
+  fail('Luna should not accept the calibrated button alone when the saved complete document assessment directly supports a different outcome.');
+}
+
+const semanticAliasDebrief = buildLunaDebrief({
+  activeCase: {
+    id: 'FA-DOC-SEMANTIC',
+    claimTypeId: 'fraud-chargeback',
+    caseTruth: {
+      classification: 'The evidence supports the customer claim.',
+      correctDetermination: 'Support Customer Claim',
+      acceptedDeterminations: ['Support Customer Claim'],
+      rationale: 'The evidence supports the claim.',
+    },
+  },
+  reviewPackage: decisionPackage('Approve claim / customer claim supported'),
+});
+if (semanticAliasDebrief.determinationMatched !== true
+  || semanticAliasDebrief.decisionEvaluation.basis !== 'semantic') {
+  fail('Equivalent lane wording should be accepted without requiring exact answer-key text.');
+}
+
+const holdReleaseAlternative = buildLunaDebrief({
+  activeCase: {
+    id: 'FA-DOC-BEC',
+    claimTypeId: 'email-bec',
+    caseTruth: {
+      classification: 'The callback record was expected to remain pending.',
+      correctDetermination: 'More Information Needed',
+      acceptedDeterminations: ['More Information Needed'],
+      rationale: 'The original calibration expected another callback.',
+    },
+  },
+  reviewPackage: decisionPackage('Release', completeNonSupportingAssessment),
+});
+if (holdReleaseAlternative.determinationMatched !== true
+  || holdReleaseAlternative.decisionEvaluation.basis !== 'document-context') {
+  fail('Operational hold/release lanes should interpret complete non-supportive documents as a defensible Release outcome.');
+}
+
+for (const claimType of coreClaimTypes) {
+  for (const scenario of claimType.scenarios) {
+    const exactDebrief = buildLunaDebrief({
+      activeCase: {
+        id: `FA-GENERATED-${claimType.id}-${scenario.id}`,
+        claimTypeId: claimType.id,
+        lane: claimType.lane,
+        caseTruth: scenario.caseTruth,
+      },
+      reviewPackage: decisionPackage(scenario.caseTruth.correctDetermination),
+    });
+    if (exactDebrief.determinationMatched !== true || exactDebrief.decisionEvaluation.basis !== 'exact') {
+      fail(`Generated scenario ${claimType.id}/${scenario.id} no longer accepts its calibrated determination.`);
+    }
+  }
 }
 
 const panel = fs.readFileSync(path.join(rootDir, 'src/LunaPostSubmissionPanel.jsx'), 'utf8');

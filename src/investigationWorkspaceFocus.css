@@ -1,0 +1,37 @@
+/* Full-width desktop canvases for dense investigation tools. */
+body[data-layout-mode="desktop"] .desktop-stage-grid[data-workspace-focus="immersive"] {
+  max-width: none;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: clamp(16px, 1.8vw, 28px);
+}
+
+body[data-layout-mode="desktop"] .desktop-stage-grid[data-workspace-focus="immersive"] > .desktop-utility-rail {
+  display: none;
+}
+
+body[data-layout-mode="desktop"] .desktop-stage-grid[data-workspace-focus="immersive"] .desktop-workspace-generator {
+  display: none;
+}
+
+body[data-layout-mode="desktop"] .desktop-stage-grid[data-workspace-focus="immersive"] .desktop-mission-content,
+body[data-layout-mode="desktop"] .desktop-stage-grid[data-workspace-focus="immersive"] .desktop-workspace-page,
+body[data-layout-mode="desktop"] .desktop-stage-grid[data-workspace-focus="immersive"] .visual-os-shell,
+body[data-layout-mode="desktop"] .desktop-stage-grid[data-workspace-focus="immersive"] .visual-os-frame {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+body[data-layout-mode="desktop"] .desktop-stage-grid[data-workspace-focus="immersive"] .investigation-tools-theme-v1[data-tool-name="Link Analysis"],
+body[data-layout-mode="desktop"] .desktop-stage-grid[data-workspace-focus="immersive"] .investigation-tools-theme-v1[data-tool-name="Document Request"],
+body[data-layout-mode="desktop"] .desktop-stage-grid[data-workspace-focus="immersive"] .investigation-tools-theme-v1[data-tool-name="Document Viewer"] {
+  width: 100%;
+  max-width: none;
+}
+
+@media (max-width: 1160px) {
+  body[data-layout-mode="desktop"] .desktop-stage-grid[data-workspace-focus="immersive"] {
+    padding: 14px;
+  }
+}
