@@ -44,6 +44,10 @@ import './caseQuickPad.css';
 import './cloudSync.css';
 import './desktopMissionControlV2.css';
 import './desktopMissionControlDayNight.css';
+import './documentRequestWorkspace.css';
+import './linkAnalysisWorkspace.css';
+import './documentViewerWorkspaceV2.css';
+import './investigationWorkspaceFocus.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

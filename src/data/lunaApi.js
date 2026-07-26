@@ -47,6 +47,9 @@ export async function requestLunaApiCoaching({ activeCase, reviewPackage, determ
       rationale: reviewPackage.reason || '',
       deterministicResult: {
         determinationMatched: deterministicDebrief.determinationMatched,
+        evaluationBasis: deterministicDebrief.decisionEvaluation?.basis || 'ungraded',
+        evaluationExplanation: deterministicDebrief.decisionEvaluation?.explanation || '',
+        documentAssessmentLabel: deterministicDebrief.decisionEvaluation?.documentAssessmentLabel || 'Not assessed',
         expectedDetermination: deterministicDebrief.truthReveal?.correctDetermination || null,
         acceptedDeterminations: deterministicDebrief.truthReveal?.acceptedDeterminations || [],
         classification: deterministicDebrief.truthReveal?.classification || null,
@@ -60,6 +63,7 @@ export async function requestLunaApiCoaching({ activeCase, reviewPackage, determ
         pinnedEvidence: reviewPackage.pinnedEvidence || [],
         noteSnapshot: reviewPackage.noteSnapshot || [],
         decisionIndicators: reviewPackage.decisionIndicators || [],
+        documentAssessment: reviewPackage.documentAssessment || null,
       },
     }),
   });

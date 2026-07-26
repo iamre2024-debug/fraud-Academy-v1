@@ -1,9 +1,26 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { documentSearchText, getCaseDocuments } from './data/documentRecords.js';
 import { buildCustomerResponseDocuments } from './data/documentRequestWorkflow.js';
 import { clearDocumentViewerRoute, readDocumentViewerRoute } from './documentViewerRoute.js';
 
 const DOCUMENT_DRAFT_PREFIX = 'fraud-academy-document-draft:';
+const documentReviewActions = [
+  { key: 'evidence', label: 'Add as Evidence', tone: 'blue' },
+  { key: 'verified', label: 'Mark as Verified', tone: 'green' },
+  { key: 'inconsistency', label: 'Mark Inconsistency', tone: 'red' },
+  { key: 'replacement', label: 'Request Replacement', tone: 'amber' },
+  { key: 'unreadable', label: 'Document Unreadable', tone: 'purple' },
+];
+
+const defaultDocumentAssessment = {
+  received: '',
+  readability: '',
+  completeness: '',
+  identityMatch: '',
+  claimEffect: '',
+  additionalEvidenceNeeded: '',
+  reasoning: '',
+};
 
 function fieldValue(document, label) {
   return document?.fields?.find(([field]) => field === label)?.[1] ?? 'Not recorded';
@@ -44,11 +61,11 @@ function folderIcon(folder = '') {
   return '📁';
 }
 
-function DocumentPage({ document, page, pageNumber, zoom }) {
+function DocumentPage({ document, page, pageNumber, zoom, rotation = 0 }) {
   return (
     <article
       className={`document-page document-page-${page.kind ?? 'standard'}`}
-      style={{ '--document-zoom': zoom / 100 }}
+      style={{ '--document-zoom': zoom / 100, '--document-rotation': `${rotation}deg` }}
       aria-label={`${document.title} page ${pageNumber}`}
     >
       <header className="document-page-header">
@@ -139,7 +156,12 @@ export default function DocumentViewerWorkspace({
   openTool,
   jumpDecision,
   documentRequests = {},
+  setDocumentRequestsByCase,
+  decisionDraft,
+  updateDecision,
+  recordAction,
 }) {
+  const viewerRef = useRef(null);
   const [accountLookup, setAccountLookup] = useState('');
   const [matchedAccountId, setMatchedAccountId] = useState('');
   const [lookupError, setLookupError] = useState('');
@@ -156,6 +178,8 @@ export default function DocumentViewerWorkspace({
   const [selectedDocumentId, setSelectedDocumentId] = useState('');
   const [pageIndex, setPageIndex] = useState(0);
   const [zoom, setZoom] = useState(100);
+  const [rotation, setRotation] = useState(0);
+  const [fullscreenFallback, setFullscreenFallback] = useState(false);
   const [compareIds, setCompareIds] = useState([]);
   const [noteDrafts, setNoteDrafts] = useState({});
   const [mobilePane, setMobilePane] = useState('inbox');
@@ -171,7 +195,21 @@ export default function DocumentViewerWorkspace({
   const activePage = activeDocument?.pages?.[pageIndex] ?? activeDocument?.pages?.[0];
   const comparedDocuments = compareIds.map((id) => documents.find((document) => document.id === id)).filter(Boolean);
   const activeDraftKey = activeDocument ? documentDraftKey(activeCase.id, activeDocument.id) : '';
-  const noteDraft = activeDraftKey ? noteDrafts[activeDraftKey] ?? '' : '';
+  const viewerDraftStateKey = activeDocument ? `${activeDocument.id}::viewer-draft` : '';
+  const viewerReviewStateKey = activeDocument ? `${activeDocument.id}::viewer-review` : '';
+  const cloudDraft = activeDocument
+    ? documentRequests[viewerDraftStateKey]?.viewerDraft ?? documentRequests[activeDocument.id]?.viewerDraft ?? ''
+    : '';
+  const noteDraft = activeDraftKey ? noteDrafts[activeDraftKey] ?? cloudDraft ?? '' : '';
+  const activeReview = activeDocument
+    ? documentRequests[viewerReviewStateKey]?.viewerReview
+      ?? documentRequests[activeDocument.id]?.viewerReview
+      ?? { action: 'unreviewed', updatedAt: '' }
+    : { action: 'unreviewed', updatedAt: '' };
+  const documentAssessment = {
+    ...defaultDocumentAssessment,
+    ...(decisionDraft?.documentAssessment ?? {}),
+  };
 
   useEffect(() => {
     const directRoute = readDocumentViewerRoute(activeCase.id);
@@ -180,6 +218,7 @@ export default function DocumentViewerWorkspace({
     setSelectedDocumentId(directRoute?.documentId ?? '');
     setPageIndex(0);
     setZoom(100);
+    setRotation(0);
     setCompareIds([]);
     setMobilePane(directRoute?.pane ?? 'inbox');
     setMobileReviewStep('fields');
@@ -196,20 +235,58 @@ export default function DocumentViewerWorkspace({
 
   useEffect(() => {
     setPageIndex(0);
+    setRotation(0);
   }, [activeDocument?.id]);
 
   useEffect(() => {
     if (!activeDraftKey) return;
+    const legacyDraft = readDocumentDraft(activeDraftKey);
     setNoteDrafts((current) => {
       if (Object.prototype.hasOwnProperty.call(current, activeDraftKey)) return current;
-      return { ...current, [activeDraftKey]: readDocumentDraft(activeDraftKey) };
+      return { ...current, [activeDraftKey]: cloudDraft || legacyDraft };
     });
-  }, [activeDraftKey]);
+    if (!cloudDraft && legacyDraft && activeDocument?.id) {
+      updateDocumentRequestMeta(viewerDraftStateKey, activeDocument.id, 'viewerDraft', legacyDraft);
+    }
+  }, [activeDocument?.id, activeDraftKey, cloudDraft, viewerDraftStateKey]);
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement) setFullscreenFallback(false);
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
+
+  function updateDocumentRequestMeta(storageId, documentId, field, value) {
+    if (!setDocumentRequestsByCase || !storageId || !documentId) return;
+    setDocumentRequestsByCase((current) => {
+      const caseState = current[activeCase.id] ?? {};
+      const documentState = caseState[storageId] ?? {
+        schemaVersion: 3,
+        sourceDocumentId: documentId,
+        attempts: [],
+      };
+      return {
+        ...current,
+        [activeCase.id]: {
+          ...caseState,
+          [storageId]: {
+            ...documentState,
+            schemaVersion: Math.max(3, Number(documentState.schemaVersion) || 0),
+            sourceDocumentId: documentState.sourceDocumentId ?? documentId,
+            [field]: value,
+          },
+        },
+      };
+    });
+  }
 
   function updateDocumentDraft(value) {
     if (!activeDraftKey) return;
     setNoteDrafts((current) => ({ ...current, [activeDraftKey]: value }));
     writeDocumentDraft(activeDraftKey, value);
+    updateDocumentRequestMeta(viewerDraftStateKey, activeDocument?.id, 'viewerDraft', value);
   }
 
   function openDocument(documentId) {
@@ -237,6 +314,78 @@ export default function DocumentViewerWorkspace({
     saveNote(`${activeDocument.id}: ${clean}`, 'Document review');
     setNoteDrafts((current) => ({ ...current, [activeDraftKey]: '' }));
     writeDocumentDraft(activeDraftKey, '');
+    updateDocumentRequestMeta(viewerDraftStateKey, activeDocument.id, 'viewerDraft', '');
+  }
+
+  function setAssessment(field, value) {
+    if (!updateDecision) return;
+    updateDecision('documentAssessment', {
+      ...documentAssessment,
+      [field]: value,
+    });
+  }
+
+  function patchAssessment(values) {
+    if (!updateDecision) return;
+    updateDecision('documentAssessment', {
+      ...documentAssessment,
+      ...values,
+    });
+  }
+
+  function applyReviewAction(action) {
+    if (!activeDocument) return;
+    const labels = {
+      evidence: 'Added as evidence',
+      verified: 'Marked verified',
+      inconsistency: 'Marked inconsistency',
+      replacement: 'Replacement requested',
+      unreadable: 'Marked unreadable',
+    };
+    const updatedAt = new Date().toLocaleString([], {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+    updateDocumentRequestMeta(viewerReviewStateKey, activeDocument.id, 'viewerReview', { action, updatedAt });
+
+    if (action === 'evidence') pin(`${activeDocument.id} | ${activeDocument.title}`);
+    if (action === 'verified') {
+      patchAssessment({ received: 'Received', readability: 'Readable' });
+      saveNote(`${activeDocument.id}: document marked verified after source-page review.`, 'Document assessment');
+    }
+    if (action === 'inconsistency') {
+      patchAssessment({ claimEffect: 'Contradicts claim' });
+      saveNote(`${activeDocument.id}: inconsistency marked; compare the conflicting field with the source record.`, 'Document assessment');
+    }
+    if (action === 'replacement') {
+      patchAssessment({ additionalEvidenceNeeded: 'Yes' });
+      saveNote(`${activeDocument.id}: replacement requested because the current copy is not sufficient for review.`, 'Document assessment');
+    }
+    if (action === 'unreadable') {
+      patchAssessment({ received: 'Received', readability: 'Unreadable', additionalEvidenceNeeded: 'Yes' });
+      saveNote(`${activeDocument.id}: document marked unreadable; a readable source copy is still needed.`, 'Document assessment');
+    }
+    recordAction?.(labels[action], `${activeDocument.id} · ${activeDocument.title}`, 'Document Viewer');
+  }
+
+  async function toggleFullscreen() {
+    const target = viewerRef.current;
+    if (!target) return;
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        setFullscreenFallback(false);
+      } else if (target.requestFullscreen) {
+        await target.requestFullscreen();
+        setFullscreenFallback(true);
+      } else {
+        setFullscreenFallback((current) => !current);
+      }
+    } catch {
+      setFullscreenFallback((current) => !current);
+    }
   }
 
   function exportDocument() {
@@ -282,7 +431,12 @@ export default function DocumentViewerWorkspace({
   }
 
   return (
-    <div className="document-viewer" data-document-viewer-screen="approved-theme-v1" data-case-id={activeCase.id}>
+    <div
+      ref={viewerRef}
+      className={`document-viewer document-viewer-v2 ${fullscreenFallback ? 'document-viewer-fullscreen' : ''}`}
+      data-document-viewer-screen="evidence-workspace-v2"
+      data-case-id={activeCase.id}
+    >
       <form className="document-account-lookup" aria-label="Find customer documents by Account ID" onSubmit={searchByAccountId}>
         <div>
           <p>Account document lookup</p>
@@ -389,7 +543,7 @@ export default function DocumentViewerWorkspace({
                 </div>
                 <div className="document-page-stage">
                   {activePage ? (
-                    <DocumentPage document={activeDocument} page={activePage} pageNumber={pageIndex + 1} zoom={90} />
+                    <DocumentPage document={activeDocument} page={activePage} pageNumber={pageIndex + 1} zoom={90} rotation={rotation} />
                   ) : (
                     <div className="document-not-received" role="status">
                       <span>Document not received</span>
@@ -483,6 +637,9 @@ export default function DocumentViewerWorkspace({
                 data-document-record={document.id}
               >
                 <button type="button" className="document-record-open" onClick={() => openDocument(document.id)}>
+                  <span className={`document-record-thumb document-record-thumb-${document.pages[0]?.kind ?? 'standard'}`} aria-hidden="true">
+                    <i>{document.pages.length || '—'}</i>
+                  </span>
                   <span>{document.folder}</span>
                   <strong>{document.title}</strong>
                   <small>{document.reference}</small>
@@ -515,7 +672,7 @@ export default function DocumentViewerWorkspace({
                 <div className="document-toolbar-actions">
                   <button type="button" onClick={() => pin(`${activeDocument.id} | ${activeDocument.title}`)}>Pin</button>
                   <button type="button" aria-pressed={compareIds.includes(activeDocument.id)} onClick={() => toggleCompare(activeDocument.id)}>Compare</button>
-                  <button type="button" onClick={exportDocument}>Export</button>
+                  <button type="button" onClick={exportDocument}>Training copy</button>
                 </div>
               </header>
 
@@ -528,11 +685,13 @@ export default function DocumentViewerWorkspace({
                   <span>{zoom}%</span>
                   <button type="button" aria-label="Zoom in document" disabled={zoom >= 120} onClick={() => setZoom((current) => Math.min(120, current + 10))}>+</button>
                 </div>
+                <button type="button" aria-label="Rotate document clockwise" onClick={() => setRotation((current) => (current + 90) % 360)}>Rotate</button>
+                <button type="button" aria-label="Toggle document fullscreen" onClick={toggleFullscreen}>Full screen</button>
               </section>
 
               <div className="document-page-stage">
                 {activePage ? (
-                  <DocumentPage document={activeDocument} page={activePage} pageNumber={pageIndex + 1} zoom={zoom} />
+                  <DocumentPage document={activeDocument} page={activePage} pageNumber={pageIndex + 1} zoom={zoom} rotation={rotation} />
                 ) : (
                   <div className="document-not-received" role="status">
                     <span>Document not received</span>
@@ -550,6 +709,65 @@ export default function DocumentViewerWorkspace({
 
         {activeDocument && (
           <aside className="document-inspector" aria-label="Document details">
+            <section className="document-evidence-actions">
+              <header>
+                <p>Evidence &amp; actions</p>
+                <span>{activeReview.action === 'unreviewed' ? 'Open review' : activeReview.action.replace('-', ' ')}</span>
+              </header>
+              <div>
+                {documentReviewActions.map((action) => (
+                  <button
+                    key={action.key}
+                    type="button"
+                    data-action-tone={action.tone}
+                    aria-pressed={activeReview.action === action.key}
+                    onClick={() => applyReviewAction(action.key)}
+                  >
+                    {action.label}
+                  </button>
+                ))}
+                <button type="button" data-action-tone="blue" onClick={() => openTool('Customer 360')}>Link to Customer 360</button>
+                <button type="button" data-action-tone="blue" onClick={() => openTool('Payment Verification')}>Link to Payment Verification</button>
+              </div>
+              {activeReview.updatedAt && <small>Last action saved {activeReview.updatedAt}</small>}
+            </section>
+
+            <section className="document-quality-block">
+              <header><p>Document quality</p><span>{documentAssessment.readability || 'Not assessed'}</span></header>
+              <meter
+                min="0"
+                max="100"
+                value={documentAssessment.readability === 'Unreadable' ? 18 : documentAssessment.completeness === 'Incomplete' ? 55 : documentAssessment.readability === 'Readable' ? 92 : 0}
+              />
+              <small>
+                {!documentAssessment.readability
+                  ? 'Assess the image quality before relying on extracted fields.'
+                  : documentAssessment.readability === 'Unreadable'
+                  ? 'The current copy cannot support field verification.'
+                  : documentAssessment.completeness === 'Incomplete'
+                    ? 'Readable, but a required page, field, or date range is missing.'
+                    : 'Readable source page; assess its contents separately from image quality.'}
+              </small>
+            </section>
+
+            <section className="document-assessment-block">
+              <header><p>Document assessment</p><span>Separate from final decision</span></header>
+              <label><span>Received</span><select value={documentAssessment.received} onChange={(event) => setAssessment('received', event.target.value)}><option value="">Not assessed</option><option>Received</option><option>Not received</option></select></label>
+              <label><span>Readability</span><select value={documentAssessment.readability} onChange={(event) => setAssessment('readability', event.target.value)}><option value="">Not assessed</option><option>Readable</option><option>Unreadable</option></select></label>
+              <label><span>Completeness</span><select value={documentAssessment.completeness} onChange={(event) => setAssessment('completeness', event.target.value)}><option value="">Not assessed</option><option>Complete</option><option>Incomplete</option></select></label>
+              <label><span>Identity match</span><select value={documentAssessment.identityMatch} onChange={(event) => setAssessment('identityMatch', event.target.value)}><option value="">Not assessed</option><option>Matches</option><option>Does not match</option><option>Unclear</option></select></label>
+              <label><span>Claim effect</span><select value={documentAssessment.claimEffect} onChange={(event) => setAssessment('claimEffect', event.target.value)}><option value="">Not assessed</option><option>Supports claim</option><option>Does not support claim</option><option>Contradicts claim</option><option>Does not address claim</option></select></label>
+              <label><span>More evidence needed</span><select value={documentAssessment.additionalEvidenceNeeded} onChange={(event) => setAssessment('additionalEvidenceNeeded', event.target.value)}><option value="">Not assessed</option><option>No</option><option>Yes</option></select></label>
+              <label className="document-assessment-reasoning">
+                <span>Assessment reasoning</span>
+                <textarea
+                  value={documentAssessment.reasoning}
+                  onChange={(event) => setAssessment('reasoning', event.target.value)}
+                  placeholder="Name the page, date range, field, or missing item that supports this assessment."
+                />
+              </label>
+            </section>
+
             <section className="document-status-block">
               <header><p>Document status</p><span>{activeDocument.reviewStatus}</span></header>
               <dl>
@@ -576,7 +794,7 @@ export default function DocumentViewerWorkspace({
             <section className="document-review-note">
               <p>Investigator notes</p>
               <span>{activeDocument.investigatorNote}</span>
-              <small>{noteDraft.trim() ? 'Draft auto-saved on this device.' : 'Drafts auto-save on this device.'}</small>
+              <small>{noteDraft.trim() ? 'Draft saved to offline recovery and queued for cloud sync.' : 'Saved notes sync through the case notebook.'}</small>
               <textarea value={noteDraft} onChange={(event) => updateDocumentDraft(event.target.value)} placeholder="Record what this document proves, contradicts, or leaves unresolved..." aria-label="Document investigator note" />
               <div><button type="button" disabled={!noteDraft.trim()} onClick={saveDocumentNote}>Save note</button><button type="button" onClick={addDocumentToSummary}>Add to summary</button></div>
             </section>

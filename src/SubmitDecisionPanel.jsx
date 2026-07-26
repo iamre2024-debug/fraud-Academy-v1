@@ -1,5 +1,10 @@
 import DecisionFlagChecklist from './DecisionFlagChecklist.jsx';
 import { getDecisionCallGroups, reviewChoices } from './data/reviewPackage.js';
+import {
+  documentAssessmentOptions,
+  normalizeDocumentAssessment,
+} from './data/decisionEvaluation.js';
+import './decisionDocumentAssessment.css';
 
 export default function SubmitDecisionPanel({
   submitRef,
@@ -24,10 +29,36 @@ export default function SubmitDecisionPanel({
       : 'Select a determination';
   const decisionGroups = getDecisionCallGroups(activeCase);
   const selectionGroups = decisionGroups.length ? decisionGroups : [{ label: 'Learner choices', options: reviewChoices }];
+  const documentAssessment = normalizeDocumentAssessment(decisionDraft.documentAssessment);
 
   function submitAndOpenDebrief(event) {
     const reviewPackage = submitDecision(event);
     if (reviewPackage) openDebrief?.(reviewPackage);
+  }
+
+  function updateDocumentAssessment(field, value) {
+    updateDecision('documentAssessment', {
+      ...documentAssessment,
+      [field]: value,
+    });
+  }
+
+  function assessmentSelect({ field, label, placeholder = 'Not assessed' }) {
+    return (
+      <label key={field}>
+        <span>{label}</span>
+        <select
+          value={documentAssessment[field]}
+          onChange={(event) => updateDocumentAssessment(field, event.target.value)}
+          aria-label={label}
+        >
+          <option value="">{placeholder}</option>
+          {documentAssessmentOptions[field].map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+      </label>
+    );
   }
 
   return (
@@ -87,8 +118,33 @@ export default function SubmitDecisionPanel({
           <header>
             <p>Determination</p>
             <h3>Make the case decision</h3>
-            <span>Choose the lane-appropriate action. Add the support you have, then submit whenever you are ready for the debrief.</span>
+            <span>Assess document sufficiency separately, choose the lane-appropriate action, and explain how the available evidence supports it.</span>
           </header>
+
+          <fieldset className="decision-document-assessment" data-document-assessment>
+            <legend>Document assessment <span>Optional, but used by Luna when you add it</span></legend>
+            <div className="decision-document-assessment-intro">
+              <strong>Separate document quality from the case outcome.</strong>
+              <p>Complete, readable documents can still fail to support a claim. Choose more information only when you can name a missing, unreadable, incomplete, or unresolved item.</p>
+            </div>
+            <div className="decision-document-assessment-grid">
+              {assessmentSelect({ field: 'received', label: 'Documents received?' })}
+              {assessmentSelect({ field: 'readability', label: 'Readability' })}
+              {assessmentSelect({ field: 'completeness', label: 'Completeness' })}
+              {assessmentSelect({ field: 'identityMatch', label: 'Identity / account match' })}
+              {assessmentSelect({ field: 'claimEffect', label: 'What do the documents show?' })}
+              {assessmentSelect({ field: 'additionalEvidenceNeeded', label: 'Additional evidence needed?' })}
+            </div>
+            <label className="decision-document-assessment-reasoning">
+              <span>Document assessment reasoning</span>
+              <textarea
+                value={documentAssessment.reasoning}
+                onChange={(event) => updateDocumentAssessment('reasoning', event.target.value)}
+                placeholder="Explain which pages, dates, fields, or conflicts make the documents sufficient or leave a specific gap."
+              />
+              <small>Luna evaluates this explanation with the document state; she does not grade the final button alone.</small>
+            </label>
+          </fieldset>
 
           <fieldset className="decision-choice-fieldset">
             <legend>Determination choice</legend>

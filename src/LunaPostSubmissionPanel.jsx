@@ -36,6 +36,7 @@ function getReviewStatus(debrief) {
 function buildManagerFallback(debrief, reviewPackage) {
   const status = getReviewStatus(debrief);
   const truth = debrief?.truthReveal;
+  const evaluation = debrief?.decisionEvaluation ?? {};
 
   if (status === 'ungraded') {
     return {
@@ -49,17 +50,27 @@ function buildManagerFallback(debrief, reviewPackage) {
   }
 
   const matched = status === 'matched';
+  const reasonedAlternative = evaluation.basis === 'document-context';
+  const reasoningConflict = evaluation.basis === 'context-conflict';
   return {
-    managerVerdict: matched
-      ? 'Your determination was correct based on the case evidence.'
-      : `Your determination did not match the expected case outcome${truth?.correctDetermination ? ` of ${truth.correctDetermination}` : ''}.`,
+    managerVerdict: reasonedAlternative
+      ? `Your determination is defensible from the document assessment saved with this package. ${evaluation.explanation}`
+      : reasoningConflict
+        ? `Your selected determination and document assessment do not support the same outcome. ${evaluation.explanation}`
+        : matched
+          ? 'Your determination matches the calibrated case outcome.'
+          : `Your determination needs more support${truth?.correctDetermination ? ` when compared with ${truth.correctDetermination}` : ''}.`,
     decisionMeaning: explainDecisionMeaning(reviewPackage?.choice),
     actualCaseOutcome: truth
       ? `${truth.classification}${truth.rationale ? ` ${truth.rationale}` : ''}`
       : 'No downstream outcome was supplied.',
-    managerExplanation: matched
-      ? 'You reached the right decision. The next question is whether your notes and pinned evidence clearly show how you got there.'
-      : 'The result needs correction. Compare your reasoning with the hidden case outcome and identify which evidence changed the decision.',
+    managerExplanation: reasonedAlternative
+      ? 'Luna accepted the reasoning-supported alternative, not merely a matching button. Keep the exact pages, dates, and unresolved gaps visible in the saved package.'
+      : reasoningConflict
+        ? 'Reconcile the structured document findings with the final determination. A calibrated button is not sufficient when the saved reasoning points to a different outcome.'
+        : matched
+          ? 'You reached the calibrated outcome. The next question is whether your notes and pinned evidence clearly show how you got there.'
+          : 'The result needs more support. Compare your reasoning with the scenario evidence and identify which record should change the decision.',
     strengths: debrief?.strengths || [],
     coachingActions: debrief?.followUps || [],
   };
@@ -242,22 +253,41 @@ export default function LunaPostSubmissionPanel({
     state.reviewPackage,
     visible,
   ]);
-  const verdictLabel = reviewStatus === 'matched'
-    ? 'Right call'
-    : reviewStatus === 'mismatched'
-      ? 'Needs correction'
+  const evaluationBasis = state.debrief?.decisionEvaluation?.basis;
+  const verdictLabel = evaluationBasis === 'document-context'
+    ? 'Defensible call'
+    : evaluationBasis === 'semantic'
+      ? 'Equivalent call'
+      : evaluationBasis === 'context-conflict'
+        ? 'Reconcile reasoning'
+        : reviewStatus === 'matched'
+          ? 'Right call'
+          : reviewStatus === 'mismatched'
+            ? 'Needs more support'
       : 'Not graded';
-  const statusLabel = reviewStatus === 'matched'
-    ? 'Correct'
-    : reviewStatus === 'mismatched'
-      ? 'Review'
+  const statusLabel = evaluationBasis === 'document-context'
+    ? 'Defensible'
+    : evaluationBasis === 'semantic'
+      ? 'Equivalent'
+      : evaluationBasis === 'context-conflict'
+        ? 'Conflict'
+        : reviewStatus === 'matched'
+          ? 'Calibrated'
+          : reviewStatus === 'mismatched'
+            ? 'Review'
       : reviewStatus === 'ungraded'
         ? 'Coaching only'
         : 'Locked';
-  const resultLabel = reviewStatus === 'matched'
-    ? 'Matched'
-    : reviewStatus === 'mismatched'
-      ? 'Did not match'
+  const resultLabel = evaluationBasis === 'document-context'
+    ? 'Reasoned alternative'
+    : evaluationBasis === 'semantic'
+      ? 'Equivalent outcome'
+      : evaluationBasis === 'context-conflict'
+        ? 'Reasoning conflict'
+        : reviewStatus === 'matched'
+          ? 'Matched calibration'
+          : reviewStatus === 'mismatched'
+            ? 'Needs more support'
       : 'Not graded';
 
   const panel = (
@@ -342,7 +372,7 @@ export default function LunaPostSubmissionPanel({
             </section>
 
             <section className="luna-v1-card luna-v1-senior-review">
-              <header><span className="luna-v1-step-index" aria-hidden="true">04</span><div><p>Manager review</p><h3>{reviewStatus === 'ungraded' ? 'How well your decision was supported' : 'Why the decision was right or wrong'}</h3></div></header>
+              <header><span className="luna-v1-step-index" aria-hidden="true">04</span><div><p>Manager review</p><h3>{reviewStatus === 'ungraded' ? 'How well your decision was supported' : 'Why the determination is or is not supported'}</h3></div></header>
               <DirectCollapsibleText as="p" lines={6} mobileLines={7}>{managerReview.managerExplanation}</DirectCollapsibleText>
             </section>
 

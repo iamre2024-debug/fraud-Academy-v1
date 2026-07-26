@@ -33,7 +33,7 @@ for (const anchor of [
   'Evidence First lock is active',
   'What your answer actually says',
   'What was actually happening',
-  'Why the decision was right or wrong',
+  'Why the determination is or is not supported',
   "window.addEventListener('fraud-academy:package-saved'",
   "import DirectCollapsibleText from './DirectCollapsibleText.jsx';",
 ]) {

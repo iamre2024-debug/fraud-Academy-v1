@@ -22,6 +22,15 @@ const accountTakeoverIndicators = {
     explanation: 'The first-seen device record is tied to the reported fraud period.',
   },
 };
+const completeNonSupportingAssessment = {
+  received: 'Received',
+  readability: 'Readable',
+  completeness: 'Complete',
+  identityMatch: 'Matches',
+  claimEffect: 'Does not support claim',
+  additionalEvidenceNeeded: 'No',
+  reasoning: 'All requested pages and dates are present, but they do not establish the reported claim.',
+};
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
@@ -74,6 +83,49 @@ assert(directDecisionStatus.ready, 'A valid determination should submit without 
 assert(directDecisionStatus.blockers.length === 0, 'Optional investigation context should not create submission blockers.');
 assert(directDecisionStatus.coachingGaps.length > 0, 'Missing optional context should remain available as coaching detail.');
 assert(directDecisionStatus.messages.some((message) => message.includes('without reviewing every tool')), 'Direct-decision readiness should be explicit.');
+assert(!directDecisionStatus.documentAssessmentSummary.started, 'Structured document assessment should remain optional for direct submission.');
+
+const incompleteDocumentStatus = buildStatus({
+  draft: {
+    choice: accountTakeoverChoice,
+    confidence: 'Medium',
+    reason: 'The current evidence package has a specific missing page that prevents a supported final determination.',
+    indicators: accountTakeoverIndicators,
+    documentAssessment: {
+      received: 'Received',
+      readability: 'Readable',
+      completeness: 'Incomplete',
+      identityMatch: 'Matches',
+      claimEffect: '',
+      additionalEvidenceNeeded: 'Yes',
+      reasoning: 'Page two and the disputed transaction period are missing from the uploaded statement.',
+    },
+  },
+});
+assert(incompleteDocumentStatus.ready, 'An incomplete document assessment should coach without blocking a valid determination.');
+assert(incompleteDocumentStatus.documentAssessmentSummary.coherent, 'A specific incomplete-document gap should be a coherent assessment.');
+assert(incompleteDocumentStatus.documentAssessmentSummary.needsMoreEvidence, 'Incomplete documents with a named gap should require more evidence.');
+
+const contradictoryDocumentStatus = buildStatus({
+  draft: {
+    choice: accountTakeoverChoice,
+    confidence: 'Medium',
+    reason: 'The learner saved the package while documenting the unresolved document state for later coaching.',
+    indicators: accountTakeoverIndicators,
+    documentAssessment: {
+      received: 'Not received',
+      readability: 'Readable',
+      completeness: 'Complete',
+      identityMatch: 'Matches',
+      claimEffect: 'Supports claim',
+      additionalEvidenceNeeded: 'No',
+      reasoning: 'The document has not arrived, so its pages cannot yet establish the reported claim.',
+    },
+  },
+});
+assert(contradictoryDocumentStatus.ready, 'Contradictory optional document context should not block submission.');
+assert(contradictoryDocumentStatus.documentAssessmentSummary.conflicts.length > 0, 'Contradictory document fields should be retained for coaching.');
+assert(contradictoryDocumentStatus.coachingGaps.some((gap) => gap.includes('document assessment needs clarification')), 'Document contradictions should appear as coaching gaps.');
 
 const shortRationaleStatus = buildStatus({ draft: { choice: accountTakeoverChoice, confidence: 'High', reason: 'Too short.', indicators: accountTakeoverIndicators } });
 assert(shortRationaleStatus.ready, 'A short optional rationale should not block a valid determination.');
@@ -124,6 +176,7 @@ const creditStatus = getReviewPackageStatus({
     choice: 'Support Credit Request',
     confidence: 'Medium',
     reason: 'The learner reviewed income, employment, payment, and document records before recording the credit package.',
+    documentAssessment: completeNonSupportingAssessment,
     indicators: {
       'credit-stable-income': {
         selected: true,
@@ -162,6 +215,7 @@ const savedPackage = buildReviewPackage({
     choice: 'Support Credit Request',
     confidence: 'Medium',
     reason: 'The learner reviewed required tools and documented the evidence trail before saving this package.',
+    documentAssessment: completeNonSupportingAssessment,
     indicators: {
       'credit-stable-income': {
         selected: true,
@@ -181,5 +235,8 @@ assert(savedPackage.lane === 'Credit decision review', 'Saved package should ret
 assert(savedPackage.blockers.length === 0, 'Saved ready package should not retain blockers.');
 assert(Array.isArray(savedPackage.coachingGaps), 'Saved package should snapshot optional coaching gaps separately from blockers.');
 assert(savedPackage.decisionIndicators.length === 1, 'Saved package should snapshot proven weighted flags.');
+assert(savedPackage.packageSchemaVersion === 2, 'Saved package should identify the structured document-assessment schema.');
+assert(savedPackage.documentAssessment.claimEffect === 'Does not support claim', 'Saved package should snapshot the structured document assessment.');
+assert(savedPackage.documentAssessmentSummary.decisive, 'Complete, readable, non-supportive documents with no remaining gap should be saved as decisive context.');
 
 console.log('Review package smoke check passed. A valid determination is required; tools, flags, pins, notes, and rationale remain optional coaching context.');
