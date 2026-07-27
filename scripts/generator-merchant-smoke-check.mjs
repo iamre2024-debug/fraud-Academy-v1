@@ -34,15 +34,22 @@ for (const { claimType, scenario } of allScenarios) {
   if (!generated.caseTruth?.correctDetermination || generated.correctDetermination !== generated.caseTruth.correctDetermination) failures.push(`${scenario.id} is missing hidden case truth.`);
   if (!getReviewChoices(generated).includes(generated.correctDetermination)) failures.push(`${scenario.id} has a hidden determination that is not valid for its decision rail.`);
   if (!generated.timelineEvents?.length || !generated.evidenceDocuments?.length || !generated.intakeAnswers?.length) failures.push(`${scenario.id} is missing complete generated outputs.`);
-  if (generated.generatedPacketVersion !== 6) failures.push(`${scenario.id} is missing the complete-packet version marker.`);
+  if (generated.generatedPacketVersion !== 7) failures.push(`${scenario.id} is missing the complete-packet version marker.`);
   if (!generated.accountId?.startsWith('ACCT-')) failures.push(`${scenario.id} is missing its Account ID document lookup key.`);
   if (generatedAccountIds.has(generated.accountId)) failures.push(`${scenario.id} reused Account ID ${generated.accountId}.`);
   generatedAccountIds.add(generated.accountId);
   if (generated.customer?.relationship?.find((item) => item.label === 'Account ID')?.value !== generated.accountId) failures.push(`${scenario.id} does not expose its Account ID in Customer 360.`);
   if (/fictional packet contains both routine and exception evidence/i.test(generated.shortSummary)) failures.push(`${scenario.id} still uses the placeholder short summary.`);
-  for (const expectedDetail of [generated.person, generated.amount, generated.reportedDate, generated.issueStartDate, scenario.statement, generated.transactionInfo]) {
+  const needsNeutralEmailAlertSummary = claimType.id === 'email-bec'
+    || (claimType.id === 'payroll-direct-deposit' && /email|mailbox|spoof/i.test(`${scenario.subtype} ${scenario.title}`));
+  const expectedSummaryDetails = needsNeutralEmailAlertSummary
+    ? [generated.person, generated.amount, generated.reportedDate, generated.issueStartDate]
+    : [generated.person, generated.amount, generated.reportedDate, generated.issueStartDate, scenario.statement, generated.transactionInfo];
+  for (const expectedDetail of expectedSummaryDetails) {
     if (!generated.shortSummary.includes(expectedDetail)) failures.push(`${scenario.id} short summary is missing generated case detail: ${expectedDetail}`);
   }
+  if (needsNeutralEmailAlertSummary && !/case alert was triggered/i.test(generated.shortSummary)) failures.push(`${scenario.id} does not use a neutral alert-trigger summary.`);
+  if (needsNeutralEmailAlertSummary && /compromised|hacked|spoofed|mailbox access|look-alike|impersonation|forwarding rule/i.test(generated.shortSummary)) failures.push(`${scenario.id} exposes an email-fraud conclusion before investigation.`);
   if (generated.caseBriefing?.summary !== generated.shortSummary || generated.allegation !== generated.shortSummary) failures.push(`${scenario.id} does not use one complete narrative across its briefing summary fields.`);
   if (generated.documents.some((item) => /fictional case packet|available for .* fictional training packet/i.test(item.detail))) failures.push(`${scenario.id} still has generic generated document text.`);
   if (generated.intakeAnswers.length !== claimType.intakePrompts.length) failures.push(`${scenario.id} does not answer every Claim Intake prompt.`);
@@ -140,7 +147,20 @@ const [upgradedLegacyCase] = enrichTrainingCases([{
 }]);
 if (/fictional packet contains both routine and exception evidence/i.test(upgradedLegacyCase.shortSummary)) failures.push('Previously saved generated cases do not upgrade their placeholder summary when loaded.');
 if (upgradedLegacyCase.caseBriefing?.summary !== upgradedLegacyCase.shortSummary) failures.push('Upgraded generated-case briefing summary does not match its complete short summary.');
-if (upgradedLegacyCase.generatedPacketVersion !== 6 || !upgradedLegacyCase.accountId || upgradedLegacyCase.intakeAnswers.some((item) => genericIntakePattern.test(item.answer)) || upgradedLegacyCase.toolResults.business360?.length < 3 || upgradedLegacyCase.toolResults.businessIntel?.length < 4) failures.push('Previously saved generated cases do not upgrade their full investigation packet when loaded.');
+if (upgradedLegacyCase.generatedPacketVersion !== 7 || !upgradedLegacyCase.accountId || upgradedLegacyCase.intakeAnswers.some((item) => genericIntakePattern.test(item.answer)) || upgradedLegacyCase.toolResults.business360?.length < 3 || upgradedLegacyCase.toolResults.businessIntel?.length < 4) failures.push('Previously saved generated cases do not upgrade their full investigation packet when loaded.');
+
+const legacyEmailCase = createGeneratedCase({ index: sequence + 60, claimTypeId: 'payroll-direct-deposit', scenarioId: 'pay-compromised-employee-email' });
+const exposedEmailSummary = 'The employee email was compromised before the bank account change.';
+const [upgradedEmailCase] = enrichTrainingCases([{
+  ...legacyEmailCase,
+  generatedPacketVersion: 6,
+  shortSummary: exposedEmailSummary,
+  allegation: exposedEmailSummary,
+  caseBriefing: { ...legacyEmailCase.caseBriefing, summary: exposedEmailSummary },
+}]);
+if (upgradedEmailCase.generatedPacketVersion !== 7 || !/case alert was triggered/i.test(upgradedEmailCase.shortSummary) || /compromised|hacked|spoofed|mailbox access/i.test(upgradedEmailCase.shortSummary)) {
+  failures.push('Previously saved email-fraud cases do not upgrade to the neutral alert-trigger summary.');
+}
 
 const enrichedBuiltIns = enrichTrainingCases(trainingCases);
 const builtInAccountIds = new Set();
