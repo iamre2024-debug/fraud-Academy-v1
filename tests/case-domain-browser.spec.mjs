@@ -500,7 +500,7 @@ test('legacy IndexedDB cases and learner progress survive the versioned domain m
   }]);
   expect(migrated.quickPad).toEqual({
     items: [{
-      id: 'Financial Intelligence:Account ID:ACCT-IDB-9999',
+      id: 'Financial Investigation:Account ID:ACCT-IDB-9999',
       label: 'Account ID',
       value: 'ACCT-IDB-9999',
       sourceTool: 'Financial Investigation',

@@ -10,6 +10,7 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 test('Device and IP Intelligence use dedicated mobile evidence pages without changing desktop', async ({ page }, testInfo) => {
   await page.goto('/');
+  const activeCaseId = await page.locator('.visual-case-switcher select').inputValue();
   await selectToolGroup(page, /Login, Session, Device & IP/);
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
@@ -56,7 +57,20 @@ test('Device and IP Intelligence use dedicated mobile evidence pages without cha
   await devicePage.getByRole('button', { name: 'Pin Device ID', exact: true }).click();
   await devicePage.getByRole('button', { name: 'Quick Pad Device ID', exact: true }).click();
   await devicePage.getByRole('button', { name: 'Save device note', exact: true }).click();
-  await expect(page.locator('.tray-card')).toContainText('Pinned');
+  await expect.poll(() => page.evaluate(({ caseId, recordId }) => {
+    const pins = JSON.parse(localStorage.getItem('fraud-academy-visual-tray-v1') || '{}');
+    const quickPad = JSON.parse(localStorage.getItem('fraud-academy-quick-pad-v1') || '{}');
+    const notes = JSON.parse(localStorage.getItem('fraud-academy-notes-v1') || '{}');
+    return {
+      pinned: pins[caseId]?.includes(recordId) ?? false,
+      quickPad: quickPad[caseId]?.items?.some((item) => item.value === recordId) ?? false,
+      note: notes[caseId]?.some((item) => String(item).includes(recordId)) ?? false,
+    };
+  }, { caseId: activeCaseId, recordId: deviceId })).toEqual({
+    pinned: true,
+    quickPad: true,
+    note: true,
+  });
 
   const deviceLayout = await page.evaluate(() => {
     const viewport = window.innerWidth;

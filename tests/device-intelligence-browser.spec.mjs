@@ -66,7 +66,10 @@ test('generated Device ID lookup returns a complete profile and never leaks a st
   await expect(detail).toContainText(deviceId);
   await expect(detail).toContainText('Training Mobile OS 18');
   await expect(detail).toContainText('Chrome Mobile training browser');
-  await expect(panel.locator('.device-intel-snapshot').getByText(/^FP-/)).toBeVisible();
+  const fingerprintDetails = testInfo.project.name === 'mobile-chromium'
+    ? panel.locator('.mobile-device-lookup-details')
+    : panel.locator('.device-intel-snapshot');
+  await expect(fingerprintDetails.getByText(/^FP-/)).toBeVisible();
   await expect(detail.getByText(/^BR-/)).toBeVisible();
   await expect(detail).not.toContainText(/Lookup needed|Run a device lookup to reveal/i);
   const deviceHistory = panel.locator('.device-history-panel').first();
