@@ -2,7 +2,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const rootDir = process.cwd();
-const panel = fs.readFileSync(path.join(rootDir, 'src/InvestigationToolPanel.jsx'), 'utf8');
+const routerPanel = fs.readFileSync(path.join(rootDir, 'src/InvestigationToolPanel.jsx'), 'utf8');
+const panel = [
+  'src/InvestigationToolPanel.jsx',
+  'src/Business360Workspace.jsx',
+  'src/DocumentViewerWorkspace.jsx',
+  'src/FinancialInvestigationWorkspace.jsx',
+  'src/LinkAnalysisWorkspace.jsx',
+  'src/MerchantIntelligenceWorkspace.jsx',
+  ...fs.readdirSync(path.join(rootDir, 'src/tools'))
+    .filter((file) => file.endsWith('.jsx'))
+    .map((file) => `src/tools/${file}`),
+].map((file) => fs.readFileSync(path.join(rootDir, file), 'utf8')).join('\n');
 const documentViewer = fs.readFileSync(path.join(rootDir, 'src/DocumentViewerWorkspace.jsx'), 'utf8');
 const documentRecords = fs.readFileSync(path.join(rootDir, 'src/data/documentRecords.js'), 'utf8');
 const businessPayrollWorkspace = fs.readFileSync(path.join(rootDir, 'src/data/businessPayrollWorkspace.js'), 'utf8');
@@ -151,7 +162,7 @@ for (const anchor of [
   'Transaction account and card rail',
   'Save transaction note',
   'Business360Workspace',
-  'Reusable business profile',
+  'Company relationship profile',
   'Business 360 review',
   'EmployeeProfileWorkspace',
   'Official contact / callback',
@@ -162,9 +173,8 @@ for (const anchor of [
   'Payroll History review',
   'FinancialInvestigationWorkspace',
   'What financial activity is recorded for this product and review period?',
-  'Search business',
-  'Business 360 Research Report',
-  'The report does not assign an investigation outcome.',
+  'Luna Business Research',
+  'A missing or conflicting record is a source result',
 ]) {
   mustContain('InvestigationToolPanel.jsx', panel, anchor);
 }
@@ -453,7 +463,7 @@ for (const forbidden of [
   'position: fixed',
 ]) {
   mustNotContain('displayInvestigationToolsThemeV1.css', styles, forbidden);
-  mustNotContain('InvestigationToolPanel.jsx', panel, forbidden);
+  mustNotContain('InvestigationToolPanel.jsx', routerPanel, forbidden);
   mustNotContain('investigationToolGroups.js', groups, forbidden);
 }
 

@@ -14,7 +14,7 @@ function configuredOrigins() {
 
 function requestOrigin(req) {
   const forwardedProtocol = String(req.headers?.['x-forwarded-proto'] || 'https').split(',')[0].trim();
-  const host = String(req.headers?.['x-forwarded-host'] || req.headers?.host || '').split(',')[0].trim();
+  const host = String(req.headers?.host || req.headers?.['x-forwarded-host'] || '').split(',')[0].trim();
   return host ? `${forwardedProtocol}://${host}` : '';
 }
 
@@ -40,13 +40,23 @@ function send(req, res, status, body) {
 }
 
 function requestIp(req) {
-  return String(req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown')
-    .split(',')[0]
-    .trim();
+  const hops = String(req.headers?.['x-forwarded-for'] || '')
+    .split(',')
+    .map((hop) => hop.trim())
+    .filter(Boolean);
+  if (hops.length) return hops[hops.length - 1];
+  return String(req.socket?.remoteAddress || '').trim() || 'unknown';
+}
+
+function sweepExpiredWindows(now) {
+  for (const [key, windowState] of requestWindows) {
+    if (now - windowState.startedAt >= RATE_LIMIT_WINDOW_MS) requestWindows.delete(key);
+  }
 }
 
 function exceedsRateLimit(req, res) {
   const now = Date.now();
+  sweepExpiredWindows(now);
   const ip = requestIp(req);
   const current = requestWindows.get(ip);
   const windowState = !current || now - current.startedAt >= RATE_LIMIT_WINDOW_MS
@@ -67,10 +77,10 @@ function cleanText(value, maximumLength) {
 }
 
 function hasValidAccessToken(req) {
-  const expected = String(process.env.LUNA_API_ACCESS_TOKEN || '');
-  const supplied = String(req.headers?.['x-luna-access-token'] || '');
+  const expected = Buffer.from(String(process.env.LUNA_API_ACCESS_TOKEN || ''), 'utf8');
+  const supplied = Buffer.from(String(req.headers?.['x-luna-access-token'] || ''), 'utf8');
   if (expected.length < 24 || supplied.length !== expected.length) return false;
-  return timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
+  return timingSafeEqual(supplied, expected);
 }
 
 function cleanList(value, fallback = []) {
@@ -99,6 +109,9 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return send(req, res, 204, {});
   if (req.method !== 'POST') return send(req, res, 405, { error: 'Method not allowed' });
   if (Number(req.headers?.['content-length'] || 0) > MAX_BODY_BYTES) {
+    return send(req, res, 413, { error: 'Request body is too large' });
+  }
+  if (Buffer.byteLength(JSON.stringify(req.body ?? {}), 'utf8') > MAX_BODY_BYTES) {
     return send(req, res, 413, { error: 'Request body is too large' });
   }
   if (exceedsRateLimit(req, res)) {

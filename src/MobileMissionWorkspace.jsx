@@ -79,7 +79,7 @@ export default function MobileMissionWorkspace({
   const isTool = workspaceScreen === 'tool' || workspaceScreen === 'timeline';
 
   return (
-    <main className="mission-workspace-v3" data-workspace-screen={workspaceScreen} data-active-tool={activeTool}>
+    <section className="mission-workspace-v3" data-workspace-screen={workspaceScreen} data-active-tool={activeTool}>
       <header className="mission-workspace-bar">
         <button type="button" className="mission-workspace-back" disabled={isRoot} onClick={goBackWorkspaceScreen} aria-label="Back to previous mission screen">‹</button>
         <div><span>{screenIcon}</span><p>{activeCase.id}</p><h1>{screenTitle}</h1></div>
@@ -234,7 +234,7 @@ export default function MobileMissionWorkspace({
       <footer className="mission-workspace-status">
         <span>⭐ {tray.length} pinned</span><span>📝 {notes.length} notes</span><span>📡 {actionLog.length} actions</span>
       </footer>
-    </main>
+    </section>
   );
 }
 

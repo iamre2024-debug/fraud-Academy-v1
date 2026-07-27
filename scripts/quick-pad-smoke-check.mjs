@@ -5,7 +5,12 @@ const model = read('src/visualWorkspaceModel.js');
 const state = read('src/useVisualWorkspaceCaseState.js');
 const workspace = read('src/VisualWorkspace.jsx');
 const customer = read('src/Customer360Panel.jsx');
-const device = read('src/InvestigationToolPanel.jsx');
+const device = [
+  'src/InvestigationToolPanel.jsx',
+  'src/tools/DeviceIntelligenceWorkspace.jsx',
+  'src/tools/PaymentVerificationWorkspace.jsx',
+  'src/tools/PayrollHistoryWorkspace.jsx',
+].map(read).join('\n');
 const component = read('src/CaseQuickPad.jsx');
 const styles = read('src/caseQuickPad.css');
 

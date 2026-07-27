@@ -463,7 +463,12 @@ const migratedCloud = migrateCloudSnapshotCaseData(cloudSnapshot);
 assert.deepEqual(migrateCloudSnapshotCaseData(migratedCloud), migratedCloud);
 assert.equal(migratedCloud.generatedCases.items[workedCaseId].value.id, workedCaseId);
 
-const panelSource = fs.readFileSync('src/InvestigationToolPanel.jsx', 'utf8');
+const panelSource = [
+  'src/InvestigationToolPanel.jsx',
+  'src/tools/EmployeeProfileWorkspace.jsx',
+  'src/tools/PaymentVerificationWorkspace.jsx',
+  'src/tools/PayrollHistoryWorkspace.jsx',
+].map((file) => fs.readFileSync(file, 'utf8')).join('\n');
 assert.match(panelSource, /data-destination-unavailable/);
 assert.doesNotMatch(panelSource, /case 'KYB Review'|toolName === 'KYB Review'/);
 
