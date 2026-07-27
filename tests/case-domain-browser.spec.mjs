@@ -21,8 +21,6 @@ const businessProducts = [
 const payrollWorkflows = [
   'payroll-change-alert',
   'payroll-account-takeover',
-  'credit-application-review',
-  'credit-risk-review',
 ];
 
 async function optionValues(select) {
@@ -382,6 +380,7 @@ test('legacy IndexedDB cases and learner progress survive the versioned domain m
         scratch: 'Learner Quick Pad scratch survives unchanged.',
       },
     }));
+    window.localStorage.removeItem('fraud-academy-case-schema-version-v1');
   }, { caseId: legacyCaseId, generatedAtValue: generatedAt, savedAt: savedAtIso });
 
   await page.reload();

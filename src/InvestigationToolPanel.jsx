@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import Business360DossierWorkspace from './Business360Workspace.jsx';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import DocumentViewerWorkspace from './DocumentViewerWorkspace.jsx';
 import FinancialInvestigationDossierWorkspace from './FinancialInvestigationWorkspace.jsx';
@@ -2508,7 +2509,7 @@ export default function InvestigationToolPanel({
           jumpDecision={jumpDecision}
         />
       ) : tool === 'Business 360' ? (
-        <Business360Workspace
+        <Business360DossierWorkspace
           activeCase={activeCase}
           query={query}
           pin={pin}

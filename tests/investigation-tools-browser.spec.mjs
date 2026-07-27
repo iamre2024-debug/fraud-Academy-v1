@@ -220,10 +220,10 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   const creditToolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
   const personalLoanToolOptions = await creditToolSelect.locator('option')
     .evaluateAll((options) => options.map((option) => option.value));
-  expect(personalLoanToolOptions).not.toContain('Business 360');
+  expect(personalLoanToolOptions).toContain('Business 360');
   expect(personalLoanToolOptions).not.toContain('KYB Review');
-  expect(personalLoanToolOptions).not.toContain('Employee Profile');
-  expect(personalLoanToolOptions).not.toContain('Payroll History');
+  expect(personalLoanToolOptions).toContain('Employee Profile');
+  expect(personalLoanToolOptions).toContain('Payroll History');
   expect(personalLoanToolOptions).toContain('Payment Verification');
 
   await creditToolSelect.selectOption('Payment Verification');

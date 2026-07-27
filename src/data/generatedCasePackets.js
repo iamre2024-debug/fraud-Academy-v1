@@ -652,7 +652,11 @@ function makeBusinessRecords({
             paymentRecordId: `PV-HIST-${suffix}-01`,
           }],
         },
-        ...(claimType.id === 'payroll-direct-deposit' && paymentVerification?.[0] ? [{
+        ...([
+          'payroll-direct-deposit',
+          WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT,
+          WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER,
+        ].includes(claimType.workflowType ?? claimType.id) && paymentVerification?.[0] ? [{
           effectiveDate: issueStartDate,
           method: 'Direct deposit',
           paymentRecordId: paymentVerification[0].id,

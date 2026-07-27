@@ -71,9 +71,16 @@ async function openFinancialInvestigation(page, caseRecord, testInfo) {
 
   await selectToolGroup(page, /Transactions & Financial/);
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Transaction History');
-  await toolPanel.getByRole('combobox', { name: 'Choose investigation tool' })
-    .selectOption({ label: 'Financial Investigation' });
+  const toolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
+  if (caseRecord.productType === 'payroll-product') {
+    await expect(toolPanel).toHaveAttribute('data-tool-name', 'Financial Investigation');
+    expect(await toolSelect.locator('option').evaluateAll((options) => (
+      options.map((option) => option.value)
+    ))).not.toContain('Transaction History');
+  } else {
+    await expect(toolPanel).toHaveAttribute('data-tool-name', 'Transaction History');
+    await toolSelect.selectOption({ label: 'Financial Investigation' });
+  }
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Financial Investigation');
   await expect(toolPanel.getByRole('heading', {
     name: 'What financial activity is recorded for this product and review period?',
