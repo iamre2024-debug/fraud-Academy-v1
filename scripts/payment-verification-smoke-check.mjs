@@ -176,22 +176,19 @@ for (const claimType of coreClaimTypes) {
 
     if (generated.claimTypeId === 'payroll-direct-deposit') {
       const canonicalRecord = records[0];
-      const payrollRecords = getPayrollHistory(generated);
-      if (!payrollRecords.length) {
-        fail(`${scenario.id} has no generated Payroll History records.`);
+      const payrollWorkspace = getPayrollHistory(generated);
+      if (!payrollWorkspace.payrollRuns.length) {
+        fail(`${scenario.id} has no generated company Payroll History runs.`);
       }
-      for (const payrollRecord of payrollRecords) {
-        for (const field of canonicalChangeFields) {
-          if (payrollRecord[field] !== canonicalRecord[field]) {
-            fail(`${scenario.id}/${payrollRecord.id} ${field} does not match ${canonicalRecord.id}.`);
-          }
-        }
-        const payrollText = Object.values(payrollRecord).filter((value) => typeof value === 'string').join(' ');
-        if (!payrollText.includes(canonicalRecord.bankCode) || !payrollText.includes(canonicalRecord.destinationId)) {
-          fail(`${scenario.id}/${payrollRecord.id} omits the canonical Bank Code or Destination ID.`);
-        }
-        if (placeholderOrNoChangePattern.test(payrollText)) {
-          fail(`${scenario.id}/${payrollRecord.id} contains a masked, placeholder, or contradictory no-change destination.`);
+      for (const payrollRun of payrollWorkspace.payrollRuns) {
+        const destinations = payrollRun.employees[0]?.paystub?.paymentDestinations ?? [];
+        const hasCurrentDestination = destinations.some((destination) => destination.bankCode === canonicalRecord.bankCode && destination.destinationId === canonicalRecord.destinationId);
+        const currentDestinationEffective = new Date(payrollRun.payDate) >= new Date(canonicalRecord.firstSeen);
+        if (currentDestinationEffective && !hasCurrentDestination) fail(`${scenario.id}/${payrollRun.id} omits the destination effective for that payroll snapshot.`);
+        if (!currentDestinationEffective && hasCurrentDestination) fail(`${scenario.id}/${payrollRun.id} backfills a destination introduced after the payroll posted.`);
+        const payrollText = JSON.stringify(payrollRun);
+        for (const gatedField of ['accountHolder', 'ownerMatch', 'ownershipStatus', 'operationalStatus', 'priorUseHistory']) {
+          if (payrollText.includes(gatedField)) fail(`${scenario.id}/${payrollRun.id} exposes gated Payment Verification field ${gatedField}.`);
         }
       }
     }

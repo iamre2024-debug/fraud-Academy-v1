@@ -1,3 +1,5 @@
+import { createCompanyPayrollData } from './payrollDataModel.js';
+
 const merchantNames = [
   ['Northstar Digital Market', '5734', 'Computer software and digital goods', 'Austin, TX'],
   ['Cedar Square Outfitters', '5651', 'Family clothing stores', 'Fort Worth, TX'],
@@ -360,33 +362,201 @@ function makePaymentVerification({ id, claimType, scenario, person, business, re
   }];
 }
 
-function makeBusinessRecords({ id, claimType, scenario, person, employer, business, reportedDate, issueStartDate, amount, recordCount, creditProfile }) {
+function makeBusinessRecords({
+  id,
+  claimType,
+  scenario,
+  person,
+  employer,
+  business,
+  reportedDate,
+  issueStartDate,
+  paymentVerification,
+}) {
   const tools = new Set(claimType.availableTools);
   const result = {};
+  const seed = stableNumber(`${business}-${employer}`);
+  const suffix = String(seed).slice(-5).padStart(5, '0');
+  const payrollLane = /payroll|employee/i.test(`${claimType.id} ${claimType.lane} ${scenario.entityRole}`);
+  const entity = payrollLane ? employer : business;
+  const legalName = /llc|inc\.?|corp\.?|company|co\./i.test(entity) ? entity : `${entity} LLC`;
+  const businessId = `BIZ-${suffix}`;
   if (tools.has('Business 360')) {
-    const entity = /business|vendor|payroll|merchant/i.test(`${scenario.entityRole} ${claimType.lane}`) ? business : scenario.transactionInfo.split(' - ')[0];
     result.business360 = [
-      { id: `${id}-BIZ-1`, entity, relationship: `${scenario.family ?? claimType.lane} relationship`, status: 'Active profile', observed: reportedDate, context: `${entity} is connected to ${person} and claim ${id}.` },
-      { id: `${id}-BIZ-2`, entity: person, relationship: scenario.entityRole, status: 'Named in intake', observed: reportedDate, context: `${person} submitted or is named in the ${scenario.channel} record.` },
-      { id: `${id}-BIZ-3`, entity: scenario.transactionInfo, relationship: 'Activity or exposure in scope', status: scenario.amount, observed: issueStartDate, context: `${scenario.subtype} review covers ${scenario.amount} from ${issueStartDate} through ${reportedDate}.` },
+      { id: businessId, entity: legalName, relationship: payrollLane ? 'Employer payroll relationship' : 'Institution business relationship', status: 'Active', observed: `${['Feb', 'Apr', 'Jun', 'Aug'][seed % 4]} ${4 + (seed % 20)}, ${2019 + (seed % 5)}`, context: 'Reusable institution relationship record' },
     ];
   }
-  if (tools.has('KYB Review')) {
-    result.businessIntel = [
-      { id: `${id}-BIN-1`, type: 'Registration and legal-name record', value: business, observed: reportedDate, context: `${business} is recorded as the legal entity connected to claim ${id}.` },
-      { id: `${id}-BIN-2`, type: 'Owner or controlling party', value: person, observed: reportedDate, context: `${person} is recorded as ${scenario.entityRole}.` },
-      { id: `${id}-BIN-3`, type: 'Operating and revenue context', value: creditProfile?.statedAnnualIncome ?? money(Math.max(amount * 18, 85000)), observed: reportedDate, context: `Stated annual revenue is compared with ${scenario.amount} in current exposure.` },
-      { id: `${id}-BIN-4`, type: 'Case activity', value: scenario.transactionInfo, observed: issueStartDate, context: `${scenario.subtype} activity was reported through ${scenario.channel} on ${reportedDate}.` },
-    ];
-  }
+
+  const employeeId = `EMP-${suffix}-01`;
+  const secondEmployeeId = `EMP-${suffix}-02`;
+  const thirdEmployeeId = `EMP-${suffix}-03`;
+  const employeeProfiles = [
+    {
+      id: employeeId,
+      name: person,
+      address: `${140 + (seed % 8000)} Meadow Training Lane, ${pick(['Dallas, TX', 'Arlington, TX', 'Fort Worth, TX'], seed)}`,
+      role: 'Operations specialist',
+      department: 'Operations',
+      position: 'Operations Specialist',
+      employer: legalName,
+      employmentStatus: 'Active',
+      payType: 'Hourly',
+      paySchedule: 'Biweekly',
+      compensationType: 'Hourly',
+      currentRate: `$${(18 + (seed % 8)).toFixed(2)} per hour`,
+      hireDate: `${['Jan', 'Mar', 'May', 'Sep'][seed % 4]} ${4 + (seed % 20)}, ${2021 + (seed % 4)}`,
+      w4Setup: 'Single · standard withholding',
+      taxElections: 'Federal withholding · Social Security · Medicare · state and local rules as applicable',
+      rateHistory: [{ effectiveDate: 'Jan 1, 2026', value: 18 + (seed % 8) }],
+      regularHours: 80,
+      federalTaxRate: 0.08,
+      healthDeduction: 82,
+      dentalDeduction: 11,
+      retirementRate: 0.04,
+      employerHealthContribution: 165,
+      employerRetirementRate: 0.02,
+      employerTaxRate: 0.0815,
+      standardReimbursement: 28,
+      ytdOpening: { grossPay: 10800, employeeTaxes: 1510, employeeDeductions: 1120, employerContributions: 1490, reimbursements: 84, netPay: 8254 },
+      paymentHistory: [
+        {
+          effectiveDate: 'Jan 15, 2024',
+          method: 'Direct deposit',
+          paymentRecordId: `PV-HIST-${suffix}-01`,
+          destinations: [{
+            id: `PD-${suffix}-OLD`,
+            bankCode: `BC-${String(seed + 211).slice(-4)}`,
+            destinationId: `DST-${String(seed + 4137).slice(-6)}`,
+            percentage: 1,
+            status: 'Settled',
+            firstSeen: 'Jan 15, 2024',
+            paymentRecordId: `PV-HIST-${suffix}-01`,
+          }],
+        },
+        ...(claimType.id === 'payroll-direct-deposit' && paymentVerification?.[0] ? [{
+          effectiveDate: issueStartDate,
+          method: 'Direct deposit',
+          paymentRecordId: paymentVerification[0].id,
+          destinations: [{
+            id: `PD-${suffix}-CURRENT`,
+            bankCode: paymentVerification[0].bankCode,
+            destinationId: paymentVerification[0].destinationId,
+            percentage: 1,
+            status: 'Settled',
+            firstSeen: issueStartDate,
+            paymentRecordId: paymentVerification[0].id,
+          }],
+        }] : []),
+      ],
+    },
+    {
+      id: secondEmployeeId,
+      name: `Dana ${['Kim', 'Lane', 'Stone', 'Reed'][seed % 4]}`,
+      address: `${510 + (seed % 6000)} Westlake Training Road, Arlington, TX`,
+      role: 'Inventory specialist',
+      department: 'Operations',
+      position: 'Inventory Specialist',
+      employer: legalName,
+      employmentStatus: 'Active',
+      payType: 'Hourly',
+      paySchedule: 'Biweekly',
+      compensationType: 'Hourly',
+      currentRate: '$20.50 per hour',
+      hireDate: 'Sep 18, 2023',
+      w4Setup: 'Married filing jointly',
+      taxElections: 'Federal withholding · Social Security · Medicare · state and local rules as applicable',
+      rateHistory: [{ effectiveDate: 'Jan 1, 2026', value: 20.5 }],
+      regularHours: 80,
+      federalTaxRate: 0.075,
+      healthDeduction: 98,
+      dentalDeduction: 14,
+      retirementRate: 0.05,
+      employerHealthContribution: 178,
+      employerRetirementRate: 0.025,
+      employerTaxRate: 0.0815,
+      ytdOpening: { grossPay: 13120, employeeTaxes: 1820, employeeDeductions: 1620, employerContributions: 1940, reimbursements: 0, netPay: 9680 },
+      paymentHistory: [{
+        effectiveDate: 'Sep 18, 2023',
+        method: 'Split direct deposit',
+        destinations: [
+          { id: `PD-${suffix}-SPLIT-A`, bankCode: `BC-${String(seed + 712).slice(-4)}`, destinationId: `DST-${String(seed + 7210).slice(-6)}`, percentage: 0.7, status: 'Settled', firstSeen: 'Sep 18, 2023', paymentRecordId: `PV-HIST-${suffix}-SPLIT-A` },
+          { id: `PD-${suffix}-SPLIT-B`, bankCode: `BC-${String(seed + 913).slice(-4)}`, destinationId: `DST-${String(seed + 9311).slice(-6)}`, percentage: 0.3, status: 'Settled', firstSeen: 'Feb 3, 2025', paymentRecordId: `PV-HIST-${suffix}-SPLIT-B` },
+        ],
+      }],
+    },
+    {
+      id: thirdEmployeeId,
+      name: `Luis ${['Romero', 'Grant', 'Bennett', 'Owens'][seed % 4]}`,
+      address: `${810 + (seed % 5000)} Harbor Training Street, Dallas, TX`,
+      role: 'Delivery coordinator',
+      department: 'Logistics',
+      position: 'Delivery Coordinator',
+      employer: legalName,
+      employmentStatus: 'Active',
+      payType: 'Salary',
+      paySchedule: 'Biweekly',
+      compensationType: 'Salary',
+      currentRate: '$2,000.00 per pay period',
+      hireDate: 'Jan 8, 2022',
+      w4Setup: 'Head of household',
+      taxElections: 'Federal withholding · Social Security · Medicare · state and local rules as applicable',
+      rateHistory: [{ effectiveDate: 'Jan 1, 2026', value: 25 }],
+      regularHours: 80,
+      federalTaxRate: 0.09,
+      healthDeduction: 115,
+      dentalDeduction: 16,
+      retirementRate: 0.03,
+      employerHealthContribution: 192,
+      employerRetirementRate: 0.02,
+      employerTaxRate: 0.0815,
+      garnishment: seed % 3 === 0 ? 45 : 0,
+      ytdOpening: { grossPay: 16000, employeeTaxes: 2410, employeeDeductions: 1900, employerContributions: 2260, reimbursements: 0, netPay: 11690 },
+      paymentHistory: [{
+        effectiveDate: 'Jan 8, 2022',
+        method: 'Paper check',
+        status: 'Issued',
+        checkNumber: `CHK-${String(seed * 17).slice(-6).padStart(6, '0')}`,
+        paymentRecordId: `PV-HIST-${suffix}-CHECK`,
+      }],
+    },
+  ];
+
   if (tools.has('Employee Profile')) {
-    result.employeeProfile = [
-      { id: `${id}-EMP-1`, name: person, role: /payroll/i.test(claimType.lane) ? 'Employee payroll record' : scenario.entityRole, employer, status: 'Active profile', lastSeen: reportedDate, context: `${person} is linked to ${employer} in the current ${scenario.subtype} review.` },
-      { id: `${id}-EMP-2`, name: person, role: 'Change authorization subject', employer, status: 'Authorization under review', lastSeen: issueStartDate, context: `${scenario.transactionInfo} for ${scenario.amount} is the employee-linked activity in scope.` },
-    ];
+    result.employeeProfile = employeeProfiles;
   }
   if (tools.has('Payroll History')) {
-    result.payrollHistory = Array.from({ length: Math.max(2, Math.min(4, recordCount)) }, (_, itemIndex) => ({ id: `${id}-PAYR-${itemIndex + 1}`, period: shiftedDate(reportedDate, -(itemIndex * 14)), employer, amount: money(Math.max(900, Math.round(amount / Math.max(1, recordCount)) + (itemIndex * 45))), channel: /payroll/i.test(claimType.lane) ? 'Direct deposit record' : 'Verified payroll income record', status: itemIndex === 0 ? 'Current period' : 'Posted prior period', context: itemIndex === 0 ? `${scenario.transactionInfo} is the current payroll activity in scope.` : `${person}'s prior payroll from ${employer} provides a dated amount and destination baseline.` }));
+    const runDates = [42, 28, 14, 0].map((days) => shiftedDate(reportedDate, -days));
+    const payroll = createCompanyPayrollData({
+      companyPayrollProfile: {
+        businessId,
+        legalName,
+        address: `${300 + (seed % 6000)} Company Training Drive, ${pick(['Dallas, TX', 'Arlington, TX', 'Fort Worth, TX'], seed, 2)}`,
+        maskedEin: `**-***${suffix.slice(-4)}`,
+        payrollId: `PAYROLL-${suffix}`,
+        paySchedule: 'Biweekly',
+        nextPayDate: shiftedDate(reportedDate, 14),
+        activeEmployeeCount: employeeProfiles.length,
+        selectedDateRange: `${runDates[0]} – ${runDates.at(-1)}`,
+      },
+      employeeProfiles,
+      runDefinitions: runDates.map((payDate, itemIndex) => ({
+        id: `${id}-PR-${itemIndex + 1}`,
+        payPeriodStart: shiftedDate(payDate, -13),
+        payPeriodEnd: payDate,
+        payDate,
+        runType: itemIndex === 2 && seed % 4 === 0 ? 'Correction' : 'Regular',
+        status: 'Settled',
+        fundingBankCode: `BC-FUND-${suffix.slice(-4)}`,
+        fundingAccount: `Operating checking ending ${suffix.slice(-4)}`,
+        fundingPaymentRecordId: `PV-FUND-${suffix}`,
+        submissionDate: shiftedDate(payDate, -3),
+        settlementDate: payDate,
+        submittedBy: 'Monica Patel · Payroll Administrator',
+        approvedBy: 'Morgan Reed · Controlling Party',
+      })),
+    });
+    result.companyPayrollProfile = payroll.companyPayrollProfile;
+    result.payrollRuns = payroll.payrollRuns;
   }
   return result;
 }
@@ -481,7 +651,7 @@ export function buildGeneratedToolResults({ id, index, person, city, employer, b
     transactions,
     financialIntel: makeFinancialIntel({ id, claimType, scenario, reportedDate, issueStartDate, amount, creditProfile, recordCount, transactions, documents }),
     paymentVerification,
-    ...makeBusinessRecords({ id, claimType, scenario, person, employer, business, reportedDate, issueStartDate, amount, recordCount, creditProfile }),
+    ...makeBusinessRecords({ id, claimType, scenario, person, employer, business, reportedDate, issueStartDate, paymentVerification }),
     ...evidence,
     identityReport: makeIdentityReport({ id, claimType, trainingId, person, reportedDate }),
   };

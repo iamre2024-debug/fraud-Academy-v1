@@ -53,7 +53,7 @@ for (const [claimIndex, claimType] of coreClaimTypes.entries()) {
   if (documentPatterns.size < 3) failures.push(`${claimType.label} produced only ${documentPatterns.size} repeated-case document patterns.`);
 }
 
-if (repeatedClaimCases.some((item) => item.generatedPacketVersion !== 6 || !item.scenarioVariantId || !item.scenarioVariant)) {
+if (repeatedClaimCases.some((item) => item.generatedPacketVersion !== 7 || !item.scenarioVariantId || !item.scenarioVariant)) {
   failures.push('Repeated generated cases are missing version 6 scenario-variation metadata.');
 }
 

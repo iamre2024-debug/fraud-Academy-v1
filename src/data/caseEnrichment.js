@@ -2,6 +2,7 @@ import { buildGeneratedCaseSummary, createGeneratedCase, makeGeneratedProfileCha
 import { buildCaseBriefingPacket } from './caseBriefingDetails.js';
 import { buildCaseIntakeAnswers } from './intakeAnswers.js';
 import { systemAccessRecordsByCase } from './systemAccessRecords.js';
+import { canonicalToolNames } from '../investigationToolGroups.js';
 
 const deviceIds = {
   'FA-ATO-24018': { 'iPhone 16': 'DEV-MAYA-IP16-001', 'Chrome Mobile': 'DEV-MAYA-CHRM-002' },
@@ -210,7 +211,7 @@ function buildClaimFields(item, context = {}) {
     customer: item.customer,
   });
   const briefingPacket = buildCaseBriefingPacket({ item, claimType, scenario, reportedDate });
-  const availableTools = item.availableTools ?? claimType.availableTools;
+  const availableTools = canonicalToolNames(item.availableTools ?? claimType.availableTools);
   const caseAvailableTools = systemAccessRecordsByCase[item.id]?.length && !claimType.chargeback
     ? dedupeStrings([...availableTools, 'System Access Lane'])
     : availableTools;
@@ -264,7 +265,7 @@ function buildClaimFields(item, context = {}) {
     ],
     productsAccounts: item.productsAccounts ?? [{ label: 'Product rail', value: claimType.taxonomy.productRail }, { label: 'Primary details', value: item.transactionInfo ?? scenario.transactionInfo }],
     availableTools: caseAvailableTools,
-    requiredTools: item.requiredTools ?? claimType.requiredTools,
+    requiredTools: canonicalToolNames(item.requiredTools ?? claimType.requiredTools),
     evidenceAreas: item.evidenceAreas ?? claimType.evidenceAreas,
     expectedEvidenceCategories: item.expectedEvidenceCategories ?? claimType.evidenceAreas,
     taxonomyTags: item.taxonomyTags ?? claimType.taxonomy,
@@ -275,7 +276,7 @@ function buildClaimFields(item, context = {}) {
 }
 
 function enrichOneCase(item) {
-  if (item.id?.includes('-G') && item.generatedPacketVersion !== 6 && item.claimTypeId && item.scenarioId) {
+  if (item.id?.includes('-G') && item.generatedPacketVersion !== 7 && item.claimTypeId && item.scenarioId) {
     const index = item.generatedAt ?? Number(String(item.id).replace(/\D/g, '').slice(-8)) ?? Date.now();
     const refreshed = createGeneratedCase({
       index,

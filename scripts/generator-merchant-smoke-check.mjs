@@ -2,7 +2,8 @@ import { claimGeneratorChoices, coreClaimTypes } from '../src/data/claimRegistry
 import { createGeneratedCase } from '../src/data/generatedCases.js';
 import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
 import { getFinancialInvestigation } from '../src/data/financialInvestigationRecords.js';
-import { getKybReview } from '../src/data/kybReviewRecords.js';
+import { businessResearchSections, getBusinessResearch } from '../src/data/kybReviewRecords.js';
+import { getPayrollHistory } from '../src/data/businessPayrollWorkspace.js';
 import { getMerchantIntelligence } from '../src/data/merchantIntelligenceRecords.js';
 import { buildCustomerDocumentResponse, customerDocumentResponseOutcomes, getCustomerDocumentResponseOutcome } from '../src/data/customerDocumentResponses.js';
 import { getCaseDocuments, getCaseDocumentRequests } from '../src/data/documentRecords.js';
@@ -34,7 +35,7 @@ for (const { claimType, scenario } of allScenarios) {
   if (!generated.caseTruth?.correctDetermination || generated.correctDetermination !== generated.caseTruth.correctDetermination) failures.push(`${scenario.id} is missing hidden case truth.`);
   if (!getReviewChoices(generated).includes(generated.correctDetermination)) failures.push(`${scenario.id} has a hidden determination that is not valid for its decision rail.`);
   if (!generated.timelineEvents?.length || !generated.evidenceDocuments?.length || !generated.intakeAnswers?.length) failures.push(`${scenario.id} is missing complete generated outputs.`);
-  if (generated.generatedPacketVersion !== 6) failures.push(`${scenario.id} is missing the complete-packet version marker.`);
+  if (generated.generatedPacketVersion !== 7) failures.push(`${scenario.id} is missing the complete-packet version marker.`);
   if (!generated.accountId?.startsWith('ACCT-')) failures.push(`${scenario.id} is missing its Account ID document lookup key.`);
   if (generatedAccountIds.has(generated.accountId)) failures.push(`${scenario.id} reused Account ID ${generated.accountId}.`);
   generatedAccountIds.add(generated.accountId);
@@ -51,9 +52,13 @@ for (const { claimType, scenario } of allScenarios) {
   if (generated.identityRecords.some((item) => /fictional case|available for (case comparison|review)/i.test(item.history))) failures.push(`${scenario.id} still has generic identity history.`);
   if (generated.availableTools.includes('Financial Investigation') && generated.toolResults.financialIntel.some((item) => /record available|fictional .* financial record/i.test(`${item.value} ${item.context}`))) failures.push(`${scenario.id} still has generic Financial Investigation data.`);
 
-  if (generated.availableTools.includes('Business 360') && generated.toolResults.business360?.length < 3) failures.push(`${scenario.id} is missing complete generated Business 360 relationships.`);
-  if (generated.availableTools.includes('KYB Review') && generated.toolResults.businessIntel?.length < 4) failures.push(`${scenario.id} is missing complete generated KYB relationship data.`);
+  if (generated.availableTools.includes('Business 360')) {
+    const businessResearch = getBusinessResearch(generated);
+    if (generated.toolResults.business360?.length !== 1 || !businessResearchSections.every((section) => businessResearch.recordsBySection[section.id]?.length)) failures.push(`${scenario.id} is missing its reusable generated Business 360 profile.`);
+  }
+  if (generated.availableTools.includes('KYB Review')) failures.push(`${scenario.id} still exposes KYB Review as a separate tool.`);
   if (generated.availableTools.includes('Employee Profile') && generated.toolResults.employeeProfile?.length < 2) failures.push(`${scenario.id} is missing complete generated employee-profile data.`);
+  if (generated.availableTools.includes('Payroll History') && getPayrollHistory(generated).contractIssues.length) failures.push(`${scenario.id} generated payroll history does not reconcile.`);
   if (generated.availableTools.includes('Payment Verification')) {
     const payment = generated.toolResults.paymentVerification?.[0];
     for (const field of ['object', 'bankName', 'accountType', 'accountHolder', 'ownerMatch', 'accountStatus', 'priorUse', 'firstSeen', 'bankCode', 'destinationId', 'verificationOutcome']) {
@@ -74,7 +79,7 @@ for (const { claimType, scenario } of allScenarios) {
   const merchantLane = ['fraud-chargeback', 'non-fraud-chargeback', 'first-party-fraud'].includes(claimType.id);
   if (merchantLane) {
     const merchant = getMerchantIntelligence(generated);
-    const forbiddenChargebackTools = ['Financial Investigation', 'Payment Verification', 'Business 360', 'KYB Review', 'Employee Profile', 'Payroll History'];
+    const forbiddenChargebackTools = ['Financial Investigation', 'Payment Verification', 'Business 360', 'Employee Profile', 'Payroll History'];
     if (generated.availableTools.some((tool) => forbiddenChargebackTools.includes(tool))) failures.push(`${scenario.id} exposes a non-chargeback tool in the chargeback workflow.`);
     const sections = new Set(merchant.records.map((item) => item.section));
     for (const section of ['overview', 'history', 'authorization', 'fulfillment', 'disputes', 'reason-code']) {
@@ -140,7 +145,7 @@ const [upgradedLegacyCase] = enrichTrainingCases([{
 }]);
 if (/fictional packet contains both routine and exception evidence/i.test(upgradedLegacyCase.shortSummary)) failures.push('Previously saved generated cases do not upgrade their placeholder summary when loaded.');
 if (upgradedLegacyCase.caseBriefing?.summary !== upgradedLegacyCase.shortSummary) failures.push('Upgraded generated-case briefing summary does not match its complete short summary.');
-if (upgradedLegacyCase.generatedPacketVersion !== 6 || !upgradedLegacyCase.accountId || upgradedLegacyCase.intakeAnswers.some((item) => genericIntakePattern.test(item.answer)) || upgradedLegacyCase.toolResults.business360?.length < 3 || upgradedLegacyCase.toolResults.businessIntel?.length < 4) failures.push('Previously saved generated cases do not upgrade their full investigation packet when loaded.');
+if (upgradedLegacyCase.generatedPacketVersion !== 7 || !upgradedLegacyCase.accountId || upgradedLegacyCase.intakeAnswers.some((item) => genericIntakePattern.test(item.answer)) || upgradedLegacyCase.toolResults.business360?.length !== 1 || !businessResearchSections.every((section) => getBusinessResearch(upgradedLegacyCase).recordsBySection[section.id]?.length)) failures.push('Previously saved generated cases do not upgrade their full investigation packet when loaded.');
 
 const enrichedBuiltIns = enrichTrainingCases(trainingCases);
 const builtInAccountIds = new Set();
@@ -159,10 +164,13 @@ if (sleeperBusiness.parties.some((party) => party.role === 'Employer')) failures
 if (!sleeperBusiness.briefingDetails.rows.some((row) => row.label === 'Employer / business' && row.value === sleeperBusiness.profile.business)) failures.push('Sleeper LLC briefing does not show the generated business in its business field.');
 if (sleeperBusiness.scenarioFamily !== 'Existing business account review' || sleeperBusiness.toolResults.creditProfile?.relationshipStage !== 'Existing relationship review') failures.push('Sleeper LLC does not preserve its dormant existing-business relationship context.');
 if (sleeperBusiness.toolResults.financialIntel.some((item) => /debt-to-income/i.test(item.type))) failures.push('Sleeper LLC Financial Investigation still shows a consumer debt-to-income row.');
-const sleeperRevenue = sleeperBusiness.toolResults.creditProfile?.statedAnnualIncome;
-if (!sleeperBusiness.toolResults.businessIntel.some((item) => item.type === 'Operating and revenue context' && item.value === sleeperRevenue)) failures.push('Sleeper LLC Business 360 and credit profile disagree on stated revenue.');
-const sleeperKyb = getKybReview(sleeperBusiness);
-if (sleeperKyb.profile.revenue.find((item) => item[1] === 'Stated annual revenue')?.[2] !== Number(sleeperRevenue.replace(/[^0-9.]/g, ''))) failures.push('Sleeper LLC KYB and Financial Investigation disagree on stated revenue.');
+const sleeperBusinessProfile = getBusinessResearch(sleeperBusiness);
+if (JSON.stringify(sleeperBusinessProfile).includes(sleeperBusiness.amount) || JSON.stringify(sleeperBusinessProfile).includes(sleeperBusiness.claimId)) failures.push('Sleeper LLC Business 360 contains current credit exposure or claim context.');
+if (sleeperBusiness.availableTools.some((tool) => ['Employee Profile', 'Payroll History'].includes(tool))) failures.push('Business-credit monitoring exposes employee or payroll tools without explicit payroll relevance.');
+for (const scenarioId of ['cr-new-business', 'cr-existing-business']) {
+  const businessCreditCase = createGeneratedCase({ index: sequence + 52, claimTypeId: 'credit-risk', scenarioId });
+  if (businessCreditCase.availableTools.some((tool) => ['Employee Profile', 'Payroll History'].includes(tool))) failures.push(`${scenarioId} exposes employee or payroll tools without explicit payroll relevance.`);
+}
 
 const duplicateBilling = createGeneratedCase({ index: sequence + 1, claimTypeId: 'non-fraud-chargeback', scenarioId: 'ncb-duplicate-billing', difficulty: 'deep', evidenceDepth: 'deep' });
 if (!/duplicate-processing/i.test(duplicateBilling.chargebackDecision?.reasonCode)) failures.push('Duplicate billing did not receive a scenario-specific reason code.');

@@ -2773,7 +2773,7 @@ body[data-visual-tab="workspace"] .merchant-intelligence-rail section > strong {
   }
 }
 
-/* Financial Investigation and KYB Review */
+/* Financial Investigation and legacy business-research layout compatibility */
 body[data-visual-tab="workspace"] .financial-investigation-kpis,
 body[data-visual-tab="workspace"] .kyb-review-kpis {
   display: grid;
@@ -5757,5 +5757,554 @@ body[data-visual-tab="workspace"] .business-360-evidence article small {
   body[data-visual-tab="workspace"] .employee-profile-detail header,
   body[data-visual-tab="workspace"] .payroll-history-detail header {
     display: grid;
+  }
+}
+
+/* Business 360 and normalized payroll history */
+body[data-visual-tab="workspace"] :is(
+  .business-360-lookup, .business-360-profile, .business-360-section-card,
+  .luna-business-research, .business-360-record-list, .business-360-record-detail,
+  .business-360-report, .payroll-company-header, .payroll-run-list,
+  .payroll-run-detail, .payroll-employee-table, .payroll-employee-history-header,
+  .payroll-paycheck-list, .paystub-sheet, .paystub-payment
+) {
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.13);
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(58, 42, 102, 0.045);
+}
+
+body[data-visual-tab="workspace"] :is(
+  .business-360-profile, .business-360-section-card, .luna-business-research,
+  .business-360-record-list, .business-360-record-detail, .business-360-report,
+  .payroll-company-header, .payroll-run-list, .payroll-run-detail,
+  .payroll-employee-table, .payroll-employee-history-header, .payroll-paycheck-list,
+  .paystub-sheet, .paystub-payment
+) > header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px;
+}
+
+body[data-visual-tab="workspace"] :is(
+  .business-360-lookup, .business-360-profile, .business-360-section-card,
+  .luna-business-research, .business-360-record-list, .business-360-record-detail,
+  .business-360-report, .payroll-company-header, .payroll-run-list,
+  .payroll-run-detail, .payroll-employee-table, .payroll-employee-history-header,
+  .payroll-paycheck-list, .paystub-sheet, .paystub-payment
+) :is(p, h3, h4) {
+  margin: 0;
+}
+
+body[data-visual-tab="workspace"] :is(
+  .business-360-lookup, .business-360-profile, .business-360-section-card,
+  .luna-business-research, .business-360-record-list, .business-360-record-detail,
+  .business-360-report, .payroll-company-header, .payroll-run-list,
+  .payroll-run-detail, .payroll-employee-table, .payroll-employee-history-header,
+  .payroll-paycheck-list, .paystub-sheet, .paystub-payment
+) p:first-child {
+  color: #7551c8;
+  font-size: 0.64rem;
+  font-weight: 850;
+}
+
+body[data-visual-tab="workspace"] :is(
+  .business-360-profile, .business-360-section-card, .business-360-record-detail,
+  .payroll-company-header, .payroll-run-detail, .paystub-parties,
+  .paystub-payment, .paystub-ytd
+) dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+  padding: 0 13px 13px;
+}
+
+body[data-visual-tab="workspace"] :is(
+  .business-360-profile, .business-360-section-card, .business-360-record-detail,
+  .payroll-company-header, .payroll-run-detail, .paystub-parties,
+  .paystub-payment, .paystub-ytd
+) dl > div {
+  min-width: 0;
+  border-radius: 7px;
+  background: #f8f5ff;
+  padding: 8px;
+}
+
+body[data-visual-tab="workspace"] :is(
+  .business-360-profile, .business-360-section-card, .business-360-record-detail,
+  .payroll-company-header, .payroll-run-detail, .paystub-parties,
+  .paystub-payment, .paystub-ytd
+) dt {
+  color: #786f8c;
+  font-size: 0.59rem;
+  font-weight: 850;
+}
+
+body[data-visual-tab="workspace"] :is(
+  .business-360-profile, .business-360-section-card, .business-360-record-detail,
+  .payroll-company-header, .payroll-run-detail, .paystub-parties,
+  .paystub-payment, .paystub-ytd
+) dd {
+  margin: 4px 0 0;
+  color: #342a51;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .business-360-lookup {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.8fr) minmax(260px, 1.2fr) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 13px;
+  background: #f8f5ff;
+}
+
+body[data-visual-tab="workspace"] .business-360-lookup > div,
+body[data-visual-tab="workspace"] .business-360-lookup form,
+body[data-visual-tab="workspace"] .business-360-findbar label {
+  display: grid;
+  gap: 5px;
+}
+
+body[data-visual-tab="workspace"] :is(.business-360-lookup, .business-360-findbar) input {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid rgba(91, 62, 154, 0.2);
+  border-radius: 7px;
+  background: #fff;
+  padding: 8px 10px;
+  color: #30264c;
+  font: inherit;
+}
+
+body[data-visual-tab="workspace"] .business-360-lookup-result {
+  display: flex;
+  gap: 8px;
+  border-left: 3px solid #4c9b72;
+  border-radius: 6px;
+  background: #edf8f2;
+  padding: 9px 11px;
+  color: #245a3d;
+  font-size: 0.68rem;
+}
+
+body[data-visual-tab="workspace"] .business-360-lookup-result.warning {
+  border-left-color: #c68a26;
+  background: #fff8e8;
+  color: #6c4b16;
+}
+
+body[data-visual-tab="workspace"] :is(
+  .business-360-inventory, .payroll-company-summary,
+  .payroll-employee-ytd, .paystub-totals
+) {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body[data-visual-tab="workspace"] :is(
+  .business-360-inventory, .payroll-company-summary,
+  .payroll-employee-ytd, .paystub-totals
+) article {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  border: 1px solid rgba(91, 62, 154, 0.12);
+  border-radius: 8px;
+  background: #fbfaff;
+  padding: 10px;
+}
+
+body[data-visual-tab="workspace"] :is(
+  .business-360-inventory, .payroll-company-summary,
+  .payroll-employee-ytd, .paystub-totals
+) span {
+  color: #766d8d;
+  font-size: 0.6rem;
+  font-weight: 800;
+}
+
+body[data-visual-tab="workspace"] :is(
+  .business-360-inventory, .payroll-company-summary,
+  .payroll-employee-ytd, .paystub-totals
+) strong {
+  color: #2f2650;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .business-360-tabs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+
+body[data-visual-tab="workspace"] :is(.business-360-tabs, .payroll-breadcrumbs) button {
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid rgba(91, 62, 154, 0.14);
+  border-radius: 7px;
+  background: #fbfaff;
+  padding: 7px;
+  color: #5c5373;
+  font-size: 0.64rem;
+  font-weight: 800;
+}
+
+body[data-visual-tab="workspace"] :is(.business-360-tabs, .payroll-breadcrumbs) button.active {
+  border-color: #7551c8;
+  background: #eee6ff;
+  color: #3d2b6d;
+}
+
+body[data-visual-tab="workspace"] .business-360-section-card > div,
+body[data-visual-tab="workspace"] .luna-business-research > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 13px 13px;
+}
+
+body[data-visual-tab="workspace"] .business-360-section-card article,
+body[data-visual-tab="workspace"] .luna-business-research article {
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(91, 62, 154, 0.11);
+  border-radius: 7px;
+  background: #fbfaff;
+  padding: 10px;
+  color: #43375f;
+  font-size: 0.67rem;
+}
+
+body[data-visual-tab="workspace"] .luna-business-caution {
+  margin: 0 13px 13px !important;
+  border-left: 3px solid #7551c8;
+  background: #f5f0ff;
+  padding: 8px 10px;
+  color: #4d406b;
+  font-size: 0.66rem;
+}
+
+body[data-visual-tab="workspace"] .business-360-findbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  border-bottom: 1px solid rgba(91, 62, 154, 0.12);
+  padding-bottom: 10px;
+}
+
+body[data-visual-tab="workspace"] .business-360-workspace {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.65fr) minmax(280px, 1.2fr) minmax(190px, 0.65fr);
+  align-items: start;
+  gap: 10px;
+}
+
+body[data-visual-tab="workspace"] .business-360-record-list,
+body[data-visual-tab="workspace"] .payroll-paycheck-list {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  padding: 10px;
+}
+
+body[data-visual-tab="workspace"] :is(
+  .business-360-record-list, .payroll-paycheck-list
+) > button {
+  display: grid;
+  width: 100%;
+  gap: 3px;
+  border: 1px solid rgba(91, 62, 154, 0.12);
+  border-radius: 7px;
+  background: #fbfaff;
+  padding: 9px;
+  text-align: left;
+}
+
+body[data-visual-tab="workspace"] .business-360-record-list > button.active {
+  border-color: #7551c8;
+  background: #f0eaff;
+}
+
+body[data-visual-tab="workspace"] :is(
+  .business-360-record-list, .payroll-paycheck-list
+) > button :is(span, small) {
+  color: #766d8d;
+  font-size: 0.6rem;
+}
+
+body[data-visual-tab="workspace"] .business-360-record-detail > article,
+body[data-visual-tab="workspace"] .business-360-report > p {
+  margin: 0 13px 12px;
+  border-radius: 7px;
+  background: #f8f5ff;
+  padding: 9px;
+  color: #4c4166;
+  font-size: 0.66rem;
+}
+
+body[data-visual-tab="workspace"] .business-360-related-records,
+body[data-visual-tab="workspace"] .paystub-payment-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  padding: 0 13px 12px;
+}
+
+body[data-visual-tab="workspace"] .business-360-record-detail > button,
+body[data-visual-tab="workspace"] .business-360-report > button {
+  margin: 0 13px 13px;
+}
+
+body[data-visual-tab="workspace"] .payroll-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 3px;
+}
+
+body[data-visual-tab="workspace"] .payroll-breadcrumbs button {
+  flex: 0 0 auto;
+}
+
+body[data-visual-tab="workspace"] .payroll-run-list {
+  display: grid;
+  gap: 9px;
+  padding: 0 12px 12px;
+}
+
+body[data-visual-tab="workspace"] .payroll-run-list > article {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) minmax(300px, 1.5fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(91, 62, 154, 0.12);
+  border-radius: 8px;
+  background: #fbfaff;
+  padding: 11px;
+}
+
+body[data-visual-tab="workspace"] .payroll-run-list > article > div {
+  display: grid;
+  gap: 3px;
+}
+
+body[data-visual-tab="workspace"] .payroll-run-list > article dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+
+body[data-visual-tab="workspace"] .payroll-run-list > article dl > div {
+  min-width: 0;
+  border-radius: 6px;
+  background: #fff;
+  padding: 7px;
+}
+
+body[data-visual-tab="workspace"] .payroll-run-list dt {
+  color: #786f8c;
+  font-size: 0.56rem;
+  font-weight: 800;
+}
+
+body[data-visual-tab="workspace"] .payroll-run-list dd {
+  margin: 3px 0 0;
+  color: #342a51;
+  font-size: 0.65rem;
+  font-weight: 750;
+}
+
+body[data-visual-tab="workspace"] :is(.payroll-table-scroll, .paystub-ledger) {
+  overflow-x: auto;
+}
+
+body[data-visual-tab="workspace"] :is(.payroll-employee-table, .paystub-ledger) table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+  color: #44395e;
+  font-size: 0.64rem;
+}
+
+body[data-visual-tab="workspace"] .payroll-employee-table .payroll-table-scroll,
+body[data-visual-tab="workspace"] .paystub-ledger {
+  padding: 0 13px 13px;
+}
+
+body[data-visual-tab="workspace"] :is(.payroll-employee-table, .paystub-ledger) :is(th, td) {
+  border-bottom: 1px solid rgba(91, 62, 154, 0.11);
+  padding: 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+body[data-visual-tab="workspace"] :is(.payroll-employee-table, .paystub-ledger) th {
+  background: #f8f5ff;
+  color: #5e5279;
+  font-weight: 850;
+}
+
+body[data-visual-tab="workspace"] .payroll-employee-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px;
+}
+
+body[data-visual-tab="workspace"] .paystub-sheet {
+  padding-bottom: 13px;
+}
+
+body[data-visual-tab="workspace"] .paystub-parties {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  padding: 0 13px 13px;
+}
+
+body[data-visual-tab="workspace"] .paystub-parties section,
+body[data-visual-tab="workspace"] .paystub-supplemental section,
+body[data-visual-tab="workspace"] .paystub-ytd {
+  min-width: 0;
+  border: 1px solid rgba(91, 62, 154, 0.11);
+  border-radius: 8px;
+  background: #fbfaff;
+  padding: 10px;
+}
+
+body[data-visual-tab="workspace"] .paystub-parties dl {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 8px 0 0;
+}
+
+body[data-visual-tab="workspace"] .paystub-ledger h4 {
+  padding: 9px 0;
+  color: #35294f;
+}
+
+body[data-visual-tab="workspace"] .paystub-supplemental {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  padding: 0 13px 13px;
+}
+
+body[data-visual-tab="workspace"] .paystub-supplemental p {
+  margin: 6px 0 0;
+  color: #5b506f;
+  font-size: 0.65rem;
+}
+
+body[data-visual-tab="workspace"] .paystub-totals {
+  padding: 0 13px 13px;
+}
+
+body[data-visual-tab="workspace"] .paystub-ytd {
+  margin: 0 13px;
+}
+
+body[data-visual-tab="workspace"] .paystub-ytd dl {
+  padding: 8px 0 0;
+}
+
+body[data-visual-tab="workspace"] .paystub-payment {
+  display: grid;
+  gap: 9px;
+  padding: 0 12px 12px;
+}
+
+body[data-visual-tab="workspace"] .paystub-payment > article {
+  border: 1px solid rgba(91, 62, 154, 0.11);
+  border-radius: 8px;
+  background: #fbfaff;
+  padding: 10px;
+}
+
+body[data-visual-tab="workspace"] .paystub-payment > article dl {
+  padding: 0;
+}
+
+@media (max-width: 1100px) {
+  body[data-visual-tab="workspace"] .business-360-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body[data-visual-tab="workspace"] .business-360-workspace {
+    grid-template-columns: minmax(210px, 0.7fr) minmax(0, 1.3fr);
+  }
+
+  body[data-visual-tab="workspace"] .business-360-report {
+    grid-column: 1 / -1;
+  }
+
+  body[data-visual-tab="workspace"] .payroll-company-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  body[data-visual-tab="workspace"] :is(
+    .business-360-lookup, .business-360-findbar,
+    .business-360-workspace, .payroll-run-list > article
+  ) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .business-360-tabs {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  body[data-visual-tab="workspace"] .business-360-tabs button {
+    flex: 0 0 145px;
+  }
+
+  body[data-visual-tab="workspace"] :is(
+    .business-360-profile, .business-360-section-card, .business-360-record-detail,
+    .payroll-company-header, .payroll-run-detail, .paystub-payment
+  ) dl,
+  body[data-visual-tab="workspace"] :is(
+    .business-360-inventory, .payroll-company-summary
+  ) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-visual-tab="workspace"] .business-360-section-card > div,
+  body[data-visual-tab="workspace"] .luna-business-research > div,
+  body[data-visual-tab="workspace"] .paystub-parties,
+  body[data-visual-tab="workspace"] .paystub-supplemental {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .payroll-run-list > article dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 430px) {
+  body[data-visual-tab="workspace"] :is(
+    .business-360-profile, .business-360-section-card, .business-360-record-detail,
+    .payroll-company-header, .payroll-run-detail, .paystub-payment
+  ) dl,
+  body[data-visual-tab="workspace"] .paystub-payment-actions,
+  body[data-visual-tab="workspace"] :is(
+    .business-360-inventory, .payroll-company-summary,
+    .payroll-employee-ytd, .paystub-totals
+  ) {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

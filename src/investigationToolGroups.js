@@ -32,7 +32,7 @@ export const investigationToolGroups = [
     label: 'Business & Payment Verification',
     icon: '🏢',
     question: 'What business, employee, payroll, and payment-verification facts are available?',
-    tools: ['Payment Verification', 'Business 360', 'KYB Review', 'Employee Profile', 'Payroll History'],
+    tools: ['Payment Verification', 'Business 360', 'Employee Profile', 'Payroll History'],
   },
   {
     key: 'evidence',
@@ -63,7 +63,23 @@ export const workspaceTools = [
   ...workflowReviewGroup.tools,
 ];
 
+export const legacyToolAliases = {
+  'Evidence Center': 'Document Viewer',
+  'Financial Intelligence': 'Financial Investigation',
+  'Business Intelligence': 'Business 360',
+  'KYB Review': 'Business 360',
+};
+
+export function canonicalToolName(toolName) {
+  return legacyToolAliases[toolName] ?? toolName;
+}
+
+export function canonicalToolNames(toolNames = []) {
+  return [...new Set(toolNames.map(canonicalToolName))];
+}
+
 export function groupForTool(toolName) {
-  return investigationToolGroups.find((group) => group.tools.includes(toolName))
-    ?? (workflowReviewGroup.tools.includes(toolName) ? workflowReviewGroup : null);
+  const canonicalName = canonicalToolName(toolName);
+  return investigationToolGroups.find((group) => group.tools.includes(canonicalName))
+    ?? (workflowReviewGroup.tools.includes(canonicalName) ? workflowReviewGroup : null);
 }
