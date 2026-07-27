@@ -62,7 +62,7 @@ async function openCoreTool(page, category, tool) {
   if (tool === 'Payment Verification') {
     const activeCaseId = await page.locator('.visual-case-switcher select').inputValue();
     const activeCase = builtInCases.find((item) => item.id === activeCaseId);
-    await expect(panel.locator('.payment-detail-panel')).toHaveCount(0);
+    await expect(panel.getByRole('status', { name: 'Payment verification result' })).toHaveCount(0);
     await runPaymentVerification(panel, activeCase);
   }
 
@@ -85,8 +85,8 @@ async function openCoreTool(page, category, tool) {
 
   const specializedSelectors = {
     'Payment Verification': {
-      record: '.payment-status-chip',
-      detail: '.payment-detail-panel',
+      record: '.payment-mission-chip',
+      detail: '.payment-mission-result',
     },
     'Document Viewer': {
       record: '[data-document-record]',
@@ -250,18 +250,18 @@ test('responsive investigation records stay inside the viewport', async ({ page 
   await openCoreTool(page, 'Business & Payment Verification', 'Payment Verification');
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  const detail = panel.locator('.payment-detail-panel');
-  const summary = panel.locator('.payment-verification-case-rail');
-  const firstField = panel.locator('.payment-detail-grid > div').first();
+  const detail = panel.getByRole('status', { name: 'Payment verification result' });
+  const summary = panel.getByRole('region', { name: 'Account snapshot' });
+  const firstField = summary.locator('article').first();
 
   await expect(summary).toBeVisible();
   await expect(firstField).toBeVisible();
 
   const layout = await page.evaluate(() => {
     const panelElement = document.querySelector('[data-investigation-tools-screen="approved-theme-v1"]');
-    const detailElement = document.querySelector('.payment-detail-panel');
-    const summaryElement = document.querySelector('.payment-verification-case-rail');
-    const fieldGrid = document.querySelector('.payment-detail-grid');
+    const detailElement = document.querySelector('.payment-mission-result');
+    const summaryElement = document.querySelector('.payment-mission-facts');
+    const fieldGrid = document.querySelector('.payment-mission-facts');
     const viewportWidth = window.innerWidth;
     const rect = (element) => element?.getBoundingClientRect();
     const withinViewport = (element) => {
@@ -289,11 +289,10 @@ test('responsive investigation records stay inside the viewport', async ({ page 
 
   if (testInfo.project.name === 'mobile-chromium') {
     expect(layout.fieldColumns).toBe(1);
-    expect(layout.summaryTop).toBeGreaterThan(layout.detailTop + 20);
   } else {
-    expect(layout.fieldColumns).toBe(2);
-    expect(Math.abs(layout.summaryTop - layout.detailTop)).toBeLessThanOrEqual(2);
+    expect(layout.fieldColumns).toBe(4);
   }
+  expect(layout.summaryTop).toBeGreaterThan(layout.detailTop);
 
   await assertEvidenceFirstLock(page, builtInCases[0].id);
 });

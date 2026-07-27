@@ -37,8 +37,8 @@ test('Payment Verification gates records, handles not-found, and reveals exact l
 
   await expect(panel.getByRole('heading', { name: 'Verify a specific payment destination' })).toBeVisible();
   await expect(panel.getByRole('region', { name: 'Payment Verification result hidden' })).toBeVisible();
-  await expect(panel.locator('.payment-verification-snapshot')).toHaveCount(0);
-  await expect(panel.locator('.payment-detail-panel')).toHaveCount(0);
+  await expect(panel.getByRole('region', { name: 'Account snapshot' })).toHaveCount(0);
+  await expect(panel.getByRole('status', { name: 'Payment verification result' })).toHaveCount(0);
   await expect(panel.getByRole('button', { name: 'Mark Payment Verification reviewed' })).toBeDisabled();
 
   await panel.getByRole('button', { name: 'Run verification', exact: true }).click();
@@ -49,7 +49,7 @@ test('Payment Verification gates records, handles not-found, and reveals exact l
   await panel.getByRole('textbox', { name: 'Owner or business name', exact: true }).fill('Maya Sterling');
   await panel.getByRole('button', { name: 'Run verification', exact: true }).click();
   await expect(panel.getByText('Destination Not Found', { exact: true }).first()).toBeVisible();
-  await expect(panel.locator('.payment-detail-panel')).toHaveCount(0);
+  await expect(panel.getByRole('status', { name: 'Payment verification result' })).toHaveCount(0);
 
   await panel.getByRole('button', { name: 'Edit search', exact: true }).click();
   await runPaymentVerification(panel, {
@@ -88,7 +88,7 @@ test('Payment Verification selects the actual account from duplicate destination
     ownerName: 'Avery Brooks',
   });
 
-  const snapshot = panel.locator('.payment-verification-snapshot');
+  const snapshot = panel.getByRole('region', { name: 'Account snapshot' });
   await expect(snapshot).toContainText('Partial Match');
   await expect(snapshot).toContainText('Partially matches person name');
   await expect(snapshot).toContainText('Open');
@@ -104,7 +104,7 @@ test('Payment Verification selects the actual account from duplicate destination
 
   const layout = await page.evaluate(() => {
     const panelElement = document.querySelector('[data-investigation-tools-screen="approved-theme-v1"]');
-    const detail = document.querySelector('.payment-detail-panel');
+    const detail = document.querySelector('.payment-mission-result');
     const facts = document.querySelector('.payment-mission-facts');
     const viewportWidth = window.innerWidth;
     const fits = (element) => {
@@ -152,8 +152,8 @@ test('Avery Customer 360 records the profile change without duplicating or prefi
   await expect(panel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue('');
   await expect(panel.getByRole('textbox', { name: 'Destination ID', exact: true })).toHaveValue('');
   await expect(panel.getByRole('textbox', { name: 'Owner or business name', exact: true })).toHaveValue('');
-  await expect(panel.locator('.payment-verification-snapshot')).toHaveCount(0);
-  await expect(panel.locator('.payment-detail-panel')).toHaveCount(0);
+  await expect(panel.getByRole('region', { name: 'Account snapshot' })).toHaveCount(0);
+  await expect(panel.getByRole('status', { name: 'Payment verification result' })).toHaveCount(0);
   await expect(panel.locator('.payment-comparison-panel')).toHaveCount(0);
   await expect(panel).not.toContainText('No prior external destination on file');
 
@@ -162,7 +162,7 @@ test('Avery Customer 360 records the profile change without duplicating or prefi
     destinationId: 'DST-7740',
     ownerName: 'Avery Brooks',
   });
-  const revealedDetail = panel.locator('.payment-detail-panel');
+  const revealedDetail = panel.getByRole('status', { name: 'Payment verification result' });
   await expect(revealedDetail).toBeVisible();
   await expect(revealedDetail).toContainText('BC-204');
   await expect(revealedDetail).toContainText('DST-7740');
@@ -221,12 +221,12 @@ test('generated payroll carries one exact account change from Payroll History in
   await expect(verificationPanel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue(sourceValues['Employee Bank Code']);
   await expect(verificationPanel.getByRole('textbox', { name: 'Destination ID', exact: true })).toHaveValue(sourceValues['Destination ID']);
   await expect(verificationPanel.getByRole('textbox', { name: 'Owner or business name', exact: true })).not.toHaveValue('');
-  await expect(verificationPanel.locator('.payment-verification-snapshot')).toHaveCount(0);
-  await expect(verificationPanel.locator('.payment-detail-panel')).toHaveCount(0);
+  await expect(verificationPanel.getByRole('region', { name: 'Account snapshot' })).toHaveCount(0);
+  await expect(verificationPanel.getByRole('status', { name: 'Payment verification result' })).toHaveCount(0);
   await expect(verificationPanel.locator('.payment-comparison-panel')).toHaveCount(0);
 
   await verificationPanel.getByRole('button', { name: 'Run verification', exact: true }).click();
-  const result = verificationPanel.locator('.payment-detail-panel');
+  const result = verificationPanel.getByRole('status', { name: 'Payment verification result' });
   await expect(result).toContainText(sourceValues['Employee Bank Code']);
   await expect(result).toContainText(sourceValues['Destination ID']);
   for (const label of ['Name relationship', 'Account status', 'NSF result', 'Time open / on record']) {

@@ -160,12 +160,13 @@ body[data-visual-tab="workspace"] .payment-mission-search input:focus {
   box-shadow: 0 0 0 3px rgba(78, 203, 255, 0.14), 0 0 20px rgba(44, 167, 255, 0.12);
 }
 
-body[data-visual-tab="workspace"] .payment-mission-search .investigation-tool-primary {
+body[data-visual-tab="workspace"] .payment-mission-search .payment-mission-primary,
+body[data-visual-tab="workspace"] .payment-mission-review .payment-mission-primary {
   border-color: #72dcff;
   background: linear-gradient(180deg, #0a8cf0, #0759bf);
 }
 
-body[data-visual-tab="workspace"] .payment-mission-deck .payment-verification-form-error {
+body[data-visual-tab="workspace"] .payment-mission-deck .payment-mission-form-error {
   border: 1px solid rgba(255, 93, 159, 0.36);
   border-radius: 10px;
   background: rgba(103, 16, 58, 0.45);
@@ -260,7 +261,7 @@ body[data-visual-tab="workspace"] .payment-mission-account-mark {
   box-shadow: 0 0 20px rgba(64, 203, 255, 0.26);
 }
 
-body[data-visual-tab="workspace"] .payment-mission-deck .payment-status-chip {
+body[data-visual-tab="workspace"] .payment-mission-deck .payment-mission-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -275,19 +276,19 @@ body[data-visual-tab="workspace"] .payment-mission-deck .payment-status-chip {
   white-space: nowrap;
 }
 
-body[data-visual-tab="workspace"] .payment-mission-deck .payment-status-chip.good,
+body[data-visual-tab="workspace"] .payment-mission-deck .payment-mission-chip.good,
 body[data-visual-tab="workspace"] .payment-mission-facts strong.good {
   border-color: rgba(69, 235, 177, 0.46);
   color: #5cf0bd;
 }
 
-body[data-visual-tab="workspace"] .payment-mission-deck .payment-status-chip.warn,
+body[data-visual-tab="workspace"] .payment-mission-deck .payment-mission-chip.warn,
 body[data-visual-tab="workspace"] .payment-mission-facts strong.warn {
   border-color: rgba(255, 207, 91, 0.46);
   color: #ffd768;
 }
 
-body[data-visual-tab="workspace"] .payment-mission-deck .payment-status-chip.alert,
+body[data-visual-tab="workspace"] .payment-mission-deck .payment-mission-chip.alert,
 body[data-visual-tab="workspace"] .payment-mission-facts strong.alert {
   border-color: rgba(255, 91, 160, 0.48);
   color: #ff78b5;
@@ -465,7 +466,7 @@ body[data-visual-tab="workspace"] .payment-mission-review span {
     grid-template-columns: auto minmax(0, 1fr);
   }
 
-  body[data-visual-tab="workspace"] .payment-mission-result-header > .payment-status-chip {
+  body[data-visual-tab="workspace"] .payment-mission-result-header > .payment-mission-chip {
     grid-column: 1 / -1;
     justify-self: start;
   }

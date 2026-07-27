@@ -208,7 +208,7 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Payment Verification');
   await expect(toolPanel.getByRole('heading', { name: 'Payment Verification', exact: true })).toBeVisible();
 
-  await expect(toolPanel.locator('.payment-detail-panel')).toHaveCount(0);
+  await expect(toolPanel.getByRole('status', { name: 'Payment verification result' })).toHaveCount(0);
   await runPaymentVerification(toolPanel, { bankCode: 'BC-441', destinationId: 'DST-CARD-4410', ownerName: 'Maya Sterling' });
   await toolPanel.getByRole('button', { name: 'Mark Payment Verification reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ Payment Verification reviewed', exact: true })).toBeVisible();

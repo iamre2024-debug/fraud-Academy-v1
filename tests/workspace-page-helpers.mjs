@@ -82,6 +82,7 @@ export async function runPaymentVerification(panel, {
   await panel.getByRole('textbox', { name: 'Destination ID', exact: true }).fill(destinationId);
   await panel.getByRole('textbox', { name: 'Owner or business name', exact: true }).fill(ownerName ?? person);
   await panel.getByRole('button', { name: 'Run verification', exact: true }).click();
-  await expect(panel.locator('.payment-detail-panel')).toBeVisible();
-  return panel.locator('.payment-detail-panel');
+  const result = panel.getByRole('status', { name: 'Payment verification result' });
+  await expect(result).toBeVisible();
+  return result;
 }

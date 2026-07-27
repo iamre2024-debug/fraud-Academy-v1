@@ -140,7 +140,7 @@ export default function PaymentVerificationWorkspace({
 
   return (
     <div className="payment-mission-deck" data-payment-verification-layout="mission-v2">
-      <section className="payment-verification-gate payment-mission-search" aria-label="Payment Verification search">
+      <section className="payment-mission-search" aria-label="Payment Verification search">
         <header>
           <div>
             <p>Search before reveal</p>
@@ -181,9 +181,9 @@ export default function PaymentVerificationWorkspace({
               autoComplete="off"
             />
           </label>
-          <button type="submit" className="investigation-tool-primary">Run verification</button>
+          <button type="submit" className="payment-mission-primary">Run verification</button>
         </form>
-        {lookupError && <div className="payment-verification-form-error" role="alert">{lookupError}</div>}
+        {lookupError && <div className="payment-mission-form-error" role="alert">{lookupError}</div>}
       </section>
 
       {!lookupResult && (
@@ -199,12 +199,12 @@ export default function PaymentVerificationWorkspace({
       {lookupResult?.state === 'not-found' && (
         <section
           ref={resultRef}
-          className="payment-verification-not-found payment-mission-not-found"
+          className="payment-mission-not-found"
           role="status"
           tabIndex="-1"
           aria-label="Payment destination not found"
         >
-          <span className="payment-status-chip alert">Destination Not Found</span>
+          <span className="payment-mission-chip alert">Destination Not Found</span>
           <h3>No exact Bank Code and Destination ID pair was located.</h3>
           <p>Check both identifiers against the source record. A missing destination does not determine the case outcome.</p>
           <button type="button" onClick={resetLookup}>Edit search</button>
@@ -214,7 +214,7 @@ export default function PaymentVerificationWorkspace({
       {activeRecord && (
         <section
           ref={resultRef}
-          className="payment-detail-panel payment-mission-result"
+          className="payment-mission-result"
           role="status"
           tabIndex="-1"
           aria-label="Payment verification result"
@@ -226,12 +226,12 @@ export default function PaymentVerificationWorkspace({
               <h3>{activeRecord.type}</h3>
               <span>{lookupResult.bankCode} · {lookupResult.destinationId}</span>
             </div>
-            <span className={`payment-status-chip ${resultTone(lookupResult.nameMatchResult)}`}>
+            <span className={`payment-mission-chip ${resultTone(lookupResult.nameMatchResult)}`}>
               {lookupResult.nameMatchResult}
             </span>
           </header>
 
-          <section className="payment-verification-snapshot payment-mission-facts" aria-label="Account snapshot">
+          <section className="payment-mission-facts" aria-label="Account snapshot">
             <article>
               <span>Name relationship</span>
               <strong>{nameRelationship(lookupResult)}</strong>
@@ -265,7 +265,7 @@ export default function PaymentVerificationWorkspace({
             <div><dt>Status date</dt><dd>{lookupResult.statusAsOf}</dd></div>
           </dl>
 
-          <div className="payment-action-panel payment-mission-actions" aria-label="Payment Verification evidence actions">
+          <div className="payment-mission-actions" aria-label="Payment Verification evidence actions">
             <button type="button" onClick={() => pin(lookupResult.recordId)}>Pin result</button>
             <button type="button" onClick={() => quickPin({
               label: 'Bank Code',
@@ -286,7 +286,7 @@ export default function PaymentVerificationWorkspace({
       )}
 
       {lookupHistory.length > 0 && (
-        <section className="payment-lookup-history payment-mission-history" aria-label="Payment Verification lookup history">
+        <section className="payment-mission-history" aria-label="Payment Verification lookup history">
           <header><p>Lookup history</p><h3>Recent searches for this case</h3></header>
           <div>
             {lookupHistory.map((item) => (
@@ -300,12 +300,12 @@ export default function PaymentVerificationWorkspace({
         </section>
       )}
 
-      <nav className="investigation-tool-next-routes payment-mission-routes" aria-label="Payment verification next routes">
+      <nav className="payment-mission-routes" aria-label="Payment verification next routes">
         {relatedRoutes.map((route) => <button key={route} type="button" onClick={() => openTool(route)}>{`Open ${route}`}</button>)}
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
 
-      <footer className="investigation-tool-review-bar payment-mission-review">
+      <footer className="payment-mission-review">
         <div>
           <strong>Payment Verification review</strong>
           <span>Run an exact lookup and review the name relationship, account state, NSF result, and supported account age before marking this tool reviewed.</span>
@@ -313,7 +313,7 @@ export default function PaymentVerificationWorkspace({
         <button
           type="button"
           disabled={!activeRecord}
-          className={reviewed ? '' : 'investigation-tool-primary'}
+          className={reviewed ? '' : 'payment-mission-primary'}
           onClick={() => markReviewed('Payment Verification')}
         >
           {reviewed ? '✓ Payment Verification reviewed' : 'Mark Payment Verification reviewed'}

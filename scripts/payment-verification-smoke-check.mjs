@@ -380,6 +380,19 @@ if (/\b(?:fraud score|name match score|confidence score|\d{1,3}% confidence)\b/i
 if (/\b(?:approve|deny|hold|release|ready for payments)\b/i.test(paymentWorkspace)) {
   fail('Payment Verification UI exposes pre-decision approval or payment-routing language.');
 }
+for (const legacyClass of [
+  'payment-verification-gate',
+  'payment-detail-panel',
+  'payment-verification-snapshot',
+  'payment-action-panel',
+  'payment-lookup-history',
+  'investigation-tool-next-routes',
+  'investigation-tool-review-bar',
+]) {
+  if (paymentWorkspace.includes(legacyClass)) {
+    fail(`Payment Verification still couples the rebuilt layout to legacy class ${legacyClass}.`);
+  }
+}
 for (const anchor of [
   "import PaymentVerificationWorkspace from './PaymentVerificationWorkspace.jsx'",
   "tool === 'Payment Verification'",
