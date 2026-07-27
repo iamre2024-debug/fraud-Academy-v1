@@ -61,7 +61,9 @@ export async function openMobileWorkspaceShortcut(page, shortcutName) {
 export async function openWorkflowStage(page, stageName) {
   const workflow = await openWorkspacePages(page);
   const stage = workflowStages.find(({ names }) => names.some((name) => matchesStageRequest(stageName, name)));
-  const stageButton = workflow.getByRole('button', { name: stage?.buttonName ?? stageName });
+  const stageButton = stage
+    ? workflow.locator(`[data-workflow-stage-button="${stage.names[0]}"]`)
+    : workflow.getByRole('button', { name: stageName });
   const mobile = await page.locator('.mission-workspace-v3').isVisible();
   const expectedScreen = stage?.screen === 'indicators' && !mobile ? 'evidence' : stage?.screen;
 

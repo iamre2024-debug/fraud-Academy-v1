@@ -443,6 +443,7 @@ function MissionPath({ activeCase, activeStage, onOpenSettings, onSelect, stageS
             key={key}
             type="button"
             className={activeStage === key ? 'active' : ''}
+            data-workflow-stage-button={key}
             onClick={() => onSelect(key)}
             disabled={stageStatus[key]?.state === 'locked'}
             aria-disabled={stageStatus[key]?.state === 'locked' ? 'true' : undefined}
