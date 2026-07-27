@@ -189,7 +189,7 @@ body[data-layout-mode="mobile"] .mobile-intel-search:focus-within {
 
 body[data-layout-mode="mobile"] .mobile-intel-search input {
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   border: 0;
   outline: 0;
   color: var(--intel-text);
@@ -526,7 +526,21 @@ body[data-layout-mode="mobile"] .mobile-intel-fact-row {
   border-bottom: 1px solid rgba(69, 120, 215, 0.16);
 }
 
+body[data-layout-mode="mobile"] .mobile-intel-fact-list > .mobile-intel-fact-row {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid rgba(69, 120, 215, 0.16);
+  border-radius: 0;
+  color: var(--intel-text);
+  background: transparent;
+  box-shadow: none;
+}
+
 body[data-layout-mode="mobile"] .mobile-intel-fact-row:last-child {
+  border-bottom: 0;
+}
+
+body[data-layout-mode="mobile"] .mobile-intel-fact-list > .mobile-intel-fact-row:last-child {
   border-bottom: 0;
 }
 
@@ -696,6 +710,12 @@ body[data-layout-mode="mobile"] .mobile-device-history .device-history-list arti
   display: grid;
   gap: 4px;
   min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+  text-transform: none;
 }
 
 body[data-layout-mode="mobile"] .mobile-device-history .device-history-list strong {
