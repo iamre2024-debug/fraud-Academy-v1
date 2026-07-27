@@ -185,26 +185,42 @@ test('generated payroll carries one exact account change from Payroll History in
   const toolSelector = payrollPanel.getByRole('combobox', { name: 'Choose investigation tool' });
   await toolSelector.selectOption('Payroll History');
   await expect(payrollPanel).toHaveAttribute('data-tool-name', 'Payroll History');
-  await payrollPanel.getByRole('region', { name: 'Company payroll runs' })
-    .getByRole('button', { name: 'Open Payroll', exact: true })
-    .first()
-    .click();
-  const employees = payrollPanel.getByRole('region', { name: 'Employees included in payroll run' });
-  await employees.locator('tbody tr').first().getByRole('button').click();
-  const employeeHistory = payrollPanel.getByRole('region', { name: /paycheck history$/i });
-  await employeeHistory.locator('[data-paycheck]').first().click();
+  const hierarchy = payrollPanel.getByRole('navigation', { name: 'Payroll History hierarchy' });
+  await expect(hierarchy).toContainText('Company Payroll History');
+  await expect(hierarchy).toContainText('Payroll Run Detail');
+  await expect(hierarchy).toContainText('Employee Payroll History');
+  await expect(hierarchy).toContainText('Individual Paystub');
 
-  const source = payrollPanel.getByRole('region', { name: 'Paystub payment destinations', exact: true });
-  await expect(source).toBeVisible();
-  const sourceValues = await source.locator('article').first().locator('dl > div').evaluateAll((rows) => Object.fromEntries(rows.map((row) => [
-    row.querySelector('dt')?.textContent?.trim(),
-    row.querySelector('dd')?.textContent?.trim(),
-  ])));
-  expect(sourceValues['Employee Bank Code']).toMatch(/^BC-[A-Z0-9-]+$/i);
-  expect(sourceValues['Destination ID']).toMatch(/^DST-[A-Z0-9-]+$/i);
-  await expect(source).not.toContainText(/Ownership status|Operational account status|Standing|Prior-use history/i);
+  const payrollRecords = payrollPanel.getByRole('region', { name: 'Payroll History records' });
+  const firstRun = payrollRecords.locator('[data-payroll-history-record]').first();
+  await expect(firstRun).toBeVisible();
+  await firstRun.click();
 
-  await source.getByRole('button', { name: 'Open Payment Verification', exact: true }).click();
+  const runDetail = payrollPanel.getByRole('region', { name: 'Payroll History detail' });
+  await expect(runDetail).toBeVisible();
+  for (const label of [
+    'Employee Bank Code',
+    'Destination ID',
+    'New account / destination',
+    'Previous account / destination',
+    'Change comparison',
+  ]) {
+    await expect(runDetail.getByText(label, { exact: true })).toBeVisible();
+  }
+
+  const paystubs = payrollPanel.getByRole('region', { name: 'Immutable employee paystubs' });
+  const paystubRow = paystubs.locator('tbody tr').first();
+  await expect(paystubRow).toBeVisible();
+  const destinationText = await paystubRow.locator('td').last().locator('span').innerText();
+  const destinationMatch = destinationText.match(/\b(BC-[A-Z0-9-]+)\s*·\s*(DST-[A-Z0-9-]+)\b/i);
+  expect(destinationMatch).not.toBeNull();
+  const sourceValues = {
+    'Employee Bank Code': destinationMatch[1],
+    'Destination ID': destinationMatch[2],
+  };
+  await expect(paystubs).not.toContainText(/Ownership status|Operational account status|Standing|Prior-use history/i);
+
+  await paystubRow.getByRole('button', { name: 'Open Payment Verification', exact: true }).click();
   const verificationPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(verificationPanel).toHaveAttribute('data-tool-name', 'Payment Verification');
   await expect(verificationPanel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue(sourceValues['Employee Bank Code']);

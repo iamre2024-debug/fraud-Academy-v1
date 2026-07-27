@@ -23,7 +23,7 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
     await expect(referencePage).toBeVisible();
     await expect(referencePage.getByRole('heading', { name: 'Manual Request Inbox', exact: true })).toBeVisible();
     await expect(referencePage.getByRole('heading', { name: 'Requested Documents', exact: true })).toBeVisible();
-    await expect(referencePage.getByRole('region', { name: 'Document preview' })).toBeVisible();
+    await expect(referencePage.locator('.mobile-reference-document-preview')).not.toBeVisible();
     await expect(referencePage).toContainText('Nothing is sent until you complete the request form.');
     const visibleHeadingGeometry = await documentMission.locator('h2, h3').evaluateAll((headings) => headings
       .filter((heading) => {
@@ -47,6 +47,12 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(toolPanel.locator('[data-document-request]')).toHaveCount(1);
   await expect(toolPanel.locator('[data-document-request]').first()).toContainText('Customer dispute form');
   await expect(toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation' })).toHaveCount(0);
+  if (testInfo.project.name === 'mobile-chromium') {
+    await toolPanel.locator('[data-document-request]').first().click();
+    const selectedPreview = toolPanel.getByRole('region', { name: 'Document preview' });
+    await expect(selectedPreview).toBeVisible();
+    await expect(selectedPreview).toContainText('Customer dispute form');
+  }
 
   await toolPanel.locator('.document-request-compose-button').click();
   const composer = toolPanel.getByRole('main', { name: 'Compose paperwork request' });

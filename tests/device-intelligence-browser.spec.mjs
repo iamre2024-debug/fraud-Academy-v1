@@ -48,8 +48,11 @@ test('generated Device ID lookup returns a complete profile and never leaks a st
 
   const search = panel.getByRole('textbox', { name: 'Search Device Intelligence records' });
   const reviewButton = panel.getByRole('button', { name: 'Mark Device Intelligence reviewed' });
-  await expect(panel.getByText('Lookup required', { exact: true })).toBeVisible();
-  await expect(panel.getByText('Run a device lookup to reveal', { exact: true }).first()).toBeVisible();
+  const lookupStatus = testInfo.project.name === 'mobile-chromium'
+    ? panel.getByLabel('Device Intelligence lookup').getByText('Lookup required', { exact: true })
+    : panel.getByText('Lookup required', { exact: true }).first();
+  await expect(lookupStatus).toBeVisible();
+  await expect(panel.getByText('Run a device lookup to reveal', { exact: false }).first()).toBeVisible();
   await expect(reviewButton).toBeDisabled();
 
   const firstDevice = panel.locator('[data-device-intelligence-record]').first();
@@ -66,7 +69,9 @@ test('generated Device ID lookup returns a complete profile and never leaks a st
   await expect(panel.locator('.device-intel-snapshot').getByText(/^FP-/)).toBeVisible();
   await expect(detail.getByText(/^BR-/)).toBeVisible();
   await expect(detail).not.toContainText(/Lookup needed|Run a device lookup to reveal/i);
-  await expect(panel.locator('.device-history-panel')).toContainText(/Successful|Failed|Account locked/);
+  const deviceHistory = panel.locator('.device-history-panel').first();
+  await expect(deviceHistory).toContainText(/SES-[A-Z0-9-]+/i);
+  await expect(deviceHistory).toContainText(/Face ID|Fingerprint|Biometric|Password|Code|MFA/i);
   await expect(reviewButton).toBeEnabled();
 
   await search.fill(`${deviceId}-MISSING`);

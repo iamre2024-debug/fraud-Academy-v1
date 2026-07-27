@@ -479,8 +479,8 @@ test('legacy IndexedDB cases and learner progress survive the versioned domain m
   expect(migrated.reviewPackage.id).toBe('PKG-IDB-9999');
   expect(migrated.reviewPackage.savedAtIso).toBe(savedAtIso);
   expect(migrated.reviewPackage.completedTools).toEqual(['Document Viewer', 'Financial Investigation']);
-  expect(migrated.reviewPackage.requiredTools).toEqual(['Case Summary', 'Document Viewer', 'KYB Review']);
-  expect(migrated.reviewPackage.missingTools).toEqual(['KYB Review']);
+  expect(migrated.reviewPackage.requiredTools).toEqual(['Case Summary', 'Document Viewer', 'Business 360']);
+  expect(migrated.reviewPackage.missingTools).toEqual(['Business 360']);
   expect(migrated.completedTools).toEqual([
     'Case Summary',
     'Identity Intel / People Search',

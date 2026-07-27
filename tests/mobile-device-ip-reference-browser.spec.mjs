@@ -47,7 +47,10 @@ test('Device and IP Intelligence use dedicated mobile evidence pages without cha
   await expect(devicePage.locator('.device-detail-panel')).toContainText(deviceId);
   await expect(devicePage.locator('.mobile-device-lookup-details').getByText(/^FP-/)).toBeVisible();
   await expect(devicePage.locator('.mobile-device-lookup-details').getByText(/^BR-/)).toBeVisible();
-  await expect(devicePage.locator('.device-history-panel')).toContainText(/Successful|Failed|Account locked/);
+  const deviceHistory = devicePage.locator('.device-history-panel');
+  await expect(deviceHistory.getByRole('heading', { name: 'Complete recorded event log', exact: true })).toBeVisible();
+  await expect(deviceHistory.locator('article').first()).toContainText(/SES-[A-Z0-9-]+/i);
+  await expect(deviceHistory.locator('article').first()).toContainText(/Face ID|Fingerprint|Biometric|Password|Code|MFA/i);
   await expect(devicePage.getByRole('button', { name: 'Mark Device Intelligence reviewed', exact: true })).toBeEnabled();
 
   await devicePage.getByRole('button', { name: 'Pin Device ID', exact: true }).click();
