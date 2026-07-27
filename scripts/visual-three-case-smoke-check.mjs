@@ -296,7 +296,7 @@ for (const required of [
 for (const required of [
   'getDecisionCallGroups(activeCase)',
   'selectionGroups.map',
-  'className="ornate-card submit-decision-panel decision-theme-v1"',
+  'className="submit-decision-panel decision-theme-v1 decision-final-review"',
   'activeCase.id',
   'Submit Decision',
 ]) {
