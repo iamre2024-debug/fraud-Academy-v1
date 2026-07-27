@@ -239,7 +239,14 @@ async function decompressBytes(bytes, compression) {
   return streamToBytes(stream);
 }
 
-async function deriveEncryptionKey(recoveryCode) {
+const legacyGlobalSalt = 'fraud-academy-cloud-sync-v1';
+const saltByteLength = 16;
+
+function legacySaltBytes() {
+  return new TextEncoder().encode(legacyGlobalSalt);
+}
+
+async function deriveEncryptionKey(recoveryCode, saltBytes) {
   const material = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(recoveryCode),
@@ -251,7 +258,7 @@ async function deriveEncryptionKey(recoveryCode) {
     {
       name: 'PBKDF2',
       hash: 'SHA-256',
-      salt: new TextEncoder().encode('fraud-academy-cloud-sync-v1'),
+      salt: saltBytes,
       iterations: 150000,
     },
     material,
@@ -270,12 +277,14 @@ export async function encryptCloudSnapshot(snapshot, recoveryCode) {
   const encoded = new TextEncoder().encode(JSON.stringify(snapshot));
   const compressed = await compressBytes(encoded);
   const iv = randomBytes(12);
-  const key = await deriveEncryptionKey(recoveryCode);
+  const salt = randomBytes(saltByteLength);
+  const key = await deriveEncryptionKey(recoveryCode, salt);
   const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, compressed.bytes);
   return {
     version: 1,
     algorithm: 'AES-GCM',
     compression: compressed.compression,
+    salt: bytesToBase64Url(salt),
     iv: bytesToBase64Url(iv),
     ciphertext: bytesToBase64Url(new Uint8Array(encrypted)),
   };
@@ -285,7 +294,10 @@ export async function decryptCloudSnapshot(payload, recoveryCode) {
   if (!payload || payload.version !== 1 || payload.algorithm !== 'AES-GCM') {
     throw new Error('Cloud recovery returned an unsupported payload.');
   }
-  const key = await deriveEncryptionKey(recoveryCode);
+  const saltBytes = typeof payload.salt === 'string' && payload.salt
+    ? base64UrlToBytes(payload.salt)
+    : legacySaltBytes();
+  const key = await deriveEncryptionKey(recoveryCode, saltBytes);
   const decrypted = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: base64UrlToBytes(payload.iv) },
     key,
@@ -389,6 +401,7 @@ async function performSync() {
   emitState({ status: 'syncing', message: 'Syncing encrypted recovery data.', pending: true });
   const syncIdentifier = await cloudSyncIdentifier(recoveryCode);
   let localSnapshot = await createLocalSnapshot();
+  const localClockAtSnapshot = readMetadata().clock;
   let cloudRecord = await requestCloudRecord(syncIdentifier);
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
@@ -400,7 +413,21 @@ async function performSync() {
     const result = await saveCloudRecord(syncIdentifier, cloudRecord.revision, encryptedPayload);
 
     if (!result.conflict) {
-      await applyMergedSnapshot(mergedSnapshot);
+      const currentLocalSnapshot = await createLocalSnapshot();
+      const localClockNow = readMetadata().clock;
+      const reconciledSnapshot = mergeCloudSnapshots(currentLocalSnapshot, mergedSnapshot);
+      await applyMergedSnapshot(reconciledSnapshot);
+
+      if (localClockNow !== localClockAtSnapshot) {
+        emitState({
+          status: 'pending',
+          message: 'A local change is waiting to sync.',
+          pending: true,
+        });
+        scheduleSync();
+        return getCloudSyncState();
+      }
+
       const lastSyncedAt = new Date().toISOString();
       emitState({
         status: 'synced',
@@ -422,7 +449,7 @@ export function syncNow({ force = false } = {}) {
   if (!browserAvailable()) return Promise.resolve(getCloudSyncState());
   if (syncInFlight && !force) return syncInFlight;
   if (syncInFlight && force) {
-    return syncInFlight.finally(() => syncNow());
+    return syncInFlight.then(() => syncNow(), () => syncNow());
   }
   syncInFlight = performSync()
     .catch((error) => {

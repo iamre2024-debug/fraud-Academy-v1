@@ -121,7 +121,10 @@ for (const claimType of coreClaimTypes) {
 
 if (!generatedCases) fail('No generated Device Intelligence cases were exercised.');
 
-const panel = fs.readFileSync(new URL('../src/InvestigationToolPanel.jsx', import.meta.url), 'utf8');
+const panel = [
+  '../src/InvestigationToolPanel.jsx',
+  '../src/tools/DeviceIntelligenceWorkspace.jsx',
+].map((file) => fs.readFileSync(new URL(file, import.meta.url), 'utf8')).join('\n');
 for (const anchor of [
   'No matching device record returned',
   'No device intelligence records match this lookup.',

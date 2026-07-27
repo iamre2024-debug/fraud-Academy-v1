@@ -176,7 +176,8 @@
 }
 .case-quick-pad-note button:disabled { opacity: .45; }
 
-@media (max-width: 700px) {
+/* Match the shared mobile layout cutoff. The old 700px rule left a 701–720px gap. */
+@media (max-width: 720px) {
   .case-quick-pad {
     right: 12px;
     bottom: calc(88px + env(safe-area-inset-bottom));

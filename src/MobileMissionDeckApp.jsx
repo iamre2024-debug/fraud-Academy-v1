@@ -5,6 +5,7 @@ import CasesThemeV1Panel from './CasesThemeV1Panel.jsx';
 import LunaApiAccessSetting from './LunaApiAccessSetting.jsx';
 import CloudSyncControl from './CloudSyncControl.jsx';
 import ProfileThemeV1Panel from './ProfileThemeV1Panel.jsx';
+import SkipToMainContentLink from './SkipToMainContentLink.jsx';
 import { publicCaseTaxonomy } from './data/publicCaseView.js';
 
 const reducedMotionKey = 'fraud-academy-reduced-motion-v1';
@@ -118,6 +119,7 @@ export default function MobileMissionDeckApp({
   return (
     <div className="mission-mobile-root" data-mobile-mission-tab={activeTab}>
       <MissionAtmosphere />
+      <SkipToMainContentLink />
       <header className="mission-mobile-header">
         <button type="button" className="mission-mobile-brand" aria-label="Open dashboard" onClick={() => navigate('dashboard')}>
           <span aria-hidden="true">🛡️</span>
@@ -172,7 +174,7 @@ export default function MobileMissionDeckApp({
         </section>
       )}
 
-      <div className="mission-mobile-viewport">
+      <main id="main" className="mission-mobile-viewport" tabIndex={-1}>
         <section className="mission-mobile-page" hidden={activeTab !== 'dashboard'} data-mission-page="dashboard">
           {activeTab === 'dashboard' && (
             <MissionDashboard
@@ -224,7 +226,7 @@ export default function MobileMissionDeckApp({
             />
           )}
         </section>
-      </div>
+      </main>
 
       <nav className="mission-mobile-dock" aria-label="Mission navigation">
         {routes.map((route) => (

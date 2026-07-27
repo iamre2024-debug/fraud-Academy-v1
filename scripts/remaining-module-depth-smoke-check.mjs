@@ -156,7 +156,10 @@ if (!lunaUnlocked || typeof lunaUnlocked.score !== 'number') {
 
 const activePanel = fs.readFileSync('src/ActiveToolPanel.jsx', 'utf8');
 const caseSummary = fs.readFileSync('src/CaseSummaryCard.jsx', 'utf8');
-const investigationToolPanel = fs.readFileSync('src/InvestigationToolPanel.jsx', 'utf8');
+const investigationToolPanel = [
+  'src/InvestigationToolPanel.jsx',
+  'src/tools/IdentityIntelWorkspace.jsx',
+].map((file) => fs.readFileSync(file, 'utf8')).join('\n');
 const scenarioCatalog = fs.readFileSync('src/data/claimScenarioCatalog.js', 'utf8');
 const repositoryAdapter = fs.readFileSync('src/data/generatedCaseRepository.js', 'utf8');
 

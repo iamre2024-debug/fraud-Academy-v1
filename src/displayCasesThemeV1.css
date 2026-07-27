@@ -1048,3 +1048,19 @@ body[data-visual-tab="cases"] .visual-react-bottom-nav button.active {
     transform: none;
   }
 }
+
+.case-generator-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid rgba(181, 35, 102, 0.58);
+  border-radius: 12px;
+  background: rgba(75, 13, 45, 0.12);
+  color: #8f174d;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.case-generator-error strong {
+  display: block;
+}
