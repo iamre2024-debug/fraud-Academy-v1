@@ -8,6 +8,7 @@ import MobileLunaPortrait from './MobileLunaPortrait.jsx';
 import ProfileThemeV1Panel from './ProfileThemeV1Panel.jsx';
 
 const reducedMotionKey = 'fraud-academy-reduced-motion-v1';
+const openMobileSettingsEvent = 'fraud-academy:open-mobile-settings';
 
 const storageKeys = {
   completed: 'fraud-academy-completed-tools-v1',
@@ -95,6 +96,12 @@ export default function MobileMissionDeckApp({
       window.removeEventListener('fraud-academy:packages-updated', refresh);
       window.removeEventListener('fraud-academy:cloud-hydrated', refresh);
     };
+  }, []);
+
+  useEffect(() => {
+    const openSettings = () => setControl('settings');
+    window.addEventListener(openMobileSettingsEvent, openSettings);
+    return () => window.removeEventListener(openMobileSettingsEvent, openSettings);
   }, []);
 
   useEffect(() => {

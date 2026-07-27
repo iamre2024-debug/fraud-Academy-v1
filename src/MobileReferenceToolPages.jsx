@@ -78,6 +78,7 @@ function MobilePaymentSourceHandoff({
   sourceLabel,
   sourceRecordId = '',
   ariaLabel,
+  ownerName: ownerNameOverride,
 }) {
   if (
     !source
@@ -88,7 +89,7 @@ function MobilePaymentSourceHandoff({
   ) return null;
 
   const recordId = sourceRecordId || source.recordId || source.id || '';
-  const ownerName = source.ownerToCompare || source.accountHolder || activeCase.person;
+  const ownerName = ownerNameOverride || source.ownerToCompare || source.accountHolder || activeCase.person;
   const hint = buildPaymentLookupHint({
     bankCode: source.bankCode,
     destinationId: source.destinationId,
@@ -210,6 +211,7 @@ export function MobileCustomer360Page({
             sourceTool="Customer 360"
             sourceLabel="Customer 360"
             ariaLabel="Payment Account Change"
+            ownerName={activeCase.person}
           />
         </MobilePanel>
       )}

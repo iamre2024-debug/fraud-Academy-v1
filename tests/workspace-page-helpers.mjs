@@ -72,6 +72,25 @@ export async function selectToolGroup(page, groupName) {
   return groups;
 }
 
+export async function selectCurrentGroupTool(page, toolName) {
+  const mobileShell = page.locator('.mission-workspace-v3');
+  if (await mobileShell.isVisible()) {
+    if (await mobileShell.getAttribute('data-active-tool') === toolName) return;
+
+    const selector = page.getByRole('combobox', { name: 'Choose mobile investigation tool', exact: true });
+    await expect(selector).toBeVisible();
+    if (await selector.inputValue() !== toolName) await selector.selectOption(toolName);
+    await expect(mobileShell).toHaveAttribute('data-active-tool', toolName);
+    return;
+  }
+
+  const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
+  const selector = panel.getByRole('combobox', { name: 'Choose investigation tool', exact: true });
+  await expect(selector).toBeVisible();
+  if (await selector.inputValue() !== toolName) await selector.selectOption(toolName);
+  await expect(panel).toHaveAttribute('data-tool-name', toolName);
+}
+
 export async function runPaymentVerification(panel, {
   bankCode,
   destinationId,

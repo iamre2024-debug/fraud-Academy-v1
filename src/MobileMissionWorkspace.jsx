@@ -25,6 +25,8 @@ const screenCopy = {
   debrief: ['🌙', 'Luna Debrief'],
 };
 
+const openMobileSettingsEvent = 'fraud-academy:open-mobile-settings';
+
 const missionStages = [
   ['briefing', '🗃️', 'Briefing', 'Read the intake and statement'],
   ['investigate', '🧬', 'Investigate', 'Choose evidence tools'],
@@ -98,6 +100,11 @@ export default function MobileMissionWorkspace({
     reviewed: currentCompleted.includes(activeTool),
   };
 
+  function openDisplaySettings() {
+    goBackWorkspaceScreen();
+    window.dispatchEvent(new CustomEvent(openMobileSettingsEvent));
+  }
+
   return (
     <main className="mission-workspace-v3" data-workspace-screen={workspaceScreen} data-active-tool={activeTool}>
       <header className="mission-workspace-bar">
@@ -135,6 +142,7 @@ export default function MobileMissionWorkspace({
           <MissionPath
             activeCase={activeCase}
             activeStage={activeStage}
+            onOpenSettings={openDisplaySettings}
             onSelect={selectWorkflowStage}
             stageStatus={stageStatus}
           />
@@ -339,10 +347,15 @@ function MissionLoginHistoryHeading({ activeCase }) {
   );
 }
 
-function MissionPath({ activeCase, activeStage, onSelect, stageStatus }) {
+function MissionPath({ activeCase, activeStage, onOpenSettings, onSelect, stageStatus }) {
   return (
     <section className="mission-path-v3" data-workspace-page="workflow">
       <header><span>🧭</span><div><p>{activeCase.id}</p><h2>Investigation mission path</h2><small>Jump between pages without losing your place.</small></div></header>
+      <button type="button" className="mission-path-settings" aria-label="Display settings" onClick={onOpenSettings}>
+        <span aria-hidden="true">🎛️</span>
+        <span><strong>Display settings</strong><small>Layout, motion, sync, and Luna access</small></span>
+        <em aria-hidden="true">Open ›</em>
+      </button>
       <div className="mission-path-line" aria-hidden="true"><i /><i /><i /></div>
       <div className="mission-path-list">
         {missionStages.map(([key, icon, title, detail], index) => (

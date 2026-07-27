@@ -418,6 +418,16 @@
   body[data-layout-mode="mobile"] .mission-workspace-title small { display:block; margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   body[data-layout-mode="mobile"] .mission-workspace-title p { color:var(--fa-blue); font-size:.53rem; font-weight:900; letter-spacing:.07em; }
   body[data-layout-mode="mobile"] .mission-workspace-title h1 { margin-top:1px; color:#fff; font-size:.9rem; }
+  body[data-layout-mode="mobile"] .mission-workspace-v3[data-workspace-screen="tool"] .mission-workspace-title h1 {
+    display:-webkit-box;
+    overflow:hidden;
+    line-height:1.08;
+    text-overflow:clip;
+    white-space:normal;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+  }
+  body[data-layout-mode="mobile"] .mission-workspace-v3[data-workspace-screen="tool"] .mission-workspace-title small { display:none; }
   body[data-layout-mode="mobile"] .mission-workspace-title small { margin-top:2px; color:#8fa9c7; font-size:.56rem; }
   body[data-layout-mode="mobile"] .mission-workspace-luna { width:36px; height:36px; }
 
@@ -437,6 +447,38 @@
   body[data-layout-mode="mobile"] .mission-workspace-case-selector > strong { max-width:80px; overflow:hidden; color:#76eadb; font-size:.58rem; text-overflow:ellipsis; white-space:nowrap; }
   body[data-layout-mode="mobile"] .mission-workspace-surface { padding: 12px 12px 150px; }
   body[data-layout-mode="mobile"] .mission-workspace-status { display:none; }
+
+  body[data-layout-mode="mobile"] .mission-path-settings {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 60px;
+    margin: 0 0 12px;
+    padding: 9px 11px;
+    color: #eaf9ff;
+    text-align: left;
+    border: 1px solid rgba(143, 108, 255, .4);
+    border-radius: 16px;
+    background: linear-gradient(105deg, rgba(31, 40, 105, .9), rgba(8, 35, 73, .94));
+    box-shadow: inset 3px 0 rgba(255, 122, 210, .68), 0 10px 24px rgba(0, 4, 19, .26);
+  }
+  body[data-layout-mode="mobile"] .mission-path-settings > span:first-child {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(255, 141, 218, .4);
+    border-radius: 13px;
+    background: rgba(129, 87, 229, .3);
+    font-size: 1.05rem;
+  }
+  body[data-layout-mode="mobile"] .mission-path-settings strong,
+  body[data-layout-mode="mobile"] .mission-path-settings small { display: block; }
+  body[data-layout-mode="mobile"] .mission-path-settings strong { color: #fff; font-size: .72rem; }
+  body[data-layout-mode="mobile"] .mission-path-settings small { margin-top: 3px; color: #a9bed7; font-size: .6rem; }
+  body[data-layout-mode="mobile"] .mission-path-settings em { color: #dcb9ff; font-size: .62rem; font-style: normal; font-weight: 900; white-space: nowrap; }
 
   body[data-layout-mode="mobile"] .mission-tool-page { margin:0; padding:0; }
   body[data-layout-mode="mobile"] .mission-tool-actions {
@@ -854,6 +896,10 @@
   body[data-layout-mode="mobile"] .mission-tool-content :is(p,small,dt) { color:#9fb6d0; }
 
   /* Payment Verification approved dark mobile treatment */
+  body[data-layout-mode="mobile"] [data-tool-name="Payment Verification"] > .investigation-tool-header,
+  body[data-layout-mode="mobile"] [data-tool-name="Payment Verification"] > .investigation-tool-question {
+    display:none !important;
+  }
   body[data-layout-mode="mobile"] [data-tool-name="Payment Verification"] .payment-verification-gate form,
   body[data-layout-mode="mobile"] [data-tool-name="Payment Verification"] .payment-verification-result-grid,
   body[data-layout-mode="mobile"] [data-tool-name="Payment Verification"] .payment-verification-result,

@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { runPaymentVerification, selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  runPaymentVerification,
+  selectCurrentGroupTool,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 test.beforeEach(async ({ page }, testInfo) => {
   if (testInfo.project.name !== 'mobile-chromium') return;
@@ -7,23 +11,6 @@ test.beforeEach(async ({ page }, testInfo) => {
     window.localStorage.setItem('fraud-academy-layout-mode-v1', 'mobile');
   });
 });
-
-async function selectCurrentGroupTool(page, toolName) {
-  const mobileShell = page.locator('.mission-workspace-v3');
-  if (await mobileShell.isVisible()) {
-    const selector = page.getByRole('combobox', { name: 'Choose mobile investigation tool', exact: true });
-    await expect(selector).toBeVisible();
-    if (await selector.inputValue() !== toolName) await selector.selectOption(toolName);
-    await expect(mobileShell).toHaveAttribute('data-active-tool', toolName);
-    return;
-  }
-
-  const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  const selector = panel.getByRole('combobox', { name: 'Choose investigation tool', exact: true });
-  await expect(selector).toBeVisible();
-  if (await selector.inputValue() !== toolName) await selector.selectOption(toolName);
-  await expect(panel).toHaveAttribute('data-tool-name', toolName);
-}
 
 async function openPaymentVerification(page) {
   await selectToolGroup(page, /Business & Payment Verification/);
