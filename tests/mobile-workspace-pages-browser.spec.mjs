@@ -71,8 +71,16 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   await openWorkspacePages(page);
   await expect(workflow).toBeVisible();
   await workflow.getByRole('button', { name: /Indicators|Evidence/ }).click();
-  await expect(frame).toHaveAttribute('data-workspace-screen', 'evidence');
+  await expect(frame).toHaveAttribute(
+    'data-workspace-screen',
+    testInfo.project.name === 'mobile-chromium' ? 'indicators' : 'evidence',
+  );
   await expect(indicators).toBeVisible();
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(page.getByRole('heading', { name: 'Case Indicators Review', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Open pinned evidence deck', exact: true }).click();
+    await expect(frame).toHaveAttribute('data-workspace-screen', 'evidence');
+  }
   await expect(page.locator('.tray-card')).toBeVisible();
   await expect(page.locator('.notebook-card')).toBeHidden();
 
@@ -125,7 +133,11 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   await caseSwitcher.selectOption('FA-CB-24007');
   let caseWorkflow = await openWorkspacePages(page);
   await caseWorkflow.getByRole('button', { name: /Indicators|Evidence/ }).click();
-  await page.getByRole('button', { name: 'Notes', exact: true }).click();
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.getByRole('button', { name: 'Open full investigation notebook', exact: true }).click();
+  } else {
+    await page.getByRole('button', { name: 'Notes', exact: true }).click();
+  }
   await expect(noteComposer).toHaveValue('');
   await noteComposer.fill(caseTwoDraft);
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('fraud-academy-note-drafts-v1') || '{}')['FA-CB-24007'])).toBe(caseTwoDraft);
@@ -133,7 +145,11 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   await caseSwitcher.selectOption('FA-ATO-24018');
   caseWorkflow = await openWorkspacePages(page);
   await caseWorkflow.getByRole('button', { name: /Indicators|Evidence/ }).click();
-  await page.getByRole('button', { name: 'Notes', exact: true }).click();
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.getByRole('button', { name: 'Open full investigation notebook', exact: true }).click();
+  } else {
+    await page.getByRole('button', { name: 'Notes', exact: true }).click();
+  }
   await expect(noteComposer).toHaveValue(caseOneDraft);
 
   const widths = await page.evaluate(() => ({

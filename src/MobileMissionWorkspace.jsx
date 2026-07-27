@@ -2,17 +2,21 @@ import BottomInvestigationGrid from './BottomInvestigationGrid.jsx';
 import CategoryTileRail from './CategoryTileRail.jsx';
 import Customer360Panel from './Customer360Panel.jsx';
 import InvestigationToolPanel from './InvestigationToolPanel.jsx';
+import {
+  MobileCaseIndicatorsReview,
+  MobileDeterminationPage,
+} from './MobileCaseReviewPages.jsx';
 import MobileMissionCaseBriefing from './MobileMissionCaseBriefing.jsx';
-import SubmitDecisionPanel from './SubmitDecisionPanel.jsx';
 import TimelinePanel from './TimelinePanel.jsx';
 
 const screenCopy = {
   briefing: ['🗃️', 'Case Briefing'],
   workflow: ['🧭', 'Mission Path'],
   'tool-menu': ['🧬', 'Evidence Map'],
+  indicators: ['◈', 'Case Indicators Review'],
   evidence: ['⭐', 'Pinned Evidence'],
   notes: ['📝', 'Case Notes'],
-  determination: ['✅', 'Submit Decision'],
+  determination: ['✓', 'Determination'],
   debrief: ['🌙', 'Luna Debrief'],
 };
 
@@ -20,8 +24,8 @@ const missionStages = [
   ['briefing', '🗃️', 'Briefing', 'Read the intake and statement'],
   ['investigate', '🧬', 'Investigate', 'Choose evidence tools'],
   ['timeline', '⏱️', 'Timeline', 'Sequence the activity'],
-  ['indicators', '⭐', 'Evidence', 'Review pins and notes'],
-  ['determination', '✅', 'Decision', 'Submit the learner package'],
+  ['indicators', '◈', 'Indicators', 'Record cues, proof, and notes'],
+  ['determination', '✓', 'Decision', 'Record action and finding'],
   ['debrief', '🌙', 'Debrief', 'Unlock manager coaching'],
 ];
 
@@ -174,6 +178,25 @@ export default function MobileMissionWorkspace({
           </section>
         )}
 
+        {workspaceScreen === 'indicators' && (
+          <MobileCaseIndicatorsReview
+            activeCase={activeCase}
+            decisionDraft={decisionDraft}
+            jumpDecision={jumpDecision}
+            noteDraft={noteDraft}
+            notes={notes}
+            openNotesPage={() => showWorkspaceScreen('notes')}
+            openPinnedEvidence={openPinnedEvidence}
+            openPinnedPage={() => showWorkspaceScreen('evidence')}
+            packageStatus={packageStatus}
+            removePin={removePin}
+            setNoteDraft={setNoteDraft}
+            submitNote={submitNote}
+            tray={tray}
+            updateDecisionIndicator={updateDecisionIndicator}
+          />
+        )}
+
         {(workspaceScreen === 'evidence' || workspaceScreen === 'notes') && (
           <section
             className="mission-evidence-notebook"
@@ -210,22 +233,19 @@ export default function MobileMissionWorkspace({
         )}
 
         {workspaceScreen === 'determination' && (
-          <section className="mission-decision-page" data-workflow-stage="determination">
-            <header className="mission-decision-page-heading"><span>✅</span><div><p>Final mission path</p><h2>Build the decision package</h2><small>The outcome remains protected until you submit.</small></div></header>
-            <SubmitDecisionPanel
-              submitRef={submitRef}
-              packageStatus={packageStatus}
-              tray={tray}
-              notes={notes}
-              reviewPackages={reviewPackages}
-              decisionDraft={decisionDraft}
-              activeCase={activeCase}
-              updateDecision={updateDecision}
-              updateDecisionIndicator={updateDecisionIndicator}
-              submitDecision={submitDecision}
-              openDebrief={openDebrief}
-            />
-          </section>
+          <MobileDeterminationPage
+            submitRef={submitRef}
+            packageStatus={packageStatus}
+            tray={tray}
+            notes={notes}
+            reviewPackages={reviewPackages}
+            decisionDraft={decisionDraft}
+            activeCase={activeCase}
+            updateDecision={updateDecision}
+            submitDecision={submitDecision}
+            openDebrief={openDebrief}
+            openIndicators={() => showWorkspaceScreen('indicators')}
+          />
         )}
 
         {workspaceScreen === 'debrief' && <div className="decision-luna-portal-anchor" />}

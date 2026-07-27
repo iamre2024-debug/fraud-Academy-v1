@@ -34,7 +34,7 @@ function stageForWorkspaceScreen(screen, toolName) {
   if (screen === 'tool') return stageForTool(toolName);
   if (screen === 'tool-menu') return 'investigate';
   if (screen === 'timeline') return 'timeline';
-  if (screen === 'evidence' || screen === 'notes') return 'indicators';
+  if (screen === 'indicators' || screen === 'evidence' || screen === 'notes') return 'indicators';
   if (screen === 'determination') return 'determination';
   if (screen === 'debrief') return 'debrief';
   return 'briefing';
@@ -155,7 +155,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   });
 
   const reviewedWorkspaceTools = visibleWorkspaceTools.filter((toolName) => currentCompleted.includes(toolName)).length;
-  const collectedIndicators = tray.length + notes.length;
+  const collectedIndicators = packageStatus.indicatorSummary.selectedCount;
   const hasReviewPackage = reviewPackages.length > 0;
   const stageStatus = {
     briefing: {
@@ -171,7 +171,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       state: currentCompleted.includes('Timeline') ? 'complete' : 'open',
     },
     indicators: {
-      label: collectedIndicators ? `${collectedIndicators} collected` : 'Open',
+      label: collectedIndicators ? `${collectedIndicators} selected` : 'Open',
       state: collectedIndicators ? 'in-progress' : 'open',
     },
     determination: {
@@ -478,7 +478,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       return;
     }
     if (nextStage === 'indicators') {
-      showWorkspaceScreen('evidence');
+      showWorkspaceScreen(isMobileLayout() ? 'indicators' : 'evidence');
       if (isMobileLayout()) return;
       scrollToWorkspace('[data-workflow-stage="indicators"]');
       return;
@@ -499,9 +499,10 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
           briefing: 'Case Briefing',
           workflow: 'Case Pages',
           'tool-menu': 'Investigation Tools',
+          indicators: 'Case Indicators Review',
           evidence: 'Pinned Evidence',
           notes: 'Case Notes',
-          determination: 'Submit Decision',
+          determination: 'Determination',
           debrief: 'Luna Debrief',
         }[workspaceScreen] ?? 'Workspace';
 
