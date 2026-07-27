@@ -56,12 +56,25 @@ if (debrief.breakdown.some((item) => item.label === 'Notebook and rationale dept
 
 const panel = fs.readFileSync(path.join(rootDir, 'src/LunaPostSubmissionPanel.jsx'), 'utf8');
 for (const anchor of [
-  'data-debrief-step="05"',
-  'data-debrief-step="06"',
-  'state.debrief.notesQuality.label',
-  'luna-v1-step-index',
+  'data-luna-layout="reference-debrief"',
+  'What You Did Well',
+  'Evidence You Might Have Missed',
+  'state.debrief.riskTip',
+  'state.debrief.motivation',
+  'luna-reference-actions',
 ]) {
   if (!panel.includes(anchor)) fail(`LunaPostSubmissionPanel.jsx is missing ${anchor}.`);
+}
+
+const decisionStyles = fs.readFileSync(path.join(rootDir, 'src/displayDecisionLunaThemeV1.css'), 'utf8');
+for (const anchor of [
+  '.luna-reference-debrief',
+  'grid-template-columns: repeat(2, minmax(0, 1fr))',
+  '@media (max-width: 760px)',
+  'grid-template-columns: 1fr',
+  'overflow-wrap: anywhere',
+]) {
+  if (!decisionStyles.includes(anchor)) fail(`displayDecisionLunaThemeV1.css is missing responsive reference-layout anchor ${anchor}.`);
 }
 
 const layoutHook = fs.readFileSync(path.join(rootDir, 'src/useResponsiveLayoutMode.js'), 'utf8');
@@ -99,4 +112,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Debrief notes and layout mode smoke check passed. Notes are quality-scored, debrief steps stay unique, and responsive mode switches preserve the active workspace route.');
+console.log('Debrief notes and layout mode smoke check passed. Notes remain quality-scored, the reference debrief is responsive, and layout mode switches preserve the active workspace route.');
