@@ -6,6 +6,7 @@ import FinancialInvestigationDossierWorkspace from './FinancialInvestigationWork
 import LinkAnalysisWorkspace from './LinkAnalysisWorkspace.jsx';
 import MerchantIntelligenceWorkspace from './MerchantIntelligenceWorkspace.jsx';
 import { MobileDocumentRequestPage } from './MobileMerchantDocumentPages.jsx';
+import { MobileLoginHistoryPage, MobileSessionHistoryPage } from './MobileLoginSessionPages.jsx';
 import { accessReportExportText, generateAccessHistoryReport, generatedAccessReportTypes } from './data/accessHistoryReports.js';
 import { buildCoreToolRecords } from './data/coreToolRecords.js';
 import { getBusiness360Workspace, getEmployeeProfiles, getPayrollAccessContext, getPayrollHistory, getTransactionHistory } from './data/businessPayrollWorkspace.js';
@@ -232,6 +233,7 @@ function LoginHistoryWorkspace({
   reviewed,
   openTool,
   jumpDecision,
+  mobileMode = false,
 }) {
   const [selectedLoginId, setSelectedLoginId] = useState('');
   const [resultFilter, setResultFilter] = useState('All results');
@@ -278,6 +280,39 @@ function LoginHistoryWorkspace({
     downloadAccessReport(report);
     setReportGenerated(true);
     saveLoginNote(`${report.title} generated and added to Document Viewer.`);
+  }
+
+  if (mobileMode) {
+    return (
+      <MobileLoginHistoryPage
+        activeRecord={activeRecord}
+        dateFilter={dateFilter}
+        dateOptions={dateOptions}
+        deviceFilter={deviceFilter}
+        deviceOptions={deviceOptions}
+        filteredRecords={filteredRecords}
+        generateLoginReport={generateLoginReport}
+        jumpDecision={jumpDecision}
+        markReviewed={markReviewed}
+        methodFilter={methodFilter}
+        methodOptions={methodOptions}
+        openTool={openTool}
+        pin={pin}
+        query={query}
+        records={records}
+        reportGenerated={reportGenerated}
+        resultFilter={resultFilter}
+        resultOptions={resultOptions}
+        reviewed={reviewed}
+        saveLoginNote={saveLoginNote}
+        setDateFilter={setDateFilter}
+        setDeviceFilter={setDeviceFilter}
+        setMethodFilter={setMethodFilter}
+        setQuery={setQuery}
+        setResultFilter={setResultFilter}
+        setSelectedLoginId={setSelectedLoginId}
+      />
+    );
   }
 
   return (
@@ -612,6 +647,8 @@ function SessionHistoryWorkspace({
   markReviewed,
   reviewed,
   openTool,
+  jumpDecision,
+  mobileMode = false,
 }) {
   const [selectedSessionId, setSelectedSessionId] = useState('');
   const [logoutFilter, setLogoutFilter] = useState('All logout states');
@@ -659,6 +696,40 @@ function SessionHistoryWorkspace({
     downloadAccessReport(report);
     setReportGenerated(true);
     saveSessionNote(`${report.title} generated and added to Document Viewer.`);
+  }
+
+  if (mobileMode) {
+    return (
+      <MobileSessionHistoryPage
+        activeCase={activeCase}
+        activeRecord={activeRecord}
+        activityFilter={activityFilter}
+        activityOptions={activityOptions}
+        dateFilter={dateFilter}
+        dateOptions={dateOptions}
+        deviceFilter={deviceFilter}
+        deviceOptions={deviceOptions}
+        filteredRecords={filteredRecords}
+        generateSessionReport={generateSessionReport}
+        jumpDecision={jumpDecision}
+        logoutFilter={logoutFilter}
+        logoutOptions={logoutOptions}
+        markReviewed={markReviewed}
+        openTool={openTool}
+        pin={pin}
+        query={query}
+        records={records}
+        reportGenerated={reportGenerated}
+        reviewed={reviewed}
+        saveSessionNote={saveSessionNote}
+        setActivityFilter={setActivityFilter}
+        setDateFilter={setDateFilter}
+        setDeviceFilter={setDeviceFilter}
+        setLogoutFilter={setLogoutFilter}
+        setQuery={setQuery}
+        setSelectedSessionId={setSelectedSessionId}
+      />
+    );
   }
 
   return (
@@ -2564,6 +2635,7 @@ export default function InvestigationToolPanel({
           reviewed={reviewed}
           openTool={openTool}
           jumpDecision={jumpDecision}
+          mobileMode={mobileMode}
         />
       ) : tool === 'Session History' ? (
         <SessionHistoryWorkspace
@@ -2575,6 +2647,8 @@ export default function InvestigationToolPanel({
           markReviewed={markReviewed}
           reviewed={reviewed}
           openTool={openTool}
+          jumpDecision={jumpDecision}
+          mobileMode={mobileMode}
         />
       ) : tool === 'IP Intelligence' ? (
         <IPIntelligenceWorkspace

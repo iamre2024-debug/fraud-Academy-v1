@@ -25,17 +25,21 @@ test('Login History keeps its evidence flow and uses the dedicated mobile authen
     const loginMission = page.locator('[data-login-history-page="true"]');
     await expect(loginMission).toBeVisible();
     await expect(loginMission.getByRole('heading', { name: 'Login History', exact: true })).toBeVisible();
-    await expect(loginMission.getByRole('list', { name: 'Login history evidence workflow' })).toContainText('Locate');
-    await expect(loginMission.getByRole('list', { name: 'Login history evidence workflow' })).toContainText('Document');
+    await expect(loginMission.locator('[data-mobile-login-reference="true"]')).toBeVisible();
+    await expect(loginMission.getByRole('navigation', { name: 'Quick Login History result filters' })).toBeVisible();
+    await expect(loginMission.getByLabel('Luna debrief is available after submission')).toContainText('Debrief after submit');
+    await expect(loginMission).not.toContainText('High Trust');
+    await expect(loginMission).not.toContainText('Low Trust');
+    await expect(loginMission).not.toContainText('Suspicious');
     await expect(toolPanel.locator(':scope > .investigation-tool-header')).toBeHidden();
     await expect(toolPanel.locator(':scope > .investigation-tool-question')).toBeHidden();
     await expect(toolPanel.locator(':scope > .investigation-tool-controls')).toBeHidden();
 
     const layout = await page.evaluate(() => {
-      const list = document.querySelector('.mission-login-history-page .login-record-list');
+      const list = document.querySelector('.mission-login-reference-page .mobile-login-record-list');
       const summary = document.querySelector('.mission-login-history-page .login-history-summary');
       const detail = document.querySelector('.mission-login-history-page .login-detail-panel');
-      const workflow = document.querySelector('.mission-login-history-heading ol');
+      const header = document.querySelector('.mission-login-reference-page .mobile-access-header');
       const viewport = window.innerWidth;
       const fits = (element) => {
         const box = element?.getBoundingClientRect();
@@ -46,20 +50,18 @@ test('Login History keeps its evidence flow and uses the dedicated mobile authen
         viewport,
         listFits: fits(list),
         detailFits: fits(detail),
-        workflowColumns: workflow ? getComputedStyle(workflow).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+        headerFits: fits(header),
         summaryScrollable: summary ? summary.scrollWidth > summary.clientWidth : false,
         listScrollMode: list ? getComputedStyle(list).overflowY : '',
-        listHeight: list?.getBoundingClientRect().height ?? 0,
       };
     });
 
     expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewport + 1);
     expect(layout.listFits).toBe(true);
     expect(layout.detailFits).toBe(true);
-    expect(layout.workflowColumns).toBe(4);
+    expect(layout.headerFits).toBe(true);
     expect(layout.summaryScrollable).toBe(true);
     expect(layout.listScrollMode).toBe('auto');
-    expect(layout.listHeight).toBeLessThanOrEqual(295);
   } else {
     await expect(toolPanel.getByRole('heading', { name: 'Who logged in, when, and from where?', exact: true })).toBeVisible();
   }
@@ -68,4 +70,21 @@ test('Login History keeps its evidence flow and uses the dedicated mobile authen
   await toolPanel.getByRole('button', { name: 'Save login note', exact: true }).click();
   await toolPanel.getByRole('button', { name: 'Mark Login History reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ Login History reviewed', exact: true })).toBeVisible();
+
+  if (testInfo.project.name === 'mobile-chromium') {
+    await toolPanel.getByRole('button', { name: 'Open Session History', exact: true }).click();
+    await expect(toolPanel).toHaveAttribute('data-tool-name', 'Session History');
+
+    const sessionMission = page.locator('[data-session-history-page="true"]');
+    await expect(sessionMission).toBeVisible();
+    await expect(sessionMission.locator('[data-mobile-session-reference="true"]')).toBeVisible();
+    await expect(sessionMission.getByRole('heading', { name: 'Session History', exact: true })).toBeVisible();
+    await expect(sessionMission.getByRole('navigation', { name: 'Quick Session History logout filters' })).toBeVisible();
+    await expect(sessionMission.locator('[data-session-history-record]').first()).toBeVisible();
+    await expect(sessionMission.locator('.mobile-session-timeline')).toBeVisible();
+    await expect(sessionMission.getByLabel('Luna debrief is available after submission')).toContainText('Debrief after submit');
+    await expect(sessionMission).not.toContainText('High Trust');
+    await expect(sessionMission).not.toContainText('Medium Trust');
+    await expect(sessionMission).not.toContainText('Low Trust');
+  }
 });

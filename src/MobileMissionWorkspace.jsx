@@ -141,11 +141,13 @@ export default function MobileMissionWorkspace({
               'mission-tool-page',
               activeTool === 'Document Request' ? 'mission-document-request-page' : '',
               activeTool === 'Merchant Intelligence' ? 'mission-merchant-reference-page' : '',
-              activeTool === 'Login History' ? 'mission-login-history-page' : '',
+              activeTool === 'Login History' ? 'mission-login-history-page mission-login-reference-page' : '',
+              activeTool === 'Session History' ? 'mission-session-history-page mission-session-reference-page' : '',
             ].filter(Boolean).join(' ')}
             data-document-request-page={activeTool === 'Document Request' ? 'true' : undefined}
             data-merchant-reference-page={activeTool === 'Merchant Intelligence' ? 'true' : undefined}
             data-login-history-page={activeTool === 'Login History' ? 'true' : undefined}
+            data-session-history-page={activeTool === 'Session History' ? 'true' : undefined}
             data-workflow-stage={workspaceScreen === 'timeline' ? 'timeline' : 'investigate'}
             data-workspace-page={workspaceScreen === 'timeline' ? 'timeline' : 'tool'}
           >
@@ -160,7 +162,6 @@ export default function MobileMissionWorkspace({
                 <button type="button" onClick={returnToPinnedEvidence}>Back to pins</button>
               </section>
             )}
-            {activeTool === 'Login History' && <MissionLoginHistoryHeading activeCase={activeCase} />}
             <div className="mission-tool-content">
               {activeTool === 'Customer 360' ? (
                 <Customer360Panel {...activeToolProps} />
@@ -235,25 +236,6 @@ export default function MobileMissionWorkspace({
         <span>⭐ {tray.length} pinned</span><span>📝 {notes.length} notes</span><span>📡 {actionLog.length} actions</span>
       </footer>
     </main>
-  );
-}
-
-function MissionLoginHistoryHeading({ activeCase }) {
-  return (
-    <header className="mission-login-history-heading">
-      <span className="mission-login-history-icon" aria-hidden="true">🛡️</span>
-      <div>
-        <p>Authentication mission · {activeCase.id}</p>
-        <h2>Login History</h2>
-        <small>Trace the access attempt, compare authentication signals, and connect the session without deciding the claim early.</small>
-      </div>
-      <ol aria-label="Login history evidence workflow">
-        <li className="active"><i />Locate</li>
-        <li><i />Compare</li>
-        <li><i />Connect</li>
-        <li><i />Document</li>
-      </ol>
-    </header>
   );
 }
 
