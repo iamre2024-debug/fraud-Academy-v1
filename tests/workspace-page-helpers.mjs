@@ -4,7 +4,7 @@ const workflowStages = [
   { names: ['briefing', 'case briefing'], buttonName: /\b(?:case )?briefing\b/i, screen: 'briefing' },
   { names: ['investigate'], buttonName: /\binvestigate\b/i, screen: 'tool-menu' },
   { names: ['timeline'], buttonName: /\btimeline\b/i, screen: 'timeline' },
-  { names: ['indicators', 'evidence'], buttonName: /\b(?:indicators|evidence)\b/i, screen: 'indicators' },
+  { names: ['indicators', 'evidence'], buttonName: /^(?:indicators|evidence)\b/i, screen: 'indicators' },
   { names: ['determination', 'decision'], buttonName: /\b(?:determination|decision)\b/i, screen: 'determination' },
   { names: ['debrief'], buttonName: /\bdebrief\b/i, screen: 'debrief' },
 ];
