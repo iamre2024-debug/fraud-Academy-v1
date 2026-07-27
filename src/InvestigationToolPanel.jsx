@@ -5,6 +5,7 @@ import DocumentViewerWorkspace from './DocumentViewerWorkspace.jsx';
 import FinancialInvestigationDossierWorkspace from './FinancialInvestigationWorkspace.jsx';
 import LinkAnalysisWorkspace from './LinkAnalysisWorkspace.jsx';
 import MerchantIntelligenceWorkspace from './MerchantIntelligenceWorkspace.jsx';
+import { MobileDeviceIntelligencePage, MobileIPIntelligencePage } from './MobileDeviceIpPages.jsx';
 import { MobileDocumentRequestPage } from './MobileMerchantDocumentPages.jsx';
 import { MobileLoginHistoryPage, MobileSessionHistoryPage } from './MobileLoginSessionPages.jsx';
 import { accessReportExportText, generateAccessHistoryReport, generatedAccessReportTypes } from './data/accessHistoryReports.js';
@@ -478,6 +479,7 @@ function IPIntelligenceWorkspace({
   reviewed,
   openTool,
   jumpDecision,
+  mobileMode = false,
 }) {
   const [selectedIpId, setSelectedIpId] = useState('');
   const [submittedIp, setSubmittedIp] = useState('');
@@ -516,6 +518,39 @@ function IPIntelligenceWorkspace({
     downloadAccessReport(report);
     setReportGenerated(true);
     saveIpNote(`${report.title} generated and added to Document Viewer.`);
+  }
+
+  function selectIpRecord(record) {
+    setQuery(record.ip);
+    setSubmittedIp('');
+    setSelectedIpId(record.id);
+  }
+
+  if (mobileMode) {
+    return (
+      <MobileIPIntelligencePage
+        activeCase={activeCase}
+        activeRecord={activeRecord}
+        deviceCount={deviceCount}
+        generateIpReport={generateIpReport}
+        jumpDecision={jumpDecision}
+        lookupHasRun={lookupHasRun}
+        lookupMatched={lookupMatched}
+        markReviewed={markReviewed}
+        openTool={openTool}
+        pin={pin}
+        query={query}
+        records={records}
+        reportGenerated={reportGenerated}
+        reviewed={reviewed}
+        runIpLookup={runIpLookup}
+        saveIpNote={saveIpNote}
+        selectIpRecord={selectIpRecord}
+        sessionCount={sessionCount}
+        setQuery={setQuery}
+        submittedIp={submittedIp}
+      />
+    );
   }
 
   return (
@@ -860,6 +895,7 @@ function DeviceIntelligenceWorkspace({
   openTool,
   jumpDecision,
   quickPin,
+  mobileMode = false,
 }) {
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
   const records = getDeviceProfiles(activeCase);
@@ -881,6 +917,28 @@ function DeviceIntelligenceWorkspace({
 
   function saveDeviceNote(message) {
     saveNote(`Device Intelligence: ${message}`, 'Device intelligence');
+  }
+
+  if (mobileMode) {
+    return (
+      <MobileDeviceIntelligencePage
+        activeRecord={activeRecord}
+        filteredRecords={filteredRecords}
+        jumpDecision={jumpDecision}
+        lookupHasRun={lookupHasRun}
+        lookupMatched={lookupMatched}
+        markReviewed={markReviewed}
+        openTool={openTool}
+        pin={pin}
+        query={query}
+        quickPin={quickPin}
+        records={records}
+        reviewed={reviewed}
+        saveDeviceNote={saveDeviceNote}
+        setQuery={setQuery}
+        setSelectedDeviceId={setSelectedDeviceId}
+      />
+    );
   }
 
   return (
@@ -2661,6 +2719,7 @@ export default function InvestigationToolPanel({
           reviewed={reviewed}
           openTool={openTool}
           jumpDecision={jumpDecision}
+          mobileMode={mobileMode}
         />
       ) : tool === 'Payment Verification' ? (
         <PaymentVerificationWorkspace
@@ -2731,6 +2790,7 @@ export default function InvestigationToolPanel({
           openTool={openTool}
           jumpDecision={jumpDecision}
           quickPin={quickPin}
+          mobileMode={mobileMode}
         />
       ) : (
         <>
