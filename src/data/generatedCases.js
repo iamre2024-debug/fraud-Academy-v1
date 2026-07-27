@@ -49,8 +49,16 @@ function generatedSubject({ person, scenario, employer, business }) {
   return `${person}, the ${role}`;
 }
 
+function needsNeutralEmailAlertSummary({ claimType, scenario }) {
+  const claimTypeId = String(claimType?.id ?? '').toLowerCase();
+  const scenarioDescriptor = `${scenario?.subtype ?? ''} ${scenario?.title ?? ''}`.toLowerCase();
+  return claimTypeId === 'email-bec'
+    || (claimTypeId === 'payroll-direct-deposit' && /email|mailbox|spoof/.test(scenarioDescriptor));
+}
+
 export function buildGeneratedCaseSummary({
   person,
+  claimType,
   scenario,
   employer,
   business,
@@ -66,6 +74,18 @@ export function buildGeneratedCaseSummary({
   const documentStatus = requestedDocuments
     ? `${availableDocuments} supporting document(s) are available and ${requestedDocuments} remain requested.`
     : `${availableDocuments} supporting document(s) are available in the case packet.`;
+
+  if (needsNeutralEmailAlertSummary({ claimType, scenario })) {
+    const isPayrollEmailCase = claimType.id === 'payroll-direct-deposit';
+    const trigger = isPayrollEmailCase
+      ? 'a direct-deposit bank account change was recorded before the next payroll run'
+      : 'an email-based payment instruction or bank account change was recorded before a scheduled payment';
+    const reviewAreas = isPayrollEmailCase
+      ? 'Review the change request, trusted callback, destination ownership, and payroll records to determine whether the change was authorized.'
+      : 'Review the email, domain, trusted callback, beneficiary, and payment records to determine whether the instruction or change was authorized.';
+
+    return `A case alert was triggered for ${subject} because ${trigger}. The amount associated with the alert is ${scenario.amount}; activity begins ${issueStartDate}, and the case was reported ${reportedDate}. ${reviewAreas} ${documentStatus}`;
+  }
 
   return `${subject} reported through ${scenario.channel}: "${statement}" The ${scenario.subtype} review concerns ${transaction} The amount in scope is ${scenario.amount}; activity begins ${issueStartDate}, and the case was reported ${reportedDate}. ${documentStatus}`;
 }
@@ -463,6 +483,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const decisionData = buildScenarioDecisionData({ claimType, scenario, reportedDate, toolResults });
   const generatedSummary = buildGeneratedCaseSummary({
     person,
+    claimType,
     scenario,
     employer,
     business,
@@ -511,7 +532,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     timelinePattern: scenario.timelinePattern,
     commonMistake: scenario.commonMistake,
     miniExample: scenario.miniExample,
-    generatedPacketVersion: 6,
+    generatedPacketVersion: 7,
     difficulty,
     evidenceDepth: depth.label,
     priority: scenario.priority,
