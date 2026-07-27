@@ -330,8 +330,9 @@ test('business payroll Financial Investigation reconciles month and pay-period t
     exact: true,
   }).click();
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Payroll History');
-  await expect(toolPanel.getByRole('region', { name: 'Payroll History detail' }))
+  await expect(toolPanel.getByRole('region', { name: 'Payroll Run Detail' }))
     .toContainText(selectedRun.id);
-  await expect(toolPanel.locator(`[data-payroll-history-record="${selectedRun.id}"]`))
+  await expect(toolPanel.getByRole('navigation', { name: 'Payroll History hierarchy' })
+    .getByRole('button', { name: 'Payroll Run Detail', exact: true }))
     .toHaveClass(/active/);
 });

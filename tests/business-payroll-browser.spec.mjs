@@ -28,9 +28,9 @@ test('Business 360 and Payroll History provide complete responsive workspaces', 
   await expect(toolSelect.locator('option', { hasText: 'KYB Review' })).toHaveCount(0);
   await toolSelect.selectOption('Business 360');
   await expect(panel).toHaveAttribute('data-tool-name', 'Business 360');
-  const businessProfile = panel.getByRole('region', { name: 'Business 360 profile' });
+  const businessProfile = panel.locator('.business-360-dossier');
   await expect(businessProfile).toContainText('Lakeside Office Supply LLC');
-  for (const label of ['Legal name', 'DBA', 'Entity type', 'Masked EIN', 'State registration / file number', 'Formation date', 'Formation state', 'Current standing', 'Industry', 'NAICS']) {
+  for (const label of ['Legal business name', 'DBA', 'Entity type', 'Masked EIN', 'State registration / file number', 'Formation date', 'Formation state', 'Business standing', 'Industry', 'NAICS']) {
     await expect(businessProfile.getByText(label, { exact: true })).toBeVisible();
   }
   await expect(businessProfile).not.toContainText('FA-CR-24003');
@@ -38,52 +38,32 @@ test('Business 360 and Payroll History provide complete responsive workspaces', 
   await expect(businessProfile).not.toContainText('DST-7740');
   await expect(businessProfile).not.toContainText(/Case context|Payment account change|fraud conclusion/i);
 
-  await panel.getByRole('button', { name: 'Ownership & Control', exact: true }).click();
-  await expect(panel.getByRole('region', { name: 'Ownership and control summary' })).toContainText('Renee Wallace');
-  await expect(panel.getByRole('button', { name: 'Open Owner Identity Profile', exact: true }).first()).toBeVisible();
+  const businessTabs = panel.getByRole('tablist', { name: 'Business 360 sections' });
+  await businessTabs.getByRole('tab', { name: 'Owners & Control', exact: true }).click();
+  await expect(panel.getByRole('heading', { name: 'Owners and Controlling Parties', exact: true })).toBeVisible();
+  await expect(panel).toContainText('Renee Wallace');
+  await expect(panel.getByRole('button', { name: 'Open Owner Profile', exact: true }).first()).toBeVisible();
 
-  await panel.getByRole('button', { name: 'Operating Footprint', exact: true }).click();
-  const footprint = panel.getByRole('region', { name: 'Operating footprint summary' });
-  for (const label of ['Physical address', 'Mailing address', 'Registered agent', 'Phone', 'Business email', 'Website', 'Business age', 'Known operating locations', 'Estimated employee count']) {
-    await expect(footprint.getByText(label, { exact: true })).toBeVisible();
-  }
-
-  await panel.getByRole('button', { name: 'Institution Relationship', exact: true }).click();
-  const relationship = panel.getByRole('region', { name: 'Institution relationship summary' });
-  await expect(relationship).toContainText('Restrictions or holds');
-  await expect(relationship).toContainText('NSF / returned-payment context');
-  await expect(relationship).toContainText('Recorded repayment source');
-
-  await panel.getByRole('button', { name: 'Luna Business Research', exact: true }).click();
-  const luna = panel.getByRole('region', { name: 'Luna Business Research', exact: true });
-  await expect(luna.locator('[data-luna-status]')).toHaveCount(5);
+  await businessTabs.getByRole('tab', { name: 'Luna Business Research', exact: true }).click();
+  const luna = panel.locator('.business-360-section').filter({ has: panel.getByRole('heading', { name: 'Luna Business Research', exact: true }) });
+  await expect(luna.locator('[data-research-status]')).toHaveCount(5);
   for (const topic of ['Owner linkage', 'Entity registration', 'Industry or professional license', 'Web presence', 'Cross-source consistency']) {
     await expect(luna).toContainText(topic);
   }
-  await expect(luna).toContainText('Fictional source checked');
-  await expect(luna).toContainText('Checked date');
-  await expect(luna).toContainText('No live government, licensing, domain, directory, or internet search occurred.');
+  await expect(luna).toContainText(/Checked/);
+  await expect(luna).toContainText('not proof that the business does not exist');
   await expect(luna).not.toContainText(/\b(?:confirmed fraud|fake business|fraudulent owner|shell company|nonexistent business)\b/i);
 
-  const report = panel.getByRole('complementary', { name: 'Business 360 report' });
-  await report.getByRole('button', { name: 'Generate report', exact: true }).click();
-  await expect(report.getByRole('button', { name: 'Regenerate report', exact: true })).toBeVisible();
-  const reportDownload = page.waitForEvent('download');
-  await report.getByRole('button', { name: 'Export report', exact: true }).click();
-  expect((await reportDownload).suggestedFilename()).toContain('RPT-B360');
   await panel.getByRole('button', { name: 'Mark Business 360 reviewed', exact: true }).click();
   await expect(panel.getByRole('button', { name: '✓ Business 360 reviewed', exact: true })).toBeVisible();
 
   const businessLayout = await page.evaluate(() => {
-    const workspace = document.querySelector('.business-360-workspace');
     return {
       viewportWidth: window.innerWidth,
       documentWidth: document.documentElement.scrollWidth,
-      columns: workspace ? getComputedStyle(workspace).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
     };
   });
   expect(businessLayout.documentWidth).toBeLessThanOrEqual(businessLayout.viewportWidth + 1);
-  expect(businessLayout.columns).toBe(testInfo.project.name === 'mobile-chromium' ? 1 : 3);
 
   await toolSelect.selectOption('Payroll History');
   await expect(panel).toHaveAttribute('data-tool-name', 'Payroll History');

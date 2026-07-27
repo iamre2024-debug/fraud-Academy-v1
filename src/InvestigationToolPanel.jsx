@@ -1823,6 +1823,98 @@ function payrollMoney(value) {
   return Number(value ?? 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
+function PayrollTrustedContactWorkflow({
+  activeCase,
+  payrollInvestigation,
+  setPayrollInvestigationsByCase,
+  saveNote,
+  recordAction,
+}) {
+  const {
+    trustedContactStarted,
+    requestMethod,
+    businessStatement,
+    emailEvidenceProvided,
+    businessResponseSaved,
+  } = normalizePayrollInvestigationState(payrollInvestigation);
+  const businessResponse = trustedContactStarted ? recordTrustedBusinessResponse({
+    requestMethod,
+    businessStatement,
+    emailEvidence: emailEvidenceProvided ? {
+      headerFrom: 'employee-name@training-mail.example.test',
+      headerReplyTo: 'alternate-contact@training-mail.example.test',
+      received: activeCase.reportedDate ?? activeCase.opened,
+      mailboxNote: 'Business supplied a fictional message record after trusted contact; compare the sender, reply-to, and timing.',
+    } : null,
+  }) : null;
+  const visibleEmailEvidence = visiblePayrollEmailEvidence(businessResponse);
+
+  function updatePayrollInvestigation(patch) {
+    setPayrollInvestigationsByCase((current) => ({
+      ...current,
+      [activeCase.id]: {
+        ...normalizePayrollInvestigationState(current[activeCase.id]),
+        ...patch,
+      },
+    }));
+  }
+
+  function saveBusinessResponse() {
+    if (requestMethod === 'Not yet recorded') return;
+    updatePayrollInvestigation({ businessResponseSaved: true });
+    saveNote(`Trusted business contact: the business says the payroll change was requested by ${requestMethod}. ${businessStatement}`.trim(), 'Payroll trusted contact');
+    recordAction?.('Recorded trusted business response', `Request method recorded as ${requestMethod}.`, 'Payroll History');
+  }
+
+  if (activeCase.workflowType !== 'payroll-change-alert') return null;
+
+  return (
+    <section className="payroll-trusted-contact-flow" aria-label="Payroll change trusted contact workflow">
+      <header><div><p>Request source at intake</p><h3>Unknown at intake</h3><span>The platform observed the employee, destination, amount, timing, or administrator change. It did not observe how a person requested it.</span></div></header>
+      <ol>
+        <li>Review the business, employee, payroll, destination, administrator, and timing records.</li>
+        <li>If risk remains, contact the business using a trusted, previously known method.</li>
+        <li>Record how the business says the change was requested.</li>
+      </ol>
+      {!trustedContactStarted ? (
+        <button type="button" onClick={() => { updatePayrollInvestigation({ trustedContactStarted: true }); recordAction?.('Started trusted business contact', 'Opened the payroll-change trusted contact record.', 'Payroll History'); }}>Record trusted business contact</button>
+      ) : (
+        <div className="payroll-business-response">
+          <label><span>Business-reported request method</span><select value={requestMethod} onChange={(event) => updatePayrollInvestigation({ requestMethod: event.target.value, emailEvidenceProvided: false, businessResponseSaved: false })}>
+            <option>Not yet recorded</option>
+            <option>Phone</option>
+            <option>Payroll portal</option>
+            <option>Email</option>
+            <option>Other business channel</option>
+          </select></label>
+          <label><span>Business statement</span><textarea value={businessStatement} onChange={(event) => updatePayrollInvestigation({ businessStatement: event.target.value, businessResponseSaved: false })} placeholder="Record only what the trusted business contact states." /></label>
+          <button type="button" disabled={requestMethod === 'Not yet recorded'} onClick={saveBusinessResponse}>{businessResponseSaved ? 'Business response saved' : 'Save business response'}</button>
+          {requestMethod === 'Email' && (
+            <section className="payroll-email-followup">
+              <strong>Employee verification step</strong>
+              <p>{businessResponse.employeeCallbackInstruction}</p>
+              {!emailEvidenceProvided ? (
+                <button type="button" onClick={() => { updatePayrollInvestigation({ emailEvidenceProvided: true }); recordAction?.('Recorded business-supplied email evidence', 'Email evidence became available after trusted business contact.', 'Payroll History'); }}>Business supplied email evidence</button>
+              ) : null}
+            </section>
+          )}
+          {visibleEmailEvidence && (
+            <section className="payroll-email-evidence" aria-label="Business-supplied email evidence">
+              <header><p>Email evidence supplied after trusted contact</p><h3>Fictional message record</h3></header>
+              <dl>
+                <div><dt>From</dt><dd>{visibleEmailEvidence.headerFrom}</dd></div>
+                <div><dt>Reply-To</dt><dd>{visibleEmailEvidence.headerReplyTo}</dd></div>
+                <div><dt>Received</dt><dd>{visibleEmailEvidence.received}</dd></div>
+                <div><dt>Mailbox note</dt><dd>{visibleEmailEvidence.mailboxNote}</dd></div>
+              </dl>
+            </section>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function PayrollHistoryWorkspace({
   activeCase,
   query,
@@ -1834,6 +1926,8 @@ function PayrollHistoryWorkspace({
   jumpDecision,
   quickPin,
   recordAction,
+  payrollInvestigation,
+  setPayrollInvestigationsByCase,
 }) {
   const workspace = useMemo(() => getPayrollHistory(activeCase), [activeCase]);
   const [view, setView] = useState('company');
@@ -1938,6 +2032,13 @@ function PayrollHistoryWorkspace({
 
   return (
     <>
+      <PayrollTrustedContactWorkflow
+        activeCase={activeCase}
+        payrollInvestigation={payrollInvestigation}
+        setPayrollInvestigationsByCase={setPayrollInvestigationsByCase}
+        saveNote={saveNote}
+        recordAction={recordAction}
+      />
       <nav className="payroll-breadcrumbs" aria-label="Payroll History hierarchy">
         <button type="button" className={view === 'company' ? 'active' : ''} onClick={() => setView('company')}>Company Payroll History</button>
         <span>›</span><button type="button" disabled={!selectedRun} className={view === 'run' ? 'active' : ''} onClick={() => selectedRun && setView('run')}>Payroll Run Detail</button>
@@ -2541,6 +2642,8 @@ export default function InvestigationToolPanel({
           jumpDecision={jumpDecision}
           quickPin={quickPin}
           recordAction={recordAction}
+          payrollInvestigation={payrollInvestigation}
+          setPayrollInvestigationsByCase={setPayrollInvestigationsByCase}
         />
       ) : tool === 'Login History' ? (
         <LoginHistoryWorkspace
