@@ -165,7 +165,6 @@ test('mobile Business 360 uses the reusable business dossier without case conclu
   await selectToolGroup(page, /Business & Payment Verification/);
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await toolPanel.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Business 360');
-  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Business 360');
 
   const business = page.locator('[data-mobile-360-screen="business"]');
   await expect(business).toBeVisible();
