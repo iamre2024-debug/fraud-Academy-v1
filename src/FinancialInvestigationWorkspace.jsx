@@ -268,7 +268,7 @@ export default function FinancialInvestigationWorkspace({
             <div><dt>Case amount / exposure</dt><dd>{workspace.profile.caseAmountDisplay}</dd></div>
           </dl>
         </article>
-        <section className="financial-mission-kpis financial-investigation-kpis" aria-label="Financial Investigation account metrics">
+        <section className="financial-mission-kpis" aria-label="Financial Investigation account metrics">
           {overviewMetrics.map((item, index) => (
             <article key={`${item.label}-${index}`}>
               <span>{item.label}</span>
