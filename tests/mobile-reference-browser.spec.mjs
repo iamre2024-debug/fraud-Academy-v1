@@ -174,11 +174,36 @@ test('Quick Pad collapsed and expanded states are captured in the four required 
   await payment.getByRole('textbox', { name: 'Owner or business name', exact: true }).fill(paymentRecord.accountHolder);
   await payment.getByRole('button', { name: 'Run verification', exact: true }).click();
   await expect(payment.locator('.payment-detail-panel')).toBeVisible();
-  await payment.locator('.payment-quick-pad-actions').getByRole('button', { name: /Bank Code/ }).click();
+  const paymentQuickPadActions = payment.locator('.payment-quick-pad-actions');
+  await paymentQuickPadActions.getByRole('button', { name: /Bank Code/ }).click();
+  await paymentQuickPadActions.getByRole('button', { name: /Destination ID/ }).click();
+  await paymentQuickPadActions.getByRole('button', { name: /Bank Code/ }).click();
+  await expect.poll(() => page.evaluate(({ caseId, bankCode, destinationId, recordId }) => {
+    const pad = JSON.parse(localStorage.getItem('fraud-academy-quick-pad-v1') || '{}');
+    const items = pad[caseId]?.items ?? [];
+    const paymentItems = items.filter((item) => item.sourceTool === 'Payment Verification');
+    return {
+      bankCodes: paymentItems.filter((item) => (
+        item.label === 'Bank Code'
+        && item.value === bankCode
+        && item.sourceRecordId === recordId
+      )).length,
+      destinationIds: paymentItems.filter((item) => (
+        item.label === 'Destination ID'
+        && item.value === destinationId
+        && item.sourceRecordId === recordId
+      )).length,
+    };
+  }, {
+    caseId: activeCase.id,
+    bankCode: paymentRecord.bankCode,
+    destinationId: paymentRecord.destinationId,
+    recordId: paymentRecord.id,
+  })).toEqual({ bankCodes: 1, destinationIds: 1 });
   await captureQuickPadPair(page, 'payment-verification');
 
-  await expect.poll(() => page.evaluate(() => {
+  await expect.poll(() => page.evaluate((caseId) => {
     const pad = JSON.parse(localStorage.getItem('fraud-academy-quick-pad-v1') || '{}');
-    return pad['FA-ATO-24018']?.items?.length ?? 0;
-  })).toBeGreaterThanOrEqual(4);
+    return pad[caseId]?.items?.length ?? 0;
+  }, activeCase.id)).toBeGreaterThanOrEqual(5);
 });

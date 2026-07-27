@@ -2443,6 +2443,7 @@ export default function InvestigationToolPanel({
           openTool={openTool}
           jumpDecision={jumpDecision}
           recordAction={recordAction}
+          quickPin={quickPin}
         />
       ) : tool === 'Document Viewer' ? (
         <DocumentViewerWorkspace
