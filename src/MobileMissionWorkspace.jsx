@@ -68,7 +68,6 @@ export default function MobileMissionWorkspace({
   submitRef,
   tray,
   updateDecision,
-  updateDecisionIndicator,
   visibleCategories,
   workspaceScreen,
 }) {
@@ -77,24 +76,39 @@ export default function MobileMissionWorkspace({
     : screenCopy[workspaceScreen] ?? ['🛰️', 'Mission Workspace'];
   const isRoot = workspaceScreen === 'briefing';
   const isTool = workspaceScreen === 'tool' || workspaceScreen === 'timeline';
+  const isReviewScreen = workspaceScreen === 'determination' || workspaceScreen === 'debrief';
+  const reviewSubtitle = workspaceScreen === 'debrief' ? 'Case Complete' : 'Final Review';
 
   return (
     <main className="mission-workspace-v3" data-workspace-screen={workspaceScreen} data-active-tool={activeTool}>
-      <header className="mission-workspace-bar">
+      <header className={`mission-workspace-bar ${isReviewScreen ? 'mission-review-bar' : ''}`}>
         <button type="button" className="mission-workspace-back" disabled={isRoot} onClick={goBackWorkspaceScreen} aria-label="Back to previous mission screen">‹</button>
-        <div><span>{screenIcon}</span><p>{activeCase.id}</p><h1>{screenTitle}</h1></div>
-        <button type="button" className={workspaceScreen === 'workflow' ? 'active' : ''} onClick={() => workspaceScreen === 'workflow' ? goBackWorkspaceScreen() : showWorkspaceScreen('workflow')} aria-label="Open mission pages">☷</button>
+        {isReviewScreen ? (
+          <div className="mission-review-title">
+            <h1>{screenTitle}{workspaceScreen === 'debrief' ? ' ✨' : ''}</h1>
+            <p>{reviewSubtitle}</p>
+          </div>
+        ) : (
+          <div><span>{screenIcon}</span><p>{activeCase.id}</p><h1>{screenTitle}</h1></div>
+        )}
+        {isReviewScreen ? (
+          <span className="mission-review-header-spacer" aria-hidden="true" />
+        ) : (
+          <button type="button" className={workspaceScreen === 'workflow' ? 'active' : ''} onClick={() => workspaceScreen === 'workflow' ? goBackWorkspaceScreen() : showWorkspaceScreen('workflow')} aria-label="Open mission pages">☷</button>
+        )}
       </header>
 
-      <section className="mission-workspace-case-selector" aria-label="Active mission file">
-        <span>ACTIVE FILE</span>
-        <label className="visual-case-switcher">
-          <select value={activeCase.id} onChange={(event) => changeCase(event.target.value)} aria-label="Choose active mission case">
-            {cases.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.person}</option>)}
-          </select>
-        </label>
-        <strong>{activeCase.status}</strong>
-      </section>
+      {!isReviewScreen && (
+        <section className="mission-workspace-case-selector" aria-label="Active mission file">
+          <span>ACTIVE FILE</span>
+          <label className="visual-case-switcher">
+            <select value={activeCase.id} onChange={(event) => changeCase(event.target.value)} aria-label="Choose active mission case">
+              {cases.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.person}</option>)}
+            </select>
+          </label>
+          <strong>{activeCase.status}</strong>
+        </section>
+      )}
 
       <div className="mission-workspace-surface">
         {workspaceScreen === 'briefing' && (
@@ -210,7 +224,6 @@ export default function MobileMissionWorkspace({
 
         {workspaceScreen === 'determination' && (
           <section className="mission-decision-page" data-workflow-stage="determination">
-            <header className="mission-decision-page-heading"><span>✅</span><div><p>Final mission path</p><h2>Build the decision package</h2><small>The outcome remains protected until you submit.</small></div></header>
             <SubmitDecisionPanel
               submitRef={submitRef}
               packageStatus={packageStatus}
@@ -220,9 +233,10 @@ export default function MobileMissionWorkspace({
               decisionDraft={decisionDraft}
               activeCase={activeCase}
               updateDecision={updateDecision}
-              updateDecisionIndicator={updateDecisionIndicator}
               submitDecision={submitDecision}
               openDebrief={openDebrief}
+              openEvidence={() => showWorkspaceScreen('evidence')}
+              openNotes={openNotes}
             />
           </section>
         )}
@@ -231,9 +245,11 @@ export default function MobileMissionWorkspace({
         {workspaceScreen !== 'debrief' && <div className="decision-luna-portal-anchor" hidden />}
       </div>
 
-      <footer className="mission-workspace-status">
-        <span>⭐ {tray.length} pinned</span><span>📝 {notes.length} notes</span><span>📡 {actionLog.length} actions</span>
-      </footer>
+      {!isReviewScreen && (
+        <footer className="mission-workspace-status">
+          <span>⭐ {tray.length} pinned</span><span>📝 {notes.length} notes</span><span>📡 {actionLog.length} actions</span>
+        </footer>
+      )}
     </main>
   );
 }
