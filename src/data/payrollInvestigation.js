@@ -74,7 +74,8 @@ export function recordTrustedBusinessResponse({
 }
 
 export function visiblePayrollEmailEvidence(response = {}) {
-  return response.businessContactCompleted && response.requestMethod?.toLowerCase() === 'email' && response.emailEvidenceAvailable
-    ? response.emailEvidence
+  const source = response && typeof response === 'object' && !Array.isArray(response) ? response : {};
+  return source.businessContactCompleted && source.requestMethod?.toLowerCase() === 'email' && source.emailEvidenceAvailable
+    ? source.emailEvidence
     : null;
 }

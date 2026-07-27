@@ -142,7 +142,9 @@ test('Customer 360 is a relationship-only personal profile with typed accounts a
   await expect(accountSection).toBeVisible();
   const accountCards = customer360.locator('.customer-360-account-records [data-customer-account]');
   await expect(accountCards).toHaveCount(3);
-  const checking = accountCards.filter({ hasText: 'Everyday Checking' });
+  const checking = customer360.locator('.customer-360-account-records [data-customer-account="ACCT-24018-4410"]');
+  await expect(checking).toHaveCount(1);
+  await expect(checking).toContainText('Everyday Checking');
   await expect(checking).toContainText('Account ID');
   await expect(checking).toContainText('Masked account');
   await expect(checking).toContainText('Product type');

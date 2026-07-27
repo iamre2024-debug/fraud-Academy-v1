@@ -138,9 +138,12 @@ test('approved Cases queue supports neutral search, filters, preview, and respon
 
   const jordanItem = queue.locator('.case-queue-item').filter({ hasText: 'Jordan Ellis' });
   await jordanItem.getByRole('button', { name: /Preview/ }).click();
-  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Jordan Ellis');
-  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Non-Fraud Chargeback Claim');
-  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Reason code guide');
+  const jordanPreview = queue.getByRole('complementary', { name: 'Selected case preview' });
+  await expect(jordanPreview).toContainText('Jordan Ellis');
+  await expect(jordanPreview).toContainText('Merchant / Non-Fraud Dispute');
+  await expect(jordanPreview).toContainText('Credit card');
+  await expect(jordanPreview).toContainText('Recurring merchant billing reported after cancellation');
+  await expect(jordanPreview).not.toContainText('Non-Fraud Chargeback Claim');
 
   await queue.getByLabel('Search cases').fill('');
   await queue.getByRole('combobox', { name: 'Priority', exact: true }).selectOption('High');
@@ -173,15 +176,23 @@ test('approved Cases queue supports neutral search, filters, preview, and respon
     expect(layout.previewPosition).toBe('sticky');
   }
 
-  await expect(queue.getByLabel('Generate case claim type')).toBeVisible();
+  await expect(queue.getByLabel('Generate case customer type')).toBeVisible();
+  await expect(queue.getByLabel('Generate case product')).toBeVisible();
+  await expect(queue.getByLabel('Generate case review workflow')).toBeVisible();
+  await expect(queue.getByLabel('Generate case alert reason')).toBeVisible();
   await expect(queue.getByLabel('Generate case scenario')).toBeVisible();
   await expect(queue.getByLabel('Generate case count')).toBeVisible();
-  await queue.getByLabel('Generate case claim type').selectOption('credit-risk');
+  await queue.getByLabel('Generate case customer type').selectOption('personal');
+  await queue.getByLabel('Generate case product').selectOption('personal-loan');
+  await queue.getByLabel('Generate case review workflow').selectOption('credit-risk-review');
   await queue.getByLabel('Generate case count').selectOption('5');
   await queue.getByRole('button', { name: 'Generate cases', exact: true }).click();
   await expect(queue.locator('[data-case-origin="generated"]')).toHaveCount(5);
-  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Credit Risk Review');
-  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Credit review details');
+  const generatedPreview = queue.getByRole('complementary', { name: 'Selected case preview' });
+  await expect(generatedPreview).toContainText('Personal');
+  await expect(generatedPreview).toContainText('Personal loan');
+  await expect(generatedPreview).toContainText('Credit Risk Review');
+  await expect(generatedPreview).toContainText('Why this case exists');
 
   await assertEvidenceFirstLock(page, builtInCases[0].id);
 });
@@ -199,14 +210,13 @@ test('all three built-in cases open from the queue without answer leaks', async 
   }
 });
 
-test('completed core modules and System Access Lane render real records', async ({ page }) => {
+test('supported core modules and System Access Lane render real records', async ({ page }) => {
   await page.goto('/');
   const caseSelector = page.locator('.visual-case-switcher select');
   await caseSelector.selectOption(builtInCases[2].id);
   await expect(caseSelector).toHaveValue(builtInCases[2].id);
 
   await openCoreTool(page, 'Business & Payment Verification', 'Payment Verification');
-  await openCoreTool(page, 'Business & Payment Verification', 'KYB Review');
   await openCoreTool(page, 'Documents & Requests', 'Document Viewer');
   await openCoreTool(page, 'Links & Related Cases', 'Link Analysis');
   await openCoreTool(page, 'Links & Related Cases', 'System Access Lane');

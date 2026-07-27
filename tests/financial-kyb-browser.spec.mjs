@@ -69,11 +69,9 @@ async function openFinancialInvestigation(page, caseRecord, testInfo) {
   }
   await page.getByRole('button', { name: /Begin investigation/i }).click();
 
-  await selectToolGroup(page, /Transactions & Financial/);
+  const toolGroups = await selectToolGroup(page, /Transactions & Financial/);
+  await toolGroups.getByRole('button', { name: /Case transaction/i }).click();
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  const toolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
-  await expect(toolSelect.locator('option[value="Financial Investigation"]')).toHaveCount(1);
-  await toolSelect.selectOption('Financial Investigation');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Financial Investigation');
   await expect(toolPanel.getByRole('heading', {
     name: 'What financial activity is recorded for this product and review period?',

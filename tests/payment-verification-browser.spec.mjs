@@ -165,8 +165,11 @@ test('Avery Customer 360 records the profile change without duplicating or prefi
 test('generated payroll carries one exact account change from Payroll History into gated verification', async ({ page }, testInfo) => {
   await page.goto('/');
   const queue = await openCaseQueue(page);
-  await queue.getByLabel('Generate case claim type').selectOption('payroll-direct-deposit');
-  await queue.getByLabel('Generate case scenario').selectOption('pay-direct-deposit-change');
+  await queue.getByLabel('Generate case customer type').selectOption('business');
+  await queue.getByLabel('Generate case product').selectOption('payroll-product');
+  await queue.getByLabel('Generate case review workflow').selectOption('payroll-change-alert');
+  await queue.getByLabel('Generate case alert reason').selectOption('Employee payment destination changed');
+  await queue.getByLabel('Generate case scenario').selectOption('pca-scenario-04');
   await queue.getByLabel('Generate case difficulty').selectOption('deep');
   await queue.getByLabel('Generate case evidence depth').selectOption('deep');
   await queue.getByLabel('Generate case count').selectOption('1');
@@ -175,7 +178,7 @@ test('generated payroll carries one exact account change from Payroll History in
   const briefing = page.locator('[data-workspace-page="briefing"]');
   await expect(briefing).toBeVisible();
   const generatedCaseId = await page.locator('.visual-case-switcher select').inputValue();
-  expect(generatedCaseId).toMatch(/^FA-PAY-G\d+$/);
+  expect(generatedCaseId).toMatch(/^FA-PCA-G\d+$/);
 
   await selectToolGroup(page, /Business & Payment Verification/);
   const payrollPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');

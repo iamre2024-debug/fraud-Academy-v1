@@ -90,6 +90,9 @@ test('case taxonomy routes desktop and mobile generators and protects payroll/li
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const toolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
   await toolSelect.selectOption('Payroll History');
+  const activeWorkspace = page.locator('.visual-os-frame, .mission-workspace-v3');
+  await expect(activeWorkspace).toHaveAttribute('data-workspace-screen', 'tool');
+  await expect(activeWorkspace).toHaveAttribute('data-active-tool', 'Payroll History');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Payroll History');
 
   const trustedContactFlow = toolPanel.getByRole('region', { name: 'Payroll change trusted contact workflow' });
@@ -381,6 +384,10 @@ test('legacy IndexedDB cases and learner progress survive the versioned domain m
     .getByRole('button', { name: /Cases/ })
     .click();
   const queue = page.locator('[data-cases-theme-v1="approved"]');
+  const generatedFilter = queue.getByRole('navigation', { name: 'Case status filters' })
+    .getByRole('button', { name: /^Generated \d+$/ });
+  await generatedFilter.click();
+  await expect(generatedFilter).toHaveAttribute('aria-pressed', 'true');
   await queue.getByRole('searchbox', { name: 'Search cases' }).fill(legacyCaseId);
   await expect(queue.locator('.case-queue-id', { hasText: legacyCaseId })).toBeVisible();
   expect(await queue.innerText()).not.toMatch(forbiddenInitialLabels);

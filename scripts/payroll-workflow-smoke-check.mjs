@@ -84,6 +84,11 @@ assert.equal(
   false,
   'Persisted email evidence must only rehydrate after an email-reported request.',
 );
+assert.equal(
+  visiblePayrollEmailEvidence(null),
+  null,
+  'Payroll History must remain renderable before a trusted business response exists.',
+);
 
 const emailReportedWithoutEvidence = recordTrustedBusinessResponse({
   requestMethod: 'Email',

@@ -330,5 +330,9 @@ test('Business 360 exposes a payroll relationship summary and only supported pay
   await assertWithinViewport(page, business360);
 
   await payrollRoutes.getByRole('button', { name: 'Open Payroll History', exact: true }).click();
-  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Payroll History');
+  const activeWorkspace = page.locator('.visual-os-frame, .mission-workspace-v3');
+  await expect(activeWorkspace).toHaveAttribute('data-workspace-screen', 'tool');
+  await expect(activeWorkspace).toHaveAttribute('data-active-tool', 'Payroll History');
+  await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]'))
+    .toHaveAttribute('data-tool-name', 'Payroll History');
 });

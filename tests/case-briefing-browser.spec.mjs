@@ -15,7 +15,7 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   await expect(briefing.getByRole('heading', { name: 'Briefing summary', exact: true, includeHidden: true })).toHaveCount(1);
   await expect(briefing.getByRole('heading', { name: 'Case parties', exact: true, includeHidden: true })).toHaveCount(1);
   await expect(briefing.getByRole('heading', { name: 'Account and transaction details', exact: true, includeHidden: true })).toHaveCount(1);
-  await expect(briefing.getByRole('heading', { name: 'Claim Intake Form', exact: true, includeHidden: true })).toHaveCount(1);
+  await expect(briefing.getByRole('heading', { name: 'Case Intake Form', exact: true, includeHidden: true })).toHaveCount(1);
   await expect(briefing).toContainText('Two failed password attempts were recorded at 7:58 AM and 8:00 AM.');
   await expect(briefing).toContainText('personal iPhone and Dallas, TX');
   await expect(briefing).not.toContainText('Review the related fictional case records');
@@ -39,7 +39,7 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
 
   if (testInfo.project.name === 'mobile-chromium') {
     const pager = briefing.getByRole('navigation', { name: 'Case Briefing pages' });
-    for (const heading of ['Briefing summary', 'Claim Intake Form', 'Key Case Facts', 'Case parties', 'Account and transaction details']) {
+    for (const heading of ['Briefing summary', 'Case Intake Form', 'Key Case Facts', 'Case parties', 'Account and transaction details']) {
       await pager.getByRole('button', { name: 'Next' }).click();
       await expect(briefing.getByRole('heading', { name: heading, exact: true })).toBeVisible();
     }
@@ -104,9 +104,10 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   await expect(briefing).toContainText('Cardholder reports recurring billing after cancellation.');
   await expect(briefing.getByRole('heading', { name: 'Transaction details', exact: true, includeHidden: true })).toHaveCount(1);
   await expect(briefing).toContainText('StreamBox Premium');
-  await expect(briefing.getByRole('heading', { name: 'Reason code and review details', exact: true, includeHidden: true })).toHaveCount(1);
-  await expect(briefing).toContainText('Training canceled-service / recurring billing review');
+  await expect(briefing).toContainText('Merchant / Non-Fraud Dispute');
+  await expect(briefing).toContainText('Recurring merchant billing reported after cancellation');
   await expect(briefing).toContainText('cancellation confirmation remains the required open evidence');
+  await expect(briefing.getByRole('heading', { name: 'Reason code and review details', exact: true, includeHidden: true })).toHaveCount(0);
 
   await utilities.getByRole('button', { name: /Begin Investigation/ }).click();
   await expect(page.locator('[data-workflow-stage-button="investigate"]')).toHaveAttribute('aria-current', 'step');
