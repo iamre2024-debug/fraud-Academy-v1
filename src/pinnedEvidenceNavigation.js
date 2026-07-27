@@ -1,4 +1,8 @@
 import { rowsFor } from './visualWorkspaceModel.js';
+import {
+  filterToolsForCaseDomain,
+  normalizeToolName,
+} from './data/caseDomain.js';
 
 function text(value) {
   return String(value ?? '').trim();
@@ -56,13 +60,18 @@ export function resolvePinnedEvidence(pinValue, activeCase, toolNames) {
   const value = text(pinValue);
   if (!value || !activeCase) return null;
 
+  const routedToolNames = filterToolsForCaseDomain(toolNames, activeCase);
   const identifier = firstIdentifier(value);
   const preferredTool = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(value)
     ? 'IP Intelligence'
-    : pinPrefixRoutes.find(([pattern, tool]) => pattern.test(identifier) && toolNames.includes(tool))?.[1];
+    : normalizeToolName(
+        pinPrefixRoutes.find(([pattern, tool]) => (
+          pattern.test(identifier) && routedToolNames.includes(tool)
+        ))?.[1],
+      );
   let bestMatch = null;
 
-  toolNames.forEach((tool) => {
+  routedToolNames.forEach((tool) => {
     const data = rowsFor(tool, activeCase);
     data.rows.forEach((row) => {
       const baseScore = scoreRow(value, identifier, row);

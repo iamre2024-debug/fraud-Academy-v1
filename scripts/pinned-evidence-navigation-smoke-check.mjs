@@ -23,4 +23,44 @@ if (fallback?.tool !== 'Document Viewer' || fallback.recordId !== 'DOC-UNSAVED-0
   throw new Error('Document prefix fallback did not preserve the saved identifier.');
 }
 
+const legacyAliasFallback = resolvePinnedEvidence(
+  'FIN-UNSAVED-01 | Historical financial record',
+  activeCase,
+  ['Financial Intelligence'],
+);
+if (
+  legacyAliasFallback?.tool !== 'Financial Investigation'
+  || legacyAliasFallback.recordId !== 'FIN-UNSAVED-01'
+) {
+  throw new Error('Legacy navigation tool aliases did not reopen the canonical source tool.');
+}
+
+const invalidPersonalBusinessRoute = resolvePinnedEvidence(
+  'BIZ-UNSAVED-01 | Historical business record',
+  activeCase,
+  ['Business Intelligence'],
+);
+if (invalidPersonalBusinessRoute !== null) {
+  throw new Error('Pinned evidence navigation exposed a business-only tool on a personal case.');
+}
+
+const linkedPersonalBusinessRoute = resolvePinnedEvidence(
+  'BIZ-UNSAVED-02 | Owned training business',
+  {
+    ...activeCase,
+    availableTools: [...activeCase.availableTools, 'Business 360'],
+    linkedBusinesses: [{
+      businessId: 'BIZ-UNSAVED-02',
+      relationship: 'Beneficial owner',
+    }],
+  },
+  ['Customer 360', 'Business 360', 'KYB Review', 'Payroll History'],
+);
+if (
+  linkedPersonalBusinessRoute?.tool !== 'Business 360'
+  || linkedPersonalBusinessRoute.recordId !== 'BIZ-UNSAVED-02'
+) {
+  throw new Error('Pinned evidence navigation did not preserve the explicit ownership-linked Business 360 route.');
+}
+
 console.log('Pinned evidence navigation smoke check passed.');

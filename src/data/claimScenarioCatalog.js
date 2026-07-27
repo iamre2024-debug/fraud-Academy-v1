@@ -1,3 +1,11 @@
+import {
+  CUSTOMER_TYPES,
+  FINAL_FINDINGS,
+  PRODUCT_TYPES,
+  SUSPECTED_PATTERNS,
+  WORKFLOW_TYPES,
+} from './caseDomain.js';
+
 function entry(subtype, title, statement, amount, transactionInfo, correctDetermination, truth, options = {}) {
   return {
     subtype,
@@ -113,96 +121,442 @@ const scenarioCatalog = {
   ],
 };
 
-const claimDefaults = {
-  'account-takeover': { channel: 'Digital fraud intake', entityRole: 'Consumer account holder', commonMistake: 'Treating a successful MFA event as proof the customer authorized later activity.' },
-  'fraud-chargeback': { channel: 'Cardholder claim intake', entityRole: 'Cardholder', commonMistake: 'Treating authorization data as the same thing as customer participation or fulfillment.' },
-  'non-fraud-chargeback': { channel: 'Card dispute intake', entityRole: 'Cardholder', commonMistake: 'Using a generic dispute reason instead of the evidence standard for the specific billing issue.' },
-  'first-party-fraud': { channel: 'Claims review queue', entityRole: 'Cardholder', commonMistake: 'Assuming delivery or device evidence proves intent without comparing the full customer story.' },
-  'payroll-direct-deposit': { channel: 'Employer payroll inquiry', entityRole: 'Employee', commonMistake: 'Calling an unverified number from the change request instead of using a trusted contact.' },
-  'email-bec': { channel: 'Business payment-security queue', entityRole: 'Business payment contact', commonMistake: 'Trusting the display name or email thread without verifying the domain, mailbox, and beneficiary.' },
-  'credit-risk': { channel: 'Credit review queue', entityRole: 'Credit applicant', commonMistake: 'Confusing inability to repay with fraud or relying on stated income without reconciliation.' },
-  'business-loan-bust-out': { channel: 'Business credit monitoring', entityRole: 'Business owner', commonMistake: 'Reviewing registration alone without testing ownership, operations, revenue, and total exposure.' },
-  'application-verification': { channel: 'Application verification queue', entityRole: 'Applicant', commonMistake: 'Treating a single identity match or mismatch as a complete verification decision.' },
-  'ach-wire-check': { channel: 'Payments operations queue', entityRole: 'Business payment contact', commonMistake: 'Treating payment release as proof the instruction was valid or assuming recovery is guaranteed.' },
+const personalCreditProducts = [PRODUCT_TYPES.CREDIT_CARD, PRODUCT_TYPES.PERSONAL_LOAN];
+const businessCreditProducts = [PRODUCT_TYPES.BUSINESS_CREDIT_CARD, PRODUCT_TYPES.BUSINESS_LOAN, PRODUCT_TYPES.PAYROLL_PRODUCT];
+const businessLoanProducts = [PRODUCT_TYPES.BUSINESS_LOAN, PRODUCT_TYPES.BUSINESS_CREDIT_CARD, PRODUCT_TYPES.PAYROLL_PRODUCT];
+
+function fromCatalog(sourceClaimTypeId, predicate = () => true, domain = {}) {
+  return (scenarioCatalog[sourceClaimTypeId] ?? [])
+    .filter(predicate)
+    .map((spec) => ({ ...spec, sourceClaimTypeId, ...domain }));
+}
+
+const accountAccess = scenarioCatalog['account-takeover'];
+const cardAccessPattern = /credential stuffing|phishing|session hijack|wallet enrollment/i;
+const applicationPattern = /income inflation|synthetic identity concern|fake application|loan stacking|business revenue mismatch/i;
+const personalRiskPattern = /credit line increase|first-payment default concern|repayment stress|first-party credit abuse/i;
+const businessApplicationPattern = /synthetic owner identity|revenue mismatch|business legitimacy mismatch|tradeline piggyback/i;
+const businessRiskPattern = /sleeper|rapid credit line stacking|large draws after limit increase/i;
+
+const workflowScenarioCatalog = {
+  [WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM]: [
+    ...fromCatalog('fraud-chargeback', () => true, { customerTypes: [CUSTOMER_TYPES.PERSONAL], productTypes: [PRODUCT_TYPES.CREDIT_CARD] }),
+    ...fromCatalog('first-party-fraud', () => true, { customerTypes: [CUSTOMER_TYPES.PERSONAL], productTypes: [PRODUCT_TYPES.CREDIT_CARD] }),
+  ],
+  [WORKFLOW_TYPES.MERCHANT_NON_FRAUD_DISPUTE]: fromCatalog('non-fraud-chargeback', () => true, {
+    customerTypes: [CUSTOMER_TYPES.PERSONAL],
+    productTypes: [PRODUCT_TYPES.CREDIT_CARD],
+  }),
+  [WORKFLOW_TYPES.CARD_ACCOUNT_TAKEOVER]: fromCatalog('account-takeover', (spec) => cardAccessPattern.test(spec.subtype), {
+    customerTypes: [CUSTOMER_TYPES.PERSONAL],
+    productTypes: [PRODUCT_TYPES.CREDIT_CARD],
+  }),
+  [WORKFLOW_TYPES.PERSONAL_ACCOUNT_TAKEOVER]: fromCatalog('account-takeover', (spec) => !cardAccessPattern.test(spec.subtype), {
+    customerTypes: [CUSTOMER_TYPES.PERSONAL],
+    productTypes: [PRODUCT_TYPES.DEPOSIT_ACCOUNT],
+  }),
+  [WORKFLOW_TYPES.ACH_TRANSACTION_CLAIM]: fromCatalog('ach-wire-check', (spec) => /^ACH/i.test(spec.subtype), {
+    customerTypes: [CUSTOMER_TYPES.PERSONAL],
+    productTypes: [PRODUCT_TYPES.DEPOSIT_ACCOUNT],
+  }),
+  [WORKFLOW_TYPES.WIRE_TRANSACTION_CLAIM]: fromCatalog('ach-wire-check', (spec) => /wire|payment recovery/i.test(spec.subtype), {
+    customerTypes: [CUSTOMER_TYPES.PERSONAL],
+    productTypes: [PRODUCT_TYPES.DEPOSIT_ACCOUNT],
+  }),
+  [WORKFLOW_TYPES.BUSINESS_ACCOUNT_TAKEOVER]: accountAccess
+    .filter((spec) => /credential stuffing|help desk reset|profile change|new payee/i.test(spec.subtype))
+    .map((spec) => ({
+      ...spec,
+      sourceClaimTypeId: 'account-takeover',
+      customerTypes: [CUSTOMER_TYPES.BUSINESS],
+      productTypes: [PRODUCT_TYPES.BUSINESS_ACCOUNT, PRODUCT_TYPES.BUSINESS_CREDIT_CARD, PRODUCT_TYPES.BUSINESS_LOAN],
+      statement: 'The business reported unfamiliar administrator, profile, or payment activity in its account.',
+      entityRole: 'Business administrator',
+    })),
+  [WORKFLOW_TYPES.BUSINESS_PAYMENT_INSTRUCTION_CHANGE_ALERT]: fromCatalog('email-bec', () => true, {
+    customerTypes: [CUSTOMER_TYPES.BUSINESS],
+    productTypes: [PRODUCT_TYPES.BUSINESS_ACCOUNT],
+  }),
+  [WORKFLOW_TYPES.ACH_TRANSACTION_REVIEW]: fromCatalog('ach-wire-check', (spec) => /^ACH/i.test(spec.subtype), {
+    customerTypes: [CUSTOMER_TYPES.BUSINESS],
+    productTypes: [PRODUCT_TYPES.BUSINESS_ACCOUNT],
+    statement: 'The business reported an ACH entry or instruction that requires authorization review.',
+    entityRole: 'Business payment contact',
+  }),
+  [WORKFLOW_TYPES.WIRE_TRANSACTION_REVIEW]: fromCatalog('ach-wire-check', (spec) => /wire|payment recovery/i.test(spec.subtype), {
+    customerTypes: [CUSTOMER_TYPES.BUSINESS],
+    productTypes: [PRODUCT_TYPES.BUSINESS_ACCOUNT],
+  }),
+  [WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT]: fromCatalog('payroll-direct-deposit', (spec) => !/admin portal compromise/i.test(spec.subtype), {
+    customerTypes: [CUSTOMER_TYPES.BUSINESS],
+    productTypes: [PRODUCT_TYPES.PAYROLL_PRODUCT],
+  }),
+  [WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER]: fromCatalog('payroll-direct-deposit', (spec) => /admin portal compromise/i.test(spec.subtype), {
+    customerTypes: [CUSTOMER_TYPES.BUSINESS],
+    productTypes: [PRODUCT_TYPES.PAYROLL_PRODUCT],
+  }),
+  [WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW]: [
+    ...fromCatalog('application-verification', () => true, {
+      customerTypes: [CUSTOMER_TYPES.PERSONAL],
+      productTypes: personalCreditProducts,
+    }),
+    ...fromCatalog('credit-risk', (spec) => applicationPattern.test(spec.subtype) && !/business/i.test(`${spec.family} ${spec.subtype}`), {
+      customerTypes: [CUSTOMER_TYPES.PERSONAL],
+      productTypes: personalCreditProducts,
+    }),
+    ...fromCatalog('credit-risk', (spec) => /business revenue mismatch/i.test(spec.subtype), {
+      customerTypes: [CUSTOMER_TYPES.BUSINESS],
+      productTypes: businessCreditProducts,
+    }),
+    ...fromCatalog('business-loan-bust-out', (spec) => businessApplicationPattern.test(spec.subtype), {
+      customerTypes: [CUSTOMER_TYPES.BUSINESS],
+      productTypes: businessLoanProducts,
+    }),
+  ],
+  [WORKFLOW_TYPES.CREDIT_RISK_REVIEW]: [
+    ...fromCatalog('credit-risk', (spec) => personalRiskPattern.test(spec.subtype), {
+      customerTypes: [CUSTOMER_TYPES.PERSONAL],
+      productTypes: personalCreditProducts,
+    }),
+    ...fromCatalog('credit-risk', (spec) => /bust-out concern/i.test(spec.subtype), {
+      customerTypes: [CUSTOMER_TYPES.BUSINESS],
+      productTypes: businessCreditProducts,
+    }),
+    ...fromCatalog('business-loan-bust-out', (spec) => businessRiskPattern.test(spec.subtype), {
+      customerTypes: [CUSTOMER_TYPES.BUSINESS],
+      productTypes: businessLoanProducts,
+    }),
+  ],
+};
+
+const scenarioTruthByKey = new Map();
+const legacyScenarioPrefixes = {
+  'account-takeover': 'ato',
+  'fraud-chargeback': 'fcb',
+  'non-fraud-chargeback': 'ncb',
+  'first-party-fraud': 'fpf',
+  'payroll-direct-deposit': 'pay',
+  'email-bec': 'bec',
+  'credit-risk': 'cr',
+  'business-loan-bust-out': 'blo',
+  'application-verification': 'avr',
+  'ach-wire-check': 'awc',
 };
 
 function slug(value = '') {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-function lifecycleFor(claimType, spec) {
-  if (claimType.id === 'credit-risk') return /existing/i.test(spec.family ?? '') ? 'account monitoring' : 'onboarding';
-  if (claimType.id === 'business-loan-bust-out') return /draw|exposure|stacking/i.test(spec.subtype) ? 'account monitoring' : 'onboarding';
-  return claimType.taxonomy.lifecycleStage;
+function publicAlertReason(workflowType, spec) {
+  const source = `${spec.subtype} ${spec.transactionInfo}`.toLowerCase();
+  if (workflowType === WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM) {
+    if (/wallet/.test(source)) return 'Unrecognized digital-wallet card activity';
+    if (/atm/.test(source)) return 'Unrecognized ATM card activity';
+    if (/point-of-sale|chip|contactless|pos/.test(source)) return 'Unrecognized card-present transaction';
+    if (/delivery|not received/.test(source)) return 'Card purchase and delivery allegation';
+    return 'Unrecognized card transaction';
+  }
+  if (workflowType === WORKFLOW_TYPES.MERCHANT_NON_FRAUD_DISPUTE) {
+    if (/duplicate/.test(source)) return 'Duplicate billing reported';
+    if (/refund|return credit/.test(source)) return 'Refund or return credit not posted';
+    if (/cancel|subscription/.test(source)) return 'Cancellation or subscription billing issue';
+    if (/not rendered|not described/.test(source)) return 'Goods or services issue';
+    if (/incorrect amount/.test(source)) return 'Incorrect amount reported';
+    return 'Merchant billing or service issue';
+  }
+  if (workflowType === WORKFLOW_TYPES.CARD_ACCOUNT_TAKEOVER) return 'New card-access or wallet activity observed';
+  if (workflowType === WORKFLOW_TYPES.PERSONAL_ACCOUNT_TAKEOVER) return 'New account-access or profile activity observed';
+  if (workflowType === WORKFLOW_TYPES.ACH_TRANSACTION_CLAIM) return 'Unrecognized ACH debit reported';
+  if (workflowType === WORKFLOW_TYPES.WIRE_TRANSACTION_CLAIM) return 'Wire instruction or authorization questioned';
+  if (workflowType === WORKFLOW_TYPES.BUSINESS_ACCOUNT_TAKEOVER) return 'New business-account access or administrator activity observed';
+  if (workflowType === WORKFLOW_TYPES.BUSINESS_PAYMENT_INSTRUCTION_CHANGE_ALERT) {
+    return /urgent|CEO/i.test(source) ? 'Unusual business payment instruction reported' : 'Business payment destination or instruction changed';
+  }
+  if (workflowType === WORKFLOW_TYPES.ACH_TRANSACTION_REVIEW) return 'Business ACH instruction or activity requires review';
+  if (workflowType === WORKFLOW_TYPES.WIRE_TRANSACTION_REVIEW) return 'Business wire instruction or activity requires review';
+  if (workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT) {
+    if (/new-hire|ghost employee/.test(source)) return 'New employee added';
+    if (/amount/.test(source)) return 'Unusual payroll amount observed';
+    return 'Employee payment destination changed';
+  }
+  if (workflowType === WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER) return 'New session and payroll administrator activity observed';
+  if (workflowType === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW) {
+    return spec.customerTypes?.includes(CUSTOMER_TYPES.BUSINESS)
+      ? 'Business application information requires verification'
+      : 'Application information requires verification';
+  }
+  if (workflowType === WORKFLOW_TYPES.CREDIT_RISK_REVIEW) {
+    if (/draw|line|utilization/.test(source)) return 'Utilization or draw activity changed';
+    if (/payment|repayment|default/.test(source)) return 'Payment behavior requires review';
+    return 'Existing credit exposure requires review';
+  }
+  return 'Activity requires review';
+}
+
+function reportedAllegation(workflowType, alertReason) {
+  if (workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT) {
+    return `${alertReason}. The platform does not know how the change was requested at intake.`;
+  }
+  if (workflowType === WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER) {
+    return `${alertReason}. Authorization and administrator control have not been established.`;
+  }
+  if (workflowType === WORKFLOW_TYPES.BUSINESS_PAYMENT_INSTRUCTION_CHANGE_ALERT) {
+    return `${alertReason}. The instruction source and validity require trusted verification.`;
+  }
+  if (workflowType === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW) {
+    return `${alertReason}. Missing or conflicting information requires verification and is not itself a fraud finding.`;
+  }
+  if (workflowType === WORKFLOW_TYPES.CREDIT_RISK_REVIEW) {
+    return `${alertReason}. The alert does not establish intent or a fraud finding.`;
+  }
+  return `${alertReason}. The allegation or alert remains unconfirmed pending investigation.`;
+}
+
+function suspectedPatternsFor(spec, workflowType) {
+  const value = `${spec.subtype} ${spec.truth}`.toLowerCase();
+  const patterns = [];
+  if (/synthetic/.test(value)) patterns.push(SUSPECTED_PATTERNS.SYNTHETIC_IDENTITY);
+  if (
+    workflowType === WORKFLOW_TYPES.CREDIT_RISK_REVIEW
+    && /bust-out|sleeper llc|large draws after|rapid credit line stacking/.test(value)
+  ) {
+    patterns.push(SUSPECTED_PATTERNS.BUST_OUT);
+  }
+  if (/first-party|friendly fraud|household member use|digital goods used|retained merchandise|dispute after usage/.test(value)) patterns.push(SUSPECTED_PATTERNS.FIRST_PARTY_FRAUD);
+  if (/email-bec|spoofed employee email|compromised employee email|look-alike domain|mailbox|reply-to|invoice diversion|executive impersonation/.test(value)) {
+    patterns.push(SUSPECTED_PATTERNS.EMAIL_COMPROMISE_BEC);
+  }
+  if (
+    [
+      WORKFLOW_TYPES.CARD_ACCOUNT_TAKEOVER,
+      WORKFLOW_TYPES.PERSONAL_ACCOUNT_TAKEOVER,
+      WORKFLOW_TYPES.BUSINESS_ACCOUNT_TAKEOVER,
+      WORKFLOW_TYPES.ACH_TRANSACTION_CLAIM,
+      WORKFLOW_TYPES.WIRE_TRANSACTION_CLAIM,
+      WORKFLOW_TYPES.BUSINESS_PAYMENT_INSTRUCTION_CHANGE_ALERT,
+      WORKFLOW_TYPES.ACH_TRANSACTION_REVIEW,
+      WORKFLOW_TYPES.WIRE_TRANSACTION_REVIEW,
+      WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT,
+      WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER,
+      WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW,
+      WORKFLOW_TYPES.CREDIT_RISK_REVIEW,
+    ].includes(workflowType)
+    && /(?:destination|beneficiary|payment account).*(?:unrelated|no prior customer relationship|ownership does not match)|(?:unrelated|no prior customer relationship).*(?:destination|beneficiary|payment account)/.test(value)
+  ) {
+    patterns.push(SUSPECTED_PATTERNS.MULE_ACTIVITY);
+  }
+  if (/stolen identity/.test(value)) patterns.push(SUSPECTED_PATTERNS.STOLEN_IDENTITY);
+  if (/business legitimacy|revenue mismatch|tradeline.*unrelated/.test(value)) patterns.push(SUSPECTED_PATTERNS.FABRICATED_BUSINESS_INFORMATION);
+  if (/owner identity|owner mismatch/.test(value)) patterns.push(SUSPECTED_PATTERNS.OWNER_MISMATCH);
+  if ([WORKFLOW_TYPES.CARD_ACCOUNT_TAKEOVER, WORKFLOW_TYPES.PERSONAL_ACCOUNT_TAKEOVER, WORKFLOW_TYPES.BUSINESS_ACCOUNT_TAKEOVER, WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER].includes(workflowType)) {
+    patterns.push(SUSPECTED_PATTERNS.ACCOUNT_TAKEOVER);
+  }
+  return [...new Set(patterns)];
+}
+
+function normalizeOperationalDecision(workflowType, value = '') {
+  const choice = value.toLowerCase();
+  if ([WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW].includes(workflowType)) {
+    if (/deny/.test(choice)) return 'Deny';
+    if (/approve|complete application/.test(choice)) return 'Approve';
+    if (/request|more information|unable|hold pending/.test(choice)) return 'Request More Information';
+    return 'Escalate';
+  }
+  if (workflowType === WORKFLOW_TYPES.CREDIT_RISK_REVIEW) {
+    if (/reduce|restriction|collections|hardship/.test(choice)) return 'Restrict / Reduce';
+    if (/hold pending|hold/.test(choice)) return 'Hold';
+    if (/more information|request document/.test(choice)) return 'Request More Information';
+    if (/escalate|refer.*fraud/.test(choice)) return 'Escalate';
+    return 'Maintain';
+  }
+  if ([WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT, WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER, WORKFLOW_TYPES.BUSINESS_PAYMENT_INSTRUCTION_CHANGE_ALERT, WORKFLOW_TYPES.ACH_TRANSACTION_REVIEW, WORKFLOW_TYPES.WIRE_TRANSACTION_REVIEW].includes(workflowType)) {
+    if (/release/.test(choice)) return 'Release';
+    if (/more information|insufficient/.test(choice)) return 'More Information Needed';
+    if (/escalate/.test(choice)) return 'Escalate';
+    return 'Hold';
+  }
+  if ([WORKFLOW_TYPES.CARD_ACCOUNT_TAKEOVER, WORKFLOW_TYPES.PERSONAL_ACCOUNT_TAKEOVER, WORKFLOW_TYPES.BUSINESS_ACCOUNT_TAKEOVER].includes(workflowType)) {
+    if (/insufficient|more information/.test(choice)) return 'More Information Needed';
+    if (/escalate/.test(choice)) return 'Escalate';
+    if (/do not support|release/.test(choice)) return 'Maintain';
+    if (/support/.test(choice)) return 'Restrict';
+    return 'Hold';
+  }
+  if (/do not support/.test(choice)) return 'Do Not Support Customer Claim';
+  if (/partial/.test(choice)) return 'Partial Credit';
+  if (/insufficient|more information/.test(choice)) return 'Insufficient Evidence';
+  if (/escalate/.test(choice)) return 'Escalate';
+  return 'Support Customer Claim';
+}
+
+function finalFindingFor(spec, workflowType, patterns, operationalDecision) {
+  const value = `${spec.subtype} ${spec.truth}`.toLowerCase();
+  if (workflowType === WORKFLOW_TYPES.MERCHANT_NON_FRAUD_DISPUTE) return FINAL_FINDINGS.NON_FRAUD_DISPUTE;
+  if (workflowType === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW) {
+    if (patterns.some((pattern) => [SUSPECTED_PATTERNS.SYNTHETIC_IDENTITY, SUSPECTED_PATTERNS.STOLEN_IDENTITY, SUSPECTED_PATTERNS.FABRICATED_BUSINESS_INFORMATION].includes(pattern))
+      && /do not form|denied applying|conflict|cannot be independently supported|unrelated businesses/.test(value)) return FINAL_FINDINGS.FRAUD_CONFIRMED;
+    if (/missing|lacks enough|pending|may be explainable|cannot be reconciled automatically|do not yet reconcile/.test(value)) return FINAL_FINDINGS.VERIFICATION_INCOMPLETE;
+    return FINAL_FINDINGS.INCONCLUSIVE;
+  }
+  if (workflowType === WORKFLOW_TYPES.CREDIT_RISK_REVIEW) {
+    if (patterns.includes(SUSPECTED_PATTERNS.BUST_OUT) && /intentional|long-dormant|rapid.*missed|without current revenue/.test(value)) return FINAL_FINDINGS.FRAUD_CONFIRMED;
+    return FINAL_FINDINGS.CREDIT_RISK_CONCERN;
+  }
+  if ([WORKFLOW_TYPES.BUSINESS_PAYMENT_INSTRUCTION_CHANGE_ALERT, WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT, WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER].includes(workflowType)) {
+    if (operationalDecision === 'Release') return FINAL_FINDINGS.FRAUD_NOT_FOUND;
+    if (operationalDecision === 'More Information Needed' || operationalDecision === 'Escalate') return FINAL_FINDINGS.INCONCLUSIVE;
+    return FINAL_FINDINGS.FRAUD_CONFIRMED;
+  }
+  if (patterns.includes(SUSPECTED_PATTERNS.FIRST_PARTY_FRAUD) && /used|authorized user|delivery photo|empty parcel/.test(value)) return FINAL_FINDINGS.FRAUD_CONFIRMED;
+  if (/do not support/.test(spec.correctDetermination.toLowerCase())) return FINAL_FINDINGS.FRAUD_NOT_FOUND;
+  if (/insufficient|escalate|more information/.test(spec.correctDetermination.toLowerCase())) return FINAL_FINDINGS.INCONCLUSIVE;
+  return FINAL_FINDINGS.FRAUD_CONFIRMED;
+}
+
+function publicStatement(workflowType, alertReason) {
+  if (workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT) {
+    return `${alertReason}. The request method is unknown at intake and trusted verification has not yet occurred.`;
+  }
+  if (workflowType === WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER) {
+    return `${alertReason}. Review the initiator, approver, device, IP, session, payroll history, and funds status.`;
+  }
+  if (workflowType === WORKFLOW_TYPES.BUSINESS_PAYMENT_INSTRUCTION_CHANGE_ALERT) {
+    return `${alertReason}. The business has not yet established how the instruction was received or whether it was valid.`;
+  }
+  return reportedAllegation(workflowType, alertReason);
+}
+
+function publicEntityRole(workflowType, customerType, suppliedRole) {
+  if (workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT) return 'Affected employee';
+  if (workflowType === WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER) return 'Payroll administrator named in the alert';
+  if (workflowType === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW) {
+    return customerType === CUSTOMER_TYPES.BUSINESS ? 'Application submitter' : 'Credit applicant';
+  }
+  if (workflowType === WORKFLOW_TYPES.CREDIT_RISK_REVIEW) {
+    return customerType === CUSTOMER_TYPES.BUSINESS ? 'Business account contact' : 'Existing account holder';
+  }
+  return suppliedRole ?? (customerType === CUSTOMER_TYPES.BUSINESS ? 'Business account contact' : 'Personal customer');
 }
 
 function toolkitFor(claimType, spec) {
-  if (claimType.id === 'fraud-chargeback' && /lost card|stolen card|never received|counterfeit|ATM\/POS/i.test(spec.subtype)) {
+  if (claimType.id === WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM && /lost card|stolen card|never received|counterfeit|ATM\/POS/i.test(spec.subtype)) {
     return claimType.availableTools.filter((tool) => !['Login History', 'Session History', 'Device Intelligence'].includes(tool));
   }
   return [...claimType.availableTools];
 }
 
-function buildScenario(claimType, spec, existingScenario) {
-  const defaults = claimDefaults[claimType.id];
-  const scenarioId = spec.id ?? existingScenario?.id ?? `${claimType.prefix.toLowerCase()}-${slug(spec.subtype)}`;
-  const priority = spec.priority ?? existingScenario?.priority ?? 'Medium';
-  const businessLoanFamily = claimType.id === 'business-loan-bust-out'
-    ? lifecycleFor(claimType, spec) === 'account monitoring' ? 'Existing business account review' : 'New business application'
-    : undefined;
-  const family = spec.family ?? existingScenario?.family ?? businessLoanFamily;
-  const taxonomyTags = {
-    ...claimType.taxonomy,
-    lifecycleStage: lifecycleFor(claimType, spec),
-    customerRole: /support customer|hold|route for secondary fraud/i.test(spec.correctDetermination) ? 'victim or at-risk party' : claimType.taxonomy.customerRole,
+function buildScenario(claimType, spec, index) {
+  const legacyScenarioId = spec.id ?? `${legacyScenarioPrefixes[spec.sourceClaimTypeId] ?? slug(spec.sourceClaimTypeId)}-${slug(spec.subtype)}`;
+  const scenarioId = `${claimType.prefix.toLowerCase()}-scenario-${String(index + 1).padStart(2, '0')}`;
+  const alertReason = publicAlertReason(claimType.workflowType, spec);
+  const allegation = reportedAllegation(claimType.workflowType, alertReason);
+  const patterns = suspectedPatternsFor(spec, claimType.workflowType);
+  const operationalDecision = normalizeOperationalDecision(claimType.workflowType, spec.correctDetermination);
+  const finalFinding = finalFindingFor(spec, claimType.workflowType, patterns, operationalDecision);
+  const containsEmailPattern = patterns.includes(SUSPECTED_PATTERNS.EMAIL_COMPROMISE_BEC);
+  const scenarioTruthId = `${claimType.workflowType}:${scenarioId}`;
+  const disclosure = {
+    requestMethodAtIntake: claimType.workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT ? 'unknown' : 'not established',
+    emailEvidenceAvailableAtIntake: false,
+    emailEvidenceStage: containsEmailPattern ? 'business-supplied-after-trusted-contact' : 'not applicable',
+    businessReportedRequestMethod: containsEmailPattern ? 'email' : 'not established',
   };
+  const truth = Object.freeze({
+    scenarioTruthId,
+    suspectedPatterns: Object.freeze(patterns),
+    operationalDecision,
+    finalFinding,
+    findingBasis: spec.truth,
+    classification: spec.truth,
+    correctDetermination: operationalDecision,
+    acceptedDeterminations: Object.freeze([operationalDecision]),
+    legacyOperationalDecision: spec.correctDetermination,
+    disclosure: Object.freeze(disclosure),
+    revealMode: 'post-submission',
+  });
+  scenarioTruthByKey.set(scenarioTruthId, truth);
 
-  return {
+  const customerType = spec.customerTypes?.[0] ?? claimType.customerType;
+  const productType = spec.productTypes?.[0] ?? claimType.productType;
+  const publicScenario = {
     id: scenarioId,
-    title: spec.title,
-    subtype: spec.subtype,
-    summary: `${spec.title}. The fictional packet contains both routine and exception evidence for an Evidence First review.`,
-    statement: spec.statement,
-    channel: spec.channel ?? existingScenario?.channel ?? defaults.channel,
+    title: `${alertReason} review`,
+    subtype: alertReason,
+    alertReason,
+    reportedAllegation: allegation,
+    summary: `${allegation} The fictional packet contains routine and exception evidence for review.`,
+    statement: publicStatement(claimType.workflowType, alertReason),
+    channel: claimType.workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT
+      ? 'Platform payroll alert'
+      : claimType.workflowType === WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER
+        ? 'Platform payroll access alert'
+        : spec.channel ?? (customerType === CUSTOMER_TYPES.BUSINESS ? 'Business review queue' : 'Customer review queue'),
     amount: spec.amount,
-    transactionInfo: spec.transactionInfo,
-    priority,
-    family,
-    entityRole: spec.entityRole ?? existingScenario?.entityRole ?? defaults.entityRole,
-    plainEnglishMeaning: `${spec.title} asks the investigator to determine what the available records actually support without assuming the allegation is true or false.`,
-    howItHappens: spec.truth,
-    timelinePattern: `${spec.subtype} activity is distributed across intake, system, transaction, and document records rather than disclosed in one answer-bearing record.`,
-    commonMistake: defaults.commonMistake,
-    miniExample: spec.statement,
+    transactionInfo: spec.transactionInfo
+      .replace(/compromised mailbox|email request|mailbox thread|reply-to mismatch|forwarding rule|email/gi, 'instruction source pending verification'),
+    priority: spec.priority ?? 'Medium',
+    family: claimType.label,
+    entityRole: publicEntityRole(claimType.workflowType, customerType, spec.entityRole),
+    customerTypes: [...(spec.customerTypes ?? claimType.customerTypes)],
+    productTypes: [...(spec.productTypes ?? claimType.productTypes)],
+    customerType,
+    productType,
+    workflowType: claimType.workflowType,
+    plainEnglishMeaning: `Determine what the available records support for this ${claimType.label.toLowerCase()} without assuming the allegation or alert is true or false.`,
+    timelinePattern: 'The activity is distributed across intake, system, transaction, and document records without disclosing a finding.',
+    commonMistake: claimType.workflowType === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW
+      ? 'Treating missing verification as fraud or using a denial as a fraud finding.'
+      : 'Treating a single link, status, authentication event, or allegation as a conclusion.',
+    miniExample: allegation,
     expectedEvidence: [...claimType.evidenceAreas],
     toolkitTools: toolkitFor(claimType, spec),
     documents: [...claimType.documents],
-    taxonomyTags,
-    caseTruth: {
-      classification: spec.truth,
-      correctDetermination: spec.correctDetermination,
-      acceptedDeterminations: [spec.correctDetermination],
-      rationale: spec.truth,
-      revealMode: 'post-submission',
+    taxonomyTags: {
+      customerType,
+      productType,
+      workflowType: claimType.workflowType,
+      lifecycleStage: claimType.taxonomy.lifecycleStage,
+      productRail: claimType.taxonomy.productRail,
     },
-    debriefLogic: `After submission, compare the learner determination and cited evidence with the hidden ${spec.subtype} truth and explain any unsupported assumptions.`,
+    generationIndex: index,
   };
+  Object.defineProperty(publicScenario, 'generationKey', {
+    value: `${spec.sourceClaimTypeId}:${spec.subtype}`,
+    enumerable: false,
+  });
+  Object.defineProperty(publicScenario, 'legacyScenarioId', {
+    value: legacyScenarioId,
+    enumerable: false,
+  });
+  Object.defineProperty(publicScenario, 'scenarioTruthId', {
+    value: scenarioTruthId,
+    enumerable: false,
+  });
+  return publicScenario;
 }
 
 export function expandClaimScenarios(claimType) {
-  const specs = scenarioCatalog[claimType.id] ?? [];
-  const existingBySubtype = new Map((claimType.scenarios ?? []).map((item) => [item.subtype, item]));
-  const scenarios = specs.map((spec) => buildScenario(claimType, spec, existingBySubtype.get(spec.subtype)));
-  const represented = new Set(scenarios.map((item) => item.subtype));
-  const missingSubtypes = claimType.subtypes.filter((subtype) => !represented.has(subtype));
+  const specs = workflowScenarioCatalog[claimType.id] ?? [];
+  if (!specs.length) throw new Error(`${claimType.label} has no neutral scenario specifications`);
+  const scenarios = specs.map((spec, index) => buildScenario(claimType, spec, index));
+  return {
+    ...claimType,
+    subtypes: [...new Set(scenarios.map((scenario) => scenario.alertReason))],
+    scenarios,
+  };
+}
 
-  if (missingSubtypes.length) {
-    throw new Error(`${claimType.label} is missing scenario specifications for: ${missingSubtypes.join(', ')}`);
-  }
-
-  return { ...claimType, scenarios };
+export function getScenarioTruth(workflowType, scenarioId) {
+  const truth = scenarioTruthByKey.get(`${workflowType}:${scenarioId}`);
+  if (!truth) return undefined;
+  return {
+    ...truth,
+    suspectedPatterns: [...truth.suspectedPatterns],
+    acceptedDeterminations: [...truth.acceptedDeterminations],
+    disclosure: { ...truth.disclosure },
+  };
 }
 
 export function scenarioCatalogCounts() {
-  return Object.fromEntries(Object.entries(scenarioCatalog).map(([claimTypeId, entries]) => [claimTypeId, entries.length]));
+  return Object.fromEntries(Object.entries(workflowScenarioCatalog).map(([workflowType, entries]) => [workflowType, entries.length]));
 }

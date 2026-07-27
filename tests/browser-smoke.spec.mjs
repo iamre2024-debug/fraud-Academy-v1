@@ -66,6 +66,23 @@ async function openCoreTool(page, category, tool) {
     await runPaymentVerification(panel, activeCase);
   }
 
+  if (tool === 'Link Analysis') {
+    const activeCaseId = await page.locator('.visual-case-switcher select').inputValue();
+    const activeCase = builtInCases.find((item) => item.id === activeCaseId);
+    const search = panel.getByRole('textbox', { name: 'Search Link Analysis identifier' });
+    await expect(panel.getByRole('region', { name: 'Cross-account Link Analysis search' })).toBeVisible();
+    await expect(panel.getByText('Search before viewing account links.', { exact: true })).toBeVisible();
+    await search.fill(activeCase.destinationId);
+    await panel.getByRole('button', { name: 'Search accounts', exact: true }).click();
+    await expect(panel.locator('.link-analysis-result-summary')).toContainText(activeCase.destinationId);
+    await expect(panel.locator('.link-analysis-result-summary')).toContainText(/\d+ matched accounts?/);
+    const firstMatch = panel.locator('[data-link-account]').first();
+    await expect(firstMatch).toBeVisible();
+    await firstMatch.locator('.link-analysis-account-heading').click();
+    await expect(firstMatch.locator('.link-analysis-account-detail')).toContainText('Exact shared identifier');
+    return;
+  }
+
   const specializedSelectors = {
     'Payment Verification': {
       record: '.payment-status-chip',
@@ -138,9 +155,12 @@ test('approved Cases queue supports neutral search, filters, preview, and respon
 
   const jordanItem = queue.locator('.case-queue-item').filter({ hasText: 'Jordan Ellis' });
   await jordanItem.getByRole('button', { name: /Preview/ }).click();
-  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Jordan Ellis');
-  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Non-Fraud Chargeback Claim');
-  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Reason code guide');
+  const jordanPreview = queue.getByRole('complementary', { name: 'Selected case preview' });
+  await expect(jordanPreview).toContainText('Jordan Ellis');
+  await expect(jordanPreview).toContainText('Merchant / Non-Fraud Dispute');
+  await expect(jordanPreview).toContainText('Credit card');
+  await expect(jordanPreview).toContainText('Recurring merchant billing reported after cancellation');
+  await expect(jordanPreview).not.toContainText('Non-Fraud Chargeback Claim');
 
   await queue.getByLabel('Search cases').fill('');
   await queue.getByRole('combobox', { name: 'Priority', exact: true }).selectOption('High');
@@ -173,15 +193,23 @@ test('approved Cases queue supports neutral search, filters, preview, and respon
     expect(layout.previewPosition).toBe('sticky');
   }
 
-  await expect(queue.getByLabel('Generate case claim type')).toBeVisible();
+  await expect(queue.getByLabel('Generate case customer type')).toBeVisible();
+  await expect(queue.getByLabel('Generate case product')).toBeVisible();
+  await expect(queue.getByLabel('Generate case review workflow')).toBeVisible();
+  await expect(queue.getByLabel('Generate case alert reason')).toBeVisible();
   await expect(queue.getByLabel('Generate case scenario')).toBeVisible();
   await expect(queue.getByLabel('Generate case count')).toBeVisible();
-  await queue.getByLabel('Generate case claim type').selectOption('credit-risk');
+  await queue.getByLabel('Generate case customer type').selectOption('personal');
+  await queue.getByLabel('Generate case product').selectOption('personal-loan');
+  await queue.getByLabel('Generate case review workflow').selectOption('credit-risk-review');
   await queue.getByLabel('Generate case count').selectOption('5');
   await queue.getByRole('button', { name: 'Generate cases', exact: true }).click();
   await expect(queue.locator('[data-case-origin="generated"]')).toHaveCount(5);
-  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Credit Risk Review');
-  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Credit review details');
+  const generatedPreview = queue.getByRole('complementary', { name: 'Selected case preview' });
+  await expect(generatedPreview).toContainText('Personal');
+  await expect(generatedPreview).toContainText('Personal loan');
+  await expect(generatedPreview).toContainText('Credit Risk Review');
+  await expect(generatedPreview).toContainText('Why this case exists');
 
   await assertEvidenceFirstLock(page, builtInCases[0].id);
 });
@@ -199,14 +227,13 @@ test('all three built-in cases open from the queue without answer leaks', async 
   }
 });
 
-test('completed core modules and System Access Lane render real records', async ({ page }) => {
+test('supported core modules and System Access Lane render real records', async ({ page }) => {
   await page.goto('/');
   const caseSelector = page.locator('.visual-case-switcher select');
   await caseSelector.selectOption(builtInCases[2].id);
   await expect(caseSelector).toHaveValue(builtInCases[2].id);
 
   await openCoreTool(page, 'Business & Payment Verification', 'Payment Verification');
-  await openCoreTool(page, 'Business & Payment Verification', 'KYB Review');
   await openCoreTool(page, 'Documents & Requests', 'Document Viewer');
   await openCoreTool(page, 'Links & Related Cases', 'Link Analysis');
   await openCoreTool(page, 'Links & Related Cases', 'System Access Lane');

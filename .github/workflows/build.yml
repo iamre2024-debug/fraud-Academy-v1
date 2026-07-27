@@ -50,6 +50,21 @@ jobs:
       - name: All-scenario generated packet smoke check
         run: npm run generator-merchant-smoke-check
 
+      - name: Case domain routing smoke check
+        run: npm run case-domain-model-smoke-check
+
+      - name: Customer Business and Financial relationship tools smoke check
+        run: npm run relationship-tools-smoke-check
+
+      - name: Payroll workflow evidence-gating smoke check
+        run: npm run payroll-workflow-smoke-check
+
+      - name: Cross-account Link Analysis smoke check
+        run: npm run link-analysis-smoke-check
+
+      - name: Pre-submission hidden-answer smoke check
+        run: npm run public-case-leak-smoke-check
+
       - name: Document Request workflow smoke check
         run: npm run document-request-workflow-smoke-check
 
@@ -100,6 +115,9 @@ jobs:
 
       - name: PWA install and offline smoke check
         run: npm run pwa-smoke-check
+
+      - name: Saved-case migration smoke check
+        run: npm run case-migration-smoke-check
 
       - name: Encrypted cloud persistence smoke check
         run: npm run cloud-persistence-smoke-check

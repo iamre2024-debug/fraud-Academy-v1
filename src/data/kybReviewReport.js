@@ -59,7 +59,7 @@ export function buildKybReviewReport(activeCase = {}) {
     ],
     pages: [
       page('KYB Business Report', 'ENTITY AND REGISTRATION - FICTIONAL TRAINING REPORT', [
-        section('Report context', [['Case', caseId], ['Customer', customer], ['Claim type', claimType], ['Generated', generated]]),
+        section('Report context', [['Case', caseId], ['Customer', customer], ['Review workflow', claimType], ['Generated', generated]]),
         section('Business identity', [['Legal name', profile.legalName], ['DBA', profile.dba], ['Entity type', profile.entityType], ['Industry', profile.industry], ['NAICS', profile.naics], ['Website', profile.website], ['Phone', profile.phone]]),
         section('Registration record', [['Registration ID', profile.registrationId], ['Jurisdiction', profile.jurisdiction], ['Formation date', profile.formationDate], ['Standing', profile.standing], ['Masked EIN', profile.ein], ['Address', profile.address], ['Source', profile.source]]),
       ]),
@@ -104,7 +104,7 @@ export function getGeneratedKybReportDocuments(activeCase) {
 }
 
 export function kybReportExportText(report) {
-  const lines = [report.title, `Reference: ${report.reference}`, `Case: ${report.caseId}`, `Business: ${report.customer}`, `Claim type: ${report.claimType}`, '', report.summary];
+  const lines = [report.title, `Reference: ${report.reference}`, `Case: ${report.caseId}`, `Business: ${report.customer}`, `Review workflow: ${report.claimType}`, '', report.summary];
   for (const [label, value] of report.fields) lines.push(`${label}: ${value}`);
   for (const reportPage of report.pages) {
     lines.push('', reportPage.title, reportPage.subtitle);

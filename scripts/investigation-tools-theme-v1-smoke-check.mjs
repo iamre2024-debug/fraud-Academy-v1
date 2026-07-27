@@ -157,11 +157,11 @@ for (const anchor of [
   'Official contact / callback',
   'Employee Profile review',
   'PayrollHistoryWorkspace',
-  'Payroll and direct deposit',
+  'Payroll runs and paystubs',
   'Trusted callback',
   'Payroll History review',
   'FinancialInvestigationWorkspace',
-  'Does the money make sense?',
+  'What financial activity is recorded for this product and review period?',
   'KYBReviewWorkspace',
   'Search business',
   'Generate report',
@@ -404,7 +404,19 @@ mustContain('documentRecords.js', documentRecords, 'getGeneratedKybReportDocumen
 mustContain('displayInvestigationToolsThemeV1.css', styles, '.access-history-filters');
 mustContain('displayInvestigationToolsThemeV1.css', styles, '.ip-lookup-action');
 
-for (const anchor of ['financialInvestigationTabs', 'Account Overview', 'Deposit Analysis', 'Spending Analysis', 'Cash Activity', 'Digital Payments', 'Linked Accounts', 'Merchant Billing History', 'Behavior Trends', 'Funds Flow', 'Mule / Cash-Out Pattern', 'getFinancialInvestigation', 'financialRecordSearchText']) {
+for (const anchor of [
+  'financialInvestigationTabs',
+  'Account Review',
+  'Current vs Historical',
+  'Spending Analysis',
+  'Personal Deposit Analysis',
+  'Credit & Loan Payments',
+  'Business Payroll Analysis',
+  'recordsBySection',
+  'getFinancialInvestigation',
+  'getFinancialInvestigationSections',
+  'financialRecordSearchText',
+]) {
   mustContain('financialInvestigationRecords.js', financialInvestigation, anchor);
 }
 
@@ -428,8 +440,9 @@ mustContain('investigation-tools-browser.spec.mjs', browser, 'approved Investiga
 mustContain('investigation-tools-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('document-viewer-browser.spec.mjs', documentBrowser, 'requires an Account ID');
 mustContain('document-viewer-browser.spec.mjs', documentBrowser, 'Document comparison');
-mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'Financial Investigation and KYB Review provide complete responsive workspaces');
-mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'Open in Document Viewer');
+mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'personal credit-card Financial Investigation formats dated comparisons and reconciles spending filters');
+mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'business payroll Financial Investigation reconciles month and pay-period totals and routes the exact run');
+mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'Open ${selectedRun.id} in Payroll History');
 mustContain('Investigation tools handoff', handoff, 'agent/investigation-tools-approved-theme-v1');
 mustContain('Investigation tools handoff', handoff, 'Timeline only');
 mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **final responsive/mobile polish only**');

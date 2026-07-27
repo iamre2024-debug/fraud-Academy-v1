@@ -1,5 +1,8 @@
 import { getBusinessRecords, getFinancialRecords } from './caseToolData.js';
 import { isPaymentProfileEvent } from './paymentVerification.js';
+import { WORKFLOW_TYPES } from './caseDomain.js';
+import { buildCaseParties } from './caseParties.js';
+import { UNKNOWN_REQUEST_METHOD } from './payrollInvestigation.js';
 
 const businessProfiles = {
   'FA-ATO-24018': {
@@ -47,9 +50,142 @@ function amountValue(value = '') {
   return Number(String(value).replace(/[^0-9.]/g, '')) || 0;
 }
 
+function payrollSeed(value = '') {
+  return [...String(value)].reduce(
+    (total, character) => ((total * 31) + character.charCodeAt(0)) % 10000,
+    29,
+  );
+}
+
+function roundMoney(value) {
+  return Math.round((Number(value) || 0) * 100) / 100;
+}
+
+function parsedPayrollDate(value, fallbackIndex = 0, allowFallback = true) {
+  const text = String(value ?? '').replace(/\s+·.*$/, '').trim();
+  const range = text.match(
+    /^([A-Za-z]{3,9})\s+\d{1,2}\s*[–—-]\s*(?:([A-Za-z]{3,9})\s+)?(\d{1,2}),?\s+((?:19|20)\d{2})\b/,
+  );
+  if (range) {
+    const parsedRangeEnd = new Date(`${range[2] ?? range[1]} ${range[3]}, ${range[4]} 12:00:00 UTC`);
+    if (!Number.isNaN(parsedRangeEnd.getTime())) return parsedRangeEnd;
+  }
+  const parsed = new Date(text);
+  if (!Number.isNaN(parsed.getTime())) return parsed;
+  if (!allowFallback) return null;
+  return new Date(2026, 6, Math.max(1, 28 - (fallbackIndex * 14)), 12, 0, 0);
+}
+
+function displayDate(value) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(value);
+}
+
+function displayMonth(value) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'long',
+    year: 'numeric',
+  }).format(value);
+}
+
+function payrollPeriodFor(value, index, allowFallback = true) {
+  const processed = parsedPayrollDate(value, index, allowFallback);
+  if (!processed) {
+    const supplied = String(value ?? '').trim() || 'Date not supplied in preserved payroll record';
+    return {
+      processedDate: supplied,
+      month: supplied,
+      payPeriodStart: 'Not supplied in preserved payroll record',
+      payPeriodEnd: 'Not supplied in preserved payroll record',
+      payPeriodLabel: supplied,
+      nextScheduledPayroll: 'Not supplied in preserved payroll record',
+    };
+  }
+  const year = processed.getFullYear();
+  const month = processed.getMonth();
+  const firstHalf = processed.getDate() <= 15;
+  const start = new Date(year, month, firstHalf ? 1 : 16, 12, 0, 0);
+  const end = new Date(year, month + (firstHalf ? 0 : 1), firstHalf ? 15 : 0, 12, 0, 0);
+  const next = new Date(year, month + (firstHalf ? 0 : 1), firstHalf ? 16 : 1, 12, 0, 0);
+  return {
+    processedDate: displayDate(processed),
+    month: displayMonth(processed),
+    payPeriodStart: displayDate(start),
+    payPeriodEnd: displayDate(end),
+    payPeriodLabel: `${displayDate(start)} – ${displayDate(end)}`,
+    nextScheduledPayroll: displayDate(next),
+  };
+}
+
+function payrollAmounts(item, activeCase, index) {
+  const recordedAmount = amountValue(
+    item.totalCompanyDebit
+      ?? item.fundingAmount
+      ?? item.amount,
+  );
+  const seed = payrollSeed(`${activeCase.id}-${item.id}-${index}`);
+  const legacyCoverage = activeCase.legacyDerivedEvidence === true;
+  const suppliedEmployeeCount = item.employeeCount === undefined || item.employeeCount === null
+    ? null
+    : Number(item.employeeCount);
+  const employeeCount = Number.isFinite(suppliedEmployeeCount)
+    ? suppliedEmployeeCount
+    : legacyCoverage ? null : 22 + (seed % 8);
+  const suppliedCompanyTotal = item.totalCompanyDebit !== undefined
+    || item.fundingAmount !== undefined;
+  const generatedCompanyFloor = activeCase.customerType === 'business'
+    && !legacyCoverage
+    ? employeeCount * (2100 + (seed % 501))
+    : recordedAmount;
+  const totalCompanyDebit = legacyCoverage && !suppliedCompanyTotal
+    ? null
+    : roundMoney(suppliedCompanyTotal ? recordedAmount : Math.max(recordedAmount, generatedCompanyFloor));
+  const grossWages = item.grossWages === undefined
+    ? legacyCoverage || totalCompanyDebit === null ? null : roundMoney(totalCompanyDebit / 1.095)
+    : roundMoney(amountValue(item.grossWages));
+  const employeeTaxes = item.employeeTaxes === undefined
+    ? legacyCoverage || grossWages === null ? null : roundMoney(grossWages * 0.164)
+    : roundMoney(amountValue(item.employeeTaxes));
+  const deductions = item.deductions === undefined
+    ? legacyCoverage || grossWages === null ? null : roundMoney(grossWages * 0.042)
+    : roundMoney(amountValue(item.deductions));
+  const employerTaxes = item.employerTaxes === undefined
+    ? legacyCoverage || grossWages === null ? null : roundMoney(grossWages * 0.0765)
+    : roundMoney(amountValue(item.employerTaxes));
+  const employerContributions = item.employerContributions === undefined
+    ? legacyCoverage || totalCompanyDebit === null || grossWages === null || employerTaxes === null
+      ? null
+      : roundMoney(totalCompanyDebit - grossWages - employerTaxes)
+    : roundMoney(amountValue(item.employerContributions));
+  const netPayroll = item.netPayroll === undefined
+    ? legacyCoverage || grossWages === null || employeeTaxes === null || deductions === null
+      ? null
+      : roundMoney(grossWages - employeeTaxes - deductions)
+    : roundMoney(amountValue(item.netPayroll));
+  const fundingAmount = item.fundingAmount !== undefined
+    ? roundMoney(amountValue(item.fundingAmount))
+    : totalCompanyDebit;
+
+  return {
+    employeeCount,
+    paycheckAmount: roundMoney(amountValue(item.paycheckAmount ?? item.amount)),
+    grossWages,
+    employeeTaxes,
+    employerTaxes,
+    employerContributions,
+    deductions,
+    netPayroll,
+    totalCompanyDebit,
+    fundingAmount,
+  };
+}
+
 function toPaymentSource(record, activeCase) {
   if (!record) return null;
-  const businessOwnerLane = ['email-bec', 'business-loan-bust-out', 'ach-wire-check'].includes(activeCase.claimTypeId);
+  const businessOwnerLane = activeCase.customerType === 'business';
   return {
     recordId: record.id,
     bankCode: record.bankCode,
@@ -109,14 +245,18 @@ export function getTransactionHistory(activeCase) {
 
 export function getBusiness360Workspace(activeCase) {
   const records = getBusinessRecords(activeCase);
+  const parties = buildCaseParties(activeCase);
   const paymentSources = getPaymentSources(activeCase);
   const primary = records.business360?.[0] ?? { entity: 'No business entity recorded', id: 'BIZ-NONE', relationship: 'No relationship recorded', status: 'Not supplied', observed: 'Not supplied', context: 'No current business record.' };
+  const ownerParties = parties.filter((party) => /beneficial owner|owner/i.test(party.role ?? ''));
+  const controlParty = parties.find((party) => /control person/i.test(party.role ?? ''));
+  const administratorParties = parties.filter((party) => /administrator/i.test(party.role ?? ''));
   const profile = activeCase.businessProfile ?? businessProfiles[activeCase.id] ?? {
     entityType: activeCase.profile?.entityType ?? 'Generated training entity',
     registration: `Generated fictional registration for ${primary.entity}`,
     ein: `**-***${String(activeCase.id ?? '0000').replace(/\D/g, '').slice(-4).padStart(4, '0')}`,
-    owner: activeCase.person ?? 'Training owner record',
-    officer: activeCase.profile?.entityRole ?? 'Training controlling-party record',
+    owner: ownerParties.map((party) => party.name).join(' · ') || 'Training owner record',
+    officer: controlParty?.name ?? activeCase.profile?.entityRole ?? 'Training controlling-party record',
     registeredAgent: 'Generated training registered-agent record',
     address: activeCase.customer?.contact?.address ?? `${activeCase.intake?.customerLocation ?? 'Training location'} business address`,
     filingDate: activeCase.opened ?? 'Training date',
@@ -131,9 +271,21 @@ export function getBusiness360Workspace(activeCase) {
       relationship: primary.relationship,
       observed: primary.observed,
     },
-    relationships: records.business360 ?? [],
+    relationships: [
+      ...(records.business360 ?? []),
+      ...parties.map((party) => ({
+        id: party.id,
+        entity: party.name,
+        relationship: party.role,
+        status: party.verificationStatus ?? 'Verification record available',
+        observed: activeCase.reportedDate ?? activeCase.opened,
+        context: party.relationship,
+      })),
+    ].filter((record, index, all) => all.findIndex((candidate) => candidate.id === record.id) === index),
     intelligence: records.businessIntel ?? [],
     documents: activeCase.documents ?? [],
+    parties,
+    administrators: administratorParties,
     paymentSources,
     paymentSource: paymentSources[0] ?? null,
   };
@@ -167,12 +319,29 @@ export function getPayrollHistory(activeCase) {
       ?? paymentSources[0]
       ?? null;
     const hasDestinationContext = /direct deposit/i.test(item.channel)
-      || activeCase.claimTypeId === 'payroll-direct-deposit';
+      || [WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT, WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER].includes(activeCase.workflowType);
     const exactDestination = paymentSource
       ? `Bank Code ${paymentSource.bankCode} · Destination ID ${paymentSource.destinationId}`
       : 'No payroll destination in current packet';
+    const period = payrollPeriodFor(
+      item.processedDate ?? item.period,
+      index,
+      activeCase.legacyDerivedEvidence !== true,
+    );
+    const amounts = payrollAmounts(item, activeCase, index);
     return {
       ...item,
+      ...period,
+      ...amounts,
+      paySchedule: item.paySchedule ?? 'Twice monthly',
+      runType: item.runType ?? 'Regular payroll',
+      fundingStatus: item.fundingStatus ?? (
+        /posted|complete|funded|settled/i.test(item.status ?? '')
+          ? 'Funding completed'
+          : /current|pending|scheduled|processing/i.test(item.status ?? '')
+            ? `Funding record ${String(item.status).toLowerCase()}`
+            : `Funding status: ${item.status ?? 'recorded'}`
+      ),
       employee: employees.find((employee) => employee.employer === item.employer)?.name ?? activeCase.person,
       bankCode: hasDestinationContext ? paymentSource?.bankCode ?? 'Not supplied' : 'Not applicable',
       destinationId: hasDestinationContext ? paymentSource?.destinationId ?? 'Not supplied' : 'Not applicable',
@@ -182,9 +351,11 @@ export function getPayrollHistory(activeCase) {
       priorDestination: hasDestinationContext ? paymentSource?.previousDestination ?? 'Not supplied' : 'Not applicable',
       oldDestination: hasDestinationContext ? paymentSource?.previousDestination ?? 'Not supplied' : 'Not applicable',
       newDestination: hasDestinationContext ? paymentSource?.newDestination ?? exactDestination : 'Not applicable',
-      effectiveDate: item.period,
+      effectiveDate: item.effectiveDate ?? period.processedDate,
       changeRequest: hasDestinationContext
-        ? paymentSource?.changeComparison ?? paymentProfileEvent?.detail ?? 'No change comparison supplied'
+        ? activeCase.workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT
+          ? `Platform-observed change: ${paymentSource?.changeComparison ?? paymentProfileEvent?.detail ?? 'change comparison not supplied'}. Request method: ${UNKNOWN_REQUEST_METHOD}.`
+          : paymentSource?.changeComparison ?? paymentProfileEvent?.detail ?? 'No change comparison supplied'
         : 'Not applicable',
       adminActivity: hasDestinationContext
         ? paymentProfileEvent
@@ -204,4 +375,35 @@ export function getPayrollHistory(activeCase) {
       ],
     };
   });
+}
+
+export function getPayrollAccessContext(activeCase) {
+  if (activeCase.workflowType !== WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER) return null;
+  const parties = buildCaseParties(activeCase);
+  const login = activeCase.loginHistory?.[0] ?? {};
+  const businessRecords = getBusinessRecords(activeCase);
+  const financialRecords = getFinancialRecords(activeCase);
+  const payrollRecords = businessRecords.payrollHistory ?? [];
+  const destinationRecords = financialRecords.paymentVerification ?? [];
+  const initiator = parties.find((party) => /initiator/i.test(party.role ?? ''));
+  const approver = parties.find((party) => /approver/i.test(party.role ?? ''));
+  const administrator = parties.find((party) => /administrator/i.test(party.role ?? ''));
+  const recoveryDocument = (activeCase.documents ?? []).find((document) => /recover|recall|return/i.test(`${document.name ?? document.title} ${document.detail ?? ''}`));
+  const abnormalSamePerson = Boolean(initiator?.name && approver?.name && initiator.name === approver.name);
+
+  return {
+    initiator: initiator?.name ?? 'Initiator record not supplied',
+    approver: approver?.name ?? 'Approver record not supplied',
+    administrator: administrator?.name ?? 'Administrator record not supplied',
+    approvalSeparation: abnormalSamePerson
+      ? 'The same person initiated and approved; compare this with the business baseline.'
+      : 'Separate initiator and approver records are available.',
+    deviceId: login.deviceId ?? login.device ?? 'Device record not supplied',
+    ipAddress: login.ip ?? 'IP record not supplied',
+    sessionId: login.session ?? login.sessionReference ?? 'Session record not supplied',
+    payrollHistory: `${payrollRecords.length} payroll record${payrollRecords.length === 1 ? '' : 's'} available`,
+    destinationChanges: `${destinationRecords.length} payment or destination record${destinationRecords.length === 1 ? '' : 's'} available`,
+    fundsStatus: financialRecords.transactions?.[0]?.status ?? 'Funds status not supplied',
+    recoveryInformation: recoveryDocument?.detail ?? 'No recovery or recall result is recorded yet.',
+  };
 }

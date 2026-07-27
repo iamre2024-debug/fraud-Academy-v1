@@ -1,4 +1,5 @@
 import { getBusinessRecords, getFinancialRecords } from './caseToolData.js';
+import { buildCaseParties } from './caseParties.js';
 
 export const kybReviewTabs = [
   { id: 'overview', label: 'Overview', question: 'Which legal entity and business identifiers are recorded?' },
@@ -144,13 +145,33 @@ function money(value = 0) {
   return `$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function generatedOwnerName(seed) {
+  const firstNames = ['Morgan', 'Riley', 'Cameron', 'Taylor', 'Quinn', 'Parker'];
+  const lastNames = ['Navarro', 'Sullivan', 'Patel', 'Reed', 'Morales', 'Kim'];
+  return `${firstNames[seed % firstNames.length]} ${lastNames[(seed + 2) % lastNames.length]}`;
+}
+
+function generatedIndustry(sourceEntity, seed) {
+  const value = String(sourceEntity ?? '').toLowerCase();
+  if (/bakery|cafe|restaurant|food/.test(value)) return ['Commercial bakery', 'Food services', 'Specialty food retail'][seed % 3];
+  if (/construction|builder|roof|plumb|electric/.test(value)) return ['Specialty trade contractor', 'Commercial construction services'][seed % 2];
+  if (/logistics|transport|freight|delivery/.test(value)) return ['Freight transportation services', 'Local delivery services'][seed % 2];
+  if (/medical|health|dental|clinic/.test(value)) return ['Outpatient health services', 'Medical office services'][seed % 2];
+  if (/software|digital|technology|data/.test(value)) return ['Software services', 'Information technology services'][seed % 2];
+  return [
+    'Administrative support services',
+    'Commercial maintenance services',
+    'Wholesale distribution',
+    'Professional services',
+  ][seed % 4];
+}
+
 function generatedProfile(activeCase, businessRecords) {
   const seed = stableNumber(activeCase.id);
   const sourceEntity = activeCase.profile?.business
     ?? businessRecords.business360?.[0]?.entity
     ?? activeCase.profile?.employer
     ?? `${activeCase.person ?? 'Training'} Services`;
-  const customerName = activeCase.person ?? 'Training Customer';
   const baseName = /llc|inc\.?|corp/i.test(sourceEntity) ? sourceEntity : `${sourceEntity} LLC`;
   const suffix = String(seed).padStart(5, '0').slice(-5);
   const amount = Math.max(500, amountNumber(activeCase.amount));
@@ -162,10 +183,40 @@ function generatedProfile(activeCase, businessRecords) {
   const address = activeCase.customer?.contact?.address ?? `${100 + (seed % 8000)} Training Business Way, ${city}`;
   const jurisdiction = city.split(',').at(-1)?.trim() || 'Training jurisdiction';
   const domainStem = String(sourceEntity).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 32) || `training-${suffix}`;
+  const relevantParties = buildCaseParties(activeCase).filter((party) => (
+    party.partyType !== 'entity'
+    && /beneficial owner|control person|officer/i.test(party.role ?? '')
+  ));
+  const partyOwners = relevantParties.map((party, index) => [
+    party.id ?? `${activeCase.id}-PARTY-${index + 1}`,
+    party.name,
+    party.role,
+    party.ownership ?? (
+      /control person|officer/i.test(party.role ?? '')
+        ? '0% · control role only'
+        : `${51 + ((seed + index) % 35)}%`
+    ),
+    party.verificationStatus ?? 'Training identity record connected',
+    activeCase.customer?.relationshipSince ?? activeCase.reportedDate ?? 'Training date',
+    party.trainingId ?? 'Training ID not supplied',
+    (party.verificationScope ?? ['Identity', 'Role', 'Cross-account links']).join(' · '),
+  ]);
+  if (!partyOwners.some((owner) => /beneficial owner|owner/i.test(owner[2] ?? ''))) {
+    partyOwners.unshift([
+      `${activeCase.id}-OWN-PRIMARY`,
+      generatedOwnerName(seed),
+      'Beneficial owner',
+      `${51 + (seed % 35)}%`,
+      'Training identity record connected',
+      activeCase.customer?.relationshipSince ?? activeCase.reportedDate ?? 'Training date',
+      `TRN-OWN-${suffix}`,
+      'Identity · Ownership · Address · Cross-account links',
+    ]);
+  }
   return {
     legalName: baseName,
     dba: sourceEntity.replace(/\s+(LLC|Inc\.?|Corp\.?)/i, ''),
-    entityType: 'Training business entity',
+    entityType: ['Limited liability company', 'Corporation', 'Limited partnership'][seed % 3],
     registrationId: `${jurisdiction}-REG-${suffix}`,
     jurisdiction,
     formationDate: `${1 + (seed % 12)}/15/${2018 + (seed % 7)}`,
@@ -175,14 +226,11 @@ function generatedProfile(activeCase, businessRecords) {
     phone: activeCase.customer?.contact?.phone ?? `(555) 01${suffix.slice(-2)}-${suffix.slice(-4)}`,
     website: `${domainStem}.training.example.test`,
     domainAge: `${1 + (seed % 7)} years, ${seed % 12} months`,
-    industry: activeCase.taxonomy?.claimFamily ?? activeCase.type ?? 'Training business services',
+    industry: generatedIndustry(sourceEntity, seed),
     naics: `${440000 + (seed % 9000)} - Training industry classification`,
-    source: 'Generated fictional KYB, case, and relationship records',
+    source: 'Fictional state registration, onboarding, and relationship records',
     observed: activeCase.reportedDate ?? activeCase.opened ?? 'Training date',
-    owners: [
-      [`${activeCase.id}-OWN-1`, customerName, activeCase.profile?.entityRole ?? 'Controlling party', `${51 + (seed % 40)}%`, 'Training identity record connected', activeCase.opened ?? 'Training date'],
-      [`${activeCase.id}-OWN-2`, `Training owner ${suffix.slice(-2)}`, 'Additional owner', `${9 + (seed % 31)}%`, 'Training identity record connected', activeCase.opened ?? 'Training date'],
-    ],
+    owners: partyOwners,
     online: [
       [`${activeCase.id}-WEB-1`, 'Domain record', `${domainStem}.training.example.test`, `Recorded ${1 + (seed % 7)} years ago`, 'Registrant organization uses the generated legal name.'],
       [`${activeCase.id}-WEB-2`, 'Business phone', activeCase.customer?.contact?.phone ?? `(555) 01${suffix.slice(-2)}-${suffix.slice(-4)}`, 'Current case packet', 'Phone is connected to the generated business profile.'],
@@ -236,14 +284,14 @@ function buildRecords(activeCase, profile, businessRecords, financialRecords) {
       fields: [['Registration ID', profile.registrationId], ['Legal name', profile.legalName], ['Formation date', profile.formationDate], ['Jurisdiction', profile.jurisdiction], ['Standing', profile.standing], ['Masked EIN', profile.ein], ['Registered address', profile.address]],
       relatedRecords: caseDocumentIds,
     })],
-    owners: profile.owners.map(([id, name, role, ownership, identityStatus, firstRecorded]) => record({
+    owners: profile.owners.map(([id, name, role, ownership, identityStatus, firstRecorded, trainingId, verificationScope]) => record({
       id,
       title: name,
       category: role,
       value: ownership,
       observed: firstRecorded,
       detail: 'Owner or controlling-party record supplied for fictional identity comparison.',
-      fields: [['Name', name], ['Role', role], ['Ownership', ownership], ['Identity record', identityStatus], ['First recorded', firstRecorded], ['Entity', profile.legalName]],
+      fields: [['Name', name], ['Role', role], ['Ownership / applicability', ownership], ['Training ID', trainingId ?? 'Not supplied'], ['Identity record', identityStatus], ['Verification scope', verificationScope ?? 'Identity · Role · Cross-account links'], ['First recorded', firstRecorded], ['Entity', profile.legalName]],
       relatedRecords: businessIds,
     })),
     online: profile.online.map(([id, type, value, observed, detail]) => record({

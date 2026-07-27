@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import LunaApiAccessSetting from './LunaApiAccessSetting.jsx';
 import CloudSyncControl from './CloudSyncControl.jsx';
 import useResponsiveLayoutMode from './useResponsiveLayoutMode.js';
+import { publicCaseTaxonomy } from './data/publicCaseView.js';
 
 const reducedMotionKey = 'fraud-academy-reduced-motion-v1';
 const layoutModes = ['auto', 'mobile', 'desktop'];
@@ -107,7 +108,7 @@ export default function VisualShellHeader({ activeCase, cases, changeCase, onNav
 
       <section className="case-info-bar visual-case-strip">
         <div><span>▣</span><strong>Case</strong><em>{activeCase.id}</em></div>
-        <div><span>♟</span><strong>Claim Type:</strong><em>{activeCase.type}</em></div>
+        <div><span>♟</span><strong>Workflow:</strong><em>{publicCaseTaxonomy(activeCase).workflowType}</em></div>
         <div><span>◈</span><strong>Status:</strong><em>{activeCase.status}</em></div>
         <label className="visual-case-switcher"><span>Case Queue</span><select value={activeCase.id} onChange={(event) => changeCase(event.target.value)}>{cases.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.person}</option>)}</select></label>
       </section>

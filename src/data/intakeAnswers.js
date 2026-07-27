@@ -1,3 +1,6 @@
+import { WORKFLOW_TYPES } from './caseDomain.js';
+import { UNKNOWN_REQUEST_METHOD } from './payrollInvestigation.js';
+
 function clean(value, fallback = 'Not recorded in the current intake') {
   const text = String(value ?? '').trim();
   return text || fallback;
@@ -41,6 +44,9 @@ export function buildCaseIntakeAnswers({
   loginHistory = [],
   profileChanges = [],
   customer = {},
+  customerType,
+  productType,
+  workflowType,
 }) {
   const transactions = toolResults.transactions ?? [];
   const transaction = transactions[0];
@@ -74,7 +80,13 @@ export function buildCaseIntakeAnswers({
     const normalized = prompt.toLowerCase();
     let answer;
 
-    if (/account activity.*not authorize|what does the customer say occurred/.test(normalized)) {
+    if (workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT && /what employee|destination|amount|timing|administrator change|who requested|request method/.test(normalized)) {
+      answer = `The platform observed ${activity}. Request method: ${UNKNOWN_REQUEST_METHOD}. No request-channel evidence has been supplied at intake.`;
+    } else if (workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT && /payroll and destination histories|employee or vendor new or established/.test(normalized)) {
+      answer = `${employee ? `${employee.name} has an ${employee.status.toLowerCase()} record with ${employee.employer}` : 'Review the affected employee record'}. ${payment ? `${payment.object} was first seen ${payment.firstSeen}; ${payment.priorUse}.` : 'Review destination ownership and prior use.'}`;
+    } else if (workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT && /trusted business contact|trusted contact/.test(normalized)) {
+      answer = `If the activity remains risky, contact the business using a trusted, previously known contact method. The business response and how it says the change was requested have not yet been recorded.`;
+    } else if (/account activity.*not authorize|what does the customer say occurred/.test(normalized)) {
       answer = `${quotedStatement(statement)}. The activity attached to the claim is ${transactionFact}.`;
     } else if (/alerts?|reset messages?|contact attempts?/.test(normalized)) {
       const loginFact = failedLogin

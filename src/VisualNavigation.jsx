@@ -5,6 +5,7 @@ import AcademyThemeV1Panel from './AcademyThemeV1Panel.jsx';
 import ProfileThemeV1Panel from './ProfileThemeV1Panel.jsx';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import { trainingCases } from './data/cases.js';
+import { publicCaseTaxonomy } from './data/publicCaseView.js';
 
 const tabCopy = {
   dashboard: {
@@ -257,7 +258,7 @@ function DashboardPanel({ activeCaseId, cases, snapshot, onNavigate, onOpenCase 
               <div className="dashboard-case-title-row">
                 <div>
                   <h3>{activeCase.id}</h3>
-                  <p>{activeCase.type}</p>
+                  <p>{publicCaseTaxonomy(activeCase).workflowType}</p>
                 </div>
                 <span className={`dashboard-priority priority-${String(activeCase.priority).toLowerCase()}`}>{activeCase.priority} priority</span>
               </div>
@@ -355,7 +356,7 @@ function CasesPanel({ cases, onOpenCase }) {
     <div className="nav-case-grid">
       {cases.map((item) => (
         <button key={item.id} type="button" className="nav-case-card" onClick={() => onOpenCase(item.id)}>
-          <span>{item.type}</span>
+          <span>{publicCaseTaxonomy(item).workflowType}</span>
           <strong>{item.person}</strong>
           <small>{item.id} · {item.priority} priority</small>
         </button>

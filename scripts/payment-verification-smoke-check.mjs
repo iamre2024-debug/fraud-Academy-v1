@@ -217,7 +217,6 @@ if (!fallbackRecord || requiredFields.some((field) => fallbackRecord[field] === 
 }
 
 const panel = fs.readFileSync(new URL('../src/InvestigationToolPanel.jsx', import.meta.url), 'utf8');
-const customer = fs.readFileSync(new URL('../src/Customer360Panel.jsx', import.meta.url), 'utf8');
 for (const anchor of [
   'Search before reveal',
   'Bank Code',
@@ -235,18 +234,23 @@ for (const anchor of [
   if (!panel.includes(anchor)) fail(`Payment Verification UI is missing: ${anchor}`);
 }
 for (const anchor of [
-  'Payment Account Change',
-  'Payment Verification Inputs',
+  'function PaymentSourceHandoff',
+  "activeCase.availableTools?.includes('Payment Verification')",
+  'Source identifiers · Evidence First',
+  'Payment account change',
   'Bank Code',
   'Destination ID',
   'Previous account / destination',
   'New account / destination',
   'Change comparison',
-  'Payment account change details for',
+  'data-payment-source-record',
   'Prefill Payment Verification',
   'buildPaymentLookupHint',
 ]) {
-  if (!customer.includes(anchor)) fail(`Customer 360 handoff is missing: ${anchor}`);
+  if (!panel.includes(anchor)) fail(`Payment source handoff is missing: ${anchor}`);
+}
+if ((panel.match(/<PaymentSourceHandoff/g) ?? []).length < 3) {
+  fail('Payment source handoff is not connected to every supported source workspace.');
 }
 
 if (failures.length) {

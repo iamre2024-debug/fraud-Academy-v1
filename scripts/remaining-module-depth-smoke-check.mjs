@@ -2,8 +2,9 @@ import fs from 'node:fs';
 import { trainingCases as baseCases } from '../src/data/cases.js';
 import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
 import { buildCoreToolRecords } from '../src/data/coreToolRecords.js';
+import { PRODUCT_TYPES, WORKFLOW_TYPES } from '../src/data/caseDomain.js';
 import { financialRecordsByCase } from '../src/data/financialRecords.js';
-import { getFinancialInvestigation, financialInvestigationTabs } from '../src/data/financialInvestigationRecords.js';
+import { getFinancialInvestigation } from '../src/data/financialInvestigationRecords.js';
 import { createGeneratedCase } from '../src/data/generatedCases.js';
 import { getKybReview, kybReviewTabs, matchesKybReviewLookup } from '../src/data/kybReviewRecords.js';
 import { buildKybReviewReport } from '../src/data/kybReviewReport.js';
@@ -23,18 +24,9 @@ function fail(message) {
   failures.push(message);
 }
 
-function hasMerchantLane(activeCase) {
-  return activeCase.availableTools?.includes('Merchant Intelligence')
-    || ['fraud-chargeback', 'non-fraud-chargeback', 'first-party-fraud'].includes(activeCase.claimTypeId)
-    || activeCase.id === 'FA-CB-24007';
-}
-
-function applicableFinancialTabs(activeCase) {
-  return financialInvestigationTabs.filter((tab) => tab.id !== 'merchant' || hasMerchantLane(activeCase));
-}
-
 for (const activeCase of cases) {
-  for (const tool of remainingModules) {
+  const applicableModules = remainingModules.filter((tool) => activeCase.availableTools?.includes(tool));
+  for (const tool of applicableModules) {
     const data = buildCoreToolRecords(tool, activeCase, { rows: [] });
     if (!data || !Array.isArray(data.columns) || data.columns.length !== 7) {
       fail(`${activeCase.id} ${tool}: expected a seven-column investigation record set.`);
@@ -51,35 +43,49 @@ for (const activeCase of cases) {
     }
   }
 
-  const financialWorkspace = getFinancialInvestigation(activeCase);
-  if (financialInvestigationTabs.length !== 10) fail(`${activeCase.id} Financial Investigation: expected ten Bible v2 sections.`);
-  for (const tab of applicableFinancialTabs(activeCase)) {
-    if (!financialWorkspace.recordsByTab[tab.id]?.length) fail(`${activeCase.id} Financial Investigation: ${tab.label} has no case-specific records.`);
-  }
-  if (!hasMerchantLane(activeCase) && financialWorkspace.recordsByTab.merchant?.length) {
-    fail(`${activeCase.id} Financial Investigation: merchant records must remain empty outside merchant lanes.`);
+  if (activeCase.availableTools?.includes('Financial Investigation')) {
+    const financialWorkspace = getFinancialInvestigation(activeCase);
+    const sectionIds = financialWorkspace.sections.map((section) => section.id);
+    if (
+      !sectionIds.length
+      || JSON.stringify(sectionIds) !== JSON.stringify(financialWorkspace.sectionIds)
+    ) {
+      fail(`${activeCase.id} Financial Investigation: case-specific section routing is inconsistent.`);
+    }
+    for (const section of financialWorkspace.sections) {
+      if (!financialWorkspace.recordsBySection[section.id]?.length) {
+        fail(`${activeCase.id} Financial Investigation: ${section.label} has no case-specific records.`);
+      }
+    }
   }
 
-  const kybWorkspace = getKybReview(activeCase);
-  if (kybReviewTabs.length !== 8) fail(`${activeCase.id} KYB Review: expected eight review sections.`);
-  for (const tab of kybReviewTabs) {
-    if (!kybWorkspace.recordsByTab[tab.id]?.length) fail(`${activeCase.id} KYB Review: ${tab.label} has no case-specific records.`);
-  }
-  for (const lookupValue of kybWorkspace.lookupValues) {
-    if (!matchesKybReviewLookup(kybWorkspace, lookupValue)) fail(`${activeCase.id} KYB Review: exact lookup failed for ${lookupValue}.`);
-  }
-  if (matchesKybReviewLookup(kybWorkspace, kybWorkspace.profile.legalName.slice(0, 5))) fail(`${activeCase.id} KYB Review: partial lookup must not reveal the profile.`);
-  const kybReport = buildKybReviewReport(activeCase);
-  if (kybReport.title !== 'KYB Business Report' || kybReport.pages.length !== 3 || kybReport.relatedTools.includes('Business Intelligence')) {
-    fail(`${activeCase.id} KYB Review: report contract is incomplete or uses a retired tool name.`);
+  if (activeCase.availableTools?.includes('KYB Review')) {
+    const kybWorkspace = getKybReview(activeCase);
+    for (const tab of kybReviewTabs) {
+      if (!kybWorkspace.recordsByTab[tab.id]?.length) fail(`${activeCase.id} KYB Review: ${tab.label} has no case-specific records.`);
+    }
+    for (const lookupValue of kybWorkspace.lookupValues) {
+      if (!matchesKybReviewLookup(kybWorkspace, lookupValue)) fail(`${activeCase.id} KYB Review: exact lookup failed for ${lookupValue}.`);
+    }
+    if (matchesKybReviewLookup(kybWorkspace, kybWorkspace.profile.legalName.slice(0, 5))) fail(`${activeCase.id} KYB Review: partial lookup must not reveal the profile.`);
+    const kybReport = buildKybReviewReport(activeCase);
+    if (kybReport.title !== 'KYB Business Report' || kybReport.pages.length !== 3 || kybReport.relatedTools.includes('Business Intelligence')) {
+      fail(`${activeCase.id} KYB Review: report contract is incomplete or uses a retired tool name.`);
+    }
   }
 }
 
-const generatedCase = createGeneratedCase({ index: 8081, claimTypeId: 'business-loan-bust-out', evidenceDepth: 'deep', difficulty: 'deep' });
+const generatedCase = createGeneratedCase({
+  index: 8081,
+  customerType: 'business',
+  productType: PRODUCT_TYPES.BUSINESS_LOAN,
+  workflowType: WORKFLOW_TYPES.CREDIT_RISK_REVIEW,
+  evidenceDepth: 'deep',
+  difficulty: 'deep',
+});
 const generatedFinancial = getFinancialInvestigation(generatedCase);
 const generatedKyb = getKybReview(generatedCase);
-if (!applicableFinancialTabs(generatedCase).every((tab) => generatedFinancial.recordsByTab[tab.id]?.length)) fail('Generated Financial Investigation must populate every applicable section.');
-if (generatedFinancial.recordsByTab.merchant?.length) fail('Generated non-merchant Financial Investigation must not receive merchant records.');
+if (!generatedFinancial.sections.every((section) => generatedFinancial.recordsBySection[section.id]?.length)) fail('Generated Financial Investigation must populate every case-specific section.');
 if (!kybReviewTabs.every((tab) => generatedKyb.recordsByTab[tab.id]?.length)) fail('Generated KYB Review must populate all eight sections.');
 if (!generatedKyb.profile.legalName.includes(generatedCase.profile.business)) fail('Generated KYB Review must use the generated case business instead of a built-in profile.');
 

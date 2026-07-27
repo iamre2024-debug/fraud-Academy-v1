@@ -32,7 +32,7 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
     await expect(briefingPager).toContainText('of 06');
     await briefingPager.getByRole('button', { name: /Next/ }).click();
     await expect(page.locator('[data-mission-briefing-page="intake"]')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Claim intake', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Case intake', exact: true })).toBeVisible();
     await page.getByRole('navigation', { name: 'Case briefing files' })
       .getByRole('button', { name: 'Investigation launchpad' })
       .click();

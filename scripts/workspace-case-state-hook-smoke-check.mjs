@@ -23,7 +23,8 @@ mustNotContain('VisualWorkspace.jsx', workspace, 'storageKeys.');
 mustContain('useVisualWorkspaceCaseState.js', hook, "import { useEffect, useState } from 'react';");
 mustContain('useVisualWorkspaceCaseState.js', hook, 'tray: trayByCase[caseId] ?? [activeCase.trainingId]');
 mustContain('useVisualWorkspaceCaseState.js', hook, "currentCompleted: completedByCase[caseId] ?? ['Case Summary']");
-mustContain('useVisualWorkspaceCaseState.js', hook, 'decisionDraft: decisionByCase[caseId] ?? defaultDecisionDraft');
+mustContain('useVisualWorkspaceCaseState.js', hook, 'normalizeDecisionDraft(decisionByCase[caseId] ?? defaultDecisionDraft, activeCase)');
+mustContain('useVisualWorkspaceCaseState.js', hook, '.map((reviewPackage) => normalizeReviewPackage(reviewPackage, activeCase))');
 mustContain('useVisualWorkspaceCaseState.js', hook, 'const reviewPackages =');
 mustContain('useVisualWorkspaceCaseState.js', hook, 'isValidReviewPackage(activeCase, reviewPackage)');
 mustContain('useVisualWorkspaceCaseState.js', hook, 'reviewPackages,');
@@ -31,8 +32,11 @@ mustContain('useVisualWorkspaceCaseState.js', hook, 'noteDraft,');
 mustContain('useVisualWorkspaceCaseState.js', hook, 'noteDraftsByCase[caseId]');
 mustContain('useVisualWorkspaceCaseState.js', hook, 'setNoteDraft,');
 mustContain('useVisualWorkspaceCaseState.js', hook, 'writeStorage(storageKeys.noteDrafts, noteDraftsByCase)');
+mustContain('useVisualWorkspaceCaseState.js', hook, 'payrollInvestigation: payrollInvestigationsByCase[caseId] ?? {}');
+mustContain('useVisualWorkspaceCaseState.js', hook, 'writeStorage(storageKeys.payrollInvestigations, payrollInvestigationsByCase)');
+mustContain('useVisualWorkspaceCaseState.js', hook, 'setPayrollInvestigationsByCase(readStorage(storageKeys.payrollInvestigations, {}))');
 
-for (const key of ['tray', 'notes', 'noteDrafts', 'completed', 'decisions', 'packages']) {
+for (const key of ['tray', 'notes', 'noteDrafts', 'completed', 'decisions', 'packages', 'payrollInvestigations']) {
   mustContain('useVisualWorkspaceCaseState.js', hook, `storageKeys.${key}`);
 }
 

@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
+import { claimGeneratorChoices } from './data/claimRegistry.js';
+import {
+  publicAlertReason,
+  publicCaseSearchText,
+  publicCaseTaxonomy,
+  publicReportedAllegation,
+  publicScenarioLabel,
+} from './data/publicCaseView.js';
 
 const reviewPackagesKey = 'fraud-academy-review-packages-v1';
 
@@ -85,7 +93,7 @@ function sortCases(items, sortMode) {
   return [...items].sort((left, right) => {
     if (sortMode === 'oldest') return getCaseTimestamp(left) - getCaseTimestamp(right);
     if (sortMode === 'newest') return getCaseTimestamp(right) - getCaseTimestamp(left);
-    if (sortMode === 'type') return String(left.type).localeCompare(String(right.type));
+    if (sortMode === 'type') return publicCaseTaxonomy(left).workflowType.localeCompare(publicCaseTaxonomy(right).workflowType);
     return (priorityOrder[left.priority] ?? 9) - (priorityOrder[right.priority] ?? 9)
       || getCaseTimestamp(right) - getCaseTimestamp(left);
   });
@@ -95,10 +103,6 @@ function documentSummary(item) {
   const documents = item?.documentRequests ?? item?.documents ?? [];
   const requested = documents.filter((document) => /requested|pending/i.test(document.status ?? '')).length;
   return requested ? `${documents.length} documents · ${requested} requested` : `${documents.length} documents`;
-}
-
-function selectedClaimType(claimTypes, claimTypeId) {
-  return claimTypes.find((item) => item.id === claimTypeId) ?? claimTypes[0] ?? null;
 }
 
 export default function CasesThemeV1Panel({
@@ -114,12 +118,15 @@ export default function CasesThemeV1Panel({
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState('active');
   const [priority, setPriority] = useState('all');
-  const [lane, setLane] = useState('all');
+  const [productFilter, setProductFilter] = useState('all');
   const [sortMode, setSortMode] = useState('priority');
   const [viewMode, setViewMode] = useState('detail');
   const [selectedCaseId, setSelectedCaseId] = useState(activeCaseId || cases[0]?.id || '');
   const [packagesByCase, setPackagesByCase] = useState(readPackagesByCase);
-  const [generatorClaimTypeId, setGeneratorClaimTypeId] = useState(claimTypes[0]?.id ?? 'account-takeover');
+  const [generatorCustomerType, setGeneratorCustomerType] = useState('personal');
+  const [generatorProductType, setGeneratorProductType] = useState('credit-card');
+  const [generatorWorkflowType, setGeneratorWorkflowType] = useState('unauthorized-card-transaction-claim');
+  const [generatorAlertReason, setGeneratorAlertReason] = useState('auto');
   const [generatorScenarioId, setGeneratorScenarioId] = useState('auto');
   const [generatorDifficulty, setGeneratorDifficulty] = useState('standard');
   const [generatorDepth, setGeneratorDepth] = useState('standard');
@@ -146,14 +153,35 @@ export default function CasesThemeV1Panel({
     };
   }, [inline]);
 
+  const generatorChoices = useMemo(() => claimGeneratorChoices(), []);
+  const generatorCustomer = generatorChoices.find((item) => item.id === generatorCustomerType) ?? generatorChoices[0];
+  const generatorProduct = generatorCustomer?.products.find((item) => item.id === generatorProductType) ?? generatorCustomer?.products[0];
+  const generatorWorkflow = generatorProduct?.workflows.find((item) => item.id === generatorWorkflowType) ?? generatorProduct?.workflows[0];
+  const generatorClaimType = claimTypes.find((item) => item.id === generatorWorkflow?.id);
+  const generatorAlertReasons = [...new Set((generatorWorkflow?.scenarios ?? []).map((scenario) => scenario.alertReason).filter(Boolean))];
+  const generatorScenarios = (generatorWorkflow?.scenarios ?? []).filter(
+    (scenario) => generatorAlertReason === 'auto' || scenario.alertReason === generatorAlertReason,
+  );
+
   useEffect(() => {
-    const nextClaimType = selectedClaimType(claimTypes, generatorClaimTypeId);
-    if (!nextClaimType) return;
-    if (nextClaimType.id !== generatorClaimTypeId) setGeneratorClaimTypeId(nextClaimType.id);
-    if (generatorScenarioId !== 'auto' && !nextClaimType.scenarios.some((scenario) => scenario.id === generatorScenarioId)) {
-      setGeneratorScenarioId('auto');
-    }
-  }, [claimTypes, generatorClaimTypeId, generatorScenarioId]);
+    if (!generatorCustomer) return;
+    if (generatorCustomer.id !== generatorCustomerType) setGeneratorCustomerType(generatorCustomer.id);
+    if (generatorProduct?.id !== generatorProductType) setGeneratorProductType(generatorProduct?.id ?? '');
+    if (generatorWorkflow?.id !== generatorWorkflowType) setGeneratorWorkflowType(generatorWorkflow?.id ?? '');
+    if (generatorAlertReason !== 'auto' && !generatorAlertReasons.includes(generatorAlertReason)) setGeneratorAlertReason('auto');
+    if (generatorScenarioId !== 'auto' && !generatorScenarios.some((scenario) => scenario.id === generatorScenarioId)) setGeneratorScenarioId('auto');
+  }, [
+    generatorAlertReason,
+    generatorAlertReasons,
+    generatorCustomer,
+    generatorCustomerType,
+    generatorProduct,
+    generatorProductType,
+    generatorScenarioId,
+    generatorScenarios,
+    generatorWorkflow,
+    generatorWorkflowType,
+  ]);
 
   useEffect(() => {
     if (cases.some((item) => item.id === selectedCaseId)) return;
@@ -189,36 +217,31 @@ export default function CasesThemeV1Panel({
   const filteredCases = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     const matches = cases.filter((item) => {
-      const searchable = [
-        item.id,
-        item.person,
-        item.type,
-        item.lane,
-        item.subtype,
-        item.scenarioTitle,
-        item.priority,
-        item.status,
-        item.queueReason,
-      ].filter(Boolean).join(' ').toLowerCase();
+      const taxonomy = publicCaseTaxonomy(item);
+      const searchable = publicCaseSearchText(item);
 
       return (!normalizedQuery || searchable.includes(normalizedQuery))
         && matchesScope(item, scope, activeCaseId, packagesByCase)
         && (priority === 'all' || item.priority === priority)
-        && (lane === 'all' || item.lane === lane);
+        && (productFilter === 'all' || taxonomy.productType === productFilter);
     });
 
     return sortCases(matches, sortMode);
-  }, [activeCaseId, cases, lane, packagesByCase, priority, query, scope, sortMode]);
+  }, [activeCaseId, cases, packagesByCase, priority, productFilter, query, scope, sortMode]);
 
-  const generatorClaimType = selectedClaimType(claimTypes, generatorClaimTypeId);
-  const laneOptions = [...new Set(cases.map((item) => item.lane).filter(Boolean))].sort();
+  const productOptions = [...new Set(cases.map((item) => publicCaseTaxonomy(item).productType).filter(Boolean))].sort();
 
   async function generateConfiguredCases() {
-    if (!onGenerateCases || isGenerating || !generatorClaimType) return;
+    if (!onGenerateCases || isGenerating || !generatorWorkflow || !generatorProduct || !generatorCustomer) return;
     setIsGenerating(true);
     try {
+      const selectedScenario = generatorScenarios.find((scenario) => scenario.id === generatorScenarioId);
       const createdCases = await onGenerateCases({
-        claimTypeId: generatorClaimType.id,
+        customerType: generatorCustomer.id,
+        productType: generatorProduct.id,
+        workflowType: generatorWorkflow.id,
+        alertReason: generatorAlertReason === 'auto' ? selectedScenario?.alertReason : generatorAlertReason,
+        reportedAllegation: selectedScenario?.reportedAllegation,
         scenarioId: generatorScenarioId,
         difficulty: generatorDifficulty,
         evidenceDepth: generatorDepth,
@@ -253,27 +276,46 @@ export default function CasesThemeV1Panel({
           <div>
             <p>Case generator</p>
             <h3>Create training cases</h3>
-            <span>Select a Bible-v2 claim lane and scenario. Every generated packet stays fictional and Evidence First.</span>
+            <span>Select customer, product, workflow, neutral alert, and scenario. Every generated packet stays fictional and Evidence First.</span>
           </div>
           <span className="case-generator-v2-count">Unlimited queue</span>
         </header>
 
         <div className="case-generator-v2-controls">
           <label>
-            <span>Claim type</span>
-            <select value={generatorClaimTypeId} onChange={(event) => setGeneratorClaimTypeId(event.target.value)} aria-label="Generate case claim type">
-              {claimTypes.map((claimType) => <option key={claimType.id} value={claimType.id}>{claimType.label}</option>)}
+            <span>1. Customer type</span>
+            <select value={generatorCustomer?.id ?? ''} onChange={(event) => { setGeneratorCustomerType(event.target.value); setGeneratorProductType(''); setGeneratorWorkflowType(''); setGeneratorAlertReason('auto'); setGeneratorScenarioId('auto'); }} aria-label="Generate case customer type">
+              {generatorChoices.map((customer) => <option key={customer.id} value={customer.id}>{customer.label}</option>)}
             </select>
           </label>
           <label>
-            <span>Scenario</span>
+            <span>2. Product</span>
+            <select value={generatorProduct?.id ?? ''} onChange={(event) => { setGeneratorProductType(event.target.value); setGeneratorWorkflowType(''); setGeneratorAlertReason('auto'); setGeneratorScenarioId('auto'); }} aria-label="Generate case product">
+              {(generatorCustomer?.products ?? []).map((product) => <option key={product.id} value={product.id}>{product.label}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>3. Review workflow</span>
+            <select value={generatorWorkflow?.id ?? ''} onChange={(event) => { setGeneratorWorkflowType(event.target.value); setGeneratorAlertReason('auto'); setGeneratorScenarioId('auto'); }} aria-label="Generate case review workflow">
+              {(generatorProduct?.workflows ?? []).map((workflow) => <option key={workflow.id} value={workflow.id}>{workflow.label}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>4. Alert reason / allegation</span>
+            <select value={generatorAlertReason} onChange={(event) => { setGeneratorAlertReason(event.target.value); setGeneratorScenarioId('auto'); }} aria-label="Generate case alert reason">
+              <option value="auto">Auto — neutral workflow alert</option>
+              {generatorAlertReasons.map((reason) => <option key={reason} value={reason}>{reason}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>5. Scenario</span>
             <select value={generatorScenarioId} onChange={(event) => setGeneratorScenarioId(event.target.value)} aria-label="Generate case scenario">
-              <option value="auto">Auto mix — rotate scenario and evidence pattern</option>
-              {(generatorClaimType?.scenarios ?? []).map((scenario) => <option key={scenario.id} value={scenario.id}>{scenario.title}</option>)}
+              <option value="auto">Auto mix — rotate neutral evidence variation</option>
+              {generatorScenarios.map((scenario) => <option key={scenario.id} value={scenario.id}>{publicScenarioLabel(scenario)}</option>)}
             </select>
           </label>
           <label>
-            <span>Difficulty</span>
+            <span>6. Difficulty</span>
             <select value={generatorDifficulty} onChange={(event) => setGeneratorDifficulty(event.target.value)} aria-label="Generate case difficulty">
               <option value="light">Light</option>
               <option value="standard">Standard</option>
@@ -281,7 +323,7 @@ export default function CasesThemeV1Panel({
             </select>
           </label>
           <label>
-            <span>Evidence depth</span>
+            <span>7. Evidence depth</span>
             <select value={generatorDepth} onChange={(event) => setGeneratorDepth(event.target.value)} aria-label="Generate case evidence depth">
               <option value="light">Light packet</option>
               <option value="standard">Standard packet</option>
@@ -289,7 +331,7 @@ export default function CasesThemeV1Panel({
             </select>
           </label>
           <label>
-            <span>Cases</span>
+            <span>8. Cases</span>
             <select value={generatorCount} onChange={(event) => setGeneratorCount(event.target.value)} aria-label="Generate case count">
               <option value="1">1 case</option>
               <option value="5">5 cases</option>
@@ -297,16 +339,16 @@ export default function CasesThemeV1Panel({
               <option value="25">25 cases</option>
             </select>
           </label>
-          <button type="button" onClick={generateConfiguredCases} disabled={isGenerating || !generatorClaimType}>
+          <button type="button" onClick={generateConfiguredCases} disabled={isGenerating || !generatorWorkflow}>
             {isGenerating ? 'Generating cases...' : 'Generate cases'}
           </button>
         </div>
 
-        {generatorClaimType && (
+        {generatorWorkflow && (
           <div className="case-generator-v2-context">
-            <span><strong>Lane:</strong> {generatorClaimType.lane}</span>
-            <span><strong>Packet includes:</strong> {generatorClaimType.evidenceAreas.slice(0, 3).join(' · ')}</span>
-            <span><strong>Available tools:</strong> {generatorClaimType.availableTools.slice(0, 4).join(' · ')}</span>
+            <span><strong>Classification:</strong> {generatorCustomer?.label} · {generatorProduct?.label} · {generatorWorkflow.label}</span>
+            <span><strong>Packet includes:</strong> {(generatorClaimType?.evidenceAreas ?? []).slice(0, 3).join(' · ')}</span>
+            <span><strong>Available tools:</strong> {(generatorClaimType?.availableTools ?? []).slice(0, 4).join(' · ')}</span>
           </div>
         )}
       </section>
@@ -325,7 +367,7 @@ export default function CasesThemeV1Panel({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search ID, customer, claim type, or reason"
+            placeholder="Search ID, customer, product, workflow, or alert reason"
           />
         </label>
 
@@ -340,10 +382,10 @@ export default function CasesThemeV1Panel({
         </label>
 
         <label>
-          <span>Claim lane</span>
-          <select value={lane} onChange={(event) => setLane(event.target.value)} aria-label="Claim lane">
-            <option value="all">All lanes</option>
-            {laneOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+          <span>Product</span>
+          <select value={productFilter} onChange={(event) => setProductFilter(event.target.value)} aria-label="Product">
+            <option value="all">All products</option>
+            {productOptions.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
         </label>
 
@@ -353,7 +395,7 @@ export default function CasesThemeV1Panel({
             <option value="priority">Priority first</option>
             <option value="newest">Newest first</option>
             <option value="oldest">Oldest first</option>
-            <option value="type">Claim type</option>
+            <option value="type">Review workflow</option>
           </select>
         </label>
 
@@ -391,6 +433,7 @@ export default function CasesThemeV1Panel({
           {filteredCases.length ? (
             <div className={`case-queue-list view-${viewMode}`}>
               {filteredCases.map((item) => {
+                const taxonomy = publicCaseTaxonomy(item);
                 const state = getCaseState(item, activeCaseId, packagesByCase);
                 const origin = isGeneratedCase(item) ? 'Generated' : 'Built-in';
                 const isSelected = selectedCase?.id === item.id;
@@ -414,18 +457,19 @@ export default function CasesThemeV1Panel({
                         <span className={`case-queue-priority priority-${String(item.priority).toLowerCase()}`}>{item.priority}</span>
                       </span>
                       <strong>{item.person}</strong>
-                      <span className="case-queue-type">{item.type}</span>
+                      <span className="case-queue-type">{taxonomy.workflowType}</span>
                       <span className="case-queue-card-meta">
                         <span>{formatQueueAge(item)} in queue</span>
                         <span>{item.amount || 'Amount not listed'}</span>
-                        {item.lane && <span>{item.lane}</span>}
+                        <span>{taxonomy.customerType}</span>
+                        <span>{taxonomy.productType}</span>
                       </span>
                       <span className="case-queue-card-badges">
                         <span>{origin}</span>
                         <span>{state}</span>
                         <span>{getSlaBand(item)}</span>
                       </span>
-                      <span className="case-queue-card-reason">{item.queueReason || item.allegation}</span>
+                      <span className="case-queue-card-reason">{publicAlertReason(item)}</span>
                       <span className="case-queue-open-label">Open case <span aria-hidden="true">→</span></span>
                     </button>
                     <button
@@ -450,7 +494,7 @@ export default function CasesThemeV1Panel({
                   setQuery('');
                   setScope('active');
                   setPriority('all');
-                  setLane('all');
+                  setProductFilter('all');
                 }}
               >
                 Reset filters
@@ -470,15 +514,16 @@ export default function CasesThemeV1Panel({
             </div>
 
             <h3>{selectedCase.person}</h3>
-            <p className="case-queue-preview-type">{selectedCase.type}</p>
+            <p className="case-queue-preview-type">{publicCaseTaxonomy(selectedCase).workflowType}</p>
 
             <dl className="case-queue-preview-facts">
               <div><dt>Queue age</dt><dd>{formatQueueAge(selectedCase)}</dd></div>
               <div><dt>Status</dt><dd>{getCaseState(selectedCase, activeCaseId, packagesByCase)}</dd></div>
               <div><dt>SLA band</dt><dd>{getSlaBand(selectedCase)}</dd></div>
               <div><dt>Amount</dt><dd>{selectedCase.amount || 'Not listed'}</dd></div>
-              <div><dt>Lane</dt><dd>{selectedCase.lane ?? 'Not supplied'}</dd></div>
-              <div><dt>Subtype</dt><dd>{selectedCase.subtype ?? 'Not supplied'}</dd></div>
+              <div><dt>Customer type</dt><dd>{publicCaseTaxonomy(selectedCase).customerType}</dd></div>
+              <div><dt>Product</dt><dd>{publicCaseTaxonomy(selectedCase).productType}</dd></div>
+              <div><dt>Review workflow</dt><dd>{publicCaseTaxonomy(selectedCase).workflowType}</dd></div>
               <div><dt>Reported</dt><dd>{selectedCase.reportedDate ?? selectedCase.opened}</dd></div>
               <div><dt>Documents</dt><dd>{documentSummary(selectedCase)}</dd></div>
             </dl>
@@ -486,20 +531,20 @@ export default function CasesThemeV1Panel({
             <section>
               <span>Why this case exists</span>
               <DirectCollapsibleText as="p" lines={4} mobileLines={4}>
-                {selectedCase.queueReason || selectedCase.allegation}
+                {publicAlertReason(selectedCase)}
               </DirectCollapsibleText>
             </section>
 
             <section>
               <span>Customer allegation or system alert</span>
               <DirectCollapsibleText as="p" lines={5} mobileLines={4}>
-                {selectedCase.allegation}
+                {publicReportedAllegation(selectedCase)}
               </DirectCollapsibleText>
             </section>
 
             {selectedCase.chargebackDecision && (
-              <section className="case-queue-credit-sla case-queue-chargeback-details" aria-label="Chargeback review details">
-                <span>Chargeback review details</span>
+              <section className="case-queue-credit-sla case-queue-chargeback-details" aria-label="Card and dispute review details">
+                <span>Card and dispute review details</span>
                 <dl>
                   <div><dt>Reason code guide</dt><dd>{selectedCase.chargebackDecision.reasonCode}</dd></div>
                   <div><dt>Response deadline</dt><dd>{selectedCase.chargebackDecision.responseDeadline}</dd></div>
