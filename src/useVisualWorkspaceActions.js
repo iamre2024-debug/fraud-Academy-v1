@@ -25,6 +25,7 @@ export default function useVisualWorkspaceActions({
   setDecisionByCase,
   setPackagesByCase,
   setActionsByCase,
+  requiredDecisionMode = '',
 }) {
   const packageStatus = getReviewPackageStatus({
     activeCase,
@@ -32,6 +33,7 @@ export default function useVisualWorkspaceActions({
     tray,
     notes,
     draft: decisionDraft,
+    requiredDecisionMode,
   });
 
   function pin(value) {
@@ -155,12 +157,20 @@ export default function useVisualWorkspaceActions({
 
   function submitDecision(event) {
     event.preventDefault();
+    const submissionDraft = requiredDecisionMode === 'separated'
+      ? {
+          ...decisionDraft,
+          choice: decisionDraft.operationalDecision,
+          decisionMode: 'separated',
+        }
+      : decisionDraft;
     const status = getReviewPackageStatus({
       activeCase,
       completedTools: currentCompleted,
       tray,
       notes,
-      draft: decisionDraft,
+      draft: submissionDraft,
+      requiredDecisionMode,
     });
     if (!status.ready) return null;
 
@@ -168,7 +178,7 @@ export default function useVisualWorkspaceActions({
       caseId: activeCase.id,
       agentId: AGENT_ID,
       activeCase,
-      draft: decisionDraft,
+      draft: submissionDraft,
       completedTools: currentCompleted,
       tray,
       notes,

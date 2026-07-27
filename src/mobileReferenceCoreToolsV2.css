@@ -214,7 +214,7 @@
   }
 
   body[data-layout-mode="mobile"] .mobile-link-result-summary > div:nth-child(3) button {
-    min-height: 42px;
+    min-height: 44px;
   }
 
   body[data-layout-mode="mobile"] .mobile-link-result-summary > div:nth-child(3) button:first-child {
@@ -345,12 +345,12 @@
 
   body[data-layout-mode="mobile"] .mobile-link-center-label {
     fill: #e7faff;
-    font-size: 6.2px;
+    font-size: 9px;
   }
 
   body[data-layout-mode="mobile"] .mobile-link-center-value {
     fill: #cdeaff;
-    font-size: 6.5px;
+    font-size: 8.2px;
   }
 
   body[data-layout-mode="mobile"] .mobile-link-node {
@@ -365,12 +365,12 @@
   }
 
   body[data-layout-mode="mobile"] .mobile-link-node-name {
-    font-size: 5.8px;
+    font-size: 7.8px;
   }
 
   body[data-layout-mode="mobile"] .mobile-link-node-id {
     fill: #b8d8ed;
-    font-size: 5.1px;
+    font-size: 7px;
   }
 
   body[data-layout-mode="mobile"] .mobile-linked-account-list {
@@ -397,15 +397,15 @@
   }
 
   body[data-layout-mode="mobile"] .mobile-linked-account-list summary {
-    grid-template-columns: 38px minmax(0, 1fr) auto;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
     min-height: 66px;
     padding: 8px;
   }
 
   body[data-layout-mode="mobile"] .mobile-linked-account-list summary > button {
-    width: 38px;
-    height: 38px;
-    min-height: 38px;
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
     padding: 0;
     border-radius: 50%;
   }

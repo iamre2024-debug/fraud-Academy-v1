@@ -51,14 +51,33 @@ function MobileFacts({ rows, className = '' }) {
   );
 }
 
-function QuickPinButton({ label, value, sourceTool, sourceRecordId = '', quickPin }) {
+function QuickPinButton({
+  label,
+  value,
+  sourceTool,
+  sourceRecordId = '',
+  queryHint = '',
+  useTool = '',
+  openAction = '',
+  openTargetTool = '',
+  quickPin,
+}) {
   if (!value || !quickPin || /not (?:supplied|available|applicable|recorded)/i.test(String(value))) return null;
   return (
     <button
       type="button"
       className="mobile-inline-quick-pin"
       aria-label={`Pin ${label} ${value} to Quick Pad`}
-      onClick={() => quickPin({ label, value, sourceTool, sourceRecordId })}
+      onClick={() => quickPin({
+        label,
+        value,
+        sourceTool,
+        sourceRecordId,
+        queryHint,
+        useTool,
+        openAction,
+        openTargetTool,
+      })}
     >
       📌
     </button>
@@ -107,8 +126,8 @@ function MobilePaymentSourceHandoff({
         {recordId && <strong>{recordId}</strong>}
       </header>
       <MobileFacts rows={[
-        ['Bank Code', source.bankCode, <QuickPinButton key="bank" label="Bank Code" value={source.bankCode} sourceTool={sourceTool} sourceRecordId={recordId} quickPin={quickPin} />],
-        ['Destination ID', source.destinationId, <QuickPinButton key="destination" label="Destination ID" value={source.destinationId} sourceTool={sourceTool} sourceRecordId={recordId} quickPin={quickPin} />],
+        ['Bank Code', source.bankCode, <QuickPinButton key="bank" label="Bank Code" value={source.bankCode} sourceTool={sourceTool} sourceRecordId={recordId} queryHint={hint} useTool="Payment Verification" openAction="source-query" openTargetTool="Payment Verification" quickPin={quickPin} />],
+        ['Destination ID', source.destinationId, <QuickPinButton key="destination" label="Destination ID" value={source.destinationId} sourceTool={sourceTool} sourceRecordId={recordId} queryHint={hint} useTool="Payment Verification" openAction="source-query" openTargetTool="Payment Verification" quickPin={quickPin} />],
         ['Previous account / destination', source.previousDestination ?? source.oldDestination],
         ['New account / destination', source.newDestination],
         ['Change comparison', source.changeComparison],

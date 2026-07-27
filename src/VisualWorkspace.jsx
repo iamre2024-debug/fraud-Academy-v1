@@ -164,6 +164,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setDecisionByCase,
     setPackagesByCase,
     setActionsByCase,
+    requiredDecisionMode: layoutMode === 'mobile' ? 'separated' : '',
   });
 
   const reviewedWorkspaceTools = visibleWorkspaceTools.filter((toolName) => currentCompleted.includes(toolName)).length;
@@ -438,11 +439,34 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     });
   }
 
-  function quickPin({ label, value, sourceTool = activeTool, sourceRecordId = '' }) {
+  function quickPin({
+    label,
+    value,
+    sourceTool = activeTool,
+    sourceRecordId = '',
+    queryHint = '',
+    useTool = '',
+    openAction = '',
+    openTargetTool = '',
+    relatedCaseId = '',
+    relatedRecordId = '',
+  }) {
     if (!value) return;
     updateQuickPad((current) => {
       const id = `${String(label).trim().toLowerCase()}:${String(value).trim().toLowerCase()}`;
-      const item = { id, label, value: String(value), sourceTool, sourceRecordId };
+      const item = {
+        id,
+        label,
+        value: String(value),
+        sourceTool,
+        sourceRecordId,
+        queryHint,
+        useTool,
+        openAction,
+        openTargetTool,
+        relatedCaseId,
+        relatedRecordId,
+      };
       return {
         ...current,
         items: [item, ...(current.items ?? []).filter((saved) => saved.id !== id)],
@@ -468,24 +492,59 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setQuickPadScratch('');
   }
 
+  function internalQuickPadToolName(toolName) {
+    return toolName === 'Business Intelligence' ? 'KYB Review' : toolName;
+  }
+
+  function canUseQuickPadItem(item) {
+    return Boolean(
+      item.queryHint
+      && item.useTool
+      && internalQuickPadToolName(item.useTool) === activeTool,
+    );
+  }
+
+  function canOpenQuickPadItem(item) {
+    if (item.sourceTool === 'Case Briefing' || item.label === 'Case ID') return true;
+    if (item.openAction === 'related-account') {
+      return Boolean(item.relatedCaseId && item.relatedRecordId);
+    }
+    if (item.openAction === 'related-case') return Boolean(item.relatedCaseId);
+    if (item.openAction === 'source-query') {
+      const targetTool = internalQuickPadToolName(item.openTargetTool || item.sourceTool);
+      return Boolean(item.queryHint && availableToolNames.has(targetTool));
+    }
+    return false;
+  }
+
   function useQuickPadItem(item) {
-    setQuery(item.value);
+    if (!canUseQuickPadItem(item)) return;
+    setQuery(item.queryHint);
     recordAction('Used Quick Pad value', `${item.label} entered in ${activeTool} search.`, 'Quick Pad');
   }
 
   function openQuickPadSource(item) {
+    if (item.openAction === 'related-account' && item.relatedCaseId && item.relatedRecordId) {
+      openRelatedAccount(item.relatedCaseId, item.relatedRecordId);
+      return;
+    }
+    if (item.openAction === 'related-case' && item.relatedCaseId) {
+      openRelatedCase(item.relatedCaseId);
+      return;
+    }
     if (item.sourceTool === 'Case Briefing' || item.label === 'Case ID') {
       setActiveStage('briefing');
       showWorkspaceScreen('briefing');
       recordAction('Opened Quick Pad source', `${item.label} reopened in Case Briefing.`, 'Quick Pad');
       return;
     }
-    const sourceTool = item.sourceTool === 'Business Intelligence' ? 'KYB Review' : item.sourceTool;
+    const sourceTool = internalQuickPadToolName(item.openTargetTool || item.sourceTool);
     if (!availableToolNames.has(sourceTool)) {
       recordAction('Quick Pad source unavailable', `${item.label} source is not available in this case.`, 'Quick Pad');
       return;
     }
-    openTool(sourceTool, stageForTool(sourceTool), { query: item.value });
+    if (item.openAction !== 'source-query' || !item.queryHint) return;
+    openTool(sourceTool, stageForTool(sourceTool), { query: item.queryHint });
     setExpandedId(item.sourceRecordId ?? '');
     recordAction('Opened Quick Pad source', `${item.label} reopened in ${item.sourceTool}.`, 'Quick Pad');
   }
@@ -582,6 +641,8 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       onUse={useQuickPadItem}
       onOpenSource={openQuickPadSource}
       onSaveToNotes={saveQuickPadScratch}
+      canUseItem={canUseQuickPadItem}
+      canOpenItem={canOpenQuickPadItem}
     />
   );
 

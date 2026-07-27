@@ -49,6 +49,8 @@
     grid-template-columns: minmax(0, 1fr) auto 44px;
     gap: 6px;
     padding: calc(7px + env(safe-area-inset-top)) 13px 7px;
+    padding-right: max(13px, env(safe-area-inset-right));
+    padding-left: max(13px, env(safe-area-inset-left));
     border-bottom-color: rgba(55, 158, 238, .16);
     background:
       linear-gradient(180deg, rgba(2, 8, 24, .995), rgba(3, 12, 31, .96));
@@ -128,11 +130,13 @@
   }
 
   body[data-layout-mode="mobile"] .mission-mobile-viewport {
-    padding-inline: 11px;
+    padding-right: max(11px, env(safe-area-inset-right));
+    padding-left: max(11px, env(safe-area-inset-left));
   }
 
   body[data-layout-mode="mobile"] .mission-mobile-dock {
-    inset-inline: 7px;
+    right: max(7px, env(safe-area-inset-right));
+    left: max(7px, env(safe-area-inset-left));
     bottom: calc(6px + env(safe-area-inset-bottom));
     min-height: var(--fa-dock-height);
     padding: 6px 3px 5px;
@@ -143,6 +147,10 @@
     box-shadow:
       0 17px 42px rgba(0, 2, 15, .72),
       inset 0 1px rgba(255, 255, 255, .055);
+  }
+
+  body[data-layout-mode="mobile"]:has(iframe[title="Netlify Drawer"]) .mission-mobile-dock {
+    bottom: calc(64px + env(safe-area-inset-bottom));
   }
 
   body[data-layout-mode="mobile"] .mission-mobile-dock button {
@@ -166,7 +174,7 @@
 
   body[data-layout-mode="mobile"] .mission-mobile-dock button small {
     color: #9993ca;
-    font-size: clamp(.47rem, 2vw, .54rem);
+    font-size: clamp(.54rem, 2.2vw, .6rem);
   }
 
   body[data-layout-mode="mobile"] .mission-mobile-dock button.active {
@@ -596,6 +604,18 @@
     height: calc(100dvh - var(--fa-dock-height) - var(--fa-quick-pad-rail) - env(safe-area-inset-bottom));
   }
 
+  body[data-layout-mode="mobile"]:has(iframe[title="Netlify Drawer"])
+    .mission-mobile-root[data-mobile-mission-tab="workspace"]
+    .mission-mobile-viewport {
+    height: calc(
+      100dvh
+      - var(--fa-dock-height)
+      - var(--fa-quick-pad-rail)
+      - 58px
+      - env(safe-area-inset-bottom)
+    );
+  }
+
   body[data-layout-mode="mobile"] .mission-workspace-v3 {
     min-height: 100%;
     padding: 0 0 22px;
@@ -606,6 +626,8 @@
     gap: 5px;
     min-height: 70px;
     padding: calc(7px + env(safe-area-inset-top)) 9px 7px;
+    padding-right: max(9px, env(safe-area-inset-right));
+    padding-left: max(9px, env(safe-area-inset-left));
     border-bottom-color: rgba(55, 158, 238, .17);
     background:
       linear-gradient(180deg, rgba(2, 8, 23, .995), rgba(3, 13, 32, .97));
@@ -703,10 +725,14 @@
   body[data-layout-mode="mobile"] .mission-workspace-overflow > section {
     position: fixed;
     top: calc(62px + env(safe-area-inset-top));
-    right: 8px;
+    right: max(8px, env(safe-area-inset-right));
     z-index: 175;
-    width: min(346px, calc(100vw - 16px));
-    max-height: min(72dvh, 610px);
+    width: min(346px, calc(100vw - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+    max-height: min(
+      72dvh,
+      610px,
+      calc(100dvh - 82px - var(--fa-dock-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom))
+    );
     padding: 11px;
     overflow-y: auto;
     color: #eff9ff;
@@ -718,6 +744,22 @@
     box-shadow:
       0 0 24px rgba(36, 172, 255, .19),
       0 24px 52px rgba(0, 2, 17, .72);
+  }
+
+  body[data-layout-mode="mobile"]:has(iframe[title="Netlify Drawer"])
+    .mission-workspace-overflow > section {
+    max-height: min(
+      72dvh,
+      610px,
+      calc(
+        100dvh
+        - 82px
+        - var(--fa-dock-height)
+        - 58px
+        - env(safe-area-inset-top)
+        - env(safe-area-inset-bottom)
+      )
+    );
   }
 
   body[data-layout-mode="mobile"] .mission-workspace-overflow > section > header {
@@ -1576,7 +1618,8 @@
 
     body[data-layout-mode="mobile"] .mission-workspace-bar {
       grid-template-columns: 44px minmax(0, 1fr) 34px 44px;
-      padding-inline: 6px;
+      padding-right: max(6px, env(safe-area-inset-right));
+      padding-left: max(6px, env(safe-area-inset-left));
     }
 
     body[data-layout-mode="mobile"] .mission-workspace-bar > .mission-workspace-back,
@@ -1611,7 +1654,25 @@
 
   @media (max-height: 650px) {
     body[data-layout-mode="mobile"] .mission-workspace-overflow > section {
-      max-height: calc(100dvh - 82px - env(safe-area-inset-top));
+      max-height: calc(
+        100dvh
+        - 82px
+        - var(--fa-dock-height)
+        - env(safe-area-inset-top)
+        - env(safe-area-inset-bottom)
+      );
+    }
+
+    body[data-layout-mode="mobile"]:has(iframe[title="Netlify Drawer"])
+      .mission-workspace-overflow > section {
+      max-height: calc(
+        100dvh
+        - 82px
+        - var(--fa-dock-height)
+        - 58px
+        - env(safe-area-inset-top)
+        - env(safe-area-inset-bottom)
+      );
     }
 
     body[data-layout-mode="mobile"] .mobile-dashboard-greeting {

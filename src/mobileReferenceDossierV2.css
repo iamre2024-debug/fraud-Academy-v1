@@ -133,7 +133,7 @@
 
   body[data-layout-mode="mobile"] .dossier-v2-id-line {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 34px;
+    grid-template-columns: minmax(0, 1fr) 44px;
     align-items: center;
     gap: 5px;
     min-width: 0;
@@ -149,9 +149,10 @@
   }
 
   body[data-layout-mode="mobile"] .dossier-v2-id-line .mobile-inline-quick-pin {
-    width: 34px;
-    min-width: 34px;
-    height: 34px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
   }
 
   body[data-layout-mode="mobile"] .dossier-v2-evidence-button,
@@ -182,7 +183,7 @@
   body[data-layout-mode="mobile"] .dossier-v2-contact-grid > div {
     position: relative;
     min-width: 0;
-    padding: 6px 36px 6px 0;
+    padding: 6px 48px 6px 0;
     border-bottom: 1px solid rgba(76, 165, 218, .12);
   }
 
@@ -212,9 +213,10 @@
     position: absolute;
     right: 0;
     top: 50%;
-    width: 32px;
-    min-width: 32px;
-    height: 32px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
     transform: translateY(-50%);
   }
 
@@ -293,7 +295,7 @@
   body[data-layout-mode="mobile"] .dossier-v2-compact-list article,
   body[data-layout-mode="mobile"] .dossier-v2-device-list article {
     display: grid;
-    grid-template-columns: minmax(43px, auto) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(43px, auto) minmax(0, 1fr);
     align-items: center;
     gap: 6px;
     min-width: 0;
@@ -342,8 +344,10 @@
   }
 
   body[data-layout-mode="mobile"] .dossier-v2-compact-list article > button {
-    min-width: 40px;
-    min-height: 36px;
+    grid-column: 2;
+    justify-self: start;
+    min-width: 44px;
+    min-height: 44px;
     padding: 5px 7px;
     color: #dff8ff;
     border: 1px solid rgba(69, 191, 249, .27);
@@ -353,9 +357,10 @@
   }
 
   body[data-layout-mode="mobile"] .dossier-v2-device-list .mobile-inline-quick-pin {
-    width: 34px;
-    min-width: 34px;
-    height: 34px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
   }
 
   body[data-layout-mode="mobile"] .dossier-v2-mini-facts {
@@ -418,7 +423,7 @@
 
   body[data-layout-mode="mobile"] .dossier-v2-products article > header {
     display: grid;
-    grid-template-columns: 24px minmax(0, 1fr) 32px;
+    grid-template-columns: 24px minmax(0, 1fr) 44px;
     align-items: center;
     gap: 5px;
     min-width: 0;
@@ -457,9 +462,10 @@
   }
 
   body[data-layout-mode="mobile"] .dossier-v2-products .mobile-inline-quick-pin {
-    width: 32px;
-    min-width: 32px;
-    height: 32px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
   }
 
   body[data-layout-mode="mobile"] .dossier-v2-products dl {
@@ -617,15 +623,16 @@
 
   body[data-layout-mode="mobile"] .dossier-v2-business-contact strong.with-action {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 32px;
+    grid-template-columns: minmax(0, 1fr) 44px;
     align-items: center;
     gap: 5px;
   }
 
   body[data-layout-mode="mobile"] .dossier-v2-business-contact .mobile-inline-quick-pin {
-    width: 32px;
-    min-width: 32px;
-    height: 32px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
   }
 
   body[data-layout-mode="mobile"] .dossier-v2-disclosure {
@@ -850,7 +857,7 @@
 
   body[data-layout-mode="mobile"] .dossier-v2-period-tabs button {
     min-width: 0;
-    min-height: 34px;
+    min-height: 44px;
     padding: 4px;
     color: #91aac6;
     border: 1px solid transparent;
@@ -991,7 +998,7 @@
     align-self: center;
     overflow: hidden;
     color: #7e9cbc;
-    font-size: .42rem;
+    font-size: .5rem;
     line-height: 1.1;
     text-align: center;
     text-overflow: clip;
@@ -1052,7 +1059,7 @@
     right: 0;
     bottom: -1px;
     color: #738fad;
-    font-size: .42rem;
+    font-size: .5rem;
   }
 
   body[data-layout-mode="mobile"] .dossier-v2-change-list {
@@ -1202,7 +1209,7 @@
 
   body[data-layout-mode="mobile"] .dossier-v2-pay-cycle-list summary {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 36px;
+    grid-template-columns: minmax(0, 1fr) 44px;
     align-items: center;
     gap: 7px;
     min-height: 52px;
@@ -1240,9 +1247,10 @@
   }
 
   body[data-layout-mode="mobile"] .dossier-v2-pay-cycle-list summary .mobile-inline-quick-pin {
-    width: 36px;
-    min-width: 36px;
-    height: 36px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
   }
 
   body[data-layout-mode="mobile"] .dossier-v2-pay-cycle-list details > .mobile-reference-facts {

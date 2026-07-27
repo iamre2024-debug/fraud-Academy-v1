@@ -114,13 +114,9 @@ test('Quick Pad keeps one account ID available across tools, reloads, copies, an
   await pad.getByRole('button', { name: 'Copy', exact: true }).click();
   await expect(pad.getByRole('button', { name: 'Copied', exact: true })).toBeVisible();
 
-  if (mobile) {
-    await pad.getByRole('button', { name: 'Open record', exact: true }).click();
-    await expect(customer.locator(`[data-customer-account="${accountId}"]`)).toBeVisible();
-  } else {
-    await pad.getByRole('button', { name: 'Use here', exact: true }).click();
-    await expect(customer.getByRole('textbox', { name: 'Search Customer 360 dossier' })).toHaveValue(accountId);
-  }
+  await expect(pad.getByRole('button', { name: 'Open record', exact: true })).toHaveCount(0);
+  await expect(pad.getByRole('button', { name: 'Use here', exact: true })).toHaveCount(0);
+  await expect(customer.locator(`[data-customer-account="${accountId}"]`)).toBeVisible();
 
   await page.reload();
   await page.getByRole('button', { name: 'Open Quick Pad, 1 saved item' }).click();

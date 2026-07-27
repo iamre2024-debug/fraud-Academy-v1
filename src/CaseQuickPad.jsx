@@ -34,6 +34,8 @@ export default function CaseQuickPad({
   onUse,
   onOpenSource,
   onSaveToNotes,
+  canUseItem = () => false,
+  canOpenItem = () => false,
 }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState('ids');
@@ -161,8 +163,8 @@ export default function CaseQuickPad({
                     <div><span>{item.label}</span><strong>{item.value}</strong><small>Source · {item.sourceTool}</small></div>
                     <div className="case-quick-pad-actions">
                       <button type="button" onClick={() => copyItem(item)}>{copiedId === item.id ? 'Copied' : 'Copy'}</button>
-                      <button type="button" onClick={() => { onUse(item); closePad(); }}>Use here</button>
-                      <button type="button" onClick={() => { onOpenSource(item); closePad(); }}>Open record</button>
+                      {canUseItem(item) && <button type="button" onClick={() => { onUse(item); closePad(); }}>Use here</button>}
+                      {canOpenItem(item) && <button type="button" onClick={() => { onOpenSource(item); closePad(); }}>Open record</button>}
                       <button type="button" onClick={() => onRemove(item.id)} aria-label={`Remove ${item.label} ${item.value}`}>Unpin</button>
                     </div>
                   </article>

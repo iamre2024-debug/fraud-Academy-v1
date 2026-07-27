@@ -246,9 +246,16 @@ export function isValidReviewPackage(activeCase = {}, reviewPackage = {}) {
   return Boolean(reviewPackage?.choice) && getReviewChoices(activeCase).includes(reviewPackage.choice);
 }
 
-export function getReviewPackageStatus({ activeCase, completedTools = [], tray = [], notes = [], draft = {} }) {
+export function getReviewPackageStatus({
+  activeCase,
+  completedTools = [],
+  tray = [],
+  notes = [],
+  draft = {},
+  requiredDecisionMode = '',
+}) {
   const requiredTools = getRequiredReviewTools(activeCase);
-  const separatedDecision = draft.decisionMode === 'separated';
+  const separatedDecision = requiredDecisionMode === 'separated' || draft.decisionMode === 'separated';
   const decisionChoice = separatedDecision ? draft.operationalDecision : draft.choice;
   const validChoices = separatedDecision ? getOperationalDecisionOptions(activeCase) : getReviewChoices(activeCase);
   const validFindings = getFinalFindingOptions(activeCase);

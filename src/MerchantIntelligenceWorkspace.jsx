@@ -339,7 +339,17 @@ function CaseStatus({ workspace }) {
   );
 }
 
-export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision, documentRequests = {} }) {
+export default function MerchantIntelligenceWorkspace({
+  activeCase,
+  pin,
+  saveNote,
+  markReviewed,
+  reviewed,
+  openTool,
+  jumpDecision,
+  documentRequests = {},
+  layoutMode = 'desktop',
+}) {
   const workspace = useMemo(() => getMerchantIntelligence(activeCase), [activeCase]);
   const [activeSection, setActiveSection] = useState('merchant-response');
   const [selectedDocument, setSelectedDocument] = useState(null);
@@ -395,12 +405,14 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
         <StatusPill tone="neutral">Evidence First</StatusPill>
       </header>
 
-      <MobileMerchantOverview
-        workspace={workspace}
-        onOpen={setSelectedDocument}
-        openMerchantPaperwork={openMerchantPaperwork}
-        setActiveSection={setActiveSection}
-      />
+      {layoutMode === 'mobile' && (
+        <MobileMerchantOverview
+          workspace={workspace}
+          onOpen={setSelectedDocument}
+          openMerchantPaperwork={openMerchantPaperwork}
+          setActiveSection={setActiveSection}
+        />
+      )}
 
       <section className="merchant-lifecycle-summary" aria-label="Merchant dispute summary">
         <span className="merchant-summary-mark" aria-hidden="true">{workspace.profile.mark ?? 'M'}</span>

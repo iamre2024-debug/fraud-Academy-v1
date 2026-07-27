@@ -82,6 +82,28 @@ assert(!getReviewPackageStatus({
   notes: [],
   draft: { operationalDecision: 'Support', finalFinding: '', decisionMode: 'separated', indicators: {} },
 }).ready, 'A separated mobile package must not submit without a final investigative finding.');
+assert(!getReviewPackageStatus({
+  activeCase: accountTakeoverCase,
+  completedTools: [],
+  tray: [],
+  notes: [],
+  draft: { choice: accountTakeoverChoice, operationalDecision: '', finalFinding: '', decisionMode: 'legacy', indicators: {} },
+  requiredDecisionMode: 'separated',
+}).ready, 'A persisted legacy choice must not bypass the mobile operational-decision and final-finding requirement.');
+assert(getReviewPackageStatus({
+  activeCase: accountTakeoverCase,
+  completedTools: [],
+  tray: [],
+  notes: [],
+  draft: {
+    choice: accountTakeoverChoice,
+    operationalDecision: 'Support',
+    finalFinding: 'Fraud established',
+    decisionMode: 'legacy',
+    indicators: {},
+  },
+  requiredDecisionMode: 'separated',
+}).ready, 'The mobile layout should accept both explicit selections even while a legacy draft is being migrated.');
 
 const missingToolStatus = buildStatus({ completedTools: requiredToolSet.filter((tool) => tool !== 'Document Viewer') });
 assert(missingToolStatus.ready, 'A decision should be submittable when an optional tool was not reviewed.');

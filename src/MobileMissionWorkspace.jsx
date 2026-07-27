@@ -13,7 +13,6 @@ import {
   MobileFinancialInvestigationPage,
   MobilePayrollHistoryPage,
 } from './MobileReferenceToolPages.jsx';
-import MobileToolQuickPins from './MobileToolQuickPins.jsx';
 import SubmitDecisionPanel from './SubmitDecisionPanel.jsx';
 import TimelinePanel from './TimelinePanel.jsx';
 
@@ -142,7 +141,7 @@ export default function MobileMissionWorkspace({
         </div>
         <MobileLunaPortrait size={38} className="mission-workspace-luna" />
         <details ref={overflowRef} className="mission-workspace-overflow">
-          <summary aria-label="Open workspace menu">•••</summary>
+          <summary role="button" aria-label="Open workspace menu">•••</summary>
           <section>
             <header><span>{screenIcon}</span><div><small>Current tool</small><strong>{screenTitle}</strong></div></header>
             <label className="mission-overflow-case mission-workspace-case-selector">
@@ -168,14 +167,6 @@ export default function MobileMissionWorkspace({
               <button type="button" onClick={() => runOverflowAction(jumpDecision)}>✓ <span>Decide</span></button>
               <button type="button" onClick={openDisplaySettings}>⚙ <span>Display</span></button>
             </nav>
-            {isTool && displayedTool !== 'Link Analysis' && (
-              <MobileToolQuickPins
-                activeTool={displayedTool}
-                activeCase={activeCase}
-                activeRow={activeToolProps.activeRow}
-                quickPin={activeToolProps.quickPin}
-              />
-            )}
           </section>
         </details>
       </header>
@@ -260,6 +251,7 @@ export default function MobileMissionWorkspace({
                 <InvestigationToolPanel
                   {...activeToolProps}
                   tool={displayedTool}
+                  layoutMode="mobile"
                   openTool={(toolName, ...args) => openTool(internalToolName(toolName), ...args)}
                 />
               )}

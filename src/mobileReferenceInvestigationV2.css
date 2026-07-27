@@ -2172,7 +2172,7 @@
   }
 
   body[data-layout-mode="mobile"] .decision-flag-progress span {
-    font-size: .44rem;
+    font-size: .5rem;
   }
 
   body[data-layout-mode="mobile"] .decision-flag-scoreboard {
@@ -2259,7 +2259,7 @@
     border: 1px solid rgba(239, 96, 176, .22);
     border-radius: 999px;
     background: rgba(108, 30, 80, .28);
-    font-size: .46rem;
+    font-size: .5rem;
   }
 
   body[data-layout-mode="mobile"] .decision-flag-item > p {
@@ -2529,9 +2529,28 @@
   /* Quick Pad remains a small charm above the dock; the sheet never claims
      document space and tracks the visual viewport while the keyboard is open. */
   body[data-layout-mode="mobile"] .case-quick-pad {
-    right: 9px;
-    bottom: calc(var(--fa-dock-height) + 7px + env(safe-area-inset-bottom) + var(--quick-pad-keyboard-inset, 0px));
-    width: min(380px, calc(100vw - 18px));
+    --quick-pad-dock-offset: 7px;
+    right: max(9px, env(safe-area-inset-right));
+    bottom: calc(
+      var(--fa-dock-height)
+      + var(--quick-pad-dock-offset)
+      + env(safe-area-inset-bottom)
+      + var(--quick-pad-keyboard-inset, 0px)
+    );
+    width: min(
+      380px,
+      calc(100vw - 18px - env(safe-area-inset-left) - env(safe-area-inset-right))
+    );
+  }
+
+  body[data-layout-mode="mobile"]:has(iframe[title="Netlify Drawer"]) .case-quick-pad {
+    --quick-pad-dock-offset: 64px;
+    bottom: calc(
+      var(--fa-dock-height)
+      + var(--quick-pad-dock-offset)
+      + env(safe-area-inset-bottom)
+      + var(--quick-pad-keyboard-inset, 0px)
+    );
   }
 
   body[data-layout-mode="mobile"] .case-quick-pad-trigger {
@@ -2546,7 +2565,17 @@
   }
 
   body[data-layout-mode="mobile"] .case-quick-pad-panel {
-    max-height: min(56dvh, calc(100dvh - var(--fa-dock-height) - var(--quick-pad-keyboard-inset, 0px) - 28px));
+    max-height: min(
+      56dvh,
+      calc(
+        100dvh
+        - var(--fa-dock-height)
+        - var(--quick-pad-dock-offset)
+        - env(safe-area-inset-bottom)
+        - var(--quick-pad-keyboard-inset, 0px)
+        - 21px
+      )
+    );
     border-color: rgba(76, 205, 255, .66);
     border-radius: 21px 21px 7px 21px;
   }
@@ -2581,7 +2610,18 @@
 
   @media (max-height: 650px) {
     body[data-layout-mode="mobile"] .case-quick-pad-panel {
-      max-height: min(48dvh, 286px);
+      max-height: min(
+        48dvh,
+        286px,
+        calc(
+          100dvh
+          - var(--fa-dock-height)
+          - var(--quick-pad-dock-offset)
+          - env(safe-area-inset-bottom)
+          - var(--quick-pad-keyboard-inset, 0px)
+          - 21px
+        )
+      );
     }
 
     body[data-layout-mode="mobile"]:has(.case-quick-pad.is-open) .mission-workspace-surface {

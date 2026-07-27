@@ -1989,6 +1989,13 @@ function PaymentVerificationWorkspace({
     'Timeline',
   ].filter((item) => activeCase.availableTools?.includes(item) || item === 'Timeline');
   const showCallback = activeRecord && !/^No callback requirement/i.test(activeRecord.callbackStatus);
+  const activeLookupHint = activeRecord
+    ? buildPaymentLookupHint({
+        bankCode: activeRecord.bankCode,
+        destinationId: activeRecord.destinationId,
+        ownerName: lookup.ownerName || activeRecord.accountHolder,
+      })
+    : '';
 
   return (
     <>
@@ -2117,6 +2124,10 @@ function PaymentVerificationWorkspace({
                     value: activeRecord.bankCode,
                     sourceTool: 'Payment Verification',
                     sourceRecordId: activeRecord.id,
+                    queryHint: activeLookupHint,
+                    useTool: 'Payment Verification',
+                    openAction: 'source-query',
+                    openTargetTool: 'Payment Verification',
                   })}
                 >
                   📌 Bank Code
@@ -2128,6 +2139,10 @@ function PaymentVerificationWorkspace({
                     value: activeRecord.destinationId,
                     sourceTool: 'Payment Verification',
                     sourceRecordId: activeRecord.id,
+                    queryHint: activeLookupHint,
+                    useTool: 'Payment Verification',
+                    openAction: 'source-query',
+                    openTargetTool: 'Payment Verification',
                   })}
                 >
                   📌 Destination ID
@@ -2274,6 +2289,7 @@ export default function InvestigationToolPanel({
   actionLog,
   recordAction,
   quickPin,
+  layoutMode = 'desktop',
 }) {
   const [selectedRecordId, setSelectedRecordId] = useState('');
   const displayData = buildCoreToolRecords(tool, activeCase, data) ?? data;
@@ -2383,6 +2399,7 @@ export default function InvestigationToolPanel({
           openTool={openTool}
           jumpDecision={jumpDecision}
           documentRequests={documentRequests}
+          layoutMode={layoutMode}
         />
       ) : tool === 'Financial Investigation' ? (
         <FinancialInvestigationWorkspace
