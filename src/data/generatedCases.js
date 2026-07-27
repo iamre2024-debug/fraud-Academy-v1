@@ -1,8 +1,21 @@
 import {
   coreClaimTypes,
+  findScenarioById,
   getClaimType,
-  getScenario,
+  getClaimTypeForDomain,
+  getScenarioWithTruth,
+  normalizeWorkflowType,
 } from './claimRegistry.js';
+import {
+  CASE_DOMAIN_VERSION,
+  CUSTOMER_TYPES,
+  PRODUCT_TYPES,
+  WORKFLOW_TYPES,
+  assertCaseDomain,
+  caseDomainLabels,
+  isWorkflowEnabled,
+} from './caseDomain.js';
+import { getScenarioTruth } from './claimScenarioCatalog.js';
 import { buildCaseBriefingPacket } from './caseBriefingDetails.js';
 import { buildCaseIntakeAnswers } from './intakeAnswers.js';
 import {
@@ -14,6 +27,21 @@ import {
 
 const generatedCaseStorageKey = 'fraud-academy-generated-cases-v1';
 const generatedCaseSequenceKey = 'fraud-academy-generated-case-sequence-v1';
+const generatedTruthByCaseId = new Map();
+
+function cloneTruthSnapshot(truth) {
+  if (!truth || typeof truth !== 'object') return undefined;
+  if (typeof structuredClone === 'function') return structuredClone(truth);
+  return JSON.parse(JSON.stringify(truth));
+}
+
+export function registerGeneratedCaseTruthSnapshot(caseId, truth) {
+  const normalizedCaseId = String(caseId ?? '').trim();
+  const snapshot = cloneTruthSnapshot(truth);
+  if (!normalizedCaseId || !snapshot) return false;
+  generatedTruthByCaseId.set(normalizedCaseId, snapshot);
+  return true;
+}
 
 const depthConfig = {
   light: { label: 'Light', records: 2 },
@@ -47,6 +75,77 @@ function generatedSubject({ person, scenario, employer, business }) {
   if (/employee/.test(role) && employer) return `${person}, the ${role} at ${employer}`;
   if (/business|vendor|payment contact|owner/.test(role) && business) return `${person}, the ${role} for ${business}`;
   return `${person}, the ${role}`;
+}
+
+function generatedPartyName(index, offset) {
+  const firstNames = ['Alex', 'Bailey', 'Casey', 'Devon', 'Ellis', 'Frankie', 'Gray', 'Hayden'];
+  const lastNames = ['Arden', 'Bell', 'Chen', 'Diaz', 'Evans', 'Ford', 'Green', 'Hill'];
+  return `${firstNames[(safeIndex(index) + offset) % firstNames.length]} ${lastNames[(safeIndex(index) + (offset * 3)) % lastNames.length]}`;
+}
+
+function generatedParties({ id, index, domain, person, business, employer, scenario }) {
+  const party = (suffix, role, name, relationship, source) => ({
+    id: `${id}-PTY-${suffix}`,
+    role,
+    name,
+    relationship,
+    source,
+  });
+  if (domain.customerType === CUSTOMER_TYPES.PERSONAL) {
+    const primaryRole = domain.workflowType === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW ? 'Credit applicant' : 'Personal account holder';
+    const relatedRole = domain.workflowType === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW ? 'Employer or income source' : 'Transaction or payment counterparty';
+    const relatedName = domain.workflowType === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW
+      ? employer
+      : scenario.transactionInfo.split(' - ')[0].split(' · ')[0];
+    return [
+      party(1, primaryRole, person, 'Primary personal customer named in the case', 'Customer or application record'),
+      party(2, relatedRole, relatedName || 'Training counterparty', 'Party connected to the activity under review', 'Transaction, payment, or application record'),
+    ];
+  }
+
+  const parties = [
+    party(1, 'Business account holder', business, 'Entity that owns the product under review', 'Business profile'),
+  ];
+  if (domain.workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT) {
+    parties.push(
+      party(2, 'Affected employee', person, 'Employee payroll record affected by the observed change', 'Employee profile'),
+      party(3, 'Authorized payroll administrator', generatedPartyName(index, 1), 'Administrator on the established business roster', 'Administrator roster'),
+    );
+    return parties;
+  }
+  if (domain.workflowType === WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER) {
+    parties.push(
+      party(2, 'Payroll initiator', person, 'Person recorded as initiating the payroll activity', 'Payroll activity record'),
+      party(3, 'Payroll approver', generatedPartyName(index, 1), 'Person recorded as approving the payroll activity', 'Payroll approval record'),
+      party(4, 'Authorized payroll administrator', generatedPartyName(index, 2), 'Administrator on the established business roster', 'Administrator roster'),
+    );
+    return parties;
+  }
+  if (domain.workflowType === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW) {
+    parties.push(
+      party(2, 'Application submitter', person, 'Person who submitted the business application', 'Application record'),
+      party(3, 'Beneficial owner', generatedPartyName(index, 1), 'Relevant owner identified for verification', 'Ownership record'),
+      party(4, 'Control person', generatedPartyName(index, 2), 'Person with significant control identified for verification', 'Business application'),
+    );
+    if ([PRODUCT_TYPES.BUSINESS_CREDIT_CARD, PRODUCT_TYPES.BUSINESS_LOAN].includes(domain.productType)) {
+      parties.push(party(5, 'Personal guarantor', generatedPartyName(index, 3), 'Guarantor identified for this fictional credit product', 'Guaranty record'));
+    }
+    parties.push(party(6, 'Authorized administrator', generatedPartyName(index, 4), 'Administrator identified when applicable', 'Administrator record'));
+    return parties;
+  }
+  if (domain.workflowType === WORKFLOW_TYPES.BUSINESS_ACCOUNT_TAKEOVER) {
+    parties.push(
+      party(2, 'Business administrator', person, 'Administrator activity named in the access alert', 'Administrator activity record'),
+      party(3, 'Payment initiator', generatedPartyName(index, 1), 'Initiator associated with activity in the review window', 'Payment activity record'),
+      party(4, 'Payment approver', generatedPartyName(index, 2), 'Approver associated with activity in the review window', 'Approval record'),
+    );
+    return parties;
+  }
+  parties.push(
+    party(2, 'Business payment contact', person, 'Contact named in the instruction or transaction record', 'Business intake'),
+    party(3, 'Payment beneficiary or originator', scenario.transactionInfo.split(' - ')[0].split(' · ')[0], 'Counterparty tied to the activity under review', 'Payment record'),
+  );
+  return parties;
 }
 
 export function buildGeneratedCaseSummary({
@@ -83,9 +182,53 @@ function generatorOptions(indexOrOptions, options) {
   return { index: indexOrOptions ?? Date.now(), ...(options ?? {}) };
 }
 
-function selectClaimType(index, claimTypeId) {
-  if (claimTypeId) return getClaimType(claimTypeId);
-  return coreClaimTypes[safeIndex(index) % coreClaimTypes.length];
+function compatibleProduct(claimType, customerType, preferredProductType) {
+  if (preferredProductType && claimType.productTypes.includes(preferredProductType)
+    && isWorkflowEnabled(customerType, preferredProductType, claimType.workflowType)) return preferredProductType;
+  return claimType.productTypes.find((productType) => isWorkflowEnabled(customerType, productType, claimType.workflowType));
+}
+
+function selectClaimType(index, config) {
+  const explicitWorkflowType = normalizeWorkflowType(config.workflowType);
+  const legacyWorkflowType = normalizeWorkflowType(config.claimTypeId);
+  const requestedScenarioId = config.scenarioId && config.scenarioId !== 'auto' ? config.scenarioId : undefined;
+  const preferredClaimType = explicitWorkflowType || legacyWorkflowType ? getClaimType(explicitWorkflowType ?? legacyWorkflowType) : undefined;
+  const preferredScenario = requestedScenarioId
+    ? preferredClaimType?.scenarios.find((scenario) => scenario.id === requestedScenarioId || scenario.legacyScenarioId === requestedScenarioId)
+    : undefined;
+  const requestedScenario = preferredScenario
+    ? { claimType: preferredClaimType, scenario: preferredScenario }
+    : requestedScenarioId
+      ? findScenarioById(requestedScenarioId)
+      : undefined;
+  const requestedWorkflowType = explicitWorkflowType
+    ?? (requestedScenario && !config.workflowType ? requestedScenario.claimType.workflowType : undefined)
+    ?? legacyWorkflowType;
+  const claimType = requestedWorkflowType
+    ? getClaimType(requestedWorkflowType)
+    : coreClaimTypes[safeIndex(index) % coreClaimTypes.length];
+  const explicitlyResolvedScenario = requestedScenario?.claimType.id === claimType.id ? requestedScenario.scenario : undefined;
+  const autoScenario = !explicitlyResolvedScenario
+    && !config.customerType
+    && !config.productType
+    && (!config.scenarioId || config.scenarioId === 'auto')
+    ? claimType.scenarios[safeIndex(index) % claimType.scenarios.length]
+    : undefined;
+  const scenario = explicitlyResolvedScenario ?? autoScenario;
+  const inferredCustomerType = config.customerType
+    ?? scenario?.customerTypes?.[0]
+    ?? claimType.customerTypes[0]
+    ?? CUSTOMER_TYPES.PERSONAL;
+  const inferredProductType = config.productType
+    ?? compatibleProduct(claimType, inferredCustomerType, scenario?.productTypes?.[0])
+    ?? compatibleProduct(claimType, inferredCustomerType);
+  const domain = assertCaseDomain({
+    customerType: inferredCustomerType,
+    productType: inferredProductType,
+    workflowType: claimType.workflowType,
+  });
+  getClaimTypeForDomain(domain);
+  return { claimType, domain, requestedScenario: scenario };
 }
 
 const scenarioVariantPatterns = [
@@ -106,9 +249,30 @@ const intakeRoutes = {
   applicant: ['Online application review', 'Application verification queue', 'Document follow-up queue', 'Identity review escalation'],
 };
 
-function scenarioForGeneration(claimType, index, scenarioId) {
-  if (scenarioId && scenarioId !== 'auto') return getScenario(claimType.id, scenarioId);
-  return claimType.scenarios[safeIndex(index) % claimType.scenarios.length] ?? claimType.scenarios[0];
+function scenarioForGeneration(claimType, domain, index, scenarioId, requestedScenario, alertReason) {
+  const domainScenarios = claimType.scenarios.filter((scenario) => (
+    (!scenario.customerTypes?.length || scenario.customerTypes.includes(domain.customerType))
+    && (!scenario.productTypes?.length || scenario.productTypes.includes(domain.productType))
+  ));
+  const supportedScenarios = alertReason && alertReason !== 'auto'
+    ? domainScenarios.filter((scenario) => scenario.alertReason === alertReason)
+    : domainScenarios;
+  if (!supportedScenarios.length) {
+    const reason = alertReason && alertReason !== 'auto' ? ` and alert reason "${alertReason}"` : '';
+    throw new RangeError(`No scenarios are configured for ${domain.customerType}/${domain.productType}/${domain.workflowType}${reason}`);
+  }
+  const selected = requestedScenario
+    ?? (scenarioId && scenarioId !== 'auto'
+      ? claimType.scenarios.find((scenario) => scenario.id === scenarioId || scenario.legacyScenarioId === scenarioId)
+      : undefined);
+  if (selected && supportedScenarios.some((scenario) => scenario.id === selected.id)) {
+    return getScenarioWithTruth(claimType.id, selected.id);
+  }
+  if (scenarioId && scenarioId !== 'auto') {
+    throw new RangeError(`Scenario ${scenarioId} is not enabled for ${domain.customerType}/${domain.productType}/${domain.workflowType}`);
+  }
+  const scenario = supportedScenarios[safeIndex(index) % supportedScenarios.length] ?? supportedScenarios[0];
+  return getScenarioWithTruth(claimType.id, scenario.id);
 }
 
 function scenarioVariant(baseScenario, index) {
@@ -122,7 +286,9 @@ function scenarioVariant(baseScenario, index) {
   const role = String(baseScenario.entityRole ?? '').toLowerCase();
   const routeKey = /employee/.test(role) ? 'employee' : /business|vendor|payment contact|owner/.test(role) ? 'business' : /applicant/.test(role) ? 'applicant' : 'consumer';
   const channels = intakeRoutes[routeKey];
-  const channel = channels[seed % channels.length];
+  const channel = [WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT, WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER].includes(baseScenario.workflowType)
+    ? baseScenario.channel
+    : channels[seed % channels.length];
   const pattern = scenarioVariantPatterns[seed % scenarioVariantPatterns.length];
   const transactionInfo = /ending \d{4}/i.test(baseScenario.transactionInfo)
     ? baseScenario.transactionInfo.replace(/ending \d{4}/i, `ending ${reference}`)
@@ -137,6 +303,19 @@ function scenarioVariant(baseScenario, index) {
     variationId: `${baseScenario.id}-V${padded(seed, 8)}`,
     variationLabel: pattern,
   };
+}
+
+function toolsForDomain(tools = [], domain) {
+  const excluded = new Set();
+  if (domain.customerType === CUSTOMER_TYPES.PERSONAL) {
+    ['Business 360', 'KYB Review', 'Employee Profile', 'Payroll History'].forEach((tool) => excluded.add(tool));
+  } else {
+    excluded.add('Customer 360');
+  }
+  if (![WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT, WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER].includes(domain.workflowType)) {
+    ['Employee Profile', 'Payroll History'].forEach((tool) => excluded.add(tool));
+  }
+  return [...new Set(tools.filter((tool) => !excluded.has(tool)))];
 }
 
 function makeLoginHistory({ id, index, city, recordCount, claimType, scenario, difficulty }) {
@@ -390,23 +569,60 @@ function makeClaimDetails({ scenario, reportedDate, issueStartDate, transactionI
 export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const config = generatorOptions(indexOrOptions, options);
   const index = safeIndex(config.index);
-  const claimType = selectClaimType(index, config.claimTypeId);
-  const scenario = scenarioVariant(scenarioForGeneration(claimType, index, config.scenarioId), index);
-  const caseClaimType = { ...claimType, availableTools: scenario.toolkitTools ?? claimType.availableTools };
+  const { claimType, domain, requestedScenario } = selectClaimType(index, config);
+  const scenario = scenarioVariant(scenarioForGeneration(claimType, domain, index, config.scenarioId, requestedScenario, config.alertReason), index);
+  const hiddenTruth = scenario.caseTruth;
+  const domainLabels = caseDomainLabels(domain);
+  const scenarioTaxonomy = {
+    ...scenario.taxonomyTags,
+    ...domain,
+  };
+  scenario.customerType = domain.customerType;
+  scenario.productType = domain.productType;
+  scenario.workflowType = domain.workflowType;
+  scenario.taxonomyTags = scenarioTaxonomy;
+  const caseClaimType = {
+    ...claimType,
+    availableTools: toolsForDomain(scenario.toolkitTools ?? claimType.availableTools, domain),
+    requiredTools: toolsForDomain(claimType.requiredTools, domain),
+  };
   const difficulty = ['light', 'standard', 'deep'].includes(config.difficulty) ? config.difficulty : 'standard';
   const depth = depthConfig[config.evidenceDepth] ?? depthConfig.standard;
   const difficultyProfile = difficultyConfig[difficulty];
   const recordCount = Math.min(5, depth.records + difficultyProfile.extraRecords);
   const suffix = padded(index);
   const persona = buildGeneratedPersona(index, scenario);
-  const { person, city, employer, business, phone, email, address } = persona;
+  const { person, city, employer: personaEmployer, business, phone, email, address } = persona;
+  const employer = [WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT, WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER].includes(domain.workflowType)
+    ? business
+    : personaEmployer;
   const id = `FA-${claimType.prefix}-G${String(index).slice(-8)}`;
   const trainingId = `TRN-GEN-${suffix}`;
   const accountId = `ACCT-${claimType.prefix}-${suffix}`;
   const reportedDate = dateFor(index);
   const issueStartDate = dateFor(index, 2);
+  const caseParties = generatedParties({ id, index, domain, person, business, employer, scenario });
   const documents = makeDocuments({ id, index, claimType, scenario, recordCount, difficulty, person, business, employer, address, trainingId, reportedDate, issueStartDate });
-  const toolResults = buildGeneratedToolResults({ id, index, person, city, employer, business, claimType: caseClaimType, scenario, documents, recordCount, trainingId, reportedDate, issueStartDate, difficulty });
+  const toolResults = buildGeneratedToolResults({
+    id,
+    index,
+    person,
+    city,
+    employer,
+    business,
+    phone,
+    email,
+    address,
+    parties: caseParties,
+    claimType: caseClaimType,
+    scenario,
+    documents,
+    recordCount,
+    trainingId,
+    reportedDate,
+    issueStartDate,
+    difficulty,
+  });
   const claimDetails = makeClaimDetails({ scenario, reportedDate, issueStartDate, transactionId: toolResults.transactions?.[0]?.id ?? `${id}-TXN-1` });
   const loginHistory = makeLoginHistory({ id, index, city, recordCount, claimType: caseClaimType, scenario, difficulty });
   const profileChanges = makeGeneratedProfileChanges({
@@ -434,7 +650,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
       { label: 'Account ID', value: accountId },
       { label: 'Open products', value: taxonomyTags.productRail },
       { label: 'Relationship context', value: taxonomyTags.lifecycleStage },
-      { label: 'Primary entity', value: taxonomyTags.productRail === 'payroll' || taxonomyTags.productRail === 'loan' ? business : person },
+      { label: 'Primary entity', value: domain.customerType === CUSTOMER_TYPES.BUSINESS ? business : person },
     ],
     profileChanges,
   };
@@ -459,6 +675,9 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     loginHistory,
     profileChanges,
     customer,
+    customerType: domain.customerType,
+    productType: domain.productType,
+    workflowType: domain.workflowType,
   });
   const decisionData = buildScenarioDecisionData({ claimType, scenario, reportedDate, toolResults });
   const generatedSummary = buildGeneratedCaseSummary({
@@ -473,6 +692,9 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const briefingPacket = buildCaseBriefingPacket({
     item: {
       id,
+      customerType: domain.customerType,
+      productType: domain.productType,
+      workflowType: domain.workflowType,
       person,
       amount: scenario.amount,
       amountExposure: scenario.amount,
@@ -486,16 +708,31 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
       toolResults,
       events,
       loginHistory,
+      parties: caseParties,
     },
     claimType,
     scenario,
     reportedDate,
   });
+  registerGeneratedCaseTruthSnapshot(id, hiddenTruth);
 
   return {
     id,
     caseId: id,
     claimId: `CLM-${claimType.prefix}-G${String(index).slice(-8)}`,
+    domainSchemaVersion: CASE_DOMAIN_VERSION,
+    customerType: domain.customerType,
+    customerTypeLabel: domainLabels.customerTypeLabel,
+    productType: domain.productType,
+    productTypeLabel: domainLabels.productTypeLabel,
+    workflowType: domain.workflowType,
+    workflowTypeLabel: domainLabels.workflowTypeLabel,
+    alertReason: scenario.alertReason,
+    reportedAllegation: scenario.reportedAllegation,
+    suspectedPatterns: [],
+    operationalDecision: null,
+    finalFinding: null,
+    findingBasis: '',
     claimTypeId: claimType.id,
     type: claimType.label,
     claimType: claimType.label,
@@ -507,11 +744,11 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     scenarioVariant: scenario.variationLabel,
     scenarioFamily: scenario.family ?? claimType.lane,
     plainEnglishMeaning: scenario.plainEnglishMeaning,
-    howItHappens: scenario.howItHappens,
     timelinePattern: scenario.timelinePattern,
     commonMistake: scenario.commonMistake,
     miniExample: scenario.miniExample,
-    generatedPacketVersion: 6,
+    scenarioTruthId: scenario.scenarioTruthId,
+    generatedPacketVersion: 7,
     difficulty,
     evidenceDepth: depth.label,
     priority: scenario.priority,
@@ -533,8 +770,8 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     title: scenario.title,
     transactionInfo: scenario.transactionInfo,
     shortSummary: generatedSummary,
-    allegation: generatedSummary,
-    queueReason: `${claimType.label} · ${scenario.subtype} · generated training case.`,
+    allegation: scenario.reportedAllegation,
+    queueReason: `${domainLabels.customerTypeLabel} · ${domainLabels.productTypeLabel} · ${domainLabels.workflowTypeLabel} · ${scenario.alertReason}.`,
     statement: { label: statementLabel, value: scenario.statement, source: scenario.channel },
     assignedInvestigator: briefingPacket.assignedInvestigator,
     assignedDate: briefingPacket.assignedDate,
@@ -563,21 +800,34 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     intakeAnswers,
     briefingQuestions: claimType.intakePrompts,
     keyFacts: [
-      ['Lane', claimType.lane], ['Subtype', scenario.subtype], ['Reported date', reportedDate], ['Issue start date', issueStartDate], ['Amount / exposure', scenario.amount], ['Scenario', scenario.title], ['Difficulty', difficultyProfile.label], ['Evidence depth', depth.label],
+      ['Customer type', domainLabels.customerTypeLabel], ['Product', domainLabels.productTypeLabel], ['Review workflow', domainLabels.workflowTypeLabel], ['Alert reason', scenario.alertReason], ['Reported date', reportedDate], ['Issue start date', issueStartDate], ['Amount / exposure', scenario.amount], ['Difficulty', difficultyProfile.label], ['Evidence depth', depth.label],
     ],
-    productsAccounts: [{ label: 'Product rail', value: taxonomyTags.productRail }, { label: 'Entity role', value: scenario.entityRole }, { label: 'Primary account context', value: scenario.transactionInfo }],
-    availableTools: scenario.toolkitTools ?? claimType.availableTools,
-    requiredTools: claimType.requiredTools,
+    productsAccounts: [{ label: 'Customer type', value: domainLabels.customerTypeLabel }, { label: 'Product', value: domainLabels.productTypeLabel }, { label: 'Review workflow', value: domainLabels.workflowTypeLabel }, { label: 'Entity role', value: scenario.entityRole }, { label: 'Primary account context', value: scenario.transactionInfo }],
+    availableTools: caseClaimType.availableTools,
+    requiredTools: caseClaimType.requiredTools,
     evidenceAreas: claimType.evidenceAreas,
     expectedEvidenceCategories: scenario.expectedEvidence ?? claimType.evidenceAreas,
     taxonomyTags,
     profile,
     customer,
     identityRecords: [
-      { id: `${id}-IDR-1`, type: 'Training ID', value: trainingId, lastSeen: reportedDate, history: `${trainingId} is recorded for ${person} on claim ${id}.` },
-      { id: `${id}-IDR-2`, type: 'Contact record', value: `${email} | ${phone}`, lastSeen: reportedDate, history: `The email and phone were recorded from the ${scenario.channel} intake on ${reportedDate}.` },
-      { id: `${id}-IDR-3`, type: 'Address record', value: address, lastSeen: issueStartDate, history: `${address} was the recorded profile address when the activity window began ${issueStartDate}.` },
-    ],
+      ...(toolResults.identityReport ?? []),
+      {
+        id: `${id}-IDR-3`,
+        type: 'Address record',
+        label: 'Address record',
+        value: address,
+        observed: issueStartDate,
+        lastSeen: issueStartDate,
+        history: `${address} was the recorded profile address when the activity window began ${issueStartDate}.`,
+      },
+      ...(toolResults.applicationVerification ?? []),
+    ].map((record) => ({
+      ...record,
+      type: record.type ?? record.label ?? 'Source record',
+      lastSeen: record.lastSeen ?? record.observed ?? reportedDate,
+      history: record.history ?? record.context ?? 'Fictional source record available for comparison.',
+    })),
     loginHistory,
     events,
     timelineEvents: events,
@@ -588,22 +838,32 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     facts: ['Generated training case', 'No final outcome shown', 'No outcome is displayed during active investigation', 'Evidence First lock active', `${difficultyProfile.label} / ${depth.label} packet depth`, difficulty === 'deep' ? 'Two cross-source dependencies require reconciliation' : difficulty === 'standard' ? 'One cross-source comparison requires reconciliation' : 'Focused evidence path'],
     progress: ['Case Summary'],
     links: ['Customer or entity', 'Case event', 'Document', ...(toolResults.paymentVerification?.length ? ['Payment object'] : []), ...(toolResults.merchantIntelligence ? ['Merchant and order objects'] : [])],
-    actionLog: [{ id: `${id}-ACT-1`, time: `${reportedDate} - 9:05 AM`, action: 'Generated case created', detail: `${claimType.label} scenario ${scenario.title} added to the training queue.`, source: 'Scenario generator' }],
+    actionLog: [{ id: `${id}-ACT-1`, time: `${reportedDate} - 9:05 AM`, action: 'Generated case created', detail: `${domainLabels.customerTypeLabel} ${domainLabels.productTypeLabel} — ${domainLabels.workflowTypeLabel} added to the training queue.`, source: 'Scenario generator' }],
     creditDecision: decisionData.creditDecision,
     chargebackDecision: decisionData.chargebackDecision,
-    caseTruth: scenario.caseTruth,
-    correctDetermination: scenario.caseTruth?.correctDetermination,
     scoringRules: {
       difficulty,
       difficultyProfile: difficultyProfile.label,
       evidenceDepth: depth.label,
       debriefLockedUntilSubmission: true,
-      acceptedDeterminations: scenario.caseTruth?.acceptedDeterminations ?? [],
       complexityDependencies: difficulty === 'deep' ? 2 : difficulty === 'standard' ? 1 : 0,
       missingDocumentCount: documents.filter((document) => document.status === 'Requested').length,
     },
-    debriefLogic: scenario.debriefLogic,
   };
+}
+
+export function getGeneratedCaseTruth(caseOrId, { submitted = false } = {}) {
+  if (!submitted) return undefined;
+  const item = typeof caseOrId === 'object' && caseOrId !== null ? caseOrId : undefined;
+  const caseId = item?.id ?? item?.caseId ?? caseOrId;
+  const inMemoryTruth = generatedTruthByCaseId.get(String(caseId ?? ''));
+  const truth = inMemoryTruth ?? (
+    item?.workflowType && item?.scenarioId
+      ? getScenarioTruth(item.workflowType, item.scenarioId)
+      : undefined
+  );
+  if (!truth) return undefined;
+  return cloneTruthSnapshot(truth);
 }
 
 export function readGeneratedCases() {

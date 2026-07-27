@@ -90,6 +90,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     actionLog,
     documentRequests,
     quickPad,
+    payrollInvestigation,
     setTrayByCase,
     setNotesByCase,
     setNoteDraft,
@@ -99,6 +100,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setActionsByCase,
     setDocumentRequestsByCase,
     setQuickPadByCase,
+    setPayrollInvestigationsByCase,
   } = useVisualWorkspaceCaseState(activeCase);
   const availableToolNames = useMemo(() => new Set(activeCase.availableTools?.length ? activeCase.availableTools : workspaceTools), [activeCase]);
   const visibleCategories = useMemo(() => investigationToolGroups
@@ -325,6 +327,17 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     showWorkspaceScreen('tool');
   }
 
+  function openRelatedCase(nextCaseId) {
+    if (!cases.some((item) => item.id === nextCaseId)) return;
+    onCaseChange(nextCaseId, 'briefing');
+    setActiveStage('briefing');
+    setQuery('');
+    setExpandedId('');
+    setOpenedPinnedEvidence(null);
+    workspaceScreenHistory.current = [];
+    showWorkspaceScreen('briefing', { replace: true });
+  }
+
   function jumpDecision() {
     onNavigate('workspace');
     setActiveStage('determination');
@@ -484,10 +497,13 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     notes,
     cases,
     openDocumentAccountCase,
+    openRelatedCase,
     documentRequests,
     setDocumentRequestsByCase,
     recordAction,
     quickPin,
+    payrollInvestigation,
+    setPayrollInvestigationsByCase,
   };
 
   const quickPadLayer = (

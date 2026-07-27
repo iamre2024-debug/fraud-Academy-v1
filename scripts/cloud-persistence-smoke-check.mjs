@@ -26,6 +26,7 @@ function rawState(overrides = {}) {
     [storageKeys.actions]: {},
     [storageKeys.documentRequests]: {},
     [storageKeys.quickPad]: {},
+    [storageKeys.payrollInvestigations]: {},
     [storageKeys.debriefs]: {},
     ...overrides,
   };
@@ -39,6 +40,15 @@ function snapshotFor(rawByKey, deviceId, timestamp, generatedCases = []) {
 const deviceARaw = rawState({
   [storageKeys.notes]: { [caseId]: ['Jul 25 · Investigation note · Added while desktop was offline.'] },
   [storageKeys.completed]: { [caseId]: ['Case Summary', 'Login History'] },
+  [storageKeys.payrollInvestigations]: {
+    [caseId]: {
+      trustedContactStarted: true,
+      requestMethod: 'Email',
+      businessStatement: 'Trusted fictional business response.',
+      emailEvidenceProvided: true,
+      businessResponseSaved: true,
+    },
+  },
   [storageKeys.debriefs]: {
     [caseId]: [{
       id: 'PKG-1:debrief',
@@ -75,6 +85,13 @@ assert.deepEqual(
 );
 assert.equal(materialized.rawByKey[storageKeys.debriefs][caseId][0].id, 'PKG-1:debrief');
 assert.equal(materialized.rawByKey[storageKeys.packages][caseId][0].id, 'PKG-1');
+assert.deepEqual(materialized.rawByKey[storageKeys.payrollInvestigations][caseId], {
+  trustedContactStarted: true,
+  requestMethod: 'Email',
+  businessStatement: 'Trusted fictional business response.',
+  emailEvidenceProvided: true,
+  businessResponseSaved: true,
+});
 assert.deepEqual(new Set(materialized.generatedCases.map((item) => item.id)), new Set([
   'FA-ATO-G00000001',
   'FA-CB-G00000002',

@@ -1,5 +1,8 @@
 import { getBusinessRecords, getFinancialRecords } from './caseToolData.js';
 import { isPaymentProfileEvent } from './paymentVerification.js';
+import { WORKFLOW_TYPES } from './caseDomain.js';
+import { buildCaseParties } from './caseParties.js';
+import { UNKNOWN_REQUEST_METHOD } from './payrollInvestigation.js';
 
 const businessProfiles = {
   'FA-ATO-24018': {
@@ -49,7 +52,7 @@ function amountValue(value = '') {
 
 function toPaymentSource(record, activeCase) {
   if (!record) return null;
-  const businessOwnerLane = ['email-bec', 'business-loan-bust-out', 'ach-wire-check'].includes(activeCase.claimTypeId);
+  const businessOwnerLane = activeCase.customerType === 'business';
   return {
     recordId: record.id,
     bankCode: record.bankCode,
@@ -109,14 +112,18 @@ export function getTransactionHistory(activeCase) {
 
 export function getBusiness360Workspace(activeCase) {
   const records = getBusinessRecords(activeCase);
+  const parties = buildCaseParties(activeCase);
   const paymentSources = getPaymentSources(activeCase);
   const primary = records.business360?.[0] ?? { entity: 'No business entity recorded', id: 'BIZ-NONE', relationship: 'No relationship recorded', status: 'Not supplied', observed: 'Not supplied', context: 'No current business record.' };
+  const ownerParties = parties.filter((party) => /beneficial owner|owner/i.test(party.role ?? ''));
+  const controlParty = parties.find((party) => /control person/i.test(party.role ?? ''));
+  const administratorParties = parties.filter((party) => /administrator/i.test(party.role ?? ''));
   const profile = activeCase.businessProfile ?? businessProfiles[activeCase.id] ?? {
     entityType: activeCase.profile?.entityType ?? 'Generated training entity',
     registration: `Generated fictional registration for ${primary.entity}`,
     ein: `**-***${String(activeCase.id ?? '0000').replace(/\D/g, '').slice(-4).padStart(4, '0')}`,
-    owner: activeCase.person ?? 'Training owner record',
-    officer: activeCase.profile?.entityRole ?? 'Training controlling-party record',
+    owner: ownerParties.map((party) => party.name).join(' · ') || 'Training owner record',
+    officer: controlParty?.name ?? activeCase.profile?.entityRole ?? 'Training controlling-party record',
     registeredAgent: 'Generated training registered-agent record',
     address: activeCase.customer?.contact?.address ?? `${activeCase.intake?.customerLocation ?? 'Training location'} business address`,
     filingDate: activeCase.opened ?? 'Training date',
@@ -131,9 +138,21 @@ export function getBusiness360Workspace(activeCase) {
       relationship: primary.relationship,
       observed: primary.observed,
     },
-    relationships: records.business360 ?? [],
+    relationships: [
+      ...(records.business360 ?? []),
+      ...parties.map((party) => ({
+        id: party.id,
+        entity: party.name,
+        relationship: party.role,
+        status: party.verificationStatus ?? 'Verification record available',
+        observed: activeCase.reportedDate ?? activeCase.opened,
+        context: party.relationship,
+      })),
+    ].filter((record, index, all) => all.findIndex((candidate) => candidate.id === record.id) === index),
     intelligence: records.businessIntel ?? [],
     documents: activeCase.documents ?? [],
+    parties,
+    administrators: administratorParties,
     paymentSources,
     paymentSource: paymentSources[0] ?? null,
   };
@@ -167,7 +186,7 @@ export function getPayrollHistory(activeCase) {
       ?? paymentSources[0]
       ?? null;
     const hasDestinationContext = /direct deposit/i.test(item.channel)
-      || activeCase.claimTypeId === 'payroll-direct-deposit';
+      || [WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT, WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER].includes(activeCase.workflowType);
     const exactDestination = paymentSource
       ? `Bank Code ${paymentSource.bankCode} · Destination ID ${paymentSource.destinationId}`
       : 'No payroll destination in current packet';
@@ -184,7 +203,9 @@ export function getPayrollHistory(activeCase) {
       newDestination: hasDestinationContext ? paymentSource?.newDestination ?? exactDestination : 'Not applicable',
       effectiveDate: item.period,
       changeRequest: hasDestinationContext
-        ? paymentSource?.changeComparison ?? paymentProfileEvent?.detail ?? 'No change comparison supplied'
+        ? activeCase.workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT
+          ? `Platform-observed change: ${paymentSource?.changeComparison ?? paymentProfileEvent?.detail ?? 'change comparison not supplied'}. Request method: ${UNKNOWN_REQUEST_METHOD}.`
+          : paymentSource?.changeComparison ?? paymentProfileEvent?.detail ?? 'No change comparison supplied'
         : 'Not applicable',
       adminActivity: hasDestinationContext
         ? paymentProfileEvent
@@ -204,4 +225,35 @@ export function getPayrollHistory(activeCase) {
       ],
     };
   });
+}
+
+export function getPayrollAccessContext(activeCase) {
+  if (activeCase.workflowType !== WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER) return null;
+  const parties = buildCaseParties(activeCase);
+  const login = activeCase.loginHistory?.[0] ?? {};
+  const businessRecords = getBusinessRecords(activeCase);
+  const financialRecords = getFinancialRecords(activeCase);
+  const payrollRecords = businessRecords.payrollHistory ?? [];
+  const destinationRecords = financialRecords.paymentVerification ?? [];
+  const initiator = parties.find((party) => /initiator/i.test(party.role ?? ''));
+  const approver = parties.find((party) => /approver/i.test(party.role ?? ''));
+  const administrator = parties.find((party) => /administrator/i.test(party.role ?? ''));
+  const recoveryDocument = (activeCase.documents ?? []).find((document) => /recover|recall|return/i.test(`${document.name ?? document.title} ${document.detail ?? ''}`));
+  const abnormalSamePerson = Boolean(initiator?.name && approver?.name && initiator.name === approver.name);
+
+  return {
+    initiator: initiator?.name ?? 'Initiator record not supplied',
+    approver: approver?.name ?? 'Approver record not supplied',
+    administrator: administrator?.name ?? 'Administrator record not supplied',
+    approvalSeparation: abnormalSamePerson
+      ? 'The same person initiated and approved; compare this with the business baseline.'
+      : 'Separate initiator and approver records are available.',
+    deviceId: login.deviceId ?? login.device ?? 'Device record not supplied',
+    ipAddress: login.ip ?? 'IP record not supplied',
+    sessionId: login.session ?? login.sessionReference ?? 'Session record not supplied',
+    payrollHistory: `${payrollRecords.length} payroll record${payrollRecords.length === 1 ? '' : 's'} available`,
+    destinationChanges: `${destinationRecords.length} payment or destination record${destinationRecords.length === 1 ? '' : 's'} available`,
+    fundsStatus: financialRecords.transactions?.[0]?.status ?? 'Funds status not supplied',
+    recoveryInformation: recoveryDocument?.detail ?? 'No recovery or recall result is recorded yet.',
+  };
 }

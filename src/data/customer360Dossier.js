@@ -1,3 +1,6 @@
+import { getProductType } from './caseDomain.js';
+import { publicCaseTaxonomy, publicReportedAllegation } from './publicCaseView.js';
+
 const unavailable = 'Not available in the current training packet';
 
 const builtInDossiers = {
@@ -156,6 +159,7 @@ function generatedIdentity(activeCase) {
 
 function generatedProducts(activeCase) {
   const rail = activeCase.taxonomyTags?.productRail ?? activeCase.productsAccounts?.[0]?.value ?? 'account';
+  const explicitProduct = getProductType(activeCase.productType)?.label;
   const suffix = String(stableNumber(activeCase.id)).slice(-4).padStart(4, '0');
   const productNames = {
     card: 'Training Card Account',
@@ -167,7 +171,7 @@ function generatedProducts(activeCase) {
   };
   return [{
     id: `PROD-${suffix}`,
-    product: productNames[rail] ?? 'Training Deposit Account',
+    product: explicitProduct ?? productNames[rail] ?? 'Training Deposit Account',
     maskedNumber: `••••${suffix}`,
     opened: activeCase.customer?.relationshipSince ?? activeCase.issueStartDate ?? activeCase.opened,
     status: 'Open training record',
@@ -180,7 +184,7 @@ function generatedProducts(activeCase) {
 function generatedContactHistory(activeCase) {
   const channel = activeCase.intake?.channel ?? 'Case intake';
   return [
-    { id: `${activeCase.id}-CON-1`, dateTime: activeCase.intake?.contactTime ?? activeCase.reportedDate ?? activeCase.opened, type: 'Intake or alert', channel, outcome: 'Case packet opened', agent: 'Training intake queue', notes: activeCase.statement?.value ?? activeCase.allegation },
+    { id: `${activeCase.id}-CON-1`, dateTime: activeCase.intake?.contactTime ?? activeCase.reportedDate ?? activeCase.opened, type: 'Intake or alert', channel, outcome: 'Case packet opened', agent: 'Training intake queue', notes: publicReportedAllegation(activeCase) },
     { id: `${activeCase.id}-CON-2`, dateTime: activeCase.reportedDate ?? activeCase.opened, type: 'Case notification', channel: activeCase.customer?.contact?.preferredChannel ?? channel, outcome: 'Fictional notice recorded', agent: 'Automated training workflow', notes: 'Notification status is available for cross-reference.' },
   ];
 }
@@ -201,9 +205,10 @@ function generatedPriorClaims(activeCase) {
 }
 
 function claimHighlights(activeCase) {
-  const claim = `${activeCase.claimTypeId ?? ''} ${activeCase.type ?? ''} ${activeCase.lane ?? ''}`.toLowerCase();
+  const taxonomy = publicCaseTaxonomy(activeCase);
+  const workflow = String(activeCase.workflowType ?? '').toLowerCase();
   const profileChanges = activeCase.customer?.profileChanges ?? [];
-  if (claim.includes('account-takeover') || claim.includes('account takeover')) return {
+  if (workflow.includes('account-takeover')) return {
     title: 'Access and profile context',
     subtitle: 'Compare control changes with authentication and money movement',
     fields: [
@@ -215,7 +220,7 @@ function claimHighlights(activeCase) {
       ['Sequence window', `${activeCase.issueStartDate ?? activeCase.opened} through ${activeCase.reportedDate ?? activeCase.opened}`],
     ],
   };
-  if (claim.includes('chargeback') || claim.includes('card')) return {
+  if (workflow.includes('card') || workflow.includes('merchant-non-fraud')) return {
     title: 'Card and merchant context',
     subtitle: 'Compare card standing, billing history, possession, and intake records',
     fields: [
@@ -224,22 +229,22 @@ function claimHighlights(activeCase) {
       ['Merchant history', 'Available in Transaction History'],
       ['Wallet / token status', 'Open Payment Verification when available'],
       ['Travel notes', activeCase.intake?.customerLocation ? `Customer reported ${activeCase.intake.customerLocation}` : unavailable],
-      ['Card possession / intake', activeCase.statement?.value ?? activeCase.allegation ?? unavailable],
+      ['Card possession / intake', publicReportedAllegation(activeCase)],
     ],
   };
-  if (claim.includes('payroll') || claim.includes('bec') || claim.includes('vendor') || claim.includes('wire')) return {
+  if (workflow.includes('payroll') || workflow.includes('business-payment') || workflow.includes('wire') || workflow.includes('ach-transaction-review')) return {
     title: 'Business contact and payment-change context',
     subtitle: 'Compare administrators, callbacks, and destination maintenance',
     fields: [
       ['Business contact', activeCase.profile?.business ?? activeCase.person],
-      ['Owner / admin / payroll role', activeCase.profile?.entityRole ?? activeCase.scenarioFamily ?? unavailable],
-      ['Employee / vendor relationship', activeCase.scenarioTitle ?? activeCase.subtype ?? unavailable],
+      ['Owner / admin / payroll records', `${(activeCase.parties ?? []).filter((party) => /owner|control|admin/i.test(party.role ?? '')).length} relevant party record(s)`],
+      ['Employee / payment relationship', workflow.includes('payroll') ? 'Review Employee Profile and Payroll History' : 'Review Business 360 and payment records'],
       ['Recent admin changes', `${profileChanges.length} profile-maintenance events`],
       ['Bank profile changes', profileChanges.find((item) => /bank|destination|payroll|beneficiary/i.test(`${item.eventType} ${item.item}`))?.newValue ?? 'No destination change listed'],
       ['Callback status', 'Review Payment Verification and Recent Contact'],
     ],
   };
-  if (claim.includes('credit') || claim.includes('bust') || claim.includes('application')) return {
+  if (workflow.includes('credit')) return {
     title: 'Relationship and exposure context',
     subtitle: 'Compare account age, payment standing, stated income, and public records',
     fields: [
@@ -252,9 +257,9 @@ function claimHighlights(activeCase) {
     ],
   };
   return {
-    title: 'Claim-specific relationship context',
+    title: 'Case-specific relationship context',
     subtitle: 'Facts supplied by the active fictional case packet',
-    fields: [['Claim lane', activeCase.lane ?? activeCase.type], ['Scenario', activeCase.scenarioTitle ?? activeCase.subtype], ['Available profile events', profileChanges.length], ['Exposure', activeCase.amount ?? unavailable]],
+    fields: [['Customer type', taxonomy.customerType], ['Product', taxonomy.productType], ['Review workflow', taxonomy.workflowType], ['Available profile events', profileChanges.length], ['Exposure', activeCase.amount ?? unavailable]],
   };
 }
 

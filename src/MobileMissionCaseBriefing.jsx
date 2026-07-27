@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
+import {
+  publicCaseFacts,
+  publicCaseSummary,
+  publicCaseTaxonomy,
+  publicReportedAllegation,
+} from './data/publicCaseView.js';
 
 function fallbackFacts(activeCase) {
-  return [
-    ['Lane', activeCase.lane ?? 'Not supplied'],
-    ['Subtype', activeCase.subtype ?? 'Not supplied'],
-    ['Reported', activeCase.reportedDate ?? activeCase.opened],
-    ['Issue start', activeCase.issueStartDate ?? 'Not supplied'],
-    ['Amount / exposure', activeCase.amountExposure ?? activeCase.amount],
-  ];
+  return publicCaseFacts(activeCase);
 }
 
 export default function MobileMissionCaseBriefing({
@@ -24,11 +24,12 @@ export default function MobileMissionCaseBriefing({
   const [page, setPage] = useState(0);
   const [intakePage, setIntakePage] = useState(0);
   const intake = activeCase.intake ?? {};
+  const taxonomy = publicCaseTaxonomy(activeCase);
   const documents = activeCase.documents ?? [];
-  const statement = activeCase.statement ?? {
-    label: 'Customer statement',
-    value: activeCase.allegation ?? activeCase.queueReason,
-    source: intake.channel ?? 'Case queue',
+  const statement = {
+    label: activeCase.statement?.label ?? (intake.channel === 'System alert' ? 'Reported alert' : 'Reported allegation'),
+    value: publicReportedAllegation(activeCase),
+    source: activeCase.statement?.source ?? intake.channel ?? 'Case queue',
   };
   const intakeAnswers = activeCase.intakeAnswers ?? [];
   const facts = activeCase.keyFacts?.length ? activeCase.keyFacts.slice(0, 8) : fallbackFacts(activeCase);
@@ -73,17 +74,18 @@ export default function MobileMissionCaseBriefing({
         <>
           <section className="mission-briefing-identity">
             <span aria-hidden="true">{String(activeCase.person ?? 'FA').split(' ').map((part) => part[0]).join('').slice(0, 2)}</span>
-            <div><p>{activeCase.type}</p><h2>{activeCase.person}</h2><small>{activeCase.id} · {activeCase.status}</small></div>
+            <div><p>{taxonomy.workflowType}</p><h2>{activeCase.person}</h2><small>{activeCase.id} · {activeCase.status}</small></div>
           </section>
           <dl className="mission-briefing-facts">
-            <div><dt>Claim ID</dt><dd>{activeCase.claimId ?? activeCase.id}</dd></div>
+            <div><dt>Case ID</dt><dd>{activeCase.claimId ?? activeCase.id}</dd></div>
             <div><dt>Account ID</dt><dd>{activeCase.accountId}</dd></div>
-            <div><dt>Total claim</dt><dd>{activeCase.amount}</dd></div>
+            <div><dt>Amount / exposure</dt><dd>{activeCase.amount}</dd></div>
             <div><dt>Priority</dt><dd>{activeCase.priority}</dd></div>
-            <div><dt>Lane</dt><dd>{activeCase.lane ?? 'Not supplied'}</dd></div>
-            <div><dt>Subtype</dt><dd>{activeCase.subtype ?? 'Not supplied'}</dd></div>
+            <div><dt>Customer type</dt><dd>{taxonomy.customerType}</dd></div>
+            <div><dt>Product</dt><dd>{taxonomy.productType}</dd></div>
+            <div><dt>Review workflow</dt><dd>{taxonomy.workflowType}</dd></div>
           </dl>
-          <section className="mission-briefing-note"><span>Why this case exists</span><DirectCollapsibleText as="p" mobileLines={7}>{activeCase.caseBriefing?.summary ?? activeCase.shortSummary ?? activeCase.queueReason}</DirectCollapsibleText></section>
+          <section className="mission-briefing-note"><span>Why this case exists</span><DirectCollapsibleText as="p" mobileLines={7}>{publicCaseSummary(activeCase)}</DirectCollapsibleText></section>
         </>
       ),
     },
@@ -91,7 +93,7 @@ export default function MobileMissionCaseBriefing({
       id: 'intake',
       icon: '📨',
       eyebrow: 'Mission file 02',
-      title: 'Claim intake',
+      title: 'Case intake',
       content: (
         <>
           <dl className="mission-briefing-facts">

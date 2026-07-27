@@ -25,7 +25,13 @@ function fail(message) {
 
 function hasMerchantLane(activeCase) {
   return activeCase.availableTools?.includes('Merchant Intelligence')
-    || ['fraud-chargeback', 'non-fraud-chargeback', 'first-party-fraud'].includes(activeCase.claimTypeId)
+    || [
+      'unauthorized-card-transaction-claim',
+      'merchant-non-fraud-dispute',
+      'fraud-chargeback',
+      'non-fraud-chargeback',
+      'first-party-fraud',
+    ].includes(activeCase.workflowType ?? activeCase.claimTypeId)
     || activeCase.id === 'FA-CB-24007';
 }
 

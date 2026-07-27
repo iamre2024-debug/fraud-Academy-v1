@@ -1,4 +1,8 @@
-import { buildReviewPackage, getReviewPackageStatus } from './data/reviewPackage.js';
+import {
+  buildReviewPackage,
+  getReviewPackageStatus,
+  normalizeDecisionDraft,
+} from './data/reviewPackage.js';
 import {
   AGENT_ID,
   defaultDecisionDraft,
@@ -100,18 +104,32 @@ export default function useVisualWorkspaceActions({
   }
 
   function updateDecision(field, value) {
-    setDecisionByCase((current) => ({
-      ...current,
-      [activeCase.id]: {
-        ...(current[activeCase.id] ?? defaultDecisionDraft),
+    setDecisionByCase((current) => {
+      const currentDraft = normalizeDecisionDraft(current[activeCase.id] ?? defaultDecisionDraft, activeCase);
+      const nextDraft = {
+        ...currentDraft,
         [field]: value,
-      },
-    }));
+      };
+      if (field === 'operationalDecision' || field === 'choice') {
+        nextDraft.operationalDecision = value;
+        nextDraft.choice = value;
+        nextDraft.legacyDecisionFormat = false;
+      }
+      if (field === 'findingBasis' || field === 'reason') {
+        nextDraft.findingBasis = value;
+        nextDraft.evidenceRationale = value;
+        nextDraft.reason = value;
+      }
+      return {
+        ...current,
+        [activeCase.id]: nextDraft,
+      };
+    });
   }
 
   function updateDecisionIndicator(indicatorId, field, value) {
     setDecisionByCase((current) => {
-      const currentDraft = current[activeCase.id] ?? defaultDecisionDraft;
+      const currentDraft = normalizeDecisionDraft(current[activeCase.id] ?? defaultDecisionDraft, activeCase);
       const currentIndicators = currentDraft.indicators ?? {};
       const currentIndicator = currentIndicators[indicatorId] ?? { selected: false, proof: '', explanation: '' };
       return {

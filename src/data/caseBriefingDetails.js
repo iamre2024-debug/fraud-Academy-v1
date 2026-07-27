@@ -1,3 +1,7 @@
+import { WORKFLOW_TYPES } from './caseDomain.js';
+import { buildCaseParties } from './caseParties.js';
+import { publicCaseTaxonomy } from './publicCaseView.js';
+
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function firstValue(...values) {
@@ -61,6 +65,7 @@ function suppliedParties(item) {
   const parties = item.parties ?? item.caseBriefing?.parties;
   if (!parties?.length) return null;
   return parties.map((party, index) => ({
+    ...party,
     id: party.id ?? `${item.id}-PTY-${index + 1}`,
     role: party.role ?? 'Case party',
     name: party.name ?? 'Name not supplied',
@@ -71,7 +76,7 @@ function suppliedParties(item) {
 
 function buildParties(item, claimType, scenario, context) {
   const supplied = suppliedParties(item);
-  if (supplied) return supplied;
+  if (supplied) return buildCaseParties(item, supplied);
 
   const parties = [];
   const seen = new Set();
@@ -100,10 +105,10 @@ function buildParties(item, claimType, scenario, context) {
     addParty('Payment counterparty', context.merchant, 'Counterparty named in the payment instruction', 'Payment record');
   }
 
-  return parties;
+  return buildCaseParties(item, parties);
 }
 
-function buildDetailSection(item, claimType, scenario, reportedDate, dueDate, context) {
+function buildDetailSection(item, claimType, scenario, reportedDate, dueDate, context, parties) {
   const supplied = item.briefingDetails ?? item.caseBriefing?.details;
   if (supplied?.rows?.length) return supplied;
 
@@ -114,7 +119,7 @@ function buildDetailSection(item, claimType, scenario, reportedDate, dueDate, co
     rows: [],
   };
 
-  if (claimType.id === 'account-takeover') {
+  if ([WORKFLOW_TYPES.CARD_ACCOUNT_TAKEOVER, WORKFLOW_TYPES.PERSONAL_ACCOUNT_TAKEOVER, WORKFLOW_TYPES.BUSINESS_ACCOUNT_TAKEOVER, WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER].includes(claimType.id)) {
     return {
       eyebrow: 'Account access and card activity',
       title: 'Account and transaction details',
@@ -149,12 +154,18 @@ function buildDetailSection(item, claimType, scenario, reportedDate, dueDate, co
   }
 
   if (rail === 'payroll') {
+    const employee = parties.find((party) => /affected employee|employee/i.test(party.role ?? ''));
+    const business = parties.find((party) => party.partyType === 'entity' || /business account holder/i.test(party.role ?? ''));
+    const initiator = parties.find((party) => /initiator/i.test(party.role ?? ''));
+    const approver = parties.find((party) => /approver/i.test(party.role ?? ''));
     return {
       eyebrow: 'Employee and pay destination',
       title: 'Payroll details',
       rows: detailRows([
-        ['Employee', item.person],
-        ['Employer', context.employer ?? context.business],
+        ['Business account holder', business?.name ?? context.business ?? context.employer],
+        ['Affected employee', employee?.name ?? item.person],
+        ['Initiator', initiator?.name ?? 'Review administrator activity'],
+        ['Approver', approver?.name ?? 'Review approval activity'],
         ['Change in scope', context.merchant],
         ['Payroll amount', item.amountExposure ?? item.amount ?? scenario.amount],
         ['Destination', context.destination],
@@ -166,12 +177,13 @@ function buildDetailSection(item, claimType, scenario, reportedDate, dueDate, co
   }
 
   if (rail === 'wire') {
+    const initiator = parties.find((party) => /initiator|submitter/i.test(party.role ?? ''));
     return {
       eyebrow: 'Payment instruction and destination',
       title: 'Payment instruction details',
       rows: detailRows([
         ['Business / originator', context.business],
-        ['Requesting contact', item.person],
+        ['Requesting contact', initiator?.name ?? item.person],
         ['Instruction in scope', context.merchant],
         ['Amount', item.amountExposure ?? item.amount ?? scenario.amount],
         ['Beneficiary / destination', context.destination],
@@ -183,13 +195,36 @@ function buildDetailSection(item, claimType, scenario, reportedDate, dueDate, co
   }
 
   if (rail === 'credit' || rail === 'loan') {
-    const isApplication = claimType.id === 'application-verification';
+    const isApplication = claimType.id === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW;
+    const isBusiness = item.customerType === 'business';
+    if (isApplication && isBusiness) {
+      const entities = parties.filter((party) => party.partyType === 'entity' || /business.*entity/i.test(party.role ?? ''));
+      const submitters = parties.filter((party) => /submitter/i.test(party.role ?? ''));
+      const owners = parties.filter((party) => /beneficial owner/i.test(party.role ?? ''));
+      const controls = parties.filter((party) => /control person/i.test(party.role ?? ''));
+      const guarantors = parties.filter((party) => /guarantor/i.test(party.role ?? ''));
+      const administrators = parties.filter((party) => /administrator/i.test(party.role ?? ''));
+      return {
+        eyebrow: 'Business application and party verification',
+        title: 'Business application details',
+        rows: detailRows([
+          ['Business / entity', entities.map((party) => party.name).join(' · ')],
+          ['Application submitter', submitters.map((party) => party.name).join(' · ')],
+          ['Beneficial owners', owners.map((party) => party.name).join(' · ')],
+          ['Control person', controls.map((party) => party.name).join(' · ')],
+          ['Personal guarantor', guarantors.map((party) => party.name).join(' · ') || 'Not applicable to this fictional product'],
+          ['Authorized administrators', administrators.map((party) => party.name).join(' · ') || 'Not applicable to this fictional product'],
+          ['Product / requested exposure', `${publicCaseTaxonomy(item).productType} · ${item.amountExposure ?? item.amount ?? scenario.amount}`],
+          ['Review due', dueDate],
+        ]),
+      };
+    }
     return {
       eyebrow: isApplication ? 'Application and identity record' : 'Credit request and exposure',
       title: isApplication ? 'Application details' : rail === 'loan' ? 'Business credit details' : 'Credit details',
       rows: detailRows([
         [isApplication ? 'Applicant' : 'Customer / applicant', item.person],
-        ['Review family', item.scenarioFamily ?? scenario.family ?? claimType.lane],
+        ['Review workflow', publicCaseTaxonomy(item).workflowType],
         ['Request / exposure', item.amountExposure ?? item.amount ?? scenario.amount],
         ['Product / account context', context.primaryDetails],
         ['Relationship history', context.relationship],
@@ -204,8 +239,9 @@ function buildDetailSection(item, claimType, scenario, reportedDate, dueDate, co
     ...common,
     rows: detailRows([
       ['Primary person', item.person],
-      ['Case lane', claimType.lane],
-      ['Case subtype', item.subtype ?? scenario.subtype],
+      ['Customer type', publicCaseTaxonomy(item).customerType],
+      ['Product', publicCaseTaxonomy(item).productType],
+      ['Review workflow', publicCaseTaxonomy(item).workflowType],
       ['Amount / exposure', item.amountExposure ?? item.amount ?? scenario.amount],
       ['Primary details', context.primaryDetails],
       ['Reported date', reportedDate],
@@ -251,7 +287,7 @@ export function buildCaseBriefingPacket({ item, claimType, scenario, reportedDat
     primaryDetails: firstValue(item.transactionInfo, scenario.transactionInfo),
   };
   const parties = buildParties(item, claimType, scenario, context);
-  const details = buildDetailSection(item, claimType, scenario, reportedDate, dueDate, context);
+  const details = buildDetailSection(item, claimType, scenario, reportedDate, dueDate, context, parties);
 
   return {
     assignedInvestigator,

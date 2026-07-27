@@ -1,4 +1,5 @@
 import { getBusinessRecords, getFinancialRecords } from './caseToolData.js';
+import { buildCaseParties } from './caseParties.js';
 
 export const kybReviewTabs = [
   { id: 'overview', label: 'Overview', question: 'Which legal entity and business identifiers are recorded?' },
@@ -162,6 +163,17 @@ function generatedProfile(activeCase, businessRecords) {
   const address = activeCase.customer?.contact?.address ?? `${100 + (seed % 8000)} Training Business Way, ${city}`;
   const jurisdiction = city.split(',').at(-1)?.trim() || 'Training jurisdiction';
   const domainStem = String(sourceEntity).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 32) || `training-${suffix}`;
+  const relevantParties = buildCaseParties(activeCase).filter((party) => party.partyType !== 'entity');
+  const partyOwners = relevantParties.map((party, index) => [
+    party.id ?? `${activeCase.id}-PARTY-${index + 1}`,
+    party.name,
+    party.role,
+    party.ownership ?? (party.applicability ? party.applicability : 'Role verification'),
+    party.verificationStatus ?? 'Training identity record connected',
+    activeCase.opened ?? 'Training date',
+    party.trainingId ?? 'Training ID not supplied',
+    (party.verificationScope ?? ['Identity', 'Role', 'Cross-account links']).join(' · '),
+  ]);
   return {
     legalName: baseName,
     dba: sourceEntity.replace(/\s+(LLC|Inc\.?|Corp\.?)/i, ''),
@@ -179,9 +191,9 @@ function generatedProfile(activeCase, businessRecords) {
     naics: `${440000 + (seed % 9000)} - Training industry classification`,
     source: 'Generated fictional KYB, case, and relationship records',
     observed: activeCase.reportedDate ?? activeCase.opened ?? 'Training date',
-    owners: [
-      [`${activeCase.id}-OWN-1`, customerName, activeCase.profile?.entityRole ?? 'Controlling party', `${51 + (seed % 40)}%`, 'Training identity record connected', activeCase.opened ?? 'Training date'],
-      [`${activeCase.id}-OWN-2`, `Training owner ${suffix.slice(-2)}`, 'Additional owner', `${9 + (seed % 31)}%`, 'Training identity record connected', activeCase.opened ?? 'Training date'],
+    owners: partyOwners.length ? partyOwners : [
+      [`${activeCase.id}-OWN-1`, customerName, activeCase.profile?.entityRole ?? 'Controlling party', `${51 + (seed % 40)}%`, 'Training identity record connected', activeCase.opened ?? 'Training date', activeCase.trainingId ?? 'Training ID not supplied', 'Identity · Ownership · Cross-account links'],
+      [`${activeCase.id}-OWN-2`, `Training owner ${suffix.slice(-2)}`, 'Additional owner', `${9 + (seed % 31)}%`, 'Training identity record connected', activeCase.opened ?? 'Training date', `TRN-OWN-${suffix}`, 'Identity · Ownership · Cross-account links'],
     ],
     online: [
       [`${activeCase.id}-WEB-1`, 'Domain record', `${domainStem}.training.example.test`, `Recorded ${1 + (seed % 7)} years ago`, 'Registrant organization uses the generated legal name.'],
@@ -236,14 +248,14 @@ function buildRecords(activeCase, profile, businessRecords, financialRecords) {
       fields: [['Registration ID', profile.registrationId], ['Legal name', profile.legalName], ['Formation date', profile.formationDate], ['Jurisdiction', profile.jurisdiction], ['Standing', profile.standing], ['Masked EIN', profile.ein], ['Registered address', profile.address]],
       relatedRecords: caseDocumentIds,
     })],
-    owners: profile.owners.map(([id, name, role, ownership, identityStatus, firstRecorded]) => record({
+    owners: profile.owners.map(([id, name, role, ownership, identityStatus, firstRecorded, trainingId, verificationScope]) => record({
       id,
       title: name,
       category: role,
       value: ownership,
       observed: firstRecorded,
       detail: 'Owner or controlling-party record supplied for fictional identity comparison.',
-      fields: [['Name', name], ['Role', role], ['Ownership', ownership], ['Identity record', identityStatus], ['First recorded', firstRecorded], ['Entity', profile.legalName]],
+      fields: [['Name', name], ['Role', role], ['Ownership / applicability', ownership], ['Training ID', trainingId ?? 'Not supplied'], ['Identity record', identityStatus], ['Verification scope', verificationScope ?? 'Identity · Role · Cross-account links'], ['First recorded', firstRecorded], ['Entity', profile.legalName]],
       relatedRecords: businessIds,
     })),
     online: profile.online.map(([id, type, value, observed, detail]) => record({

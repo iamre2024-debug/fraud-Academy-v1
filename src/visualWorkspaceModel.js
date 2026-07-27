@@ -28,7 +28,16 @@ export const workflows = ['Record', 'Expand', 'Search', 'History', 'Link Analysi
 
 export { storageKeys };
 
-export const defaultDecisionDraft = { choice: '', confidence: 'Medium', reason: '', indicators: {} };
+export const defaultDecisionDraft = {
+  operationalDecision: '',
+  finalFinding: '',
+  findingBasis: '',
+  confidence: 'Medium',
+  indicators: {},
+  // Compatibility aliases for drafts saved before the decision-domain migration.
+  choice: '',
+  reason: '',
+};
 
 export function readStorage(key, fallback) {
   if (typeof window === 'undefined') return fallback;

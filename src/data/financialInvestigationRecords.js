@@ -294,7 +294,9 @@ function profileRecords(activeCase, profile, source) {
     period: /historical|prior/i.test(item.status) ? 'Prior comparison' : 'Current review',
   }));
 
-  const merchantLane = ['fraud-chargeback', 'non-fraud-chargeback', 'first-party-fraud'].includes(activeCase.claimTypeId)
+  const merchantLane = ['unauthorized-card-transaction-claim', 'merchant-non-fraud-dispute'].includes(
+    activeCase.workflowType ?? activeCase.claimTypeId,
+  )
     || Boolean(activeCase.toolResults?.merchantIntelligence)
     || activeCase.id === 'FA-CB-24007';
   const merchantRecords = (merchantLane ? source.transactions ?? [] : []).map((item, index) => createRecord({

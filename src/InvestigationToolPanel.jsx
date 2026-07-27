@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import DocumentViewerWorkspace from './DocumentViewerWorkspace.jsx';
+import LinkAnalysisWorkspace from './LinkAnalysisWorkspace.jsx';
 import MerchantIntelligenceWorkspace from './MerchantIntelligenceWorkspace.jsx';
 import { accessReportExportText, generateAccessHistoryReport, generatedAccessReportTypes } from './data/accessHistoryReports.js';
 import { buildCoreToolRecords } from './data/coreToolRecords.js';
-import { getBusiness360Workspace, getEmployeeProfiles, getPayrollHistory, getTransactionHistory } from './data/businessPayrollWorkspace.js';
+import { getBusiness360Workspace, getEmployeeProfiles, getPayrollAccessContext, getPayrollHistory, getTransactionHistory } from './data/businessPayrollWorkspace.js';
 import { getDeviceProfiles } from './data/deviceRecords.js';
 import { getFinancialRecords } from './data/caseToolData.js';
 import { getCaseDocuments } from './data/documentRecords.js';
@@ -26,6 +27,12 @@ import { getIpRecords } from './data/ipRecords.js';
 import { getKybReview, kybRecordSearchText, kybReviewTabs, matchesKybReviewLookup } from './data/kybReviewRecords.js';
 import { generateKybReviewReport, hasGeneratedKybReport, kybReportExportText } from './data/kybReviewReport.js';
 import { getSessionRecords } from './data/sessionRecords.js';
+import { publicCaseTaxonomy } from './data/publicCaseView.js';
+import {
+  normalizePayrollInvestigationState,
+  recordTrustedBusinessResponse,
+  visiblePayrollEmailEvidence,
+} from './data/payrollInvestigation.js';
 import { queueDocumentViewerRoute } from './documentViewerRoute.js';
 import { workflows } from './visualWorkspaceModel.js';
 
@@ -1664,7 +1671,7 @@ function FinancialInvestigationWorkspace({ activeCase, pin, saveNote, markReview
         </main>
 
         <aside className="financial-case-rail" aria-label="Financial Investigation case summary">
-          <header><p>Case money summary</p><h3>{activeCase.amount}</h3><span>{activeCase.claimType ?? activeCase.type}</span></header>
+          <header><p>Case money summary</p><h3>{activeCase.amount}</h3><span>{publicCaseTaxonomy(activeCase).workflowType}</span></header>
           <section><p>Reviewed financial facts</p>{workspace.reviewedFacts.map((fact) => <article key={fact}>{fact}</article>)}</section>
           <section><p>Record inventory</p><div>{financialInvestigationTabs.map((item) => <button key={item.id} type="button" onClick={() => selectTab(item.id)}><span>{item.label}</span><strong>{workspace.recordsByTab[item.id]?.length ?? 0}</strong></button>)}</div></section>
           <nav><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button></nav>
@@ -1819,18 +1826,133 @@ function EmployeeProfileWorkspace({ activeCase, pin, saveNote, markReviewed, rev
   );
 }
 
-function PayrollHistoryWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
+function PayrollHistoryWorkspace({
+  activeCase,
+  pin,
+  saveNote,
+  markReviewed,
+  reviewed,
+  openTool,
+  jumpDecision,
+  recordAction,
+  payrollInvestigation,
+  setPayrollInvestigationsByCase,
+}) {
   const records = useMemo(() => getPayrollHistory(activeCase), [activeCase]);
+  const accessContext = useMemo(() => getPayrollAccessContext(activeCase), [activeCase]);
   const [employer, setEmployer] = useState('All employers');
   const [selectedId, setSelectedId] = useState('');
+  const {
+    trustedContactStarted,
+    requestMethod,
+    businessStatement,
+    emailEvidenceProvided,
+    businessResponseSaved,
+  } = normalizePayrollInvestigationState(payrollInvestigation);
   const employers = ['All employers', ...new Set(records.map((record) => record.employer))];
   const filteredRecords = records.filter((record) => employer === 'All employers' || record.employer === employer);
   const activeRecord = filteredRecords.find((record) => record.id === selectedId) ?? filteredRecords[0] ?? records[0];
-  useEffect(() => { setEmployer('All employers'); setSelectedId(''); }, [activeCase.id]);
+  useEffect(() => {
+    setEmployer('All employers');
+    setSelectedId('');
+  }, [activeCase.id]);
+  const businessResponse = trustedContactStarted ? recordTrustedBusinessResponse({
+    requestMethod,
+    businessStatement,
+    emailEvidence: emailEvidenceProvided ? {
+      headerFrom: 'employee-name@training-mail.example.test',
+      headerReplyTo: 'alternate-contact@training-mail.example.test',
+      received: activeCase.reportedDate ?? activeCase.opened,
+      mailboxNote: 'Business supplied a fictional message record after trusted contact; compare the sender, reply-to, and timing.',
+    } : null,
+  }) : null;
+  const visibleEmailEvidence = visiblePayrollEmailEvidence(businessResponse);
+
+  function updatePayrollInvestigation(patch) {
+    setPayrollInvestigationsByCase((current) => ({
+      ...current,
+      [activeCase.id]: {
+        ...normalizePayrollInvestigationState(current[activeCase.id]),
+        ...patch,
+      },
+    }));
+  }
+
+  function saveBusinessResponse() {
+    if (requestMethod === 'Not yet recorded') return;
+    updatePayrollInvestigation({ businessResponseSaved: true });
+    saveNote(`Trusted business contact: the business says the payroll change was requested by ${requestMethod}. ${businessStatement}`.trim(), 'Payroll trusted contact');
+    recordAction?.('Recorded trusted business response', `Request method recorded as ${requestMethod}.`, 'Payroll History');
+  }
 
   return (
     <>
       <section className="payroll-history-findbar" aria-label="Payroll History filters"><div><p>Payroll and direct deposit</p><h3>Review each fictional payroll run, destination context, change record, callback status, and related employee evidence.</h3></div><label><span>Employer</span><select value={employer} onChange={(event) => setEmployer(event.target.value)} aria-label="Payroll History employer filter">{employers.map((item) => <option key={item}>{item}</option>)}</select></label><span>{filteredRecords.length} of {records.length} payroll records shown</span></section>
+      {activeCase.workflowType === 'payroll-change-alert' && (
+        <section className="payroll-trusted-contact-flow" aria-label="Payroll change trusted contact workflow">
+          <header><div><p>Request source at intake</p><h3>Unknown at intake</h3><span>The platform observed the employee, destination, amount, timing, or administrator change. It did not observe how a person requested it.</span></div></header>
+          <ol>
+            <li>Review the business, employee, payroll, destination, administrator, and timing records.</li>
+            <li>If risk remains, contact the business using a trusted, previously known method.</li>
+            <li>Record how the business says the change was requested.</li>
+          </ol>
+          {!trustedContactStarted ? (
+            <button type="button" onClick={() => { updatePayrollInvestigation({ trustedContactStarted: true }); recordAction?.('Started trusted business contact', 'Opened the payroll-change trusted contact record.', 'Payroll History'); }}>Record trusted business contact</button>
+          ) : (
+            <div className="payroll-business-response">
+              <label><span>Business-reported request method</span><select value={requestMethod} onChange={(event) => updatePayrollInvestigation({ requestMethod: event.target.value, emailEvidenceProvided: false, businessResponseSaved: false })}>
+                <option>Not yet recorded</option>
+                <option>Phone</option>
+                <option>Payroll portal</option>
+                <option>Email</option>
+                <option>Other business channel</option>
+              </select></label>
+              <label><span>Business statement</span><textarea value={businessStatement} onChange={(event) => updatePayrollInvestigation({ businessStatement: event.target.value, businessResponseSaved: false })} placeholder="Record only what the trusted business contact states." /></label>
+              <button type="button" disabled={requestMethod === 'Not yet recorded'} onClick={saveBusinessResponse}>{businessResponseSaved ? 'Business response saved' : 'Save business response'}</button>
+              {requestMethod === 'Email' && (
+                <section className="payroll-email-followup">
+                  <strong>Employee verification step</strong>
+                  <p>{businessResponse.employeeCallbackInstruction}</p>
+                  {!emailEvidenceProvided ? (
+                    <button type="button" onClick={() => { updatePayrollInvestigation({ emailEvidenceProvided: true }); recordAction?.('Recorded business-supplied email evidence', 'Email evidence became available after trusted business contact.', 'Payroll History'); }}>Business supplied email evidence</button>
+                  ) : null}
+                </section>
+              )}
+              {visibleEmailEvidence && (
+                <section className="payroll-email-evidence" aria-label="Business-supplied email evidence">
+                  <header><p>Email evidence supplied after trusted contact</p><h3>Fictional message record</h3></header>
+                  <dl>
+                    <div><dt>From</dt><dd>{visibleEmailEvidence.headerFrom}</dd></div>
+                    <div><dt>Reply-To</dt><dd>{visibleEmailEvidence.headerReplyTo}</dd></div>
+                    <div><dt>Received</dt><dd>{visibleEmailEvidence.received}</dd></div>
+                    <div><dt>Mailbox note</dt><dd>{visibleEmailEvidence.mailboxNote}</dd></div>
+                  </dl>
+                </section>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+      {accessContext && (
+        <section className="payroll-access-context" aria-label="Payroll Account Takeover access and approval evidence">
+          <header><p>Payroll access review</p><h3>Initiator, approver, access, funds, and recovery</h3></header>
+          <dl>
+            {[
+              ['Initiator', accessContext.initiator],
+              ['Approver', accessContext.approver],
+              ['Administrator', accessContext.administrator],
+              ['Approval separation', accessContext.approvalSeparation],
+              ['Device', accessContext.deviceId],
+              ['IP address', accessContext.ipAddress],
+              ['Session', accessContext.sessionId],
+              ['Payroll history', accessContext.payrollHistory],
+              ['Destination changes', accessContext.destinationChanges],
+              ['Funds status', accessContext.fundsStatus],
+              ['Recovery information', accessContext.recoveryInformation],
+            ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+          </dl>
+        </section>
+      )}
       <section className="payroll-history-summary" aria-label="Payroll History summary">{[['Payroll records', records.length], ['Employers', employers.length - 1], ['Direct deposit records', records.filter((record) => /direct deposit/i.test(record.channel)).length], ['Linked employee records', new Set(records.flatMap((record) => record.relatedRecords.filter((item) => item.startsWith('EMP-')))).size]].map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}</section>
       <PaymentSourceHandoff
         source={activeRecord?.paymentSource}
@@ -2191,6 +2313,7 @@ export default function InvestigationToolPanel({
   activeCase,
   cases,
   openDocumentAccountCase,
+  openRelatedCase,
   tool,
   openTool,
   query,
@@ -2208,6 +2331,8 @@ export default function InvestigationToolPanel({
   setDocumentRequestsByCase,
   recordAction,
   quickPin,
+  payrollInvestigation,
+  setPayrollInvestigationsByCase,
 }) {
   const [selectedRecordId, setSelectedRecordId] = useState('');
   const displayData = buildCoreToolRecords(tool, activeCase, data) ?? data;
@@ -2305,6 +2430,7 @@ export default function InvestigationToolPanel({
           reviewed={reviewed}
           openTool={openTool}
           jumpDecision={jumpDecision}
+          recordAction={recordAction}
         />
       ) : tool === 'Merchant Intelligence' ? (
         <MerchantIntelligenceWorkspace
@@ -2366,6 +2492,9 @@ export default function InvestigationToolPanel({
           reviewed={reviewed}
           openTool={openTool}
           jumpDecision={jumpDecision}
+          recordAction={recordAction}
+          payrollInvestigation={payrollInvestigation}
+          setPayrollInvestigationsByCase={setPayrollInvestigationsByCase}
         />
       ) : tool === 'Login History' ? (
         <LoginHistoryWorkspace
@@ -2443,6 +2572,20 @@ export default function InvestigationToolPanel({
           jumpDecision={jumpDecision}
           documentRequests={documentRequests}
           setDocumentRequestsByCase={setDocumentRequestsByCase}
+        />
+      ) : tool === 'Link Analysis' ? (
+        <LinkAnalysisWorkspace
+          activeCase={activeCase}
+          cases={cases}
+          query={query}
+          setQuery={setQuery}
+          pin={pin}
+          saveNote={saveNote}
+          markReviewed={markReviewed}
+          reviewed={reviewed}
+          jumpDecision={jumpDecision}
+          openRelatedCase={openRelatedCase}
+          recordAction={recordAction}
         />
       ) : tool === 'Device Intelligence' ? (
         <DeviceIntelligenceWorkspace

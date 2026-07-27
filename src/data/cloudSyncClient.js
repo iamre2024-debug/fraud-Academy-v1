@@ -7,7 +7,13 @@ import {
   seedMetadata,
 } from './persistenceMerge.js';
 import { cloudResourceKeys, cloudResourceModes } from './persistenceKeys.js';
-import { listGeneratedCases, mergeGeneratedCases } from './generatedCaseRepository.js';
+import {
+  listGeneratedCases,
+  listGeneratedCaseTruthSnapshots,
+  mergeGeneratedCases,
+  mergeGeneratedCaseTruthSnapshots,
+} from './generatedCaseRepository.js';
+import { migratePersistenceResources } from './caseMigration.js';
 
 const apiPath = '/api/cloud-sync';
 const deviceIdKey = 'fraud-academy-cloud-device-v1';
@@ -16,6 +22,7 @@ const metadataKey = 'fraud-academy-cloud-metadata-v1';
 const syncStateEvent = 'fraud-academy:cloud-sync-status';
 const localChangeEvent = 'fraud-academy:local-persistence-changed';
 const hydrationEvent = 'fraud-academy:cloud-hydrated';
+export const caseStorageMigrationEvent = 'fraud-academy:case-storage-migrated';
 const minimumRecoveryCodeLength = 24;
 
 let initialized = false;
@@ -140,7 +147,8 @@ export async function setCloudSyncKey(value) {
   return syncNow({ reason: 'recovery-code-changed', force: true });
 }
 
-function readRawResources() {
+function readRawResources({ skipMigration = false } = {}) {
+  if (!skipMigration) migrateLocalCaseStorage();
   return Object.fromEntries(cloudResourceKeys.map((key) => [key, readJson(key, {})]));
 }
 
@@ -155,6 +163,45 @@ function readMetadata() {
 function writeMetadata(metadata) {
   writeJson(metadataKey, metadata);
 }
+
+export function migrateLocalCaseStorage(generatedCases = []) {
+  if (!browserAvailable()) return false;
+  try {
+    const previousRaw = readRawResources({ skipMigration: true });
+    const migratedRaw = migratePersistenceResources(previousRaw, generatedCases).rawByKey;
+    let metadata = readMetadata();
+    let changed = false;
+    const deviceId = getOrCreateDeviceId();
+
+    for (const key of cloudResourceKeys) {
+      const previousValue = previousRaw[key] ?? {};
+      const nextValue = migratedRaw[key] ?? previousValue;
+      if (JSON.stringify(previousValue) === JSON.stringify(nextValue)) continue;
+      writeJson(key, nextValue);
+      metadata = applyRawResourceChange(
+        metadata,
+        key,
+        previousValue,
+        nextValue,
+        deviceId,
+        Date.now(),
+      );
+      changed = true;
+    }
+
+    if (changed) {
+      writeMetadata(metadata);
+      window.dispatchEvent(new CustomEvent(caseStorageMigrationEvent));
+    }
+    return changed;
+  } catch {
+    return false;
+  }
+}
+
+// This module is imported by the active workspace state model before React
+// initializes its case-scoped storage hooks.
+migrateLocalCaseStorage();
 
 export function recordLocalSliceChange(key, previousValue, nextValue) {
   if (!browserAvailable() || !cloudResourceModes[key]) return;
@@ -301,9 +348,14 @@ async function saveCloudRecord(syncIdentifier, baseRevision, payload) {
 }
 
 async function applyMergedSnapshot(snapshot) {
-  const { rawByKey, generatedCases } = materializeCloudSnapshot(snapshot);
+  const {
+    rawByKey,
+    generatedCases,
+    generatedCaseTruthSnapshots,
+  } = materializeCloudSnapshot(snapshot);
   for (const key of cloudResourceKeys) writeJson(key, rawByKey[key] ?? {});
   writeMetadata(metadataFromCloudSnapshot(snapshot));
+  await mergeGeneratedCaseTruthSnapshots(generatedCaseTruthSnapshots);
   await mergeGeneratedCases(generatedCases);
   window.dispatchEvent(new CustomEvent(hydrationEvent));
   window.dispatchEvent(new CustomEvent('fraud-academy:packages-updated'));
@@ -321,6 +373,7 @@ async function createLocalSnapshot() {
     rawByKey,
     metadata,
     generatedCases: await listGeneratedCases(),
+    generatedCaseTruthSnapshots: await listGeneratedCaseTruthSnapshots(),
     deviceId,
   });
 }

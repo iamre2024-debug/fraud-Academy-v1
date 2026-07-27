@@ -4,6 +4,7 @@ import { getFinancialRecords } from './data/caseToolData.js';
 import { getCustomer360Dossier } from './data/customer360Dossier.js';
 import { getCaseDocuments } from './data/documentRecords.js';
 import { buildPaymentLookupHint, paymentChangeMetadata } from './data/paymentVerification.js';
+import { publicAlertReason, publicCaseSummary, publicCaseTaxonomy, publicReportedAllegation } from './data/publicCaseView.js';
 import { workflows } from './visualWorkspaceModel.js';
 
 const unavailable = 'Not available in the current training packet';
@@ -39,6 +40,7 @@ function maskedTrainingId(value) {
 }
 
 function buildDossierSections(activeCase, dossier, currentCompleted = []) {
+  const taxonomy = publicCaseTaxonomy(activeCase);
   const contact = activeCase.customer?.contact ?? {};
   const loginHistory = activeCase.loginHistory ?? [];
   const documents = activeCase.documents ?? [];
@@ -144,9 +146,11 @@ function buildDossierSections(activeCase, dossier, currentCompleted = []) {
       subtitle: 'Why this case is open today',
       fields: [
         ['Case ID', activeCase.id ?? unavailable],
-        ['Claim ID', activeCase.claimId ?? unavailable],
-        ['Claim type', activeCase.type ?? unavailable],
-        ['Lane / subtype', `${activeCase.lane ?? unavailable} · ${activeCase.subtype ?? unavailable}`],
+        ['Review ID', activeCase.claimId ?? unavailable],
+        ['Customer type', taxonomy.customerType],
+        ['Product', taxonomy.productType],
+        ['Review workflow', taxonomy.workflowType],
+        ['Alert reason', publicAlertReason(activeCase)],
         ['Priority', activeCase.priority ?? unavailable],
         ['Status', activeCase.status ?? unavailable],
         ['Reported / issue start', `${activeCase.reportedDate ?? activeCase.opened ?? unavailable} · ${activeCase.issueStartDate ?? unavailable}`],
@@ -155,7 +159,7 @@ function buildDossierSections(activeCase, dossier, currentCompleted = []) {
         ['Assigned investigator', activeCase.assignedInvestigator ?? 'Training queue · unassigned'],
         ['Required tools', (activeCase.requiredTools ?? []).join(' · ') || unavailable],
         ['Reviewed tools', currentCompleted.join(' · ') || 'No tools reviewed in this case yet'],
-        ['Intake summary', activeCase.caseBriefing?.summary ?? activeCase.allegation ?? unavailable],
+        ['Intake summary', publicCaseSummary(activeCase)],
         ['Suggested next workspace', dossier.suggestedTool],
       ],
     },
@@ -168,7 +172,7 @@ function buildDossierSections(activeCase, dossier, currentCompleted = []) {
         ['Contact records', `${dossier.recentContacts.length} available below`],
         ['Latest contact', dossier.recentContacts[0]?.dateTime ?? unavailable],
         ['Latest outcome', dossier.recentContacts[0]?.outcome ?? unavailable],
-        ['Customer statement', activeCase.statement?.value ?? activeCase.allegation ?? unavailable],
+        ['Reported allegation or alert', publicReportedAllegation(activeCase)],
         ['Intake agent notes', activeCase.intakeAnswers?.map((item) => item.answer).join(' · ') || 'Review the Case Briefing intake packet'],
         ['Documents received', receivedDocuments.map((item) => item.name).join(' · ') || 'No received document listed'],
         ['Documents pending', documents.filter((item) => !['Received', 'Available'].includes(item.status)).map((item) => item.name).join(' · ') || 'No pending document listed'],

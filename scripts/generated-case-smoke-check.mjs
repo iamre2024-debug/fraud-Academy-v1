@@ -39,6 +39,12 @@ const {
   listGeneratedCases,
 } = await import('../src/data/generatedCaseRepository.js');
 const { coreClaimTypes } = await import('../src/data/claimRegistry.js');
+const {
+  CUSTOMER_TYPES,
+  FINAL_FINDINGS,
+  WORKFLOW_TYPES,
+} = await import('../src/data/caseDomain.js');
+const { getScenarioTruth } = await import('../src/data/claimScenarioCatalog.js');
 const { createGeneratedCase } = await import('../src/data/generatedCases.js');
 const { getCustomer360Dossier } = await import('../src/data/customer360Dossier.js');
 const { getIdentityIntelReport } = await import('../src/data/identityIntelReport.js');
@@ -150,8 +156,100 @@ for (const [index, claimType] of coreClaimTypes.entries()) {
   }
 }
 
-const atoClaim = coreClaimTypes.find((claimType) => claimType.id === 'account-takeover');
-if (!atoClaim?.requiredTools.includes('Session History') || !atoClaim?.requiredTools.includes('IP Intelligence')) failures.push('Account Takeover must require Session History and IP Intelligence review.');
+for (const workflowType of [
+  'card-account-takeover',
+  'personal-account-takeover',
+  'business-account-takeover',
+  'payroll-account-takeover',
+]) {
+  const atoWorkflow = coreClaimTypes.find((claimType) => claimType.id === workflowType);
+  if (!atoWorkflow?.requiredTools.includes('Session History')) {
+    failures.push(`${workflowType} must require Session History review.`);
+  }
+  if (!atoWorkflow?.requiredTools.includes('IP Intelligence')) {
+    failures.push(`${workflowType} must require IP Intelligence review.`);
+  }
+}
+
+const applicationClaim = coreClaimTypes.find((claimType) => claimType.id === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW);
+const confirmedApplicationScenarios = applicationClaim.scenarios.filter((scenario) => (
+  getScenarioTruth(applicationClaim.id, scenario.id)?.finalFinding === FINAL_FINDINGS.FRAUD_CONFIRMED
+));
+const confirmedApplicationCustomerTypes = new Set();
+const hiddenApplicationLabels = /\b(synthetic identity|stolen identity|fabricated business information|bust[- ]out|mule activity|money mule)\b/i;
+
+for (const [scenarioIndex, scenario] of confirmedApplicationScenarios.entries()) {
+  const customerType = scenario.customerTypes[0];
+  const productType = scenario.productTypes[0];
+  const generated = createGeneratedCase({
+    index: 975000 + scenarioIndex,
+    customerType,
+    productType,
+    workflowType: WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW,
+    scenarioId: scenario.id,
+    difficulty: 'deep',
+    evidenceDepth: 'deep',
+  });
+  const records = generated.toolResults?.applicationVerification ?? [];
+  const credit = generated.toolResults?.creditProfile;
+  confirmedApplicationCustomerTypes.add(customerType);
+
+  if (records.length < 2) {
+    failures.push(`${scenario.id} must include at least two evidence-backed application comparison records.`);
+  }
+  for (const record of records) {
+    if (!record.id || record.basisCategory !== 'Independent source mismatch') {
+      failures.push(`${scenario.id} application evidence must identify an independent source-mismatch basis.`);
+    }
+    if (!/mismatch corroborated/i.test(record.comparisonStatus) || !record.corroboration) {
+      failures.push(`${scenario.id}/${record.id} must explain the independent corroboration.`);
+    }
+    if (!Array.isArray(record.sourceRecordIds) || record.sourceRecordIds.length < 2 || record.sourceRecordIds.some((sourceId) => !/^[A-Z]{3}-\d{6}$/.test(sourceId))) {
+      failures.push(`${scenario.id}/${record.id} must expose exact fictional source record IDs.`);
+    }
+    if (!Array.isArray(record.sourceSystems) || record.sourceSystems.length < 2) {
+      failures.push(`${scenario.id}/${record.id} must identify at least two independent source systems.`);
+    }
+    if ((record.sourceRecordIds ?? []).some((sourceId) => !`${record.value} ${record.context}`.includes(sourceId))) {
+      failures.push(`${scenario.id}/${record.id} must tie every source record ID to its comparison detail.`);
+    }
+    if (!/document completeness and credit strength are separate/i.test(record.conclusionBoundary)) {
+      failures.push(`${scenario.id}/${record.id} must keep paperwork and credit weakness separate from the source finding.`);
+    }
+  }
+  if (credit?.missingDocuments?.length || credit?.delinquencies || credit?.nsfReturns || /below 620/i.test(credit?.creditScoreBand ?? '')) {
+    failures.push(`${scenario.id} must not use missing paperwork or weak credit as the basis for a confirmed application finding.`);
+  }
+  if (hiddenApplicationLabels.test(JSON.stringify(records))) {
+    failures.push(`${scenario.id} exposes a hidden scenario label in its pre-submission application evidence.`);
+  }
+  if (customerType === CUSTOMER_TYPES.BUSINESS && records.some((record) => !generated.toolResults.businessIntel?.some((item) => item.id === record.id))) {
+    failures.push(`${scenario.id} business comparison evidence must be available in the KYB record packet.`);
+  }
+  if (records.some((record) => !generated.identityRecords?.some((item) => item.id === record.id))) {
+    failures.push(`${scenario.id} application comparison evidence must be available in the identity source record packet.`);
+  }
+}
+
+if (!confirmedApplicationCustomerTypes.has(CUSTOMER_TYPES.PERSONAL) || !confirmedApplicationCustomerTypes.has(CUSTOMER_TYPES.BUSINESS)) {
+  failures.push('Confirmed application scenarios must cover evidence-backed personal and business reviews.');
+}
+
+const incompleteApplicationScenario = applicationClaim.scenarios.find((scenario) => (
+  getScenarioTruth(applicationClaim.id, scenario.id)?.finalFinding === FINAL_FINDINGS.VERIFICATION_INCOMPLETE
+));
+const incompleteApplicationCase = createGeneratedCase({
+  index: 975100,
+  customerType: incompleteApplicationScenario.customerTypes[0],
+  productType: incompleteApplicationScenario.productTypes[0],
+  workflowType: WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW,
+  scenarioId: incompleteApplicationScenario.id,
+  difficulty: 'deep',
+  evidenceDepth: 'deep',
+});
+if (incompleteApplicationCase.toolResults?.applicationVerification?.length) {
+  failures.push('Missing or incomplete application verification must not generate confirmed-finding comparison records.');
+}
 
 const focusedCase = createGeneratedCase({
   index: 980001,
