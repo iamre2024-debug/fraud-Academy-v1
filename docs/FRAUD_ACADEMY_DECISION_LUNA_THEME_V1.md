@@ -2,10 +2,10 @@
 
 ## Status
 
-This handoff records the completed isolated approved-theme v1 redesign for the **Decision and Luna only** step in the locked screen order.
+This handoff records the current isolated reference-board implementation for **Submit Decision and Luna Debrief only**.
 
-- Runtime branch: `agent/decision-luna-approved-theme-v1`
-- Runtime pull request: #37
+- Current implementation branch: `agent/submit-decision-luna-reference`
+- Historical approved-theme pull request: #37
 - Base audited before work: `main` at `8e834ce3bc438a1cbd973ae192fb232d9f551873`
 - Verified runtime head: `e1731cd91f7c26992605cfe311672354aa5e4643`
 - Runtime merge on `main`: `92d7848e608f62d2800849f5111eb5115f505569`
@@ -28,9 +28,9 @@ The display sources control presentation, hierarchy, responsive behavior, and th
 
 ## Isolated scope
 
-This step redesigns Decision and Luna only. It does not redesign Academy, Profile, or the final responsive/mobile pass.
+This step rebuilds Submit Decision and Luna Debrief only. It does not redesign the evidence tools, Academy, Profile, or persistence architecture.
 
-`src/SubmitDecisionPanel.jsx` owns the approved determination and learner-package presentation. `src/LunaPostSubmissionPanel.jsx` owns the approved locked and post-submission debrief presentation. `src/displayDecisionLunaThemeV1.css` owns their responsive light-lavender and white layout, while `src/displayDecisionLunaLayoutSafetyV1.css` keeps the determination and debrief inside the mobile workspace column.
+`src/SubmitDecisionPanel.jsx` owns the final-review hierarchy and learner-package interactions. `src/LunaPostSubmissionPanel.jsx` owns the protected lock and post-submission debrief. `src/DecisionReviewVisuals.jsx` owns the coded Luna, lighthouse, and review-glyph SVG artwork. `src/displayDecisionLunaThemeV1.css` owns the scoped midnight-blue, cyan, and pink reference presentation, while `src/displayDecisionLunaLayoutSafetyV1.css` provides only narrow containment guardrails.
 
 The established action and state boundaries remain unchanged:
 
@@ -44,45 +44,38 @@ The established action and state boundaries remain unchanged:
 
 Decision now presents:
 
-- one clear determination task;
-- a visible Evidence First protection notice;
-- case ID and neutral readiness state;
-- optional tool-review, pinned-object, note, and report-packet metrics;
-- direct decision submission without completing every investigation tool;
-- a checklist visibly matched to the active claim subtype or scenario;
-- a structured final evidence check;
-- rationale word-count progress;
-- lane-organized decision calls using the existing valid choices;
-- confidence selection;
-- evidence-based rationale entry;
-- a readiness check while blockers remain;
-- learner-package saving through the existing submit action;
-- a submission confirmation from the saved case-scoped package.
+- a focused Final Review header on phone layouts;
+- an active-case card with personal/business taxonomy and coded lighthouse medallion;
+- a selected-decision card showing the operational action and separate final finding;
+- a compact editor using the existing workflow-valid action and finding choices;
+- confidence and evidence-based finding-basis inputs;
+- exact package blockers without selecting an answer for the learner;
+- a three-object pinned-evidence strip with a working route to all evidence;
+- the latest substantive case note with a working Notes route;
+- a real Confirm & Submit action that uses the established package controller;
+- an Open Luna Debrief action after the package is saved.
+
+The detailed weighted flag checklist remains in the domain model and existing evidence workflow for compatibility and coaching. It is not rendered as a long form inside this reference screen.
 
 The Decision screen never predicts the outcome or displays Luna scoring before the package is saved.
 
 ## Approved Luna interaction model
 
-Before submission, Luna presents only:
-
-- the Evidence First lock;
-- a neutral explanation of why coaching is protected;
-- the four completion steps required to unlock the debrief.
+Before submission, Luna presents only the Evidence First lock and a neutral explanation of why coaching is protected.
 
 Before submission, no score, strengths, case-focus coaching, decision-quality feedback, or outcome guidance is rendered.
 
-After submission, Luna presents distinct sections for:
+After submission, Luna presents the reference-board hierarchy:
 
-- the learner's submitted decision, confidence, and rationale;
-- senior-investigator package review context;
-- strong investigation choices;
-- evidence to revisit and next coaching focus;
-- the existing decision-quality score breakdown;
+- coded Luna mascot and case-result speech card;
+- What You Did Well;
+- Evidence You Might Have Missed, with working Review actions;
+- a workflow-specific Risk Tip from Luna;
+- customer-type-aware motivation;
 - Back to Workspace;
-- View Case Summary;
-- Finish and Return to Queue.
+- native share with clipboard fallback.
 
-The debrief uses only the saved learner package and existing `buildLunaDebrief()` result. It does not invent a hidden verdict, replace the learner's determination, or add a second scoring module.
+The debrief uses only the saved learner package and existing `buildLunaDebrief()` result. It compares the operational decision and final finding independently, does not invent a pre-submission verdict, and does not render the former six-card score report.
 
 ## Protected behavior
 
@@ -108,36 +101,32 @@ The following remain unchanged:
 
 Decision and Luna:
 
-- present checklist and decision form beside one another on wide desktop;
-- stack the checklist and decision form intentionally at tablet and phone widths;
-- use grouped decision choices without clipping long lane-specific labels;
-- keep rationale entry, readiness action, and confirmation reachable on Pixel 7;
-- keep locked Luna instructions readable without revealing debrief content;
-- present post-submission coaching in two columns on desktop and one column on phone;
-- preserve 44-pixel minimum controls;
-- avoid fixed overlays and required horizontal page scrolling;
-- preserve visible keyboard focus and text labels for state;
-- keep compact-phone content readable at 350 pixels.
+- use centered, bounded review surfaces on desktop;
+- become edge-to-edge component stacks within the mobile mission shell;
+- keep the evidence strip in three compact columns like the supplied board;
+- preserve long workflow choice labels without clipping;
+- keep rationale entry and confirmation reachable on phone;
+- show two coaching columns where space allows and one column on phone;
+- preserve 44-pixel minimum controls, safe areas, visible focus, and reduced motion;
+- avoid fixed review overlays and required horizontal page scrolling.
 
-## Completed verification
+## Verification contract
 
-The final runtime head passed:
+The reference rebuild is guarded by:
 
-1. complete named `npm run verify` chain;
-2. production build;
-3. focused Decision and Luna smoke guard;
-4. desktop Chromium browser coverage;
-5. Pixel 7 Chromium browser coverage;
-6. Evidence First wording guard;
-7. built-in and generated-case state protection;
-8. locked Luna state before submission;
-9. decision choice, confidence, rationale, and readiness interactions;
-10. learner-package saving through the existing action boundary;
-11. unlocked Luna debrief after submission;
-12. Back to Workspace, View Case Summary, and Return to Queue routes;
-13. decision draft and package persistence after refresh;
-14. viewport-width safety.
+1. the complete named `npm run verify` chain and production build;
+2. a focused static/behavior smoke guard that creates both personal and business cases;
+3. review-package separation and confirmed-fraud rationale rules;
+4. generated-case pre-submission truth protection;
+5. locked Luna state before submission;
+6. action, finding, confidence, rationale, evidence, and notes interactions;
+7. learner-package saving through the existing action boundary;
+8. immediate and persisted Luna unlock;
+9. case-scoped strengths, missed evidence, risk guidance, and motivation;
+10. working Review, Back to Workspace, and Share/clipboard actions;
+11. desktop Chromium and Pixel 7 Chromium scenarios in GitHub Actions;
+12. horizontal-overflow and responsive-card checks.
 
-## Exact next starting point
+## Maintenance starting point
 
-Re-audit `main` at or after `92d7848e608f62d2800849f5111eb5115f505569`, active redesign branches, open pull requests, recent commits, CI, and this completed handoff. Then redesign **Academy only**. Do not combine Profile or final responsive/mobile polish with that pull request.
+Start with `src/SubmitDecisionPanel.jsx`, `src/LunaPostSubmissionPanel.jsx`, and `src/DecisionReviewVisuals.jsx`. Preserve the existing review-package controller, Evidence First lock, personal/business taxonomy, and case-scoped persistence. Do not restore the retired long checklist or six-card manager report inside these focused screens.
