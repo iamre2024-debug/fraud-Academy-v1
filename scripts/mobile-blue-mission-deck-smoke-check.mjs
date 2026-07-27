@@ -52,9 +52,9 @@ for (const anchor of [
   'Good morning Ree, let’s stop fraud ✨',
   '<MobileLunaPortrait',
   'mobile-dashboard-agent-copy',
-  'Follow the facts.',
-  'Evidence first. Conclusions last.',
-  'mobile-dashboard-active-file',
+  'Fraud is clever,',
+  'Every small step builds a fraud-free future.',
+  "workspaceScreen === 'briefing' ? 'cases' : activeTab",
   'MissionQuotesPage',
   'mission-mobile-workspace-page',
 ]) requireAnchor('MobileMissionDeckApp.jsx', shell, anchor);
@@ -183,6 +183,7 @@ if (/body\[data-layout-mode="desktop"\]/.test(theme)) {
 for (const browserSpec of [
   'mobile-reference-browser',
   'mobile-workspace-pages-browser',
+  'case-briefing-browser',
   'document-request-browser',
   'decision-luna-browser',
   'quick-pad-browser',

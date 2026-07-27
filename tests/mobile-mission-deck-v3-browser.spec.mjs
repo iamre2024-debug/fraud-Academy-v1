@@ -129,6 +129,25 @@ test('mobile mounts the approved Fraud Academy shell and generated cases inherit
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Dedicated phone renderer');
   await page.addInitScript(() => {
     window.localStorage.setItem('fraud-academy-layout-mode-v1', 'mobile');
+    window.localStorage.setItem('fraud-academy-completed-tools-v1', JSON.stringify({
+      'FA-ATO-24018': ['Case Summary', 'Customer 360', 'Login History'],
+      'FA-CB-24007': ['Case Summary'],
+    }));
+    window.localStorage.setItem('fraud-academy-notes-v1', JSON.stringify({
+      'FA-ATO-24018': ['Saved evidence-first test note'],
+    }));
+    window.localStorage.setItem('fraud-academy-review-packages-v1', JSON.stringify({
+      'FA-CB-24007': [{
+        id: 'PKG-TEST-CB-1',
+        caseId: 'FA-CB-24007',
+        savedAt: 'Jul 27, 2026',
+        completedTools: ['Case Summary'],
+        reviewedRequired: 1,
+        totalRequired: 6,
+        pinnedEvidence: [],
+        noteSnapshot: [],
+      }],
+    }));
   });
   await page.goto('/');
 
@@ -150,33 +169,92 @@ test('mobile mounts the approved Fraud Academy shell and generated cases inherit
   ]) {
     await page.setViewportSize(viewport);
     await assertPhoneGeometry(page);
-    if ([320, 360, 390, 430].includes(viewport.width)) {
-      await assertHomePanelGeometry(page, viewport.width <= 340 ? 1 : 2);
-      await captureElement(
-        dashboard.locator('.mobile-dashboard-panels'),
-        testInfo,
-        `home-agent-quotes-${viewport.width}`,
-      );
-    }
+    await assertHomePanelGeometry(page, viewport.width <= 340 ? 1 : 2);
+    await captureElement(
+      dashboard.locator('.mobile-dashboard-panels'),
+      testInfo,
+      `home-agent-quotes-${viewport.width}`,
+    );
+    await capture(page, testInfo, `home-dashboard-${viewport.width}`);
   }
   await page.setViewportSize({ width: 390, height: 844 });
 
   await expect(dashboard.getByRole('heading', { name: 'Good morning Ree, let’s stop fraud ✨' })).toBeVisible();
-  await expect(dashboard.getByRole('button', { name: 'Open Luna agent panel' })).toContainText('Luna');
+  const heroLuna = dashboard.locator('.mobile-dashboard-greeting')
+    .getByRole('button', { name: 'Open Luna assistant', exact: true });
+  const agentPanel = dashboard.locator('button.mobile-dashboard-agent');
+  await expect(heroLuna).toContainText('Luna');
+  await expect(agentPanel).toContainText('Luna');
   await expect(dashboard.locator('.mobile-dashboard-grid .mobile-dashboard-card')).toHaveCount(3);
-  await expect(dashboard.locator('.mobile-dashboard-active-case')).toContainText('FA-ATO-24018');
-  await expect(dashboard.locator('.mobile-dashboard-academy-panel')).toContainText('Academy Progress');
+
+  const activeCasesCard = dashboard.locator('.mobile-dashboard-active-case');
+  const alertsCard = dashboard.locator('.mobile-dashboard-alerts');
+  const workspaceCard = dashboard.locator('.mobile-dashboard-workspace');
+  const academyPanel = dashboard.locator('.mobile-dashboard-academy-panel');
+  await expect(activeCasesCard).toContainText('2 cases');
+  await expect(activeCasesCard).toContainText('2 in review');
+  await expect(alertsCard).toContainText('1 priority');
+  await expect(alertsCard).toContainText('1 high-priority case');
+  await expect(workspaceCard).toContainText('33%');
+  await expect(workspaceCard).toContainText('3 / 9 tasks');
+  await expect(academyPanel).toContainText('Academy Progress');
+  await expect(academyPanel).toContainText('1 completed package');
+  await expect(academyPanel.locator('dd').nth(0)).toHaveText('4');
+  await expect(academyPanel.locator('dd').nth(1)).toHaveText('1');
+  await expect(academyPanel.locator('dd').nth(2)).toHaveText('1');
+  await expect(academyPanel.locator('button i > b')).toHaveAttribute('style', 'width: 19%;');
   await expect(dashboard.locator('.mobile-dashboard-panels')).toContainText('Agent Panel');
-  await expect(dashboard.locator('.mobile-dashboard-panels')).toContainText('Follow the facts');
+  await expect(dashboard.locator('.mobile-dashboard-agent-shortcuts')).toContainText('Case facts');
+  await expect(dashboard.locator('.mobile-dashboard-quote')).toContainText('Fraud is clever,');
+  await expect(dashboard.locator('.mobile-dashboard-quote')).toContainText('Every small step builds a fraud-free future.');
+  await expect(page.getByRole('button', { name: 'Open priority cases', exact: true }).locator('i')).toHaveCount(1);
   await capture(page, testInfo, '01-approved-dashboard');
 
-  await dock.getByRole('button', { name: /Quotes/ }).click();
+  async function returnHome() {
+    await dock.getByRole('button', { name: /Home/ }).click();
+    await expect(dashboard).toBeVisible();
+  }
+
+  await page.getByRole('button', { name: 'Open priority cases', exact: true }).click();
+  await expect(page.locator('.cases-theme-v1-panel')).toBeVisible();
+  await returnHome();
+
+  await activeCasesCard.click();
+  await expect(page.locator('.cases-theme-v1-panel')).toBeVisible();
+  await returnHome();
+
+  await alertsCard.click();
+  await expect(page.locator('.cases-theme-v1-panel')).toBeVisible();
+  await returnHome();
+
+  await workspaceCard.click();
+  await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'tool-menu');
+  await expect(dock.getByRole('button', { name: /Workspace/ })).toHaveAttribute('aria-current', 'page');
+  await returnHome();
+
+  await academyPanel.getByRole('button', { name: 'Open Academy Progress', exact: true }).click();
+  await expect(page.locator('[data-mission-page="progress"]')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Mission Progress' })).toBeVisible();
+  await expect(dock.getByRole('button', { name: /Academy/ })).toHaveAttribute('aria-current', 'page');
+  await returnHome();
+
+  await heroLuna.click();
+  await expect(page.locator('.profile-theme-v1')).toBeVisible();
+  await returnHome();
+
+  await agentPanel.click();
+  await expect(page.locator('.profile-theme-v1')).toBeVisible();
+  await returnHome();
+
+  await dashboard.locator('button.mobile-dashboard-quote').click();
   await expect(page.locator('.mobile-quotes-page')).toBeVisible();
   await expect(page.locator('.mobile-quotes-page')).toContainText('Evidence before assumptions');
+  await returnHome();
 
   await dock.getByRole('button', { name: /Workspace/ }).click();
   await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'briefing');
   await expect(page.locator('.mission-briefing-v4')).toBeVisible();
+  await expect(dock.getByRole('button', { name: /Cases/ })).toHaveAttribute('aria-current', 'page');
   await page.getByRole('button', { name: 'Open workspace ›', exact: true }).click();
   await expect(page.locator('[data-mobile-reference-tool="Customer 360"]')).toBeVisible();
   await expect(page.getByRole('button', { name: /Open Quick Pad/ })).toBeVisible();

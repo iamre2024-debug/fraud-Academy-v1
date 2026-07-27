@@ -11,6 +11,7 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
     window.localStorage.setItem('fraud-academy-visual-tray-v1', JSON.stringify({
       'FA-ATO-24018': ['TRN-8842-19', 'LOG-1005', 'ZZZ-NOT-A-SOURCE'],
     }));
+    window.localStorage.removeItem('fraud-academy-quick-pad-v1');
     window.localStorage.removeItem('fraud-academy-note-drafts-v1');
   });
   await page.goto('/');
@@ -36,12 +37,90 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
 
   if (mobile) {
     const mobileBriefing = page.locator('[data-mobile-reference-briefing="v2"]');
+    const dock = page.getByRole('navigation', { name: 'Mission navigation' });
     await expect(mobileBriefing).toBeVisible();
+    await expect(page.locator('.mission-workspace-bar-briefing')
+      .getByRole('heading', { name: 'Case Briefing', exact: true })).toBeVisible();
     await expect(mobileBriefing.getByRole('heading', { name: 'Allegation Summary' })).toBeVisible();
     await expect(mobileBriefing.getByRole('heading', { name: 'Quick Facts' })).toBeVisible();
-    await expect(mobileBriefing.getByRole('heading', { name: 'Available Records' })).toBeVisible();
+    await expect(mobileBriefing.getByRole('heading', { name: 'Evidence Checklist' })).toBeVisible();
+    await expect(mobileBriefing.getByRole('button', { name: 'Open workspace ›', exact: true })).toBeVisible();
+    await expect(mobileBriefing.getByRole('navigation', { name: 'Case briefing actions' })).toHaveCount(0);
     await expect(page.getByRole('navigation', { name: 'Briefing page controls' })).toHaveCount(0);
+    await expect(dock.getByRole('button', { name: 'Cases', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(dock.getByRole('button', { name: 'Workspace', exact: true })).not.toHaveAttribute('aria-current', 'page');
+
+    for (const viewportSize of [
+      { width: 320, height: 568 },
+      { width: 360, height: 640 },
+      { width: 390, height: 844 },
+      { width: 412, height: 915 },
+      { width: 430, height: 932 },
+      { width: 412, height: 600 },
+    ]) {
+      await page.setViewportSize(viewportSize);
+      const geometry = await page.evaluate(() => {
+        const viewport = document.querySelector(
+          '.mission-mobile-root[data-mobile-mission-tab="workspace"] .mission-mobile-viewport',
+        );
+        const briefingElement = document.querySelector('[data-mobile-reference-briefing="v2"]');
+        const columns = briefingElement?.querySelector('.mission-briefing-columns');
+        const cta = briefingElement?.querySelector('.mission-briefing-open-workspace');
+        const back = document.querySelector('.mission-workspace-back');
+        const overflow = document.querySelector('.mission-workspace-overflow > summary');
+        const briefingRect = briefingElement?.getBoundingClientRect();
+        const ctaRect = cta?.getBoundingClientRect();
+        const backRect = back?.getBoundingClientRect();
+        const overflowRect = overflow?.getBoundingClientRect();
+        return {
+          viewportWidth: window.innerWidth,
+          documentWidth: document.documentElement.scrollWidth,
+          viewportScrollWidth: viewport?.scrollWidth ?? 0,
+          viewportClientWidth: viewport?.clientWidth ?? 0,
+          briefingLeft: briefingRect?.left ?? -1,
+          briefingRight: briefingRect?.right ?? Number.POSITIVE_INFINITY,
+          ctaLeft: ctaRect?.left ?? -1,
+          ctaRight: ctaRect?.right ?? Number.POSITIVE_INFINITY,
+          ctaHeight: ctaRect?.height ?? 0,
+          backSize: Math.min(backRect?.width ?? 0, backRect?.height ?? 0),
+          overflowSize: Math.min(overflowRect?.width ?? 0, overflowRect?.height ?? 0),
+          columnCount: columns
+            ? getComputedStyle(columns).gridTemplateColumns.split(' ').filter(Boolean).length
+            : 0,
+        };
+      });
+      expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewportWidth + 1);
+      expect(geometry.viewportScrollWidth).toBeLessThanOrEqual(geometry.viewportClientWidth + 1);
+      expect(geometry.briefingLeft).toBeGreaterThanOrEqual(0);
+      expect(geometry.briefingRight).toBeLessThanOrEqual(geometry.viewportWidth + 1);
+      expect(geometry.ctaLeft).toBeGreaterThanOrEqual(0);
+      expect(geometry.ctaRight).toBeLessThanOrEqual(geometry.viewportWidth + 1);
+      expect(geometry.ctaHeight).toBeGreaterThanOrEqual(44);
+      expect(geometry.backSize).toBeGreaterThanOrEqual(44);
+      expect(geometry.overflowSize).toBeGreaterThanOrEqual(44);
+      expect(geometry.columnCount).toBe(viewportSize.width <= 340 ? 1 : 2);
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    const evidenceBeforePin = await page.evaluate(() => JSON.stringify(
+      JSON.parse(localStorage.getItem('fraud-academy-visual-tray-v1') || '{}')['FA-ATO-24018'] ?? [],
+    ));
+    await mobileBriefing.getByRole('button', { name: 'Pin Case ID to Quick Pad', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => {
+      const items = JSON.parse(localStorage.getItem('fraud-academy-quick-pad-v1') || '{}')['FA-ATO-24018']?.items ?? [];
+      return items.filter((item) => (
+        item.label === 'Case ID'
+        && item.value === 'FA-ATO-24018'
+        && item.sourceTool === 'Case Briefing'
+      )).length;
+    })).toBe(1);
+    const evidenceAfterPin = await page.evaluate(() => JSON.stringify(
+      JSON.parse(localStorage.getItem('fraud-academy-visual-tray-v1') || '{}')['FA-ATO-24018'] ?? [],
+    ));
+    expect(evidenceAfterPin).toBe(evidenceBeforePin);
+
     await page.getByRole('button', { name: 'Open workspace ›', exact: true }).click();
+    await expect(dock.getByRole('button', { name: 'Workspace', exact: true })).toHaveAttribute('aria-current', 'page');
   } else {
     await page.getByRole('button', { name: /Begin investigation/i }).click();
   }

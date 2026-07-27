@@ -150,13 +150,31 @@ test('approved mobile shell is safe at the required phone widths and every activ
   }
 
   await openMobileWorkspaceShortcut(page, 'Briefing');
-  await page.getByRole('navigation', { name: 'Case briefing actions' })
-    .getByRole('button', { name: /Timeline/ })
-    .click();
+  const mobileBriefing = page.locator('[data-mobile-reference-briefing="v2"]');
+  await expect(mobileBriefing).toBeVisible();
+  await expect(mobileBriefing.getByRole('heading', { name: 'Allegation Summary', exact: true })).toBeVisible();
+  await expect(mobileBriefing.getByRole('heading', { name: 'Quick Facts', exact: true })).toBeVisible();
+  await expect(mobileBriefing.getByRole('heading', { name: 'Evidence Checklist', exact: true })).toBeVisible();
+  await expect(mobileBriefing.getByRole('button', { name: 'Open workspace ›', exact: true })).toBeVisible();
+  await expect(mobileBriefing.getByRole('navigation', { name: 'Case briefing actions' })).toHaveCount(0);
+
+  await openMobileWorkspaceShortcut(page, 'All tools');
+  await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'tool-menu');
+  await expect(page.locator('[data-investigation-tool-groups="approved-theme-v1"]')).toBeVisible();
+
+  await openMobileWorkspaceShortcut(page, 'Briefing');
+  await openMobileWorkspaceShortcut(page, 'Timeline');
   await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-active-tool', 'Timeline');
+  await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'timeline');
   await expect(page.locator('[data-timeline-screen="approved-theme-v1"]')).toBeVisible();
   await assertMobileGeometry(page);
 
+  await openMobileWorkspaceShortcut(page, 'Briefing');
+  await openMobileWorkspaceShortcut(page, 'Decide');
+  await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'determination');
+  await expect(page.locator('.submit-decision-panel')).toBeVisible();
+
+  await openMobileWorkspaceShortcut(page, 'Briefing');
   const menu = await openMobileWorkspaceMenu(page);
   await menu.getByRole('combobox', { name: 'Choose active mission case' }).selectOption('FA-CR-24003');
   await expect(page.locator('[data-mobile-reference-briefing="v2"]')).toBeVisible();

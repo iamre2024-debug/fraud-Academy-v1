@@ -126,7 +126,7 @@ export default function MobileMissionWorkspace({
 
   return (
     <main className="mission-workspace-v3" data-workspace-screen={workspaceScreen} data-active-tool={displayedTool}>
-      <header className="mission-workspace-bar">
+      <header className={`mission-workspace-bar${isRoot ? ' mission-workspace-bar-briefing' : ''}`}>
         <button
           type="button"
           className="mission-workspace-back"
@@ -135,11 +135,17 @@ export default function MobileMissionWorkspace({
         >
           ‹
         </button>
-        <div className="mission-workspace-title">
-          <MobileFraudShield size={27} />
-          <p>{activeCase.id}</p><h1>{screenTitle}</h1><small>{screenSubtitle}</small>
+        <div className={`mission-workspace-title${isRoot ? ' mission-workspace-title-briefing' : ''}`}>
+          {isRoot ? (
+            <h1>Case Briefing</h1>
+          ) : (
+            <>
+              <MobileFraudShield size={27} />
+              <p>{activeCase.id}</p><h1>{screenTitle}</h1><small>{screenSubtitle}</small>
+            </>
+          )}
         </div>
-        <MobileLunaPortrait size={38} className="mission-workspace-luna" />
+        {!isRoot && <MobileLunaPortrait size={38} className="mission-workspace-luna" />}
         <details ref={overflowRef} className="mission-workspace-overflow">
           <summary role="button" aria-label="Open workspace menu">•••</summary>
           <section>
@@ -161,6 +167,7 @@ export default function MobileMissionWorkspace({
             <nav aria-label="Workspace shortcuts">
               <button type="button" onClick={() => runOverflowAction(() => showWorkspaceScreen('briefing'))}>▤ <span>Briefing</span></button>
               <button type="button" onClick={() => runOverflowAction(() => showWorkspaceScreen('workflow'))}>⌁ <span>Path</span></button>
+              <button type="button" onClick={() => runOverflowAction(() => openTool('Timeline', 'timeline'))}>◷ <span>Timeline</span></button>
               <button type="button" onClick={() => runOverflowAction(() => showWorkspaceScreen('tool-menu'))}>⊞ <span>All tools</span></button>
               <button type="button" onClick={() => runOverflowAction(openNotes)}>✎ <span>Notes</span><b>{notes.length}</b></button>
               <button type="button" onClick={() => runOverflowAction(() => showWorkspaceScreen('evidence'))}>★ <span>Pinned</span><b>{tray.length}</b></button>
@@ -175,12 +182,10 @@ export default function MobileMissionWorkspace({
         {workspaceScreen === 'briefing' && (
           <MobileMissionCaseBriefing
             activeCase={activeCase}
-            jumpDecision={jumpDecision}
+            currentCompleted={currentCompleted}
             openMoreTools={openMoreTools}
-            openNotes={openNotes}
-            openQueue={openCaseQueue}
             openTool={openTool}
-            pin={pin}
+            quickPin={activeToolProps.quickPin}
             recordAction={recordAction}
           />
         )}

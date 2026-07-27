@@ -25,6 +25,15 @@ const routes = [
   { key: 'quotes', icon: '❝', label: 'Quotes' },
 ];
 
+function NotificationBellIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M6.7 9.6c0-3.3 2.1-5.5 5.3-5.5s5.3 2.2 5.3 5.5v3.2l1.5 2.5H5.2l1.5-2.5V9.6Z" />
+      <path d="M9.6 18c.6.8 1.4 1.2 2.4 1.2s1.8-.4 2.4-1.2" />
+    </svg>
+  );
+}
+
 function readJson(key, fallback) {
   if (typeof window === 'undefined') return fallback;
   try {
@@ -74,13 +83,18 @@ export default function MobileMissionDeckApp({
   onNavigate,
   onOpenCase,
   onOpenWorkspace,
-  quickGenerator,
   workspace,
+  workspaceScreen,
 }) {
   const [control, setControl] = useState('');
   const [reducedMotion, setReducedMotion] = useState(readReducedMotion);
   const [snapshotVersion, setSnapshotVersion] = useState(0);
   const snapshot = useMemo(readSnapshot, [activeTab, snapshotVersion]);
+  const hasPriorityCases = cases.some((item) => (
+    /critical|urgent|high/i.test(item.priority ?? '')
+    && !/closed|complete/i.test(item.status ?? '')
+    && !(snapshot.packagesByCase[item.id]?.length)
+  ));
 
   useEffect(() => {
     const refresh = () => setSnapshotVersion((current) => current + 1);
@@ -138,11 +152,14 @@ export default function MobileMissionDeckApp({
           <button
             type="button"
             className={activeTab === 'dashboard' ? 'mission-mobile-notification' : ''}
-            aria-label="Open display settings"
-            aria-expanded={Boolean(control)}
-            onClick={() => setControl((current) => current ? '' : 'settings')}
+            aria-label={activeTab === 'dashboard' ? 'Open priority cases' : 'Open display settings'}
+            aria-expanded={activeTab === 'dashboard' ? undefined : Boolean(control)}
+            onClick={() => {
+              if (activeTab === 'dashboard') navigate('cases');
+              else setControl((current) => current ? '' : 'settings');
+            }}
           >
-            {activeTab === 'dashboard' ? <><span aria-hidden="true">♢</span><i /></> : '•••'}
+            {activeTab === 'dashboard' ? <><NotificationBellIcon />{hasPriorityCases && <i />}</> : '•••'}
           </button>
         </div>
       </header>}
@@ -195,7 +212,6 @@ export default function MobileMissionDeckApp({
               cases={cases}
               onNavigate={navigate}
               onOpenCase={onOpenCase}
-              quickGenerator={quickGenerator}
               snapshot={snapshot}
             />
           )}
@@ -247,7 +263,8 @@ export default function MobileMissionDeckApp({
 
       <nav className="mission-mobile-dock" aria-label="Mission navigation">
         {routes.map((route) => {
-          const isActive = (route.matches ?? [route.key]).includes(activeTab);
+          const navigationTab = activeTab === 'workspace' && workspaceScreen === 'briefing' ? 'cases' : activeTab;
+          const isActive = (route.matches ?? [route.key]).includes(navigationTab);
           return (
           <button
             key={route.key}
@@ -284,18 +301,21 @@ function MissionAtmosphere() {
   );
 }
 
-function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGenerator, snapshot }) {
-  // Legacy smoke marker: mobile-dashboard-active-file. The v2 board folds that route into the compact dashboard hierarchy.
+function MissionDashboard({ activeCase, cases, onNavigate, snapshot }) {
   const requiredTools = activeCase?.requiredTools?.length ?? 0;
   const reviewedRequired = (snapshot.completedByCase[activeCase?.id] ?? [])
     .filter((item) => activeCase?.requiredTools?.includes(item)).length;
   const workspaceProgress = requiredTools ? Math.round((reviewedRequired / requiredTools) * 100) : 0;
-  const openCases = cases.filter((item) => !/closed|complete/i.test(item.status ?? '')).length;
-  const caseAlerts = Array.isArray(activeCase?.alerts)
-    ? activeCase.alerts
-    : Array.isArray(activeCase?.caseBriefing?.alerts)
-      ? activeCase.caseBriefing.alerts
-      : [];
+  const isComplete = (item) => (
+    /closed|complete/i.test(item.status ?? '')
+    || (snapshot.packagesByCase[item.id]?.length ?? 0) > 0
+  );
+  const activeCases = cases.filter((item) => !isComplete(item));
+  const highPriorityCases = activeCases.filter((item) => /critical|urgent|high/i.test(item.priority ?? ''));
+  const totalRequiredTools = cases.reduce((total, item) => total + (item.requiredTools?.length ?? 0), 0);
+  const academyProgress = totalRequiredTools
+    ? Math.min(100, Math.round((snapshot.reviewed / totalRequiredTools) * 100))
+    : 0;
 
   return (
     <div className="mobile-reference-dashboard">
@@ -305,34 +325,40 @@ function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGene
           <h1 aria-label="Good morning Ree, let’s stop fraud ✨">Good morning Ree —<br />let’s stop fraud ✨</h1>
           <p><span aria-hidden="true">♥</span> Every case you solve makes a safer world.</p>
         </div>
-        <button type="button" onClick={() => onNavigate('profile')} aria-label="Open Luna agent panel">
+        <button type="button" onClick={() => onNavigate('profile')} aria-label="Open Luna assistant">
           <MobileLunaPortrait size={88} />
           <span><strong>Luna ✨</strong><small>Your AI Assistant</small></span>
         </button>
       </section>
 
       <section className="mobile-dashboard-grid" aria-label="Fraud Academy dashboard">
-        <button type="button" className="mobile-dashboard-card mobile-dashboard-active-case" onClick={() => onOpenCase(activeCase.id)}>
-          <span>▣ Active Cases</span><strong>{openCases}</strong><small>Open {activeCase.id}</small><em>›</em>
+        <button type="button" className="mobile-dashboard-card mobile-dashboard-active-case" onClick={() => onNavigate('cases')}>
+          <span><b aria-hidden="true">▣</b> Active Cases</span>
+          <strong>{activeCases.length} <i>cases</i></strong>
+          <small>{activeCases.length ? `${activeCases.length} in review` : 'No open cases'}</small>
+          <em>›</em>
         </button>
-        <button type="button" className="mobile-dashboard-card mobile-dashboard-alerts" onClick={() => onOpenCase(activeCase.id)}>
-          <span>△ Alerts</span><strong>{caseAlerts.length || '—'}</strong><small>{caseAlerts.length ? `${caseAlerts.length} saved case alert${caseAlerts.length === 1 ? '' : 's'}` : 'Open the briefing for case facts'}</small><em>›</em>
+        <button type="button" className="mobile-dashboard-card mobile-dashboard-alerts" onClick={() => onNavigate('cases')}>
+          <span><b aria-hidden="true">△</b> Alerts</span>
+          <strong>{highPriorityCases.length} <i>priority</i></strong>
+          <small>{highPriorityCases.length ? `${highPriorityCases.length} high-priority case${highPriorityCases.length === 1 ? '' : 's'}` : 'No high-priority cases'}</small>
+          <em>›</em>
         </button>
         <button type="button" className="mobile-dashboard-card mobile-dashboard-workspace" onClick={() => onNavigate('workspace', 'tool-menu')}>
           <span>Workspace Progress</span>
           <strong className="mobile-dashboard-ring" style={{ '--dashboard-progress': `${workspaceProgress * 3.6}deg` }}>{workspaceProgress}%</strong>
-          <small>{reviewedRequired} of {requiredTools} required tools reviewed</small>
+          <small>{reviewedRequired} / {requiredTools} tasks</small>
           <em>›</em>
         </button>
       </section>
 
       <section className="mobile-dashboard-academy-panel">
-        <button type="button" onClick={() => onNavigate('academy')} aria-label="Open Academy">
+        <button type="button" onClick={() => onNavigate('progress')} aria-label="Open Academy Progress">
           <span className="mobile-dashboard-level">✦</span>
           <span>
             <small>Academy Progress</small>
             <strong>{snapshot.packages} completed package{snapshot.packages === 1 ? '' : 's'}</strong>
-            <i><b style={{ width: `${Math.min(100, cases.length ? (snapshot.packages / cases.length) * 100 : 0)}%` }} /></i>
+            <i><b style={{ width: `${academyProgress}%` }} /></i>
           </span>
           <em>›</em>
         </button>
@@ -350,16 +376,19 @@ function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGene
           onClick={() => onNavigate('profile')}
           aria-label="Open Luna agent panel"
         >
-          <span className="mobile-dashboard-agent-copy">
-            <small><i aria-hidden="true">♡</i> Agent Panel</small>
+          <div className="mobile-dashboard-agent-copy">
+            <small><i aria-hidden="true">♙</i> Agent Panel</small>
             <strong>Luna <i><b aria-hidden="true" /> Online</i></strong>
-            <p>Review facts, spot patterns, and keep every decision evidence-first.</p>
-            <span className="mobile-dashboard-panel-action">Ask Luna <b aria-hidden="true">›</b></span>
-          </span>
-          <span className="mobile-dashboard-agent-portrait">
+            <p>I’m here to help you organize facts, spot patterns, and keep the investigation evidence-first.</p>
+            <span className="mobile-dashboard-panel-action">✦ Ask Luna anything</span>
+            <span className="mobile-dashboard-agent-shortcuts" aria-hidden="true">
+              <b>▤ Case facts</b><b>◇ Patterns</b><b>♡ Tips</b>
+            </span>
+          </div>
+          <div className="mobile-dashboard-agent-portrait">
             <MobileLunaPortrait size={84} />
             <i aria-hidden="true">♥</i>
-          </span>
+          </div>
         </button>
         <button
           type="button"
@@ -369,18 +398,13 @@ function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGene
         >
           <span className="mobile-dashboard-quote-heading">
             <span aria-hidden="true">❝</span>
-            <small>Investigator note</small>
+            <small>Quotes</small>
           </span>
-          <strong>Follow the facts.<br />Let verified details lead.</strong>
-          <small className="mobile-dashboard-quote-caption">Evidence first. Conclusions last.</small>
+          <strong>Fraud is clever,<br />but so are we.</strong>
+          <small className="mobile-dashboard-quote-caption">Every small step builds a fraud-free future.</small>
           <span className="mobile-dashboard-quote-arrow" aria-hidden="true">›</span>
         </button>
       </section>
-
-      <details className="mobile-dashboard-generator">
-        <summary><span>✦</span><div><small>Scenario generator</small><strong>Create another fictional case</strong></div><b>＋</b></summary>
-        {quickGenerator}
-      </details>
     </div>
   );
 }

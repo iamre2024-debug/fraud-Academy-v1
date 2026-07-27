@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  openMobileWorkspaceShortcut,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 const requiredDocuments = [
   'Card-network submission record',
@@ -21,8 +24,12 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
     : page.locator('[data-case-briefing-screen="approved-theme-v1"]');
   await expect(briefing.getByRole('button', { name: 'Open Document Viewer', exact: true })).toHaveCount(0);
   if (testInfo.project.name === 'mobile-chromium') {
-    await expect(briefing.getByRole('navigation', { name: 'Case briefing actions' })
-      .getByRole('button', { name: /All tools/ })).toBeVisible();
+    await expect(briefing.getByRole('heading', { name: 'Evidence Checklist', exact: true })).toBeVisible();
+    await expect(briefing.getByRole('button', { name: 'Open workspace ›', exact: true })).toBeVisible();
+    await expect(briefing.getByRole('navigation', { name: 'Case briefing actions' })).toHaveCount(0);
+    await openMobileWorkspaceShortcut(page, 'All tools');
+    await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'tool-menu');
+    await expect(page.locator('[data-investigation-tool-groups="approved-theme-v1"]')).toBeVisible();
   } else {
     await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
     await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')

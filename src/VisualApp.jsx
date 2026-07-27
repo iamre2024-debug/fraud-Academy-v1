@@ -108,7 +108,7 @@ export default function VisualApp() {
           onNavigate={setActiveTab}
           onOpenWorkspace={openMobileWorkspace}
           onOpenCase={openCase}
-          quickGenerator={<GeneratedCaseControls inline onCaseGenerated={handleGeneratedCase} />}
+          workspaceScreen={workspaceScreen}
           workspace={(
             <VisualWorkspace
               activeCaseId={activeCaseId}
