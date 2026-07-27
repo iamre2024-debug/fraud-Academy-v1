@@ -1,6 +1,7 @@
 // Chargeback lifecycle workspace with source-document review.
 import { useEffect, useMemo, useState } from 'react';
 import { getMerchantIntelligence, merchantIntelligenceTabs } from './data/merchantIntelligenceRecords.js';
+import { MobileMerchantIntelligencePage } from './MobileMerchantDocumentPages.jsx';
 import { queueDocumentViewerRoute } from './documentViewerRoute.js';
 
 function FieldGrid({ fields = [], className = '' }) {
@@ -218,7 +219,17 @@ function CaseStatus({ workspace }) {
   );
 }
 
-export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision, documentRequests = {} }) {
+export default function MerchantIntelligenceWorkspace({
+  activeCase,
+  pin,
+  saveNote,
+  markReviewed,
+  reviewed,
+  openTool,
+  jumpDecision,
+  documentRequests = {},
+  mobileMode = false,
+}) {
   const workspace = useMemo(() => getMerchantIntelligence(activeCase), [activeCase]);
   const [activeSection, setActiveSection] = useState('merchant-response');
   const [selectedDocument, setSelectedDocument] = useState(null);
@@ -247,14 +258,52 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
     queueDocumentViewerRoute({
       caseId: activeCase.id,
       folder: 'Customer Evidence',
-      documentId: document.id,
+      documentId: document.documentViewerId ?? document.id,
       pane: 'reader',
     });
     openTool('Document Viewer');
   }
 
+  const mobileCustomerDocuments = workspace.customerDocuments.map((document) => {
+    if (document.status === 'Available') return document;
+    const attempts = documentRequests[document.id]?.attempts ?? [];
+    const latestAttempt = attempts.at(-1);
+    return {
+      ...document,
+      status: latestAttempt?.responseStatus || (latestAttempt ? 'Requested' : 'Not Requested'),
+      receivedInInbox: Boolean(latestAttempt?.customerSubmission?.pages?.length),
+      documentViewerId: latestAttempt?.responseId ?? '',
+    };
+  });
+  const mobileWorkspace = { ...workspace, customerDocuments: mobileCustomerDocuments };
+
+  function openMobileDocument(document) {
+    if (mobileCustomerDocuments.some((item) => item.id === document.id)) {
+      openCustomerPaperwork(document);
+      return;
+    }
+    setSelectedDocument(document);
+  }
+
   if (selectedDocument) {
     return <DocumentSheet document={selectedDocument} activeCase={activeCase} onClose={() => setSelectedDocument(null)} pin={pin} saveNote={saveNote} />;
+  }
+
+  if (mobileMode) {
+    return (
+      <MobileMerchantIntelligencePage
+        activeCase={activeCase}
+        workspace={mobileWorkspace}
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+        onOpenDocument={openMobileDocument}
+        openMerchantPaperwork={openMerchantPaperwork}
+        openTool={openTool}
+        jumpDecision={jumpDecision}
+        markReviewed={markReviewed}
+        reviewed={reviewed}
+      />
+    );
   }
 
   const sectionProps = { workspace, onOpen: setSelectedDocument, openTool, openMerchantPaperwork, documentRequests };

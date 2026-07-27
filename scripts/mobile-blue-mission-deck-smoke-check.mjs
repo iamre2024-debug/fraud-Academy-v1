@@ -10,7 +10,9 @@ const workspace = read('src/MobileMissionWorkspace.jsx');
 const workspaceController = read('src/VisualWorkspace.jsx');
 const briefing = read('src/MobileMissionCaseBriefing.jsx');
 const documentViewer = read('src/DocumentViewerWorkspace.jsx');
+const referenceTools = read('src/MobileMerchantDocumentPages.jsx');
 const styles = read('src/mobileMissionDeckV3.css');
+const referenceStyles = read('src/mobileMerchantDocumentReference.css');
 const legacyStyles = read('src/mobileBlueMissionDeck.css');
 const playwrightConfig = read('playwright.config.mjs');
 const failures = [];
@@ -21,6 +23,7 @@ function requireAnchor(label, content, anchor) {
 
 for (const anchor of [
   "import './mobileMissionDeckV3.css';",
+  "import './mobileMerchantDocumentReference.css';",
 ]) requireAnchor('main.jsx', entrypoint, anchor);
 
 if (entrypoint.includes("import './mobileBlueMissionDeck.css';")) failures.push('The legacy Blue Mission Deck override file must not load.');
@@ -58,15 +61,16 @@ for (const anchor of [
   '<CategoryTileRail',
   '<Customer360Panel',
   '<InvestigationToolPanel',
+  'mobileMode',
   'mission-document-request-page',
-  'MissionDocumentRequestHeading',
+  'mission-merchant-reference-page',
   'mission-login-history-page',
   'MissionLoginHistoryHeading',
   '<BottomInvestigationGrid',
   '<SubmitDecisionPanel',
   'decision-luna-portal-anchor',
   'Source record unavailable',
-  'data-document-request-step',
+  'data-merchant-reference-page',
   'data-mobile-indicator-view={workspaceScreen}',
   'disabled={stageStatus[key]?.state === \'locked\'}',
 ]) requireAnchor('MobileMissionWorkspace.jsx', workspace, anchor);
@@ -97,6 +101,24 @@ for (const anchor of [
 ]) requireAnchor('DocumentViewerWorkspace.jsx', documentViewer, anchor);
 
 for (const anchor of [
+  'MobileMerchantIntelligencePage',
+  'MobileDocumentRequestPage',
+  'data-mobile-merchant-reference',
+  'data-mobile-document-reference',
+  'Transaction under review',
+  'Prior customer history',
+  'Policy & supporting terms',
+  'Merchant response',
+  'Manual Request Inbox',
+  'Requested Documents',
+  'Document Preview',
+  'data-document-request-step',
+  'Nothing is sent until you complete the request form.',
+  'Under review',
+  'Debrief after submit',
+]) requireAnchor('MobileMerchantDocumentPages.jsx', referenceTools, anchor);
+
+for (const anchor of [
   'A dedicated mobile component system',
   '.mission-mobile-root',
   '.mission-mobile-dock',
@@ -116,6 +138,24 @@ for (const anchor of [
   'body:has(iframe[title="Netlify Drawer"]) .mission-mobile-dock',
   '@media (max-width: 370px)',
 ]) requireAnchor('mobileMissionDeckV3.css', styles, anchor);
+
+for (const anchor of [
+  'Merchant Intelligence + Document Request mobile reference rebuild',
+  '.mobile-reference-merchant-profile',
+  '.mobile-reference-transaction',
+  '.mobile-reference-history-metrics',
+  '.mobile-reference-policy-card',
+  '.mobile-reference-inbox-hero',
+  '.mobile-reference-request-list',
+  '.mobile-reference-document-preview',
+  '.mobile-reference-request-button',
+  '@media (max-width: 350px)',
+]) requireAnchor('mobileMerchantDocumentReference.css', referenceStyles, anchor);
+
+if (/body\[data-layout-mode="desktop"\]/.test(referenceStyles)) failures.push('Merchant/Document reference styles must not alter the desktop layout.');
+if (/font-size:\s*(?:0\.[0-6]\d*)rem/.test(referenceStyles)) failures.push('Merchant/Document reference styles must preserve the 12px mobile type floor.');
+if (!/Under review/.test(referenceTools) || /High Risk/.test(referenceTools)) failures.push('Merchant mobile reference must use neutral review wording instead of the mockup risk conclusion.');
+if (/KYB Review|caseTruth|correctDetermination|fraud score/i.test(referenceTools)) failures.push('Merchant/Document mobile reference restores a retired or answer-bearing surface.');
 
 const importantCount = (styles.match(/!important/g) ?? []).length;
 if (importantCount > 12) failures.push(`Mission Deck v3 has ${importantCount} !important overrides; it must remain structurally scoped.`);
