@@ -35,10 +35,10 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
   const destinationNode = workspace.getByRole('button', { name: /Search Destination ID/ });
   await expect(destinationNode).toBeVisible();
   await destinationNode.click();
-  await expect(search).toHaveValue('DST-CARD-4410');
   await expect(workspace.locator('[data-link-account]')).toHaveCount(2);
 
   await searchShell.locator('summary').click();
+  await expect(search).toHaveValue('DST-CARD-4410');
   await search.fill('NO-EXACT-MATCH');
   await workspace.getByRole('button', { name: 'Search Links', exact: true }).click();
   await expect(workspace.getByText('0 matched accounts', { exact: true })).toBeVisible();
