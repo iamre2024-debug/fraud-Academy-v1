@@ -4,6 +4,10 @@ import { expect, test } from '@playwright/test';
 import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
 import { trainingCases } from '../src/data/cases.js';
 import { getFinancialRecords } from '../src/data/caseToolData.js';
+import {
+  openMobileWorkspaceMenu,
+  openMobileWorkspaceShortcut,
+} from './workspace-page-helpers.mjs';
 
 const activeCase = enrichTrainingCases(trainingCases)[0];
 const paymentRecord = getFinancialRecords(activeCase).paymentVerification[0];
@@ -21,16 +25,15 @@ test.beforeEach(async ({ page }) => {
 
 async function openCustomer360(page) {
   await page.goto('/');
-  const launchpad = page.getByRole('navigation', { name: 'Case briefing files' })
-    .getByRole('button', { name: 'Investigation launchpad' });
-  await launchpad.click();
-  await page.getByRole('button', { name: /Begin investigation/i }).click();
+  await expect(page.locator('[data-mobile-reference-briefing="v2"]')).toBeVisible();
+  await page.getByRole('button', { name: /Open workspace/ }).click();
   await expect(page.locator('[data-mobile-reference-tool="Customer 360"]')).toBeVisible();
 }
 
 async function openToolGroup(page, groupLabel) {
-  const allTools = page.getByRole('button', { name: /All tools/ });
-  if (await allTools.isVisible()) await allTools.click();
+  if (!await page.locator('[data-investigation-tool-groups="approved-theme-v1"]').isVisible()) {
+    await openMobileWorkspaceShortcut(page, 'All tools');
+  }
   const group = page.locator('.mission-map-tool-node').filter({ hasText: groupLabel });
   await expect(group).toBeVisible();
   await group.click();
@@ -39,7 +42,8 @@ async function openToolGroup(page, groupLabel) {
 async function switchTool(page, toolName) {
   const workspace = page.locator('.mission-workspace-v3');
   if (await workspace.getAttribute('data-active-tool') !== toolName) {
-    const select = page.getByRole('combobox', { name: 'Choose mobile investigation tool' });
+    const menu = await openMobileWorkspaceMenu(page);
+    const select = menu.getByRole('combobox', { name: 'Choose mobile investigation tool' });
     await expect(select).toBeVisible();
     await select.selectOption(toolName);
   }
@@ -73,7 +77,7 @@ async function assertMobileGeometry(page) {
 
   expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.layoutWidth + 1);
   expect(geometry.bodyWidth).toBeLessThanOrEqual(geometry.layoutWidth + 1);
-  expect(geometry.buttons.map((item) => item.label)).toEqual(['⌂Home', '▤Cases', '✦Workspace', '♢Academy', '♡Agent', '❝Quotes']);
+  expect(geometry.buttons.map((item) => item.label)).toEqual(['⌂Home', '▣Cases', '⊞Workspace', '◇Academy', '☾Agent', '❝Quotes']);
   expect(geometry.buttons.every((item) => item.width >= 44 && item.height >= 44)).toBe(true);
   expect(geometry.dock.left).toBeGreaterThanOrEqual(0);
   expect(geometry.dock.right).toBeLessThanOrEqual(geometry.layoutWidth + 1);
@@ -145,11 +149,28 @@ test('approved mobile shell is safe at the required phone widths and every activ
     }
   }
 
-  await page.getByRole('button', { name: 'Open workspace menu' }).click();
-  await page.locator('.mission-path-list').getByRole('button', { name: /Timeline/ }).click();
+  await openMobileWorkspaceShortcut(page, 'Briefing');
+  await page.getByRole('navigation', { name: 'Case briefing actions' })
+    .getByRole('button', { name: /Timeline/ })
+    .click();
   await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-active-tool', 'Timeline');
   await expect(page.locator('[data-timeline-screen="approved-theme-v1"]')).toBeVisible();
   await assertMobileGeometry(page);
+
+  const menu = await openMobileWorkspaceMenu(page);
+  await menu.getByRole('combobox', { name: 'Choose active mission case' }).selectOption('FA-CR-24003');
+  await expect(page.locator('[data-mobile-reference-briefing="v2"]')).toBeVisible();
+  await page.getByRole('button', { name: /Open workspace/ }).click();
+  await openToolGroup(page, 'Business & Payment Verification');
+  await switchTool(page, 'Business Intelligence');
+  await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Business Intelligence');
+  const businessMenu = await openMobileWorkspaceMenu(page);
+  const businessOptions = await businessMenu
+    .getByRole('combobox', { name: 'Choose mobile investigation tool' })
+    .locator('option')
+    .allTextContents();
+  expect(businessOptions).toContain('Business Intelligence');
+  expect(businessOptions).not.toContain('KYB Review');
 });
 
 test('Quick Pad collapsed and expanded states are captured in the four required tools', async ({ page }) => {
@@ -164,7 +185,7 @@ test('Quick Pad collapsed and expanded states are captured in the four required 
   await openToolGroup(page, 'Transactions & Financial');
   await switchTool(page, 'Financial Investigation');
   await expect(page.locator('[data-financial-investigation-screen]')).toBeVisible();
-  await page.locator('.mobile-tool-quick-pins').getByRole('button', { name: /Transaction ID/ }).click();
+  await page.getByRole('button', { name: /Pin Transaction ID .* to Quick Pad/ }).first().click();
   await captureQuickPadPair(page, 'financial-investigation');
 
   await openToolGroup(page, 'Links & Related Cases');

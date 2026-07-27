@@ -32,7 +32,7 @@ async function assertPhoneGeometry(page) {
   expect(geometry.dock.bottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
   expect(geometry.buttons).toHaveLength(6);
   expect(geometry.buttons.every((button) => button.width >= 44 && button.height >= 44)).toBe(true);
-  expect(geometry.buttons.map((button) => button.label)).toEqual(['⌂Home', '▤Cases', '✦Workspace', '♢Academy', '♡Agent', '❝Quotes']);
+  expect(geometry.buttons.map((button) => button.label)).toEqual(['⌂Home', '▣Cases', '⊞Workspace', '◇Academy', '☾Agent', '❝Quotes']);
 }
 
 test('mobile mounts the approved Fraud Academy shell and generated cases inherit the reference tool pages', async ({ page }, testInfo) => {
@@ -64,11 +64,12 @@ test('mobile mounts the approved Fraud Academy shell and generated cases inherit
   const dashboard = page.locator('.mobile-reference-dashboard');
   await expect(dashboard).toBeVisible();
   await expect(dashboard.getByRole('heading', { name: 'Good morning Ree, let’s stop fraud ✨' })).toBeVisible();
-  await expect(dashboard.locator('.mobile-dashboard-luna')).toContainText('Luna');
-  await expect(dashboard.locator('.mobile-dashboard-grid .mobile-dashboard-card')).toHaveCount(4);
-  await expect(dashboard.locator('.mobile-dashboard-active-file')).toContainText('FA-ATO-24018');
-  await expect(dashboard.locator('.mobile-dashboard-panels')).toContainText('Agent panel');
-  await expect(dashboard.locator('.mobile-dashboard-panels')).toContainText('Quotes panel');
+  await expect(dashboard.getByRole('button', { name: 'Open Luna agent panel' })).toContainText('Luna');
+  await expect(dashboard.locator('.mobile-dashboard-grid .mobile-dashboard-card')).toHaveCount(3);
+  await expect(dashboard.locator('.mobile-dashboard-active-case')).toContainText('FA-ATO-24018');
+  await expect(dashboard.locator('.mobile-dashboard-academy-panel')).toContainText('Academy Progress');
+  await expect(dashboard.locator('.mobile-dashboard-panels')).toContainText('Agent Panel');
+  await expect(dashboard.locator('.mobile-dashboard-panels')).toContainText('Quotes');
   await capture(page, testInfo, '01-approved-dashboard');
 
   await dock.getByRole('button', { name: /Quotes/ }).click();
@@ -77,14 +78,15 @@ test('mobile mounts the approved Fraud Academy shell and generated cases inherit
 
   await dock.getByRole('button', { name: /Workspace/ }).click();
   await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'briefing');
-  await page.getByRole('navigation', { name: 'Case briefing files' })
-    .getByRole('button', { name: 'Investigation launchpad' })
-    .click();
-  await page.getByRole('button', { name: /Begin investigation/i }).click();
+  await expect(page.locator('.mission-briefing-v4')).toBeVisible();
+  await page.getByRole('button', { name: /Open workspace/i }).click();
   await expect(page.locator('[data-mobile-reference-tool="Customer 360"]')).toBeVisible();
   await expect(page.getByRole('button', { name: /Open Quick Pad/ })).toBeVisible();
 
-  await page.getByRole('button', { name: /All tools/ }).click();
+  await page.getByRole('button', { name: 'Open workspace menu' }).click();
+  await page.getByRole('navigation', { name: 'Workspace shortcuts' })
+    .getByRole('button', { name: /All tools/ })
+    .click();
   const toolMap = page.locator('.mission-evidence-map');
   await expect(toolMap).toBeVisible();
   await expect(toolMap.locator('.mission-map-tool-node')).toHaveCount(6);
@@ -93,7 +95,9 @@ test('mobile mounts the approved Fraud Academy shell and generated cases inherit
   await capture(page, testInfo, '02-approved-tool-map');
 
   await page.getByRole('button', { name: 'Open workspace menu' }).click();
-  await page.locator('.mission-path-list').getByRole('button', { name: /Decision/ }).click();
+  await page.getByRole('navigation', { name: 'Workspace shortcuts' })
+    .getByRole('button', { name: /Decide/ })
+    .click();
   const decision = page.locator('.mission-decision-page');
   await expect(decision).toBeVisible();
   await expect(decision.getByRole('group', { name: 'Operational decision' })).toBeVisible();
@@ -107,14 +111,13 @@ test('mobile mounts the approved Fraud Academy shell and generated cases inherit
   await queue.getByLabel('Generate case count').selectOption('1');
   await queue.getByRole('button', { name: 'Generate cases', exact: true }).click();
 
-  await expect(page.locator('.mission-briefing-v3')).toBeVisible();
+  await expect(page.locator('.mission-briefing-v4')).toBeVisible();
+  await page.getByRole('button', { name: 'Open workspace menu' }).click();
   const generatedCaseId = await page.getByRole('combobox', { name: 'Choose active mission case' }).inputValue();
   expect(generatedCaseId).toMatch(/-G\d+$/);
-  await page.getByRole('navigation', { name: 'Case briefing files' })
-    .getByRole('button', { name: 'Investigation launchpad' })
-    .click();
-  await page.getByRole('button', { name: /Begin investigation/i }).click();
-  await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')).toHaveAttribute('data-case-id', generatedCaseId);
+  await page.getByRole('button', { name: 'Open workspace menu' }).click();
+  await page.getByRole('button', { name: /Open workspace/i }).click();
+  await expect(page.locator('[data-customer-360-screen="approved-theme-v2"]')).toHaveAttribute('data-case-id', generatedCaseId);
   await assertPhoneGeometry(page);
   await capture(page, testInfo, '04-generated-customer-360');
 });

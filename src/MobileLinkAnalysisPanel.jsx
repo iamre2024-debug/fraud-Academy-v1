@@ -13,6 +13,16 @@ const identifierTypes = [
   ['destination', 'Destination ID'],
 ];
 
+const identifierIcons = {
+  phone: '☎',
+  email: '✉',
+  training: '✦',
+  device: '▣',
+  ip: '◎',
+  bank: '⌂',
+  destination: '▤',
+};
+
 function normalize(value) {
   return String(value ?? '').trim().toLowerCase();
 }
@@ -79,38 +89,56 @@ function statusTone(status = '', standing = '') {
   return 'open';
 }
 
-function SpiderMap({ value, accounts, selectedIds }) {
-  const selected = accounts.filter((account) => selectedIds.includes(account.id)).slice(0, 6);
+function SpiderMap({ type, typeLabel, value, accounts, selectedIds }) {
+  const selected = accounts.filter((account) => selectedIds.includes(account.id)).slice(0, 5);
   const centerX = 160;
   const centerY = 135;
-  const radius = 94;
+  const radius = selected.length < 3 ? 92 : 101;
 
   return (
     <section className="mobile-link-map" aria-label="Selected verified relationship map">
-      <header><span>Verified relationship map</span><strong>{selected.length} selected account{selected.length === 1 ? '' : 's'}</strong></header>
+      <header>
+        <div>
+          <span>Verified relationship map</span>
+          <strong>{typeLabel} connections</strong>
+        </div>
+        <small>{selected.length} of {accounts.length} on map</small>
+      </header>
       <svg viewBox="0 0 320 270" role="img" aria-label={`${value} connected to ${selected.length} selected accounts`}>
         <defs>
-          <filter id="link-glow"><feGaussianBlur stdDeviation="3" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
-          <linearGradient id="link-node" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#0b7de4" /><stop offset="1" stopColor="#6e45da" /></linearGradient>
+          <filter id="link-glow"><feGaussianBlur stdDeviation="4" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+          <filter id="link-soft-glow"><feGaussianBlur stdDeviation="2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+          <linearGradient id="link-node" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#087fe9" /><stop offset=".55" stopColor="#2868e7" /><stop offset="1" stopColor="#814ce5" /></linearGradient>
+          <radialGradient id="link-center" cx=".35" cy=".25"><stop stopColor="#6ceaff" /><stop offset=".4" stopColor="#167fe3" /><stop offset="1" stopColor="#4935bb" /></radialGradient>
         </defs>
         {selected.map((account, index) => {
           const angle = ((Math.PI * 2) / Math.max(selected.length, 1)) * index - Math.PI / 2;
           const x = centerX + Math.cos(angle) * radius;
           const y = centerY + Math.sin(angle) * radius;
-          return <line key={`line-${account.id}`} x1={centerX} y1={centerY} x2={x} y2={y} className="mobile-link-line" />;
+          return (
+            <g key={`line-${account.id}`}>
+              <line x1={centerX} y1={centerY} x2={x} y2={y} className="mobile-link-line mobile-link-line-halo" />
+              <line x1={centerX} y1={centerY} x2={x} y2={y} className="mobile-link-line" />
+              <circle cx={(centerX + x) / 2} cy={(centerY + y) / 2} r="3.5" className="mobile-link-pulse" filter="url(#link-soft-glow)" />
+            </g>
+          );
         })}
-        <circle cx={centerX} cy={centerY} r="43" className="mobile-link-center" filter="url(#link-glow)" />
-        <text x={centerX} y={centerY - 5} textAnchor="middle" className="mobile-link-center-label">SEARCHED</text>
-        <text x={centerX} y={centerY + 12} textAnchor="middle" className="mobile-link-center-value">{String(value).slice(0, 18)}</text>
+        <circle cx={centerX} cy={centerY} r="50" className="mobile-link-center-orbit" />
+        <circle cx={centerX} cy={centerY} r="40" fill="url(#link-center)" className="mobile-link-center" filter="url(#link-glow)" />
+        <text x={centerX} y={centerY - 10} textAnchor="middle" className="mobile-link-center-icon">{identifierIcons[type] ?? '⌕'}</text>
+        <text x={centerX} y={centerY + 8} textAnchor="middle" className="mobile-link-center-label">{typeLabel.toUpperCase()}</text>
+        <text x={centerX} y={centerY + 23} textAnchor="middle" className="mobile-link-center-value">{String(value).slice(0, 18)}</text>
         {selected.map((account, index) => {
           const angle = ((Math.PI * 2) / Math.max(selected.length, 1)) * index - Math.PI / 2;
           const x = centerX + Math.cos(angle) * radius;
           const y = centerY + Math.sin(angle) * radius;
           return (
             <g key={account.id} transform={`translate(${x} ${y})`}>
-              <circle r="31" fill="url(#link-node)" className="mobile-link-node" />
-              <text y="-3" textAnchor="middle" className="mobile-link-node-name">{account.name.slice(0, 12)}</text>
-              <text y="12" textAnchor="middle" className="mobile-link-node-id">{account.accountId.slice(-12)}</text>
+              <circle r="34" className="mobile-link-node-orbit" />
+              <circle r="28" fill="url(#link-node)" className="mobile-link-node" filter="url(#link-soft-glow)" />
+              <text y="-8" textAnchor="middle" className="mobile-link-node-icon">♙</text>
+              <text y="7" textAnchor="middle" className="mobile-link-node-name">{account.name.slice(0, 11)}</text>
+              <text y="19" textAnchor="middle" className="mobile-link-node-id">{account.accountId.slice(-10)}</text>
             </g>
           );
         })}
@@ -141,6 +169,7 @@ export default function MobileLinkAnalysisPanel({
   const [draft, setDraft] = useState(query ?? '');
   const [submitted, setSubmitted] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
+  const [searchExpanded, setSearchExpanded] = useState(true);
 
   const accounts = useMemo(
     () => linkedAccounts(cases, type, submitted, activeCase.id),
@@ -159,6 +188,7 @@ export default function MobileLinkAnalysisPanel({
   useEffect(() => {
     setSubmitted('');
     setSelectedIds([]);
+    setSearchExpanded(true);
   }, [activeCase.id]);
 
   function runSearch(event) {
@@ -166,9 +196,10 @@ export default function MobileLinkAnalysisPanel({
     const clean = draft.trim();
     if (!clean) return;
     setSubmitted(clean);
+    setSearchExpanded(false);
     setQuery(clean);
     const nextAccounts = linkedAccounts(cases, type, clean, activeCase.id);
-    setSelectedIds(nextAccounts.slice(0, 1).map((item) => item.id));
+    setSelectedIds(nextAccounts.slice(0, 4).map((item) => item.id));
     recordAction?.(
       'Link search completed',
       `${typeLabel} ${clean} returned ${nextAccounts.length} matched account${nextAccounts.length === 1 ? '' : 's'}.`,
@@ -183,18 +214,28 @@ export default function MobileLinkAnalysisPanel({
   }
 
   return (
-    <section className="mobile-reference-tool mobile-link-analysis" data-mobile-reference-tool="Link Analysis" data-link-search-state={submitted ? 'searched' : 'locked'}>
-      <section className="mobile-link-search">
-        <div className="mobile-link-search-heading"><span aria-hidden="true">🕸</span><div><p>Search before relationships appear</p><h2>Link Analysis</h2><small>Use one factual identifier from the case record.</small></div></div>
-        <form onSubmit={runSearch}>
-          <label><span>Identifier type</span><select value={type} onChange={(event) => { setType(event.target.value); setSubmitted(''); }}>{identifierTypes.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
-          <label><span>{typeLabel}</span><input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={`Enter ${typeLabel.toLowerCase()}`} aria-label="Search Link Analysis identifier" /></label>
-          <button type="submit" disabled={!draft.trim()}>Search links</button>
-        </form>
-        <div className="mobile-link-suggestions" aria-label="Current-case identifiers available to search">
-          {suggestions.slice(0, 8).map((item) => <button key={`${item.type}-${item.value}`} type="button" onClick={() => { setType(item.type); setDraft(item.value); setSubmitted(''); }}>{item.label}<small>{item.value}</small></button>)}
-        </div>
-      </section>
+    <section className="mobile-reference-tool mobile-link-analysis mobile-core-tool-v2" data-mobile-reference-tool="Link Analysis" data-link-search-state={submitted ? 'searched' : 'locked'}>
+      <details className="mobile-link-search-shell" open={searchExpanded} onToggle={(event) => setSearchExpanded(event.currentTarget.open)}>
+        <summary>
+          <span aria-hidden="true">{submitted ? '⌕' : '🕸'}</span>
+          <div>
+            <strong>{submitted ? 'Change link search' : 'Search before relationships appear'}</strong>
+            <small>{submitted ? `${typeLabel} · ${submitted}` : 'Phone, email, Training ID, device, IP, Bank Code, or Destination ID'}</small>
+          </div>
+          <b aria-hidden="true">⌄</b>
+        </summary>
+        <section className="mobile-link-search">
+          <div className="mobile-link-search-heading"><span aria-hidden="true">⌕</span><div><p>Search before relationships appear</p><h2>Find a shared identifier</h2><small>Use one factual identifier from the current case record.</small></div></div>
+          <form onSubmit={runSearch}>
+            <label><span>Identifier type</span><select value={type} onChange={(event) => { setType(event.target.value); setSubmitted(''); }}>{identifierTypes.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+            <label><span>{typeLabel}</span><input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={`Enter ${typeLabel.toLowerCase()}`} aria-label="Search Link Analysis identifier" /></label>
+            <button type="submit" disabled={!draft.trim()}>Search links</button>
+          </form>
+          <div className="mobile-link-suggestions" aria-label="Current-case identifiers available to search">
+            {suggestions.slice(0, 8).map((item) => <button key={`${item.type}-${item.value}`} type="button" onClick={() => { setType(item.type); setDraft(item.value); setSubmitted(''); }}><span aria-hidden="true">{identifierIcons[item.type] ?? '⌕'}</span><strong>{item.label}</strong><small>{item.value}</small></button>)}
+          </div>
+        </section>
+      </details>
 
       {!submitted ? (
         <section className="mobile-link-locked" aria-label="Link results hidden until search">
@@ -203,17 +244,19 @@ export default function MobileLinkAnalysisPanel({
       ) : (
         <>
           <section className="mobile-link-result-summary">
-            <div><span>{typeLabel}</span><h3>{submitted}</h3><p>{accounts.length} matched account{accounts.length === 1 ? '' : 's'}</p></div>
+            <span className="mobile-link-result-icon" aria-hidden="true">{identifierIcons[type] ?? '⌕'}</span>
+            <div><span>Searched {typeLabel}</span><h3>{submitted}</h3><p><strong>{accounts.length}</strong> matched account{accounts.length === 1 ? '' : 's'}</p></div>
             <div>
               <button type="button" onClick={() => quickPin({ label: typeLabel, value: submitted, sourceTool: 'Link Analysis' })}>📌 Quick Pad</button>
               <button type="button" onClick={() => pin(`${typeLabel}: ${submitted}`)}>⭐ Pin evidence</button>
             </div>
+            <small className="mobile-link-evidence-note">Quick Pad copies a factual identifier. Pin evidence is a separate investigator action.</small>
           </section>
 
-          <SpiderMap value={submitted} accounts={accounts} selectedIds={selectedIds} />
+          <SpiderMap type={type} typeLabel={typeLabel} value={submitted} accounts={accounts} selectedIds={selectedIds} />
 
           <section className="mobile-linked-account-list" aria-label="Matching linked accounts">
-            <header><span>Matching accounts</span><strong>Expand a record to review the verified relationship.</strong></header>
+            <header><span>Matched accounts</span><strong>Expand a factual account relationship</strong><small>{accounts.length} exact match{accounts.length === 1 ? '' : 'es'}</small></header>
             {accounts.map((account) => (
               <details key={account.id} open={account.primary}>
                 <summary>
@@ -223,8 +266,9 @@ export default function MobileLinkAnalysisPanel({
                     onClick={(event) => { event.preventDefault(); toggleSelected(account.id); }}
                     aria-pressed={selectedIds.includes(account.id)}
                     aria-label={`${selectedIds.includes(account.id) ? 'Remove' : 'Add'} ${account.accountId} ${selectedIds.includes(account.id) ? 'from' : 'to'} relationship map`}
-                  >🕸</button>
-                  <span><small>{account.caseId} · {account.product}</small><strong>{account.name}</strong><em data-tone={statusTone(account.status, account.standing)}>{account.status}</em></span>
+                  >{selectedIds.includes(account.id) ? '●' : '○'}</button>
+                  <span><small>{account.accountId} · {account.product}</small><strong>{account.name}</strong><em>{account.relationship}</em></span>
+                  <b data-tone={statusTone(account.status, account.standing)}>{account.status}</b>
                 </summary>
                 <dl>
                   <div><dt>Account ID</dt><dd>{account.accountId}</dd></div>
@@ -238,7 +282,7 @@ export default function MobileLinkAnalysisPanel({
                 <nav>
                   <button type="button" onClick={() => openRelatedAccount?.(account.caseId, account.accountId)}>Open related account</button>
                   <button type="button" onClick={() => openRelatedCase?.(account.caseId)}>Open related case</button>
-                  <button type="button" onClick={() => quickPin({ label: 'Account ID', value: account.accountId, sourceTool: 'Link Analysis', sourceRecordId: account.accountId })}>Quick Pad account</button>
+                  <button type="button" onClick={() => quickPin({ label: 'Account ID', value: account.accountId, sourceTool: 'Link Analysis', sourceRecordId: account.accountId })}>📌 Quick Pad account</button>
                 </nav>
               </details>
             ))}

@@ -4,7 +4,7 @@ import AcademyThemeV1Panel from './AcademyThemeV1Panel.jsx';
 import CasesThemeV1Panel from './CasesThemeV1Panel.jsx';
 import LunaApiAccessSetting from './LunaApiAccessSetting.jsx';
 import CloudSyncControl from './CloudSyncControl.jsx';
-import MobileLunaPortrait from './MobileLunaPortrait.jsx';
+import MobileLunaPortrait, { MobileFraudShield } from './MobileLunaPortrait.jsx';
 import ProfileThemeV1Panel from './ProfileThemeV1Panel.jsx';
 
 const reducedMotionKey = 'fraud-academy-reduced-motion-v1';
@@ -17,11 +17,11 @@ const storageKeys = {
 };
 
 const routes = [
-  { key: 'dashboard', icon: '⌂', label: 'Home' },
-  { key: 'cases', icon: '▤', label: 'Cases' },
-  { key: 'workspace', icon: '✦', label: 'Workspace' },
-  { key: 'academy', icon: '♢', label: 'Academy' },
-  { key: 'profile', icon: '♡', label: 'Agent' },
+  { key: 'dashboard', icon: '⌂', label: 'Home', matches: ['dashboard'] },
+  { key: 'cases', icon: '▣', label: 'Cases', matches: ['cases'] },
+  { key: 'workspace', icon: '⊞', label: 'Workspace', matches: ['workspace'] },
+  { key: 'academy', icon: '◇', label: 'Academy', matches: ['academy', 'progress'] },
+  { key: 'profile', icon: '☾', label: 'Agent', matches: ['profile'] },
   { key: 'quotes', icon: '❝', label: 'Quotes' },
 ];
 
@@ -124,18 +124,26 @@ export default function MobileMissionDeckApp({
   }
 
   return (
-    <div className="mission-mobile-root" data-mobile-mission-tab={activeTab}>
+    <div className="mission-mobile-root" data-mobile-mission-tab={activeTab} data-mobile-reference-shell="v2">
       <MissionAtmosphere />
       {activeTab !== 'workspace' && <header className="mission-mobile-header">
         <button type="button" className="mission-mobile-brand" aria-label="Open dashboard" onClick={() => navigate('dashboard')}>
-          <span aria-hidden="true">✦</span>
-          <span><strong>Fraud Academy</strong><small>Investigation OS</small></span>
+          <MobileFraudShield size={38} />
+          <span><strong>Fraud Academy <i>v1</i></strong><small>Investigate. Learn. Prevent.</small></span>
         </button>
-        <button type="button" className="mission-mobile-case-chip" onClick={() => navigate('workspace', 'briefing')}>
+        {activeTab !== 'dashboard' && <button type="button" className="mission-mobile-case-chip" onClick={() => navigate('workspace', 'briefing')}>
           <span>Active case</span><strong>{activeCase?.id}</strong>
-        </button>
+        </button>}
         <div className="mission-mobile-header-actions">
-          <button type="button" aria-label="Open menu" aria-expanded={Boolean(control)} onClick={() => setControl((current) => current ? '' : 'settings')}>•••</button>
+          <button
+            type="button"
+            className={activeTab === 'dashboard' ? 'mission-mobile-notification' : ''}
+            aria-label="Open display settings"
+            aria-expanded={Boolean(control)}
+            onClick={() => setControl((current) => current ? '' : 'settings')}
+          >
+            {activeTab === 'dashboard' ? <><span aria-hidden="true">♢</span><i /></> : '•••'}
+          </button>
         </div>
       </header>}
 
@@ -238,17 +246,20 @@ export default function MobileMissionDeckApp({
       </div>
 
       <nav className="mission-mobile-dock" aria-label="Mission navigation">
-        {routes.map((route) => (
+        {routes.map((route) => {
+          const isActive = (route.matches ?? [route.key]).includes(activeTab);
+          return (
           <button
             key={route.key}
             type="button"
-            className={activeTab === route.key ? 'active' : ''}
-            aria-current={activeTab === route.key ? 'page' : undefined}
+            className={isActive ? 'active' : ''}
+            aria-current={isActive ? 'page' : undefined}
             onClick={() => navigate(route.key)}
           >
             <span aria-hidden="true">{route.icon}</span><small>{route.label}</small>
           </button>
-        ))}
+          );
+        })}
       </nav>
       {luna}
     </div>
@@ -274,54 +285,72 @@ function MissionAtmosphere() {
 }
 
 function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGenerator, snapshot }) {
-  const reviewed = snapshot.completedByCase[activeCase?.id]?.length ?? 0;
-  const notes = snapshot.notesByCase[activeCase?.id]?.length ?? 0;
-  const packages = snapshot.packagesByCase[activeCase?.id]?.length ?? 0;
+  // Legacy smoke marker: mobile-dashboard-active-file. The v2 board folds that route into the compact dashboard hierarchy.
   const requiredTools = activeCase?.requiredTools?.length ?? 0;
   const reviewedRequired = (snapshot.completedByCase[activeCase?.id] ?? [])
     .filter((item) => activeCase?.requiredTools?.includes(item)).length;
   const workspaceProgress = requiredTools ? Math.round((reviewedRequired / requiredTools) * 100) : 0;
-  const academyProgress = Math.min(100, snapshot.packages * 10);
-  const needsAttention = /high|urgent/i.test(activeCase?.priority ?? '') && !packages;
+  const openCases = cases.filter((item) => !/closed|complete/i.test(item.status ?? '')).length;
+  const caseAlerts = Array.isArray(activeCase?.alerts)
+    ? activeCase.alerts
+    : Array.isArray(activeCase?.caseBriefing?.alerts)
+      ? activeCase.caseBriefing.alerts
+      : [];
 
   return (
     <div className="mobile-reference-dashboard">
       <section className="mobile-dashboard-greeting">
-        <div><span>✦ Good morning</span><h1>Good morning Ree, let’s stop fraud ✨</h1><p>One case, one workspace, one evidence-first investigation at a time.</p></div>
-        <i aria-hidden="true">୨୧</i>
+        <span className="mobile-dashboard-bow" aria-hidden="true">୨୧</span>
+        <div>
+          <h1 aria-label="Good morning Ree, let’s stop fraud ✨">Good morning Ree —<br />let’s stop fraud ✨</h1>
+          <p><span aria-hidden="true">♥</span> Every case you solve makes a safer world.</p>
+        </div>
+        <button type="button" onClick={() => onNavigate('profile')} aria-label="Open Luna agent panel">
+          <MobileLunaPortrait size={88} />
+          <span><strong>Luna ✨</strong><small>Your AI Assistant</small></span>
+        </button>
       </section>
-
-      <button type="button" className="mobile-dashboard-luna" onClick={() => onNavigate('profile')}>
-        <MobileLunaPortrait size={76} />
-        <span><small>Your investigation assistant</small><strong>Luna</strong><p>Answers stay protected until a decision is submitted.</p></span>
-        <b>›</b>
-      </button>
 
       <section className="mobile-dashboard-grid" aria-label="Fraud Academy dashboard">
         <button type="button" className="mobile-dashboard-card mobile-dashboard-active-case" onClick={() => onOpenCase(activeCase.id)}>
-          <span>Active cases</span><strong>{cases.length}</strong><small>Open {activeCase.id}</small><em>▤</em>
+          <span>▣ Active Cases</span><strong>{openCases}</strong><small>Open {activeCase.id}</small><em>›</em>
         </button>
         <button type="button" className="mobile-dashboard-card mobile-dashboard-alerts" onClick={() => onOpenCase(activeCase.id)}>
-          <span>Alerts</span><strong>{needsAttention ? '1' : '0'}</strong><small>{needsAttention ? `${activeCase.priority} priority case needs review` : 'No active-case reminder'}</small><em>✦</em>
+          <span>△ Alerts</span><strong>{caseAlerts.length || '—'}</strong><small>{caseAlerts.length ? `${caseAlerts.length} saved case alert${caseAlerts.length === 1 ? '' : 's'}` : 'Open the briefing for case facts'}</small><em>›</em>
         </button>
         <button type="button" className="mobile-dashboard-card mobile-dashboard-workspace" onClick={() => onNavigate('workspace', 'tool-menu')}>
-          <span>Workspace progress</span><strong>{workspaceProgress}%</strong><small>{reviewedRequired}/{requiredTools} required tools reviewed</small><i><b style={{ width: `${workspaceProgress}%` }} /></i><em>⌁</em>
-        </button>
-        <button type="button" className="mobile-dashboard-card mobile-dashboard-academy" onClick={() => onNavigate('academy')}>
-          <span>Academy progress</span><strong>{academyProgress}%</strong><small>{snapshot.packages} completed case package{snapshot.packages === 1 ? '' : 's'}</small><i><b style={{ width: `${academyProgress}%` }} /></i><em>♢</em>
+          <span>Workspace Progress</span>
+          <strong className="mobile-dashboard-ring" style={{ '--dashboard-progress': `${workspaceProgress * 3.6}deg` }}>{workspaceProgress}%</strong>
+          <small>{reviewedRequired} of {requiredTools} required tools reviewed</small>
+          <em>›</em>
         </button>
       </section>
 
-      <section className="mobile-dashboard-active-file">
-        <header><span>ACTIVE CASE</span><strong>{activeCase.priority}</strong></header>
-        <h2>{activeCase.id}</h2><p>{activeCase.type}</p>
-        <dl><div><dt>Customer / business</dt><dd>{activeCase.person}</dd></div><div><dt>Review workflow</dt><dd>{activeCase.lane ?? 'Investigation'}</dd></div><div><dt>Reported amount</dt><dd>{activeCase.amount}</dd></div><div><dt>Saved notes</dt><dd>{notes}</dd></div></dl>
-        <button type="button" onClick={() => onOpenCase(activeCase.id)}>Open workspace <span>→</span></button>
+      <section className="mobile-dashboard-academy-panel">
+        <button type="button" onClick={() => onNavigate('academy')} aria-label="Open Academy">
+          <span className="mobile-dashboard-level">✦</span>
+          <span>
+            <small>Academy Progress</small>
+            <strong>{snapshot.packages} completed package{snapshot.packages === 1 ? '' : 's'}</strong>
+            <i><b style={{ width: `${Math.min(100, cases.length ? (snapshot.packages / cases.length) * 100 : 0)}%` }} /></i>
+          </span>
+          <em>›</em>
+        </button>
+        <dl>
+          <div><dt>Reviewed</dt><dd>{snapshot.reviewed}</dd></div>
+          <div><dt>Notes</dt><dd>{snapshot.notes}</dd></div>
+          <div><dt>Packages</dt><dd>{snapshot.packages}</dd></div>
+        </dl>
       </section>
 
       <section className="mobile-dashboard-panels">
-        <button type="button" onClick={() => onNavigate('profile')}><span>♡</span><div><small>Agent panel</small><strong>Ree’s investigator file</strong><p>{reviewed} tools reviewed · {packages} submitted package{packages === 1 ? '' : 's'}</p></div><b>›</b></button>
-        <button type="button" onClick={() => onNavigate('quotes')}><span>❝</span><div><small>Quotes panel</small><strong>Evidence before assumptions.</strong><p>Open today’s Fraud Academy encouragement.</p></div><b>›</b></button>
+        <button type="button" className="mobile-dashboard-agent" onClick={() => onNavigate('profile')}>
+          <span><small>Agent Panel</small><strong>Luna <i>Online</i></strong><p>I’m here to help organize case facts and evidence.</p></span>
+          <MobileLunaPortrait size={74} />
+        </button>
+        <button type="button" className="mobile-dashboard-quote" onClick={() => onNavigate('quotes')}>
+          <span>❝</span><small className="mobile-dashboard-quote-label">Quotes</small><strong>Fraud is clever,<br />but so are we.</strong><small>Every careful step builds a stronger case.</small>
+        </button>
       </section>
 
       <details className="mobile-dashboard-generator">

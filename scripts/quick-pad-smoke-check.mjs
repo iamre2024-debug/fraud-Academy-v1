@@ -18,7 +18,7 @@ const checks = [
   ['Quick IDs remain separate from pinned evidence', workspace.includes("recordAction('Saved to Quick Pad'") && !component.includes('Pinned Evidence')],
   ['Quick Pad renders for both workspace layouts', (workspace.match(/\{quickPadLayer\}/g) ?? []).length === 2],
   ['Saved values can populate the current search', workspace.includes('setQuery(item.value)')],
-  ['Saved values can reopen their source tool', workspace.includes('openTool(item.sourceTool')],
+  ['Saved values can reopen their source tool', workspace.includes('openTool(sourceTool') && workspace.includes("item.sourceTool === 'Business Intelligence' ? 'KYB Review'")],
   ['Account IDs can be added from Customer 360', customer.includes("label: 'Account ID'")],
   ['Bank and destination IDs can be added', customer.includes("label: 'Bank Code'") && customer.includes("label: 'Destination ID'")],
   ['Device IDs can be added', device.includes("label: 'Device ID'")],

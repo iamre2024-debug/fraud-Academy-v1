@@ -1,18 +1,28 @@
 import { test, expect } from '@playwright/test';
-import { selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  openMobileWorkspaceMenu,
+  selectCurrentGroupTool,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 test('Document Request tracks case-scoped document workflow states', async ({ page }, testInfo) => {
   test.setTimeout(90_000);
   await page.goto('/');
 
-  await page.locator('.visual-case-switcher select').selectOption('FA-CB-24007');
+  if (testInfo.project.name === 'mobile-chromium') {
+    const menu = await openMobileWorkspaceMenu(page);
+    await menu.getByRole('combobox', { name: 'Choose active mission case' }).selectOption('FA-CB-24007');
+  } else {
+    await page.locator('.visual-case-switcher select').selectOption('FA-CB-24007');
+  }
   await selectToolGroup(page, /Documents & Requests/);
 
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  const toolSelector = testInfo.project.name === 'mobile-chromium'
-    ? page.getByRole('combobox', { name: 'Choose mobile investigation tool', exact: true })
-    : toolPanel.getByRole('combobox', { name: 'Choose investigation tool', exact: true });
-  await toolSelector.selectOption('Document Request');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await selectCurrentGroupTool(page, 'Document Request');
+  } else {
+    await toolPanel.getByRole('combobox', { name: 'Choose investigation tool', exact: true }).selectOption('Document Request');
+  }
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Request');
   const genericQuestion = toolPanel.getByRole('heading', { name: 'What documents were requested, received, missing, or pending review for this case?', exact: true });
   if (testInfo.project.name === 'mobile-chromium') {

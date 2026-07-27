@@ -5,8 +5,86 @@ const secondCase = { id: 'FA-CB-24007', person: 'Jordan Ellis' };
 const forbiddenPreSubmissionCopy = /\b(?:fraud score|red flags?|green flags?|correct answer|AI recommendations?|fraudulent|legitimate|suggested first tool|investigator question)\b/i;
 const forbiddenDecisionCopy = /\b(?:fraud score|correct answer|AI recommendations?|fraudulent|legitimate|suggested first tool|investigator question)\b/i;
 
+async function verifyMobileBriefing(page) {
+  const briefing = page.locator('.mission-briefing-v4');
+  await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'workspace');
+  await expect(briefing).toBeVisible();
+  await expect(briefing.getByRole('heading', { name: 'FA-ATO-24018', exact: true })).toBeVisible();
+  await expect(briefing.getByRole('heading', { name: 'Allegation Summary', exact: true })).toBeVisible();
+  await expect(briefing.getByRole('heading', { name: 'Quick Facts', exact: true })).toBeVisible();
+  await expect(briefing.getByRole('heading', { name: 'Available Records', exact: true })).toBeVisible();
+  await expect(briefing).toContainText('Two failed password attempts were recorded at 7:58 AM and 8:00 AM.');
+  await expect(briefing).toContainText('personal iPhone and Dallas, TX');
+  await expect(briefing.getByRole('navigation', { name: 'Case briefing actions' }).getByRole('button')).toHaveCount(5);
+  await expect(briefing.getByRole('navigation', { name: 'Case Briefing pages' })).toHaveCount(0);
+  expect(await briefing.innerText()).not.toMatch(forbiddenPreSubmissionCopy);
+
+  const mobileLayout = await page.evaluate(() => {
+    const viewport = document.querySelector('.mission-mobile-viewport');
+    const briefingElement = document.querySelector('.mission-briefing-v4');
+    const rect = briefingElement?.getBoundingClientRect();
+    return {
+      viewportWidth: window.innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      viewportScrollWidth: viewport?.scrollWidth ?? 0,
+      viewportClientWidth: viewport?.clientWidth ?? 0,
+      left: rect?.left ?? -1,
+      right: rect?.right ?? Number.POSITIVE_INFINITY,
+    };
+  });
+  expect(mobileLayout.documentWidth).toBeLessThanOrEqual(mobileLayout.viewportWidth + 1);
+  expect(mobileLayout.viewportScrollWidth).toBeLessThanOrEqual(mobileLayout.viewportClientWidth + 1);
+  expect(mobileLayout.left).toBeGreaterThanOrEqual(0);
+  expect(mobileLayout.right).toBeLessThanOrEqual(mobileLayout.viewportWidth + 1);
+
+  await page.getByRole('button', { name: 'Open workspace menu', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Choose active mission case' }).selectOption(secondCase.id);
+  await expect(briefing.getByText(secondCase.person, { exact: true }).first()).toBeVisible();
+  await expect(briefing).toContainText('Cardholder reports recurring billing after cancellation.');
+  await expect(briefing).toContainText('cancellation confirmation remains the required open evidence');
+
+  const suggestedTools = briefing.locator('section[aria-label="Suggested case tools"]');
+  await suggestedTools.getByRole('button', { name: /Transaction History/ }).click();
+  await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-active-tool', 'Transaction History');
+
+  await page.getByRole('button', { name: 'Open workspace menu', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Workspace shortcuts' })
+    .getByRole('button', { name: /Briefing/ })
+    .click();
+  await suggestedTools.getByRole('button', { name: /Merchant Intelligence/ }).click();
+  await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-active-tool', 'Merchant Intelligence');
+
+  await page.getByRole('button', { name: 'Open workspace menu', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Workspace shortcuts' })
+    .getByRole('button', { name: /Briefing/ })
+    .click();
+  await suggestedTools.getByRole('button', { name: /Document Request/ }).click();
+  await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-active-tool', 'Document Request');
+
+  await page.getByRole('button', { name: 'Open workspace menu', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Workspace shortcuts' })
+    .getByRole('button', { name: /Briefing/ })
+    .click();
+  await briefing.getByRole('navigation', { name: 'Case briefing actions' })
+    .getByRole('button', { name: /Decide/ })
+    .click();
+  await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'determination');
+  await expect(page.locator('.submit-decision-panel')).toBeVisible();
+  expect(await page.locator('body').innerText()).not.toMatch(forbiddenDecisionCopy);
+}
+
 test('approved Case Briefing is Evidence First, functional, and responsive', async ({ page }, testInfo) => {
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.addInitScript(() => {
+      window.localStorage.setItem('fraud-academy-layout-mode-v1', 'mobile');
+    });
+  }
   await page.goto('/');
+
+  if (testInfo.project.name === 'mobile-chromium') {
+    await verifyMobileBriefing(page);
+    return;
+  }
 
   const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
   await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'workspace');

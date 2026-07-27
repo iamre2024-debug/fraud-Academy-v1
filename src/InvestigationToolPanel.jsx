@@ -74,6 +74,10 @@ const toolDetails = {
     purpose: 'Look up a fictional business and compare registration, owners, online presence, bank ownership, revenue, payroll, and source documents.',
     question: 'Do the business identity and operating records connect across independent sources?',
   },
+  'Business Intelligence': {
+    purpose: 'Review factual registration, ownership, operating, payroll, and source records for the business attached to this case.',
+    question: 'Which independent business records can be compared for this case?',
+  },
   'Employee Profile': {
     purpose: 'Review employee identity, role, employer, status, timing, and related case context.',
     question: 'Which employee facts are available, and how do they connect to the case?',
@@ -1014,6 +1018,7 @@ function DocumentRequestWorkspace({
   jumpDecision,
   documentRequests,
   setDocumentRequestsByCase,
+  actionLog,
   recordAction,
 }) {
   const [selectedRequestId, setSelectedRequestId] = useState('');
@@ -1677,7 +1682,16 @@ function FinancialInvestigationWorkspace({ activeCase, pin, saveNote, markReview
   );
 }
 
-function KYBReviewWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
+function KYBReviewWorkspace({
+  activeCase,
+  pin,
+  saveNote,
+  markReviewed,
+  reviewed,
+  openTool,
+  jumpDecision,
+  displayName = 'KYB Review',
+}) {
   const workspace = useMemo(() => getKybReview(activeCase), [activeCase]);
   const [lookupValue, setLookupValue] = useState('');
   const [confirmedLookup, setConfirmedLookup] = useState('');
@@ -1720,14 +1734,14 @@ function KYBReviewWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed,
     const nextReport = generateKybReviewReport(activeCase);
     setReport(nextReport);
     setReportGenerated(true);
-    saveNote(`KYB Business Report generated for ${workspace.profile.legalName}.`, 'KYB Review');
+    saveNote(`Business source report generated for ${workspace.profile.legalName}.`, displayName);
   }
 
   return (
     <>
-      <section className="kyb-lookup-panel" aria-label="KYB business lookup">
-        <div><p>Business lookup</p><h3>Find the exact entity before opening its KYB record</h3><span>Search by legal name, DBA, masked EIN, registration ID, or exact business address.</span></div>
-        <form onSubmit={runLookup}><label><span>Business identifier</span><input value={lookupValue} onChange={(event) => setLookupValue(event.target.value)} placeholder="Legal name, DBA, **-***1234, registration ID, or address" aria-label="Search KYB Review" /></label><button type="submit" disabled={!lookupValue.trim()}>Search business</button></form>
+      <section className="kyb-lookup-panel" aria-label={`${displayName} business lookup`}>
+        <div><p>Business lookup</p><h3>Find the exact entity before opening its source records</h3><span>Search by legal name, DBA, masked EIN, registration ID, or exact business address.</span></div>
+        <form onSubmit={runLookup}><label><span>Business identifier</span><input value={lookupValue} onChange={(event) => setLookupValue(event.target.value)} placeholder="Legal name, DBA, **-***1234, registration ID, or address" aria-label={`Search ${displayName}`} /></label><button type="submit" disabled={!lookupValue.trim()}>Search business</button></form>
         <article className="kyb-case-entity"><span>Business object attached to this training case</span><strong>{workspace.profile.dba}</strong><small>{workspace.profile.jurisdiction} | {workspace.profile.industry}</small><button type="button" onClick={() => setLookupValue(workspace.profile.legalName)}>Use legal name</button></article>
       </section>
 
@@ -1741,21 +1755,21 @@ function KYBReviewWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed,
 
         <section className="kyb-review-kpis" aria-label="KYB record inventory"><article><span>Owner / UBO records</span><strong>{workspace.counts.owners}</strong><small>Identity records connected</small></article><article><span>Business links</span><strong>{workspace.counts.businessRecords}</strong><small>Business 360 records</small></article><article><span>Payment objects</span><strong>{workspace.counts.paymentObjects}</strong><small>Ownership records available</small></article><article><span>Documents & links</span><strong>{workspace.counts.documents}</strong><small>Source inventory</small></article></section>
 
-        <nav className="kyb-review-tabs" aria-label="KYB Review sections">{kybReviewTabs.map((item) => <button key={item.id} type="button" className={activeTab === item.id ? 'active' : ''} aria-pressed={activeTab === item.id} onClick={() => setActiveTab(item.id)}>{item.label}</button>)}</nav>
+        <nav className="kyb-review-tabs" aria-label={`${displayName} sections`}>{kybReviewTabs.map((item) => <button key={item.id} type="button" className={activeTab === item.id ? 'active' : ''} aria-pressed={activeTab === item.id} onClick={() => setActiveTab(item.id)}>{item.label}</button>)}</nav>
 
-        <section className="kyb-review-findbar" aria-label="KYB Review record filter"><div><p>{tab.label}</p><h3>{tab.question}</h3></div><label><span>Filter opened records</span><input value={recordQuery} onChange={(event) => setRecordQuery(event.target.value)} placeholder="Record, owner, identifier, source, or value" aria-label="Filter KYB Review records" /></label><span>{filteredRecords.length} of {tabRecords.length} shown</span></section>
+        <section className="kyb-review-findbar" aria-label={`${displayName} record filter`}><div><p>{tab.label}</p><h3>{tab.question}</h3></div><label><span>Filter opened records</span><input value={recordQuery} onChange={(event) => setRecordQuery(event.target.value)} placeholder="Record, owner, identifier, source, or value" aria-label={`Filter ${displayName} records`} /></label><span>{filteredRecords.length} of {tabRecords.length} shown</span></section>
 
         <div className="kyb-review-workspace">
-          <section className="kyb-record-list" aria-label={`${tab.label} KYB records`}><header><div><p>Source records</p><h3>{tab.label}</h3></div><span>{filteredRecords.length} shown</span></header>{filteredRecords.map((record) => <button key={record.id} type="button" className={activeRecord?.id === record.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-kyb-review-record={record.id}><span>{record.category} | {record.observed}</span><strong>{record.title}</strong><small>{record.value}</small></button>)}{!filteredRecords.length && <div className="investigation-tool-empty" role="status">No KYB records match this filter.</div>}</section>
+          <section className="kyb-record-list" aria-label={`${tab.label} business source records`}><header><div><p>Source records</p><h3>{tab.label}</h3></div><span>{filteredRecords.length} shown</span></header>{filteredRecords.map((record) => <button key={record.id} type="button" className={activeRecord?.id === record.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-kyb-review-record={record.id}><span>{record.category} | {record.observed}</span><strong>{record.title}</strong><small>{record.value}</small></button>)}{!filteredRecords.length && <div className="investigation-tool-empty" role="status">No business source records match this filter.</div>}</section>
 
-          {activeRecord ? <section className="kyb-record-detail" aria-label="Expanded KYB record"><header><div><p>Expanded source record</p><h3>{activeRecord.id}</h3><span>{activeRecord.title}</span></div><button type="button" onClick={() => pin(`${activeRecord.id} | ${activeRecord.title}`)}>Pin record</button></header><dl>{activeRecord.fields.map(([label, value]) => <div key={`${activeRecord.id}-${label}`}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><article><span>Recorded context</span><p>{activeRecord.detail}</p></article><div className="kyb-related-records"><span>Related records</span><div>{activeRecord.relatedRecords.map((item) => <button key={item} type="button" onClick={() => pin(item)}>{item}</button>)}</div></div><button type="button" onClick={() => saveNote(`KYB Review: ${activeRecord.id} - ${activeRecord.detail}`, 'KYB Review')}>Save evidence note</button></section> : <div className="investigation-tool-empty" role="status">Choose a KYB source record to open its details.</div>}
+          {activeRecord ? <section className="kyb-record-detail" aria-label="Expanded business source record"><header><div><p>Expanded source record</p><h3>{activeRecord.id}</h3><span>{activeRecord.title}</span></div><button type="button" onClick={() => pin(`${activeRecord.id} | ${activeRecord.title}`)}>Pin record</button></header><dl>{activeRecord.fields.map(([label, value]) => <div key={`${activeRecord.id}-${label}`}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><article><span>Recorded context</span><p>{activeRecord.detail}</p></article><div className="kyb-related-records"><span>Related records</span><div>{activeRecord.relatedRecords.map((item) => <button key={item} type="button" onClick={() => pin(item)}>{item}</button>)}</div></div><button type="button" onClick={() => saveNote(`${displayName}: ${activeRecord.id} - ${activeRecord.detail}`, displayName)}>Save evidence note</button></section> : <div className="investigation-tool-empty" role="status">Choose a business source record to open its details.</div>}
 
-          <aside className="kyb-case-rail" aria-label="KYB Review case summary"><header><p>Business evidence summary</p><h3>{workspace.profile.dba}</h3><span>{activeCase.id}</span></header><section><p>Reviewed business facts</p>{workspace.reviewedFacts.map((fact) => <article key={fact}>{fact}</article>)}</section><section className="kyb-report-actions"><p>KYB Business Report</p><span>Generate a factual report from the opened fictional business records. The report is stored with the matching account documents.</span><button type="button" onClick={generateReport}>{reportGenerated ? 'Regenerate report' : 'Generate report'}</button>{report && <button type="button" onClick={() => downloadKybReport(report)}>Export report</button>}</section><nav><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Financial Investigation')}>Open Financial Investigation</button></nav></aside>
+          <aside className="kyb-case-rail" aria-label={`${displayName} case summary`}><header><p>Business evidence summary</p><h3>{workspace.profile.dba}</h3><span>{activeCase.id}</span></header><section><p>Reviewed business facts</p>{workspace.reviewedFacts.map((fact) => <article key={fact}>{fact}</article>)}</section><section className="kyb-report-actions"><p>Business Source Report</p><span>Generate a factual report from the opened fictional business records. The report is stored with the matching account documents.</span><button type="button" onClick={generateReport}>{reportGenerated ? 'Regenerate report' : 'Generate report'}</button>{report && <button type="button" onClick={() => downloadKybReport(report)}>Export report</button>}</section><nav><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Financial Investigation')}>Open Financial Investigation</button></nav></aside>
         </div>
       </>}
 
-      <nav className="investigation-tool-next-routes" aria-label="KYB Review next routes"><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Identity Intel / People Search')}>Open Identity Intel</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
-      <footer className="investigation-tool-review-bar"><div><strong>KYB Review</strong><span>Complete an exact lookup and compare the relevant source records before marking this business review complete.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} disabled={!searchMatched} onClick={() => markReviewed('KYB Review')}>{reviewed ? '✓ KYB Review reviewed' : 'Mark KYB Review reviewed'}</button></footer>
+      <nav className="investigation-tool-next-routes" aria-label={`${displayName} next routes`}><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Identity Intel / People Search')}>Open Identity Intel</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <footer className="investigation-tool-review-bar"><div><strong>{displayName}</strong><span>Complete an exact lookup and compare the relevant source records before marking this business review complete.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} disabled={!searchMatched} onClick={() => markReviewed('KYB Review')}>{reviewed ? `✓ ${displayName} reviewed` : `Mark ${displayName} reviewed`}</button></footer>
     </>
   );
 }
@@ -1851,6 +1865,7 @@ function PayrollHistoryWorkspace({ activeCase, pin, saveNote, markReviewed, revi
 
 function PaymentVerificationWorkspace({
   activeCase,
+  actionLog = [],
   query,
   setQuery,
   pin,
@@ -1870,6 +1885,28 @@ function PaymentVerificationWorkspace({
   const [loading, setLoading] = useState(false);
   const [lookupHistory, setLookupHistory] = useState([]);
   const activeRecord = lookupResult?.record ?? null;
+  const persistedLookupHistory = useMemo(() => actionLog
+    .filter((entry) => entry.action === 'Payment Verification lookup completed')
+    .map((entry) => {
+      const match = String(entry.detail ?? '').match(/^(.+?)\s*\/\s*(.+?)\s*\/\s*(.+?):\s*(.+?)\.?$/);
+      if (!match) return null;
+      return {
+        id: entry.id,
+        bankCode: match[1].trim(),
+        destinationId: match[2].trim(),
+        ownerName: match[3].trim(),
+        outcome: match[4].replace(/\.$/, '').trim(),
+      };
+    })
+    .filter(Boolean), [actionLog]);
+  const visibleLookupHistory = [...lookupHistory, ...persistedLookupHistory]
+    .filter((item, index, items) => items.findIndex((candidate) => (
+      candidate.bankCode === item.bankCode
+      && candidate.destinationId === item.destinationId
+      && candidate.ownerName === item.ownerName
+      && candidate.outcome === item.outcome
+    )) === index)
+    .slice(0, 8);
 
   useEffect(() => {
     setLookup({ bankCode: '', destinationId: '', ownerName: '' });
@@ -1928,7 +1965,7 @@ function PaymentVerificationWorkspace({
     setLookupHistory(nextHistory);
     recordAction?.(
       'Payment Verification lookup completed',
-      `${historyItem.bankCode} / ${historyItem.destinationId}: ${historyItem.outcome}.`,
+      `${historyItem.bankCode} / ${historyItem.destinationId} / ${historyItem.ownerName}: ${historyItem.outcome}.`,
       'Payment Verification',
     );
   }
@@ -2181,11 +2218,11 @@ function PaymentVerificationWorkspace({
         </>
       ) : null}
 
-      {lookupHistory.length > 0 && (
+      {visibleLookupHistory.length > 0 && (
         <section className="payment-lookup-history" aria-label="Payment Verification lookup history">
           <header><p>Lookup history</p><h3>Recent searches for this case</h3></header>
           <div>
-            {lookupHistory.map((item) => (
+            {visibleLookupHistory.map((item) => (
               <article key={item.id}>
                 <span>{item.bankCode} · {item.destinationId}</span>
                 <strong>{item.ownerName}</strong>
@@ -2234,6 +2271,7 @@ export default function InvestigationToolPanel({
   jumpDecision,
   documentRequests,
   setDocumentRequestsByCase,
+  actionLog,
   recordAction,
   quickPin,
 }) {
@@ -2376,6 +2414,17 @@ export default function InvestigationToolPanel({
           openTool={openTool}
           jumpDecision={jumpDecision}
         />
+      ) : tool === 'Business Intelligence' ? (
+        <KYBReviewWorkspace
+          activeCase={activeCase}
+          pin={pin}
+          saveNote={saveNote}
+          markReviewed={markReviewed}
+          reviewed={currentCompleted.includes('KYB Review') || reviewed}
+          openTool={openTool}
+          jumpDecision={jumpDecision}
+          displayName="Business Intelligence"
+        />
       ) : tool === 'Employee Profile' ? (
         <EmployeeProfileWorkspace
           activeCase={activeCase}
@@ -2434,6 +2483,7 @@ export default function InvestigationToolPanel({
       ) : tool === 'Payment Verification' ? (
         <PaymentVerificationWorkspace
           activeCase={activeCase}
+          actionLog={actionLog}
           query={query}
           setQuery={setQuery}
           pin={pin}

@@ -1,5 +1,6 @@
 // Chargeback lifecycle workspace with source-document review.
 import { useEffect, useMemo, useState } from 'react';
+import MobileLunaPortrait from './MobileLunaPortrait.jsx';
 import { getMerchantIntelligence, merchantIntelligenceTabs } from './data/merchantIntelligenceRecords.js';
 import { queueDocumentViewerRoute } from './documentViewerRoute.js';
 
@@ -38,6 +39,111 @@ function DocumentCard({ document, onOpen }) {
       </span>
       <em aria-hidden="true">{available ? '›' : '…'}</em>
     </button>
+  );
+}
+
+function fieldValue(fields = [], label, fallback = 'Not recorded') {
+  return fields.find(([fieldLabel]) => fieldLabel === label)?.[1] ?? fallback;
+}
+
+function MobileMerchantOverview({ workspace, onOpen, openMerchantPaperwork, setActiveSection }) {
+  const policyDocument = workspace.response.documents.find((document) => /policy|terms/i.test(document.title));
+  const availableDocuments = workspace.response.documents.filter((document) => ['Available', 'Received', 'Incomplete', 'Received Late'].includes(document.status));
+  const history = Object.fromEntries(workspace.quickSummary);
+  const amount = fieldValue(workspace.summaryFields, 'Disputed amount', workspace.authorization.amount);
+  const transactionDate = fieldValue(workspace.claimDetails, 'Disputed transaction', workspace.authorization.authorizedAt);
+  const issueDate = workspace.summaryFields.find(([label]) => /date/i.test(label))?.[1] ?? 'Not recorded';
+  const policy = fieldValue(workspace.response.fields, 'Merchant policy', policyDocument?.title ?? 'Policy details available in merchant documents');
+
+  return (
+    <section
+      className="merchant-mobile-overview-v2"
+      style={{ display: 'none' }}
+      aria-label="Merchant Intelligence mobile overview"
+    >
+      <section className="merchant-mobile-hero">
+        <span className="merchant-mobile-hero-icon" aria-hidden="true">▥</span>
+        <div>
+          <small>Merchant profile</small>
+          <h3>{workspace.profile.name}</h3>
+          <p>{workspace.profile.category} · MCC {workspace.profile.mcc}</p>
+          <span>{workspace.profile.descriptor} · {workspace.profile.channel}</span>
+        </div>
+        <MobileLunaPortrait size={52} />
+      </section>
+
+      <section className="merchant-mobile-transaction">
+        <header>
+          <div><span aria-hidden="true">◇</span><div><small>Transaction under review</small><strong>{amount}</strong></div></div>
+          <StatusPill tone="neutral">Recorded transaction</StatusPill>
+        </header>
+        <dl>
+          <div><dt>Transaction date</dt><dd>{transactionDate}</dd></div>
+          <div><dt>Issue date</dt><dd>{issueDate}</dd></div>
+          <div><dt>Processing channel</dt><dd>{workspace.authorization.entryMode}</dd></div>
+          <div><dt>Authorization result</dt><dd>{workspace.authorization.authorizationResult}</dd></div>
+        </dl>
+      </section>
+
+      <section className="merchant-mobile-history">
+        <header><span aria-hidden="true">♙</span><div><small>Customer history</small><h3>Prior merchant activity</h3></div></header>
+        <div>
+          <article><strong>{history['Prior merchant transactions'] ?? 0}</strong><span>Prior transactions</span></article>
+          <article><strong>{history['Prior merchant disputes'] ?? 0}</strong><span>Prior disputes</span></article>
+          <article><strong>{history['Refunds / reversals'] ?? 0}</strong><span>Refunds / reversals</span></article>
+        </div>
+      </section>
+
+      <section className="merchant-mobile-policy">
+        <header><span aria-hidden="true">♢</span><div><small>Cancellation & policy</small><h3>{workspace.scenario.label}</h3></div></header>
+        <p>{policy}</p>
+        <dl>
+          <div><dt>Customer-reported date</dt><dd>{fieldValue(workspace.claimDetails, 'Cancellation date', 'Not supplied for this claim')}</dd></div>
+          <div><dt>Customer-reported method</dt><dd>{fieldValue(workspace.claimDetails, 'Cancellation method', 'Not supplied for this claim')}</dd></div>
+        </dl>
+        {policyDocument && <button type="button" onClick={() => onOpen(policyDocument)}>Open policy document</button>}
+      </section>
+
+      <section className="merchant-mobile-response">
+        <header>
+          <span aria-hidden="true">☵</span>
+          <div><small>Merchant response</small><h3>{workspace.response.status}</h3></div>
+          <StatusPill tone={workspace.response.status === 'Accepted' ? 'positive' : workspace.response.status === 'Pending' ? 'active' : 'attention'}>{workspace.response.status}</StatusPill>
+        </header>
+        <p>{workspace.response.statement}</p>
+        <button type="button" onClick={() => setActiveSection('merchant-response')}>Review response details</button>
+      </section>
+
+      <section className="merchant-mobile-documents">
+        <header>
+          <span aria-hidden="true">▤</span>
+          <div><small>Documents & evidence</small><h3>{availableDocuments.length} available merchant document{availableDocuments.length === 1 ? '' : 's'}</h3></div>
+        </header>
+        <div>{workspace.response.documents.slice(0, 3).map((document) => {
+          const available = ['Available', 'Received', 'Incomplete', 'Received Late'].includes(document.status);
+          return (
+            <button
+              key={`mobile-${document.id}`}
+              type="button"
+              className="merchant-mobile-document-card"
+              disabled={!available}
+              onClick={() => available && onOpen(document)}
+              aria-label={`${available ? 'Preview' : 'Pending'} ${document.title}`}
+            >
+              <span aria-hidden="true">{document.icon ?? 'DOC'}</span>
+              <span><strong>{document.title}</strong><small>{document.source} · {document.status}</small></span>
+              <b aria-hidden="true">{available ? '›' : '…'}</b>
+            </button>
+          );
+        })}</div>
+        <button type="button" onClick={openMerchantPaperwork}>View all merchant paperwork</button>
+      </section>
+
+      <aside className="merchant-mobile-evidence-lock">
+        <span aria-hidden="true">✦</span>
+        <p><strong>Evidence First</strong> Merchant records describe the transaction, customer history, policy, and response. They do not select the claim outcome.</p>
+      </aside>
+    </section>
   );
 }
 
@@ -141,8 +247,17 @@ function NetworkSubmission({ workspace, onOpen }) {
   );
 }
 
-function MerchantResponse({ workspace, onOpen, openMerchantPaperwork }) {
+function MerchantResponse({ workspace, onOpen, openMerchantPaperwork, openTool, documentRequests }) {
   const response = workspace.response;
+  const customerDocumentStatus = workspace.customerDocuments.map((document) => {
+    const request = documentRequests[document.id];
+    return {
+      ...document,
+      status: document.status === 'Available'
+        ? 'Available'
+        : request?.status ?? 'Not requested',
+    };
+  });
   return (
     <div className="merchant-lifecycle-stack">
       <section className="merchant-lifecycle-panel">
@@ -159,8 +274,9 @@ function MerchantResponse({ workspace, onOpen, openMerchantPaperwork }) {
         <button type="button" className="merchant-inline-action" onClick={openMerchantPaperwork}>View all merchant paperwork</button>
       </section>
       <section className="merchant-lifecycle-panel merchant-needed-panel">
-        <header><span className="merchant-panel-icon">REQ</span><div><h3>Next required from customer</h3><p>Evidence still needed if the merchant challenges the claim.</p></div></header>
-        <ul>{workspace.customerRequirements.map((item) => <li key={item}><span aria-hidden="true">○</span>{item}</li>)}</ul>
+        <header><span className="merchant-panel-icon">CUS</span><div><h3>Customer document status</h3><p>Factual request and receipt status. No request is sent from this panel.</p></div></header>
+        <ul>{customerDocumentStatus.map((document) => <li key={document.id}><span aria-hidden="true">○</span><strong>{document.title}</strong> · {document.status}</li>)}</ul>
+        <button type="button" className="merchant-inline-action" onClick={() => openTool('Document Request')}>Open manual document request center</button>
       </section>
     </div>
   );
@@ -183,15 +299,20 @@ function CustomerEvidence({ workspace, onOpen, openTool, documentRequests }) {
         <div className="merchant-document-grid">{customerDocuments.map((document) => <DocumentCard key={document.id} document={document} onOpen={onOpen} />)}</div>
       </section>
       <section className="merchant-lifecycle-panel merchant-needed-panel">
-        <header><span className="merchant-panel-icon">REQ</span><div><h3>Open document requests</h3><p>Only requested items that fit this claim scenario are shown.</p></div></header>
-        <ul>{workspace.customerRequirements.map((item) => <li key={item}><span aria-hidden="true">○</span>{item}</li>)}</ul>
-        <button type="button" className="merchant-inline-action" onClick={() => openTool('Document Request')}>Open document request center</button>
+        <header><span className="merchant-panel-icon">REQ</span><div><h3>Manual document request center</h3><p>Review the current record first. Opening the center does not send a request.</p></div></header>
+        <ul>{customerDocuments.map((document) => <li key={document.id}><span aria-hidden="true">○</span><strong>{document.title}</strong> · {document.status}</li>)}</ul>
+        <button type="button" className="merchant-inline-action" onClick={() => openTool('Document Request')}>Open manual document request center</button>
       </section>
     </div>
   );
 }
 
 function VisaRequirements({ workspace }) {
+  const neutralRequirements = workspace.visa.requirements.map((item) => (
+    /missing customer evidence is requested/i.test(item)
+      ? 'Existing customer and merchant evidence is checked for completeness'
+      : item
+  ));
   return (
     <div className="merchant-lifecycle-stack">
       <section className="merchant-lifecycle-panel">
@@ -200,7 +321,7 @@ function VisaRequirements({ workspace }) {
       </section>
       <section className="merchant-lifecycle-panel merchant-needed-panel">
         <header><span className="merchant-panel-icon">CHK</span><div><h3>Evidence checklist</h3><p>Confirm whether each requirement is supported in the source documents.</p></div></header>
-        <ul>{workspace.visa.requirements.map((item) => <li key={item}><span aria-hidden="true">○</span>{item}</li>)}</ul>
+        <ul>{neutralRequirements.map((item) => <li key={item}><span aria-hidden="true">○</span>{item}</li>)}</ul>
         <p className="merchant-guidance-lock">Merchant Intelligence does not select a reason code or decide the claim.</p>
       </section>
     </div>
@@ -274,6 +395,13 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
         <StatusPill tone="neutral">Evidence First</StatusPill>
       </header>
 
+      <MobileMerchantOverview
+        workspace={workspace}
+        onOpen={setSelectedDocument}
+        openMerchantPaperwork={openMerchantPaperwork}
+        setActiveSection={setActiveSection}
+      />
+
       <section className="merchant-lifecycle-summary" aria-label="Merchant dispute summary">
         <span className="merchant-summary-mark" aria-hidden="true">{workspace.profile.mark ?? 'M'}</span>
         <div className="merchant-summary-name"><h3>{workspace.profile.name}</h3><p>{workspace.scenario.label}</p></div>
@@ -294,7 +422,7 @@ export default function MerchantIntelligenceWorkspace({ activeCase, pin, saveNot
       <nav className="merchant-lifecycle-actions" aria-label="Merchant Intelligence actions">
         <button type="button" onClick={() => setActiveSection('network-submission')}>View network details</button>
         <button type="button" onClick={openMerchantPaperwork}>View merchant paperwork</button>
-        <button type="button" onClick={() => openTool('Document Request')}>Request customer documents</button>
+        <button type="button" onClick={() => openTool('Document Request')}>Open document request center</button>
         <button type="button" className="primary" onClick={jumpDecision}>Continue to decision →</button>
       </nav>
 

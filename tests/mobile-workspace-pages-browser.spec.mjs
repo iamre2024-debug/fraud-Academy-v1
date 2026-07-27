@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { openWorkspacePages, selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  openMobileWorkspaceMenu,
+  openMobileWorkspaceShortcut,
+  openWorkflowStage,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 test('workspace uses separate pages and pinned evidence reopens its source record', async ({ page }, testInfo) => {
   await page.addInitScript(() => {
@@ -15,38 +20,37 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   const workflow = page.locator('.active-case-workflow, .mission-path-v3');
   const toolMenu = page.locator('[data-workspace-page="tool-menu"]');
   const toolPage = page.locator('[data-workspace-page="tool"]');
-  const indicators = page.locator('[data-workspace-page="indicators"]');
+  const customer360 = page.locator('[data-customer-360-screen]');
+  const evidenceNotebook = page.locator('[data-workspace-page="indicators"]');
+  const indicatorsReview = page.locator('[data-workspace-page="indicators-review"]');
+  const mobile = testInfo.project.name === 'mobile-chromium';
 
   await expect(frame).toHaveAttribute('data-workspace-screen', 'briefing');
   await expect(briefing).toBeVisible();
   await expect(workflow).toBeHidden();
   await expect(toolMenu).toBeHidden();
   await expect(toolPage).toBeHidden();
-  await expect(indicators).toBeHidden();
+  await expect(evidenceNotebook).toBeHidden();
+  await expect(indicatorsReview).toBeHidden();
   await expect(page.locator('.luna-visual-panel')).toBeHidden();
 
-  if (testInfo.project.name === 'mobile-chromium') {
-    await expect(page.getByRole('navigation', { name: 'Case briefing files' }).getByRole('button')).toHaveCount(6);
-    const briefingPager = page.getByRole('navigation', { name: 'Briefing page controls' });
-    await expect(briefingPager).toContainText('01');
-    await expect(briefingPager).toContainText('of 06');
-    await briefingPager.getByRole('button', { name: /Next/ }).click();
-    await expect(page.locator('[data-mission-briefing-page="intake"]')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Claim intake', exact: true })).toBeVisible();
-    await page.getByRole('navigation', { name: 'Case briefing files' })
-      .getByRole('button', { name: 'Investigation launchpad' })
-      .click();
+  if (mobile) {
+    const mobileBriefing = page.locator('[data-mobile-reference-briefing="v2"]');
+    await expect(mobileBriefing).toBeVisible();
+    await expect(mobileBriefing.getByRole('heading', { name: 'Allegation Summary' })).toBeVisible();
+    await expect(mobileBriefing.getByRole('heading', { name: 'Quick Facts' })).toBeVisible();
+    await expect(mobileBriefing.getByRole('heading', { name: 'Available Records' })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Briefing page controls' })).toHaveCount(0);
+    await page.getByRole('button', { name: /Open workspace/ }).click();
+  } else {
+    await page.getByRole('button', { name: /Begin investigation/i }).click();
   }
 
-  await page.getByRole('button', { name: /Begin investigation/i }).click();
   await expect(frame).toHaveAttribute('data-workspace-screen', 'tool');
-  await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')).toBeVisible();
+  await expect(customer360).toHaveAttribute('data-customer-360-screen', mobile ? 'approved-theme-v2' : 'approved-theme-v1');
+  await expect(customer360).toBeVisible();
   await expect(briefing).toBeHidden();
 
-  await openWorkspacePages(page);
-  await workflow.getByRole('button', { name: /Investigate/ }).click();
-  await expect(frame).toHaveAttribute('data-workspace-screen', 'tool-menu');
-  await expect(toolMenu).toBeVisible();
   await selectToolGroup(page, 'Login, Session, Device & IP');
   await expect(frame).toHaveAttribute('data-workspace-screen', 'tool');
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Login History');
@@ -54,25 +58,29 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
 
   const loginSearch = page.getByRole('textbox', { name: 'Search Login History records' });
   await loginSearch.fill('LOG-1005');
-  await openWorkspacePages(page);
-  await workflow.getByRole('button', { name: /Investigate/ }).click();
   await selectToolGroup(page, 'Identity & Customer');
-  await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')).toBeVisible();
+  await expect(customer360).toBeVisible();
   const backButton = page.getByRole('button', { name: /Back to previous (?:workspace page|mission screen)/ });
   await backButton.click();
   await expect(frame).toHaveAttribute('data-workspace-screen', 'tool-menu');
   await backButton.click();
-  await expect(frame).toHaveAttribute('data-workspace-screen', 'workflow');
-  await backButton.click();
+  if (!mobile) {
+    await expect(frame).toHaveAttribute('data-workspace-screen', 'workflow');
+    await backButton.click();
+  }
   await expect(frame).toHaveAttribute('data-workspace-screen', 'tool');
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Login History');
   await expect(loginSearch).toHaveValue('LOG-1005');
 
-  await openWorkspacePages(page);
-  await expect(workflow).toBeVisible();
-  await workflow.getByRole('button', { name: /Indicators|Evidence/ }).click();
+  await openWorkflowStage(page, /Indicators|Evidence/);
+  if (mobile) {
+    await expect(frame).toHaveAttribute('data-workspace-screen', 'indicators');
+    await expect(indicatorsReview).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Review cues and document what the records support' })).toBeVisible();
+    await page.getByRole('button', { name: 'Review pinned evidence' }).click();
+  }
   await expect(frame).toHaveAttribute('data-workspace-screen', 'evidence');
-  await expect(indicators).toBeVisible();
+  await expect(evidenceNotebook).toBeVisible();
   await expect(page.locator('.tray-card')).toBeVisible();
   await expect(page.locator('.notebook-card')).toBeHidden();
 
@@ -108,7 +116,11 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   await unavailablePin.getByRole('button', { name: 'Remove pin' }).click();
   await expect(page.getByRole('button', { name: 'Open pinned evidence ZZZ-NOT-A-SOURCE' })).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Notes', exact: true }).click();
+  if (mobile) {
+    await openMobileWorkspaceShortcut(page, 'Notes');
+  } else {
+    await page.getByRole('button', { name: 'Notes', exact: true }).click();
+  }
   await expect(frame).toHaveAttribute('data-workspace-screen', 'notes');
   await expect(page.locator('.notebook-card')).toBeVisible();
   await expect(page.locator('.tray-card')).toBeHidden();
@@ -119,21 +131,34 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
   await noteComposer.fill(caseOneDraft);
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('fraud-academy-note-drafts-v1') || '{}')['FA-ATO-24018'])).toBe(caseOneDraft);
 
-  const caseSwitcher = testInfo.project.name === 'mobile-chromium'
-    ? page.getByRole('combobox', { name: 'Choose active mission case' })
-    : page.locator('.visual-case-strip .visual-case-switcher select');
-  await caseSwitcher.selectOption('FA-CB-24007');
-  let caseWorkflow = await openWorkspacePages(page);
-  await caseWorkflow.getByRole('button', { name: /Indicators|Evidence/ }).click();
-  await page.getByRole('button', { name: 'Notes', exact: true }).click();
+  if (mobile) {
+    const menu = await openMobileWorkspaceMenu(page);
+    await menu.getByRole('combobox', { name: 'Choose active mission case' }).selectOption('FA-CB-24007');
+  } else {
+    await page.locator('.visual-case-strip .visual-case-switcher select').selectOption('FA-CB-24007');
+  }
+  await openWorkflowStage(page, /Indicators|Evidence/);
+  if (mobile) {
+    await openMobileWorkspaceShortcut(page, 'Notes');
+  } else {
+    await page.getByRole('button', { name: 'Notes', exact: true }).click();
+  }
   await expect(noteComposer).toHaveValue('');
   await noteComposer.fill(caseTwoDraft);
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('fraud-academy-note-drafts-v1') || '{}')['FA-CB-24007'])).toBe(caseTwoDraft);
 
-  await caseSwitcher.selectOption('FA-ATO-24018');
-  caseWorkflow = await openWorkspacePages(page);
-  await caseWorkflow.getByRole('button', { name: /Indicators|Evidence/ }).click();
-  await page.getByRole('button', { name: 'Notes', exact: true }).click();
+  if (mobile) {
+    const menu = await openMobileWorkspaceMenu(page);
+    await menu.getByRole('combobox', { name: 'Choose active mission case' }).selectOption('FA-ATO-24018');
+  } else {
+    await page.locator('.visual-case-strip .visual-case-switcher select').selectOption('FA-ATO-24018');
+  }
+  await openWorkflowStage(page, /Indicators|Evidence/);
+  if (mobile) {
+    await openMobileWorkspaceShortcut(page, 'Notes');
+  } else {
+    await page.getByRole('button', { name: 'Notes', exact: true }).click();
+  }
   await expect(noteComposer).toHaveValue(caseOneDraft);
 
   const widths = await page.evaluate(() => ({

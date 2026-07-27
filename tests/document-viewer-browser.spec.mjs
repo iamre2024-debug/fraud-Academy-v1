@@ -17,11 +17,12 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
   await page.goto('/');
 
   const briefing = testInfo.project.name === 'mobile-chromium'
-    ? page.locator('.mission-briefing-v3')
+    ? page.locator('.mission-briefing-v4')
     : page.locator('[data-case-briefing-screen="approved-theme-v1"]');
   await expect(briefing.getByRole('button', { name: 'Open Document Viewer', exact: true })).toHaveCount(0);
   if (testInfo.project.name === 'mobile-chromium') {
-    await expect(briefing.getByRole('button', { name: /Tools/ })).toBeVisible();
+    await expect(briefing.getByRole('navigation', { name: 'Case briefing actions' })
+      .getByRole('button', { name: /All tools/ })).toBeVisible();
   } else {
     await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
     await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')
@@ -267,7 +268,9 @@ test('Document Viewer keeps prefilled access locked and restores isolated per-do
 
   await page.goto('/');
   let viewer = await openActiveCaseViewer();
-  const activeCaseId = await page.locator('.visual-case-switcher select').inputValue();
+  const activeCaseId = testInfo.project.name === 'mobile-chromium'
+    ? await viewer.getAttribute('data-case-id')
+    : await page.locator('.visual-case-switcher select').inputValue();
   const firstRecord = viewer.locator('[data-document-record]').first();
   const firstDocumentId = await firstRecord.getAttribute('data-document-record');
   const draft = `Unsaved document draft for ${firstDocumentId}`;

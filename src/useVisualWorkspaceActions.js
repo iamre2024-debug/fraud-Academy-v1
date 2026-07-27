@@ -7,6 +7,8 @@ import {
   writeStorage,
 } from './visualWorkspaceModel.js';
 
+const agentNotebookKey = 'fraud-academy-agent-notepad-v1';
+
 export default function useVisualWorkspaceActions({
   activeCase,
   tool,
@@ -84,6 +86,19 @@ export default function useVisualWorkspaceActions({
       ...current,
       [activeCase.id]: [noteLine, ...(current[activeCase.id] ?? [])],
     }));
+    const savedNotebook = readStorage(agentNotebookKey, {});
+    const agentEntry = {
+      id: `${activeCase.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      agentId: AGENT_ID,
+      caseId: activeCase.id,
+      noteType: type,
+      noteText: clean,
+      timestamp,
+    };
+    writeStorage(agentNotebookKey, {
+      ...savedNotebook,
+      [AGENT_ID]: [agentEntry, ...(savedNotebook[AGENT_ID] ?? [])].slice(0, 500),
+    });
     recordAction('Saved note', `${type} added to the case notebook.`, type);
   }
 

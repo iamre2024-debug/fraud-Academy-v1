@@ -79,10 +79,14 @@ for (const anchor of [
   'forceHistory',
   'removeUnavailablePinnedEvidence',
   "nextStage === 'debrief' && !hasReviewPackage",
-  "available.delete('KYB Review')",
   "available.delete('System Access Lane')",
   'quickPadLayer',
 ]) requireAnchor('VisualWorkspace.jsx', workspaceController, anchor);
+
+for (const anchor of [
+  "tool === 'KYB Review' ? 'Business Intelligence' : tool",
+  "tool === 'Business Intelligence' ? 'KYB Review' : tool",
+]) requireAnchor('MobileMissionWorkspace.jsx Business Intelligence compatibility', workspace, anchor);
 
 for (const anchor of [
   'data-customer-360-screen',

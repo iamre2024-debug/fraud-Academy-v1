@@ -19,6 +19,7 @@ export default function SubmitDecisionPanel({
   submitDecision,
   openDebrief,
   layoutMode = 'desktop',
+  showChecklist = true,
 }) {
   const latestPackage = reviewPackages[0] ?? null;
   const submissionLabel = latestPackage
@@ -83,13 +84,39 @@ export default function SubmitDecisionPanel({
         You can submit a decision without reviewing every tool. Open only the records needed to prove your selected flags.
       </p>
 
-      <DecisionFlagChecklist
-        activeCase={activeCase}
-        tray={tray}
-        decisionDraft={decisionDraft}
-        indicatorSummary={packageStatus.indicatorSummary}
-        updateDecisionIndicator={updateDecisionIndicator}
-      />
+      {showChecklist && (
+        <DecisionFlagChecklist
+          activeCase={activeCase}
+          tray={tray}
+          decisionDraft={decisionDraft}
+          indicatorSummary={packageStatus.indicatorSummary}
+          updateDecisionIndicator={updateDecisionIndicator}
+        />
+      )}
+
+      {separatedMobileDecision && (
+        <section className="decision-mobile-evidence-summary" aria-label="Decision evidence summary">
+          <header>
+            <div><p>Evidence summary</p><h3>{activeCase.id}</h3></div>
+            <span>{tray.length} pinned · {notes.length} notes</span>
+          </header>
+          <div className="decision-mobile-evidence-columns">
+            <article>
+              <h4>Pinned evidence</h4>
+              {tray.length
+                ? <ul>{tray.slice(0, 4).map((item) => <li key={item}>{item}</li>)}</ul>
+                : <p>No evidence pinned. Pins are optional.</p>}
+            </article>
+            <article>
+              <h4>Investigator notes</h4>
+              {notes.length
+                ? <ul>{notes.slice(0, 3).map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul>
+                : <p>No note saved. Notes are optional.</p>}
+            </article>
+          </div>
+          <small>Quick Pad identifiers remain separate and do not count as evidence.</small>
+        </section>
+      )}
 
       <div className="decision-v1-workspace">
         <form className="decision-form decision-v1-form" onSubmit={submitAndOpenDebrief}>

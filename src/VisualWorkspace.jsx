@@ -32,7 +32,7 @@ function stageForWorkspaceScreen(screen, toolName) {
   if (screen === 'tool') return stageForTool(toolName);
   if (screen === 'tool-menu') return 'investigate';
   if (screen === 'timeline') return 'timeline';
-  if (screen === 'evidence' || screen === 'notes') return 'indicators';
+  if (screen === 'evidence' || screen === 'notes' || screen === 'indicators') return 'indicators';
   if (screen === 'determination') return 'determination';
   if (screen === 'debrief') return 'debrief';
   return 'briefing';
@@ -117,7 +117,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   const availableToolNames = useMemo(() => {
     const available = new Set(activeCase.availableTools?.length ? activeCase.availableTools : workspaceTools);
     if (layoutMode === 'mobile') {
-      available.delete('KYB Review');
       available.delete('System Access Lane');
       const payrollBusiness = activeCase.claimTypeId === 'payroll-direct-deposit'
         || activeCase.taxonomyTags?.productRail === 'payroll';
@@ -481,11 +480,12 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       recordAction('Opened Quick Pad source', `${item.label} reopened in Case Briefing.`, 'Quick Pad');
       return;
     }
-    if (!availableToolNames.has(item.sourceTool)) {
+    const sourceTool = item.sourceTool === 'Business Intelligence' ? 'KYB Review' : item.sourceTool;
+    if (!availableToolNames.has(sourceTool)) {
       recordAction('Quick Pad source unavailable', `${item.label} source is not available in this case.`, 'Quick Pad');
       return;
     }
-    openTool(item.sourceTool, stageForTool(item.sourceTool), { query: item.value });
+    openTool(sourceTool, stageForTool(sourceTool), { query: item.value });
     setExpandedId(item.sourceRecordId ?? '');
     recordAction('Opened Quick Pad source', `${item.label} reopened in ${item.sourceTool}.`, 'Quick Pad');
   }
@@ -512,7 +512,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       return;
     }
     if (nextStage === 'indicators') {
-      showWorkspaceScreen('evidence');
+      showWorkspaceScreen(isMobileLayout() ? 'indicators' : 'evidence');
       if (isMobileLayout()) return;
       scrollToWorkspace('[data-workflow-stage="indicators"]');
       return;
@@ -535,6 +535,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
           'tool-menu': 'Investigation Tools',
           evidence: 'Pinned Evidence',
           notes: 'Case Notes',
+          indicators: 'Case Indicators Review',
           determination: 'Submit Decision',
           debrief: 'Luna Debrief',
         }[workspaceScreen] ?? 'Workspace';

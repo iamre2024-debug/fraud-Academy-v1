@@ -1,8 +1,10 @@
+import { useRef } from 'react';
 import BottomInvestigationGrid from './BottomInvestigationGrid.jsx';
 import CategoryTileRail from './CategoryTileRail.jsx';
+import DecisionFlagChecklist from './DecisionFlagChecklist.jsx';
 import InvestigationToolPanel from './InvestigationToolPanel.jsx';
 import MobileLinkAnalysisPanel from './MobileLinkAnalysisPanel.jsx';
-import MobileLunaPortrait from './MobileLunaPortrait.jsx';
+import MobileLunaPortrait, { MobileFraudShield } from './MobileLunaPortrait.jsx';
 import MobileMissionCaseBriefing from './MobileMissionCaseBriefing.jsx';
 import {
   MobileBusiness360Page,
@@ -21,6 +23,7 @@ const screenCopy = {
   'tool-menu': ['🧬', 'Evidence Map'],
   evidence: ['⭐', 'Pinned Evidence'],
   notes: ['📝', 'Case Notes'],
+  indicators: ['◇', 'Case Indicators'],
   determination: ['✅', 'Submit Decision'],
   debrief: ['🌙', 'Luna Debrief'],
 };
@@ -31,7 +34,7 @@ const missionStages = [
   ['briefing', '🗃️', 'Briefing', 'Read the intake and statement'],
   ['investigate', '🧬', 'Investigate', 'Choose evidence tools'],
   ['timeline', '⏱️', 'Timeline', 'Sequence the activity'],
-  ['indicators', '⭐', 'Evidence', 'Review pins and notes'],
+  ['indicators', '⭐', 'Indicators', 'Review factual case indicators'],
   ['determination', '✅', 'Decision', 'Submit the learner package'],
   ['debrief', '🌙', 'Debrief', 'Unlock manager coaching'],
 ];
@@ -83,8 +86,20 @@ export default function MobileMissionWorkspace({
   visibleCategories,
   workspaceScreen,
 }) {
+  const overflowRef = useRef(null);
+  const mobileToolName = (tool) => tool === 'KYB Review' ? 'Business Intelligence' : tool;
+  const internalToolName = (tool) => tool === 'Business Intelligence' ? 'KYB Review' : tool;
+  const displayedTool = mobileToolName(activeTool);
+  const mobileVisibleCategories = (visibleCategories ?? []).map((category) => ({
+    ...category,
+    tools: (category.tools ?? []).map(mobileToolName).filter((tool, index, tools) => tools.indexOf(tool) === index),
+  }));
+  const mobileCompleted = (currentCompleted ?? []).map(mobileToolName);
+  const mobileGroupTools = (activeToolProps.activeCategory?.tools ?? [])
+    .map(mobileToolName)
+    .filter((tool, index, tools) => tools.indexOf(tool) === index);
   const [screenIcon, screenTitle] = workspaceScreen === 'tool' || workspaceScreen === 'timeline'
-    ? [workspaceScreen === 'timeline' ? '⏱️' : toolIcon(activeTool), workspaceScreen === 'timeline' ? 'Case Timeline' : activeTool]
+    ? [workspaceScreen === 'timeline' ? '⏱️' : toolIcon(displayedTool), workspaceScreen === 'timeline' ? 'Case Timeline' : displayedTool]
     : screenCopy[workspaceScreen] ?? ['🛰️', 'Mission Workspace'];
   const isRoot = workspaceScreen === 'briefing';
   const isTool = workspaceScreen === 'tool' || workspaceScreen === 'timeline';
@@ -101,28 +116,69 @@ export default function MobileMissionWorkspace({
   };
 
   function openDisplaySettings() {
-    goBackWorkspaceScreen();
+    overflowRef.current?.removeAttribute('open');
     window.dispatchEvent(new CustomEvent(openMobileSettingsEvent));
   }
 
-  return (
-    <main className="mission-workspace-v3" data-workspace-screen={workspaceScreen} data-active-tool={activeTool}>
-      <header className="mission-workspace-bar">
-        <button type="button" className="mission-workspace-back" disabled={isRoot} onClick={goBackWorkspaceScreen} aria-label="Back to previous mission screen">‹</button>
-        <div className="mission-workspace-title"><span>{screenIcon}</span><p>{activeCase.id}</p><h1>{screenTitle}</h1><small>{screenSubtitle}</small></div>
-        <MobileLunaPortrait size={36} className="mission-workspace-luna" />
-        <button type="button" className={workspaceScreen === 'workflow' ? 'active' : ''} onClick={() => workspaceScreen === 'workflow' ? goBackWorkspaceScreen() : showWorkspaceScreen('workflow')} aria-label="Open workspace menu">•••</button>
-      </header>
+  function runOverflowAction(action) {
+    overflowRef.current?.removeAttribute('open');
+    action();
+  }
 
-      <section className="mission-workspace-case-selector" aria-label="Active mission file">
-        <span>ACTIVE CASE</span>
-        <label className="visual-case-switcher">
-          <select value={activeCase.id} onChange={(event) => changeCase(event.target.value)} aria-label="Choose active mission case">
-            {cases.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.person}</option>)}
-          </select>
-        </label>
-        <strong>{activeCase.status}</strong>
-      </section>
+  return (
+    <main className="mission-workspace-v3" data-workspace-screen={workspaceScreen} data-active-tool={displayedTool}>
+      <header className="mission-workspace-bar">
+        <button
+          type="button"
+          className="mission-workspace-back"
+          onClick={isRoot ? openCaseQueue : goBackWorkspaceScreen}
+          aria-label={isRoot ? 'Back to case queue' : 'Back to previous mission screen'}
+        >
+          ‹
+        </button>
+        <div className="mission-workspace-title">
+          <MobileFraudShield size={27} />
+          <p>{activeCase.id}</p><h1>{screenTitle}</h1><small>{screenSubtitle}</small>
+        </div>
+        <MobileLunaPortrait size={38} className="mission-workspace-luna" />
+        <details ref={overflowRef} className="mission-workspace-overflow">
+          <summary aria-label="Open workspace menu">•••</summary>
+          <section>
+            <header><span>{screenIcon}</span><div><small>Current tool</small><strong>{screenTitle}</strong></div></header>
+            <label className="mission-overflow-case mission-workspace-case-selector">
+              <span>Active case</span>
+              <select value={activeCase.id} onChange={(event) => runOverflowAction(() => changeCase(event.target.value))} aria-label="Choose active mission case">
+                {cases.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.person}</option>)}
+              </select>
+            </label>
+            {isTool && mobileGroupTools.length > 1 && (
+              <label className="mission-overflow-tool">
+                <span>Tool in this group</span>
+                <select value={displayedTool} onChange={(event) => runOverflowAction(() => openTool(internalToolName(event.target.value)))} aria-label="Choose mobile investigation tool">
+                  {mobileGroupTools.map((toolName) => <option key={toolName} value={toolName}>{toolName}</option>)}
+                </select>
+              </label>
+            )}
+            <nav aria-label="Workspace shortcuts">
+              <button type="button" onClick={() => runOverflowAction(() => showWorkspaceScreen('briefing'))}>▤ <span>Briefing</span></button>
+              <button type="button" onClick={() => runOverflowAction(() => showWorkspaceScreen('workflow'))}>⌁ <span>Path</span></button>
+              <button type="button" onClick={() => runOverflowAction(() => showWorkspaceScreen('tool-menu'))}>⊞ <span>All tools</span></button>
+              <button type="button" onClick={() => runOverflowAction(openNotes)}>✎ <span>Notes</span><b>{notes.length}</b></button>
+              <button type="button" onClick={() => runOverflowAction(() => showWorkspaceScreen('evidence'))}>★ <span>Pinned</span><b>{tray.length}</b></button>
+              <button type="button" onClick={() => runOverflowAction(jumpDecision)}>✓ <span>Decide</span></button>
+              <button type="button" onClick={openDisplaySettings}>⚙ <span>Display</span></button>
+            </nav>
+            {isTool && displayedTool !== 'Link Analysis' && (
+              <MobileToolQuickPins
+                activeTool={displayedTool}
+                activeCase={activeCase}
+                activeRow={activeToolProps.activeRow}
+                quickPin={activeToolProps.quickPin}
+              />
+            )}
+          </section>
+        </details>
+      </header>
 
       <div className="mission-workspace-surface">
         {workspaceScreen === 'briefing' && (
@@ -153,13 +209,13 @@ export default function MobileMissionWorkspace({
             <header className="mission-evidence-heading"><span>🧬</span><div><p>Connected evidence map</p><h2>Choose where to investigate</h2><small>Every tool opens as its own full mission screen.</small></div></header>
             <CategoryTileRail
               activeCase={activeCase}
-              categories={visibleCategories}
+              categories={mobileVisibleCategories}
               categoryKey={categoryKey}
-              currentCompleted={currentCompleted}
+              currentCompleted={mobileCompleted}
               onNavigate={onNavigate}
               onInvestigate={() => showWorkspaceScreen('tool')}
               setCategoryKey={setCategoryKey}
-              setTool={setTool}
+              setTool={(tool) => setTool(internalToolName(tool))}
               setExpandedId={setExpandedId}
             />
           </section>
@@ -177,19 +233,6 @@ export default function MobileMissionWorkspace({
             data-workflow-stage={workspaceScreen === 'timeline' ? 'timeline' : 'investigate'}
             data-workspace-page={workspaceScreen === 'timeline' ? 'timeline' : 'tool'}
           >
-            <nav className="mission-tool-actions" aria-label="Tool page actions">
-              <button type="button" onClick={() => showWorkspaceScreen('tool-menu')}>🧰 All tools</button>
-              <button type="button" onClick={openNotes}>📝 Notes <span>{notes.length}</span></button>
-              <button type="button" onClick={jumpDecision}>✅ Decide</button>
-            </nav>
-            {activeToolProps.activeCategory?.tools?.length > 1 && (
-              <label className="mission-mobile-tool-switcher">
-                <span>Tool in this group</span>
-                <select value={activeTool} onChange={(event) => openTool(event.target.value)} aria-label="Choose mobile investigation tool">
-                  {activeToolProps.activeCategory.tools.map((toolName) => <option key={toolName} value={toolName}>{toolName}</option>)}
-                </select>
-              </label>
-            )}
             {openedPinnedEvidence && !openedPinnedEvidence.unresolved && (
               <section className="mission-opened-pin" data-opened-pinned-evidence="true">
                 <div><p>Opened from pinned evidence</p><h2>{openedPinnedEvidence.value}</h2><small>Source: {openedPinnedEvidence.tool}</small></div>
@@ -198,14 +241,6 @@ export default function MobileMissionWorkspace({
             )}
             {activeTool === 'Document Request' && <MissionDocumentRequestHeading activeCase={activeCase} documentRequests={documentRequests} />}
             {activeTool === 'Login History' && <MissionLoginHistoryHeading activeCase={activeCase} />}
-            {activeTool !== 'Link Analysis' && (
-              <MobileToolQuickPins
-                activeTool={activeTool}
-                activeCase={activeCase}
-                activeRow={activeToolProps.activeRow}
-                quickPin={activeToolProps.quickPin}
-              />
-            )}
             <div className="mission-tool-content">
               {activeTool === 'Customer 360' ? (
                 <MobileCustomer360Page {...referenceToolProps} />
@@ -222,7 +257,11 @@ export default function MobileMissionWorkspace({
               ) : activeTool === 'Timeline' ? (
                 <TimelinePanel {...activeToolProps} />
               ) : (
-                <InvestigationToolPanel {...activeToolProps} />
+                <InvestigationToolPanel
+                  {...activeToolProps}
+                  tool={displayedTool}
+                  openTool={(toolName, ...args) => openTool(internalToolName(toolName), ...args)}
+                />
               )}
             </div>
           </section>
@@ -263,6 +302,54 @@ export default function MobileMissionWorkspace({
           </section>
         )}
 
+        {workspaceScreen === 'indicators' && (
+          <section
+            className="mission-indicators-review"
+            data-workflow-stage="indicators"
+            data-workspace-page="indicators-review"
+          >
+            <header className="mission-indicators-heading">
+              <div>
+                <p>Case Indicators Review</p>
+                <h2>Review cues and document what the records support</h2>
+                <small>No conclusion is selected for you.</small>
+              </div>
+              <MobileLunaPortrait size={52} />
+            </header>
+
+            <section className="mission-indicator-cues" aria-label="Case claim type cues">
+              <header><span>◇</span><h3>Claim type cues</h3></header>
+              <div>
+                <article><span>Claim type</span><strong>{activeCase.claimType ?? activeCase.type}</strong></article>
+                <article><span>Scenario</span><strong>{activeCase.scenarioTitle ?? activeCase.subtype ?? 'Case review'}</strong></article>
+                <article><span>Case status</span><strong>{activeCase.status}</strong></article>
+              </div>
+            </section>
+
+            <DecisionFlagChecklist
+              activeCase={activeCase}
+              tray={tray}
+              decisionDraft={decisionDraft}
+              indicatorSummary={packageStatus.indicatorSummary}
+              updateDecisionIndicator={updateDecisionIndicator}
+            />
+
+            <section className="mission-indicator-notes" aria-label="Evidence notes summary">
+              <header><span>✎</span><div><p>Evidence notes</p><h3>{notes.length} saved note{notes.length === 1 ? '' : 's'} · {tray.length} pinned record{tray.length === 1 ? '' : 's'}</h3></div></header>
+              <div>
+                {(notes.length ? notes.slice(0, 3) : ['No investigator note saved yet.']).map((note, index) => (
+                  <article key={`${note}-${index}`}><span>{index + 1}</span><p>{note}</p></article>
+                ))}
+              </div>
+              <nav>
+                <button type="button" onClick={() => showWorkspaceScreen('evidence')}>Review pinned evidence</button>
+                <button type="button" onClick={openNotes}>Open case notes</button>
+                <button type="button" onClick={jumpDecision}>Continue to Determination</button>
+              </nav>
+            </section>
+          </section>
+        )}
+
         {workspaceScreen === 'determination' && (
           <section className="mission-decision-page" data-workflow-stage="determination">
             <header className="mission-decision-page-heading"><span>✅</span><div><p>Final mission path</p><h2>Build the decision package</h2><small>The outcome remains protected until you submit.</small></div></header>
@@ -279,6 +366,7 @@ export default function MobileMissionWorkspace({
               submitDecision={submitDecision}
               openDebrief={openDebrief}
               layoutMode="mobile"
+              showChecklist={false}
             />
           </section>
         )}

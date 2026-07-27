@@ -43,6 +43,10 @@ import './mobileMissionDeckV3.css';
 import './caseQuickPad.css';
 import './cloudSync.css';
 import './mobileReferenceTheme.css';
+import './mobileReferenceShellV2.css';
+import './mobileReferenceDossierV2.css';
+import './mobileReferenceCoreToolsV2.css';
+import './mobileReferenceInvestigationV2.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
