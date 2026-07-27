@@ -192,5 +192,5 @@ test('Financial Investigation exposes generated payroll totals, filters, and exa
   await detail.getByRole('button', { name: `Open ${payrollRunId} in Payroll History`, exact: true }).click();
   await expect(panel).toHaveAttribute('data-tool-name', 'Payroll History');
   await expect(page.locator('.visual-os-frame, .mission-workspace-v3')).toHaveAttribute('data-active-tool', 'Payroll History');
-  await expect(panel.locator('[data-payroll-history-record]').filter({ hasText: payrollRunId })).toBeVisible();
+  await expect(panel.locator(`[data-payroll-history-record="${payrollRunId}"]`)).toBeVisible();
 });
