@@ -39,7 +39,8 @@ async function switchActiveCase(page, mobile, caseId) {
   await expect(selector).toBeVisible();
   await selector.selectOption(caseId);
   if (mobile) {
-    await expect(page.locator('.mission-workspace-title')).toContainText(caseId);
+    await expect(selector).toHaveValue(caseId);
+    await expect(page.locator('.mission-briefing-case-copy h1')).toHaveText(caseId);
   } else {
     await expect(page.locator('.visual-case-strip')).toContainText(caseId);
   }
