@@ -41,7 +41,7 @@ test('workspace uses separate pages and pinned evidence reopens its source recor
     await expect(mobileBriefing.getByRole('heading', { name: 'Quick Facts' })).toBeVisible();
     await expect(mobileBriefing.getByRole('heading', { name: 'Available Records' })).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Briefing page controls' })).toHaveCount(0);
-    await page.getByRole('button', { name: /Open workspace/ }).click();
+    await page.getByRole('button', { name: 'Open workspace ›', exact: true }).click();
   } else {
     await page.getByRole('button', { name: /Begin investigation/i }).click();
   }

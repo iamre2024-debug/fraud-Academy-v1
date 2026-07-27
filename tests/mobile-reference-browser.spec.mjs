@@ -26,7 +26,7 @@ test.beforeEach(async ({ page }) => {
 async function openCustomer360(page) {
   await page.goto('/');
   await expect(page.locator('[data-mobile-reference-briefing="v2"]')).toBeVisible();
-  await page.getByRole('button', { name: /Open workspace/ }).click();
+  await page.getByRole('button', { name: 'Open workspace ›', exact: true }).click();
   await expect(page.locator('[data-mobile-reference-tool="Customer 360"]')).toBeVisible();
 }
 
@@ -160,7 +160,7 @@ test('approved mobile shell is safe at the required phone widths and every activ
   const menu = await openMobileWorkspaceMenu(page);
   await menu.getByRole('combobox', { name: 'Choose active mission case' }).selectOption('FA-CR-24003');
   await expect(page.locator('[data-mobile-reference-briefing="v2"]')).toBeVisible();
-  await page.getByRole('button', { name: /Open workspace/ }).click();
+  await page.getByRole('button', { name: 'Open workspace ›', exact: true }).click();
   await openToolGroup(page, 'Business & Payment Verification');
   await switchTool(page, 'Business Intelligence');
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Business Intelligence');

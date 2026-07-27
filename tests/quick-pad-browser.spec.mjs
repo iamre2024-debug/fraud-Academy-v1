@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 async function openCustomer360(page, mobile) {
   if (mobile) {
-    await page.getByRole('button', { name: /^Open workspace\b/i }).click();
+    await page.getByRole('button', { name: 'Open workspace ›', exact: true }).click();
     const customer = page.locator('[data-customer-360-screen="approved-theme-v2"]');
     await expect(customer).toBeVisible();
     return customer;

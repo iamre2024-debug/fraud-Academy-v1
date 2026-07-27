@@ -136,15 +136,21 @@ test('workflow decision inputs save and unlock Luna on desktop and mobile', asyn
     const workspace = document.querySelector('.decision-v1-workspace');
     const metrics = document.querySelector('.decision-status-grid');
     const flagColumns = document.querySelector('.decision-flag-columns');
+    const mobileChoiceLabel = document.querySelector('[data-decision-part] .decision-choice-group label');
     const viewportWidth = window.innerWidth;
     const rect = panel?.getBoundingClientRect();
+    const renderedGridColumnCount = (grid) => {
+      if (!grid || grid.getClientRects().length === 0) return 0;
+      return getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length;
+    };
     return {
       viewportWidth,
       documentWidth: document.documentElement.scrollWidth,
       panelOverflow: rect ? Math.max(0, -rect.left, rect.right - viewportWidth) : Number.POSITIVE_INFINITY,
-      workspaceColumns: workspace ? getComputedStyle(workspace).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      metricColumns: metrics ? getComputedStyle(metrics).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      flagColumns: flagColumns ? getComputedStyle(flagColumns).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      workspaceColumns: renderedGridColumnCount(workspace),
+      metricColumns: renderedGridColumnCount(metrics),
+      flagColumns: renderedGridColumnCount(flagColumns),
+      mobileChoiceLabelColumns: renderedGridColumnCount(mobileChoiceLabel),
       position: panel ? getComputedStyle(panel).position : '',
     };
   });
@@ -168,6 +174,7 @@ test('workflow decision inputs save and unlock Luna on desktop and mobile', asyn
     expect(decisionLayout.workspaceColumns).toBe(1);
     expect(decisionLayout.metricColumns).toBe(0);
     expect(decisionLayout.flagColumns).toBe(0);
+    expect(decisionLayout.mobileChoiceLabelColumns).toBe(1);
   } else {
     expect(decisionLayout.workspaceColumns).toBe(1);
     expect(decisionLayout.metricColumns).toBe(4);
@@ -257,7 +264,9 @@ test('workflow decision inputs save and unlock Luna on desktop and mobile', asyn
     expect(mobilePreview.stackedCards).toBe(true);
 
     await page.getByRole('button', { name: 'Open workspace menu', exact: true }).click();
-    await page.getByRole('button', { name: 'Display settings', exact: true }).click();
+    await page.getByRole('navigation', { name: 'Workspace shortcuts', exact: true })
+      .getByRole('button', { name: /Display/ })
+      .click();
     await page.getByRole('combobox', { name: 'Layout mode', exact: true }).selectOption('desktop');
     await expect(page.locator('body')).toHaveAttribute('data-layout-preference', 'desktop');
     await expect(page.locator('body')).toHaveAttribute('data-layout-mode', 'desktop');

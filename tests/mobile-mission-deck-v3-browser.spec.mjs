@@ -79,7 +79,7 @@ test('mobile mounts the approved Fraud Academy shell and generated cases inherit
   await dock.getByRole('button', { name: /Workspace/ }).click();
   await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'briefing');
   await expect(page.locator('.mission-briefing-v4')).toBeVisible();
-  await page.getByRole('button', { name: /Open workspace/i }).click();
+  await page.getByRole('button', { name: 'Open workspace ›', exact: true }).click();
   await expect(page.locator('[data-mobile-reference-tool="Customer 360"]')).toBeVisible();
   await expect(page.getByRole('button', { name: /Open Quick Pad/ })).toBeVisible();
 
@@ -116,7 +116,7 @@ test('mobile mounts the approved Fraud Academy shell and generated cases inherit
   const generatedCaseId = await page.getByRole('combobox', { name: 'Choose active mission case' }).inputValue();
   expect(generatedCaseId).toMatch(/-G\d+$/);
   await page.getByRole('button', { name: 'Open workspace menu' }).click();
-  await page.getByRole('button', { name: /Open workspace/i }).click();
+  await page.getByRole('button', { name: 'Open workspace ›', exact: true }).click();
   await expect(page.locator('[data-customer-360-screen="approved-theme-v2"]')).toHaveAttribute('data-case-id', generatedCaseId);
   await assertPhoneGeometry(page);
   await capture(page, testInfo, '04-generated-customer-360');
