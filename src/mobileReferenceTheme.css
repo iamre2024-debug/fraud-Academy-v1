@@ -1167,6 +1167,20 @@
     padding-bottom:calc(58dvh + var(--fa-dock-height) + env(safe-area-inset-bottom));
   }
 
+  body[data-layout-mode="mobile"]:has(.case-quick-pad.is-open)
+    .mission-mobile-root[data-mobile-mission-tab="workspace"]
+    .mission-mobile-viewport {
+    height:max(
+      132px,
+      calc(
+        100dvh
+        - var(--fa-dock-height)
+        - env(safe-area-inset-bottom)
+        - var(--quick-pad-open-reserved-height, 0px)
+      )
+    );
+  }
+
   @media (max-width: 340px) {
     body[data-layout-mode="mobile"] .mission-mobile-viewport { padding-inline:8px; }
     body[data-layout-mode="mobile"] .mission-mobile-workspace-page { margin-inline:-8px; width:calc(100% + 16px); max-width:calc(100% + 16px); }

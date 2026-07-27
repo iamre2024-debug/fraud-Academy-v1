@@ -42,6 +42,7 @@ export default function CaseQuickPad({
   const [copiedId, setCopiedId] = useState('');
   const [viewportInset, setViewportInset] = useState(0);
   const triggerRef = useRef(null);
+  const panelRef = useRef(null);
   const scrollPositionRef = useRef({ target: null, top: 0 });
   const agentNotes = useMemo(() => {
     if (typeof window === 'undefined') return [];
@@ -80,6 +81,36 @@ export default function CaseQuickPad({
       viewport?.removeEventListener('scroll', updateViewport);
     };
   }, [open]);
+
+  useEffect(() => {
+    const body = document.body;
+    if (!open || !panelRef.current) {
+      body.style.removeProperty('--quick-pad-open-reserved-height');
+      return undefined;
+    }
+
+    const panel = panelRef.current;
+    const reservePanelSpace = () => {
+      const panelHeight = Math.ceil(panel.getBoundingClientRect().height);
+      body.style.setProperty(
+        '--quick-pad-open-reserved-height',
+        `${panelHeight + viewportInset + 19}px`,
+      );
+    };
+    reservePanelSpace();
+
+    const observer = typeof ResizeObserver === 'function'
+      ? new ResizeObserver(reservePanelSpace)
+      : null;
+    observer?.observe(panel);
+    window.addEventListener('resize', reservePanelSpace);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', reservePanelSpace);
+      body.style.removeProperty('--quick-pad-open-reserved-height');
+    };
+  }, [open, viewportInset]);
 
   async function copyItem(item) {
     await copyText(item.value);
@@ -138,7 +169,7 @@ export default function CaseQuickPad({
       style={{ '--quick-pad-keyboard-inset': `${viewportInset}px` }}
     >
       {open && (
-        <section className="case-quick-pad-panel" role="dialog" aria-modal="false" aria-labelledby="case-quick-pad-title">
+        <section ref={panelRef} className="case-quick-pad-panel" role="dialog" aria-modal="false" aria-labelledby="case-quick-pad-title">
           <button type="button" className="case-quick-pad-handle" onClick={closePad} aria-label="Collapse Quick Pad"><span /></button>
           <header>
             <span className="case-quick-pad-charm" aria-hidden="true">🐾</span>

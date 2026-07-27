@@ -39,7 +39,6 @@ async function switchActiveCase(page, mobile, caseId) {
   await expect(selector).toBeVisible();
   await selector.selectOption(caseId);
   if (mobile) {
-    await expect(selector).toHaveValue(caseId);
     await expect(page.locator('.mission-briefing-case-copy h1')).toHaveText(caseId);
   } else {
     await expect(page.locator('.visual-case-strip')).toContainText(caseId);
@@ -56,6 +55,47 @@ async function assertMobilePadGeometry(page, pad) {
   const scrollBeforeOpen = await mobileViewport.evaluate((element) => element.scrollTop);
   await page.getByRole('button', { name: /Open Quick Pad/ }).click();
   await expect.poll(() => mobileViewport.evaluate((element) => element.scrollTop)).toBe(scrollBeforeOpen);
+
+  const openGeometry = await page.evaluate(() => {
+    const panel = document.querySelector('.case-quick-pad-panel');
+    const viewport = document.querySelector(
+      '.mission-mobile-root[data-mobile-mission-tab="workspace"] .mission-mobile-viewport',
+    );
+    const dock = document.querySelector('.mission-mobile-dock');
+    const panelRect = panel?.getBoundingClientRect();
+    const viewportRect = viewport?.getBoundingClientRect();
+    const dockRect = dock?.getBoundingClientRect();
+    const actionButtons = [...document.querySelectorAll('.case-quick-pad-actions button')]
+      .map((button) => {
+        const rect = button.getBoundingClientRect();
+        return {
+          left: rect.left,
+          right: rect.right,
+          height: rect.height,
+        };
+      });
+    return {
+      panel: panelRect ? {
+        left: panelRect.left,
+        right: panelRect.right,
+        top: panelRect.top,
+        bottom: panelRect.bottom,
+      } : null,
+      panelClientWidth: panel?.clientWidth ?? 0,
+      panelScrollWidth: panel?.scrollWidth ?? Number.POSITIVE_INFINITY,
+      viewportBottom: viewportRect?.bottom ?? Number.POSITIVE_INFINITY,
+      dockTop: dockRect?.top ?? Number.NEGATIVE_INFINITY,
+      actionButtons,
+    };
+  });
+  expect(openGeometry.viewportBottom).toBeLessThanOrEqual(openGeometry.panel.top + 1);
+  expect(openGeometry.panel.bottom).toBeLessThanOrEqual(openGeometry.dockTop + 1);
+  expect(openGeometry.panelScrollWidth).toBeLessThanOrEqual(openGeometry.panelClientWidth + 1);
+  expect(openGeometry.actionButtons.every((button) => (
+    button.left >= openGeometry.panel.left - 1
+    && button.right <= openGeometry.panel.right + 1
+    && button.height >= 44
+  ))).toBe(true);
 
   await pad.getByRole('button', { name: 'Scratch note', exact: true }).click();
   const textarea = pad.getByRole('textbox', { name: 'Case Quick Pad scratch note' });

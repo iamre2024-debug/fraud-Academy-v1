@@ -53,6 +53,7 @@ const checks = [
   ['Case notes and investigator notebook remain separate', component.includes('Investigator-wide notebook archive') && component.includes("agentNotebookKey = 'fraud-academy-agent-notepad-v1'")],
   ['Quick Pad responds to the visual viewport keyboard inset', component.includes('window.visualViewport') && mobileStyles.includes('--quick-pad-keyboard-inset')],
   ['Opening and closing preserve page scroll', component.includes('scrollPositionRef') && component.includes('window.scrollTo')],
+  ['Expanded panel reserves investigation viewport space', component.includes('--quick-pad-open-reserved-height') && mobileStyles.includes('var(--quick-pad-open-reserved-height')],
   ['Every saved ID offers copy and unpin while record actions are capability-gated', ['Copy', 'Unpin', 'canOpenItem(item) &&'].every((label) => component.includes(label))],
   ['Panel stays compact on phones', styles.includes('max-height: min(300px, 36dvh)')],
   ['Panel clears the fixed mobile dock', styles.includes('bottom: calc(88px + env(safe-area-inset-bottom))')],
