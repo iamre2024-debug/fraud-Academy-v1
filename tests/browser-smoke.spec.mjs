@@ -66,6 +66,23 @@ async function openCoreTool(page, category, tool) {
     await runPaymentVerification(panel, activeCase);
   }
 
+  if (tool === 'Link Analysis') {
+    const activeCaseId = await page.locator('.visual-case-switcher select').inputValue();
+    const activeCase = builtInCases.find((item) => item.id === activeCaseId);
+    const search = panel.getByRole('textbox', { name: 'Search Link Analysis identifier' });
+    await expect(panel.getByRole('region', { name: 'Cross-account Link Analysis search' })).toBeVisible();
+    await expect(panel.getByText('Search before viewing account links.', { exact: true })).toBeVisible();
+    await search.fill(activeCase.destinationId);
+    await panel.getByRole('button', { name: 'Search accounts', exact: true }).click();
+    await expect(panel.locator('.link-analysis-result-summary')).toContainText(activeCase.destinationId);
+    await expect(panel.locator('.link-analysis-result-summary')).toContainText(/\d+ matched accounts?/);
+    const firstMatch = panel.locator('[data-link-account]').first();
+    await expect(firstMatch).toBeVisible();
+    await firstMatch.locator('.link-analysis-account-heading').click();
+    await expect(firstMatch.locator('.link-analysis-account-detail')).toContainText('Exact shared identifier');
+    return;
+  }
+
   const specializedSelectors = {
     'Payment Verification': {
       record: '.payment-status-chip',

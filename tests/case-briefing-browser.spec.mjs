@@ -34,6 +34,9 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
 
   const utilities = briefing.getByRole('navigation', { name: 'Case briefing utilities' });
   const quickRoutes = briefing.getByRole('navigation', { name: 'Case briefing quick routes' });
+  const liveQuickRoutes = () => page
+    .locator('[data-case-briefing-screen="approved-theme-v1"]')
+    .getByRole('navigation', { name: 'Case briefing quick routes' });
   await expect(utilities.locator('button')).toHaveCount(6);
   await expect(quickRoutes.locator('button')).toHaveCount(4);
 
@@ -114,17 +117,17 @@ test('approved Case Briefing is Evidence First, functional, and responsive', asy
   await expect(page.locator('.activity-panel')).toContainText('Customer 360');
 
   await openWorkflowStage(page, /Case Briefing/);
-  await quickRoutes.getByRole('button', { name: 'Transaction History', exact: true }).click();
+  await liveQuickRoutes().getByRole('button', { name: 'Transaction History', exact: true }).click();
   await expect(page.locator('.activity-panel')).toContainText('Transaction History');
   await openWorkflowStage(page, /Case Briefing/);
-  await quickRoutes.getByRole('button', { name: 'Merchant Intelligence', exact: true }).click();
+  await liveQuickRoutes().getByRole('button', { name: 'Merchant Intelligence', exact: true }).click();
   await expect(page.locator('.activity-panel')).toContainText('Merchant Intelligence');
   await openWorkflowStage(page, /Case Briefing/);
-  await quickRoutes.getByRole('button', { name: 'Document Request', exact: true }).click();
-  await expect(page.locator('.activity-panel')).toContainText('Document Request');
+  await liveQuickRoutes().getByRole('button', { name: 'Financial Investigation', exact: true }).click();
+  await expect(page.locator('.activity-panel')).toContainText('Financial Investigation');
 
   await openWorkflowStage(page, /Case Briefing/);
-  await quickRoutes.getByRole('button', { name: 'Submit Decision', exact: true }).click();
+  await liveQuickRoutes().getByRole('button', { name: 'Submit Decision', exact: true }).click();
   await expect(page.locator('[data-workflow-stage-button="determination"]')).toHaveAttribute('aria-current', 'step');
   await expect(page.locator('.submit-decision-panel')).toBeVisible();
 

@@ -146,7 +146,7 @@ test('Customer 360 is a relationship-only personal profile with typed accounts a
   await expect(checking).toHaveCount(1);
   await expect(checking).toContainText('Everyday Checking');
   await expect(checking).toContainText('Account ID');
-  await expect(checking).toContainText('Masked account');
+  await expect(checking.getByText('••••4410', { exact: true })).toBeVisible();
   await expect(checking).toContainText('Product type');
   await expect(checking).toContainText('Current balance');
   await expect(checking).toContainText('Available balance');

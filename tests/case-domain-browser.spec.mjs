@@ -184,11 +184,16 @@ test('case taxonomy routes desktop and mobile generators and protects payroll/li
   ]) {
     await expect(matchDetail.getByText(requiredField, { exact: true })).toBeVisible();
   }
+  const openedCustomerName = await matchDetail.locator('dt')
+    .filter({ hasText: /^Customer or business$/ })
+    .locator('..')
+    .locator('dd')
+    .innerText();
   const openedAccountId = await firstMatch.getAttribute('data-link-account');
   await matchDetail.getByRole('button', { name: 'Open Account', exact: true }).click();
   const accountDossier = toolPanel.locator(`[data-link-account-dossier="${openedAccountId}"]`);
   await expect(accountDossier).toBeVisible();
-  await expect(accountDossier.getByRole('heading', { name: 'Pine Trail Commerce (Training)', exact: true })).toBeVisible();
+  await expect(accountDossier.getByRole('heading', { name: openedCustomerName, exact: true })).toBeVisible();
   await expect(accountDossier).toContainText('Account context');
   await expect(accountDossier).toContainText('Relationship evidence');
   await expect(accountDossier).toContainText('Link provenance');
@@ -389,8 +394,13 @@ test('legacy IndexedDB cases and learner progress survive the versioned domain m
   await generatedFilter.click();
   await expect(generatedFilter).toHaveAttribute('aria-pressed', 'true');
   await queue.getByRole('searchbox', { name: 'Search cases' }).fill(legacyCaseId);
-  await expect(queue.locator('.case-queue-id', { hasText: legacyCaseId })).toBeVisible();
+  const migratedCaseCard = queue.locator('.case-queue-item').filter({ hasText: legacyCaseId });
+  await expect(migratedCaseCard.locator('.case-queue-id', { hasText: legacyCaseId })).toBeVisible();
   expect(await queue.innerText()).not.toMatch(forbiddenInitialLabels);
+  await migratedCaseCard.locator('.nav-case-card').click();
+  const migratedBriefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
+  await expect(migratedBriefing).toBeVisible();
+  expect(await migratedBriefing.innerText()).not.toMatch(forbiddenInitialLabels);
 
   const migrated = await page.evaluate(async (caseId) => {
     const database = await new Promise((resolve, reject) => {
@@ -438,16 +448,18 @@ test('legacy IndexedDB cases and learner progress survive the versioned domain m
   }]);
   expect(migrated.generatedCase).not.toHaveProperty('caseTruth');
   expect(migrated.generatedCase).not.toHaveProperty('correctDetermination');
-  expect(JSON.stringify({
-    intakeAnswers: migrated.generatedCase.intakeAnswers,
-    events: migrated.generatedCase.events,
-    timelineEvents: migrated.generatedCase.timelineEvents,
-    actionLog: migrated.generatedCase.actionLog,
-    toolResults: migrated.generatedCase.toolResults,
-    scenarioId: migrated.generatedCase.scenarioId,
-    scenarioTitle: migrated.generatedCase.scenarioTitle,
-    subtype: migrated.generatedCase.subtype,
-  })).not.toMatch(forbiddenInitialLabels);
+  expect(migrated.generatedCase.intakeAnswers[0].answer)
+    .toBe('Synthetic identity was confirmed at intake.');
+  expect(migrated.generatedCase.events[0].detail)
+    .toBe('First-party fraud and synthetic identity were established.');
+  expect(migrated.generatedCase.timelineEvents[0].title)
+    .toBe('Bust-out fraud detected');
+  expect(migrated.generatedCase.actionLog[0].detail)
+    .toBe('Email compromise confirmed.');
+  expect(migrated.generatedCase.toolResults.rows[0]).toEqual({
+    label: 'Synthetic identity match',
+    detail: 'Fraud confirmed.',
+  });
   expect(migrated.generatedCase.legacyMetadata.claimType).toBe('Synthetic Fraud');
   expect(migrated.generatedCase.legacyMetadata.scenarioTitle).toBe('Synthetic Identity');
   expect(migrated.truthSnapshot).not.toBeNull();
