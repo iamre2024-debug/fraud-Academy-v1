@@ -1,4 +1,5 @@
 import { rowsFor } from './visualWorkspaceModel.js';
+import { parseLinkAnalysisPin } from './data/linkAnalysisRecords.js';
 
 function text(value) {
   return String(value ?? '').trim();
@@ -55,6 +56,19 @@ function scoreRow(pinValue, identifier, row) {
 export function resolvePinnedEvidence(pinValue, activeCase, toolNames) {
   const value = text(pinValue);
   if (!value || !activeCase) return null;
+
+  const linkPin = toolNames.includes('Link Analysis') ? parseLinkAnalysisPin(value) : null;
+  if (linkPin) {
+    return {
+      value,
+      tool: 'Link Analysis',
+      row: null,
+      query: linkPin.searchedIdentifier,
+      recordId: linkPin.accountId || linkPin.searchedIdentifier,
+      identifierType: linkPin.identifierType,
+      accountId: linkPin.accountId,
+    };
+  }
 
   const identifier = firstIdentifier(value);
   const preferredTool = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(value)

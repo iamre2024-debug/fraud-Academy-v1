@@ -79,6 +79,10 @@ async function openCoreTool(page, category, tool) {
       record: '[data-kyb-review-record]',
       detail: '.kyb-record-detail',
     },
+    'Link Analysis': {
+      record: '[data-link-account]',
+      detail: '[data-link-analysis-summary]',
+    },
   };
   const selectors = specializedSelectors[tool] ?? {
     record: '[data-investigation-record]',

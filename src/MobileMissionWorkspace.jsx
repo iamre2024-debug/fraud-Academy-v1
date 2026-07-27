@@ -77,24 +77,38 @@ export default function MobileMissionWorkspace({
     : screenCopy[workspaceScreen] ?? ['🛰️', 'Mission Workspace'];
   const isRoot = workspaceScreen === 'briefing';
   const isTool = workspaceScreen === 'tool' || workspaceScreen === 'timeline';
+  const isLinkAnalysis = workspaceScreen === 'tool' && activeTool === 'Link Analysis';
 
   return (
     <main className="mission-workspace-v3" data-workspace-screen={workspaceScreen} data-active-tool={activeTool}>
-      <header className="mission-workspace-bar">
+      <header className="mission-workspace-bar" data-link-analysis-header={isLinkAnalysis ? 'true' : undefined}>
         <button type="button" className="mission-workspace-back" disabled={isRoot} onClick={goBackWorkspaceScreen} aria-label="Back to previous mission screen">‹</button>
-        <div><span>{screenIcon}</span><p>{activeCase.id}</p><h1>{screenTitle}</h1></div>
-        <button type="button" className={workspaceScreen === 'workflow' ? 'active' : ''} onClick={() => workspaceScreen === 'workflow' ? goBackWorkspaceScreen() : showWorkspaceScreen('workflow')} aria-label="Open mission pages">☷</button>
+        {isLinkAnalysis ? (
+          <div className="mission-link-analysis-header-copy">
+            <h1>Link Analysis</h1>
+            <label className="mission-link-analysis-case-select">
+              <select value={activeCase.id} onChange={(event) => changeCase(event.target.value)} aria-label="Choose active Link Analysis case">
+                {cases.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.person}</option>)}
+              </select>
+            </label>
+          </div>
+        ) : (
+          <div><span>{screenIcon}</span><p>{activeCase.id}</p><h1>{screenTitle}</h1></div>
+        )}
+        <button type="button" className={workspaceScreen === 'workflow' ? 'active' : ''} onClick={() => workspaceScreen === 'workflow' ? goBackWorkspaceScreen() : showWorkspaceScreen('workflow')} aria-label="Open mission pages">{isLinkAnalysis ? '•••' : '☷'}</button>
       </header>
 
-      <section className="mission-workspace-case-selector" aria-label="Active mission file">
-        <span>ACTIVE FILE</span>
-        <label className="visual-case-switcher">
-          <select value={activeCase.id} onChange={(event) => changeCase(event.target.value)} aria-label="Choose active mission case">
-            {cases.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.person}</option>)}
-          </select>
-        </label>
-        <strong>{activeCase.status}</strong>
-      </section>
+      {!isLinkAnalysis && (
+        <section className="mission-workspace-case-selector" aria-label="Active mission file">
+          <span>ACTIVE FILE</span>
+          <label className="visual-case-switcher">
+            <select value={activeCase.id} onChange={(event) => changeCase(event.target.value)} aria-label="Choose active mission case">
+              {cases.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.person}</option>)}
+            </select>
+          </label>
+          <strong>{activeCase.status}</strong>
+        </section>
+      )}
 
       <div className="mission-workspace-surface">
         {workspaceScreen === 'briefing' && (
@@ -148,11 +162,13 @@ export default function MobileMissionWorkspace({
             data-workflow-stage={workspaceScreen === 'timeline' ? 'timeline' : 'investigate'}
             data-workspace-page={workspaceScreen === 'timeline' ? 'timeline' : 'tool'}
           >
-            <nav className="mission-tool-actions" aria-label="Tool page actions">
-              <button type="button" onClick={() => showWorkspaceScreen('tool-menu')}>🧰 All tools</button>
-              <button type="button" onClick={openNotes}>📝 Notes <span>{notes.length}</span></button>
-              <button type="button" onClick={jumpDecision}>✅ Decide</button>
-            </nav>
+            {!isLinkAnalysis && (
+              <nav className="mission-tool-actions" aria-label="Tool page actions">
+                <button type="button" onClick={() => showWorkspaceScreen('tool-menu')}>🧰 All tools</button>
+                <button type="button" onClick={openNotes}>📝 Notes <span>{notes.length}</span></button>
+                <button type="button" onClick={jumpDecision}>✅ Decide</button>
+              </nav>
+            )}
             {openedPinnedEvidence && !openedPinnedEvidence.unresolved && (
               <section className="mission-opened-pin" data-opened-pinned-evidence="true">
                 <div><p>Opened from pinned evidence</p><h2>{openedPinnedEvidence.value}</h2><small>Source: {openedPinnedEvidence.tool}</small></div>
