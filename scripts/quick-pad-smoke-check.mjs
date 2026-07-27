@@ -13,7 +13,11 @@ const checks = [
   ['Quick Pad has its own persisted storage key', model.includes("quickPad: 'fraud-academy-quick-pad-v1'")],
   ['Quick Pad state is scoped by active case', state.includes('quickPadByCase[caseId]')],
   ['Quick IDs remain separate from pinned evidence', workspace.includes("recordAction('Saved to Quick Pad'") && !component.includes('Pinned Evidence')],
-  ['Quick Pad renders for both workspace layouts', (workspace.match(/\{quickPadLayer\}/g) ?? []).length === 2],
+  [
+    'Quick Pad renders for both workspace layouts and stays off focused mobile review screens',
+    (workspace.match(/quickPadLayer/g) ?? []).length >= 3
+      && workspace.includes("!['determination', 'debrief'].includes(workspaceScreen) && quickPadLayer"),
+  ],
   ['Saved values can populate the current search', workspace.includes('setQuery(item.value)')],
   ['Saved values can reopen their canonical source tool', workspace.includes('const sourceTool = canonicalToolName(item.sourceTool)') && workspace.includes('openTool(sourceTool')],
   ['Account IDs can be added from Customer 360', customer.includes("label: 'Account ID'")],

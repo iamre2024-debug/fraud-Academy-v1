@@ -29,8 +29,6 @@ import './displayCustomer360ThemeV1.css';
 import './displayInvestigationToolsThemeV1.css';
 import './merchantChargebackLifecycle.css';
 import './displayTimelineThemeV1.css';
-import './displayDecisionLunaThemeV1.css';
-import './displayDecisionLunaLayoutSafetyV1.css';
 import './displayAcademyThemeV1.css';
 import './displayAcademyThemeV1Safety.css';
 import './displayProfileThemeV1.css';
@@ -43,6 +41,8 @@ import './documentInbox.css';
 import './mobileMissionDeckV3.css';
 import './caseQuickPad.css';
 import './cloudSync.css';
+import './displayDecisionLunaThemeV1.css';
+import './displayDecisionLunaLayoutSafetyV1.css';
 
 migrateLocalCaseStorage();
 

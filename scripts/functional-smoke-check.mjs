@@ -188,16 +188,20 @@ const checks = [
     file: 'src/SubmitDecisionPanel.jsx',
     label: 'direct Submit Decision visual module',
     mustContain: [
-      "import DecisionFlagChecklist from './DecisionFlagChecklist.jsx'",
       'getDecisionCallGroups,',
       'getFinalFindingChoices,',
       'reviewChoices,',
-      'className="ornate-card submit-decision-panel decision-theme-v1"',
-      'valid operational decision and final finding',
-      'data-decision-submission-state',
+      "from './DecisionReviewVisuals.jsx'",
+      'className="submit-decision-panel decision-theme-v1 decision-final-review"',
+      'data-decision-layout="reference-final-review"',
+      'data-decision-state={submissionState}',
       'const decisionGroups = getDecisionCallGroups(activeCase);',
       'selectionGroups.map',
-      'Submit Decision',
+      'Selected Decision',
+      'Operational decision',
+      'Final finding',
+      'Pinned Evidence',
+      'Confirm &amp; Submit Decision',
       'placeholder={`Explain what the evidence establishes for ${activeCase.id}',
     ],
     mustNotContain: [
@@ -282,8 +286,12 @@ const checks = [
     label: 'post submission Luna module',
     mustContain: [
       'buildLunaDebrief',
-      'Post-submission coaching stays locked',
-      'Decision-quality breakdown',
+      'data-luna-layout="reference-debrief"',
+      'Evidence First lock is active',
+      'What You Did Well',
+      'Evidence You Might Have Missed',
+      'Risk Tip from Luna',
+      "Luna&apos;s Motivation",
       'fraud-academy:package-saved',
     ],
   },
@@ -373,4 +381,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Functional smoke check passed. Workspace state and action boundaries, repository-backed generated cases, IndexedDB fallback, approved Case Briefing quick routes, direct Submit Decision compact text, Evidence First locks, React navigation, and the full verify wiring are present.');
+console.log('Functional smoke check passed. Workspace state and action boundaries, repository-backed generated cases, IndexedDB fallback, approved Case Briefing routes, component-owned Submit Decision and Luna reference screens, Evidence First locks, React navigation, and the full verify wiring are present.');

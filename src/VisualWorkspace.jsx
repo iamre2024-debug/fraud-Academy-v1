@@ -132,7 +132,6 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     saveNote,
     markReviewed,
     updateDecision,
-    updateDecisionIndicator,
     submitNote,
     submitDecision,
     recordAction,
@@ -595,11 +594,10 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
         submitRef={submitRef}
         tray={tray}
         updateDecision={updateDecision}
-        updateDecisionIndicator={updateDecisionIndicator}
         visibleCategories={visibleCategories}
         workspaceScreen={workspaceScreen}
         />
-        {quickPadLayer}
+        {!['determination', 'debrief'].includes(workspaceScreen) && quickPadLayer}
       </>
     );
   }
@@ -731,9 +729,13 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
               decisionDraft={decisionDraft}
               activeCase={activeCase}
               updateDecision={updateDecision}
-              updateDecisionIndicator={updateDecisionIndicator}
               submitDecision={submitDecision}
               openDebrief={openDebrief}
+              openEvidence={() => {
+                setActiveStage('indicators');
+                showWorkspaceScreen('evidence');
+              }}
+              openNotes={openNotes}
             />
           </div>
         )}
@@ -741,7 +743,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
         <nav className="visual-bottom-nav" aria-hidden="true" />
       </section>
     </main>
-    {quickPadLayer}
+    {!['determination', 'debrief'].includes(workspaceScreen) && quickPadLayer}
     </>
   );
 }
