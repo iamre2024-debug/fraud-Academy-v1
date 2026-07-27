@@ -9,7 +9,10 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await selectToolGroup(page, /Documents & Requests/);
 
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  await toolPanel.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Document Request');
+  const toolSelector = testInfo.project.name === 'mobile-chromium'
+    ? page.getByRole('combobox', { name: 'Choose mobile investigation tool', exact: true })
+    : toolPanel.getByRole('combobox', { name: 'Choose investigation tool', exact: true });
+  await toolSelector.selectOption('Document Request');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Request');
   const genericQuestion = toolPanel.getByRole('heading', { name: 'What documents were requested, received, missing, or pending review for this case?', exact: true });
   if (testInfo.project.name === 'mobile-chromium') {

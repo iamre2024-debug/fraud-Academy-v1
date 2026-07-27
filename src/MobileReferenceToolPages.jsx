@@ -5,8 +5,10 @@ import {
   getPayrollHistory,
   getTransactionHistory,
 } from './data/businessPayrollWorkspace.js';
+import { getFinancialRecords } from './data/caseToolData.js';
 import { getFinancialInvestigation } from './data/financialInvestigationRecords.js';
 import { getCustomer360Dossier } from './data/customer360Dossier.js';
+import { buildPaymentLookupHint } from './data/paymentVerification.js';
 
 const unavailable = 'Not supplied in the current training packet';
 
@@ -63,6 +65,65 @@ function QuickPinButton({ label, value, sourceTool, sourceRecordId = '', quickPi
   );
 }
 
+function hasPaymentIdentifier(value) {
+  return Boolean(value) && !/not (?:supplied|available|applicable|recorded)/i.test(String(value));
+}
+
+function MobilePaymentSourceHandoff({
+  source,
+  activeCase,
+  openTool,
+  quickPin,
+  sourceTool,
+  sourceLabel,
+  sourceRecordId = '',
+  ariaLabel,
+}) {
+  if (
+    !source
+    || !openTool
+    || !activeCase.availableTools?.includes('Payment Verification')
+    || !hasPaymentIdentifier(source.bankCode)
+    || !hasPaymentIdentifier(source.destinationId)
+  ) return null;
+
+  const recordId = sourceRecordId || source.recordId || source.id || '';
+  const ownerName = source.ownerToCompare || source.accountHolder || activeCase.person;
+  const hint = buildPaymentLookupHint({
+    bankCode: source.bankCode,
+    destinationId: source.destinationId,
+    ownerName,
+  });
+
+  return (
+    <section
+      className="mobile-payment-source-handoff"
+      aria-label={ariaLabel ?? `${sourceLabel} payment source identifiers`}
+      data-payment-source-record={recordId || undefined}
+    >
+      <header>
+        <div><p>Source identifiers · search before reveal</p><h4>Payment account change</h4></div>
+        {recordId && <strong>{recordId}</strong>}
+      </header>
+      <MobileFacts rows={[
+        ['Bank Code', source.bankCode, <QuickPinButton key="bank" label="Bank Code" value={source.bankCode} sourceTool={sourceTool} sourceRecordId={recordId} quickPin={quickPin} />],
+        ['Destination ID', source.destinationId, <QuickPinButton key="destination" label="Destination ID" value={source.destinationId} sourceTool={sourceTool} sourceRecordId={recordId} quickPin={quickPin} />],
+        ['Previous account / destination', source.previousDestination ?? source.oldDestination],
+        ['New account / destination', source.newDestination],
+        ['Change comparison', source.changeComparison],
+      ]} />
+      <button
+        type="button"
+        className="mobile-reference-primary"
+        onClick={() => openTool('Payment Verification', 'investigate', { query: hint })}
+      >
+        Prefill Payment Verification
+      </button>
+      <small>Name match, account standing, and verification results remain hidden until the investigator runs the search.</small>
+    </section>
+  );
+}
+
 function ReviewFooter({ title, reviewed, onReview, onDecision }) {
   return (
     <footer className="mobile-reference-review">
@@ -80,10 +141,12 @@ export function MobileCustomer360Page({
   saveNote,
   markReviewed,
   currentCompleted,
+  openTool,
   jumpDecision,
   notes = [],
 }) {
   const dossier = getCustomer360Dossier(activeCase);
+  const paymentSource = getFinancialRecords(activeCase).paymentVerification?.[0] ?? null;
   const contact = activeCase.customer?.contact ?? {};
   const customerId = activeCase.customerId ?? dossier.identity.maskedMemberId;
   const profileChanges = activeCase.customer?.profileChanges ?? [];
@@ -137,10 +200,24 @@ export function MobileCustomer360Page({
         </div>
       </MobilePanel>
 
+      {paymentSource && activeCase.availableTools?.includes('Payment Verification') && (
+        <MobilePanel eyebrow="Recorded source values" title="Payment verification inputs" charm="↗">
+          <MobilePaymentSourceHandoff
+            source={paymentSource}
+            activeCase={activeCase}
+            openTool={openTool}
+            quickPin={quickPin}
+            sourceTool="Customer 360"
+            sourceLabel="Customer 360"
+            ariaLabel="Payment Account Change"
+          />
+        </MobilePanel>
+      )}
+
       <MobilePanel eyebrow="Factual maintenance history" title="Profile updates" charm="✦">
         <div className="mobile-reference-event-list">
           {profileChanges.length ? profileChanges.map((event) => (
-            <article key={event.id}>
+            <article key={event.id} data-profile-event={event.id}>
               <i />
               <div><span>{event.date}{event.time ? ` · ${event.time}` : ''}</span><strong>{event.item}</strong><p>{event.oldValue ?? 'Not supplied'} → {event.newValue ?? event.detail}</p><small>{event.source ?? event.channel}</small></div>
               <button type="button" onClick={() => saveNote(`Customer 360 profile event ${event.id}: ${event.item}.`, 'Customer profile event')}>Note</button>
@@ -289,6 +366,19 @@ export function MobileBusiness360Page({
         </div>
       </MobilePanel>
 
+      {workspace.paymentSource && activeCase.availableTools?.includes('Payment Verification') && (
+        <MobilePanel eyebrow="Recorded payment destination" title="Payment verification inputs" charm="↗">
+          <MobilePaymentSourceHandoff
+            source={workspace.paymentSource}
+            activeCase={activeCase}
+            openTool={openTool}
+            quickPin={quickPin}
+            sourceTool="Business 360"
+            sourceLabel="Business 360"
+          />
+        </MobilePanel>
+      )}
+
       {isPayroll && (
         <MobilePanel eyebrow="Compact payroll overview" title="Current payroll relationship" charm="↗">
           <section className="mobile-reference-metrics">
@@ -375,6 +465,15 @@ export function MobileFinancialInvestigationPage({
                   ['Trusted callback', item.callback],
                   ['Context', item.context],
                 ]} />
+                <MobilePaymentSourceHandoff
+                  source={item.paymentSource}
+                  activeCase={activeCase}
+                  openTool={openTool}
+                  quickPin={quickPin}
+                  sourceTool="Financial Investigation"
+                  sourceLabel="Financial Investigation"
+                  sourceRecordId={item.id}
+                />
               </details>
             ))}
           </div>
@@ -509,6 +608,19 @@ export function MobileEmployeeProfilePage({
         ]} />
         <div className="mobile-reference-inline-actions"><button type="button" onClick={() => pin(`${employee.id} · ${employee.name}`)}>Pin evidence</button><button type="button" onClick={() => saveNote(`Employee Profile ${employee.id} reviewed.`, 'Employee profile')}>Add note</button></div>
       </MobilePanel>
+      {employee.paymentSource && activeCase.availableTools?.includes('Payment Verification') && (
+        <MobilePanel eyebrow="Recorded pay destination" title="Payment verification inputs" charm="↗">
+          <MobilePaymentSourceHandoff
+            source={employee.paymentSource}
+            activeCase={activeCase}
+            openTool={openTool}
+            quickPin={quickPin}
+            sourceTool="Employee Profile"
+            sourceLabel="Employee Profile"
+            sourceRecordId={employee.id}
+          />
+        </MobilePanel>
+      )}
       <MobilePanel eyebrow="Factual changes only" title="Employee profile history" charm="✦">
         <div className="mobile-reference-event-list">
           {history.length ? history.map((item) => <article key={item.id}><i /><div><span>{item.date}{item.time ? ` · ${item.time}` : ''}</span><strong>{item.item}</strong><p>{item.oldValue ?? 'Not supplied'} → {item.newValue ?? item.detail}</p></div></article>) : <p className="mobile-reference-empty">No structured employee profile change is supplied.</p>}
@@ -590,6 +702,15 @@ export function MobilePayrollHistoryPage({
                 ['Change comparison', record.changeComparison],
               ]} />
             </section>
+            <MobilePaymentSourceHandoff
+              source={record.paymentSource}
+              activeCase={activeCase}
+              openTool={openTool}
+              quickPin={quickPin}
+              sourceTool="Payroll History"
+              sourceLabel="Payroll History"
+              sourceRecordId={record.id}
+            />
             <div className="mobile-reference-inline-actions"><button type="button" onClick={() => pin(record.id)}>Pin evidence</button><button type="button" onClick={() => saveNote(`Payroll run ${record.id} reviewed.`, 'Payroll history')}>Add note</button></div>
           </details>
         ))}

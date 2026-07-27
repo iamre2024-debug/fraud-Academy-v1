@@ -188,7 +188,10 @@ export default function CaseQuickPad({
         aria-expanded={open}
         aria-label={`${open ? 'Close' : 'Open'} Quick Pad, ${items.length} saved ${items.length === 1 ? 'item' : 'items'}`}
       >
-        <span aria-hidden="true">📌</span> Quick Pad <strong>{items.length}</strong><i aria-hidden="true">✦</i>
+        <span className="case-quick-pad-trigger-icon" aria-hidden="true">📌</span>
+        <span className="case-quick-pad-trigger-label">Quick Pad</span>
+        <strong>{items.length}</strong>
+        <i aria-hidden="true">✦</i>
       </button>
     </aside>
   );

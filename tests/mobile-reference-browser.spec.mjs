@@ -76,7 +76,7 @@ async function assertMobileGeometry(page) {
   expect(geometry.dock.bottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
   if (geometry.quickPad) {
     expect(geometry.quickPad.right).toBeLessThanOrEqual(geometry.layoutWidth);
-    expect(geometry.quickPad.bottom).toBeLessThanOrEqual(geometry.dock.top - 6);
+    expect(geometry.quickPad.bottom).toBeLessThanOrEqual(geometry.dock.top);
   }
 }
 

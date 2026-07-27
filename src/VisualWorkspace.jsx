@@ -302,6 +302,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setOpenedPinnedEvidence(resolved);
     recordAction('Opened pinned evidence', `${item} reopened in ${resolved.tool}.`, 'Pinned Evidence');
     window.setTimeout(() => {
+      if (isMobileLayout()) return;
       const context = document.querySelector('[data-opened-pinned-evidence="true"]');
       const pageHeader = document.querySelector('.mobile-workspace-page-header');
       if (!context) return;

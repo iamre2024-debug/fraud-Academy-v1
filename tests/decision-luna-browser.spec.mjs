@@ -183,7 +183,7 @@ test('workflow decision inputs save and unlock Luna on desktop and mobile', asyn
     expect(mobilePreview.frameWidth).toBeLessThanOrEqual((mobilePreview.viewportWidth * 0.94) + 1);
     expect(mobilePreview.stackedCards).toBe(true);
 
-    await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
+    await page.getByRole('button', { name: 'Open menu', exact: true }).click();
     await page.getByRole('combobox', { name: 'Layout mode', exact: true }).selectOption('desktop');
     await expect(page.locator('body')).toHaveAttribute('data-layout-preference', 'desktop');
     await expect(page.locator('body')).toHaveAttribute('data-layout-mode', 'desktop');
