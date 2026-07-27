@@ -5,6 +5,7 @@ import DocumentViewerWorkspace from './DocumentViewerWorkspace.jsx';
 import FinancialInvestigationDossierWorkspace from './FinancialInvestigationWorkspace.jsx';
 import LinkAnalysisWorkspace from './LinkAnalysisWorkspace.jsx';
 import MerchantIntelligenceWorkspace from './MerchantIntelligenceWorkspace.jsx';
+import { MobileDocumentRequestPage } from './MobileMerchantDocumentPages.jsx';
 import { accessReportExportText, generateAccessHistoryReport, generatedAccessReportTypes } from './data/accessHistoryReports.js';
 import { buildCoreToolRecords } from './data/coreToolRecords.js';
 import { getBusiness360Workspace, getEmployeeProfiles, getPayrollAccessContext, getPayrollHistory, getTransactionHistory } from './data/businessPayrollWorkspace.js';
@@ -1012,6 +1013,7 @@ function DocumentRequestWorkspace({
   documentRequests,
   setDocumentRequestsByCase,
   recordAction,
+  mobileMode = false,
 }) {
   const [selectedRequestId, setSelectedRequestId] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -1037,6 +1039,8 @@ function DocumentRequestWorkspace({
   ));
   const activeRequest = filteredRequests.find((request) => request.id === selectedRequestId) ?? filteredRequests[0];
   const counts = documentRequestStatuses.slice(1).map((status) => [status, requests.filter((request) => request.status === status).length]);
+  const attempts = Object.values(documentRequests).flatMap((request) => request?.attempts ?? []);
+  const activeStep = attempts.some((attempt) => attempt.customerSubmission?.pages?.length) ? 2 : attempts.length ? 1 : 0;
 
   useEffect(() => {
     setSelectedRequestId('');
@@ -1151,6 +1155,73 @@ function DocumentRequestWorkspace({
       documentId: firstMerchantDocument?.id ?? '',
       pane: firstMerchantDocument ? 'reader' : 'inbox',
     });
+  }
+
+  function markRequestRead(request = activeRequest) {
+    if (!request?.sourceDocumentId || !request.attemptId || !request.unread) return;
+    setDocumentRequestsByCase((current) => {
+      const caseRequests = current[activeCase.id] ?? {};
+      const documentState = caseRequests[request.sourceDocumentId];
+      if (!documentState?.attempts?.length) return current;
+      return {
+        ...current,
+        [activeCase.id]: {
+          ...caseRequests,
+          [request.sourceDocumentId]: {
+            ...documentState,
+            attempts: documentState.attempts.map((attempt) => (
+              attempt.attemptId === request.attemptId ? { ...attempt, unread: false } : attempt
+            )),
+          },
+        },
+      };
+    });
+  }
+
+  if (mobileMode) {
+    return (
+      <MobileDocumentRequestPage
+        activeCase={activeCase}
+        activeRequest={activeRequest}
+        activeStep={activeStep}
+        composeChannel={composeChannel}
+        composeDocumentId={composeDocumentId}
+        composeDueDate={composeDueDate}
+        composeOpen={composeOpen}
+        composeReason={composeReason}
+        counts={counts}
+        filteredRequests={filteredRequests}
+        firstMerchantDocument={firstMerchantDocument}
+        markRequestRead={markRequestRead}
+        mobilePane={mobilePane}
+        openComposer={openComposer}
+        openDocumentViewerRoute={openDocumentViewerRoute}
+        openMerchantPaperwork={openMerchantPaperwork}
+        openRequest={openRequest}
+        query={query}
+        requestConfirmation={requestConfirmation}
+        requestTemplates={requestTemplates}
+        requests={requests}
+        saveRequestNote={saveRequestNote}
+        setComposeChannel={setComposeChannel}
+        setComposeDocumentId={setComposeDocumentId}
+        setComposeDueDate={setComposeDueDate}
+        setComposeOpen={setComposeOpen}
+        setComposeReason={setComposeReason}
+        setMobilePane={setMobilePane}
+        setQuery={setQuery}
+        setStatusFilter={setStatusFilter}
+        statusFilter={statusFilter}
+        statuses={documentRequestStatuses}
+        submitPaperworkRequest={submitPaperworkRequest}
+        checkCustomerResponse={checkCustomerResponse}
+        pin={pin}
+        markReviewed={markReviewed}
+        reviewed={reviewed}
+        jumpDecision={jumpDecision}
+        openTool={openTool}
+      />
+    );
   }
 
   return (
@@ -2313,6 +2384,7 @@ export default function InvestigationToolPanel({
   quickPin,
   payrollInvestigation,
   setPayrollInvestigationsByCase,
+  mobileMode = false,
 }) {
   const [selectedRecordId, setSelectedRecordId] = useState('');
   const identityContextCase = useMemo(
@@ -2432,6 +2504,7 @@ export default function InvestigationToolPanel({
           openTool={openTool}
           jumpDecision={jumpDecision}
           documentRequests={documentRequests}
+          mobileMode={mobileMode}
         />
       ) : tool === 'Financial Investigation' ? (
         <FinancialInvestigationDossierWorkspace
@@ -2556,6 +2629,7 @@ export default function InvestigationToolPanel({
           jumpDecision={jumpDecision}
           documentRequests={documentRequests}
           setDocumentRequestsByCase={setDocumentRequestsByCase}
+          mobileMode={mobileMode}
         />
       ) : tool === 'Link Analysis' ? (
         <LinkAnalysisWorkspace

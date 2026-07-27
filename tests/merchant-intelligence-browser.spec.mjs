@@ -21,6 +21,16 @@ test('Merchant Intelligence presents a chargeback lifecycle with inspectable sce
   await expect(toolPanel.locator('.merchant-quick-summary')).toContainText('Challenged');
   await expect(toolPanel.locator('.merchant-lifecycle-tabs button')).toHaveCount(6);
   await expect(toolPanel.locator('[data-lifecycle-section="merchant-response"]')).toBeVisible();
+  if (testInfo.project.name === 'mobile-chromium') {
+    const referencePage = toolPanel.locator('[data-mobile-merchant-reference="true"]');
+    await expect(referencePage).toBeVisible();
+    await expect(referencePage.getByRole('heading', { name: 'Transaction under review', exact: true })).toBeVisible();
+    await expect(referencePage.getByRole('heading', { name: 'Prior customer history', exact: true })).toBeVisible();
+    await expect(referencePage.getByRole('heading', { name: 'Policy & supporting terms', exact: true })).toBeVisible();
+    await expect(referencePage.getByText('Under review', { exact: true })).toBeVisible();
+    await expect(referencePage).not.toContainText('High Risk');
+    await expect(referencePage.getByLabel('Luna debrief is available after submission')).toContainText('Debrief after submit');
+  }
   await expect(toolPanel.getByRole('heading', { name: 'Merchant response', exact: true })).toBeVisible();
   await expect(toolPanel.getByText('Challenged', { exact: true }).first()).toBeVisible();
   await expect(toolPanel.locator('[data-merchant-document]')).toHaveCount(5);

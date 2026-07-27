@@ -19,6 +19,12 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
     await expect(toolPanel.locator(':scope > .investigation-tool-header')).toBeHidden();
     await expect(toolPanel.locator(':scope > .investigation-tool-question')).toBeHidden();
     await expect(toolPanel.locator(':scope > .investigation-tool-controls')).toBeHidden();
+    const referencePage = toolPanel.locator('[data-mobile-document-reference="true"]');
+    await expect(referencePage).toBeVisible();
+    await expect(referencePage.getByRole('heading', { name: 'Manual Request Inbox', exact: true })).toBeVisible();
+    await expect(referencePage.getByRole('heading', { name: 'Requested Documents', exact: true })).toBeVisible();
+    await expect(referencePage.getByRole('region', { name: 'Document preview' })).toBeVisible();
+    await expect(referencePage).toContainText('Nothing is sent until you complete the request form.');
     const visibleHeadingGeometry = await documentMission.locator('h2, h3').evaluateAll((headings) => headings
       .filter((heading) => {
         const style = getComputedStyle(heading);
@@ -35,7 +41,9 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
     await expect(genericQuestion).toBeVisible();
   }
   await expect(toolPanel.locator('.document-request-inbox')).toBeVisible();
-  await expect(toolPanel.locator('.document-request-compose-button')).toHaveText('＋ Request Paperwork');
+  await expect(toolPanel.locator('.document-request-compose-button')).toHaveText(
+    testInfo.project.name === 'mobile-chromium' ? 'Request Document' : '＋ Request Paperwork',
+  );
   await expect(toolPanel.locator('[data-document-request]')).toHaveCount(1);
   await expect(toolPanel.locator('[data-document-request]').first()).toContainText('Customer dispute form');
   await expect(toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation' })).toHaveCount(0);

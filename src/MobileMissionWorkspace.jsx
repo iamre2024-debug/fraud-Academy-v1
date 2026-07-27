@@ -36,7 +36,6 @@ export default function MobileMissionWorkspace({
   changeCase,
   currentCompleted,
   decisionDraft,
-  documentRequests,
   goBackWorkspaceScreen,
   jumpDecision,
   noteDraft,
@@ -141,9 +140,11 @@ export default function MobileMissionWorkspace({
             className={[
               'mission-tool-page',
               activeTool === 'Document Request' ? 'mission-document-request-page' : '',
+              activeTool === 'Merchant Intelligence' ? 'mission-merchant-reference-page' : '',
               activeTool === 'Login History' ? 'mission-login-history-page' : '',
             ].filter(Boolean).join(' ')}
             data-document-request-page={activeTool === 'Document Request' ? 'true' : undefined}
+            data-merchant-reference-page={activeTool === 'Merchant Intelligence' ? 'true' : undefined}
             data-login-history-page={activeTool === 'Login History' ? 'true' : undefined}
             data-workflow-stage={workspaceScreen === 'timeline' ? 'timeline' : 'investigate'}
             data-workspace-page={workspaceScreen === 'timeline' ? 'timeline' : 'tool'}
@@ -159,7 +160,6 @@ export default function MobileMissionWorkspace({
                 <button type="button" onClick={returnToPinnedEvidence}>Back to pins</button>
               </section>
             )}
-            {activeTool === 'Document Request' && <MissionDocumentRequestHeading activeCase={activeCase} documentRequests={documentRequests} />}
             {activeTool === 'Login History' && <MissionLoginHistoryHeading activeCase={activeCase} />}
             <div className="mission-tool-content">
               {activeTool === 'Customer 360' ? (
@@ -167,7 +167,7 @@ export default function MobileMissionWorkspace({
               ) : activeTool === 'Timeline' ? (
                 <TimelinePanel {...activeToolProps} />
               ) : (
-                <InvestigationToolPanel {...activeToolProps} />
+                <InvestigationToolPanel {...activeToolProps} mobileMode />
               )}
             </div>
           </section>
@@ -235,40 +235,6 @@ export default function MobileMissionWorkspace({
         <span>⭐ {tray.length} pinned</span><span>📝 {notes.length} notes</span><span>📡 {actionLog.length} actions</span>
       </footer>
     </main>
-  );
-}
-
-function documentRequestProgress(documentRequests = {}) {
-  const attempts = Object.values(documentRequests).flatMap((request) => request?.attempts ?? []);
-  if (!attempts.length) return 0;
-  if (attempts.some((attempt) => attempt.customerSubmission?.pages?.length)) return 2;
-  return 1;
-}
-
-function MissionDocumentRequestHeading({ activeCase, documentRequests }) {
-  const activeStep = documentRequestProgress(documentRequests);
-  const steps = ['Request', 'Receive', 'Review'];
-  return (
-    <header className="mission-document-request-heading">
-      <span className="mission-document-request-icon" aria-hidden="true">📨</span>
-      <div>
-        <p>Paperwork mission · {activeCase.id}</p>
-        <h2>Document Request</h2>
-        <small>Send a request, track the customer response, then review the returned source document.</small>
-      </div>
-      <ol aria-label="Document request workflow">
-        {steps.map((step, index) => (
-          <li
-            key={step}
-            className={index < activeStep ? 'complete' : index === activeStep ? 'active' : ''}
-            aria-current={index === activeStep ? 'step' : undefined}
-            data-document-request-step={step.toLowerCase()}
-          >
-            <i />{step}
-          </li>
-        ))}
-      </ol>
-    </header>
   );
 }
 
