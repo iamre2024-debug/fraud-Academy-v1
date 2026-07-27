@@ -47,7 +47,13 @@ test('Business 360 and Payroll History provide complete responsive workspaces', 
   await businessTabs.getByRole('tab', { name: 'Luna Business Research', exact: true }).click();
   const luna = panel.getByRole('region', { name: 'Luna Business Research', exact: true });
   await expect(luna.locator('[data-research-status]')).toHaveCount(5);
-  for (const topic of ['Owner linkage', 'Entity registration', 'Industry or professional license', 'Web presence', 'Cross-source consistency']) {
+  for (const topic of [
+    'Owner-to-business relationship',
+    'State entity registration',
+    'Professional or industry license',
+    'Website, domain, or directory presence',
+    'Name, address, phone, email, owners, and dates',
+  ]) {
     await expect(luna).toContainText(topic);
   }
   await expect(luna).toContainText(/Checked/);
