@@ -67,6 +67,7 @@ for (const anchor of [
   'detailRequest={mobile360DetailRequest}',
   'activeToolProps.markReviewed?.(activeTool)',
   "`${activeCase.trainingId ?? 'C360-REL'} · ${mobile360ProfileName}`",
+  "showWorkspaceScreen('evidence')",
   'Open ${activeTool} actions',
   'Business profile',
   'Owners &amp; control',

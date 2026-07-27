@@ -57,6 +57,18 @@ export async function openToolGroups(page) {
   const groups = page.locator('[data-investigation-tool-groups="approved-theme-v1"]');
   if (await groups.isVisible()) return groups;
 
+  const mobile360ActionsButton = page.getByRole('button', {
+    name: /Open (?:Customer|Business) 360 actions/,
+  });
+  if (await mobile360ActionsButton.isVisible()) {
+    await mobile360ActionsButton.click();
+    await page.getByRole('dialog', { name: /(?:Customer|Business) 360 actions/ })
+      .getByRole('button', { name: /All tools/ })
+      .click();
+    await expect(groups).toBeVisible();
+    return groups;
+  }
+
   await openWorkflowStage(page, /Investigate/);
   await expect(groups).toBeVisible();
   return groups;

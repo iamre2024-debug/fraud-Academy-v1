@@ -68,7 +68,7 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
   if (testInfo.project.name === 'mobile-chromium') {
     await expect(viewer.locator('.document-mobile-review-shell')).toHaveCount(0);
   } else {
-    await expect(viewer.getByRole('main', { name: 'Document preview' })).toContainText('Choose a document to open its viewer.');
+    await expect(viewer.getByRole('region', { name: 'Document preview' })).toContainText('Choose a document to open its viewer.');
   }
   await search.clear();
 

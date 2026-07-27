@@ -244,6 +244,3 @@ export default function DeviceIntelligenceWorkspace({
     </>
   );
 }
-
-const documentRequestStatuses = ['All', 'Not Requested', 'Requested', 'Received', 'Incomplete', 'Received Late', 'No Response', 'Pending Review', 'Approved', 'Rejected', 'Expired', 'Missing', 'Exception Approved'];
-

@@ -8,6 +8,8 @@ import {
 } from '../data/documentRequestWorkflow.js';
 import { queueDocumentViewerRoute } from '../documentViewerRoute.js';
 
+const documentRequestStatuses = ['All', 'Not Requested', 'Requested', 'Received', 'Incomplete', 'Received Late', 'No Response', 'Pending Review', 'Approved', 'Rejected', 'Expired', 'Missing', 'Exception Approved'];
+
 function documentRequestSearchText(request) {
   return Object.values(request).filter(Boolean).join(' ').toLowerCase();
 }

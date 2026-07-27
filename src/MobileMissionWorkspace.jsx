@@ -219,6 +219,7 @@ export default function MobileMissionWorkspace({
             <nav className="mobile-360-workflow-actions" aria-label="Investigation workflow actions">
               <button type="button" onClick={pinMobile360Profile}>⭐ Pin profile</button>
               <button type="button" onClick={() => { openNotes(); setMobile360MenuOpen(false); }}>📝 Case notes</button>
+              <button type="button" onClick={() => { showWorkspaceScreen('evidence'); setMobile360MenuOpen(false); }}>⭐ Pinned Evidence</button>
               <button type="button" onClick={() => { showWorkspaceScreen('tool-menu'); setMobile360MenuOpen(false); }}>🧰 All tools</button>
               <button type="button" onClick={markMobile360Reviewed}>
                 {currentCompleted.includes(activeTool) ? '✓ Reviewed' : '✓ Mark reviewed'}

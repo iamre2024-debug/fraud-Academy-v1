@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { createGeneratedCase } from '../src/data/generatedCases.js';
-import { openWorkspacePages, selectToolGroup } from './workspace-page-helpers.mjs';
+import { selectToolGroup } from './workspace-page-helpers.mjs';
 
 const screenshotRoot = process.env.MOBILE_360_SCREENSHOT_DIR
   ? path.resolve(process.env.MOBILE_360_SCREENSHOT_DIR)
@@ -120,6 +120,7 @@ test('mobile Customer 360 is the coded reference dashboard with working record d
   await expect(customerActions.getByRole('button', { name: /Trusted devices & security/ })).toBeVisible();
   await expect(customerActions.getByRole('button', { name: /Accounts & products/ })).toBeVisible();
   await expect(customerActions.getByRole('button', { name: /Relationship/ })).toBeVisible();
+  await expect(customerActions.getByRole('button', { name: /Pinned Evidence/ })).toBeVisible();
   await expect(customerActions).not.toContainText('FA-ATO-24018');
   await customerActions.getByRole('button', { name: /Customer profile/ }).click();
   const customerProfileDrawer = page.getByRole('dialog', { name: 'Customer profile' });
@@ -132,8 +133,10 @@ test('mobile Customer 360 is the coded reference dashboard with working record d
   await page.getByRole('dialog', { name: 'Customer 360 actions' })
     .getByRole('button', { name: /Pin profile/ })
     .click();
-  const workflow = await openWorkspacePages(page);
-  await workflow.getByRole('button', { name: /Indicators|Evidence/ }).click();
+  await page.getByRole('button', { name: 'Open Customer 360 actions' }).click();
+  await page.getByRole('dialog', { name: 'Customer 360 actions' })
+    .getByRole('button', { name: /Pinned Evidence/ })
+    .click();
   const profilePin = page.getByRole('button', {
     name: 'Open pinned evidence TRN-8842-19 · Maya Sterling',
   });
