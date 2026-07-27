@@ -2248,6 +2248,20 @@ export default function InvestigationToolPanel({
         data-investigation-tools-screen="approved-theme-v1"
         data-tool-name="Link Analysis"
       >
+        <section className="investigation-tool-controls link-analysis-tool-switcher" aria-label="Investigation tool controls">
+          <label>
+            <span>Current tool group</span>
+            <select
+              className="tool-select"
+              value={tool}
+              onChange={(event) => openTool(event.target.value)}
+              aria-label="Choose investigation tool"
+            >
+              {activeCategory.tools.map((item) => <option key={item}>{item}</option>)}
+            </select>
+          </label>
+          <p>Switch tools without leaving the current case.</p>
+        </section>
         <LinkAnalysisWorkspace
           activeCase={activeCase}
           cases={cases}

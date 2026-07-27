@@ -14,6 +14,8 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
   await expect(workspace.getByText('Verified Links Summary', { exact: true })).toBeVisible();
   await expect(workspace.getByText('Luna · factual link summary', { exact: true })).toBeVisible();
 
+  const searchShell = workspace.locator('.link-analysis-search-shell');
+  await searchShell.locator('summary').click();
   const search = workspace.getByRole('textbox', { name: 'Search Link Analysis identifier' });
   await expect(search).toHaveValue('(214) 555-0184');
   await expect(workspace.locator('[data-link-account]')).toHaveCount(3);
@@ -36,7 +38,6 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
   await expect(search).toHaveValue('DST-CARD-4410');
   await expect(workspace.locator('[data-link-account]')).toHaveCount(2);
 
-  const searchShell = workspace.locator('.link-analysis-search-shell');
   await searchShell.locator('summary').click();
   await search.fill('NO-EXACT-MATCH');
   await workspace.getByRole('button', { name: 'Search Links', exact: true }).click();
