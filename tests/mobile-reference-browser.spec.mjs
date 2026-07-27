@@ -58,6 +58,7 @@ async function assertMobileGeometry(page) {
     return {
       viewportWidth: window.innerWidth,
       viewportHeight: window.innerHeight,
+      layoutWidth: document.documentElement.clientWidth,
       documentWidth: document.documentElement.scrollWidth,
       bodyWidth: document.body.scrollWidth,
       dock: dock ? { left: dock.left, right: dock.right, top: dock.top, bottom: dock.bottom } : null,
@@ -66,15 +67,15 @@ async function assertMobileGeometry(page) {
     };
   });
 
-  expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewportWidth + 1);
-  expect(geometry.bodyWidth).toBeLessThanOrEqual(geometry.viewportWidth + 1);
+  expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.layoutWidth + 1);
+  expect(geometry.bodyWidth).toBeLessThanOrEqual(geometry.layoutWidth + 1);
   expect(geometry.buttons.map((item) => item.label)).toEqual(['⌂Home', '▤Cases', '✦Workspace', '♢Academy', '♡Agent', '❝Quotes']);
   expect(geometry.buttons.every((item) => item.width >= 44 && item.height >= 44)).toBe(true);
   expect(geometry.dock.left).toBeGreaterThanOrEqual(0);
-  expect(geometry.dock.right).toBeLessThanOrEqual(geometry.viewportWidth + 1);
+  expect(geometry.dock.right).toBeLessThanOrEqual(geometry.layoutWidth + 1);
   expect(geometry.dock.bottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
   if (geometry.quickPad) {
-    expect(geometry.quickPad.right).toBeLessThanOrEqual(geometry.viewportWidth);
+    expect(geometry.quickPad.right).toBeLessThanOrEqual(geometry.layoutWidth);
     expect(geometry.quickPad.bottom).toBeLessThanOrEqual(geometry.dock.top - 6);
   }
 }
@@ -96,7 +97,7 @@ async function captureQuickPadPair(page, slug) {
   await page.getByRole('button', { name: /Open Quick Pad/ }).click();
   await expect(page.getByRole('dialog', { name: 'Keep lookup details close' })).toBeVisible();
   await screenshot(page, `${slug}-quick-pad-expanded`);
-  await page.getByRole('button', { name: 'Close Quick Pad' }).click();
+  await page.getByRole('button', { name: 'Close Quick Pad', exact: true }).click();
 }
 
 test('approved mobile shell is safe at the required phone widths and every active tool is reachable', async ({ page }) => {

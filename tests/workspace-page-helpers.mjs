@@ -27,7 +27,7 @@ export async function openWorkspacePages(page) {
   const usesDesktopPages = await desktopPagesButton.isVisible();
   const pagesButton = usesDesktopPages
     ? desktopPagesButton
-    : page.getByRole('button', { name: 'Open mission pages', exact: true });
+    : page.getByRole('button', { name: 'Open workspace menu', exact: true });
   await expect(pagesButton).toBeVisible();
   await pagesButton.click();
 
