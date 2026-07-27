@@ -153,7 +153,7 @@ test('Quick Pad collapsed and expanded states are captured in the four required 
   await openToolGroup(page, 'Transactions & Financial');
   await switchTool(page, 'Financial Investigation');
   await expect(page.locator('[data-financial-investigation-screen]')).toBeVisible();
-  await page.locator('.mobile-tool-quick-pins').getByRole('button', { name: /Account ID/ }).click();
+  await page.locator('.mobile-tool-quick-pins').getByRole('button', { name: /Transaction ID/ }).click();
   await captureQuickPadPair(page, 'financial-investigation');
 
   await openToolGroup(page, 'Links & Related Cases');
