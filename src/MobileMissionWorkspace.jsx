@@ -1,7 +1,11 @@
 import BottomInvestigationGrid from './BottomInvestigationGrid.jsx';
 import CategoryTileRail from './CategoryTileRail.jsx';
-import Customer360Panel from './Customer360Panel.jsx';
 import InvestigationToolPanel from './InvestigationToolPanel.jsx';
+import {
+  Mobile360LunaBadge,
+  MobileBusiness360Reference,
+  MobileCustomer360Reference,
+} from './Mobile360ReferencePages.jsx';
 import MobileMissionCaseBriefing from './MobileMissionCaseBriefing.jsx';
 import SubmitDecisionPanel from './SubmitDecisionPanel.jsx';
 import TimelinePanel from './TimelinePanel.jsx';
@@ -77,24 +81,41 @@ export default function MobileMissionWorkspace({
     : screenCopy[workspaceScreen] ?? ['🛰️', 'Mission Workspace'];
   const isRoot = workspaceScreen === 'briefing';
   const isTool = workspaceScreen === 'tool' || workspaceScreen === 'timeline';
+  const is360Tool = isTool && ['Customer 360', 'Business 360'].includes(activeTool);
 
   return (
     <main className="mission-workspace-v3" data-workspace-screen={workspaceScreen} data-active-tool={activeTool}>
-      <header className="mission-workspace-bar">
+      <header className="mission-workspace-bar" data-mobile-360-header={is360Tool ? 'true' : undefined}>
         <button type="button" className="mission-workspace-back" disabled={isRoot} onClick={goBackWorkspaceScreen} aria-label="Back to previous mission screen">‹</button>
-        <div><span>{screenIcon}</span><p>{activeCase.id}</p><h1>{screenTitle}</h1></div>
-        <button type="button" className={workspaceScreen === 'workflow' ? 'active' : ''} onClick={() => workspaceScreen === 'workflow' ? goBackWorkspaceScreen() : showWorkspaceScreen('workflow')} aria-label="Open mission pages">☷</button>
+        <div>
+          <span>{screenIcon}</span>
+          {is360Tool ? (
+            <>
+              <h1>{screenTitle}</h1>
+              <p className="mobile-360-home-base">{activeTool === 'Customer 360' ? 'Customer home base' : 'Business home base'}</p>
+            </>
+          ) : (
+            <>
+              <p>{activeCase.id}</p>
+              <h1>{screenTitle}</h1>
+            </>
+          )}
+        </div>
+        {is360Tool && <Mobile360LunaBadge />}
+        <button type="button" className={workspaceScreen === 'workflow' ? 'active' : ''} onClick={() => workspaceScreen === 'workflow' ? goBackWorkspaceScreen() : showWorkspaceScreen('workflow')} aria-label="Open mission pages">{is360Tool ? '•••' : '☷'}</button>
       </header>
 
-      <section className="mission-workspace-case-selector" aria-label="Active mission file">
-        <span>ACTIVE FILE</span>
-        <label className="visual-case-switcher">
-          <select value={activeCase.id} onChange={(event) => changeCase(event.target.value)} aria-label="Choose active mission case">
-            {cases.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.person}</option>)}
-          </select>
-        </label>
-        <strong>{activeCase.status}</strong>
-      </section>
+      {!is360Tool && (
+        <section className="mission-workspace-case-selector" aria-label="Active mission file">
+          <span>ACTIVE FILE</span>
+          <label className="visual-case-switcher">
+            <select value={activeCase.id} onChange={(event) => changeCase(event.target.value)} aria-label="Choose active mission case">
+              {cases.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.person}</option>)}
+            </select>
+          </label>
+          <strong>{activeCase.status}</strong>
+        </section>
+      )}
 
       <div className="mission-workspace-surface">
         {workspaceScreen === 'briefing' && (
@@ -148,11 +169,13 @@ export default function MobileMissionWorkspace({
             data-workflow-stage={workspaceScreen === 'timeline' ? 'timeline' : 'investigate'}
             data-workspace-page={workspaceScreen === 'timeline' ? 'timeline' : 'tool'}
           >
-            <nav className="mission-tool-actions" aria-label="Tool page actions">
-              <button type="button" onClick={() => showWorkspaceScreen('tool-menu')}>🧰 All tools</button>
-              <button type="button" onClick={openNotes}>📝 Notes <span>{notes.length}</span></button>
-              <button type="button" onClick={jumpDecision}>✅ Decide</button>
-            </nav>
+            {!is360Tool && (
+              <nav className="mission-tool-actions" aria-label="Tool page actions">
+                <button type="button" onClick={() => showWorkspaceScreen('tool-menu')}>🧰 All tools</button>
+                <button type="button" onClick={openNotes}>📝 Notes <span>{notes.length}</span></button>
+                <button type="button" onClick={jumpDecision}>✅ Decide</button>
+              </nav>
+            )}
             {openedPinnedEvidence && !openedPinnedEvidence.unresolved && (
               <section className="mission-opened-pin" data-opened-pinned-evidence="true">
                 <div><p>Opened from pinned evidence</p><h2>{openedPinnedEvidence.value}</h2><small>Source: {openedPinnedEvidence.tool}</small></div>
@@ -163,7 +186,12 @@ export default function MobileMissionWorkspace({
             {activeTool === 'Login History' && <MissionLoginHistoryHeading activeCase={activeCase} />}
             <div className="mission-tool-content">
               {activeTool === 'Customer 360' ? (
-                <Customer360Panel {...activeToolProps} />
+                <MobileCustomer360Reference {...activeToolProps} />
+              ) : activeTool === 'Business 360' ? (
+                <MobileBusiness360Reference
+                  {...activeToolProps}
+                  reviewed={currentCompleted.includes('Business 360')}
+                />
               ) : activeTool === 'Timeline' ? (
                 <TimelinePanel {...activeToolProps} />
               ) : (
