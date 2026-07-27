@@ -33,7 +33,7 @@ for (const anchor of [
   'Case parties',
   'data-case-briefing-parties="true"',
   'data-case-briefing-details="true"',
-  'Reason code and review details',
+  'Network and evidence details',
   'case-briefing-chargeback-card',
   'Workspace',
   'Timeline',
@@ -52,7 +52,8 @@ for (const anchor of [
   '<small>Transaction / payee info</small>',
   '<small>Short summary</small>',
   '{activeCase.transactionInfo ?? activeCase.type}',
-  '{activeCase.shortSummary ?? activeCase.queueReason}',
+  'publicCaseSummary,',
+  '{publicCaseSummary(activeCase)}',
 ]) {
   mustContain('CaseSummaryCard.jsx', briefing, anchor);
 }

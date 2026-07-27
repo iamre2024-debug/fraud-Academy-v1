@@ -5,7 +5,12 @@ const model = read('src/visualWorkspaceModel.js');
 const state = read('src/useVisualWorkspaceCaseState.js');
 const workspace = read('src/VisualWorkspace.jsx');
 const customer = read('src/Customer360Panel.jsx');
-const device = read('src/InvestigationToolPanel.jsx');
+const device = [
+  'src/InvestigationToolPanel.jsx',
+  'src/tools/DeviceIntelligenceWorkspace.jsx',
+  'src/tools/PaymentVerificationWorkspace.jsx',
+  'src/tools/PayrollHistoryWorkspace.jsx',
+].map(read).join('\n');
 const component = read('src/CaseQuickPad.jsx');
 const styles = read('src/caseQuickPad.css');
 
@@ -15,9 +20,9 @@ const checks = [
   ['Quick IDs remain separate from pinned evidence', workspace.includes("recordAction('Saved to Quick Pad'") && !component.includes('Pinned Evidence')],
   ['Quick Pad renders for both workspace layouts', (workspace.match(/\{quickPadLayer\}/g) ?? []).length === 2],
   ['Saved values can populate the current search', workspace.includes('setQuery(item.value)')],
-  ['Saved values can reopen their source tool', workspace.includes('openTool(item.sourceTool')],
+  ['Saved values can reopen their canonical source tool', workspace.includes('const sourceTool = canonicalToolName(item.sourceTool)') && workspace.includes('openTool(sourceTool')],
   ['Account IDs can be added from Customer 360', customer.includes("label: 'Account ID'")],
-  ['Bank and destination IDs can be added', customer.includes("label: 'Bank Code'") && customer.includes("label: 'Destination ID'")],
+  ['Bank and destination IDs can be added', device.includes("label: 'Bank Code'") && device.includes("label: 'Destination ID'")],
   ['Device IDs can be added', device.includes("label: 'Device ID'")],
   ['Scratch text can become a formal case note', workspace.includes("saveNote(quickPad.scratch, 'Quick Pad note')")],
   ['Panel stays compact on phones', styles.includes('max-height: min(300px, 36dvh)')],

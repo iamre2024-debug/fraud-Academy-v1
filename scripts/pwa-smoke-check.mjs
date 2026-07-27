@@ -19,10 +19,13 @@ if (!index.includes('<meta name="theme-color" content="#02152b"')) failures.push
 if (!entrypoint.includes("navigator.serviceWorker.register('/sw.js')")) failures.push('the application must register its service worker');
 
 for (const anchor of [
-  "const CACHE_NAME = 'fraud-academy-blue-mission-v1'",
-  "const APP_SHELL = ['/', '/manifest.webmanifest', '/icon.svg']",
+  "const CACHE_VERSION = 'v2'",
+  'const CACHE_NAME = `fraud-academy-shell-${CACHE_VERSION}`',
+  "const APP_SHELL = ['/', '/manifest.webmanifest', '/icon.svg', '/icon-maskable.svg']",
   "url.pathname.startsWith('/api/')",
   "request.mode === 'navigate'",
+  'offlineFallback()',
+  'event.waitUntil(refresh.catch(() => {}))',
   'self.skipWaiting()',
   'self.clients.claim()',
 ]) {

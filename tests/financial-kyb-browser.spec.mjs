@@ -1,129 +1,338 @@
 import { test, expect } from '@playwright/test';
+import {
+  createGeneratedCase,
+  getGeneratedCaseTruth,
+} from '../src/data/generatedCases.js';
+import { getFinancialInvestigation } from '../src/data/financialInvestigationRecords.js';
 import { selectToolGroup } from './workspace-page-helpers.mjs';
 
-async function openInvestigationWorkspace(page) {
-  await page.goto('/');
-  await page.locator('[data-case-briefing-screen="approved-theme-v1"]')
-    .getByRole('button', { name: /Begin Investigation/ })
-    .click();
-  await page.locator('[data-customer-360-screen="approved-theme-v1"]')
-    .getByRole('navigation', { name: 'Customer 360 related tools' })
-    .getByRole('button', { name: 'Identity Intel', exact: true })
-    .click();
-  await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toBeVisible();
+const forbiddenPreDecisionCopy = /\b(?:fraud\s+(?:rule|score)|risk\s+score|automatic\s+risk\s+(?:label|conclusion)|accepted\s+determination|correct\s+determination|scenario\s+truth|hidden\s+(?:case\s+)?truth|final\s+finding)\b/i;
+
+const personalCardCase = createGeneratedCase({
+  index: 97000,
+  customerType: 'personal',
+  productType: 'credit-card',
+  workflowType: 'credit-risk-review',
+  difficulty: 'standard',
+  evidenceDepth: 'standard',
+});
+
+const personalInstallmentLoanCase = createGeneratedCase({
+  index: 97002,
+  customerType: 'personal',
+  productType: 'personal-loan',
+  workflowType: 'credit-risk-review',
+  difficulty: 'standard',
+  evidenceDepth: 'standard',
+});
+
+const businessPayrollCase = createGeneratedCase({
+  index: 97003,
+  customerType: 'business',
+  productType: 'payroll-product',
+  workflowType: 'payroll-change-alert',
+  difficulty: 'standard',
+  evidenceDepth: 'standard',
+});
+
+const personalCardModel = getFinancialInvestigation(personalCardCase);
+const personalLoanModel = getFinancialInvestigation(personalInstallmentLoanCase);
+const businessPayrollModel = getFinancialInvestigation(businessPayrollCase);
+
+function cents(value) {
+  return Math.round(Number(value) * 100);
 }
 
-test('Financial Investigation and KYB Review provide complete responsive workspaces', async ({ page }, testInfo) => {
-  await openInvestigationWorkspace(page);
+async function seedGeneratedCase(page, caseRecord, testInfo) {
+  const layoutMode = testInfo.project.name === 'mobile-chromium' ? 'mobile' : 'desktop';
+  await page.addInitScript(({ record, layout }) => {
+    window.localStorage.setItem('fraud-academy-layout-mode-v1', layout);
+    window.localStorage.setItem('fraud-academy-generated-cases-v1', JSON.stringify([record]));
+    window.localStorage.removeItem('fraud-academy-review-packages-v1');
+    window.localStorage.removeItem('fraud-academy-decision-drafts-v1');
+    window.localStorage.removeItem('fraud-academy-note-drafts-v1');
+  }, { record: caseRecord, layout: layoutMode });
+}
 
-  const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
+async function openFinancialInvestigation(page, caseRecord, testInfo) {
+  await seedGeneratedCase(page, caseRecord, testInfo);
+  await page.goto('/');
+
+  const caseSelector = page.locator('.visual-case-switcher select').first();
+  await expect(caseSelector.locator(`option[value="${caseRecord.id}"]`)).toHaveCount(1);
+  await caseSelector.selectOption(caseRecord.id);
+  await expect(caseSelector).toHaveValue(caseRecord.id);
+
+  const mobileBriefingFiles = page.getByRole('navigation', { name: 'Case briefing files' });
+  if (await mobileBriefingFiles.isVisible()) {
+    await mobileBriefingFiles.getByRole('button', { name: 'Investigation launchpad' }).click();
+  }
+  await page.getByRole('button', { name: /Begin investigation/i }).click();
 
   await selectToolGroup(page, /Transactions & Financial/);
+  const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const toolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
-  await toolSelect.selectOption('Financial Investigation');
-
+  if (caseRecord.productType === 'payroll-product') {
+    await expect(toolPanel).toHaveAttribute('data-tool-name', 'Financial Investigation');
+    expect(await toolSelect.locator('option').evaluateAll((options) => (
+      options.map((option) => option.value)
+    ))).not.toContain('Transaction History');
+  } else {
+    await expect(toolPanel).toHaveAttribute('data-tool-name', 'Transaction History');
+    await toolSelect.selectOption({ label: 'Financial Investigation' });
+  }
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Financial Investigation');
-  await expect(toolPanel.getByRole('heading', { name: 'Does the money make sense?', exact: true })).toBeVisible();
-  await expect(toolPanel.locator('.financial-investigation-kpis article')).toHaveCount(4);
-  await expect(toolPanel.locator('.financial-investigation-tabs button')).toHaveCount(10);
-  await expect(toolPanel.locator('.financial-account-strip')).toContainText('Everyday Checking ending 4410');
-  await expect(toolPanel.locator('[data-financial-investigation-record]').first()).toBeVisible();
+  await expect(toolPanel.getByRole('heading', {
+    name: 'What financial activity is recorded for this product and review period?',
+    exact: true,
+  })).toBeVisible();
 
-  await toolPanel.getByRole('button', { name: 'Deposit Analysis', exact: true }).click();
-  await expect(toolPanel.locator('.financial-deposit-trend')).toBeVisible();
-  await expect(toolPanel.locator('[data-financial-investigation-record]')).toHaveCount(3);
-  const financialSearch = toolPanel.getByRole('textbox', { name: 'Search Financial Investigation records' });
-  await financialSearch.fill('Payroll');
-  await expect(toolPanel.locator('[data-financial-investigation-record]')).toHaveCount(2);
-  await financialSearch.clear();
-  await toolPanel.locator('[data-financial-investigation-record]').first().click();
-  await toolPanel.getByRole('button', { name: 'Pin record', exact: true }).click();
-  await toolPanel.getByRole('button', { name: 'Save evidence note', exact: true }).click();
-  await expect(page.locator('.notebook-card')).toContainText('Financial Investigation');
+  return toolPanel;
+}
 
-  await toolPanel.getByRole('button', { name: 'Funds Flow', exact: true }).click();
-  await expect(toolPanel.locator('[data-financial-investigation-record]')).toHaveCount(3);
-  await expect(toolPanel.locator('.financial-record-detail')).toContainText('Source');
-  await expect(toolPanel.locator('.financial-record-detail')).toContainText('Destination');
-  await toolPanel.getByRole('button', { name: 'Mark Financial Investigation reviewed', exact: true }).click();
-  await expect(toolPanel.getByRole('button', { name: '✓ Financial Investigation reviewed', exact: true })).toBeVisible();
+async function assertEvidenceFirstFinancialWorkspace(toolPanel, caseRecord) {
+  const text = await toolPanel.innerText();
+  const hiddenTruth = getGeneratedCaseTruth(caseRecord, { submitted: true });
 
-  const financialLayout = await page.evaluate(() => {
-    const panel = document.querySelector('[data-investigation-tools-screen="approved-theme-v1"]');
-    const workspace = document.querySelector('.financial-investigation-workspace');
-    const records = document.querySelector('.financial-record-workspace');
-    const viewportWidth = window.innerWidth;
-    const rect = (element) => element?.getBoundingClientRect();
+  expect(text).not.toMatch(forbiddenPreDecisionCopy);
+  expect(text).not.toContain(caseRecord.alertReason);
+  expect(text).not.toMatch(/\b(?:Alert reason|Case alert)\b/i);
+  if (hiddenTruth?.findingBasis) expect(text).not.toContain(hiddenTruth.findingBasis);
+  if (hiddenTruth?.classification) expect(text).not.toContain(hiddenTruth.classification);
+  if (hiddenTruth?.finalFinding) expect(text).not.toContain(hiddenTruth.finalFinding);
+}
+
+async function assertFinancialViewport(page, toolPanel) {
+  const layout = await toolPanel.evaluate((panel) => {
+    const bounds = panel.getBoundingClientRect();
     return {
-      viewportWidth,
       documentWidth: document.documentElement.scrollWidth,
-      panelRight: rect(panel)?.right ?? 0,
-      workspaceColumns: workspace ? getComputedStyle(workspace).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      recordColumns: records ? getComputedStyle(records).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      viewportWidth: window.innerWidth,
+      left: bounds.left,
+      right: bounds.right,
+      width: bounds.width,
     };
   });
-  expect(financialLayout.documentWidth).toBeLessThanOrEqual(financialLayout.viewportWidth + 1);
-  expect(financialLayout.panelRight).toBeLessThanOrEqual(financialLayout.viewportWidth + 1);
-  if (testInfo.project.name === 'mobile-chromium') {
-    expect(financialLayout.workspaceColumns).toBe(1);
-    expect(financialLayout.recordColumns).toBe(1);
-  } else {
-    expect(financialLayout.workspaceColumns).toBe(2);
-    expect(financialLayout.recordColumns).toBe(2);
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.left).toBeGreaterThanOrEqual(-1);
+  expect(layout.right).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.width).toBeGreaterThan(250);
+}
+
+test('personal credit-card Financial Investigation formats dated comparisons and reconciles spending filters', async ({ page }, testInfo) => {
+  const toolPanel = await openFinancialInvestigation(page, personalCardCase, testInfo);
+  const tabs = toolPanel.getByRole('navigation', { name: 'Financial Investigation sections' });
+
+  await expect(toolPanel.locator('.financial-account-strip')).toContainText('Personal');
+  await expect(toolPanel.locator('.financial-account-strip')).toContainText('Credit card');
+  await expect(tabs.getByRole('button', { name: 'Spending Analysis', exact: true })).toBeVisible();
+  await expect(tabs.getByRole('button', { name: 'Personal Deposit Analysis', exact: true })).toHaveCount(0);
+
+  const utilizationRecord = personalCardModel.recordsBySection['account-review'].find((record) => (
+    record.fields.some(([label]) => label === 'Utilization')
+  ));
+  expect(utilizationRecord).toBeTruthy();
+  const utilization = utilizationRecord.fields.find(([label]) => label === 'Utilization')?.[1];
+  expect(utilization).toMatch(/^\d+(?:\.\d+)?%$/);
+  await toolPanel.locator(`[data-financial-investigation-record="${utilizationRecord.id}"]`).click();
+  const utilizationField = toolPanel.locator('.financial-record-detail')
+    .getByText('Utilization', { exact: true })
+    .locator('..');
+  await expect(utilizationField).toContainText(utilization);
+
+  await tabs.getByRole('button', { name: 'Current vs Historical', exact: true }).click();
+  const comparisonGrid = toolPanel.getByRole('region', {
+    name: 'Current and historical financial comparisons',
+  });
+  const comparisonCards = comparisonGrid.locator('article');
+  await expect(comparisonCards).toHaveCount(personalCardModel.comparisons.length);
+  for (const comparison of personalCardModel.comparisons) {
+    const card = comparisonCards.filter({
+      has: page.getByText(comparison.label, { exact: true }),
+    });
+    await expect(card).toHaveCount(1);
+    await expect(card).toContainText(`Baseline ${comparison.baselineDisplay}`);
+    await expect(card).toContainText(comparison.baselineDateRange);
+    await expect(card).toContainText(`Current ${comparison.currentDisplay}`);
+    await expect(card).toContainText(comparison.currentDateRange);
+    await expect(card).toContainText(comparison.explanation);
+  }
+  const currencyComparison = personalCardModel.comparisons.find((item) => item.valueType === 'currency');
+  expect(currencyComparison?.baselineDisplay).toMatch(/^\$-?\d{1,3}(?:,\d{3})*\.\d{2}$/);
+  expect(currencyComparison?.currentDisplay).toMatch(/^\$-?\d{1,3}(?:,\d{3})*\.\d{2}$/);
+
+  await tabs.getByRole('button', { name: 'Spending Analysis', exact: true }).click();
+  const spendingSummary = toolPanel.getByRole('region', { name: 'Spending total reconciliation' });
+  await expect(spendingSummary).toContainText(personalCardModel.spending.visibleTotalDisplay);
+  await expect(spendingSummary).toContainText(personalCardModel.spending.periodOutflowDisplay);
+  await expect(spendingSummary).toContainText(personalCardModel.spending.periodRange.label);
+
+  const granularityFilter = toolPanel.getByRole('combobox', {
+    name: 'Financial Investigation spending granularity filter',
+  });
+  const dateFilter = toolPanel.getByRole('combobox', {
+    name: 'Financial Investigation spending date filter',
+  });
+  for (const granularity of ['day', 'week', 'month']) {
+    await granularityFilter.selectOption(granularity);
+    const expectedBuckets = personalCardModel.spending.aggregations[granularity];
+    const summaries = toolPanel.getByRole('region', {
+      name: `Spending Analysis ${granularity} summaries`,
+    });
+    await expect(dateFilter.locator('option')).toHaveCount(expectedBuckets.length + 1);
+    await expect(summaries.locator('article')).toHaveCount(expectedBuckets.length);
+
+    for (const bucket of expectedBuckets) {
+      const card = summaries.locator('article').filter({ hasText: bucket.label });
+      await expect(card).toHaveCount(1);
+      await expect(card).toContainText(
+        `${bucket.visibleTotalDisplay} across ${bucket.transactionCount.toLocaleString('en-US')} record`,
+      );
+      await expect(card).toContainText(`${bucket.startDate} to ${bucket.endDate}`);
+    }
+
+    expect(cents(expectedBuckets.reduce((total, bucket) => total + bucket.visibleTotal, 0)))
+      .toBe(cents(personalCardModel.spending.visibleTotal));
   }
 
-  const caseSelector = page.locator('.visual-case-switcher select');
-  await caseSelector.selectOption('FA-CR-24003');
-  await expect(caseSelector).toHaveValue('FA-CR-24003');
-  await selectToolGroup(page, /Business & Payment Verification/);
-  await toolSelect.selectOption('KYB Review');
-  await expect(toolPanel).toHaveAttribute('data-tool-name', 'KYB Review');
-  await expect(toolPanel.getByRole('heading', { name: 'Do the business identity and operating records connect across independent sources?', exact: true })).toBeVisible();
-  await expect(toolPanel.getByRole('button', { name: 'Mark KYB Review reviewed', exact: true })).toBeDisabled();
-  await expect(toolPanel.locator('.kyb-profile-header')).toHaveCount(0);
-
-  await toolPanel.getByRole('button', { name: 'Use legal name', exact: true }).click();
-  await toolPanel.getByRole('button', { name: 'Search business', exact: true }).click();
-  await expect(toolPanel.locator('.kyb-profile-header')).toContainText('Lakeside Office Supply LLC');
-  await expect(toolPanel.locator('.kyb-review-kpis article')).toHaveCount(4);
-  await expect(toolPanel.locator('.kyb-review-tabs button')).toHaveCount(8);
-  await expect(toolPanel.getByRole('button', { name: 'Mark KYB Review reviewed', exact: true })).toBeEnabled();
-
-  await toolPanel.getByRole('button', { name: 'Owners & UBO', exact: true }).click();
-  await expect(toolPanel.locator('[data-kyb-review-record]')).toHaveCount(2);
-  await toolPanel.locator('[data-kyb-review-record]').first().click();
-  await expect(toolPanel.locator('.kyb-record-detail')).toContainText('Ownership');
-  await toolPanel.locator('.kyb-record-detail').getByRole('button', { name: 'Pin record', exact: true }).click();
-  await toolPanel.locator('.kyb-record-detail').getByRole('button', { name: 'Save evidence note', exact: true }).click();
-  await expect(page.locator('.notebook-card')).toContainText('KYB Review');
-
-  await toolPanel.getByRole('button', { name: 'Revenue & Cash Flow', exact: true }).click();
-  await expect(toolPanel.locator('[data-kyb-review-record]')).toHaveCount(3);
-  await expect(toolPanel.locator('.kyb-record-detail')).toContainText('Amount');
-
-  const reportActions = toolPanel.locator('.kyb-report-actions');
-  await reportActions.getByRole('button', { name: 'Generate report', exact: true }).click();
-  await expect(reportActions.getByRole('button', { name: 'Regenerate report', exact: true })).toBeVisible();
-  const reportDownload = page.waitForEvent('download');
-  await reportActions.getByRole('button', { name: 'Export report', exact: true }).click();
-  expect((await reportDownload).suggestedFilename()).toContain('RPT-KYB');
-  await toolPanel.getByRole('button', { name: 'Mark KYB Review reviewed', exact: true }).click();
-  await expect(toolPanel.getByRole('button', { name: '✓ KYB Review reviewed', exact: true })).toBeVisible();
-
-  const kybLayout = await page.evaluate(() => {
-    const workspace = document.querySelector('.kyb-review-workspace');
-    const panel = document.querySelector('[data-investigation-tools-screen="approved-theme-v1"]');
-    const viewportWidth = window.innerWidth;
-    return {
-      viewportWidth,
-      documentWidth: document.documentElement.scrollWidth,
-      panelRight: panel?.getBoundingClientRect().right ?? 0,
-      columns: workspace ? getComputedStyle(workspace).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-    };
+  await granularityFilter.selectOption('month');
+  const multiRecordMonth = personalCardModel.spending.aggregations.month.find(
+    (bucket) => bucket.transactionCount > 1,
+  );
+  expect(multiRecordMonth).toBeTruthy();
+  await dateFilter.selectOption(multiRecordMonth.id);
+  await expect(toolPanel.locator('[data-financial-investigation-record]'))
+    .toHaveCount(multiRecordMonth.transactionCount);
+  const selectedMonthSummary = toolPanel.getByRole('region', {
+    name: 'Spending Analysis month summaries',
   });
-  expect(kybLayout.documentWidth).toBeLessThanOrEqual(kybLayout.viewportWidth + 1);
-  expect(kybLayout.panelRight).toBeLessThanOrEqual(kybLayout.viewportWidth + 1);
-  expect(kybLayout.columns).toBe(testInfo.project.name === 'mobile-chromium' ? 1 : 3);
+  await expect(selectedMonthSummary.locator('article')).toHaveCount(1);
+  await expect(selectedMonthSummary).toContainText(multiRecordMonth.visibleTotalDisplay);
 
-  await expect(reportActions.getByRole('button', { name: 'Open in Document Viewer', exact: true })).toHaveCount(0);
+  await assertEvidenceFirstFinancialWorkspace(toolPanel, personalCardCase);
+  await assertFinancialViewport(page, toolPanel);
+});
+
+test('personal installment-loan Financial Investigation prioritizes dated payments and omits purchase spending', async ({ page }, testInfo) => {
+  const toolPanel = await openFinancialInvestigation(page, personalInstallmentLoanCase, testInfo);
+  const tabs = toolPanel.getByRole('navigation', { name: 'Financial Investigation sections' });
+
+  await expect(toolPanel.locator('.financial-account-strip')).toContainText('Personal');
+  await expect(toolPanel.locator('.financial-account-strip')).toContainText('Personal loan');
+  await expect(tabs.getByRole('button', { name: 'Credit & Loan Payments', exact: true })).toBeVisible();
+  await expect(tabs.getByRole('button', { name: 'Spending Analysis', exact: true })).toHaveCount(0);
+  await expect(tabs.getByRole('button', { name: 'Personal Deposit Analysis', exact: true })).toHaveCount(0);
+
+  await tabs.getByRole('button', { name: 'Credit & Loan Payments', exact: true }).click();
+  const paymentSummary = toolPanel.getByRole('region', { name: 'Credit and loan payment summary' });
+  await expect(paymentSummary).toContainText(personalLoanModel.payments.averageMonthlyPaymentDisplay);
+  await expect(paymentSummary).toContainText(personalLoanModel.payments.actualTotalDisplay);
+
+  const monthlyPayments = toolPanel.getByRole('region', { name: 'Monthly credit and loan payments' });
+  await expect(monthlyPayments.locator('article')).toHaveCount(personalLoanModel.payments.monthlyRows.length);
+  for (const month of personalLoanModel.payments.monthlyRows) {
+    const card = monthlyPayments.locator('article').filter({ hasText: month.label });
+    await expect(card).toHaveCount(1);
+    await expect(card).toContainText(`${month.startDate} to ${month.endDate}`);
+    await expect(card).toContainText(`Scheduled / minimum ${month.scheduledAmountDisplay}`);
+    await expect(card).toContainText(`Actual ${month.actualPaidDisplay}`);
+    await expect(card).toContainText('Status:');
+    await expect(card).toContainText('Source:');
+    await expect(card).toContainText('Balance after:');
+  }
+
+  const datedPayment = personalLoanModel.payments.datedRecords[0];
+  expect(datedPayment).toBeTruthy();
+  await toolPanel.locator(`[data-financial-investigation-record="${datedPayment.id}"]`).click();
+  const paymentDetail = toolPanel.locator('.financial-record-detail');
+  for (const field of [
+    'Scheduled / minimum amount',
+    'Actual paid',
+    'Payment date',
+    'Payment status',
+    'Payment source',
+    'Balance after payment',
+  ]) {
+    await expect(paymentDetail.getByText(field, { exact: true })).toBeVisible();
+  }
+
+  await assertEvidenceFirstFinancialWorkspace(toolPanel, personalInstallmentLoanCase);
+  await assertFinancialViewport(page, toolPanel);
+});
+
+test('business payroll Financial Investigation reconciles month and pay-period totals and routes the exact run', async ({ page }, testInfo) => {
+  const toolPanel = await openFinancialInvestigation(page, businessPayrollCase, testInfo);
+  const tabs = toolPanel.getByRole('navigation', { name: 'Financial Investigation sections' });
+
+  await expect(toolPanel.locator('.financial-account-strip')).toContainText('Business');
+  await expect(toolPanel.locator('.financial-account-strip')).toContainText('Payroll or payroll-funding product');
+  await expect(tabs.getByRole('button', { name: 'Business Payroll Analysis', exact: true })).toBeVisible();
+  await expect(tabs.getByRole('button', { name: 'Personal Deposit Analysis', exact: true })).toHaveCount(0);
+  await expect(tabs.getByRole('button', { name: 'Spending Analysis', exact: true })).toHaveCount(0);
+  await expect(toolPanel).not.toContainText('Debt-to-income');
+  await expect(toolPanel).not.toContainText(/\bDTI\b/);
+
+  await tabs.getByRole('button', { name: 'Business Payroll Analysis', exact: true }).click();
+  const monthlyTotals = toolPanel.getByRole('region', { name: 'Business payroll monthly totals' });
+  await expect(monthlyTotals.locator('article')).toHaveCount(businessPayrollModel.payroll.months.length);
+  for (const month of businessPayrollModel.payroll.months) {
+    const monthRuns = businessPayrollModel.payroll.payPeriods.filter((run) => run.monthId === month.id);
+    expect(cents(monthRuns.reduce((total, run) => total + run.total, 0)))
+      .toBe(cents(month.companyDebit));
+
+    const card = monthlyTotals.locator('article').filter({ hasText: month.label });
+    await expect(card).toHaveCount(1);
+    await expect(card).toContainText(`${month.startDate} to ${month.endDate}`);
+    await expect(card).toContainText(`Total company debit ${month.companyDebitDisplay}`);
+    await expect(card).toContainText(`${month.runCount} pay period`);
+    await expect(card).toContainText('Gross wages');
+    await expect(card).toContainText('Employee taxes');
+    await expect(card).toContainText('Employer taxes');
+    await expect(card).toContainText('Employer contributions');
+    await expect(card).toContainText('Net payroll');
+  }
+
+  const payrollRecords = toolPanel.locator('[data-financial-investigation-record]');
+  await expect(payrollRecords).toHaveCount(businessPayrollModel.payroll.records.length);
+  for (const run of businessPayrollModel.payroll.records) {
+    await expect(toolPanel.locator(`[data-financial-investigation-record="${run.id}"]`))
+      .toContainText(run.value);
+  }
+
+  const monthFilter = toolPanel.getByRole('combobox', {
+    name: 'Financial Investigation payroll month filter',
+  });
+  const periodFilter = toolPanel.getByRole('combobox', {
+    name: 'Financial Investigation pay-period filter',
+  });
+  await expect(toolPanel.getByRole('combobox', {
+    name: 'Financial Investigation payroll run-type filter',
+  })).toBeVisible();
+  await expect(toolPanel.getByRole('combobox', {
+    name: 'Financial Investigation payroll run-status filter',
+  })).toBeVisible();
+
+  const selectedMonth = businessPayrollModel.payroll.months[0];
+  const selectedRun = businessPayrollModel.payroll.records.find(
+    (record) => record.monthId === selectedMonth.id,
+  );
+  await monthFilter.selectOption(selectedMonth.id);
+  await expect(payrollRecords).toHaveCount(selectedMonth.runCount);
+  await periodFilter.selectOption(selectedRun.id);
+  await expect(payrollRecords).toHaveCount(1);
+  await expect(toolPanel.locator('.financial-record-detail')).toContainText(selectedRun.id);
+
+  await assertEvidenceFirstFinancialWorkspace(toolPanel, businessPayrollCase);
+  await assertFinancialViewport(page, toolPanel);
+
+  await toolPanel.getByRole('button', {
+    name: `Open ${selectedRun.id} in Payroll History`,
+    exact: true,
+  }).click();
+  await expect(toolPanel).toHaveAttribute('data-tool-name', 'Payroll History');
+  await expect(toolPanel.getByRole('region', { name: 'Payroll Run Detail' }))
+    .toContainText(selectedRun.id);
+  await expect(toolPanel.getByRole('navigation', { name: 'Payroll History hierarchy' })
+    .getByRole('button', { name: 'Payroll Run Detail', exact: true }))
+    .toHaveClass(/active/);
 });

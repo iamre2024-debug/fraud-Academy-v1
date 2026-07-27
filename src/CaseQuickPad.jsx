@@ -34,16 +34,20 @@ export default function CaseQuickPad({
   const [tab, setTab] = useState('ids');
   const [copiedId, setCopiedId] = useState('');
   const triggerRef = useRef(null);
+  const copyResetTimerRef = useRef(0);
 
   useEffect(() => {
     setOpen(false);
     setTab('ids');
   }, [activeCase.id]);
 
+  useEffect(() => () => window.clearTimeout(copyResetTimerRef.current), []);
+
   async function copyItem(item) {
     await copyText(item.value);
     setCopiedId(item.id);
-    window.setTimeout(() => setCopiedId(''), 1400);
+    window.clearTimeout(copyResetTimerRef.current);
+    copyResetTimerRef.current = window.setTimeout(() => setCopiedId(''), 1400);
   }
 
   function closePad() {

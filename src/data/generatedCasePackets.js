@@ -1,3 +1,11 @@
+import {
+  CUSTOMER_TYPES,
+  FINAL_FINDINGS,
+  PRODUCT_TYPES,
+  WORKFLOW_TYPES,
+} from './caseDomain.js';
+import { createCompanyPayrollData } from './payrollDataModel.js';
+
 const merchantNames = [
   ['Northstar Digital Market', '5734', 'Computer software and digital goods', 'Austin, TX'],
   ['Cedar Square Outfitters', '5651', 'Family clothing stores', 'Fort Worth, TX'],
@@ -47,20 +55,36 @@ function pick(values, seed, offset = 0) {
 }
 
 function determinationTone(scenario) {
-  const choice = scenario.caseTruth?.correctDetermination ?? '';
-  if (/do not support|deny|refer to fraud|hold|support customer claim|route for secondary fraud/i.test(choice)) {
-    if (/do not support|deny/i.test(choice)) return 'established';
-    if (/support customer claim|hold|refer to fraud|route for secondary fraud/i.test(choice)) return 'exception';
-  }
-  if (/partial|insufficient|more information|request documents|escalate|unable|restrictions/i.test(choice)) return 'mixed';
+  const finding = scenario.caseTruth?.finalFinding ?? '';
+  if ([FINAL_FINDINGS.FRAUD_CONFIRMED].includes(finding)) return 'exception';
+  if ([FINAL_FINDINGS.FRAUD_NOT_FOUND, FINAL_FINDINGS.NON_FRAUD_DISPUTE].includes(finding)) return 'established';
+  const choice = scenario.caseTruth?.operationalDecision ?? scenario.caseTruth?.correctDetermination ?? '';
+  if (/partial|insufficient|more information|request|escalate|unable|restriction/i.test(choice)) return 'mixed';
   return 'established';
 }
 
 function creditDeterminationTone(scenario) {
-  const choice = scenario.caseTruth?.correctDetermination ?? '';
-  if (/support credit request|maintain account|^approve application$|release/i.test(choice)) return 'established';
-  if (/more information|escalate|request documents|restrictions|hold pending|unable/i.test(choice)) return 'mixed';
+  const finding = scenario.caseTruth?.finalFinding ?? '';
+  if (finding === FINAL_FINDINGS.FRAUD_CONFIRMED) return 'exception';
+  if (finding === FINAL_FINDINGS.VERIFICATION_INCOMPLETE) return 'mixed';
+  const choice = scenario.caseTruth?.operationalDecision ?? scenario.caseTruth?.correctDetermination ?? '';
+  if (/maintain|^approve$|release/i.test(choice)) return 'established';
+  if (/more information|escalate|request|restriction|hold|unable/i.test(choice)) return 'mixed';
   return 'exception';
+}
+
+function generationSignal(scenario) {
+  return scenario.generationKey ?? scenario.subtype ?? '';
+}
+
+function productRailFor(claimType, scenario) {
+  const productType = scenario.productType ?? scenario.taxonomyTags?.productType;
+  if (productType === PRODUCT_TYPES.CREDIT_CARD || productType === PRODUCT_TYPES.BUSINESS_CREDIT_CARD) return 'card';
+  if (productType === PRODUCT_TYPES.PAYROLL_PRODUCT) return 'payroll';
+  if (productType === PRODUCT_TYPES.PERSONAL_LOAN || productType === PRODUCT_TYPES.BUSINESS_LOAN) return 'loan';
+  if (scenario.workflowType === WORKFLOW_TYPES.ACH_TRANSACTION_CLAIM || scenario.workflowType === WORKFLOW_TYPES.ACH_TRANSACTION_REVIEW) return 'ach';
+  if ([WORKFLOW_TYPES.WIRE_TRANSACTION_CLAIM, WORKFLOW_TYPES.WIRE_TRANSACTION_REVIEW, WORKFLOW_TYPES.BUSINESS_PAYMENT_INSTRUCTION_CHANGE_ALERT].includes(scenario.workflowType)) return 'wire';
+  return scenario.taxonomyTags?.productRail ?? claimType.taxonomy.productRail;
 }
 
 function merchantChannel(subtype = '') {
@@ -114,17 +138,18 @@ function makeMerchantPacket({ id, index, claimType, scenario, person, reportedDa
   const scenarioMerchant = transactionLabel.replace(/\s+(purchase|billing|payment|order|disputes?|activity)$/i, '').trim();
   const name = /merchant|retail|online|card|transaction/i.test(scenarioMerchant) && scenarioMerchant.split(/\s+/).length < 3 ? fallbackName : scenarioMerchant || fallbackName;
   const tone = determinationTone(scenario);
-  const authorizationTone = claimType.id === 'non-fraud-chargeback' ? 'established' : tone;
-  const channel = merchantChannel(scenario.subtype);
-  const authEntryMode = entryMode(scenario.subtype);
+  const signal = generationSignal(scenario);
+  const authorizationTone = claimType.id === WORKFLOW_TYPES.MERCHANT_NON_FRAUD_DISPUTE ? 'established' : tone;
+  const channel = merchantChannel(signal);
+  const authEntryMode = entryMode(signal);
   const priorCount = Math.max(1, recordCount - 1);
-  const disputeCount = /first-party/i.test(claimType.id) ? 2 + (seed % 3) : seed % 2;
-  const refundCount = /refund|return|cancel/i.test(scenario.subtype) ? 1 + (seed % 3) : seed % 2;
+  const disputeCount = /first-party/i.test(signal) ? 2 + (seed % 3) : seed % 2;
+  const refundCount = /refund|return|cancel/i.test(signal) ? 1 + (seed % 3) : seed % 2;
   const attemptCount = difficulty === 'deep' ? 4 : difficulty === 'standard' ? 2 : 1;
   const declineCount = authorizationTone === 'exception' ? Math.min(2, attemptCount - 1) : seed % 2;
   const orderId = `ORD-${String(seed).slice(-7).padStart(7, '0')}`;
   const authorizationId = `AUTH-${String(seed * 7).slice(-8).padStart(8, '0')}`;
-  const deliveryMatch = fulfillmentFor(scenario.subtype, tone);
+  const deliveryMatch = fulfillmentFor(signal, tone);
   const deviceMatch = authorizationTone === 'established' ? 'Established customer device' : authorizationTone === 'mixed' ? 'Device seen once in prior browsing history' : 'Device not found in prior customer history';
   const avs = authorizationTone === 'established' ? 'Full street and postal-code match' : authorizationTone === 'mixed' ? 'Postal code match only' : 'No match';
   const cvv = authorizationTone === 'established' ? 'Match' : authorizationTone === 'mixed' ? 'Not supplied by merchant' : 'Mismatch or not processed';
@@ -135,9 +160,9 @@ function makeMerchantPacket({ id, index, claimType, scenario, person, reportedDa
     entryMode: authEntryMode,
     avs,
     cvv,
-    threeDS: /online|CNP|wallet/i.test(`${scenario.subtype} ${channel}`) ? (authorizationTone === 'established' ? 'Challenge completed' : 'No challenge result supplied') : 'Not applicable',
-    otp: /wallet/i.test(scenario.subtype) ? (authorizationTone === 'established' ? 'OTP completed on established device' : 'OTP destination changed before enrollment') : 'Not used for this authorization',
-    walletToken: /wallet/i.test(scenario.subtype) ? `TKN-${String(seed).slice(-6)} - ${deviceMatch}` : 'No wallet token in scope',
+    threeDS: /online|CNP|wallet/i.test(`${signal} ${channel}`) ? (authorizationTone === 'established' ? 'Challenge completed' : 'No challenge result supplied') : 'Not applicable',
+    otp: /wallet/i.test(signal) ? (authorizationTone === 'established' ? 'OTP completed on established device' : 'OTP destination changed before enrollment') : 'Not used for this authorization',
+    walletToken: /wallet/i.test(signal) ? `TKN-${String(seed).slice(-6)} - ${deviceMatch}` : 'No wallet token in scope',
     device: deviceMatch,
     ip: authorizationTone === 'established' ? '198.51.100.42 - previously recorded training range' : '203.0.113.84 - new training range',
     attempts: `${attemptCount} attempt${attemptCount === 1 ? '' : 's'}; ${declineCount} declined before settlement`,
@@ -146,7 +171,7 @@ function makeMerchantPacket({ id, index, claimType, scenario, person, reportedDa
   const response = {
     status: responseStatus,
     receivedDate: responseStatus === 'Pending' ? 'Pending' : `${shiftedDate(reportedDate, 1)} - 2:14 PM`,
-    cancellationRequestFound: /cancel|subscription|recurring/i.test(scenario.subtype)
+    cancellationRequestFound: /cancel|subscription|recurring/i.test(signal)
       ? responseStatus === 'Accepted' ? 'Not contested' : 'No completed request located'
       : 'Not applicable to this dispute type',
     refundIssued: responseStatus === 'Accepted' ? 'Chargeback accepted; issuer credit review pending' : refundCount ? 'Refund entry recorded' : 'No',
@@ -195,13 +220,13 @@ function makeMerchantPacket({ id, index, claimType, scenario, person, reportedDa
     {
       id: `${id}-MER-DISPUTES`, section: 'disputes', title: 'Disputes, refunds, and customer contact', status: 'History available', observed: reportedDate,
       summary: `Prior disputes: ${disputeCount}; refunds: ${refundCount}; current contact record is included in the case packet.`,
-      fields: [['Prior disputes', disputeCount], ['Prior refunds', refundCount], ['Customer contact', scenario.channel], ['Cancellation or return context', /cancel|return|refund/i.test(scenario.subtype) ? 'Merchant and customer records are both available for date comparison' : 'No cancellation or return is central to this subtype'], ['Current response status', difficulty === 'deep' ? 'Merchant response contains an additional record requiring reconciliation' : 'Merchant response available']],
+      fields: [['Prior disputes', disputeCount], ['Prior refunds', refundCount], ['Customer contact', scenario.channel], ['Cancellation or return context', /cancel|return|refund/i.test(signal) ? 'Merchant and customer records are both available for date comparison' : 'No cancellation or return is central to this review'], ['Current response status', difficulty === 'deep' ? 'Merchant response contains an additional record requiring reconciliation' : 'Merchant response available']],
       relatedRecords: [`${id}-DOC-1`, `${id}-INT-1`],
     },
     {
       id: `${id}-MER-REASON`, section: 'reason-code', title: 'Reason-code evidence checklist', status: 'Training guide available', observed: reportedDate,
-      summary: `${reasonCodeFor(scenario.subtype)} is the recorded training standard for this packet.`,
-      fields: [['Reason-code guide', reasonCodeFor(scenario.subtype)], ['Required authorization evidence', 'Authorization ID, entry mode, AVS/CVV, device or token context'], ['Required merchant evidence', 'Order, response, fulfillment or service, and customer-contact history'], ['Response deadline', deadlineFrom(reportedDate, 10, '3:00 PM')], ['Provisional-credit context', 'Training status recorded separately; no outcome is assigned here']],
+      summary: `${reasonCodeFor(signal)} is the recorded training standard for this packet.`,
+      fields: [['Reason-code guide', reasonCodeFor(signal)], ['Required authorization evidence', 'Authorization ID, entry mode, AVS/CVV, device or token context'], ['Required merchant evidence', 'Order, response, fulfillment or service, and customer-contact history'], ['Response deadline', deadlineFrom(reportedDate, 10, '3:00 PM')], ['Provisional-credit context', 'Training status recorded separately; no outcome is assigned here']],
       relatedRecords: [authorizationId, orderId, `${id}-DOC-1`],
     },
   ];
@@ -210,34 +235,36 @@ function makeMerchantPacket({ id, index, claimType, scenario, person, reportedDa
     records.push({
       id: `${id}-MER-COMPARISON`, section: 'marketplace', title: 'Marketplace and subscription comparison', status: 'Comparison available', observed: reportedDate,
       summary: 'An additional merchant-account or subscription record must be reconciled with the card transaction.',
-      fields: [['Merchant account login', deviceMatch], ['Subscription status', /subscription|cancel|recurring/i.test(scenario.subtype) ? 'Enrollment and cancellation dates differ across sources' : 'No recurring enrollment in scope'], ['Marketplace account', /online|digital/i.test(`${channel} ${category}`) ? 'Marketplace order account available' : 'Not applicable'], ['Billing descriptor comparison', `Statement descriptor ${profile.descriptor}`]],
+      fields: [['Merchant account login', deviceMatch], ['Subscription status', /subscription|cancel|recurring/i.test(signal) ? 'Enrollment and cancellation dates differ across sources' : 'No recurring enrollment in scope'], ['Marketplace account', /online|digital/i.test(`${channel} ${category}`) ? 'Marketplace order account available' : 'Not applicable'], ['Billing descriptor comparison', `Statement descriptor ${profile.descriptor}`]],
       relatedRecords: [orderId, authorizationId],
     });
   }
 
-  return { profile, authorization: auth, response, records, reasonCode: reasonCodeFor(scenario.subtype), responseDeadline: deadlineFrom(reportedDate, 10, '3:00 PM') };
+  return { profile, authorization: auth, response, records, reasonCode: reasonCodeFor(signal), responseDeadline: deadlineFrom(reportedDate, 10, '3:00 PM') };
 }
 
 function makeCreditProfile({ id, index, claimType, scenario, person, business, amount, reportedDate, difficulty }) {
   const seed = stableNumber(`${id}-${scenario.id}-credit`);
   const family = scenario.family ?? 'Credit review';
-  const businessReview = claimType.id === 'business-loan-bust-out' || /business/i.test(family);
-  const existing = /existing/i.test(family);
+  const businessReview = scenario.customerType === CUSTOMER_TYPES.BUSINESS;
+  const existing = scenario.workflowType === WORKFLOW_TYPES.CREDIT_RISK_REVIEW;
   const tone = creditDeterminationTone(scenario);
+  const confirmedApplicationFinding = !existing && scenario.caseTruth?.finalFinding === FINAL_FINDINGS.FRAUD_CONFIRMED;
+  const financialTone = confirmedApplicationFinding ? 'established' : tone;
   const statedAnnual = Math.max(businessReview ? 420000 : 68000, Math.round(amount * (businessReview ? 28 : 8)));
-  const verifiedRatio = tone === 'established' ? 0.96 : tone === 'mixed' ? 0.74 : 0.48;
+  const verifiedRatio = financialTone === 'established' ? 0.96 : financialTone === 'mixed' ? 0.74 : 0.48;
   const verifiedAnnual = Math.round(statedAnnual * verifiedRatio);
   const monthlyGross = Math.round(verifiedAnnual / 12);
   const housing = businessReview ? 0 : 1450 + (seed % 900);
-  const monthlyDebt = Math.round(monthlyGross * (tone === 'established' ? 0.25 : tone === 'mixed' ? 0.43 : 0.61));
+  const monthlyDebt = Math.round(monthlyGross * (financialTone === 'established' ? 0.25 : financialTone === 'mixed' ? 0.43 : 0.61));
   const dti = businessReview ? 'Not used as the primary business measure' : `${Math.round(((monthlyDebt + housing) / Math.max(1, monthlyGross)) * 100)}%`;
-  const utilization = tone === 'established' ? 34 + (seed % 16) : tone === 'mixed' ? 68 + (seed % 15) : 91 + (seed % 8);
+  const utilization = financialTone === 'established' ? 34 + (seed % 16) : financialTone === 'mixed' ? 68 + (seed % 15) : 91 + (seed % 8);
   const inquiries = existing ? seed % 3 : 3 + (seed % 6);
-  const delinquencies = tone === 'established' ? 0 : tone === 'mixed' ? 1 : 2 + (seed % 3);
-  const nsf = tone === 'established' ? 0 : tone === 'mixed' ? 2 : 4 + (seed % 5);
+  const delinquencies = financialTone === 'established' ? 0 : financialTone === 'mixed' ? 1 : 2 + (seed % 3);
+  const nsf = financialTone === 'established' ? 0 : financialTone === 'mixed' ? 2 : 4 + (seed % 5);
   const deposits = Math.round(verifiedAnnual / 12 * (businessReview ? 1.05 : 0.84));
-  const outflow = Math.round(deposits * (tone === 'established' ? 0.68 : tone === 'mixed' ? 0.92 : 1.14));
-  const missingDocuments = tone === 'established' ? [] : businessReview ? ['Current tax return', 'Two recent operating-account statements'] : ['Current paystub', 'Income-source confirmation'];
+  const outflow = Math.round(deposits * (financialTone === 'established' ? 0.68 : financialTone === 'mixed' ? 0.92 : 1.14));
+  const missingDocuments = financialTone === 'established' ? [] : businessReview ? ['Current tax return', 'Two recent operating-account statements'] : ['Current paystub', 'Income-source confirmation'];
 
   return {
     id: `${id}-CRP-1`,
@@ -257,23 +284,26 @@ function makeCreditProfile({ id, index, claimType, scenario, person, business, a
     housingExpense: businessReview ? 'Included in business cash-flow review' : money(housing),
     dti,
     bureau: pick(creditBureaus, seed),
-    creditScoreBand: tone === 'established' ? '680-719 training band' : tone === 'mixed' ? '620-659 training band' : 'Below 620 training band',
+    creditScoreBand: financialTone === 'established' ? '680-719 training band' : financialTone === 'mixed' ? '620-659 training band' : 'Below 620 training band',
     tradelines: 3 + (seed % 7),
     utilization: `${Math.min(99, utilization)}%`,
     delinquencies,
     inquiries,
-    collections: tone === 'exception' ? 1 + (seed % 2) : 0,
-    bankruptcyPublicRecord: /bankruptcy/i.test(scenario.subtype) ? 'Training public record located' : 'No bankruptcy record located in the training packet',
+    collections: financialTone === 'exception' ? 1 + (seed % 2) : 0,
+    bankruptcyPublicRecord: /bankruptcy/i.test(generationSignal(scenario)) ? 'Training public record located' : 'No bankruptcy record located in the training packet',
     averageMonthlyDeposits: money(deposits),
     averageMonthlyOutflow: money(outflow),
     averageBalance: money(Math.max(320, deposits - outflow + 1100)),
     overdrafts: nsf,
     nsfReturns: nsf,
-    paymentHistory: tone === 'established' ? 'Paid as agreed in the available history' : tone === 'mixed' ? 'One recent late payment and otherwise established history' : 'Multiple missed or returned payments in the current review window',
+    paymentHistory: financialTone === 'established' ? 'Paid as agreed in the available history' : financialTone === 'mixed' ? 'One recent late payment and otherwise established history' : 'Multiple missed or returned payments in the current review window',
     existingLimit: existing ? money(Math.max(amount * 1.4, 5000)) : 'No existing limit',
     requestedLimit: money(Math.max(amount, 2500)),
     completedDocuments: businessReview ? ['Business registration', 'Owner identity record', 'Application or review request'] : ['Identity record', 'Application or review request', 'Credit-file summary'],
     missingDocuments,
+    findingBoundary: confirmedApplicationFinding
+      ? 'Credit strength and document completeness are recorded separately. The application finding must be supported by independent source records.'
+      : 'Credit strength and document completeness do not by themselves establish an application finding.',
     sourceNote: `All values are fictional and derived for ${scenario.subtype} training.`,
     complexityNote: difficulty === 'deep' ? 'Deep review includes a source conflict and an additional missing-document dependency.' : difficulty === 'standard' ? 'Standard review includes one reconciliation issue.' : 'Focused review contains the primary income, credit, and cash-flow records.',
     deadline: deadlineFrom(reportedDate, businessReview ? 3 : 2, '4:00 PM'),
@@ -283,11 +313,12 @@ function makeCreditProfile({ id, index, claimType, scenario, person, business, a
 
 function makeTransactions({ id, claimType, scenario, amount, reportedDate, issueStartDate, recordCount, difficulty, merchantPacket }) {
   if (!claimType.availableTools.includes('Transaction History')) return [];
-  const rail = scenario.taxonomyTags?.productRail ?? claimType.taxonomy.productRail;
+  const rail = productRailFor(claimType, scenario);
+  const signal = generationSignal(scenario);
   const primaryName = merchantPacket?.profile.name ?? scenario.transactionInfo.split(' - ')[0];
   const step = Math.max(18, Math.round(Math.max(amount, 120) * 0.13));
-  const recurring = /subscription|cancel|recurring/i.test(scenario.subtype);
-  const recurringDays = /annual/i.test(`${scenario.subtype} ${scenario.transactionInfo}`) ? 365 : 30;
+  const recurring = /subscription|cancel|recurring/i.test(signal);
+  const recurringDays = /annual/i.test(`${signal} ${scenario.transactionInfo}`) ? 365 : 30;
   const records = Array.from({ length: Math.max(2, recordCount) }, (_, itemIndex) => {
     const current = itemIndex === 0;
     const itemAmount = current ? amount : Math.max(0, amount - (itemIndex * step));
@@ -296,7 +327,7 @@ function makeTransactions({ id, claimType, scenario, amount, reportedDate, issue
     let merchant = current || recurring ? primaryName : `${primaryName} prior activity ${itemIndex}`;
 
     if (rail === 'card') {
-      channel = merchantChannel(scenario.subtype) === 'Recurring' ? 'Recurring card billing' : merchantChannel(scenario.subtype) === 'In-store' ? 'Card present' : merchantChannel(scenario.subtype) === 'Digital wallet' ? 'Digital wallet payment' : 'Card not present';
+      channel = merchantChannel(signal) === 'Recurring' ? 'Recurring card billing' : merchantChannel(signal) === 'In-store' ? 'Card present' : merchantChannel(signal) === 'Digital wallet' ? 'Digital wallet payment' : 'Card not present';
       instrument = scenario.transactionInfo.match(/training card ending \d+/i)?.[0] ?? 'Training card';
     } else if (rail === 'payroll') {
       channel = current ? 'Direct deposit destination activity' : 'Prior payroll deposit';
@@ -336,11 +367,11 @@ function makeTransactions({ id, claimType, scenario, amount, reportedDate, issue
 function makePaymentVerification({ id, claimType, scenario, person, business, reportedDate, issueStartDate, transactions, index }) {
   if (!claimType.availableTools.includes('Payment Verification')) return [];
   const seed = stableNumber(`${id}-payment`);
-  const rail = scenario.taxonomyTags?.productRail ?? claimType.taxonomy.productRail;
+  const rail = productRailFor(claimType, scenario);
   const destinationType = rail === 'payroll' ? 'Payroll destination' : rail === 'wire' ? 'Beneficiary destination' : /credit|loan/.test(rail) ? 'Payment account' : 'Card authorization object';
   const destination = `DST-${String(seed).slice(-7).padStart(7, '0')}`;
   const bankCode = `BC-${String(seed).slice(-5)}`;
-  const tone = claimType.id === 'non-fraud-chargeback' ? 'established' : /credit|loan/.test(rail) ? creditDeterminationTone(scenario) : determinationTone(scenario);
+  const tone = claimType.id === WORKFLOW_TYPES.MERCHANT_NON_FRAUD_DISPUTE ? 'established' : /credit|loan/.test(rail) ? creditDeterminationTone(scenario) : determinationTone(scenario);
   const recordedOwner = rail === 'wire' || rail === 'loan' ? business : person;
   return [{
     id: `${id}-PV-1`, type: destinationType, object: `Destination ID ${destination}`, status: 'Lookup completed', lastSeen: `${reportedDate} - 9:18 AM`,
@@ -360,33 +391,422 @@ function makePaymentVerification({ id, claimType, scenario, person, business, re
   }];
 }
 
-function makeBusinessRecords({ id, claimType, scenario, person, employer, business, reportedDate, issueStartDate, amount, recordCount, creditProfile }) {
+function sourceRecordId(prefix, seed, offset = 0) {
+  const suffix = String((Math.abs(seed) + (offset * 7919)) % 1000000).padStart(6, '0');
+  return `${prefix}-${suffix}`;
+}
+
+function applicationComparisonRecord({
+  caseId,
+  sequence,
+  type,
+  value,
+  observed,
+  context,
+  sourceRecordIds,
+  sourceSystems,
+  relatedRecords = [],
+}) {
+  return {
+    id: `${caseId}-AVR-${sequence}`,
+    type,
+    value,
+    observed,
+    status: 'Mismatch corroborated',
+    context,
+    source: 'Independent fictional source comparison',
+    sourceRecordIds,
+    sourceSystems,
+    comparisonStatus: 'Mismatch corroborated across independent sources',
+    corroboration: `${sourceSystems.join(' and ')} independently record the conflicting values.`,
+    basisCategory: 'Independent source mismatch',
+    relatedRecords,
+    conclusionBoundary: 'Document completeness and credit strength are separate review questions and do not establish this source mismatch.',
+  };
+}
+
+function makeApplicationVerification({
+  id,
+  scenario,
+  person,
+  business,
+  parties = [],
+  trainingId,
+  phone,
+  email,
+  address,
+  reportedDate,
+}) {
+  if (
+    scenario.workflowType !== WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW
+    || scenario.caseTruth?.finalFinding !== FINAL_FINDINGS.FRAUD_CONFIRMED
+  ) {
+    return [];
+  }
+
+  const seed = stableNumber(`${id}-${scenario.id}-application-sources`);
+  const signal = generationSignal(scenario).toLowerCase();
+  const applicationRecordId = sourceRecordId('APP', seed);
+  const alternateTrainingId = `TRN-SRC-${String(seed).slice(-6).padStart(6, '0')}`;
+  const applicationContact = `${phone ?? 'application phone'} · ${email ?? 'application email'}`;
+  const applicationAddress = address ?? 'application address';
+
+  if (scenario.customerType === CUSTOMER_TYPES.PERSONAL) {
+    if (/stolen identity application/.test(signal)) {
+      const holderContactId = sourceRecordId('HCV', seed, 1);
+      const deviceSourceId = sourceRecordId('DVC', seed, 2);
+      const carrierSourceId = sourceRecordId('TEL', seed, 3);
+      return [
+        applicationComparisonRecord({
+          caseId: id,
+          sequence: 1,
+          type: 'Applicant confirmation comparison',
+          value: `${applicationRecordId} ↔ ${holderContactId}`,
+          observed: reportedDate,
+          context: `${applicationRecordId} records an online submission for ${person} using ${trainingId}. ${holderContactId}, created through a trusted previously established contact, records that ${person} did not submit or authorize that application.`,
+          sourceRecordIds: [applicationRecordId, holderContactId],
+          sourceSystems: ['Fictional application system', 'Trusted-holder verification record'],
+          relatedRecords: [`${id}-IDR-1`, `${id}-DOC-1`],
+        }),
+        applicationComparisonRecord({
+          caseId: id,
+          sequence: 2,
+          type: 'Contact and device ownership comparison',
+          value: `${deviceSourceId} · ${carrierSourceId}`,
+          observed: reportedDate,
+          context: `${deviceSourceId} links the submitting device to ${alternateTrainingId}; ${carrierSourceId} assigns the application phone from ${applicationContact} to the same unrelated training profile. Neither source links the device or phone to ${trainingId}.`,
+          sourceRecordIds: [deviceSourceId, carrierSourceId],
+          sourceSystems: ['Fictional device registry', 'Fictional carrier ownership source'],
+          relatedRecords: [`${id}-IDR-2`, `${id}-DOC-2`],
+        }),
+      ];
+    }
+
+    const identityRegistryId = sourceRecordId('TIR', seed, 1);
+    const carrierSourceId = sourceRecordId('TEL', seed, 2);
+    const creditHeaderId = sourceRecordId('CRH', seed, 3);
+    return [
+      applicationComparisonRecord({
+        caseId: id,
+        sequence: 1,
+        type: 'Identity-key source comparison',
+        value: `${applicationRecordId} ↔ ${identityRegistryId}`,
+        observed: reportedDate,
+        context: `${applicationRecordId} lists ${person}, ${trainingId}, and ${applicationAddress}. ${identityRegistryId} resolves ${trainingId} to a different fictional source profile and a different first-seen address.`,
+        sourceRecordIds: [applicationRecordId, identityRegistryId],
+        sourceSystems: ['Fictional application system', 'Independent training-identity registry'],
+        relatedRecords: [`${id}-IDR-1`, `${id}-IDR-3`],
+      }),
+      applicationComparisonRecord({
+        caseId: id,
+        sequence: 2,
+        type: 'Contact-file corroboration',
+        value: `${carrierSourceId} · ${creditHeaderId}`,
+        observed: reportedDate,
+        context: `${carrierSourceId} assigns the application phone in ${applicationContact} to ${alternateTrainingId}. ${creditHeaderId} independently records the application email and address under another training source profile rather than ${trainingId}.`,
+        sourceRecordIds: [carrierSourceId, creditHeaderId],
+        sourceSystems: ['Fictional carrier ownership source', 'Independent credit-header source'],
+        relatedRecords: [`${id}-IDR-2`, `${id}-DOC-2`],
+      }),
+    ];
+  }
+
+  const entityParty = parties.find((party) => /business account holder/i.test(party.role)) ?? { id: `${id}-PTY-1`, name: business };
+  const submitterParty = parties.find((party) => /application submitter/i.test(party.role)) ?? { id: `${id}-PTY-2`, name: person };
+  const registrationRecordId = sourceRecordId('REG', seed, 1);
+
+  if (/tradeline piggyback/.test(signal)) {
+    const applicationTradeId = sourceRecordId('ATR', seed, 2);
+    const bureauTradeId = sourceRecordId('TBR', seed, 3);
+    const providerVerificationId = sourceRecordId('RPV', seed, 4);
+    const unrelatedBusinessId = `BIZ-SRC-${String(seed).slice(-5).padStart(5, '0')}`;
+    return [
+      applicationComparisonRecord({
+        caseId: id,
+        sequence: 1,
+        type: 'Trade-reference ownership comparison',
+        value: `${applicationTradeId} ↔ ${bureauTradeId}`,
+        observed: reportedDate,
+        context: `${applicationTradeId} attributes the submitted trade reference to ${business}. ${bureauTradeId} records the same reference number under ${unrelatedBusinessId}, with no obligor, guarantor, or ownership relationship to ${entityParty.name}.`,
+        sourceRecordIds: [applicationTradeId, bureauTradeId],
+        sourceSystems: ['Business application trade-reference file', 'Independent training-bureau trade file'],
+        relatedRecords: [entityParty.id, submitterParty.id, `${id}-DOC-4`],
+      }),
+      applicationComparisonRecord({
+        caseId: id,
+        sequence: 2,
+        type: 'Reference-provider corroboration',
+        value: `${bureauTradeId} · ${providerVerificationId}`,
+        observed: reportedDate,
+        context: `${providerVerificationId} records a trusted verification with the named reference provider, which confirms that ${business} was not the customer on ${bureauTradeId} and was not authorized to use that history.`,
+        sourceRecordIds: [bureauTradeId, providerVerificationId],
+        sourceSystems: ['Independent training-bureau trade file', 'Trusted reference-provider verification'],
+        relatedRecords: [entityParty.id, `${id}-DOC-1`],
+      }),
+    ];
+  }
+
+  const bankOwnershipId = sourceRecordId('BNK', seed, 2);
+  const invoiceRecordId = sourceRecordId('INV', seed, 3);
+  const counterpartyVerificationId = sourceRecordId('CPV', seed, 4);
+  const unrelatedBusinessId = `BIZ-SRC-${String(seed).slice(-5).padStart(5, '0')}`;
+  return [
+    applicationComparisonRecord({
+      caseId: id,
+      sequence: 1,
+      type: 'Entity and account ownership comparison',
+      value: `${registrationRecordId} · ${bankOwnershipId}`,
+      observed: reportedDate,
+      context: `${registrationRecordId} corroborates that ${business} has a fictional registration. ${bankOwnershipId} records the operating account cited in ${applicationRecordId} as owned by ${unrelatedBusinessId}, not ${entityParty.name}.`,
+      sourceRecordIds: [applicationRecordId, registrationRecordId, bankOwnershipId],
+      sourceSystems: ['Fictional application system', 'Independent entity registry', 'Independent account-ownership source'],
+      relatedRecords: [entityParty.id, submitterParty.id, `${id}-PV-1`],
+    }),
+    applicationComparisonRecord({
+      caseId: id,
+      sequence: 2,
+      type: 'Operating-record corroboration',
+      value: `${invoiceRecordId} ↔ ${counterpartyVerificationId}`,
+      observed: reportedDate,
+      context: `${invoiceRecordId} is the invoice reference submitted for ${business}. ${counterpartyVerificationId} records a trusted verification with the named counterparty, which confirms it did not issue that invoice or maintain the stated customer relationship.`,
+      sourceRecordIds: [invoiceRecordId, counterpartyVerificationId],
+      sourceSystems: ['Submitted invoice source', 'Trusted counterparty verification'],
+      relatedRecords: [entityParty.id, `${id}-DOC-4`],
+    }),
+  ];
+}
+
+function makeBusinessRecords({
+  id,
+  claimType,
+  scenario,
+  person,
+  employer,
+  business,
+  parties = [],
+  reportedDate,
+  issueStartDate,
+  amount,
+  recordCount,
+  creditProfile,
+  applicationVerification = [],
+  paymentVerification,
+}) {
   const tools = new Set(claimType.availableTools);
   const result = {};
+  const seed = stableNumber(`${business}-${employer}`);
+  const suffix = String(seed).slice(-5).padStart(5, '0');
+  const payrollLane = /payroll|employee/i.test(`${claimType.id} ${claimType.lane} ${scenario.entityRole}`);
+  const entity = payrollLane ? employer : business;
+  const legalName = /llc|inc\.?|corp\.?|company|co\./i.test(entity) ? entity : `${entity} LLC`;
+  const businessId = `BIZ-${suffix}`;
   if (tools.has('Business 360')) {
-    const entity = /business|vendor|payroll|merchant/i.test(`${scenario.entityRole} ${claimType.lane}`) ? business : scenario.transactionInfo.split(' - ')[0];
     result.business360 = [
-      { id: `${id}-BIZ-1`, entity, relationship: `${scenario.family ?? claimType.lane} relationship`, status: 'Active profile', observed: reportedDate, context: `${entity} is connected to ${person} and claim ${id}.` },
-      { id: `${id}-BIZ-2`, entity: person, relationship: scenario.entityRole, status: 'Named in intake', observed: reportedDate, context: `${person} submitted or is named in the ${scenario.channel} record.` },
-      { id: `${id}-BIZ-3`, entity: scenario.transactionInfo, relationship: 'Activity or exposure in scope', status: scenario.amount, observed: issueStartDate, context: `${scenario.subtype} review covers ${scenario.amount} from ${issueStartDate} through ${reportedDate}.` },
+      { id: businessId, entity: legalName, relationship: payrollLane ? 'Employer payroll relationship' : 'Institution business relationship', status: 'Active', observed: `${['Feb', 'Apr', 'Jun', 'Aug'][seed % 4]} ${4 + (seed % 20)}, ${2019 + (seed % 5)}`, context: 'Reusable institution relationship record' },
     ];
   }
-  if (tools.has('KYB Review')) {
-    result.businessIntel = [
-      { id: `${id}-BIN-1`, type: 'Registration and legal-name record', value: business, observed: reportedDate, context: `${business} is recorded as the legal entity connected to claim ${id}.` },
-      { id: `${id}-BIN-2`, type: 'Owner or controlling party', value: person, observed: reportedDate, context: `${person} is recorded as ${scenario.entityRole}.` },
-      { id: `${id}-BIN-3`, type: 'Operating and revenue context', value: creditProfile?.statedAnnualIncome ?? money(Math.max(amount * 18, 85000)), observed: reportedDate, context: `Stated annual revenue is compared with ${scenario.amount} in current exposure.` },
-      { id: `${id}-BIN-4`, type: 'Case activity', value: scenario.transactionInfo, observed: issueStartDate, context: `${scenario.subtype} activity was reported through ${scenario.channel} on ${reportedDate}.` },
-    ];
-  }
+
+  const employeeId = `EMP-${suffix}-01`;
+  const secondEmployeeId = `EMP-${suffix}-02`;
+  const thirdEmployeeId = `EMP-${suffix}-03`;
+  const employeeProfiles = [
+    {
+      id: employeeId,
+      name: person,
+      address: `${140 + (seed % 8000)} Meadow Training Lane, ${pick(['Dallas, TX', 'Arlington, TX', 'Fort Worth, TX'], seed)}`,
+      role: 'Operations specialist',
+      department: 'Operations',
+      position: 'Operations Specialist',
+      employer: legalName,
+      employmentStatus: 'Active',
+      payType: 'Hourly',
+      paySchedule: 'Biweekly',
+      compensationType: 'Hourly',
+      currentRate: `$${(18 + (seed % 8)).toFixed(2)} per hour`,
+      hireDate: `${['Jan', 'Mar', 'May', 'Sep'][seed % 4]} ${4 + (seed % 20)}, ${2021 + (seed % 4)}`,
+      w4Setup: 'Single · standard withholding',
+      taxElections: 'Federal withholding · Social Security · Medicare · state and local rules as applicable',
+      rateHistory: [{ effectiveDate: 'Jan 1, 2026', value: 18 + (seed % 8) }],
+      regularHours: 80,
+      federalTaxRate: 0.08,
+      healthDeduction: 82,
+      dentalDeduction: 11,
+      retirementRate: 0.04,
+      employerHealthContribution: 165,
+      employerRetirementRate: 0.02,
+      employerTaxRate: 0.0815,
+      standardReimbursement: 28,
+      ytdOpening: { grossPay: 10800, employeeTaxes: 1510, employeeDeductions: 1120, employerContributions: 1490, reimbursements: 84, netPay: 8254 },
+      paymentHistory: [
+        {
+          effectiveDate: 'Jan 15, 2024',
+          method: 'Direct deposit',
+          paymentRecordId: `PV-HIST-${suffix}-01`,
+          destinations: [{
+            id: `PD-${suffix}-OLD`,
+            bankCode: `BC-${String(seed + 211).slice(-4)}`,
+            destinationId: `DST-${String(seed + 4137).slice(-6)}`,
+            percentage: 1,
+            status: 'Settled',
+            firstSeen: 'Jan 15, 2024',
+            paymentRecordId: `PV-HIST-${suffix}-01`,
+          }],
+        },
+        ...([
+          'payroll-direct-deposit',
+          WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT,
+          WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER,
+        ].includes(claimType.workflowType ?? claimType.id) && paymentVerification?.[0] ? [{
+          effectiveDate: issueStartDate,
+          method: 'Direct deposit',
+          paymentRecordId: paymentVerification[0].id,
+          destinations: [{
+            id: `PD-${suffix}-CURRENT`,
+            bankCode: paymentVerification[0].bankCode,
+            destinationId: paymentVerification[0].destinationId,
+            percentage: 1,
+            status: 'Settled',
+            firstSeen: issueStartDate,
+            paymentRecordId: paymentVerification[0].id,
+          }],
+        }] : []),
+      ],
+    },
+    {
+      id: secondEmployeeId,
+      name: `Dana ${['Kim', 'Lane', 'Stone', 'Reed'][seed % 4]}`,
+      address: `${510 + (seed % 6000)} Westlake Training Road, Arlington, TX`,
+      role: 'Inventory specialist',
+      department: 'Operations',
+      position: 'Inventory Specialist',
+      employer: legalName,
+      employmentStatus: 'Active',
+      payType: 'Hourly',
+      paySchedule: 'Biweekly',
+      compensationType: 'Hourly',
+      currentRate: '$20.50 per hour',
+      hireDate: 'Sep 18, 2023',
+      w4Setup: 'Married filing jointly',
+      taxElections: 'Federal withholding · Social Security · Medicare · state and local rules as applicable',
+      rateHistory: [{ effectiveDate: 'Jan 1, 2026', value: 20.5 }],
+      regularHours: 80,
+      federalTaxRate: 0.075,
+      healthDeduction: 98,
+      dentalDeduction: 14,
+      retirementRate: 0.05,
+      employerHealthContribution: 178,
+      employerRetirementRate: 0.025,
+      employerTaxRate: 0.0815,
+      ytdOpening: { grossPay: 13120, employeeTaxes: 1820, employeeDeductions: 1620, employerContributions: 1940, reimbursements: 0, netPay: 9680 },
+      paymentHistory: [{
+        effectiveDate: 'Sep 18, 2023',
+        method: 'Split direct deposit',
+        destinations: [
+          { id: `PD-${suffix}-SPLIT-A`, bankCode: `BC-${String(seed + 712).slice(-4)}`, destinationId: `DST-${String(seed + 7210).slice(-6)}`, percentage: 0.7, status: 'Settled', firstSeen: 'Sep 18, 2023', paymentRecordId: `PV-HIST-${suffix}-SPLIT-A` },
+          { id: `PD-${suffix}-SPLIT-B`, bankCode: `BC-${String(seed + 913).slice(-4)}`, destinationId: `DST-${String(seed + 9311).slice(-6)}`, percentage: 0.3, status: 'Settled', firstSeen: 'Feb 3, 2025', paymentRecordId: `PV-HIST-${suffix}-SPLIT-B` },
+        ],
+      }],
+    },
+    {
+      id: thirdEmployeeId,
+      name: `Luis ${['Romero', 'Grant', 'Bennett', 'Owens'][seed % 4]}`,
+      address: `${810 + (seed % 5000)} Harbor Training Street, Dallas, TX`,
+      role: 'Delivery coordinator',
+      department: 'Logistics',
+      position: 'Delivery Coordinator',
+      employer: legalName,
+      employmentStatus: 'Active',
+      payType: 'Salary',
+      paySchedule: 'Biweekly',
+      compensationType: 'Salary',
+      currentRate: '$2,000.00 per pay period',
+      hireDate: 'Jan 8, 2022',
+      w4Setup: 'Head of household',
+      taxElections: 'Federal withholding · Social Security · Medicare · state and local rules as applicable',
+      rateHistory: [{ effectiveDate: 'Jan 1, 2026', value: 25 }],
+      regularHours: 80,
+      federalTaxRate: 0.09,
+      healthDeduction: 115,
+      dentalDeduction: 16,
+      retirementRate: 0.03,
+      employerHealthContribution: 192,
+      employerRetirementRate: 0.02,
+      employerTaxRate: 0.0815,
+      garnishment: seed % 3 === 0 ? 45 : 0,
+      ytdOpening: { grossPay: 16000, employeeTaxes: 2410, employeeDeductions: 1900, employerContributions: 2260, reimbursements: 0, netPay: 11690 },
+      paymentHistory: [{
+        effectiveDate: 'Jan 8, 2022',
+        method: 'Paper check',
+        status: 'Issued',
+        checkNumber: `CHK-${String(seed * 17).slice(-6).padStart(6, '0')}`,
+        paymentRecordId: `PV-HIST-${suffix}-CHECK`,
+      }],
+    },
+  ];
+
   if (tools.has('Employee Profile')) {
-    result.employeeProfile = [
-      { id: `${id}-EMP-1`, name: person, role: /payroll/i.test(claimType.lane) ? 'Employee payroll record' : scenario.entityRole, employer, status: 'Active profile', lastSeen: reportedDate, context: `${person} is linked to ${employer} in the current ${scenario.subtype} review.` },
-      { id: `${id}-EMP-2`, name: person, role: 'Change authorization subject', employer, status: 'Authorization under review', lastSeen: issueStartDate, context: `${scenario.transactionInfo} for ${scenario.amount} is the employee-linked activity in scope.` },
-    ];
+    result.employeeProfile = employeeProfiles;
   }
   if (tools.has('Payroll History')) {
-    result.payrollHistory = Array.from({ length: Math.max(2, Math.min(4, recordCount)) }, (_, itemIndex) => ({ id: `${id}-PAYR-${itemIndex + 1}`, period: shiftedDate(reportedDate, -(itemIndex * 14)), employer, amount: money(Math.max(900, Math.round(amount / Math.max(1, recordCount)) + (itemIndex * 45))), channel: /payroll/i.test(claimType.lane) ? 'Direct deposit record' : 'Verified payroll income record', status: itemIndex === 0 ? 'Current period' : 'Posted prior period', context: itemIndex === 0 ? `${scenario.transactionInfo} is the current payroll activity in scope.` : `${person}'s prior payroll from ${employer} provides a dated amount and destination baseline.` }));
+    const runDates = [42, 28, 14, 0].map((days) => shiftedDate(reportedDate, -days));
+    const finalRunStatus = ['Pending', 'Failed', 'Returned'][seed % 3];
+    const runDefinitions = runDates.map((payDate, itemIndex) => {
+      const runType = itemIndex === 1
+        ? (seed % 2 ? 'Bonus' : 'Off-cycle')
+        : itemIndex === 2
+          ? (seed % 2 ? 'Correction' : 'Reversal')
+          : 'Regular';
+      const status = itemIndex === runDates.length - 1 ? finalRunStatus : 'Settled';
+      return {
+        id: `${id}-PR-${itemIndex + 1}`,
+        payPeriodStart: shiftedDate(payDate, -13),
+        payPeriodEnd: payDate,
+        payDate,
+        runType,
+        status,
+        fundingStatus: status === 'Pending'
+          ? 'Pending funding'
+          : status === 'Failed'
+            ? 'Failed funding'
+            : status === 'Returned'
+              ? 'Returned funding'
+              : 'Funded',
+        fundingBankCode: `BC-FUND-${suffix.slice(-4)}`,
+        fundingAccount: `Operating checking ending ${suffix.slice(-4)}`,
+        fundingPaymentRecordId: `PV-FUND-${suffix}`,
+        submissionDate: shiftedDate(payDate, -3),
+        settlementDate: status === 'Settled' ? payDate : 'Not settled',
+        submittedBy: 'Monica Patel · Payroll Administrator',
+        approvedBy: 'Morgan Reed · Controlling Party',
+      };
+    });
+    employeeProfiles[0].hoursByRun = Object.fromEntries(runDefinitions.map((run) => [
+      run.id,
+      {
+        regular: 80,
+        bonus: run.runType === 'Bonus' ? 450 + (seed % 350) : 0,
+      },
+    ]));
+    employeeProfiles[0].adjustmentsByRun = Object.fromEntries(runDefinitions
+      .filter((run) => ['Correction', 'Reversal'].includes(run.runType))
+      .map((run) => [run.id, run.runType === 'Reversal' ? -125 : 125]));
+    const payroll = createCompanyPayrollData({
+      companyPayrollProfile: {
+        businessId,
+        legalName,
+        address: `${300 + (seed % 6000)} Company Training Drive, ${pick(['Dallas, TX', 'Arlington, TX', 'Fort Worth, TX'], seed, 2)}`,
+        maskedEin: `**-***${suffix.slice(-4)}`,
+        payrollId: `PAYROLL-${suffix}`,
+        paySchedule: 'Biweekly',
+        nextPayDate: shiftedDate(reportedDate, 14),
+        activeEmployeeCount: employeeProfiles.length,
+        selectedDateRange: `${runDates[0]} – ${runDates.at(-1)}`,
+      },
+      employeeProfiles,
+      runDefinitions,
+    });
+    result.companyPayrollProfile = payroll.companyPayrollProfile;
+    result.payrollRuns = payroll.payrollRuns;
   }
   return result;
 }
@@ -394,8 +814,8 @@ function makeBusinessRecords({ id, claimType, scenario, person, employer, busine
 function makeIdentityReport({ id, claimType, trainingId, person, reportedDate }) {
   if (!claimType.availableTools.includes('Identity Intel / People Search')) return [];
   return [
-    { id: `${id}-IDR-1`, label: 'Training identity', value: trainingId, observed: reportedDate },
-    { id: `${id}-IDR-2`, label: 'Profile subject', value: person, observed: reportedDate },
+    { id: `${id}-IDR-1`, label: 'Training identity', type: 'Training ID', value: trainingId, observed: reportedDate, lastSeen: reportedDate, history: `${trainingId} is the identifier supplied in the current fictional case record.` },
+    { id: `${id}-IDR-2`, label: 'Profile subject', type: 'Profile subject', value: person, observed: reportedDate, lastSeen: reportedDate, history: `${person} is the subject named in the current fictional case record.` },
   ];
 }
 
@@ -468,20 +888,48 @@ export function buildGeneratedPersona(index, scenario) {
   };
 }
 
-export function buildGeneratedToolResults({ id, index, person, city, employer, business, claimType, scenario, documents, recordCount, trainingId, reportedDate, issueStartDate, difficulty }) {
+export function buildGeneratedToolResults({ id, index, person, city, employer, business, phone, email, address, parties = [], claimType, scenario, documents, recordCount, trainingId, reportedDate, issueStartDate, difficulty }) {
   const amount = numberFromMoney(scenario.amount);
-  const merchantRelevant = ['fraud-chargeback', 'non-fraud-chargeback', 'first-party-fraud'].includes(claimType.id);
+  const merchantRelevant = [WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM, WORKFLOW_TYPES.MERCHANT_NON_FRAUD_DISPUTE].includes(claimType.id);
   const merchantPacket = merchantRelevant ? makeMerchantPacket({ id, index, claimType, scenario, person, reportedDate, issueStartDate, amount, recordCount, difficulty }) : null;
-  const creditRelevant = ['credit-risk', 'business-loan-bust-out'].includes(claimType.id);
+  const creditRelevant = [WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW, WORKFLOW_TYPES.CREDIT_RISK_REVIEW].includes(claimType.id);
   const creditProfile = creditRelevant ? makeCreditProfile({ id, index, claimType, scenario, person, business, amount, reportedDate, difficulty }) : null;
   const transactions = makeTransactions({ id, claimType, scenario, amount, reportedDate, issueStartDate, recordCount, difficulty, merchantPacket });
   const paymentVerification = makePaymentVerification({ id, claimType, scenario, person, business, reportedDate, issueStartDate, transactions, index });
+  const applicationVerification = makeApplicationVerification({
+    id,
+    scenario,
+    person,
+    business,
+    parties,
+    trainingId,
+    phone,
+    email,
+    address,
+    reportedDate,
+  });
   const evidence = makeEvidence({ id, scenario, documents, transactions, reportedDate });
   const result = {
     transactions,
     financialIntel: makeFinancialIntel({ id, claimType, scenario, reportedDate, issueStartDate, amount, creditProfile, recordCount, transactions, documents }),
     paymentVerification,
-    ...makeBusinessRecords({ id, claimType, scenario, person, employer, business, reportedDate, issueStartDate, amount, recordCount, creditProfile }),
+    applicationVerification,
+    ...makeBusinessRecords({
+      id,
+      claimType,
+      scenario,
+      person,
+      employer,
+      business,
+      parties,
+      reportedDate,
+      issueStartDate,
+      amount,
+      recordCount,
+      creditProfile,
+      applicationVerification,
+      paymentVerification,
+    }),
     ...evidence,
     identityReport: makeIdentityReport({ id, claimType, trainingId, person, reportedDate }),
   };
@@ -491,11 +939,10 @@ export function buildGeneratedToolResults({ id, index, person, city, employer, b
 }
 
 export function buildScenarioDecisionData({ claimType, scenario, reportedDate, toolResults }) {
-  if (claimType.chargeback) {
+  if ([WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM, WORKFLOW_TYPES.MERCHANT_NON_FRAUD_DISPUTE].includes(claimType.workflowType)) {
     const merchant = toolResults.merchantIntelligence;
     return {
       chargebackDecision: {
-        ...claimType.chargeback,
         reasonCode: merchant?.reasonCode ?? reasonCodeFor(scenario.subtype),
         responseDeadline: merchant?.responseDeadline ?? deadlineFrom(reportedDate, 10, '3:00 PM'),
         merchantEvidence: 'Merchant identity, order, customer history, response, fulfillment, refund, dispute, and contact records',
@@ -506,12 +953,11 @@ export function buildScenarioDecisionData({ claimType, scenario, reportedDate, t
       creditDecision: null,
     };
   }
-  if (claimType.credit) {
+  if ([WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW, WORKFLOW_TYPES.CREDIT_RISK_REVIEW].includes(claimType.workflowType)) {
     const credit = toolResults.creditProfile;
     return {
       chargebackDecision: null,
       creditDecision: {
-        ...claimType.credit,
         family: scenario.family ?? 'Credit review',
         deadline: credit?.deadline ?? deadlineFrom(reportedDate, 2, '4:00 PM'),
         reasonCode: credit?.reasonCode ?? `Training ${scenario.subtype} review`,
@@ -527,7 +973,7 @@ export function buildScenarioEvents({ id, scenario, claimType, reportedDate, iss
   const availableDocuments = documents.filter((item) => item.status !== 'Requested');
   const requestedDocuments = documents.filter((item) => item.status === 'Requested');
   const events = [
-    { id: `${id}-EVT-1`, time: `${issueStartDate} - 10:10 AM`, label: `${scenario.subtype} activity recorded`, detail: `${scenario.transactionInfo} for ${scenario.amount} entered the activity window.`, chip: 'Case event', object: 'Case' },
+    { id: `${id}-EVT-1`, time: `${issueStartDate} - 10:10 AM`, label: 'Alerted activity recorded', detail: `${scenario.transactionInfo} for ${scenario.amount} entered the activity window.`, chip: 'Case event', object: 'Case' },
     { id: `${id}-EVT-2`, time: `${reportedDate} - 9:05 AM`, label: 'Intake or alert received', detail: `${scenario.channel} opened the case with this statement: ${scenario.statement}`, chip: 'Intake', object: 'Statement' },
     { id: `${id}-EVT-3`, time: `${reportedDate} - 9:18 AM`, label: 'Evidence packet initialized', detail: `${evidenceDepth} packet created with ${availableDocuments.length} available document(s) and ${requestedDocuments.length} requested document(s) for ${claimType.label}.`, chip: 'Packet', object: 'Document' },
   ];

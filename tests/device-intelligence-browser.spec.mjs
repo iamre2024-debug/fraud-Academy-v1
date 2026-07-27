@@ -25,8 +25,11 @@ async function openCaseQueue(page) {
 test('generated Device ID lookup returns a complete profile and never leaks a stale result', async ({ page }, testInfo) => {
   await page.goto('/');
   const queue = await openCaseQueue(page);
-  await queue.getByLabel('Generate case claim type').selectOption('account-takeover');
-  await queue.getByLabel('Generate case scenario').selectOption('ato-credential-stuffing');
+  await queue.getByLabel('Generate case customer type').selectOption('personal');
+  await queue.getByLabel('Generate case product').selectOption('credit-card');
+  await queue.getByLabel('Generate case review workflow').selectOption('card-account-takeover');
+  await queue.getByLabel('Generate case alert reason').selectOption('New card-access or wallet activity observed');
+  await queue.getByLabel('Generate case scenario').selectOption('cat-scenario-01');
   await queue.getByLabel('Generate case difficulty').selectOption('deep');
   await queue.getByLabel('Generate case evidence depth').selectOption('deep');
   await queue.getByLabel('Generate case count').selectOption('1');

@@ -26,6 +26,7 @@ function rawState(overrides = {}) {
     [storageKeys.actions]: {},
     [storageKeys.documentRequests]: {},
     [storageKeys.quickPad]: {},
+    [storageKeys.payrollInvestigations]: {},
     [storageKeys.debriefs]: {},
     ...overrides,
   };
@@ -39,6 +40,15 @@ function snapshotFor(rawByKey, deviceId, timestamp, generatedCases = []) {
 const deviceARaw = rawState({
   [storageKeys.notes]: { [caseId]: ['Jul 25 · Investigation note · Added while desktop was offline.'] },
   [storageKeys.completed]: { [caseId]: ['Case Summary', 'Login History'] },
+  [storageKeys.payrollInvestigations]: {
+    [caseId]: {
+      trustedContactStarted: true,
+      requestMethod: 'Email',
+      businessStatement: 'Trusted fictional business response.',
+      emailEvidenceProvided: true,
+      businessResponseSaved: true,
+    },
+  },
   [storageKeys.debriefs]: {
     [caseId]: [{
       id: 'PKG-1:debrief',
@@ -75,6 +85,13 @@ assert.deepEqual(
 );
 assert.equal(materialized.rawByKey[storageKeys.debriefs][caseId][0].id, 'PKG-1:debrief');
 assert.equal(materialized.rawByKey[storageKeys.packages][caseId][0].id, 'PKG-1');
+assert.deepEqual(materialized.rawByKey[storageKeys.payrollInvestigations][caseId], {
+  trustedContactStarted: true,
+  requestMethod: 'Email',
+  businessStatement: 'Trusted fictional business response.',
+  emailEvidenceProvided: true,
+  businessResponseSaved: true,
+});
 assert.deepEqual(new Set(materialized.generatedCases.map((item) => item.id)), new Set([
   'FA-ATO-G00000001',
   'FA-CB-G00000002',
@@ -109,9 +126,50 @@ assert.deepEqual(
 
 const recoveryCode = 'fa-test-recovery-code-1234567890';
 const encrypted = await encryptCloudSnapshot(merged, recoveryCode);
+const secondEncrypted = await encryptCloudSnapshot(merged, recoveryCode);
 assert.equal(encrypted.algorithm, 'AES-GCM');
+assert.match(encrypted.salt, /^[A-Za-z0-9_-]+$/);
+assert.notEqual(encrypted.salt, secondEncrypted.salt, 'Every encrypted payload must use a unique PBKDF2 salt.');
 assert.ok(!JSON.stringify(encrypted).includes('Added while desktop was offline'));
 assert.deepEqual(await decryptCloudSnapshot(encrypted, recoveryCode), merged);
+
+const legacyIv = crypto.getRandomValues(new Uint8Array(12));
+const legacyMaterial = await crypto.subtle.importKey(
+  'raw',
+  new TextEncoder().encode(recoveryCode),
+  'PBKDF2',
+  false,
+  ['deriveKey'],
+);
+const legacyKey = await crypto.subtle.deriveKey(
+  {
+    name: 'PBKDF2',
+    hash: 'SHA-256',
+    salt: new TextEncoder().encode('fraud-academy-cloud-sync-v1'),
+    iterations: 150000,
+  },
+  legacyMaterial,
+  { name: 'AES-GCM', length: 256 },
+  false,
+  ['encrypt'],
+);
+const legacyCiphertext = await crypto.subtle.encrypt(
+  { name: 'AES-GCM', iv: legacyIv },
+  legacyKey,
+  new TextEncoder().encode(JSON.stringify(merged)),
+);
+const legacyPayload = {
+  version: 1,
+  algorithm: 'AES-GCM',
+  compression: 'none',
+  iv: Buffer.from(legacyIv).toString('base64url'),
+  ciphertext: Buffer.from(legacyCiphertext).toString('base64url'),
+};
+assert.deepEqual(
+  await decryptCloudSnapshot(legacyPayload, recoveryCode),
+  merged,
+  'Payloads created before per-payload salts must remain decryptable.',
+);
 
 const [
   apiSource,
@@ -144,9 +202,22 @@ assert.match(clientSource, /PBKDF2/);
 assert.match(clientSource, /X-Fraud-Academy-Sync-Id/);
 assert.doesNotMatch(clientSource, /X-Fraud-Academy-Sync-Key/);
 assert.match(clientSource, /response\.status === 409/);
+assert.match(clientSource, /mergeCloudSnapshots\(currentLocalSnapshot, mergedSnapshot\)/);
+assert.match(clientSource, /localClockNow !== localClockAtSnapshot/);
+assert.match(clientSource, /syncInFlight\.then\(\(\) => syncNow\(\), \(\) => syncNow\(\)\)/);
 assert.match(clientSource, /window\.addEventListener\('online'/);
+assert.match(
+  clientSource,
+  /generatedCases:\s*await listPersistedGeneratedCases\(\)/,
+  'Encrypted cloud snapshots must be built from evidence-preserving repository records.',
+);
 assert.match(keySource, /completed-debriefs-v1/);
 assert.match(generatedRepositorySource, /mergeGeneratedCases/);
+assert.match(
+  generatedRepositorySource,
+  /async listPersisted\(\)/,
+  'The generated-case repository must separate persisted evidence from app-facing presentation.',
+);
 assert.match(lunaSource, /fraud-academy:debrief-completed/);
 assert.match(supabaseMigrationSource, /enable row level security/i);
 assert.match(supabaseMigrationSource, /revoke all .* from public, anon, authenticated/i);

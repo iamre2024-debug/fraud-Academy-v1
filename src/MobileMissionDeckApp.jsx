@@ -5,6 +5,8 @@ import CasesThemeV1Panel from './CasesThemeV1Panel.jsx';
 import LunaApiAccessSetting from './LunaApiAccessSetting.jsx';
 import CloudSyncControl from './CloudSyncControl.jsx';
 import ProfileThemeV1Panel from './ProfileThemeV1Panel.jsx';
+import SkipToMainContentLink from './SkipToMainContentLink.jsx';
+import { publicCaseTaxonomy } from './data/publicCaseView.js';
 
 const reducedMotionKey = 'fraud-academy-reduced-motion-v1';
 
@@ -117,6 +119,7 @@ export default function MobileMissionDeckApp({
   return (
     <div className="mission-mobile-root" data-mobile-mission-tab={activeTab}>
       <MissionAtmosphere />
+      <SkipToMainContentLink />
       <header className="mission-mobile-header">
         <button type="button" className="mission-mobile-brand" aria-label="Open dashboard" onClick={() => navigate('dashboard')}>
           <span aria-hidden="true">🛡️</span>
@@ -171,7 +174,7 @@ export default function MobileMissionDeckApp({
         </section>
       )}
 
-      <div className="mission-mobile-viewport">
+      <main id="main" className="mission-mobile-viewport" tabIndex={-1}>
         <section className="mission-mobile-page" hidden={activeTab !== 'dashboard'} data-mission-page="dashboard">
           {activeTab === 'dashboard' && (
             <MissionDashboard
@@ -223,7 +226,7 @@ export default function MobileMissionDeckApp({
             />
           )}
         </section>
-      </div>
+      </main>
 
       <nav className="mission-mobile-dock" aria-label="Mission navigation">
         {routes.map((route) => (
@@ -278,7 +281,7 @@ function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGene
       <section className="mission-case-deck" aria-label="Layered active case deck">
         {queuedCases.map((item, index) => (
           <button key={item.id} type="button" className={`mission-case-layer layer-${index + 1}`} onClick={() => onOpenCase(item.id)}>
-            <span>{item.id}</span><small>{item.priority} · {item.type}</small>
+            <span>{item.id}</span><small>{item.priority} · {publicCaseTaxonomy(item).workflowType}</small>
           </button>
         ))}
         <article className="mission-active-file">
@@ -286,11 +289,11 @@ function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGene
           <div className="mission-active-file-copy">
             <span className="mission-live-chip">● ACTIVE CASE</span>
             <h2>{activeCase.id}</h2>
-            <p>{activeCase.type}</p>
+            <p>{publicCaseTaxonomy(activeCase).workflowType}</p>
             <dl>
               <div><dt>👤 Customer</dt><dd>{activeCase.person}</dd></div>
               <div><dt>💵 Exposure</dt><dd>{activeCase.amount}</dd></div>
-              <div><dt>📍 Lane</dt><dd>{activeCase.lane ?? 'Investigation'}</dd></div>
+              <div><dt>🏦 Product</dt><dd>{publicCaseTaxonomy(activeCase).productType}</dd></div>
             </dl>
             <div className="mission-progress-line"><span style={{ width: `${progress}%` }} /><strong>{progress}%</strong></div>
             <button type="button" onClick={() => onOpenCase(activeCase.id)}>Enter mission workspace <span>→</span></button>

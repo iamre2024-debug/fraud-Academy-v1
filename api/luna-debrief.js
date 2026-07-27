@@ -14,7 +14,7 @@ function configuredOrigins() {
 
 function requestOrigin(req) {
   const forwardedProtocol = String(req.headers?.['x-forwarded-proto'] || 'https').split(',')[0].trim();
-  const host = String(req.headers?.['x-forwarded-host'] || req.headers?.host || '').split(',')[0].trim();
+  const host = String(req.headers?.host || req.headers?.['x-forwarded-host'] || '').split(',')[0].trim();
   return host ? `${forwardedProtocol}://${host}` : '';
 }
 
@@ -40,13 +40,23 @@ function send(req, res, status, body) {
 }
 
 function requestIp(req) {
-  return String(req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown')
-    .split(',')[0]
-    .trim();
+  const hops = String(req.headers?.['x-forwarded-for'] || '')
+    .split(',')
+    .map((hop) => hop.trim())
+    .filter(Boolean);
+  if (hops.length) return hops[hops.length - 1];
+  return String(req.socket?.remoteAddress || '').trim() || 'unknown';
+}
+
+function sweepExpiredWindows(now) {
+  for (const [key, windowState] of requestWindows) {
+    if (now - windowState.startedAt >= RATE_LIMIT_WINDOW_MS) requestWindows.delete(key);
+  }
 }
 
 function exceedsRateLimit(req, res) {
   const now = Date.now();
+  sweepExpiredWindows(now);
   const ip = requestIp(req);
   const current = requestWindows.get(ip);
   const windowState = !current || now - current.startedAt >= RATE_LIMIT_WINDOW_MS
@@ -67,10 +77,10 @@ function cleanText(value, maximumLength) {
 }
 
 function hasValidAccessToken(req) {
-  const expected = String(process.env.LUNA_API_ACCESS_TOKEN || '');
-  const supplied = String(req.headers?.['x-luna-access-token'] || '');
+  const expected = Buffer.from(String(process.env.LUNA_API_ACCESS_TOKEN || ''), 'utf8');
+  const supplied = Buffer.from(String(req.headers?.['x-luna-access-token'] || ''), 'utf8');
   if (expected.length < 24 || supplied.length !== expected.length) return false;
-  return timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
+  return timingSafeEqual(supplied, expected);
 }
 
 function cleanList(value, fallback = []) {
@@ -79,12 +89,29 @@ function cleanList(value, fallback = []) {
     : fallback;
 }
 
+function cleanMatch(value) {
+  return value === true || value === false ? value : null;
+}
+
+function cleanDisclosure(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return {
+    requestMethodAtIntake: cleanText(value.requestMethodAtIntake, 200),
+    emailEvidenceAvailableAtIntake: value.emailEvidenceAvailableAtIntake === true,
+    emailEvidenceStage: cleanText(value.emailEvidenceStage, 300),
+    businessReportedRequestMethod: cleanText(value.businessReportedRequestMethod, 200),
+  };
+}
+
 export default async function handler(req, res) {
   const origin = String(req.headers?.origin || '');
   if (origin && !allowedCorsOrigin(req)) return send(req, res, 403, { error: 'Origin not allowed' });
   if (req.method === 'OPTIONS') return send(req, res, 204, {});
   if (req.method !== 'POST') return send(req, res, 405, { error: 'Method not allowed' });
   if (Number(req.headers?.['content-length'] || 0) > MAX_BODY_BYTES) {
+    return send(req, res, 413, { error: 'Request body is too large' });
+  }
+  if (Buffer.byteLength(JSON.stringify(req.body ?? {}), 'utf8') > MAX_BODY_BYTES) {
     return send(req, res, 413, { error: 'Request body is too large' });
   }
   if (exceedsRateLimit(req, res)) {
@@ -104,7 +131,8 @@ export default async function handler(req, res) {
     || deterministic.determinationMatched === false
     || deterministic.determinationMatched === null;
 
-  if (!body.caseId || !body.submittedDecision || !hasMatchField || !matchValueIsValid) {
+  const submittedOperationalDecision = body.operationalDecision || body.submittedDecision;
+  if (!body.caseId || !submittedOperationalDecision || !hasMatchField || !matchValueIsValid) {
     return send(req, res, 400, { error: 'Missing guarded debrief inputs' });
   }
 
@@ -116,17 +144,39 @@ export default async function handler(req, res) {
 
   const guardedFacts = {
     caseId: cleanText(body.caseId, 100),
+    customerType: cleanText(body.customerType, 100),
+    productType: cleanText(body.productType, 100),
+    workflowType: cleanText(body.workflowType, 150),
+    alertReason: cleanText(body.alertReason, 1000),
+    reportedAllegation: cleanText(body.reportedAllegation || body.allegation, 1000),
+    operationalDecision: cleanText(submittedOperationalDecision, 200),
+    finalFinding: cleanText(body.finalFinding, 200),
+    findingBasis: cleanText(body.findingBasis || body.rationale, 4000),
     caseType: cleanText(body.caseType, 200),
     allegation: cleanText(body.allegation, 1000),
-    submittedDecision: cleanText(body.submittedDecision, 200),
+    submittedDecision: cleanText(submittedOperationalDecision, 200),
     confidence: cleanText(body.confidence, 100),
-    rationale: cleanText(body.rationale, 4000),
+    rationale: cleanText(body.findingBasis || body.rationale, 4000),
     reviewStatus,
     determinationMatched: deterministic.determinationMatched,
-    expectedDetermination: deterministic.expectedDetermination || null,
-    acceptedDeterminations: cleanList(deterministic.acceptedDeterminations),
-    classification: deterministic.classification || null,
-    truthRationale: deterministic.truthRationale || null,
+    operationalDecisionMatched: cleanMatch(deterministic.operationalDecisionMatched),
+    finalFindingMatched: cleanMatch(deterministic.finalFindingMatched),
+    expectedOperationalDecision: cleanText(deterministic.expectedOperationalDecision || deterministic.expectedDetermination, 200) || null,
+    acceptedOperationalDecisions: cleanList(
+      deterministic.acceptedOperationalDecisions,
+      cleanList(deterministic.acceptedDeterminations),
+    ),
+    expectedFinalFinding: cleanText(deterministic.expectedFinalFinding, 200) || null,
+    suspectedPatterns: cleanList(deterministic.suspectedPatterns),
+    truthFindingBasis: cleanText(deterministic.truthFindingBasis || deterministic.truthRationale, 4000) || null,
+    disclosure: cleanDisclosure(deterministic.disclosure),
+    expectedDetermination: cleanText(deterministic.expectedOperationalDecision || deterministic.expectedDetermination, 200) || null,
+    acceptedDeterminations: cleanList(
+      deterministic.acceptedOperationalDecisions,
+      cleanList(deterministic.acceptedDeterminations),
+    ),
+    classification: cleanText(deterministic.classification, 1000) || null,
+    truthRationale: cleanText(deterministic.truthFindingBasis || deterministic.truthRationale, 4000) || null,
     score: Number(deterministic.score || 0),
     strengths: cleanList(deterministic.strengths),
     followUps: cleanList(deterministic.followUps),
@@ -138,12 +188,15 @@ export default async function handler(req, res) {
   const instructions = [
     'You are Luna, the fraud manager conducting a post-decision case review inside a training app.',
     'Speak like an experienced manager reviewing an investigator decision, not like a generic tutor or scorecard.',
-    'The deterministic fields are authoritative. Never reverse or override reviewStatus, determinationMatched, expectedDetermination, acceptedDeterminations, classification, truthRationale, or score.',
+    'The deterministic fields are authoritative. Never reverse or override reviewStatus, determinationMatched, the two field-level match values, expected operational decision, expected final finding, truth finding basis, classification, or score.',
     'When reviewStatus is matched, say the investigator made the correct call.',
     'When reviewStatus is mismatched, say the determination needs correction and explain why from the supplied truth.',
-    'When reviewStatus is ungraded, never call the decision right, wrong, matched, mismatched, or in need of correction. State that the case has no hidden outcome and review only the investigation quality and reasoning.',
-    'Explain what the submitted decision means. Do Not Support means the available evidence does not support the customer fraud claim; it never means fraud was confirmed.',
-    'Explain what the case actually was only when classification or truthRationale is supplied. Do not invent a downstream outcome.',
+    'When reviewStatus is ungraded, never call the decision right, wrong, matched, mismatched, or in need of correction. If expected outcome fields are absent, state that no hidden outcome is available. If an expected outcome exists but the legacy package lacks a separate final finding, explain that the combined outcome cannot be graded and do not infer the missing finding.',
+    'Explain the operational decision and final finding separately. The operational decision controls what should happen to the claim, application, payment, payroll, or account; the final finding records what the investigation established.',
+    'Do Not Support Customer Claim means the available evidence does not support the customer claim; it never means fraud was confirmed.',
+    'An application denial must have a factual operational reason and does not itself mean fraud was confirmed. Missing paperwork supports Verification Incomplete, not fraud.',
+    'Treat Fraud Confirmed as established only when the supplied finding basis is tied to evidence. Do not infer fraud from checklist weights, a linked account, NSF, missing paperwork, or an operational decision.',
+    'Explain what the case actually was only when an expected final finding, classification, or truth finding basis is supplied. Do not invent a downstream outcome.',
     'Separate the quality of the investigator decision at the time from what became known later in the scenario.',
     'Use only supplied facts. Do not invent evidence, people, transactions, downstream events, or policy rules.',
     'Do not reveal hidden truth before submission. This endpoint is called only after submission.',

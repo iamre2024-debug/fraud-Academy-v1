@@ -2,6 +2,8 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import VisualApp from './VisualApp.jsx';
+import ErrorBoundary from './ErrorBoundary.jsx';
+import './accessibility.css';
 import './visualWorkspace.css';
 import './visualPolish.css';
 import './mobileViewportFix.css';
@@ -45,7 +47,9 @@ import './cloudSync.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <VisualApp />
+    <ErrorBoundary>
+      <VisualApp />
+    </ErrorBoundary>
   </React.StrictMode>,
 );
 
