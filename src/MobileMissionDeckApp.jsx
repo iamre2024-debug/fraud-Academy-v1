@@ -74,11 +74,14 @@ export default function MobileMissionDeckApp({
   onOpenWorkspace,
   quickGenerator,
   workspace,
+  workspaceScreen,
 }) {
   const [control, setControl] = useState('');
   const [reducedMotion, setReducedMotion] = useState(readReducedMotion);
   const [snapshotVersion, setSnapshotVersion] = useState(0);
   const snapshot = useMemo(readSnapshot, [activeTab, snapshotVersion]);
+  const focusedReviewScreen = activeTab === 'workspace'
+    && ['determination', 'debrief'].includes(workspaceScreen);
 
   useEffect(() => {
     const refresh = () => setSnapshotVersion((current) => current + 1);
@@ -105,6 +108,10 @@ export default function MobileMissionDeckApp({
     }
   }, [reducedMotion]);
 
+  useEffect(() => {
+    if (focusedReviewScreen) setControl('');
+  }, [focusedReviewScreen]);
+
   function navigate(tab, nextWorkspaceScreen = 'briefing') {
     setControl('');
     if (tab === 'workspace' && onOpenWorkspace) {
@@ -118,19 +125,21 @@ export default function MobileMissionDeckApp({
   return (
     <div className="mission-mobile-root" data-mobile-mission-tab={activeTab}>
       <MissionAtmosphere />
-      <header className="mission-mobile-header">
-        <button type="button" className="mission-mobile-brand" aria-label="Open dashboard" onClick={() => navigate('dashboard')}>
-          <span aria-hidden="true">🛡️</span>
-          <span><strong>Fraud Academy</strong><small>Mission Deck</small></span>
-        </button>
-        <button type="button" className="mission-mobile-case-chip" onClick={() => navigate('workspace', 'briefing')}>
-          <span>Active mission</span><strong>{activeCase?.id}</strong>
-        </button>
-        <div className="mission-mobile-header-actions">
-          <button type="button" aria-label="Open Help" aria-expanded={control === 'help'} onClick={() => setControl((current) => current === 'help' ? '' : 'help')}>❔</button>
-          <button type="button" aria-label="Open Settings" aria-expanded={control === 'settings'} onClick={() => setControl((current) => current === 'settings' ? '' : 'settings')}>⚙️</button>
-        </div>
-      </header>
+      {!focusedReviewScreen && (
+        <header className="mission-mobile-header">
+          <button type="button" className="mission-mobile-brand" aria-label="Open dashboard" onClick={() => navigate('dashboard')}>
+            <span aria-hidden="true">🛡️</span>
+            <span><strong>Fraud Academy</strong><small>Mission Deck</small></span>
+          </button>
+          <button type="button" className="mission-mobile-case-chip" onClick={() => navigate('workspace', 'briefing')}>
+            <span>Active mission</span><strong>{activeCase?.id}</strong>
+          </button>
+          <div className="mission-mobile-header-actions">
+            <button type="button" aria-label="Open Help" aria-expanded={control === 'help'} onClick={() => setControl((current) => current === 'help' ? '' : 'help')}>❔</button>
+            <button type="button" aria-label="Open Settings" aria-expanded={control === 'settings'} onClick={() => setControl((current) => current === 'settings' ? '' : 'settings')}>⚙️</button>
+          </div>
+        </header>
+      )}
 
       {control && (
         <section className="mission-mobile-control-sheet" aria-live="polite" data-control={control}>
@@ -172,7 +181,7 @@ export default function MobileMissionDeckApp({
         </section>
       )}
 
-      <div className="mission-mobile-viewport">
+      <div className="mission-mobile-viewport" data-focused-review={focusedReviewScreen ? 'true' : 'false'}>
         <section className="mission-mobile-page" hidden={activeTab !== 'dashboard'} data-mission-page="dashboard">
           {activeTab === 'dashboard' && (
             <MissionDashboard
