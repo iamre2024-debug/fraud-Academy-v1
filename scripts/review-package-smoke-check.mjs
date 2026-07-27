@@ -2,6 +2,8 @@ import {
   buildReviewPackage,
   decisionCallGroups,
   getDecisionCallGroups,
+  getFinalFindingOptions,
+  getOperationalDecisionOptions,
   getRequiredReviewTools,
   getReviewChoices,
   getReviewPackageStatus,
@@ -59,6 +61,50 @@ assert(!isValidReviewPackage(accountTakeoverCase, { choice: '' }), 'A legacy pac
 assert(!isValidReviewPackage(accountTakeoverCase, { choice: 'Unsupported decision value' }), 'A legacy package with a stale determination must not unlock Luna.');
 assert(isValidReviewPackage(accountTakeoverCase, { choice: accountTakeoverChoice }), 'A package with a current valid determination should unlock Luna.');
 
+const separatedMobileStatus = buildStatus({
+  draft: {
+    choice: 'Support',
+    operationalDecision: 'Support',
+    finalFinding: 'Fraud established',
+    decisionMode: 'separated',
+    confidence: 'Medium',
+    reason: 'The learner separately recorded the operational action and factual investigative finding.',
+    indicators: accountTakeoverIndicators,
+  },
+});
+assert(separatedMobileStatus.ready, 'A mobile package should require and accept separate operational and final finding choices.');
+assert(getOperationalDecisionOptions(accountTakeoverCase).includes('Support'), 'Fraud investigation mobile choices should include Support.');
+assert(getFinalFindingOptions(accountTakeoverCase).includes('Fraud established'), 'Fraud investigation mobile findings should include a factual fraud-established option.');
+assert(!getReviewPackageStatus({
+  activeCase: accountTakeoverCase,
+  completedTools: [],
+  tray: [],
+  notes: [],
+  draft: { operationalDecision: 'Support', finalFinding: '', decisionMode: 'separated', indicators: {} },
+}).ready, 'A separated mobile package must not submit without a final investigative finding.');
+assert(!getReviewPackageStatus({
+  activeCase: accountTakeoverCase,
+  completedTools: [],
+  tray: [],
+  notes: [],
+  draft: { choice: accountTakeoverChoice, operationalDecision: '', finalFinding: '', decisionMode: 'legacy', indicators: {} },
+  requiredDecisionMode: 'separated',
+}).ready, 'A persisted legacy choice must not bypass the mobile operational-decision and final-finding requirement.');
+assert(getReviewPackageStatus({
+  activeCase: accountTakeoverCase,
+  completedTools: [],
+  tray: [],
+  notes: [],
+  draft: {
+    choice: accountTakeoverChoice,
+    operationalDecision: 'Support',
+    finalFinding: 'Fraud established',
+    decisionMode: 'legacy',
+    indicators: {},
+  },
+  requiredDecisionMode: 'separated',
+}).ready, 'The mobile layout should accept both explicit selections even while a legacy draft is being migrated.');
+
 const missingToolStatus = buildStatus({ completedTools: requiredToolSet.filter((tool) => tool !== 'Document Viewer') });
 assert(missingToolStatus.ready, 'A decision should be submittable when an optional tool was not reviewed.');
 assert(missingToolStatus.missingTools.includes('Document Viewer'), 'Unreviewed optional tools should remain visible in the package status.');
@@ -106,6 +152,7 @@ assert(getRequiredReviewTools(chargebackCase).length === chargebackCase.required
 assert(getDecisionCallGroups(chargebackCase).some((group) => group.label === 'Chargeback determination calls'), 'Chargeback package should use chargeback decision calls.');
 assert(chargebackChoices.includes('Route for chargeback representment review'), 'Chargeback package should include the representment route.');
 assert(!chargebackChoices.includes('Support Credit Request'), 'Chargeback package should not use credit-only decision calls.');
+assert(getOperationalDecisionOptions(chargebackCase).join('|') === 'Pay|Deny', 'Chargeback mobile decisions should remain Pay or Deny.');
 
 const creditCase = {
   claimTypeId: 'credit-risk',
@@ -136,6 +183,7 @@ const creditStatus = getReviewPackageStatus({
 assert(creditStatus.ready, 'Credit package should validate against credit-specific tools and choices.');
 assert(getDecisionCallGroups(creditCase).some((group) => group.label === 'Credit decision calls'), 'Credit package should use a credit decision rail.');
 assert(!creditStatus.requiredTools.includes('Login History'), 'Credit package should not require an unrelated login-history review.');
+assert(getOperationalDecisionOptions(creditCase).join('|') === 'Approve|Deny|More Information', 'Credit mobile decisions should remain Approve, Deny, or More Information.');
 
 const payrollGroups = getDecisionCallGroups({ claimTypeId: 'payroll-direct-deposit' });
 const emailGroups = getDecisionCallGroups({ claimTypeId: 'email-bec' });

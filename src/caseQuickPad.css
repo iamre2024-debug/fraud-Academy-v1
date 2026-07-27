@@ -11,6 +11,25 @@
 .case-quick-pad button,
 .case-quick-pad textarea { font: inherit; }
 
+.case-quick-pad-handle { display: none; }
+
+.case-quick-pad-charm {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 11px;
+  background: rgba(72, 201, 255, .15);
+}
+
+.case-quick-pad-saved {
+  display: block;
+  margin-top: 3px;
+  color: #75e6cc;
+  font-size: .62rem;
+}
+
 .case-quick-pad-trigger {
   pointer-events: auto;
   display: flex;
@@ -112,6 +131,24 @@
   padding: 8px 10px 10px;
 }
 
+.case-quick-pad-identifiers > header,
+.case-quick-pad-note > header,
+.case-quick-pad-notebook > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px 2px;
+  color: #dff6ff;
+  font-size: .68rem;
+}
+
+.case-quick-pad-identifiers > header small,
+.case-quick-pad-note > header small,
+.case-quick-pad-notebook > header small {
+  color: #93afc5;
+  font-size: .6rem;
+}
+
 .case-quick-pad-list article {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -175,6 +212,31 @@
   font-size: .7rem;
 }
 .case-quick-pad-note button:disabled { opacity: .45; }
+
+.case-quick-pad-notebook {
+  overflow-y: auto;
+  max-height: 220px;
+  padding: 8px 10px 10px;
+}
+
+.case-quick-pad-notebook article {
+  padding: 8px;
+  border-bottom: 1px solid rgba(98, 191, 232, .16);
+}
+
+.case-quick-pad-notebook article span,
+.case-quick-pad-notebook article strong {
+  display: block;
+  color: #71ddff;
+  font-size: .64rem;
+}
+
+.case-quick-pad-notebook article p {
+  margin: 4px 0 0;
+  color: #dcecf5;
+  font-size: .7rem;
+  line-height: 1.4;
+}
 
 @media (max-width: 700px) {
   .case-quick-pad {

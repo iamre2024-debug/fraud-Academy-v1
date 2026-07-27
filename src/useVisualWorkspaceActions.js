@@ -7,6 +7,8 @@ import {
   writeStorage,
 } from './visualWorkspaceModel.js';
 
+const agentNotebookKey = 'fraud-academy-agent-notepad-v1';
+
 export default function useVisualWorkspaceActions({
   activeCase,
   tool,
@@ -23,6 +25,7 @@ export default function useVisualWorkspaceActions({
   setDecisionByCase,
   setPackagesByCase,
   setActionsByCase,
+  requiredDecisionMode = '',
 }) {
   const packageStatus = getReviewPackageStatus({
     activeCase,
@@ -30,6 +33,7 @@ export default function useVisualWorkspaceActions({
     tray,
     notes,
     draft: decisionDraft,
+    requiredDecisionMode,
   });
 
   function pin(value) {
@@ -84,6 +88,19 @@ export default function useVisualWorkspaceActions({
       ...current,
       [activeCase.id]: [noteLine, ...(current[activeCase.id] ?? [])],
     }));
+    const savedNotebook = readStorage(agentNotebookKey, {});
+    const agentEntry = {
+      id: `${activeCase.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      agentId: AGENT_ID,
+      caseId: activeCase.id,
+      noteType: type,
+      noteText: clean,
+      timestamp,
+    };
+    writeStorage(agentNotebookKey, {
+      ...savedNotebook,
+      [AGENT_ID]: [agentEntry, ...(savedNotebook[AGENT_ID] ?? [])].slice(0, 500),
+    });
     recordAction('Saved note', `${type} added to the case notebook.`, type);
   }
 
@@ -104,6 +121,8 @@ export default function useVisualWorkspaceActions({
       ...current,
       [activeCase.id]: {
         ...(current[activeCase.id] ?? defaultDecisionDraft),
+        ...(field === 'operationalDecision' ? { choice: value, decisionMode: 'separated' } : {}),
+        ...(field === 'finalFinding' ? { decisionMode: 'separated' } : {}),
         [field]: value,
       },
     }));
@@ -138,12 +157,20 @@ export default function useVisualWorkspaceActions({
 
   function submitDecision(event) {
     event.preventDefault();
+    const submissionDraft = requiredDecisionMode === 'separated'
+      ? {
+          ...decisionDraft,
+          choice: decisionDraft.operationalDecision,
+          decisionMode: 'separated',
+        }
+      : decisionDraft;
     const status = getReviewPackageStatus({
       activeCase,
       completedTools: currentCompleted,
       tray,
       notes,
-      draft: decisionDraft,
+      draft: submissionDraft,
+      requiredDecisionMode,
     });
     if (!status.ready) return null;
 
@@ -151,7 +178,7 @@ export default function useVisualWorkspaceActions({
       caseId: activeCase.id,
       agentId: AGENT_ID,
       activeCase,
-      draft: decisionDraft,
+      draft: submissionDraft,
       completedTools: currentCompleted,
       tray,
       notes,

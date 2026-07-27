@@ -32,7 +32,7 @@ function stageForWorkspaceScreen(screen, toolName) {
   if (screen === 'tool') return stageForTool(toolName);
   if (screen === 'tool-menu') return 'investigate';
   if (screen === 'timeline') return 'timeline';
-  if (screen === 'evidence' || screen === 'notes') return 'indicators';
+  if (screen === 'evidence' || screen === 'notes' || screen === 'indicators') return 'indicators';
   if (screen === 'determination') return 'determination';
   if (screen === 'debrief') return 'debrief';
   return 'briefing';
@@ -50,15 +50,29 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   const submitRef = useRef(null);
   const workspaceScreenHistory = useRef([]);
   const requestedWorkspaceScreenRef = useRef(requestedWorkspaceScreen);
+  const pendingLinkedRouteRef = useRef(null);
 
   const activeCase = cases.find((item) => item.id === activeCaseId) ?? cases[0];
 
   useEffect(() => {
-    const nextScreen = requestedWorkspaceScreen || 'briefing';
+    const pendingRoute = pendingLinkedRouteRef.current?.caseId === activeCase.id
+      ? pendingLinkedRouteRef.current
+      : null;
+    const nextScreen = pendingRoute?.screen ?? requestedWorkspaceScreen ?? 'briefing';
     workspaceScreenHistory.current = [];
     requestedWorkspaceScreenRef.current = nextScreen;
-    setActiveStage(stageForWorkspaceScreen(nextScreen, tool));
+    setActiveStage(stageForWorkspaceScreen(nextScreen, pendingRoute?.tool ?? tool));
     setWorkspaceScreen(nextScreen);
+    if (pendingRoute) {
+      setCategoryKey(groupForTool(pendingRoute.tool)?.key ?? 'identity');
+      setTool(pendingRoute.tool);
+      setQuery(pendingRoute.query ?? '');
+      setExpandedId(pendingRoute.recordId ?? '');
+      pendingLinkedRouteRef.current = null;
+    } else {
+      setQuery('');
+      setExpandedId('');
+    }
     setOpenedPinnedEvidence(null);
   }, [activeCase.id]);
 
@@ -100,7 +114,16 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setDocumentRequestsByCase,
     setQuickPadByCase,
   } = useVisualWorkspaceCaseState(activeCase);
-  const availableToolNames = useMemo(() => new Set(activeCase.availableTools?.length ? activeCase.availableTools : workspaceTools), [activeCase]);
+  const availableToolNames = useMemo(() => {
+    const available = new Set(activeCase.availableTools?.length ? activeCase.availableTools : workspaceTools);
+    if (layoutMode === 'mobile') {
+      available.delete('System Access Lane');
+      const payrollBusiness = activeCase.claimTypeId === 'payroll-direct-deposit'
+        || activeCase.taxonomyTags?.productRail === 'payroll';
+      if (payrollBusiness) available.delete('Transaction History');
+    }
+    return available;
+  }, [activeCase, layoutMode]);
   const visibleCategories = useMemo(() => investigationToolGroups
     .map((group) => ({ ...group, tools: group.tools.filter((toolName) => availableToolNames.has(toolName)) }))
     .filter((group) => group.tools.length), [availableToolNames]);
@@ -141,6 +164,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setDecisionByCase,
     setPackagesByCase,
     setActionsByCase,
+    requiredDecisionMode: layoutMode === 'mobile' ? 'separated' : '',
   });
 
   const reviewedWorkspaceTools = visibleWorkspaceTools.filter((toolName) => currentCompleted.includes(toolName)).length;
@@ -197,7 +221,12 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   }
 
   function resetWorkspacePageScroll() {
-    window.setTimeout(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }), 0);
+    window.setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      document.querySelector(
+        '.mission-mobile-root[data-mobile-mission-tab="workspace"] .mission-mobile-viewport',
+      )?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }, 0);
   }
 
   function currentWorkspaceSnapshot(screen = workspaceScreen) {
@@ -278,6 +307,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setOpenedPinnedEvidence(resolved);
     recordAction('Opened pinned evidence', `${item} reopened in ${resolved.tool}.`, 'Pinned Evidence');
     window.setTimeout(() => {
+      if (isMobileLayout()) return;
       const context = document.querySelector('[data-opened-pinned-evidence="true"]');
       const pageHeader = document.querySelector('.mobile-workspace-page-header');
       if (!context) return;
@@ -325,6 +355,33 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     showWorkspaceScreen('tool');
   }
 
+  function openRelatedCase(nextCaseId) {
+    recordAction('Opened related case', `${nextCaseId} opened from Link Analysis.`, 'Link Analysis');
+    if (nextCaseId === activeCase.id) {
+      setActiveStage('briefing');
+      showWorkspaceScreen('briefing');
+      return;
+    }
+    onCaseChange(nextCaseId, 'briefing');
+  }
+
+  function openRelatedAccount(nextCaseId, accountId) {
+    recordAction('Opened related account', `${accountId} opened from Link Analysis.`, 'Link Analysis');
+    if (nextCaseId === activeCase.id) {
+      openTool('Customer 360', 'investigate', { query: accountId });
+      setExpandedId(accountId);
+      return;
+    }
+    pendingLinkedRouteRef.current = {
+      caseId: nextCaseId,
+      screen: 'tool',
+      tool: 'Customer 360',
+      query: accountId,
+      recordId: accountId,
+    };
+    onCaseChange(nextCaseId, 'tool');
+  }
+
   function jumpDecision() {
     onNavigate('workspace');
     setActiveStage('determination');
@@ -370,16 +427,46 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
   function updateQuickPad(updater) {
     setQuickPadByCase((current) => {
-      const currentPad = current[activeCase.id] ?? { items: [], scratch: '' };
-      return { ...current, [activeCase.id]: updater(currentPad) };
+      const currentPad = current[activeCase.id] ?? { items: [], scratch: '', lastSavedAt: '' };
+      const updatedPad = updater(currentPad);
+      return {
+        ...current,
+        [activeCase.id]: {
+          ...updatedPad,
+          lastSavedAt: new Date().toISOString(),
+        },
+      };
     });
   }
 
-  function quickPin({ label, value, sourceTool = activeTool, sourceRecordId = '' }) {
+  function quickPin({
+    label,
+    value,
+    sourceTool = activeTool,
+    sourceRecordId = '',
+    queryHint = '',
+    useTool = '',
+    openAction = '',
+    openTargetTool = '',
+    relatedCaseId = '',
+    relatedRecordId = '',
+  }) {
     if (!value) return;
     updateQuickPad((current) => {
-      const id = `${sourceTool}:${label}:${value}`;
-      const item = { id, label, value: String(value), sourceTool, sourceRecordId };
+      const id = `${String(label).trim().toLowerCase()}:${String(value).trim().toLowerCase()}`;
+      const item = {
+        id,
+        label,
+        value: String(value),
+        sourceTool,
+        sourceRecordId,
+        queryHint,
+        useTool,
+        openAction,
+        openTargetTool,
+        relatedCaseId,
+        relatedRecordId,
+      };
       return {
         ...current,
         items: [item, ...(current.items ?? []).filter((saved) => saved.id !== id)],
@@ -405,13 +492,59 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setQuickPadScratch('');
   }
 
+  function internalQuickPadToolName(toolName) {
+    return toolName === 'Business Intelligence' ? 'KYB Review' : toolName;
+  }
+
+  function canUseQuickPadItem(item) {
+    return Boolean(
+      item.queryHint
+      && item.useTool
+      && internalQuickPadToolName(item.useTool) === activeTool,
+    );
+  }
+
+  function canOpenQuickPadItem(item) {
+    if (item.sourceTool === 'Case Briefing' || item.label === 'Case ID') return true;
+    if (item.openAction === 'related-account') {
+      return Boolean(item.relatedCaseId && item.relatedRecordId);
+    }
+    if (item.openAction === 'related-case') return Boolean(item.relatedCaseId);
+    if (item.openAction === 'source-query') {
+      const targetTool = internalQuickPadToolName(item.openTargetTool || item.sourceTool);
+      return Boolean(item.queryHint && availableToolNames.has(targetTool));
+    }
+    return false;
+  }
+
   function useQuickPadItem(item) {
-    setQuery(item.value);
+    if (!canUseQuickPadItem(item)) return;
+    setQuery(item.queryHint);
     recordAction('Used Quick Pad value', `${item.label} entered in ${activeTool} search.`, 'Quick Pad');
   }
 
   function openQuickPadSource(item) {
-    openTool(item.sourceTool, stageForTool(item.sourceTool), { query: item.value });
+    if (item.openAction === 'related-account' && item.relatedCaseId && item.relatedRecordId) {
+      openRelatedAccount(item.relatedCaseId, item.relatedRecordId);
+      return;
+    }
+    if (item.openAction === 'related-case' && item.relatedCaseId) {
+      openRelatedCase(item.relatedCaseId);
+      return;
+    }
+    if (item.sourceTool === 'Case Briefing' || item.label === 'Case ID') {
+      setActiveStage('briefing');
+      showWorkspaceScreen('briefing');
+      recordAction('Opened Quick Pad source', `${item.label} reopened in Case Briefing.`, 'Quick Pad');
+      return;
+    }
+    const sourceTool = internalQuickPadToolName(item.openTargetTool || item.sourceTool);
+    if (!availableToolNames.has(sourceTool)) {
+      recordAction('Quick Pad source unavailable', `${item.label} source is not available in this case.`, 'Quick Pad');
+      return;
+    }
+    if (item.openAction !== 'source-query' || !item.queryHint) return;
+    openTool(sourceTool, stageForTool(sourceTool), { query: item.queryHint });
     setExpandedId(item.sourceRecordId ?? '');
     recordAction('Opened Quick Pad source', `${item.label} reopened in ${item.sourceTool}.`, 'Quick Pad');
   }
@@ -438,7 +571,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       return;
     }
     if (nextStage === 'indicators') {
-      showWorkspaceScreen('evidence');
+      showWorkspaceScreen(isMobileLayout() ? 'indicators' : 'evidence');
       if (isMobileLayout()) return;
       scrollToWorkspace('[data-workflow-stage="indicators"]');
       return;
@@ -461,6 +594,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
           'tool-menu': 'Investigation Tools',
           evidence: 'Pinned Evidence',
           notes: 'Case Notes',
+          indicators: 'Case Indicators Review',
           determination: 'Submit Decision',
           debrief: 'Luna Debrief',
         }[workspaceScreen] ?? 'Workspace';
@@ -482,12 +616,17 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     currentCompleted,
     jumpDecision,
     notes,
+    actionLog,
+    reviewPackages,
     cases,
     openDocumentAccountCase,
     documentRequests,
     setDocumentRequestsByCase,
     recordAction,
     quickPin,
+    layoutMode,
+    openRelatedCase,
+    openRelatedAccount,
   };
 
   const quickPadLayer = (
@@ -495,11 +634,15 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       activeCase={activeCase}
       items={quickPad.items ?? []}
       scratch={quickPad.scratch ?? ''}
+      lastSavedAt={quickPad.lastSavedAt ?? ''}
+      notes={notes}
       onScratchChange={setQuickPadScratch}
       onRemove={removeQuickPadItem}
       onUse={useQuickPadItem}
       onOpenSource={openQuickPadSource}
       onSaveToNotes={saveQuickPadScratch}
+      canUseItem={canUseQuickPadItem}
+      canOpenItem={canOpenQuickPadItem}
     />
   );
 

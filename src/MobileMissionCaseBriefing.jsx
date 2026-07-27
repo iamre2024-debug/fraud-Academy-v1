@@ -1,209 +1,219 @@
-import { useEffect, useMemo, useState } from 'react';
-import DirectCollapsibleText from './DirectCollapsibleText.jsx';
+import { MobileFraudShield } from './MobileLunaPortrait.jsx';
 
-function fallbackFacts(activeCase) {
+function mobileToolName(tool) {
+  return tool === 'KYB Review' ? 'Business Intelligence' : tool;
+}
+
+function internalToolName(tool) {
+  return tool === 'Business Intelligence' ? 'KYB Review' : tool;
+}
+
+function compactCaseStatus(status = '') {
+  if (/closed|complete|submitted/i.test(status)) return 'Complete';
+  return 'Active Case';
+}
+
+function findDetail(rows, ...patterns) {
+  return rows.find((row) => patterns.some((pattern) => pattern.test(row.label ?? '')));
+}
+
+function buildQuickFacts(activeCase, detailRows) {
+  const subject = findDetail(detailRows, /merchant|payee|business|employer/i)
+    ?? findDetail(detailRows, /customer|applicant|employee|primary person/i);
+  const activityDate = findDetail(detailRows, /activity date|posted|reported|effective date|instruction date|issue start/i);
+  const record = findDetail(detailRows, /transaction record|payment record|claim id|account id|record id/i);
+  const instrument = findDetail(detailRows, /payment instrument|destination|product|account context|transaction channel/i);
+
   return [
-    ['Lane', activeCase.lane ?? 'Not supplied'],
-    ['Subtype', activeCase.subtype ?? 'Not supplied'],
-    ['Reported', activeCase.reportedDate ?? activeCase.opened],
-    ['Issue start', activeCase.issueStartDate ?? 'Not supplied'],
-    ['Amount / exposure', activeCase.amountExposure ?? activeCase.amount],
+    {
+      icon: '▥',
+      label: subject?.label ?? 'Customer / business',
+      value: subject?.value ?? activeCase.person,
+    },
+    {
+      icon: '▤',
+      label: activityDate?.label ?? 'Reported date',
+      value: activityDate?.value ?? activeCase.reportedDate ?? activeCase.opened ?? 'Not supplied',
+    },
+    {
+      icon: '#',
+      label: record?.label ?? (activeCase.claimId ? 'Claim ID' : 'Case ID'),
+      value: record?.value ?? activeCase.claimId ?? activeCase.id,
+    },
+    {
+      icon: '▰',
+      label: instrument?.label ?? 'Account',
+      value: instrument?.value ?? activeCase.accountId ?? 'Not supplied',
+    },
   ];
+}
+
+function buildEvidenceChecklist(activeCase, currentCompleted = []) {
+  const completed = new Set(currentCompleted.map(internalToolName));
+  const records = [];
+  const seen = new Set();
+  const add = (item) => {
+    const key = String(item.label ?? '').trim().toLowerCase();
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    records.push(item);
+  };
+
+  (activeCase.documents ?? []).forEach((document) => {
+    const label = document.title ?? document.name ?? document.type ?? 'Case document';
+    add({
+      id: document.id ?? label,
+      label,
+      status: document.status ?? 'Available',
+      complete: /received/i.test(document.status ?? ''),
+      tool: 'Document Viewer',
+    });
+  });
+
+  (activeCase.requiredTools ?? []).forEach((tool) => {
+    if (['Case Summary', 'Timeline', 'System Access Lane'].includes(tool)) return;
+    const displayTool = mobileToolName(tool);
+    add({
+      id: tool,
+      label: displayTool,
+      status: completed.has(tool) ? 'Reviewed' : 'Not reviewed',
+      complete: completed.has(tool),
+      tool: displayTool,
+    });
+  });
+
+  return records.slice(0, 6);
 }
 
 export default function MobileMissionCaseBriefing({
   activeCase,
-  jumpDecision,
+  currentCompleted,
   openMoreTools,
-  openNotes,
-  openQueue,
   openTool,
-  pin,
+  quickPin,
   recordAction,
 }) {
-  const [page, setPage] = useState(0);
-  const [intakePage, setIntakePage] = useState(0);
   const intake = activeCase.intake ?? {};
-  const documents = activeCase.documents ?? [];
-  const statement = activeCase.statement ?? {
-    label: 'Customer statement',
-    value: activeCase.allegation ?? activeCase.queueReason,
-    source: intake.channel ?? 'Case queue',
-  };
-  const intakeAnswers = activeCase.intakeAnswers ?? [];
-  const facts = activeCase.keyFacts?.length ? activeCase.keyFacts.slice(0, 8) : fallbackFacts(activeCase);
-  const parties = activeCase.parties ?? activeCase.caseBriefing?.parties ?? [];
   const detailRows = activeCase.briefingDetails?.rows ?? activeCase.caseBriefing?.details?.rows ?? [];
   const availableTools = new Set(activeCase.availableTools ?? []);
-  const firstTool = availableTools.has('Customer 360')
-    ? 'Customer 360'
-    : activeCase.requiredTools?.find((tool) => tool !== 'Case Summary' && availableTools.has(tool))
-      ?? activeCase.availableTools?.find((tool) => !['Timeline', 'System Access Lane'].includes(tool));
-  const quickTools = [...new Set([...(activeCase.requiredTools ?? []), ...(activeCase.availableTools ?? [])])]
-    .filter((tool) => !['Case Summary', 'Customer 360'].includes(tool) && availableTools.has(tool))
-    .slice(0, 5);
-
-  useEffect(() => {
-    setPage(0);
-    setIntakePage(0);
-  }, [activeCase.id]);
+  const requiredHomeBase = activeCase.requiredTools?.find((tool) => ['Customer 360', 'Business 360'].includes(tool) && availableTools.has(tool));
+  const firstTool = requiredHomeBase
+    ?? (availableTools.has('Customer 360')
+      ? 'Customer 360'
+      : availableTools.has('Business 360')
+        ? 'Business 360'
+      : activeCase.requiredTools?.find((tool) => tool !== 'Case Summary' && availableTools.has(tool))
+        ?? activeCase.availableTools?.find((tool) => !['Timeline', 'System Access Lane'].includes(tool)));
+  const allegation = activeCase.caseBriefing?.summary ?? activeCase.shortSummary ?? activeCase.queueReason ?? activeCase.allegation;
+  const quickFacts = buildQuickFacts(activeCase, detailRows);
+  const evidenceChecklist = buildEvidenceChecklist(activeCase, currentCompleted);
+  const receivedEvidence = evidenceChecklist.filter((item) => item.complete).length;
 
   function record(action, detail) {
     recordAction?.(action, detail, 'Case Briefing');
   }
 
   function openEvidenceTool(tool, stage) {
-    record('Opened evidence area', `${tool} opened from the mobile Mission Briefing.`);
-    openTool(tool, stage);
+    const target = mobileToolName(tool);
+    record('Opened evidence area', `${target} opened from the mobile Case Briefing.`);
+    openTool(internalToolName(target), stage);
   }
 
   function beginInvestigation() {
-    if (!firstTool) return;
-    record('Began investigation', `${firstTool} opened from the mobile Mission Briefing.`);
-    openTool(firstTool, 'investigate');
+    if (!firstTool) {
+      openMoreTools();
+      return;
+    }
+    const target = mobileToolName(firstTool);
+    record('Began investigation', `${target} opened from the mobile Case Briefing.`);
+    openTool(internalToolName(target), 'investigate');
   }
 
-  const pages = useMemo(() => [
-    {
-      id: 'overview',
-      icon: '🗃️',
-      eyebrow: 'Mission file 01',
-      title: 'Case overview',
-      content: (
-        <>
-          <section className="mission-briefing-identity">
-            <span aria-hidden="true">{String(activeCase.person ?? 'FA').split(' ').map((part) => part[0]).join('').slice(0, 2)}</span>
-            <div><p>{activeCase.type}</p><h2>{activeCase.person}</h2><small>{activeCase.id} · {activeCase.status}</small></div>
-          </section>
-          <dl className="mission-briefing-facts">
-            <div><dt>Claim ID</dt><dd>{activeCase.claimId ?? activeCase.id}</dd></div>
-            <div><dt>Account ID</dt><dd>{activeCase.accountId}</dd></div>
-            <div><dt>Total claim</dt><dd>{activeCase.amount}</dd></div>
-            <div><dt>Priority</dt><dd>{activeCase.priority}</dd></div>
-            <div><dt>Lane</dt><dd>{activeCase.lane ?? 'Not supplied'}</dd></div>
-            <div><dt>Subtype</dt><dd>{activeCase.subtype ?? 'Not supplied'}</dd></div>
-          </dl>
-          <section className="mission-briefing-note"><span>Why this case exists</span><DirectCollapsibleText as="p" mobileLines={7}>{activeCase.caseBriefing?.summary ?? activeCase.shortSummary ?? activeCase.queueReason}</DirectCollapsibleText></section>
-        </>
-      ),
-    },
-    {
-      id: 'intake',
-      icon: '📨',
-      eyebrow: 'Mission file 02',
-      title: 'Claim intake',
-      content: (
-        <>
-          <dl className="mission-briefing-facts">
-            <div><dt>Channel</dt><dd>{intake.channel ?? 'Case queue'}</dd></div>
-            <div><dt>Reported / opened</dt><dd>{activeCase.reportedDate ?? intake.contactTime ?? activeCase.opened}</dd></div>
-            <div><dt>Customer location</dt><dd>{intake.customerLocation ?? 'Not supplied'}</dd></div>
-            <div><dt>Stated device</dt><dd>{intake.statedDevice ?? 'Not supplied'}</dd></div>
-          </dl>
-          {intakeAnswers.length ? (
-            <section className="mission-intake-question">
-              <nav><button type="button" disabled={intakePage === 0} onClick={() => setIntakePage((current) => Math.max(0, current - 1))}>‹</button><span>Question {intakePage + 1} / {intakeAnswers.length}</span><button type="button" disabled={intakePage === intakeAnswers.length - 1} onClick={() => setIntakePage((current) => Math.min(intakeAnswers.length - 1, current + 1))}>›</button></nav>
-              <strong>{intakeAnswers[intakePage]?.prompt}</strong>
-              <p>{intakeAnswers[intakePage]?.answer}</p>
-            </section>
-          ) : <p className="mission-empty-state">No structured intake answers are available.</p>}
-        </>
-      ),
-    },
-    {
-      id: 'statement',
-      icon: '💬',
-      eyebrow: 'Mission file 03',
-      title: 'Statement & facts',
-      content: (
-        <>
-          <blockquote className="mission-customer-statement"><span>{statement.label}</span><p>{statement.value}</p><cite>Source: {statement.source}</cite></blockquote>
-          <dl className="mission-briefing-facts mission-briefing-facts-single">
-            {facts.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
-          </dl>
-        </>
-      ),
-    },
-    {
-      id: 'parties',
-      icon: '🧬',
-      eyebrow: 'Mission file 04',
-      title: 'People & connections',
-      content: (
-        <>
-          <div className="mission-party-orbit">
-            <span className="mission-party-center">{activeCase.person}</span>
-            {parties.slice(0, 4).map((party, index) => <article key={party.id ?? `${party.role}-${party.name}`} data-party-index={index}><small>{party.role}</small><strong>{party.name}</strong><p>{party.relationship}</p></article>)}
-          </div>
-          {!parties.length && <p className="mission-empty-state">No separate party records are available.</p>}
-          {!!detailRows.length && <dl className="mission-briefing-facts mission-briefing-facts-single">{detailRows.slice(0, 8).map((row) => <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}</dl>}
-        </>
-      ),
-    },
-    {
-      id: 'documents',
-      icon: '📁',
-      eyebrow: 'Mission file 05',
-      title: 'Paperwork deck',
-      content: (
-        <>
-          <div className="mission-briefing-document-stack">
-            {documents.map((document, index) => (
-              <button key={document.id ?? `${document.title}-${index}`} type="button" onClick={() => openEvidenceTool('Document Viewer')}>
-                <span aria-hidden="true">{index % 2 ? '📄' : '📨'}</span>
-                <span><strong>{document.title ?? document.type ?? `Document ${index + 1}`}</strong><small>{document.status ?? 'Available'} · {document.source ?? 'Case record'}</small></span>
-              </button>
-            ))}
-          </div>
-          {!documents.length && <p className="mission-empty-state">No customer paperwork has been received for this case.</p>}
-          <div className="mission-briefing-document-actions"><button type="button" onClick={() => openEvidenceTool('Document Viewer')}>Open viewer</button><button type="button" onClick={() => openEvidenceTool('Document Request')}>Request paperwork</button></div>
-        </>
-      ),
-    },
-    {
-      id: 'launch',
-      icon: '🛰️',
-      eyebrow: 'Mission file 06',
-      title: 'Investigation launchpad',
-      content: (
-        <>
-          <div className="mission-launch-grid">
-            {quickTools.map((tool) => <button key={tool} type="button" onClick={() => openEvidenceTool(tool)}><span>{tool === 'Timeline' ? '⏱️' : tool.includes('Document') ? '📄' : '🔹'}</span><strong>{tool}</strong><small>Open focused workspace</small></button>)}
-          </div>
-          <button type="button" className="mission-begin-button" onClick={beginInvestigation}>Begin investigation <span>→</span></button>
-        </>
-      ),
-    },
-  ], [activeCase, documents, facts, intake, intakeAnswers, intakePage, parties, detailRows, quickTools]);
-
-  const current = pages[page] ?? pages[0];
-
   return (
-    <section className="mission-briefing-v3" data-mission-briefing-page={current.id} data-workspace-page="briefing">
-      <header className="mission-briefing-header-v3">
-        <div><span>{current.icon}</span><p>{current.eyebrow}</p><h1>{current.title}</h1></div>
-        <button type="button" aria-label="Pin active case" onClick={() => pin(activeCase.id)}>⭐</button>
-      </header>
+    <section className="mission-briefing-v4" data-workspace-page="briefing" data-mobile-reference-briefing="v2">
+      <section className="mission-briefing-case-banner">
+        <button
+          type="button"
+          className="mission-briefing-case-shield"
+          aria-label="Pin Case ID to Quick Pad"
+          onClick={() => quickPin?.({
+            label: 'Case ID',
+            value: activeCase.id,
+            sourceTool: 'Case Briefing',
+            sourceRecordId: activeCase.id,
+          })}
+        >
+          <MobileFraudShield size={46} />
+        </button>
+        <div className="mission-briefing-case-copy">
+          <div>
+            <h1>{activeCase.id}</h1>
+            <span>{compactCaseStatus(activeCase.status)}</span>
+          </div>
+          <small>{activeCase.type}{activeCase.subtype ? ` · ${activeCase.subtype}` : ''}</small>
+        </div>
+      </section>
 
-      <nav className="mission-briefing-tabs" aria-label="Case briefing files">
-        {pages.map((item, index) => <button key={item.id} type="button" className={page === index ? 'active' : ''} aria-label={item.title} aria-current={page === index ? 'page' : undefined} onClick={() => setPage(index)}>{item.icon}<small>{index + 1}</small></button>)}
-      </nav>
+      <section className="mission-briefing-allegation">
+        <header>
+          <span aria-hidden="true">▤</span>
+          <h2>Allegation Summary</h2>
+        </header>
+        <p>{allegation}</p>
+        <dl>
+          <div>
+            <span aria-hidden="true">♙</span>
+            <div><dt>Customer</dt><dd>{activeCase.person}</dd><small>{activeCase.trainingId ? `Training ID: ${activeCase.trainingId}` : activeCase.accountId}</small></div>
+          </div>
+          <div>
+            <span aria-hidden="true">$</span>
+            <div><dt>Amount at risk</dt><dd>{activeCase.amountExposure ?? activeCase.amount ?? 'Not supplied'}</dd><small>{activeCase.accountId ?? 'Case amount'}</small></div>
+          </div>
+          <div>
+            <span aria-hidden="true">△</span>
+            <div><dt>Reported issue</dt><dd>{activeCase.queueReason ?? activeCase.type}</dd><small>{activeCase.reportedDate ?? activeCase.opened}</small></div>
+          </div>
+          <div>
+            <span aria-hidden="true">▯</span>
+            <div><dt>Channel</dt><dd>{intake.channel ?? 'Case queue'}</dd><small>{intake.statedDevice ?? 'Case intake'}</small></div>
+          </div>
+        </dl>
+      </section>
 
-      <article className="mission-briefing-file">{current.content}</article>
+      <section className="mission-briefing-columns">
+        <article className="mission-briefing-quick-facts">
+          <header><h2>Quick Facts</h2></header>
+          <ul>
+            {quickFacts.map((fact) => (
+              <li key={fact.label}>
+                <span aria-hidden="true">{fact.icon}</span>
+                <div><small>{fact.label}</small><strong>{fact.value}</strong></div>
+              </li>
+            ))}
+          </ul>
+        </article>
 
-      <nav className="mission-briefing-pager" aria-label="Briefing page controls">
-        <button type="button" disabled={page === 0} onClick={() => setPage((currentPage) => Math.max(0, currentPage - 1))}>‹ Previous</button>
-        <span><strong>{String(page + 1).padStart(2, '0')}</strong><small>of {String(pages.length).padStart(2, '0')}</small></span>
-        <button type="button" disabled={page === pages.length - 1} onClick={() => setPage((currentPage) => Math.min(pages.length - 1, currentPage + 1))}>Next ›</button>
-      </nav>
+        <article className="mission-briefing-evidence-checklist">
+          <header>
+            <h2>Evidence Checklist</h2>
+            <strong>{receivedEvidence} / {evidenceChecklist.length}</strong>
+          </header>
+          <ul>
+            {evidenceChecklist.map((item) => (
+              <li key={item.id}>
+                <button type="button" onClick={() => openEvidenceTool(item.tool)}>
+                  <i className={item.complete ? 'complete' : ''} aria-hidden="true">{item.complete ? '✓' : ''}</i>
+                  <span>{item.label}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </article>
+      </section>
 
-      <footer className="mission-briefing-actions">
-        <button type="button" onClick={() => { record('Opened notes', 'Opened notes from the mobile Mission Briefing.'); openNotes(); }}>📝<small>Notes</small></button>
-        <button type="button" onClick={() => openEvidenceTool('Timeline', 'timeline')}>⏱️<small>Timeline</small></button>
-        <button type="button" onClick={() => { record('Opened tool deck', 'Opened the investigation tool deck from the mobile Mission Briefing.'); openMoreTools(); }}>🧰<small>Tools</small></button>
-        <button type="button" onClick={() => { record('Opened determination', 'Opened Submit Decision from the mobile Mission Briefing.'); jumpDecision(); }}>✅<small>Decide</small></button>
-        <button type="button" onClick={openQueue}>🗂️<small>Queue</small></button>
-      </footer>
+      <button type="button" className="mission-briefing-open-workspace" onClick={beginInvestigation}>
+        Open workspace <span>›</span>
+      </button>
     </section>
   );
 }

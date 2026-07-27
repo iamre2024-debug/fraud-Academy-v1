@@ -80,7 +80,7 @@ export default function useVisualWorkspaceCaseState(activeCase) {
     reviewPackages,
     actionLog: [...(actionsByCase[caseId] ?? []), ...(activeCase.actionLog ?? [])],
     documentRequests: documentRequestsByCase[caseId] ?? {},
-    quickPad: quickPadByCase[caseId] ?? { items: [], scratch: '' },
+    quickPad: quickPadByCase[caseId] ?? { items: [], scratch: '', lastSavedAt: '' },
     setTrayByCase,
     setNotesByCase,
     setNoteDraft,

@@ -1,12 +1,150 @@
 import { test, expect } from '@playwright/test';
-import { openWorkflowStage, selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  openMobileWorkspaceMenu,
+  openMobileWorkspaceShortcut,
+  openWorkflowStage,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 const secondCase = { id: 'FA-CB-24007', person: 'Jordan Ellis' };
 const forbiddenPreSubmissionCopy = /\b(?:fraud score|red flags?|green flags?|correct answer|AI recommendations?|fraudulent|legitimate|suggested first tool|investigator question)\b/i;
 const forbiddenDecisionCopy = /\b(?:fraud score|correct answer|AI recommendations?|fraudulent|legitimate|suggested first tool|investigator question)\b/i;
 
+async function verifyMobileBriefing(page, testInfo) {
+  const briefing = page.locator('.mission-briefing-v4');
+  const workspace = page.locator('.mission-workspace-v3');
+  const dock = page.getByRole('navigation', { name: 'Mission navigation' });
+
+  await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'workspace');
+  await expect(workspace).toHaveAttribute('data-workspace-screen', 'briefing');
+  await expect(page.locator('.mission-workspace-bar-briefing')
+    .getByRole('heading', { name: 'Case Briefing', exact: true })).toBeVisible();
+  await expect(briefing).toBeVisible();
+  await expect(briefing.getByRole('heading', { name: 'FA-ATO-24018', exact: true })).toBeVisible();
+  await expect(briefing.getByRole('heading', { name: 'Allegation Summary', exact: true })).toBeVisible();
+  await expect(briefing.getByRole('heading', { name: 'Quick Facts', exact: true })).toBeVisible();
+  await expect(briefing.getByRole('heading', { name: 'Evidence Checklist', exact: true })).toBeVisible();
+  await expect(briefing.getByRole('button', { name: 'Open workspace ›', exact: true })).toBeVisible();
+  await expect(briefing.getByRole('navigation', { name: 'Case briefing actions' })).toHaveCount(0);
+  await expect(briefing.getByRole('navigation', { name: 'Case Briefing pages' })).toHaveCount(0);
+  await expect(dock.getByRole('button', { name: 'Cases', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(dock.getByRole('button', { name: 'Workspace', exact: true })).not.toHaveAttribute('aria-current', 'page');
+  expect(await briefing.innerText()).not.toMatch(forbiddenPreSubmissionCopy);
+
+  const evidenceBeforePin = await page.evaluate((caseId) => JSON.stringify(
+    JSON.parse(localStorage.getItem('fraud-academy-visual-tray-v1') || '{}')[caseId] ?? [],
+  ), 'FA-ATO-24018');
+  await briefing.getByRole('button', { name: 'Pin Case ID to Quick Pad', exact: true }).click();
+  await expect.poll(() => page.evaluate((caseId) => {
+    const pad = JSON.parse(localStorage.getItem('fraud-academy-quick-pad-v1') || '{}');
+    return (pad[caseId]?.items ?? []).filter((item) => (
+      item.label === 'Case ID'
+      && item.value === caseId
+      && item.sourceTool === 'Case Briefing'
+    )).length;
+  }, 'FA-ATO-24018')).toBe(1);
+  const evidenceAfterPin = await page.evaluate((caseId) => JSON.stringify(
+    JSON.parse(localStorage.getItem('fraud-academy-visual-tray-v1') || '{}')[caseId] ?? [],
+  ), 'FA-ATO-24018');
+  expect(evidenceAfterPin).toBe(evidenceBeforePin);
+
+  for (const viewportSize of [
+    { width: 320, height: 568 },
+    { width: 360, height: 640 },
+    { width: 390, height: 844 },
+    { width: 412, height: 915 },
+    { width: 430, height: 932 },
+    { width: 412, height: 600 },
+  ]) {
+    await page.setViewportSize(viewportSize);
+    const mobileLayout = await page.evaluate(() => {
+      const viewport = document.querySelector(
+        '.mission-mobile-root[data-mobile-mission-tab="workspace"] .mission-mobile-viewport',
+      );
+      const briefingElement = document.querySelector('.mission-briefing-v4');
+      const columns = document.querySelector('.mission-briefing-columns');
+      const cta = document.querySelector('.mission-briefing-open-workspace');
+      const back = document.querySelector('.mission-workspace-back');
+      const overflow = document.querySelector('.mission-workspace-overflow > summary');
+      const rect = briefingElement?.getBoundingClientRect();
+      const ctaRect = cta?.getBoundingClientRect();
+      const backRect = back?.getBoundingClientRect();
+      const overflowRect = overflow?.getBoundingClientRect();
+      return {
+        viewportWidth: window.innerWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        viewportScrollWidth: viewport?.scrollWidth ?? 0,
+        viewportClientWidth: viewport?.clientWidth ?? 0,
+        left: rect?.left ?? -1,
+        right: rect?.right ?? Number.POSITIVE_INFINITY,
+        ctaLeft: ctaRect?.left ?? -1,
+        ctaRight: ctaRect?.right ?? Number.POSITIVE_INFINITY,
+        ctaHeight: ctaRect?.height ?? 0,
+        backSize: Math.min(backRect?.width ?? 0, backRect?.height ?? 0),
+        overflowSize: Math.min(overflowRect?.width ?? 0, overflowRect?.height ?? 0),
+        columnCount: columns
+          ? getComputedStyle(columns).gridTemplateColumns.split(' ').filter(Boolean).length
+          : 0,
+      };
+    });
+    expect(mobileLayout.documentWidth).toBeLessThanOrEqual(mobileLayout.viewportWidth + 1);
+    expect(mobileLayout.viewportScrollWidth).toBeLessThanOrEqual(mobileLayout.viewportClientWidth + 1);
+    expect(mobileLayout.left).toBeGreaterThanOrEqual(0);
+    expect(mobileLayout.right).toBeLessThanOrEqual(mobileLayout.viewportWidth + 1);
+    expect(mobileLayout.ctaLeft).toBeGreaterThanOrEqual(0);
+    expect(mobileLayout.ctaRight).toBeLessThanOrEqual(mobileLayout.viewportWidth + 1);
+    expect(mobileLayout.ctaHeight).toBeGreaterThanOrEqual(44);
+    expect(mobileLayout.backSize).toBeGreaterThanOrEqual(44);
+    expect(mobileLayout.overflowSize).toBeGreaterThanOrEqual(44);
+    expect(mobileLayout.columnCount).toBe(viewportSize.width <= 340 ? 1 : 2);
+    if (process.env.CAPTURE_MISSION_VISUALS === '1' && [320, 390, 430].includes(viewportSize.width)) {
+      await page.screenshot({
+        path: testInfo.outputPath(`case-briefing-${viewportSize.width}.png`),
+        animations: 'disabled',
+        fullPage: false,
+      });
+    }
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  const menu = await openMobileWorkspaceMenu(page);
+  await menu.getByRole('combobox', { name: 'Choose active mission case' }).selectOption(secondCase.id);
+  await expect(briefing.getByText(secondCase.person, { exact: true }).first()).toBeVisible();
+  await expect(briefing.getByRole('heading', { name: secondCase.id, exact: true })).toBeVisible();
+  await expect(briefing).not.toContainText('FA-ATO-24018');
+  await expect(briefing.getByRole('heading', { name: 'Evidence Checklist', exact: true })).toBeVisible();
+
+  await openMobileWorkspaceShortcut(page, 'All tools');
+  await expect(workspace).toHaveAttribute('data-workspace-screen', 'tool-menu');
+  await expect(page.locator('[data-investigation-tool-groups="approved-theme-v1"]')).toBeVisible();
+
+  await openMobileWorkspaceShortcut(page, 'Briefing');
+  await expect(workspace).toHaveAttribute('data-workspace-screen', 'briefing');
+
+  await openMobileWorkspaceShortcut(page, 'Timeline');
+  await expect(workspace).toHaveAttribute('data-workspace-screen', 'timeline');
+  await expect(workspace).toHaveAttribute('data-active-tool', 'Timeline');
+  await expect(page.locator('[data-timeline-screen="approved-theme-v1"]')).toBeVisible();
+
+  await openMobileWorkspaceShortcut(page, 'Briefing');
+  await openMobileWorkspaceShortcut(page, 'Decide');
+  await expect(workspace).toHaveAttribute('data-workspace-screen', 'determination');
+  await expect(page.locator('.submit-decision-panel')).toBeVisible();
+  expect(await page.locator('body').innerText()).not.toMatch(forbiddenDecisionCopy);
+}
+
 test('approved Case Briefing is Evidence First, functional, and responsive', async ({ page }, testInfo) => {
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.addInitScript(() => {
+      window.localStorage.setItem('fraud-academy-layout-mode-v1', 'mobile');
+    });
+  }
   await page.goto('/');
+
+  if (testInfo.project.name === 'mobile-chromium') {
+    await verifyMobileBriefing(page, testInfo);
+    return;
+  }
 
   const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
   await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'workspace');

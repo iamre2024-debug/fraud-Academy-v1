@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { runPaymentVerification, selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  openMobileWorkspaceMenu,
+  runPaymentVerification,
+  selectCurrentGroupTool,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 test.beforeEach(async ({ page }, testInfo) => {
   if (testInfo.project.name !== 'mobile-chromium') return;
@@ -10,9 +15,9 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 async function openPaymentVerification(page) {
   await selectToolGroup(page, /Business & Payment Verification/);
+  await selectCurrentGroupTool(page, 'Payment Verification');
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  const selector = panel.getByRole('combobox', { name: 'Choose investigation tool' });
-  if (await selector.inputValue() !== 'Payment Verification') await selector.selectOption('Payment Verification');
+  await expect(panel).toBeVisible();
   await expect(panel).toHaveAttribute('data-tool-name', 'Payment Verification');
   return panel;
 }
@@ -29,6 +34,19 @@ async function openCaseQueue(page) {
   const queue = page.locator('.cases-theme-v1-panel');
   await expect(queue).toBeVisible();
   return queue;
+}
+
+async function selectCase(page, testInfo, caseId) {
+  if (testInfo.project.name === 'mobile-chromium') {
+    const menu = await openMobileWorkspaceMenu(page);
+    const selector = menu.getByRole('combobox', { name: 'Choose active mission case' });
+    await selector.selectOption(caseId);
+    await expect(page.locator('.mission-briefing-v4')).toBeVisible();
+    return;
+  }
+  const selector = page.locator('.visual-case-switcher select');
+  await selector.selectOption(caseId);
+  await expect(selector).toHaveValue(caseId);
 }
 
 test('Payment Verification gates records, handles not-found, and reveals exact lookup evidence', async ({ page }, testInfo) => {
@@ -71,9 +89,7 @@ test('Payment Verification gates records, handles not-found, and reveals exact l
 
 test('Payment Verification keeps partial name, ownership, status, and history separate', async ({ page }, testInfo) => {
   await page.goto('/');
-  const caseSelector = page.locator('.visual-case-switcher select');
-  await caseSelector.selectOption('FA-CR-24003');
-  await expect(caseSelector).toHaveValue('FA-CR-24003');
+  await selectCase(page, testInfo, 'FA-CR-24003');
   const panel = await openPaymentVerification(page);
 
   await runPaymentVerification(panel, {
@@ -116,13 +132,16 @@ test('Payment Verification keeps partial name, ownership, status, and history se
 
 test('Avery Customer 360 shows the exact account change and prefills without revealing the result', async ({ page }, testInfo) => {
   await page.goto('/');
-  const caseSelector = page.locator('.visual-case-switcher select');
-  await caseSelector.selectOption('FA-CR-24003');
-  await expect(caseSelector).toHaveValue('FA-CR-24003');
+  await selectCase(page, testInfo, 'FA-CR-24003');
   await selectToolGroup(page, /Identity & Customer/);
 
-  const customer = page.locator('[data-customer-360-screen="approved-theme-v1"]');
+  const customer = testInfo.project.name === 'mobile-chromium'
+    ? page.locator('[data-customer-360-screen="approved-theme-v2"]')
+    : page.locator('[data-customer-360-screen="approved-theme-v1"]');
   await expect(customer).toBeVisible();
+  if (testInfo.project.name === 'mobile-chromium') {
+    await customer.locator('.dossier-v2-disclosure').getByText('Payment Verification Inputs', { exact: true }).click();
+  }
   const accountChange = customer.getByRole('region', { name: 'Payment Account Change', exact: true });
   await expect(accountChange).toBeVisible();
   for (const label of ['Bank Code', 'Destination ID', 'Previous account / destination', 'New account / destination', 'Change comparison']) {
@@ -133,31 +152,40 @@ test('Avery Customer 360 shows the exact account change and prefills without rev
   await expect(accountChange).toContainText('No prior external destination on file');
   await expect(accountChange).toContainText('BC-204 / DST-7740');
 
-  const tabs = customer.getByRole('tablist', { name: 'Customer 360 dossier tabs' });
-  await tabs.getByRole('tab', { name: 'Accounts', exact: true }).click();
-  const inputs = customer.getByRole('region', { name: 'Payment Verification Inputs' });
-  await expect(inputs).toContainText('BC-204');
-  await expect(inputs).toContainText('DST-7740');
-  await expect(inputs).toContainText('No prior external destination on file');
-  await expect(inputs).toContainText('BC-204 / DST-7740');
+  let prefillSource = accountChange;
+  if (testInfo.project.name === 'mobile-chromium') {
+    const profileEvent = customer.locator('[data-profile-event="PCH-3301"]');
+    await expect(profileEvent).toBeVisible();
+    await expect(profileEvent).toContainText('No prior external destination on file');
+    await expect(profileEvent).toContainText('Bank Code BC-204 · Destination ID DST-7740');
+  } else {
+    const tabs = customer.getByRole('tablist', { name: 'Customer 360 dossier tabs' });
+    await tabs.getByRole('tab', { name: 'Accounts', exact: true }).click();
+    const inputs = customer.getByRole('region', { name: 'Payment Verification Inputs' });
+    await expect(inputs).toContainText('BC-204');
+    await expect(inputs).toContainText('DST-7740');
+    await expect(inputs).toContainText('No prior external destination on file');
+    await expect(inputs).toContainText('BC-204 / DST-7740');
 
-  await tabs.getByRole('tab', { name: 'Profile History', exact: true }).click();
-  const profileEvent = customer.locator('[data-profile-event="PCH-3301"]');
-  await expect(profileEvent).toBeVisible();
-  await expect(profileEvent).toContainText('No prior external destination on file');
-  await expect(profileEvent).toContainText('Bank Code BC-204 · Destination ID DST-7740');
-  const profileChange = profileEvent.getByRole('region', { name: 'Payment account change details for PCH-3301', exact: true });
-  await expect(profileChange).toBeVisible();
-  for (const label of ['Bank Code', 'Destination ID', 'Previous account / destination', 'New account / destination', 'Change comparison']) {
-    await expect(profileChange.getByText(label, { exact: true })).toBeVisible();
+    await tabs.getByRole('tab', { name: 'Profile History', exact: true }).click();
+    const profileEvent = customer.locator('[data-profile-event="PCH-3301"]');
+    await expect(profileEvent).toBeVisible();
+    await expect(profileEvent).toContainText('No prior external destination on file');
+    await expect(profileEvent).toContainText('Bank Code BC-204 · Destination ID DST-7740');
+    const profileChange = profileEvent.getByRole('region', { name: 'Payment account change details for PCH-3301', exact: true });
+    await expect(profileChange).toBeVisible();
+    for (const label of ['Bank Code', 'Destination ID', 'Previous account / destination', 'New account / destination', 'Change comparison']) {
+      await expect(profileChange.getByText(label, { exact: true })).toBeVisible();
+    }
+    await expect(profileChange).toContainText('BC-204');
+    await expect(profileChange).toContainText('DST-7740');
+    await expect(profileChange).toContainText('No prior external destination on file');
+    await expect(profileChange).toContainText('BC-204 / DST-7740');
+
+    await tabs.getByRole('tab', { name: 'Accounts', exact: true }).click();
+    prefillSource = inputs;
   }
-  await expect(profileChange).toContainText('BC-204');
-  await expect(profileChange).toContainText('DST-7740');
-  await expect(profileChange).toContainText('No prior external destination on file');
-  await expect(profileChange).toContainText('BC-204 / DST-7740');
-
-  await tabs.getByRole('tab', { name: 'Accounts', exact: true }).click();
-  await inputs.getByRole('button', { name: 'Prefill Payment Verification' }).first().click();
+  await prefillSource.getByRole('button', { name: 'Prefill Payment Verification' }).first().click();
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(panel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue('BC-204');
@@ -191,14 +219,24 @@ test('generated payroll carries one exact account change from Payroll History in
 
   const briefing = page.locator('[data-workspace-page="briefing"]');
   await expect(briefing).toBeVisible();
-  const generatedCaseId = await page.locator('.visual-case-switcher select').inputValue();
+  let generatedCaseId;
+  if (testInfo.project.name === 'mobile-chromium') {
+    const menu = await openMobileWorkspaceMenu(page);
+    generatedCaseId = await menu.getByRole('combobox', { name: 'Choose active mission case' }).inputValue();
+  } else {
+    generatedCaseId = await page.locator('.visual-case-switcher select').inputValue();
+  }
   expect(generatedCaseId).toMatch(/^FA-PAY-G\d+$/);
 
   await selectToolGroup(page, /Business & Payment Verification/);
-  const payrollPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  const toolSelector = payrollPanel.getByRole('combobox', { name: 'Choose investigation tool' });
-  await toolSelector.selectOption('Payroll History');
-  await expect(payrollPanel).toHaveAttribute('data-tool-name', 'Payroll History');
+  await selectCurrentGroupTool(page, 'Payroll History');
+  const payrollPanel = testInfo.project.name === 'mobile-chromium'
+    ? page.locator('[data-payroll-history-screen="approved-mobile-reference"]')
+    : page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
+  await expect(payrollPanel).toBeVisible();
+  if (testInfo.project.name !== 'mobile-chromium') {
+    await expect(payrollPanel).toHaveAttribute('data-tool-name', 'Payroll History');
+  }
 
   const source = payrollPanel.getByRole('region', { name: 'Payroll History payment source identifiers', exact: true });
   await expect(source).toBeVisible();

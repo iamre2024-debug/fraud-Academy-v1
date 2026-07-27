@@ -1,79 +1,157 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 async function capture(page, testInfo, name) {
   if (process.env.CAPTURE_MISSION_VISUALS !== '1') return;
-  await page.screenshot({ path: testInfo.outputPath(`${name}.png`), fullPage: true });
+  await page.screenshot({
+    path: testInfo.outputPath(`${name}.png`),
+    animations: 'disabled',
+    fullPage: false,
+  });
+}
+
+async function captureElement(locator, testInfo, name) {
+  if (process.env.CAPTURE_MISSION_VISUALS !== '1') return;
+  await locator.screenshot({
+    path: testInfo.outputPath(`${name}.png`),
+    animations: 'disabled',
+  });
 }
 
 async function assertPhoneGeometry(page) {
   const geometry = await page.evaluate(() => {
-    const root = document.querySelector('.mission-mobile-root')?.getBoundingClientRect();
     const dock = document.querySelector('.mission-mobile-dock')?.getBoundingClientRect();
-    const badHeadings = [...document.querySelectorAll('.mission-mobile-root h1, .mission-mobile-root h2, .mission-mobile-root h3')]
-      .filter((element) => {
-        const style = getComputedStyle(element);
-        if (style.display === 'none' || style.visibility === 'hidden') return false;
-        const rect = element.getBoundingClientRect();
-        return rect.width > 0 && rect.width < 58 && rect.height > 80;
-      })
-      .map((element) => element.textContent.trim());
-    const categoryCards = [...document.querySelectorAll('.mission-evidence-page .mission-map-tool-node')]
-      .filter((element) => element.getBoundingClientRect().width > 0);
-    const brandText = document.querySelector('.mission-mobile-brand > span:last-child')?.getBoundingClientRect();
-    const dockLabelHeights = [...document.querySelectorAll('.mission-mobile-dock button small')]
-      .map((element) => element.getBoundingClientRect().height);
+    const root = document.querySelector('.mission-mobile-root')?.getBoundingClientRect();
+    const buttons = [...document.querySelectorAll('.mission-mobile-dock button')].map((button) => {
+      const rect = button.getBoundingClientRect();
+      return { width: rect.width, height: rect.height, label: button.textContent.trim() };
+    });
     return {
       viewport: window.innerWidth,
-      expectedShellWidth: window.innerWidth * 0.94,
-      expectedDockInset: window.innerWidth <= 370 ? 4 : 8,
       documentWidth: document.documentElement.scrollWidth,
-      rootLeft: root?.left ?? -1,
-      rootRight: root?.right ?? window.innerWidth + 1,
-      rootWidth: root?.width ?? 0,
-      dockLeft: dock?.left ?? -1,
-      dockRight: dock?.right ?? window.innerWidth + 1,
-      dockBottom: dock?.bottom ?? window.innerHeight + 1,
-      dockWidth: dock?.width ?? 0,
+      root: root ? { left: root.left, right: root.right, width: root.width } : null,
+      dock: dock ? { left: dock.left, right: dock.right, bottom: dock.bottom } : null,
       viewportHeight: window.innerHeight,
-      badHeadings,
-      categoryCardWidths: categoryCards.map((element) => element.getBoundingClientRect().width),
-      categoryTitleGeometry: categoryCards.map((element) => {
-        const title = element.querySelector('strong');
-        const rect = title?.getBoundingClientRect();
-        return { width: rect?.width ?? 0, height: rect?.height ?? 0 };
-      }),
-      categoryFontSizes: categoryCards.flatMap((element) => (
-        [...element.querySelectorAll('strong, small')]
-          .map((text) => Number.parseFloat(getComputedStyle(text).fontSize))
-      )),
-      brandTextHeight: brandText?.height ?? 0,
-      dockLabelHeights,
+      buttons,
     };
   });
 
   expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewport + 1);
-  expect(geometry.rootLeft).toBeGreaterThanOrEqual(((geometry.viewport - geometry.expectedShellWidth) / 2) - 1);
-  expect(geometry.rootLeft).toBeLessThanOrEqual(((geometry.viewport - geometry.expectedShellWidth) / 2) + 1);
-  expect(geometry.rootRight).toBeGreaterThanOrEqual(((geometry.viewport + geometry.expectedShellWidth) / 2) - 1);
-  expect(geometry.rootRight).toBeLessThanOrEqual(geometry.viewport + 1);
-  expect(geometry.rootWidth).toBeGreaterThanOrEqual(geometry.expectedShellWidth - 1);
-  expect(geometry.rootWidth).toBeLessThanOrEqual(geometry.expectedShellWidth + 1);
-  expect(geometry.dockLeft).toBeGreaterThanOrEqual(geometry.rootLeft + geometry.expectedDockInset - 1);
-  expect(geometry.dockRight).toBeLessThanOrEqual(geometry.rootRight - geometry.expectedDockInset + 1);
-  expect(geometry.dockBottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
-  expect(geometry.dockWidth).toBeGreaterThanOrEqual(geometry.expectedShellWidth - 18);
-  expect(geometry.badHeadings).toEqual([]);
-  expect(geometry.categoryCardWidths.every((width) => width >= 118)).toBe(true);
-  expect(geometry.categoryTitleGeometry.every(({ width, height }) => width >= 90 && height <= 74)).toBe(true);
-  expect(geometry.categoryFontSizes.every((size) => size >= 12)).toBe(true);
-  expect(geometry.brandTextHeight).toBeLessThanOrEqual(34);
-  expect(geometry.dockLabelHeights.every((height) => height <= 18)).toBe(true);
+  expect(geometry.root.left).toBeGreaterThanOrEqual(0);
+  expect(geometry.root.right).toBeLessThanOrEqual(geometry.viewport + 1);
+  expect(geometry.root.width).toBeGreaterThanOrEqual(geometry.viewport - 1);
+  expect(geometry.dock.left).toBeGreaterThanOrEqual(0);
+  expect(geometry.dock.right).toBeLessThanOrEqual(geometry.viewport + 1);
+  expect(geometry.dock.bottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
+  expect(geometry.buttons).toHaveLength(6);
+  expect(geometry.buttons.every((button) => button.width >= 44 && button.height >= 44)).toBe(true);
+  expect(geometry.buttons.map((button) => button.label)).toEqual(['⌂Home', '▣Cases', '⊞Workspace', '◇Academy', '☾Agent', '❝Quotes']);
 }
 
-test('mobile mounts the dedicated Mission Deck and a generated case inherits every route', async ({ page }, testInfo) => {
+async function assertHomePanelGeometry(page, expectedColumns) {
+  const geometry = await page.evaluate(() => {
+    const rect = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      const bounds = element.getBoundingClientRect();
+      return {
+        left: bounds.left,
+        right: bounds.right,
+        top: bounds.top,
+        bottom: bounds.bottom,
+        width: bounds.width,
+        height: bounds.height,
+      };
+    };
+    const overflow = (selector) => {
+      const element = document.querySelector(selector);
+      return element ? {
+        clientWidth: element.clientWidth,
+        clientHeight: element.clientHeight,
+        scrollWidth: element.scrollWidth,
+        scrollHeight: element.scrollHeight,
+      } : null;
+    };
+    const grid = document.querySelector('.mobile-dashboard-panels');
+    return {
+      viewportWidth: window.innerWidth,
+      columns: grid
+        ? getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length
+        : 0,
+      grid: rect('.mobile-dashboard-panels'),
+      agent: rect('.mobile-dashboard-agent'),
+      agentCopy: rect('.mobile-dashboard-agent-copy'),
+      agentPortrait: rect('.mobile-dashboard-agent-portrait'),
+      luna: rect('.mobile-dashboard-agent-portrait .mobile-luna-portrait'),
+      quote: rect('.mobile-dashboard-quote'),
+      quoteHeading: rect('.mobile-dashboard-quote-heading'),
+      quoteText: rect('.mobile-dashboard-quote > strong'),
+      quoteCaption: rect('.mobile-dashboard-quote-caption'),
+      quoteArrow: rect('.mobile-dashboard-quote-arrow'),
+      agentOverflow: overflow('.mobile-dashboard-agent'),
+      quoteOverflow: overflow('.mobile-dashboard-quote'),
+    };
+  });
+
+  const inside = (outer, inner) => (
+    inner.left >= outer.left - 1
+    && inner.right <= outer.right + 1
+    && inner.top >= outer.top - 1
+    && inner.bottom <= outer.bottom + 1
+  );
+  const intersectionArea = (a, b) => (
+    Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+    * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))
+  );
+
+  expect(geometry.columns).toBe(expectedColumns);
+  for (const panel of [geometry.grid, geometry.agent, geometry.quote]) {
+    expect(panel.left).toBeGreaterThanOrEqual(0);
+    expect(panel.right).toBeLessThanOrEqual(geometry.viewportWidth + 1);
+  }
+  for (const child of [geometry.agentCopy, geometry.agentPortrait, geometry.luna]) {
+    expect(inside(geometry.agent, child)).toBe(true);
+  }
+  for (const child of [
+    geometry.quoteHeading,
+    geometry.quoteText,
+    geometry.quoteCaption,
+    geometry.quoteArrow,
+  ]) {
+    expect(inside(geometry.quote, child)).toBe(true);
+  }
+  expect(geometry.agentCopy.width).toBeGreaterThan(60);
+  expect(geometry.luna.width).toBeGreaterThanOrEqual(80);
+  expect(intersectionArea(geometry.agentCopy, geometry.agentPortrait)).toBe(0);
+  expect(intersectionArea(geometry.agent, geometry.quote)).toBe(0);
+  expect(geometry.agentOverflow.scrollWidth).toBeLessThanOrEqual(geometry.agentOverflow.clientWidth + 1);
+  expect(geometry.agentOverflow.scrollHeight).toBeLessThanOrEqual(geometry.agentOverflow.clientHeight + 1);
+  expect(geometry.quoteOverflow.scrollWidth).toBeLessThanOrEqual(geometry.quoteOverflow.clientWidth + 1);
+  expect(geometry.quoteOverflow.scrollHeight).toBeLessThanOrEqual(geometry.quoteOverflow.clientHeight + 1);
+}
+
+test('mobile mounts the approved Fraud Academy shell and generated cases inherit the reference tool pages', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Dedicated phone renderer');
   await page.addInitScript(() => {
     window.localStorage.setItem('fraud-academy-layout-mode-v1', 'mobile');
+    window.localStorage.setItem('fraud-academy-completed-tools-v1', JSON.stringify({
+      'FA-ATO-24018': ['Case Summary', 'Customer 360', 'Login History'],
+      'FA-CB-24007': ['Case Summary'],
+    }));
+    window.localStorage.setItem('fraud-academy-notes-v1', JSON.stringify({
+      'FA-ATO-24018': ['Saved evidence-first test note'],
+    }));
+    window.localStorage.setItem('fraud-academy-review-packages-v1', JSON.stringify({
+      'FA-CB-24007': [{
+        id: 'PKG-TEST-CB-1',
+        caseId: 'FA-CB-24007',
+        savedAt: 'Jul 27, 2026',
+        completedTools: ['Case Summary'],
+        reviewedRequired: 1,
+        totalRequired: 6,
+        pinnedEvidence: [],
+        noteSnapshot: [],
+      }],
+    }));
   });
   await page.goto('/');
 
@@ -81,71 +159,134 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   const dock = page.getByRole('navigation', { name: 'Mission navigation' });
   await expect(root).toBeVisible();
   await expect(page.locator('.visual-os-frame')).toHaveCount(0);
-  await expect(page.getByRole('navigation', { name: 'Main navigation' })).toHaveCount(0);
-  await expect(dock).toBeVisible();
-
-  for (const width of [360, 393, 412, 628, 980]) {
-    await page.setViewportSize({ width, height: 1536 });
-    await assertPhoneGeometry(page);
-  }
-  await page.setViewportSize({ width: 393, height: 1536 });
-
+  await expect(dock.getByRole('button')).toHaveCount(6);
   await dock.getByRole('button', { name: /Home/ }).click();
-  await expect(page.locator('.mission-case-deck')).toBeVisible();
-  await expect(page.locator('.mission-lighthouse')).toBeVisible();
-  await expect(page.locator('.mission-case-layer')).toHaveCount(2);
-  await expect(page.locator('.mission-command-drawers')).toBeVisible();
-  await assertPhoneGeometry(page);
-  await capture(page, testInfo, '01-dashboard');
+  const dashboard = page.locator('.mobile-reference-dashboard');
+  await expect(dashboard).toBeVisible();
 
-  await page.locator('.mission-command-drawers').getByRole('button', { name: /Evidence Map/ }).click();
-  await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'tool-menu');
-  await expect(page.locator('.mission-evidence-page .mission-evidence-map')).toBeVisible();
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 360, height: 640 },
+    { width: 390, height: 844 },
+    { width: 412, height: 600 },
+    { width: 430, height: 932 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await assertPhoneGeometry(page);
+    await assertHomePanelGeometry(page, viewport.width <= 340 ? 1 : 2);
+    await page.locator('.mission-mobile-viewport').evaluate((element) => {
+      element.scrollTop = 0;
+    });
+    await capture(page, testInfo, `home-dashboard-${viewport.width}`);
+    await captureElement(
+      dashboard.locator('.mobile-dashboard-panels'),
+      testInfo,
+      `home-agent-quotes-${viewport.width}`,
+    );
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
 
-  await dock.getByRole('button', { name: /Academy/ }).click();
-  await expect(page.locator('[data-mission-page="academy"]')).toBeVisible();
-  await expect(page.locator('[data-academy-screen="approved-theme-v1"]')).toBeVisible();
+  await expect(dashboard.getByRole('heading', { name: 'Good morning Ree, let’s stop fraud ✨' })).toBeVisible();
+  const heroLuna = dashboard.locator('.mobile-dashboard-greeting')
+    .getByRole('button', { name: 'Open Luna assistant', exact: true });
+  const agentPanel = dashboard.locator('button.mobile-dashboard-agent');
+  await expect(heroLuna).toContainText('Luna');
+  await expect(agentPanel).toContainText('Luna');
+  await expect(dashboard.locator('.mobile-dashboard-grid .mobile-dashboard-card')).toHaveCount(3);
 
-  await dock.getByRole('button', { name: /Cases/ }).click();
-  await expect(page.locator('[data-mission-page="cases"]')).toBeVisible();
+  const activeCasesCard = dashboard.locator('.mobile-dashboard-active-case');
+  const alertsCard = dashboard.locator('.mobile-dashboard-alerts');
+  const workspaceCard = dashboard.locator('.mobile-dashboard-workspace');
+  const academyPanel = dashboard.locator('.mobile-dashboard-academy-panel');
+  await expect(activeCasesCard).toContainText('2 cases');
+  await expect(activeCasesCard).toContainText('2 in review');
+  await expect(alertsCard).toContainText('1 priority');
+  await expect(alertsCard).toContainText('1 high-priority case');
+  await expect(workspaceCard).toContainText('33%');
+  await expect(workspaceCard).toContainText('3 / 9 tasks');
+  await expect(academyPanel).toContainText('Academy Progress');
+  await expect(academyPanel).toContainText('1 completed package');
+  await expect(academyPanel.locator('dd').nth(0)).toHaveText('4');
+  await expect(academyPanel.locator('dd').nth(1)).toHaveText('1');
+  await expect(academyPanel.locator('dd').nth(2)).toHaveText('1');
+  await expect(academyPanel.locator('button i > b')).toHaveAttribute('style', 'width: 19%;');
+  await expect(dashboard.locator('.mobile-dashboard-panels')).toContainText('Agent Panel');
+  await expect(dashboard.locator('.mobile-dashboard-agent-shortcuts')).toContainText('Case facts');
+  await expect(dashboard.locator('.mobile-dashboard-quote')).toContainText('Fraud is clever,');
+  await expect(dashboard.locator('.mobile-dashboard-quote')).toContainText('Every small step builds a fraud-free future.');
+  await expect(page.getByRole('button', { name: 'Open priority cases', exact: true }).locator('i')).toHaveCount(1);
+  await capture(page, testInfo, '01-approved-dashboard');
+
+  async function returnHome() {
+    await dock.getByRole('button', { name: /Home/ }).click();
+    await expect(dashboard).toBeVisible();
+  }
+
+  await page.getByRole('button', { name: 'Open priority cases', exact: true }).click();
   await expect(page.locator('.cases-theme-v1-panel')).toBeVisible();
+  await returnHome();
 
-  await dock.getByRole('button', { name: /Mission/ }).click();
+  await activeCasesCard.click();
+  await expect(page.locator('.cases-theme-v1-panel')).toBeVisible();
+  await returnHome();
+
+  await alertsCard.click();
+  await expect(page.locator('.cases-theme-v1-panel')).toBeVisible();
+  await returnHome();
+
+  await workspaceCard.click();
+  await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'tool-menu');
+  await expect(dock.getByRole('button', { name: /Workspace/ })).toHaveAttribute('aria-current', 'page');
+  await returnHome();
+
+  await academyPanel.getByRole('button', { name: 'Open Academy Progress', exact: true }).click();
+  await expect(page.locator('[data-mission-page="progress"]')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Mission Progress' })).toBeVisible();
+  await expect(dock.getByRole('button', { name: /Academy/ })).toHaveAttribute('aria-current', 'page');
+  await returnHome();
+
+  await heroLuna.click();
+  await expect(page.locator('.profile-theme-v1')).toBeVisible();
+  await returnHome();
+
+  await agentPanel.click();
+  await expect(page.locator('.profile-theme-v1')).toBeVisible();
+  await returnHome();
+
+  await dashboard.locator('button.mobile-dashboard-quote').click();
+  await expect(page.locator('.mobile-quotes-page')).toBeVisible();
+  await expect(page.locator('.mobile-quotes-page')).toContainText('Evidence before assumptions');
+  await returnHome();
+
+  await dock.getByRole('button', { name: /Workspace/ }).click();
   await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'briefing');
-  await expect(page.locator('.mission-briefing-v3')).toBeVisible();
-  await expect(page.locator('.case-summary-visual')).toHaveCount(0);
-  await expect(page.locator('.mission-briefing-tabs button')).toHaveCount(6);
-  await page.locator('.mission-briefing-tabs button').nth(4).click();
-  await expect(page.locator('.mission-briefing-file')).toContainText('Open viewer');
-  await capture(page, testInfo, '02-briefing-paperwork');
+  await expect(page.locator('.mission-briefing-v4')).toBeVisible();
+  await expect(dock.getByRole('button', { name: /Cases/ })).toHaveAttribute('aria-current', 'page');
+  await page.getByRole('button', { name: 'Open workspace ›', exact: true }).click();
+  await expect(page.locator('[data-mobile-reference-tool="Customer 360"]')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Open Quick Pad/ })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Open mission pages' }).click();
-  await expect(page.locator('.mission-path-v3')).toBeVisible();
-  await page.locator('.mission-path-list').getByRole('button', { name: /Investigate/ }).click();
-  await expect(page.locator('.mission-evidence-page .mission-evidence-map')).toBeVisible();
-  const categoryButtons = page.locator('.mission-evidence-page .mission-map-tool-node');
-  await expect(categoryButtons).toHaveCount(6);
-  await expect(categoryButtons.filter({ hasText: 'Business & Payment Verification' })).toBeVisible();
-  await expect(page.locator('.mission-evidence-page .visual-category-row')).toBeHidden();
-  await assertPhoneGeometry(page);
-  await capture(page, testInfo, '03-evidence-map');
+  await page.getByRole('button', { name: 'Open workspace menu' }).click();
+  await page.getByRole('navigation', { name: 'Workspace shortcuts' })
+    .getByRole('button', { name: /All tools/ })
+    .click();
+  const toolMap = page.locator('.mission-evidence-map');
+  await expect(toolMap).toBeVisible();
+  await expect(toolMap.locator('.mission-map-tool-node')).toHaveCount(6);
+  await expect(toolMap).not.toContainText('KYB Review');
+  await expect(toolMap).not.toContainText('System Access Lane');
+  await capture(page, testInfo, '02-approved-tool-map');
 
-  await page.locator('.mission-evidence-page .mission-map-tool-node').filter({ hasText: 'Documents & Requests' }).click();
-  await expect(page.locator('.mission-tool-page')).toBeVisible();
-  await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Document Viewer');
-  const accountSearch = page.getByRole('textbox', { name: 'Search by Account ID' });
-  await page.getByRole('button', { name: 'Use active case Account ID', exact: true }).click();
-  await expect(accountSearch).not.toHaveValue('');
-  await expect(page.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Search account', exact: true }).click();
-  await expect(page.locator('.document-folder-nav')).toBeVisible();
-  await capture(page, testInfo, '04-document-folders');
-
-  await page.getByRole('button', { name: 'Open mission pages' }).click();
-  await page.locator('.mission-path-list').getByRole('button', { name: /Decision/ }).click();
-  await expect(page.locator('.mission-decision-page')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Submit Decision' })).toBeVisible();
-  await capture(page, testInfo, '05-decision');
+  await page.getByRole('button', { name: 'Open workspace menu' }).click();
+  await page.getByRole('navigation', { name: 'Workspace shortcuts' })
+    .getByRole('button', { name: /Decide/ })
+    .click();
+  const decision = page.locator('.mission-decision-page');
+  await expect(decision).toBeVisible();
+  await expect(decision.getByRole('group', { name: 'Operational decision' })).toBeVisible();
+  await expect(decision.getByRole('group', { name: 'Final investigative finding' })).toBeVisible();
+  await expect(decision.getByRole('button', { name: 'Submit Decision' })).toBeDisabled();
+  await capture(page, testInfo, '03-separated-decision');
 
   await dock.getByRole('button', { name: /Cases/ }).click();
   const queue = page.locator('.cases-theme-v1-panel');
@@ -153,17 +294,13 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   await queue.getByLabel('Generate case count').selectOption('1');
   await queue.getByRole('button', { name: 'Generate cases', exact: true }).click();
 
-  await expect(page.locator('.mission-briefing-v3')).toBeVisible();
-  const generatedCaseId = await page.locator('.mission-workspace-case-selector select').inputValue();
+  await expect(page.locator('.mission-briefing-v4')).toBeVisible();
+  await page.getByRole('button', { name: 'Open workspace menu' }).click();
+  const generatedCaseId = await page.getByRole('combobox', { name: 'Choose active mission case' }).inputValue();
   expect(generatedCaseId).toMatch(/-G\d+$/);
-  await expect(page.locator('.mission-briefing-identity')).toContainText(generatedCaseId);
-  await page.getByRole('button', { name: 'Open mission pages' }).click();
-  await page.locator('.mission-path-list').getByRole('button', { name: /Investigate/ }).click();
-  await expect(page.locator('.mission-evidence-page .mission-evidence-map')).toBeVisible();
-  await page.locator('.mission-evidence-page .mission-map-tool-node')
-    .filter({ hasText: 'Identity & Customer' })
-    .click();
-  await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')).toHaveAttribute('data-case-id', generatedCaseId);
+  await page.getByRole('button', { name: 'Open workspace menu' }).click();
+  await page.getByRole('button', { name: 'Open workspace ›', exact: true }).click();
+  await expect(page.locator('[data-customer-360-screen="approved-theme-v2"]')).toHaveAttribute('data-case-id', generatedCaseId);
   await assertPhoneGeometry(page);
-  await capture(page, testInfo, '06-generated-customer-360');
+  await capture(page, testInfo, '04-generated-customer-360');
 });

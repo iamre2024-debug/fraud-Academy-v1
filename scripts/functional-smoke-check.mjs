@@ -185,7 +185,10 @@ const checks = [
     label: 'direct Submit Decision visual module',
     mustContain: [
       "import DecisionFlagChecklist from './DecisionFlagChecklist.jsx'",
-      "import { getDecisionCallGroups, reviewChoices } from './data/reviewPackage.js'",
+      'getDecisionCallGroups,',
+      'getFinalFindingOptions,',
+      'getOperationalDecisionOptions,',
+      "from './data/reviewPackage.js'",
       'className="ornate-card submit-decision-panel decision-theme-v1"',
       'Unfinished checklist details are saved for coaching',
       'data-decision-submission-state',

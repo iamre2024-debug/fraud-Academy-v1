@@ -17,6 +17,164 @@ function uniqueSources(rows) {
   return [...new Set(rows.map((row) => String(row.values[3] ?? 'Other')))].sort((a, b) => a.localeCompare(b));
 }
 
+function runtimeTimelineRows(activeCase, actionLog = [], notes = [], documentRequests = {}, reviewPackages = []) {
+  const rows = [];
+  const makeRow = (id, time, event, source, linkedObject, detail, pin = linkedObject) => ({
+    id,
+    values: [id, time || 'Time not recorded', event, source, linkedObject || activeCase.id, activeCase.id, detail],
+    pin: pin || id,
+    label: event,
+    detail,
+  });
+
+  if (activeCase.allegation) {
+    rows.push(makeRow(
+      `TML-${activeCase.id}-ALLEGATION`,
+      activeCase.reportedDate ?? activeCase.opened,
+      'Reported allegation',
+      'Case Briefing',
+      activeCase.id,
+      activeCase.allegation,
+      activeCase.id,
+    ));
+  }
+
+  Object.values(documentRequests).flatMap((request) => request?.attempts ?? []).forEach((attempt) => {
+    rows.push(makeRow(
+      `TML-${attempt.requestId}`,
+      attempt.requestedDate,
+      'Document request sent',
+      'Document Request',
+      attempt.sourceDocumentId,
+      `${attempt.documentTitle} requested through ${attempt.requestDeliveryChannel}.`,
+      attempt.requestId,
+    ));
+    if (attempt.responseCheckedAt) {
+      rows.push(makeRow(
+        `TML-${attempt.responseId || attempt.attemptId}-RESPONSE`,
+        attempt.receivedDate === 'Not received' ? attempt.responseCheckedAt : attempt.receivedDate,
+        attempt.customerSubmission?.pages?.length ? 'Document received' : 'Document response checked',
+        'Document Request',
+        attempt.responseId || attempt.sourceDocumentId,
+        `${attempt.documentTitle}: ${attempt.responseStatus || 'response checked'}.`,
+        attempt.responseId || attempt.sourceDocumentId,
+      ));
+    }
+  });
+
+  actionLog.forEach((entry) => {
+    rows.push(makeRow(
+      `TML-${entry.id}`,
+      entry.time,
+      entry.action,
+      entry.source || 'Investigation activity',
+      activeCase.id,
+      entry.detail,
+      entry.id,
+    ));
+  });
+
+  notes.forEach((note, index) => {
+    const [time = 'Time not recorded', type = 'Investigator note', ...detailParts] = String(note).split(' · ');
+    rows.push(makeRow(
+      `TML-${activeCase.id}-NOTE-${index + 1}`,
+      time,
+      'Investigator note',
+      type,
+      activeCase.id,
+      detailParts.join(' · ') || String(note),
+      `NOTE-${activeCase.id}-${index + 1}`,
+    ));
+  });
+
+  reviewPackages.forEach((reviewPackage, index) => {
+    const decision = reviewPackage.operationalDecision || reviewPackage.choice || 'Decision recorded';
+    const finding = reviewPackage.finalFinding ? ` Final finding: ${reviewPackage.finalFinding}.` : '';
+    rows.push(makeRow(
+      `TML-${reviewPackage.id || `${activeCase.id}-DECISION-${index + 1}`}`,
+      reviewPackage.savedAt,
+      'Decision submitted',
+      'Submit Decision',
+      reviewPackage.id || activeCase.id,
+      `Operational decision: ${decision}.${finding}`,
+      reviewPackage.id || activeCase.id,
+    ));
+  });
+
+  return rows;
+}
+
+function timelineSortValue(value, fallbackDate) {
+  let display = String(value ?? '').trim();
+  if (/^\d{1,2}:\d{2}\s*[AP]M$/i.test(display)) display = `${fallbackDate} ${display}`;
+  display = display.replace(/\s+[·-]\s+/, ' ');
+  const parsed = new Date(display);
+  return Number.isNaN(parsed.getTime()) ? Number.MAX_SAFE_INTEGER : parsed.getTime();
+}
+
+function mergeTimelineRows(baseRows, runtimeRows, fallbackDate) {
+  const seen = new Set();
+  return [...baseRows, ...runtimeRows]
+    .filter((row) => {
+      const key = `${row.values[1]}|${row.values[2]}|${row.values[3]}|${row.values[4]}`.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((left, right) => timelineSortValue(left.values[1], fallbackDate) - timelineSortValue(right.values[1], fallbackDate));
+}
+
+function timelineDateGroup(value, fallbackDate) {
+  const raw = String(value ?? '').trim();
+  const fallback = String(fallbackDate ?? '').trim();
+  let candidate = raw;
+  if (/^\d{1,2}:\d{2}\s*[AP]M$/i.test(candidate) && fallback) candidate = `${fallback} ${candidate}`;
+  candidate = candidate.replace(/\s+[·-]\s+\d{1,2}:\d{2}.*$/i, '');
+  const parsed = new Date(candidate);
+  if (!Number.isNaN(parsed.getTime())) {
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(parsed);
+  }
+  return raw.split(/\s+[·-]\s+/)[0] || 'Date not recorded';
+}
+
+function timelineTime(value) {
+  const raw = String(value ?? '').trim();
+  const explicit = raw.match(/\b\d{1,2}:\d{2}\s*[AP]M\b/i)?.[0];
+  return explicit ?? raw;
+}
+
+function timelineEventPresentation(row) {
+  const source = String(row.values[3] ?? '');
+  const event = String(row.values[2] ?? row.label ?? '');
+  const text = `${source} ${event}`.toLowerCase();
+  if (/document/.test(text)) return { icon: '▤', tone: 'violet' };
+  if (/login|session/.test(text)) return { icon: '⌁', tone: 'cyan' };
+  if (/device/.test(text)) return { icon: '▣', tone: 'violet' };
+  if (/payment|transaction|merchant/.test(text)) return { icon: '◇', tone: 'blue' };
+  if (/profile|customer|identity/.test(text)) return { icon: '♙', tone: 'cyan' };
+  if (/decision/.test(text)) return { icon: '✓', tone: 'teal' };
+  if (/note/.test(text)) return { icon: '✎', tone: 'pink' };
+  if (/case|allegation/.test(text)) return { icon: '✦', tone: 'blue' };
+  return { icon: '•', tone: 'blue' };
+}
+
+function timelineSourceRoute(row, activeCase) {
+  const source = String(row.values[3] ?? '').trim();
+  const aliases = {
+    'Case Summary': '',
+    'Case Briefing': '',
+    'Claim intake': '',
+    'Investigation activity': '',
+    'Transaction History': activeCase.availableTools?.includes('Transaction History')
+      ? 'Transaction History'
+      : 'Financial Investigation',
+  };
+  const route = Object.prototype.hasOwnProperty.call(aliases, source) ? aliases[source] : source;
+  if (!route) return '';
+  if (route === 'Submit Decision') return route;
+  return activeCase.availableTools?.includes(route) ? route : '';
+}
+
 export default function TimelinePanel({
   activeCase,
   query,
@@ -30,10 +188,29 @@ export default function TimelinePanel({
   currentCompleted,
   openTool,
   jumpDecision,
+  actionLog = [],
+  notes = [],
+  documentRequests = {},
+  reviewPackages = [],
 }) {
   const [selectedEventId, setSelectedEventId] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
-  const timelineData = buildCoreToolRecords('Timeline', activeCase, data) ?? data;
+  const [mobileOrder, setMobileOrder] = useState(() => (
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 700px)').matches
+  ));
+  const baseTimelineData = buildCoreToolRecords('Timeline', activeCase, data) ?? data;
+  const runtimeRows = useMemo(
+    () => runtimeTimelineRows(activeCase, actionLog, notes, documentRequests, reviewPackages),
+    [activeCase, actionLog, documentRequests, notes, reviewPackages],
+  );
+  const timelineData = useMemo(() => ({
+    ...baseTimelineData,
+    rows: mergeTimelineRows(
+      baseTimelineData.rows,
+      runtimeRows,
+      activeCase.reportedDate ?? activeCase.opened ?? 'Training date',
+    ),
+  }), [activeCase.opened, activeCase.reportedDate, baseTimelineData, runtimeRows]);
   const sources = useMemo(() => uniqueSources(timelineData.rows), [timelineData.rows]);
   const normalizedQuery = query.trim().toLowerCase();
   const filteredEvents = useMemo(
@@ -45,18 +222,32 @@ export default function TimelinePanel({
     [normalizedQuery, sourceFilter, timelineData.rows],
   );
   const selectedId = selectedEventId || activeRow?.id;
-  const selectedEvent = filteredEvents.find((row) => row.id === selectedId) ?? filteredEvents[0];
+  const selectedEvent = filteredEvents.find((row) => row.id === selectedId)
+    ?? (mobileOrder ? filteredEvents.at(-1) : filteredEvents[0]);
   const selectedFields = useMemo(
     () => selectedEvent ? fieldPairs(timelineData.columns, selectedEvent.values) : [],
     [selectedEvent, timelineData.columns],
   );
   const reviewed = currentCompleted.includes('Timeline');
   const linkedObjects = new Set(timelineData.rows.map((row) => row.values[4]).filter(Boolean)).size;
+  const displayEvents = useMemo(
+    () => (mobileOrder ? [...filteredEvents].reverse() : filteredEvents),
+    [filteredEvents, mobileOrder],
+  );
+  const fallbackDate = activeCase.reportedDate ?? activeCase.opened ?? 'Training date';
 
   useEffect(() => {
     setSelectedEventId('');
     setSourceFilter('all');
   }, [activeCase.id]);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 700px)');
+    const syncOrder = () => setMobileOrder(media.matches);
+    syncOrder();
+    media.addEventListener?.('change', syncOrder);
+    return () => media.removeEventListener?.('change', syncOrder);
+  }, []);
 
   function openEvent(rowId) {
     setSelectedEventId(rowId);
@@ -68,17 +259,26 @@ export default function TimelinePanel({
     saveNote(`Timeline event ${selectedEvent.id}: ${selectedEvent.detail}`, 'Timeline event');
   }
 
+  function openSelectedSource() {
+    if (!selectedEvent) return;
+    const route = timelineSourceRoute(selectedEvent, activeCase);
+    if (route === 'Submit Decision') jumpDecision();
+    else if (route) openTool(route);
+  }
+
   return (
     <section
-      className="ornate-card activity-panel timeline-theme-v1"
+      className="ornate-card activity-panel timeline-theme-v1 timeline-core-tool-v2"
       data-timeline-screen="approved-theme-v1"
       data-case-id={activeCase.id}
     >
       <header className="timeline-header">
         <div>
-          <p className="timeline-eyebrow">Workflow Review · Evidence First</p>
+          <p className="timeline-eyebrow">{mobileOrder ? 'Newest first · Evidence First' : 'Workflow Review · Evidence First'}</p>
           <h2>Case Timeline</h2>
-          <p>Review recorded events in sequence, connect each entry to its source, and preserve only the facts needed for the case package.</p>
+          <p>{mobileOrder
+            ? 'Review factual case activity in recorded order and open the source behind each event.'
+            : 'Review recorded events in sequence, connect each entry to its source, and preserve only the facts needed for the case package.'}</p>
         </div>
         <div className="timeline-header-actions">
           <span>{activeCase.id}</span>
@@ -104,7 +304,7 @@ export default function TimelinePanel({
 
       <section className="timeline-controls" aria-label="Timeline controls">
         <label>
-          <span>Search timeline</span>
+          <span aria-hidden={mobileOrder ? 'true' : undefined}>{mobileOrder ? '⌕' : 'Search timeline'}</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -113,7 +313,7 @@ export default function TimelinePanel({
           />
         </label>
         <label>
-          <span>Source</span>
+          <span aria-hidden={mobileOrder ? 'true' : undefined}>{mobileOrder ? '≡' : 'Source'}</span>
           <select
             value={sourceFilter}
             onChange={(event) => setSourceFilter(event.target.value)}
@@ -130,26 +330,33 @@ export default function TimelinePanel({
         <section className="timeline-stream" aria-labelledby="timeline-stream-heading">
           <header className="timeline-section-heading">
             <div>
-              <p>Recorded sequence</p>
+              <p>{mobileOrder ? 'Recorded sequence · newest first' : 'Recorded sequence'}</p>
               <h3 id="timeline-stream-heading">Available timeline events</h3>
             </div>
             <span>{filteredEvents.length} shown</span>
           </header>
 
           <div className="timeline-event-list">
-            {filteredEvents.map((row, index) => {
+            {displayEvents.map((row, index) => {
               const selected = selectedEvent?.id === row.id;
+              const dateGroup = timelineDateGroup(row.values[1], fallbackDate);
+              const previousGroup = index > 0
+                ? timelineDateGroup(displayEvents[index - 1].values[1], fallbackDate)
+                : '';
+              const presentation = timelineEventPresentation(row);
               return (
                 <article
                   key={row.id}
                   className={`timeline-event-card ${selected ? 'selected' : ''}`}
                   data-timeline-event={row.id}
+                  data-date-group={dateGroup !== previousGroup ? dateGroup : ''}
+                  data-event-tone={presentation.tone}
                 >
-                  <div className="timeline-event-marker" aria-hidden="true"><span>{index + 1}</span></div>
+                  <div className="timeline-event-marker" aria-hidden="true"><span>{mobileOrder ? presentation.icon : index + 1}</span></div>
                   <div className="timeline-event-content">
                     <header>
                       <div>
-                        <span>{String(row.values[1] ?? 'Time not recorded')}</span>
+                        <span>{timelineTime(row.values[1] ?? 'Time not recorded')}</span>
                         <h4>{String(row.values[2] ?? row.label)}</h4>
                       </div>
                       <span>{String(row.values[3] ?? 'Source')}</span>
@@ -206,6 +413,7 @@ export default function TimelinePanel({
 
               <div className="timeline-detail-actions">
                 <button type="button" onClick={saveTimelineNote}>Save timeline note</button>
+                {mobileOrder && timelineSourceRoute(selectedEvent, activeCase) && <button type="button" onClick={openSelectedSource}>Open source</button>}
               </div>
             </>
           ) : (
@@ -215,7 +423,22 @@ export default function TimelinePanel({
       </div>
 
       <nav className="timeline-next-routes" aria-label="Timeline next routes">
-        <button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button>
+        <button
+          type="button"
+          onClick={() => openTool(
+            activeCase.availableTools?.includes('Transaction History')
+              ? 'Transaction History'
+              : activeCase.availableTools?.includes('Payroll History')
+                ? 'Payroll History'
+                : 'Financial Investigation',
+          )}
+        >
+          Open {activeCase.availableTools?.includes('Transaction History')
+            ? 'Transaction History'
+            : activeCase.availableTools?.includes('Payroll History')
+              ? 'Payroll History'
+              : 'Financial Investigation'}
+        </button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
 
