@@ -5,8 +5,13 @@ import {
 } from '../src/data/generatedCases.js';
 import {
   CASE_DOMAIN_VERSION,
+  CASE_RELATIONSHIP_DATA_VERSION,
+  CASE_RELATIONSHIP_VIEW_SCHEMA_VERSION,
   FINAL_FINDINGS,
+  PRODUCT_TYPES,
   WORKFLOW_TYPES,
+  filterToolsForCaseDomain,
+  hasOwnershipLinkedBusinessRelationship,
   isWorkflowEnabled,
   operationalDecisionsForWorkflow,
   validateCaseDomain,
@@ -65,6 +70,13 @@ for (const { claimType, scenario } of allScenarios) {
   }
   if (generated.domainSchemaVersion !== CASE_DOMAIN_VERSION || generated.generatedPacketVersion !== 7) {
     failures.push(`${scenario.id} is missing current domain or packet version metadata.`);
+  }
+  if (
+    generated.relationshipViewSchemaVersion !== CASE_RELATIONSHIP_VIEW_SCHEMA_VERSION
+    || generated.relationshipDataVersion !== CASE_RELATIONSHIP_DATA_VERSION
+    || generated.legacyDerivedEvidence !== false
+  ) {
+    failures.push(`${scenario.id} is missing current relationship-view metadata.`);
   }
   if (generated.subtype !== scenario.alertReason || generated.alertReason !== scenario.alertReason || generated.scenarioId !== scenario.id) {
     failures.push(`${scenario.id} did not preserve its neutral alert and scenario selection.`);
@@ -131,8 +143,25 @@ for (const { claimType, scenario } of allScenarios) {
   const usesLogin = generated.availableTools.includes('Login History');
   if (usesLogin && generated.loginHistory.length < 3) failures.push(`${scenario.id} is missing access history.`);
   if (!usesLogin && generated.loginHistory.length) failures.push(`${scenario.id} contains access history outside its workflow.`);
-  if (customerType === 'personal' && generated.availableTools.some((tool) => ['Business 360', 'KYB Review', 'Employee Profile', 'Payroll History'].includes(tool))) {
-    failures.push(`${scenario.id} exposes business-only tools on a personal case.`);
+  if (
+    customerType === 'personal'
+    && (
+      generated.availableTools.some((tool) => ['KYB Review', 'Employee Profile', 'Payroll History'].includes(tool))
+      || (
+        generated.availableTools.includes('Business 360')
+        && !hasOwnershipLinkedBusinessRelationship(generated)
+      )
+    )
+  ) {
+    failures.push(`${scenario.id} exposes business-only tools without an explicit ownership relationship.`);
+  }
+  if (customerType === 'business' && [...generated.availableTools, ...generated.requiredTools].includes('Customer 360')) {
+    failures.push(`${scenario.id} exposes Customer 360 on a business case.`);
+  }
+  const payrollToolsAllowed = productType === PRODUCT_TYPES.PAYROLL_PRODUCT
+    || [WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT, WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER].includes(claimType.workflowType);
+  if (!payrollToolsAllowed && [...generated.availableTools, ...generated.requiredTools].some((tool) => ['Employee Profile', 'Payroll History'].includes(tool))) {
+    failures.push(`${scenario.id} exposes payroll-only tools outside a payroll product and workflow.`);
   }
 
   if (generated.availableTools.includes('Business 360') && generated.toolResults.business360?.length < 3) {
@@ -219,6 +248,118 @@ for (const builtIn of enrichedBuiltIns) {
   if (!builtIn.intakeAnswers?.length || builtIn.intakeAnswers.some((item) => genericIntakePattern.test(item.answer) || item.answer.length < 45)) {
     failures.push(`${builtIn.id} has a generic or incomplete intake answer.`);
   }
+  if (
+    builtIn.customerType === 'personal'
+    && (
+      [...builtIn.availableTools, ...builtIn.requiredTools]
+        .some((tool) => ['KYB Review', 'Employee Profile', 'Payroll History'].includes(tool))
+      || (
+        [...builtIn.availableTools, ...builtIn.requiredTools].includes('Business 360')
+        && !hasOwnershipLinkedBusinessRelationship(builtIn)
+      )
+    )
+  ) {
+    failures.push(`${builtIn.id} exposes business or payroll tools without an explicit ownership relationship.`);
+  }
+  if (builtIn.customerType === 'business' && [...builtIn.availableTools, ...builtIn.requiredTools].includes('Customer 360')) {
+    failures.push(`${builtIn.id} exposes Customer 360 on a built-in business case.`);
+  }
+}
+
+const routedPayrollTools = filterToolsForCaseDomain(
+  ['Customer 360', 'Business 360', 'KYB Review', 'Employee Profile', 'Payroll History', 'Financial Intelligence'],
+  {
+    customerType: 'business',
+    productType: PRODUCT_TYPES.PAYROLL_PRODUCT,
+    workflowType: WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT,
+  },
+);
+if (
+  routedPayrollTools.includes('Customer 360')
+  || !routedPayrollTools.includes('Business 360')
+  || !routedPayrollTools.includes('Employee Profile')
+  || !routedPayrollTools.includes('Payroll History')
+  || !routedPayrollTools.includes('Financial Investigation')
+) {
+  failures.push('Central tool routing did not normalize aliases and retain only valid payroll-business tools.');
+}
+
+const routedPayrollCreditTools = filterToolsForCaseDomain(
+  ['Business 360', 'Employee Profile', 'Payroll History'],
+  {
+    customerType: 'business',
+    productType: PRODUCT_TYPES.PAYROLL_PRODUCT,
+    workflowType: WORKFLOW_TYPES.CREDIT_RISK_REVIEW,
+  },
+);
+if (
+  !routedPayrollCreditTools.includes('Employee Profile')
+  || !routedPayrollCreditTools.includes('Payroll History')
+) {
+  failures.push('Payroll-product credit review did not retain relevant payroll relationship tools.');
+}
+
+const routedBusinessCreditTools = filterToolsForCaseDomain(
+  ['Customer 360', 'Business 360', 'KYB Review', 'Employee Profile', 'Payroll History'],
+  {
+    customerType: 'business',
+    productType: PRODUCT_TYPES.BUSINESS_LOAN,
+    workflowType: WORKFLOW_TYPES.CREDIT_RISK_REVIEW,
+  },
+);
+if (
+  routedBusinessCreditTools.includes('Customer 360')
+  || routedBusinessCreditTools.includes('Employee Profile')
+  || routedBusinessCreditTools.includes('Payroll History')
+  || !routedBusinessCreditTools.includes('Business 360')
+) {
+  failures.push('Central tool routing did not remove customer and payroll-only tools from business credit review.');
+}
+
+const ordinaryPersonalTools = filterToolsForCaseDomain(
+  ['Customer 360', 'Business 360', 'KYB Review', 'Employee Profile', 'Payroll History'],
+  {
+    customerType: 'personal',
+    productType: PRODUCT_TYPES.CREDIT_CARD,
+    workflowType: WORKFLOW_TYPES.CREDIT_RISK_REVIEW,
+  },
+);
+if (
+  !ordinaryPersonalTools.includes('Customer 360')
+  || ordinaryPersonalTools.some((tool) => ['Business 360', 'KYB Review', 'Employee Profile', 'Payroll History'].includes(tool))
+) {
+  failures.push('Ordinary personal routing exposed business, KYB, or payroll-only tools.');
+}
+
+const linkedPersonalTools = filterToolsForCaseDomain(
+  ['Customer 360', 'Business 360', 'KYB Review', 'Employee Profile', 'Payroll History'],
+  {
+    customerType: 'personal',
+    productType: PRODUCT_TYPES.CREDIT_CARD,
+    workflowType: WORKFLOW_TYPES.CREDIT_RISK_REVIEW,
+    customer: {
+      linkedBusinesses: [{
+        businessId: 'BIZ-TRAINING-1',
+        role: 'Beneficial owner',
+      }],
+    },
+  },
+);
+if (
+  !linkedPersonalTools.includes('Customer 360')
+  || !linkedPersonalTools.includes('Business 360')
+  || linkedPersonalTools.some((tool) => ['KYB Review', 'Employee Profile', 'Payroll History'].includes(tool))
+) {
+  failures.push('Ownership-linked personal routing did not expose only Customer 360 and Business 360.');
+}
+
+const builtInCreditReview = enrichedBuiltIns.find((item) => item.id === 'FA-CR-24003');
+if (
+  !builtInCreditReview
+  || [...builtInCreditReview.availableTools, ...builtInCreditReview.requiredTools]
+    .some((tool) => ['Business 360', 'KYB Review', 'Employee Profile', 'Payroll History'].includes(tool))
+) {
+  failures.push('FA-CR-24003 must remain an ordinary personal case without business, KYB, or payroll tools.');
 }
 
 const businessApplication = createGeneratedCase({

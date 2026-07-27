@@ -10,6 +10,7 @@ import { cloudResourceKeys, cloudResourceModes } from './persistenceKeys.js';
 import {
   listGeneratedCases,
   listGeneratedCaseTruthSnapshots,
+  listPersistedGeneratedCases,
   mergeGeneratedCases,
   mergeGeneratedCaseTruthSnapshots,
 } from './generatedCaseRepository.js';
@@ -372,7 +373,7 @@ async function createLocalSnapshot() {
   return buildCloudSnapshot({
     rawByKey,
     metadata,
-    generatedCases: await listGeneratedCases(),
+    generatedCases: await listPersistedGeneratedCases(),
     generatedCaseTruthSnapshots: await listGeneratedCaseTruthSnapshots(),
     deviceId,
   });

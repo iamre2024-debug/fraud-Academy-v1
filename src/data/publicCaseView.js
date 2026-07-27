@@ -1,6 +1,6 @@
 import { caseDomainLabels } from './caseDomain.js';
 
-const hiddenAnswerTerms = /\b(synthetic identity|synthetic fraud|bust[- ]out|first[- ]party fraud|mule activity|money mule|spoofed email|compromised mailbox|business email compromise|\bbec\b|stolen identity|fabricated business information|linked prior fraud)\b/i;
+const hiddenAnswerTerms = /\b(synthetic identity|synthetic fraud|bust[- ]out|first[- ]party fraud|mule activity|money mule|spoofed email|compromised mailbox|business email compromise|\bbec\b|stolen identity|fabricated business information|linked prior fraud|fraud (?:confirmed|rule|score)|confirmed fraud|automatic risk|accepted determination|final finding)\b/i;
 
 export function containsHiddenAnswer(value) {
   return hiddenAnswerTerms.test(String(value ?? ''));

@@ -2,6 +2,7 @@ import {
   buildReviewPackage,
   getDecisionCallGroups,
   getFinalFindingChoices,
+  getRequiredReviewTools,
   getReviewPackageStatus,
   isValidReviewPackage,
   minimumRationaleWords,
@@ -61,6 +62,23 @@ const creditRiskCase = {
   workflowType: 'credit-risk-review',
   requiredTools,
 };
+const linkedPersonalCase = {
+  ...creditRiskCase,
+  id: 'FA-SMOKE-LINKED-PERSONAL',
+  productType: 'credit-card',
+  requiredTools: [
+    'Case Summary',
+    'Customer 360',
+    'Business 360',
+    'KYB Review',
+    'Employee Profile',
+    'Payroll History',
+  ],
+  businessRelationships: [{
+    businessId: 'BIZ-TRAINING-42',
+    relationshipType: 'Control person',
+  }],
+};
 
 const cardOptions = getDecisionCallGroups(cardCase)[0].options;
 assert(cardOptions.includes('Support Customer Claim'), 'Card claim should offer Support Customer Claim.');
@@ -76,6 +94,11 @@ assert(applicationOptions.includes('Approve') && applicationOptions.includes('De
 const creditRiskOptions = getDecisionCallGroups(creditRiskCase)[0].options;
 assert(creditRiskOptions.includes('Maintain') && creditRiskOptions.includes('Restrict / Reduce'), 'Credit risk review should route to exposure decisions.');
 assert(getFinalFindingChoices(creditRiskCase).includes('Credit Risk Concern'), 'Credit risk review should allow Credit Risk Concern.');
+assert(
+  JSON.stringify(getRequiredReviewTools(linkedPersonalCase))
+    === JSON.stringify(['Case Summary', 'Customer 360', 'Business 360']),
+  'An ownership-linked personal review should retain Business 360 while excluding KYB and payroll tools.',
+);
 const unsupportedBusinessApplication = {
   ...businessApplicationCase,
   productType: 'business-account',
@@ -205,11 +228,28 @@ const legacyPackage = normalizeReviewPackage({
   caseId: cardCase.id,
   choice: 'Deny claim / customer claim not supported',
   reason: 'Legacy learner rationale remains available.',
+  completedTools: ['Evidence Center', 'Financial Intelligence'],
+  requiredTools: ['Case Summary', 'Evidence Center', 'Business Intelligence'],
+  missingTools: ['Business Intelligence'],
+  noteSnapshot: ['Jul 8, 2026 · Financial Intelligence · Saved note.'],
   savedAt: 'Jul 8, 2026, 10:00 AM',
 }, cardCase);
 assert(legacyPackage.legacyDecisionFormat, 'Legacy package should remain marked as a compatibility record.');
 assert(isValidReviewPackage(cardCase, legacyPackage), 'Legacy package should continue to unlock existing learner progress.');
 assert(legacyPackage.savedAt === 'Jul 8, 2026, 10:00 AM', 'Legacy saved timestamp should be preserved.');
+assert(
+  JSON.stringify(legacyPackage.completedTools) === JSON.stringify(['Document Viewer', 'Financial Investigation']),
+  'Legacy completed-tool aliases should normalize without losing progress.',
+);
+assert(
+  JSON.stringify(legacyPackage.requiredTools) === JSON.stringify(['Case Summary', 'Document Viewer', 'KYB Review'])
+  && JSON.stringify(legacyPackage.missingTools) === JSON.stringify(['KYB Review']),
+  'Legacy review-package coverage arrays should normalize consistently.',
+);
+assert(
+  legacyPackage.noteSnapshot[0] === 'Jul 8, 2026 · Financial Intelligence · Saved note.',
+  'Legacy package note snapshots should retain learner-authored text byte for byte.',
+);
 const versionedLegacyPackage = normalizeReviewPackage({
   ...legacyPackage,
   operationalDecision: 'Do Not Support Customer Claim',
@@ -238,6 +278,10 @@ assert(builtPackage.operationalDecision === 'Support Customer Claim', 'Saved pac
 assert(builtPackage.finalFinding === 'Fraud Confirmed', 'Saved package should store the final finding explicitly.');
 assert(builtPackage.findingBasis.includes('TXN-SMOKE-001'), 'Saved package should store the evidence-based finding rationale.');
 assert(builtPackage.choice === builtPackage.operationalDecision, 'Compatibility choice alias should mirror the operational decision.');
+assert(
+  JSON.stringify(builtPackage.requiredTools) === JSON.stringify(requiredTools),
+  'New packages should persist the routed required-tool contract explicitly.',
+);
 assert(isValidReviewPackage(cardCase, builtPackage), 'New package should validate against both workflow fields.');
 
 console.log('Review package smoke check passed. Operational decisions and final findings are separate, confirmed fraud requires evidence, checklist weights are coaching-only, and legacy packages remain readable.');

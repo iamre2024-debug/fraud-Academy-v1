@@ -8,6 +8,7 @@ import {
   mergeGeneratedCaseRecords,
   migrateLegacyCaseTruth,
   migrateGeneratedCases,
+  persistedGeneratedCaseRecord,
   publicGeneratedCaseRecord,
 } from './caseMigration.js';
 
@@ -185,20 +186,23 @@ function writeFallbackMetadata(value) {
 function createLocalStorageRepository() {
   const repository = {
     kind: 'localStorage',
-    async list() {
+    async listPersisted() {
       const records = readLegacyCases();
       await hydrateTruthSnapshots(repository, records);
-      const migrated = migrateGeneratedCases(records).map(publicGeneratedCaseRecord);
+      const migrated = migrateGeneratedCases(records).map(persistedGeneratedCaseRecord);
       if (!sameValue(records, migrated)) writeLegacyCases(migrated);
       await hydrateTruthSnapshots(repository, migrated);
       return migrated;
     },
+    async list() {
+      return (await this.listPersisted()).map(publicGeneratedCaseRecord);
+    },
     async put(item, { truthSource = 'runtime-derived' } = {}) {
       await hydrateTruthSnapshots(repository, [item], truthSource);
-      const migratedItem = publicGeneratedCaseRecord(item);
+      const migratedItem = persistedGeneratedCaseRecord(item);
       const current = readLegacyCases();
       writeLegacyCases([migratedItem, ...current.filter((entry) => entry.id !== migratedItem.id)]);
-      return migratedItem;
+      return publicGeneratedCaseRecord(migratedItem);
     },
     async getMeta(key) {
       if (fallbackMetadata.has(key)) return cloneValue(fallbackMetadata.get(key));
@@ -230,30 +234,33 @@ function createIndexedDbRepository(database) {
     await hydrateTruthSnapshots(repository, items);
     const transaction = database.transaction(caseStoreName, 'readwrite');
     const store = transaction.objectStore(caseStoreName);
-    for (const item of items) store.put(publicGeneratedCaseRecord(item));
+    for (const item of items) store.put(persistedGeneratedCaseRecord(item));
     await transactionDone(transaction);
   }
 
   const repository = {
     kind: 'indexedDB',
-    async list() {
+    async listPersisted() {
       const transaction = database.transaction(caseStoreName, 'readonly');
       const records = await requestResult(transaction.objectStore(caseStoreName).getAll());
       await transactionDone(transaction);
       await hydrateTruthSnapshots(repository, records);
-      const migrated = migrateGeneratedCases(records).map(publicGeneratedCaseRecord);
+      const migrated = migrateGeneratedCases(records).map(persistedGeneratedCaseRecord);
       const changed = migrated.filter((item, index) => !sameValue(item, records[index]));
       if (changed.length) await putManyRecords(changed);
       await hydrateTruthSnapshots(repository, migrated);
       return migrated.sort((left, right) => (right.generatedAt ?? 0) - (left.generatedAt ?? 0));
     },
+    async list() {
+      return (await this.listPersisted()).map(publicGeneratedCaseRecord);
+    },
     async put(item, { truthSource = 'runtime-derived' } = {}) {
       await hydrateTruthSnapshots(repository, [item], truthSource);
-      const migratedItem = publicGeneratedCaseRecord(item);
+      const migratedItem = persistedGeneratedCaseRecord(item);
       const transaction = database.transaction(caseStoreName, 'readwrite');
       transaction.objectStore(caseStoreName).put(migratedItem);
       await transactionDone(transaction);
-      return migratedItem;
+      return publicGeneratedCaseRecord(migratedItem);
     },
     async putMany(items) {
       await putManyRecords(items);
@@ -318,6 +325,11 @@ export async function listGeneratedCases() {
   return repository.list();
 }
 
+export async function listPersistedGeneratedCases() {
+  const repository = await getGeneratedCaseRepository();
+  return repository.listPersisted();
+}
+
 export async function listGeneratedCaseTruthSnapshots() {
   const repository = await getGeneratedCaseRepository();
   const store = await hydrateTruthSnapshots(repository, await repository.list());
@@ -379,7 +391,7 @@ function notifyGeneratedCasesChanged(reason = 'updated') {
 
 export async function mergeGeneratedCases(items = []) {
   const repository = await getGeneratedCaseRepository();
-  const existing = await repository.list();
+  const existing = await repository.listPersisted();
   const existingById = new Map(existing.map((item) => [item.id, item]));
   const changed = [];
 
@@ -392,7 +404,7 @@ export async function mergeGeneratedCases(items = []) {
       changed.push(merged);
     }
   }
-  if (!changed.length) return existing;
+  if (!changed.length) return repository.list();
 
   if (typeof repository.putMany === 'function') {
     await repository.putMany(changed);

@@ -162,8 +162,18 @@ assert.match(clientSource, /X-Fraud-Academy-Sync-Id/);
 assert.doesNotMatch(clientSource, /X-Fraud-Academy-Sync-Key/);
 assert.match(clientSource, /response\.status === 409/);
 assert.match(clientSource, /window\.addEventListener\('online'/);
+assert.match(
+  clientSource,
+  /generatedCases:\s*await listPersistedGeneratedCases\(\)/,
+  'Encrypted cloud snapshots must be built from evidence-preserving repository records.',
+);
 assert.match(keySource, /completed-debriefs-v1/);
 assert.match(generatedRepositorySource, /mergeGeneratedCases/);
+assert.match(
+  generatedRepositorySource,
+  /async listPersisted\(\)/,
+  'The generated-case repository must separate persisted evidence from app-facing presentation.',
+);
 assert.match(lunaSource, /fraud-academy:debrief-completed/);
 assert.match(supabaseMigrationSource, /enable row level security/i);
 assert.match(supabaseMigrationSource, /revoke all .* from public, anon, authenticated/i);

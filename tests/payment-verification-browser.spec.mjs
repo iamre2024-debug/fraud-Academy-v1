@@ -114,7 +114,7 @@ test('Payment Verification keeps partial name, ownership, status, and history se
   await page.screenshot({ path: testInfo.outputPath(`payment-verification-credit-${testInfo.project.name}.png`), fullPage: true });
 });
 
-test('Avery Customer 360 shows the exact account change and prefills without revealing the result', async ({ page }, testInfo) => {
+test('Avery Customer 360 records the profile change without duplicating or prefilling Payment Verification', async ({ page }, testInfo) => {
   await page.goto('/');
   const caseSelector = page.locator('.visual-case-switcher select');
   await caseSelector.selectOption('FA-CR-24003');
@@ -123,52 +123,35 @@ test('Avery Customer 360 shows the exact account change and prefills without rev
 
   const customer = page.locator('[data-customer-360-screen="approved-theme-v1"]');
   await expect(customer).toBeVisible();
-  const accountChange = customer.getByRole('region', { name: 'Payment Account Change', exact: true });
-  await expect(accountChange).toBeVisible();
-  for (const label of ['Bank Code', 'Destination ID', 'Previous account / destination', 'New account / destination', 'Change comparison']) {
-    await expect(accountChange.getByText(label, { exact: true })).toBeVisible();
-  }
-  await expect(accountChange).toContainText('BC-204');
-  await expect(accountChange).toContainText('DST-7740');
-  await expect(accountChange).toContainText('No prior external destination on file');
-  await expect(accountChange).toContainText('BC-204 / DST-7740');
-
   const tabs = customer.getByRole('tablist', { name: 'Customer 360 dossier tabs' });
-  await tabs.getByRole('tab', { name: 'Accounts', exact: true }).click();
-  const inputs = customer.getByRole('region', { name: 'Payment Verification Inputs' });
-  await expect(inputs).toContainText('BC-204');
-  await expect(inputs).toContainText('DST-7740');
-  await expect(inputs).toContainText('No prior external destination on file');
-  await expect(inputs).toContainText('BC-204 / DST-7740');
-
   await tabs.getByRole('tab', { name: 'Profile History', exact: true }).click();
-  const profileEvent = customer.locator('[data-profile-event="PCH-3301"]');
+  const profileEvent = customer.locator('[data-profile-event]').filter({ hasText: 'Payment destination added' });
   await expect(profileEvent).toBeVisible();
+  await expect(profileEvent).toContainText('External payment account add');
   await expect(profileEvent).toContainText('No prior external destination on file');
   await expect(profileEvent).toContainText('Bank Code BC-204 · Destination ID DST-7740');
-  const profileChange = profileEvent.getByRole('region', { name: 'Payment account change details for PCH-3301', exact: true });
-  await expect(profileChange).toBeVisible();
-  for (const label of ['Bank Code', 'Destination ID', 'Previous account / destination', 'New account / destination', 'Change comparison']) {
-    await expect(profileChange.getByText(label, { exact: true })).toBeVisible();
+  for (const label of ['Previous value', 'New value', 'Channel', 'Source', 'User / actor', 'Device', 'Session', 'Authentication']) {
+    await expect(profileEvent.getByText(label, { exact: true })).toBeVisible();
   }
-  await expect(profileChange).toContainText('BC-204');
-  await expect(profileChange).toContainText('DST-7740');
-  await expect(profileChange).toContainText('No prior external destination on file');
-  await expect(profileChange).toContainText('BC-204 / DST-7740');
+  await expect(profileEvent).not.toContainText(/\b(?:suspicious|unauthorized|fraudulent|fraud confirmed)\b/i);
+  await expect(customer.getByRole('region', { name: 'Payment Account Change', exact: true })).toHaveCount(0);
+  await expect(customer.getByRole('region', { name: 'Payment Verification Inputs' })).toHaveCount(0);
+  await expect(customer.getByRole('button', { name: 'Prefill Payment Verification' })).toHaveCount(0);
 
-  await tabs.getByRole('tab', { name: 'Accounts', exact: true }).click();
-  await inputs.getByRole('button', { name: 'Prefill Payment Verification' }).first().click();
-
-  const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  await expect(panel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue('BC-204');
-  await expect(panel.getByRole('textbox', { name: 'Destination ID', exact: true })).toHaveValue('DST-7740');
-  await expect(panel.getByRole('textbox', { name: 'Owner or business name', exact: true })).toHaveValue('Avery Brooks');
+  const panel = await openPaymentVerification(page);
+  await expect(panel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue('');
+  await expect(panel.getByRole('textbox', { name: 'Destination ID', exact: true })).toHaveValue('');
+  await expect(panel.getByRole('textbox', { name: 'Owner or business name', exact: true })).toHaveValue('');
   await expect(panel.locator('.payment-verification-snapshot')).toHaveCount(0);
   await expect(panel.locator('.payment-detail-panel')).toHaveCount(0);
   await expect(panel.locator('.payment-comparison-panel')).toHaveCount(0);
   await expect(panel).not.toContainText('No prior external destination on file');
 
-  await panel.getByRole('button', { name: 'Run verification', exact: true }).click();
+  await runPaymentVerification(panel, {
+    bankCode: 'BC-204',
+    destinationId: 'DST-7740',
+    ownerName: 'Avery Brooks',
+  });
   const revealedDetail = panel.locator('.payment-detail-panel');
   await expect(revealedDetail).toBeVisible();
   await expect(revealedDetail).toContainText('BC-204');

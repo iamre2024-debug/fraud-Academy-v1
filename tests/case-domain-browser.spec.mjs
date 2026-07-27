@@ -337,15 +337,42 @@ test('legacy IndexedDB cases and learner progress survive the versioned domain m
         claimTypeId: 'credit-risk',
         choice: 'Do Not Support Credit Request',
         reason: 'Document DOC-IDB-9999 supports the saved package.',
+        completedTools: ['Evidence Center', 'Financial Intelligence'],
+        requiredTools: ['Case Summary', 'Evidence Center', 'Business Intelligence'],
+        missingTools: ['Business Intelligence'],
         savedAt: 'Jul 18, 09:32 AM',
         savedAtIso: savedAt,
       }],
     }));
     window.localStorage.setItem('fraud-academy-completed-tools-v1', JSON.stringify({
-      [caseId]: ['Case Summary', 'Identity Intel / People Search'],
+      [caseId]: ['Case Summary', 'Identity Intel / People Search', 'Evidence Center', 'Financial Intelligence'],
     }));
     window.localStorage.setItem('fraud-academy-notes-v1', JSON.stringify({
-      [caseId]: ['Learner note survives IndexedDB migration.'],
+      [caseId]: [
+        'Learner note survives IndexedDB migration.',
+        'Learner-authored Financial Intelligence wording stays unchanged.',
+      ],
+    }));
+    window.localStorage.setItem('fraud-academy-action-log-v1', JSON.stringify({
+      [caseId]: [{
+        id: 'ACT-IDB-SAVED-9999',
+        time: 'Jul 18, 09:31 AM',
+        action: 'Opened Financial Intelligence',
+        detail: 'Learner action detail remains unchanged.',
+        source: 'Financial Intelligence',
+      }],
+    }));
+    window.localStorage.setItem('fraud-academy-quick-pad-v1', JSON.stringify({
+      [caseId]: {
+        items: [{
+          id: 'Financial Intelligence:Account ID:ACCT-IDB-9999',
+          label: 'Account ID',
+          value: 'ACCT-IDB-9999',
+          sourceTool: 'Financial Intelligence',
+          sourceRecordId: 'FIN-IDB-9999',
+        }],
+        scratch: 'Learner Quick Pad scratch survives unchanged.',
+      },
     }));
   }, { caseId: legacyCaseId, generatedAtValue: generatedAt, savedAt: savedAtIso });
 
@@ -384,6 +411,8 @@ test('legacy IndexedDB cases and learner progress survive the versioned domain m
       reviewPackage: JSON.parse(window.localStorage.getItem('fraud-academy-review-packages-v1'))?.[caseId]?.[0],
       completedTools: JSON.parse(window.localStorage.getItem('fraud-academy-completed-tools-v1'))?.[caseId],
       notes: JSON.parse(window.localStorage.getItem('fraud-academy-notes-v1'))?.[caseId],
+      actions: JSON.parse(window.localStorage.getItem('fraud-academy-action-log-v1'))?.[caseId],
+      quickPad: JSON.parse(window.localStorage.getItem('fraud-academy-quick-pad-v1'))?.[caseId],
     };
   }, legacyCaseId);
 
@@ -392,6 +421,9 @@ test('legacy IndexedDB cases and learner progress survive the versioned domain m
   expect(migrated.generatedCase.customerType).toBe('personal');
   expect(migrated.generatedCase.productType).toBe('credit-card');
   expect(migrated.generatedCase.workflowType).toBe('credit-application-review');
+  expect(migrated.generatedCase.relationshipViewSchemaVersion).toBe(1);
+  expect(migrated.generatedCase.relationshipDataVersion).toBe(0);
+  expect(migrated.generatedCase.legacyDerivedEvidence).toBe(true);
   expect(migrated.generatedCase.alertReason).not.toMatch(/synthetic|fraud/i);
   expect(migrated.generatedCase.toolResults.evidence).toEqual([{
     id: 'DOC-IDB-9999',
@@ -427,6 +459,34 @@ test('legacy IndexedDB cases and learner progress survive the versioned domain m
   expect(migrated.draft.updatedAt).toBe(generatedAt + 100);
   expect(migrated.reviewPackage.id).toBe('PKG-IDB-9999');
   expect(migrated.reviewPackage.savedAtIso).toBe(savedAtIso);
-  expect(migrated.completedTools).toEqual(['Case Summary', 'Identity Intel / People Search']);
-  expect(migrated.notes).toEqual(['Learner note survives IndexedDB migration.']);
+  expect(migrated.reviewPackage.completedTools).toEqual(['Document Viewer', 'Financial Investigation']);
+  expect(migrated.reviewPackage.requiredTools).toEqual(['Case Summary', 'Document Viewer', 'KYB Review']);
+  expect(migrated.reviewPackage.missingTools).toEqual(['KYB Review']);
+  expect(migrated.completedTools).toEqual([
+    'Case Summary',
+    'Identity Intel / People Search',
+    'Document Viewer',
+    'Financial Investigation',
+  ]);
+  expect(migrated.notes).toEqual([
+    'Learner note survives IndexedDB migration.',
+    'Learner-authored Financial Intelligence wording stays unchanged.',
+  ]);
+  expect(migrated.actions).toEqual([{
+    id: 'ACT-IDB-SAVED-9999',
+    time: 'Jul 18, 09:31 AM',
+    action: 'Opened Financial Intelligence',
+    detail: 'Learner action detail remains unchanged.',
+    source: 'Financial Investigation',
+  }]);
+  expect(migrated.quickPad).toEqual({
+    items: [{
+      id: 'Financial Intelligence:Account ID:ACCT-IDB-9999',
+      label: 'Account ID',
+      value: 'ACCT-IDB-9999',
+      sourceTool: 'Financial Investigation',
+      sourceRecordId: 'FIN-IDB-9999',
+    }],
+    scratch: 'Learner Quick Pad scratch survives unchanged.',
+  });
 });

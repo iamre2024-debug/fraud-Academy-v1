@@ -1,12 +1,18 @@
 import {
   CASE_DOMAIN_VERSION,
+  CASE_RELATIONSHIP_VIEW_SCHEMA_VERSION,
   CUSTOMER_TYPES,
   FINAL_FINDINGS,
+  LEGACY_RELATIONSHIP_DATA_VERSION,
   PRODUCT_TYPES,
   SUSPECTED_PATTERNS,
   WORKFLOW_TYPES,
   caseDomainLabels,
+  filterToolsForCaseDomain,
   getWorkflowType,
+  hasOwnershipLinkedBusinessRelationship,
+  normalizeToolName,
+  normalizeToolNames,
   operationalDecisionsForWorkflow,
   validateCaseDomain,
 } from './caseDomain.js';
@@ -18,6 +24,38 @@ const applicationScenarioPattern = /(?:synthetic|fake-application|income-inflati
 const businessPattern = /\b(?:business|payroll|vendor|beneficiary|company|entity|owner|administrator|approver|initiator|bec)\b/i;
 const answerRevealingAlertPattern = /\b(?:fraud|synthetic[-_ ]identity|bust[-_ ]?out|first[-_ ]party|mule[-_ ]activity|email[-_ ]compromise|compromised[-_ ]mailbox|spoofed[-_ ]email|bec)\b/i;
 const preSubmissionLeakPattern = /\b(?:fraud|synthetic[-_ ]identity|bust[-_ ]?out|first[-_ ]party|friendly[-_ ]fraud|mule[-_ ]activity|money[-_ ]mule|email[-_ ]compromise|business[-_ ]email[-_ ]compromise|compromised[-_ ]mailbox|spoofed[-_ ]email|mailbox[-_ ]compromise|look[-_ ]alike[-_ ]domain|reply[-_ ]to[-_ ]mismatch|mailbox[-_ ]rule|bec)\b/i;
+const preservedLegacyEvidenceFields = [
+  'transactionInfo',
+  'statement',
+  'intake',
+  'intakeAnswers',
+  'keyFacts',
+  'productsAccounts',
+  'caseBriefing',
+  'briefingDetails',
+  'facts',
+  'events',
+  'timelineEvents',
+  'actionLog',
+  'documents',
+  'evidenceDocuments',
+  'documentRequests',
+  'toolResults',
+  'identityRecords',
+  'claimDetails',
+  'merchantResponse',
+  'loginHistory',
+  'profile',
+  'customer',
+  'parties',
+  'briefingQuestions',
+  'evidenceAreas',
+  'expectedEvidenceCategories',
+  'links',
+  'taxonomyTags',
+  'creditDecision',
+  'chargebackDecision',
+];
 
 function cleanText(value) {
   return String(value ?? '').trim();
@@ -422,16 +460,60 @@ function legacyCaseMetadata(record = {}) {
   };
 }
 
+function relationshipViewCompatibility(record, domain) {
+  const suppliedDataVersion = Number(record.relationshipDataVersion);
+  const hasRelationshipDataVersion = Number.isInteger(suppliedDataVersion)
+    && suppliedDataVersion >= LEGACY_RELATIONSHIP_DATA_VERSION;
+  const relationshipDataVersion = hasRelationshipDataVersion
+    ? suppliedDataVersion
+    : LEGACY_RELATIONSHIP_DATA_VERSION;
+
+  const availableTools = Array.isArray(record.availableTools)
+    ? (
+        hasOwnershipLinkedBusinessRelationship(domain)
+          ? [...new Set([...record.availableTools, 'Business 360'])]
+          : record.availableTools
+      )
+    : record.availableTools;
+  return {
+    relationshipViewSchemaVersion: Math.max(
+      Number(record.relationshipViewSchemaVersion) || 0,
+      CASE_RELATIONSHIP_VIEW_SCHEMA_VERSION,
+    ),
+    relationshipDataVersion,
+    legacyDerivedEvidence: relationshipDataVersion === LEGACY_RELATIONSHIP_DATA_VERSION
+      ? true
+      : typeof record.legacyDerivedEvidence === 'boolean'
+        ? record.legacyDerivedEvidence
+        : false,
+    availableTools: Array.isArray(availableTools)
+      ? filterToolsForCaseDomain(availableTools, domain)
+      : availableTools,
+    requiredTools: Array.isArray(record.requiredTools)
+      ? filterToolsForCaseDomain(record.requiredTools, domain)
+      : record.requiredTools,
+  };
+}
+
 export function migrateGeneratedCase(record) {
   if (!record || typeof record !== 'object' || Array.isArray(record)) return record;
+  const authoritativeDomain = explicitDomain(record);
   if (
     (
       domainAuthority(record) >= CASE_MIGRATION_VERSION
       || Number(record.legacyMetadata?.migrationVersion) >= CASE_MIGRATION_VERSION
     )
-    && explicitDomain(record)
-  ) return record;
+    && authoritativeDomain
+  ) {
+    const routingDomain = { ...record, ...authoritativeDomain };
+    const next = {
+      ...record,
+      ...relationshipViewCompatibility(record, routingDomain),
+    };
+    return JSON.stringify(next) === JSON.stringify(record) ? record : next;
+  }
   const domain = classifyLegacyCase(record);
+  const routingDomain = { ...record, ...domain };
   const labels = caseDomainLabels(domain);
   const workflowLabel = labels.workflowTypeLabel || getWorkflowType(domain.workflowType)?.label || 'Case Review';
   const existingAlertReason = cleanText(record.alertReason);
@@ -491,6 +573,7 @@ export function migrateGeneratedCase(record) {
       Number(record.domainSchemaVersion) || 0,
       CASE_MIGRATION_VERSION,
     ),
+    ...relationshipViewCompatibility(record, routingDomain),
     ...domain,
     customerTypeLabel: labels.customerTypeLabel,
     productTypeLabel: labels.productTypeLabel,
@@ -627,14 +710,23 @@ export function migrateGeneratedCase(record) {
       record.briefingQuestions,
       'Review the available evidence without assuming a final finding.',
     ),
-    availableTools: sanitizePresentationValue(
-      record.availableTools,
-      'Investigation tool',
-    ),
-    requiredTools: sanitizePresentationValue(
-      record.requiredTools,
-      'Investigation tool',
-    ),
+    availableTools: Array.isArray(record.availableTools)
+      ? filterToolsForCaseDomain(
+          hasOwnershipLinkedBusinessRelationship(routingDomain)
+            ? [
+                ...sanitizePresentationValue(record.availableTools, 'Investigation tool'),
+                'Business 360',
+              ]
+            : sanitizePresentationValue(record.availableTools, 'Investigation tool'),
+          routingDomain,
+        )
+      : record.availableTools,
+    requiredTools: Array.isArray(record.requiredTools)
+      ? filterToolsForCaseDomain(
+          sanitizePresentationValue(record.requiredTools, 'Investigation tool'),
+          routingDomain,
+        )
+      : record.requiredTools,
     evidenceAreas: sanitizePresentationValue(
       record.evidenceAreas,
       'Evidence area',
@@ -669,6 +761,12 @@ export function migrateGeneratedCase(record) {
       : record.scoringRules,
     legacyMetadata: legacyCaseMetadata(record),
   };
+  // Domain migration is additive. Keep the learner's persisted evidence packet
+  // exactly as generated or worked; neutralization belongs to the disposable
+  // pre-submission presentation clone built below.
+  for (const field of preservedLegacyEvidenceFields) {
+    if (Object.hasOwn(record, field)) next[field] = record[field];
+  }
   const compactNext = compactSerializableValue(next);
   return JSON.stringify(compactNext) === JSON.stringify(record) ? record : compactNext;
 }
@@ -677,7 +775,237 @@ export function migrateGeneratedCases(records = []) {
   return Array.isArray(records) ? records.map(migrateGeneratedCase) : [];
 }
 
-export function publicGeneratedCaseRecord(record) {
+function publicEvidenceFields(record) {
+  const domain = classifyLegacyCase(record);
+  const workflowLabel = caseDomainLabels(domain).workflowTypeLabel
+    || getWorkflowType(domain.workflowType)?.label
+    || 'Case Review';
+  const fallbacks = {
+    transactionInfo: `${workflowLabel} activity record available for investigation`,
+    statement: 'Reported allegation available for neutral investigation.',
+    intake: 'Legacy intake detail available for neutral investigation.',
+    intakeAnswers: 'Intake evidence available for neutral investigation.',
+    keyFacts: 'Case fact available for neutral investigation.',
+    productsAccounts: 'Account relationship available for neutral investigation.',
+    caseBriefing: 'Case briefing detail available for neutral investigation.',
+    briefingDetails: 'Evidence detail available for neutral investigation.',
+    facts: 'Evidence item available for investigation.',
+    events: `${workflowLabel} activity record available for investigation.`,
+    timelineEvents: `${workflowLabel} activity record available for investigation.`,
+    actionLog: `${workflowLabel} case activity recorded.`,
+    documents: 'Evidence document available for neutral investigation.',
+    evidenceDocuments: 'Evidence document available for neutral investigation.',
+    documentRequests: 'Evidence document available for neutral investigation.',
+    toolResults: `${workflowLabel} evidence available for neutral investigation.`,
+    identityRecords: 'Identity evidence available for neutral investigation.',
+    claimDetails: 'Claim detail available for neutral investigation.',
+    merchantResponse: 'Merchant response available for neutral investigation.',
+    loginHistory: 'Access record available for neutral investigation.',
+    profile: 'Profile detail available for neutral investigation.',
+    customer: 'Customer detail available for neutral investigation.',
+    parties: 'Party detail available for neutral investigation.',
+    briefingQuestions: 'Review the available evidence without assuming a final finding.',
+    evidenceAreas: 'Evidence area',
+    expectedEvidenceCategories: 'Evidence area',
+    links: 'Related investigation object',
+    taxonomyTags: 'Legacy taxonomy value',
+    creditDecision: 'Credit decision evidence available for review.',
+    chargebackDecision: 'Claim decision evidence available for review.',
+  };
+  const next = {
+    suspectedPatterns: [],
+    operationalDecision: null,
+    finalFinding: null,
+    findingBasis: '',
+  };
+  for (const field of preservedLegacyEvidenceFields) {
+    if (!Object.hasOwn(record, field)) continue;
+    const source = ['documents', 'evidenceDocuments', 'documentRequests'].includes(field)
+      ? migratedDocuments(record[field], domain)
+      : record[field];
+    next[field] = sanitizePresentationValue(source, fallbacks[field] ?? 'Evidence available for neutral investigation.');
+  }
+  if (Object.hasOwn(record, 'transactionInfo')) {
+    next.transactionInfo = safePresentationText(record.transactionInfo, fallbacks.transactionInfo);
+  }
+  return next;
+}
+
+function publicPresentationFields(record) {
+  const domain = classifyLegacyCase(record);
+  const labels = caseDomainLabels(domain);
+  const workflowLabel = labels.workflowTypeLabel || getWorkflowType(domain.workflowType)?.label || 'Case Review';
+  const alertReason = safePresentationText(record.alertReason, neutralAlertReason(domain));
+  const allegation = reportedAllegation(record, domain);
+  const forceNeutralIntake = [
+    WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT,
+    WORKFLOW_TYPES.BUSINESS_PAYMENT_INSTRUCTION_CHANGE_ALERT,
+  ].includes(domain.workflowType);
+  const neutralSummary = `${labels.customerTypeLabel} ${labels.productTypeLabel} — ${workflowLabel}. ${alertReason}`;
+  const neutralScenarioBase = alertReason.replace(/[.!?]+$/, '');
+  const neutralScenarioTitle = /\breview$/i.test(neutralScenarioBase)
+    ? neutralScenarioBase
+    : `${neutralScenarioBase} review`;
+  const neutralScenarioId = `${domain.workflowType}-legacy-review`;
+  const eventFallback = `${workflowLabel} activity record available for investigation.`;
+  const sanitizedStatement = sanitizePresentationValue(
+    record.statement,
+    'Reported allegation available for neutral investigation.',
+  );
+  const sanitizedIntake = sanitizePresentationValue(
+    record.intake,
+    'Legacy intake detail available for neutral investigation.',
+  );
+  const sanitizedCaseBriefing = sanitizePresentationValue(
+    record.caseBriefing,
+    'Case briefing detail available for neutral investigation.',
+  );
+
+  return {
+    suspectedPatterns: [],
+    operationalDecision: null,
+    finalFinding: null,
+    findingBasis: '',
+    transactionInfo: safePresentationText(
+      record.transactionInfo,
+      `${workflowLabel} activity record available for investigation`,
+    ),
+    statement: record.statement && typeof record.statement === 'object'
+      ? {
+          ...(sanitizedStatement ?? {}),
+          label: safePresentationText(record.statement.label, 'Reported allegation'),
+          value: allegation,
+          source: forceNeutralIntake
+            ? domain.workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT
+              ? 'Platform payroll alert'
+              : 'Business review queue'
+            : safePresentationText(record.statement.source, 'Legacy intake'),
+        }
+      : {
+          label: 'Reported allegation',
+          value: allegation,
+          source: forceNeutralIntake ? 'Case queue' : 'Legacy intake',
+        },
+    intake: {
+      ...(sanitizedIntake ?? {}),
+      channel: forceNeutralIntake
+        ? domain.workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT
+          ? 'Platform payroll alert'
+          : 'Business review queue'
+        : safePresentationText(record.intake?.channel, 'Legacy intake'),
+    },
+    intakeAnswers: migratedIntakeAnswers(record, domain, alertReason),
+    keyFacts: [
+      ['Customer type', labels.customerTypeLabel],
+      ['Product', labels.productTypeLabel],
+      ['Review workflow', workflowLabel],
+      ['Alert reason', alertReason],
+      ['Reported date', record.reportedDate ?? record.opened ?? 'Not supplied'],
+      ['Issue start date', record.issueStartDate ?? 'Not supplied'],
+      ['Amount / exposure', record.amountExposure ?? record.amount ?? 'Not supplied'],
+      ['Difficulty', record.difficulty ?? 'Legacy packet'],
+      ['Evidence depth', record.evidenceDepth ?? 'Legacy packet'],
+    ],
+    productsAccounts: [
+      { label: 'Customer type', value: labels.customerTypeLabel },
+      { label: 'Product', value: labels.productTypeLabel },
+      { label: 'Review workflow', value: workflowLabel },
+      {
+        label: 'Primary account context',
+        value: safePresentationText(
+          record.transactionInfo,
+          `${workflowLabel} activity record available for investigation`,
+        ),
+      },
+    ],
+    caseBriefing: {
+      ...(sanitizedCaseBriefing ?? {}),
+      summary: safePresentationText(record.caseBriefing?.summary, neutralSummary),
+      scenarioTitle: neutralScenarioTitle,
+      scenarioVariantId: `${neutralScenarioId}-variation`,
+      scenarioVariant: record.caseBriefing?.scenarioVariant ? 'Legacy evidence variation' : record.caseBriefing?.scenarioVariant,
+      focusAreas: sanitizePresentationValue(
+        record.caseBriefing?.focusAreas,
+        'Review the available records without assuming a final finding.',
+      ),
+    },
+    briefingDetails: sanitizePresentationValue(
+      record.briefingDetails,
+      'Evidence detail available for neutral investigation.',
+    ),
+    facts: sanitizePresentationValue(record.facts, 'Evidence item available for investigation.'),
+    events: sanitizePresentationValue(record.events, eventFallback),
+    timelineEvents: sanitizePresentationValue(record.timelineEvents ?? record.events, eventFallback),
+    actionLog: sanitizePresentationValue(record.actionLog, `${workflowLabel} case activity recorded.`),
+    documents: sanitizePresentationValue(
+      migratedDocuments(record.documents, domain),
+      'Evidence document available for neutral investigation.',
+    ),
+    evidenceDocuments: sanitizePresentationValue(
+      migratedDocuments(record.evidenceDocuments, domain),
+      'Evidence document available for neutral investigation.',
+    ),
+    documentRequests: sanitizePresentationValue(
+      migratedDocuments(record.documentRequests, domain),
+      'Evidence document available for neutral investigation.',
+    ),
+    toolResults: sanitizePresentationValue(
+      record.toolResults,
+      domain.workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT
+        ? 'Payroll change evidence requires trusted verification.'
+        : `${workflowLabel} evidence available for neutral investigation.`,
+    ),
+    identityRecords: sanitizePresentationValue(
+      record.identityRecords,
+      'Identity evidence available for neutral investigation.',
+    ),
+    claimDetails: sanitizePresentationValue(
+      record.claimDetails,
+      'Claim detail available for neutral investigation.',
+    ),
+    merchantResponse: sanitizePresentationValue(
+      record.merchantResponse,
+      'Merchant response available for neutral investigation.',
+    ),
+    loginHistory: sanitizePresentationValue(
+      record.loginHistory,
+      'Access record available for neutral investigation.',
+    ),
+    profile: sanitizePresentationValue(
+      record.profile,
+      'Profile detail available for neutral investigation.',
+    ),
+    customer: sanitizePresentationValue(
+      record.customer,
+      'Customer detail available for neutral investigation.',
+    ),
+    parties: sanitizePresentationValue(
+      record.parties,
+      'Party detail available for neutral investigation.',
+    ),
+    briefingQuestions: sanitizePresentationValue(
+      record.briefingQuestions,
+      'Review the available evidence without assuming a final finding.',
+    ),
+    evidenceAreas: sanitizePresentationValue(record.evidenceAreas, 'Evidence area'),
+    expectedEvidenceCategories: sanitizePresentationValue(
+      record.expectedEvidenceCategories,
+      'Evidence area',
+    ),
+    links: sanitizePresentationValue(record.links, 'Related investigation object'),
+    taxonomyTags: sanitizePresentationValue(record.taxonomyTags, 'Legacy taxonomy value'),
+    creditDecision: sanitizePresentationValue(
+      record.creditDecision,
+      'Credit decision evidence available for review.',
+    ),
+    chargebackDecision: sanitizePresentationValue(
+      record.chargebackDecision,
+      'Claim decision evidence available for review.',
+    ),
+  };
+}
+
+export function persistedGeneratedCaseRecord(record) {
   const migrated = migrateGeneratedCase(record);
   if (!migrated || typeof migrated !== 'object' || Array.isArray(migrated)) return migrated;
   const next = { ...migrated };
@@ -691,6 +1019,19 @@ export function publicGeneratedCaseRecord(record) {
     next.scoringRules = scoringRules;
   }
   return compactSerializableValue(next);
+}
+
+export function publicGeneratedCaseRecord(record) {
+  const persisted = persistedGeneratedCaseRecord(record);
+  if (!persisted || typeof persisted !== 'object' || Array.isArray(persisted)) return persisted;
+  const legacyPresentation = persisted.legacyMetadata
+    && Number(persisted.legacyMetadata.sourceDomainSchemaVersion) < CASE_MIGRATION_VERSION;
+  return compactSerializableValue({
+    ...persisted,
+    ...(legacyPresentation
+      ? publicPresentationFields(persisted)
+      : publicEvidenceFields(persisted)),
+  });
 }
 
 function preferredMoreInformationDecision(workflowType) {
@@ -946,6 +1287,72 @@ function migrationContext(caseRecord = {}, savedRecord = {}) {
   };
 }
 
+function normalizeToolReferenceFields(record = {}) {
+  if (!record || typeof record !== 'object' || Array.isArray(record)) return record;
+  const next = { ...record };
+  for (const key of ['source', 'sourceTool', 'tool', 'toolName', 'type']) {
+    if (typeof next[key] === 'string') next[key] = normalizeToolName(next[key]);
+  }
+  return next;
+}
+
+export function normalizeCompletedToolsByCase(saved = {}) {
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return saved ?? {};
+  return Object.fromEntries(Object.entries(saved).map(([caseId, tools]) => [
+    caseId,
+    Array.isArray(tools) ? normalizeToolNames(tools) : tools,
+  ]));
+}
+
+export function normalizeNotesByCase(saved = {}) {
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return saved ?? {};
+  return Object.fromEntries(Object.entries(saved).map(([caseId, notes]) => [
+    caseId,
+    Array.isArray(notes)
+      ? notes.map((note) => (
+          typeof note === 'string'
+            ? note
+            : normalizeToolReferenceFields(note)
+        ))
+      : notes,
+  ]));
+}
+
+export function normalizeActionsByCase(saved = {}) {
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return saved ?? {};
+  return Object.fromEntries(Object.entries(saved).map(([caseId, actions]) => [
+    caseId,
+    Array.isArray(actions) ? actions.map(normalizeToolReferenceFields) : actions,
+  ]));
+}
+
+export function normalizeQuickPadByCase(saved = {}) {
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return saved ?? {};
+  return Object.fromEntries(Object.entries(saved).map(([caseId, quickPad]) => {
+    if (!quickPad || typeof quickPad !== 'object' || Array.isArray(quickPad)) {
+      return [caseId, quickPad];
+    }
+    return [
+      caseId,
+      {
+        ...quickPad,
+        items: Array.isArray(quickPad.items)
+          ? quickPad.items.map((item) => (
+              item && typeof item === 'object' && !Array.isArray(item)
+                ? Object.fromEntries(Object.entries(item).map(([key, value]) => [
+                    key,
+                    key === 'sourceTool' || key === 'source'
+                      ? normalizeToolName(value)
+                      : value,
+                  ]))
+                : item
+            ))
+          : quickPad.items,
+      },
+    ];
+  }));
+}
+
 export function migrateDecisionDraft(draft, caseRecord = {}) {
   if (!draft || typeof draft !== 'object' || Array.isArray(draft)) return draft;
   const domain = classifyLegacyCase(migrationContext(caseRecord, draft));
@@ -1002,6 +1409,22 @@ export function migrateReviewPackage(reviewPackage, caseRecord = {}) {
     finalFinding: cleanText(reviewPackage.finalFinding),
     findingBasis,
     evidenceRationale: cleanText(reviewPackage.evidenceRationale) || findingBasis,
+    ...(Array.isArray(reviewPackage.completedTools) ? {
+      completedTools: normalizeToolNames(reviewPackage.completedTools),
+    } : {}),
+    ...(Array.isArray(reviewPackage.requiredTools) ? {
+      requiredTools: normalizeToolNames(reviewPackage.requiredTools),
+    } : {}),
+    ...(Array.isArray(reviewPackage.missingTools) ? {
+      missingTools: normalizeToolNames(reviewPackage.missingTools),
+    } : {}),
+    ...(Array.isArray(reviewPackage.noteSnapshot) ? {
+      noteSnapshot: reviewPackage.noteSnapshot.map((note) => (
+        typeof note === 'string'
+          ? note
+          : normalizeToolReferenceFields(note)
+      )),
+    } : {}),
     legacyDecisionFormat,
     legacyMetadata: {
       ...(reviewPackage.legacyMetadata ?? {}),
@@ -1045,6 +1468,18 @@ export function migratePersistenceResources(rawByKey = {}, generatedCases = []) 
   }
   const nextRaw = { ...rawByKey };
 
+  nextRaw[storageKeys.completed] = normalizeCompletedToolsByCase(
+    rawByKey[storageKeys.completed] ?? {},
+  );
+  nextRaw[storageKeys.notes] = normalizeNotesByCase(
+    rawByKey[storageKeys.notes] ?? {},
+  );
+  nextRaw[storageKeys.actions] = normalizeActionsByCase(
+    rawByKey[storageKeys.actions] ?? {},
+  );
+  nextRaw[storageKeys.quickPad] = normalizeQuickPadByCase(
+    rawByKey[storageKeys.quickPad] ?? {},
+  );
   nextRaw[storageKeys.decisions] = migrateCaseMap(
     rawByKey[storageKeys.decisions] ?? {},
     casesById,
@@ -1147,6 +1582,38 @@ function migrateSnapshotArrayItems(items, migrateItem, activeCase) {
   ]));
 }
 
+function migrateSnapshotArrayResource(resource, migrateValue) {
+  if (!resource) return resource;
+  return {
+    ...resource,
+    entries: Object.fromEntries(Object.entries(resource.entries ?? {}).map(([caseId, entry]) => [
+      caseId,
+      {
+        ...entry,
+        items: Object.fromEntries(Object.entries(entry?.items ?? {}).map(([itemId, item]) => [
+          itemId,
+          item?.value === undefined
+            ? item
+            : { ...item, value: migrateValue(item.value, caseId) },
+        ])),
+      },
+    ])),
+  };
+}
+
+function migrateSnapshotValueResource(resource, migrateValue) {
+  if (!resource) return resource;
+  return {
+    ...resource,
+    entries: Object.fromEntries(Object.entries(resource.entries ?? {}).map(([caseId, entry]) => [
+      caseId,
+      entry?.value === undefined
+        ? entry
+        : { ...entry, value: migrateValue(entry.value, caseId) },
+    ])),
+  };
+}
+
 export function migrateCloudSnapshotCaseData(snapshot = {}) {
   const existingTruthItems = snapshot.generatedCaseTruth?.items ?? {};
   const truthCaseIds = new Set(
@@ -1181,7 +1648,7 @@ export function migrateCloudSnapshotCaseData(snapshot = {}) {
       };
       truthCaseIds.add(caseId);
     }
-    return [itemId, { ...item, value: publicGeneratedCaseRecord(migrated) }];
+    return [itemId, { ...item, value: persistedGeneratedCaseRecord(migrated) }];
   }));
   const casesById = caseLookup(Object.values(generatedItems).map((item) => item?.value).filter(Boolean));
   const resources = { ...(snapshot.resources ?? {}) };
@@ -1205,6 +1672,35 @@ export function migrateCloudSnapshotCaseData(snapshot = {}) {
           : { ...entry, value: migrateDecisionDraft(entry.value, casesById.get(caseId) ?? { id: caseId }) },
       ])),
     };
+  }
+
+  if (resources[storageKeys.completed]) {
+    resources[storageKeys.completed] = migrateSnapshotArrayResource(
+      resources[storageKeys.completed],
+      normalizeToolName,
+    );
+  }
+  if (resources[storageKeys.notes]) {
+    resources[storageKeys.notes] = migrateSnapshotArrayResource(
+      resources[storageKeys.notes],
+      (note) => (
+        typeof note === 'string'
+          ? note
+          : normalizeToolReferenceFields(note)
+      ),
+    );
+  }
+  if (resources[storageKeys.actions]) {
+    resources[storageKeys.actions] = migrateSnapshotArrayResource(
+      resources[storageKeys.actions],
+      normalizeToolReferenceFields,
+    );
+  }
+  if (resources[storageKeys.quickPad]) {
+    resources[storageKeys.quickPad] = migrateSnapshotValueResource(
+      resources[storageKeys.quickPad],
+      (quickPad, caseId) => normalizeQuickPadByCase({ [caseId]: quickPad })[caseId],
+    );
   }
 
   const packageResource = resources[storageKeys.packages];

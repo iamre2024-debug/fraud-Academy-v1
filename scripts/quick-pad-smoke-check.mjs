@@ -17,7 +17,7 @@ const checks = [
   ['Saved values can populate the current search', workspace.includes('setQuery(item.value)')],
   ['Saved values can reopen their source tool', workspace.includes('openTool(item.sourceTool')],
   ['Account IDs can be added from Customer 360', customer.includes("label: 'Account ID'")],
-  ['Bank and destination IDs can be added', customer.includes("label: 'Bank Code'") && customer.includes("label: 'Destination ID'")],
+  ['Bank and destination IDs can be added', device.includes("label: 'Bank Code'") && device.includes("label: 'Destination ID'")],
   ['Device IDs can be added', device.includes("label: 'Device ID'")],
   ['Scratch text can become a formal case note', workspace.includes("saveNote(quickPad.scratch, 'Quick Pad note')")],
   ['Panel stays compact on phones', styles.includes('max-height: min(300px, 36dvh)')],

@@ -8,16 +8,21 @@ import {
 } from './claimRegistry.js';
 import {
   CASE_DOMAIN_VERSION,
+  CASE_RELATIONSHIP_DATA_VERSION,
+  CASE_RELATIONSHIP_VIEW_SCHEMA_VERSION,
   CUSTOMER_TYPES,
   PRODUCT_TYPES,
   WORKFLOW_TYPES,
   assertCaseDomain,
   caseDomainLabels,
+  filterToolsForCaseDomain,
   isWorkflowEnabled,
 } from './caseDomain.js';
 import { getScenarioTruth } from './claimScenarioCatalog.js';
 import { buildCaseBriefingPacket } from './caseBriefingDetails.js';
 import { buildCaseIntakeAnswers } from './intakeAnswers.js';
+import { getRelationshipAccounts } from './relationshipAccounts.js';
+import { getPayrollHistory } from './businessPayrollWorkspace.js';
 import {
   buildGeneratedPersona,
   buildGeneratedToolResults,
@@ -175,6 +180,154 @@ function dateFor(index, offset = 0) {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: '2-digit', year: 'numeric' }).format(date);
 }
 
+function dateBefore(value, days) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  parsed.setUTCDate(parsed.getUTCDate() - days);
+  return parsed.toISOString().slice(0, 10);
+}
+
+function roundGeneratedMoney(value) {
+  return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+}
+
+function generatedSecuritySnapshot(loginHistory, phone, email) {
+  const established = (loginHistory ?? []).filter((record) => (
+    /successful/i.test(record.result ?? '')
+    && /(?:-M\b|established|known|trusted)/i.test(`${record.deviceId ?? ''} ${record.device ?? ''}`)
+  ));
+  const byDevice = new Map();
+  for (const record of established) {
+    const deviceId = record.deviceId;
+    if (!deviceId) continue;
+    const rows = byDevice.get(deviceId) ?? [];
+    rows.push(record);
+    byDevice.set(deviceId, rows);
+  }
+  const trustedDevices = [...byDevice.entries()].map(([deviceId, rows]) => {
+    const chronological = [...rows].reverse();
+    const first = chronological[0];
+    const last = rows[0];
+    return {
+      id: deviceId,
+      name: last.device ?? 'Established training device',
+      type: /mobile|phone/i.test(last.device ?? '') ? 'Mobile phone' : 'Computer',
+      platform: [last.operatingSystem, last.browserSource].filter(Boolean).join(' · '),
+      firstSeen: first.time,
+      lastSeen: last.time,
+      mostRecentSuccessfulLogin: last.time,
+      trustStatus: 'Trusted in the generated relationship profile',
+      authentication: last.mfaStatus ?? last.method,
+      mfaMethod: last.mfaStatus ?? last.method,
+    };
+  });
+  return {
+    mfaStatus: established[0]?.mfaStatus ?? 'MFA enrollment record not supplied',
+    passwordChanged: 'Password-reset information not supplied',
+    lockouts: 'Review Login History for account-lockout records',
+    alerts: `Security alerts route to ${email}`,
+    recoveryContact: `${phone} · ${email}`,
+    trustedPhone: phone,
+    trustedEmail: email,
+    recentPasswordReset: 'Password-reset information not supplied',
+    securityAlertsSent: `Security alerts route to ${email}`,
+    trustedDevices,
+  };
+}
+
+function persistRelationshipFinancialHistory({
+  id,
+  domain,
+  workflowType,
+  reportedDate,
+  profile,
+  customer,
+  toolResults,
+}) {
+  const accounts = toolResults.relationshipAccounts ?? [];
+  if (
+    domain.customerType === CUSTOMER_TYPES.PERSONAL
+    && domain.productType === PRODUCT_TYPES.DEPOSIT_ACCOUNT
+    && !Array.isArray(toolResults.depositHistory)
+  ) {
+    const primary = accounts.find((account) => account.isPrimary) ?? accounts[0];
+    const balanceAnchor = Math.max(600, Number(primary?.currentBalance) || 0, Number(primary?.availableBalance) || 0);
+    const regularAmount = roundGeneratedMoney(Math.max(450, balanceAnchor * 0.32));
+    const otherAmount = roundGeneratedMoney(Math.max(125, balanceAnchor * 0.11));
+    const source = profile.employer ?? 'Fictional training employer';
+    toolResults.depositHistory = [
+      {
+        id: `${id}-DEP-1`,
+        title: 'Payroll deposit',
+        amount: regularAmount,
+        observed: dateBefore(reportedDate, 3),
+        source,
+        depositType: 'ACH payroll credit',
+        status: 'Posted',
+      },
+      {
+        id: `${id}-DEP-2`,
+        title: 'Payroll deposit',
+        amount: regularAmount,
+        observed: dateBefore(reportedDate, 17),
+        source,
+        depositType: 'ACH payroll credit',
+        status: 'Posted',
+      },
+      {
+        id: `${id}-DEP-3`,
+        title: 'Other incoming transfer',
+        amount: otherAmount,
+        observed: dateBefore(reportedDate, 39),
+        source: 'Fictional training transfer source',
+        depositType: 'Other incoming credit',
+        status: 'Posted',
+      },
+    ];
+  }
+
+  const creditAccount = accounts.find((account) => (
+    ['credit-card', 'business-credit-card', 'revolving-credit-line', 'installment-loan', 'business-installment-loan']
+      .includes(account.productKind)
+  ));
+  if (
+    !creditAccount
+    || workflowType === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW
+    || Array.isArray(toolResults.paymentHistory)
+    || !(Number(creditAccount.scheduledPayment) > 0)
+  ) return;
+  const summary = String(toolResults.creditProfile?.paymentHistory ?? creditAccount.paymentStatus ?? '').toLowerCase();
+  const statuses = /returned|missed/.test(summary)
+    ? ['Returned', 'Late', 'Partial']
+    : /late|delinquen/.test(summary)
+      ? ['Late', 'Completed', 'Completed']
+      : ['Completed', 'Completed', 'Completed'];
+  const paymentSource = accounts.find((account) => account.accountId !== creditAccount.accountId);
+  toolResults.paymentHistory = statuses.map((status, offset) => {
+    const scheduledAmount = roundGeneratedMoney(creditAccount.scheduledPayment);
+    const actualPaid = status === 'Returned'
+      ? 0
+      : status === 'Partial'
+        ? roundGeneratedMoney(scheduledAmount * 0.5)
+        : scheduledAmount;
+    return {
+      id: `${id}-PMT-${offset + 1}`,
+      title: `${creditAccount.productLabel} monthly payment`,
+      scheduledAmount,
+      actualPaid,
+      paymentDate: dateBefore(reportedDate, 14 + (offset * 30)),
+      status,
+      paymentSource: paymentSource
+        ? `${paymentSource.productLabel} ${paymentSource.maskedAccountId}`
+        : 'Fictional relationship payment source',
+      balanceAfter: creditAccount.currentBalance === null
+        ? null
+        : roundGeneratedMoney(Number(creditAccount.currentBalance) + (offset * scheduledAmount)),
+      detail: 'This dated payment record was persisted when the fictional generated case was created.',
+    };
+  });
+}
+
 function generatorOptions(indexOrOptions, options) {
   if (typeof indexOrOptions === 'object' && indexOrOptions !== null) {
     return { index: Date.now(), ...indexOrOptions };
@@ -303,19 +456,6 @@ function scenarioVariant(baseScenario, index) {
     variationId: `${baseScenario.id}-V${padded(seed, 8)}`,
     variationLabel: pattern,
   };
-}
-
-function toolsForDomain(tools = [], domain) {
-  const excluded = new Set();
-  if (domain.customerType === CUSTOMER_TYPES.PERSONAL) {
-    ['Business 360', 'KYB Review', 'Employee Profile', 'Payroll History'].forEach((tool) => excluded.add(tool));
-  } else {
-    excluded.add('Customer 360');
-  }
-  if (![WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT, WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER].includes(domain.workflowType)) {
-    ['Employee Profile', 'Payroll History'].forEach((tool) => excluded.add(tool));
-  }
-  return [...new Set(tools.filter((tool) => !excluded.has(tool)))];
 }
 
 function makeLoginHistory({ id, index, city, recordCount, claimType, scenario, difficulty }) {
@@ -583,8 +723,8 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   scenario.taxonomyTags = scenarioTaxonomy;
   const caseClaimType = {
     ...claimType,
-    availableTools: toolsForDomain(scenario.toolkitTools ?? claimType.availableTools, domain),
-    requiredTools: toolsForDomain(claimType.requiredTools, domain),
+    availableTools: filterToolsForCaseDomain(scenario.toolkitTools ?? claimType.availableTools, domain),
+    requiredTools: filterToolsForCaseDomain(claimType.requiredTools, domain),
   };
   const difficulty = ['light', 'standard', 'deep'].includes(config.difficulty) ? config.difficulty : 'standard';
   const depth = depthConfig[config.evidenceDepth] ?? depthConfig.standard;
@@ -646,6 +786,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     relationshipSince: /existing|history/i.test(`${scenario.family} ${scenario.caseTruth?.classification}`) ? '2021' : index % 2 ? '2023' : '2026',
     segment: `${claimType.shortLabel} training profile`,
     contact: { phone, email, address, preferredChannel: scenario.channel },
+    security: generatedSecuritySnapshot(loginHistory, phone, email),
     relationship: [
       { label: 'Account ID', value: accountId },
       { label: 'Open products', value: taxonomyTags.productRail },
@@ -654,6 +795,51 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     ],
     profileChanges,
   };
+  toolResults.relationshipAccounts = getRelationshipAccounts({
+    id,
+    accountId,
+    amount: scenario.amount,
+    amountExposure: scenario.amount,
+    customerType: domain.customerType,
+    productType: domain.productType,
+    workflowType: domain.workflowType,
+    reportedDate,
+    issueStartDate,
+    customer,
+    toolResults,
+  });
+  persistRelationshipFinancialHistory({
+    id,
+    domain,
+    workflowType: domain.workflowType,
+    reportedDate,
+    profile,
+    customer,
+    toolResults,
+  });
+  if (caseClaimType.availableTools.includes('Payroll History')) {
+    toolResults.payrollHistory = getPayrollHistory({
+      id,
+      accountId,
+      amount: scenario.amount,
+      amountExposure: scenario.amount,
+      opened: 'Generated training case',
+      reportedDate,
+      issueStartDate,
+      customerType: domain.customerType,
+      productType: domain.productType,
+      workflowType: domain.workflowType,
+      relationshipDataVersion: CASE_RELATIONSHIP_DATA_VERSION,
+      legacyDerivedEvidence: false,
+      availableTools: caseClaimType.availableTools,
+      profile,
+      customer,
+      parties: caseParties,
+      toolResults,
+      loginHistory,
+      documents,
+    });
+  }
   const intakeAnswers = buildCaseIntakeAnswers({
     caseId: id,
     prompts: claimType.intakePrompts,
@@ -721,6 +907,9 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     caseId: id,
     claimId: `CLM-${claimType.prefix}-G${String(index).slice(-8)}`,
     domainSchemaVersion: CASE_DOMAIN_VERSION,
+    relationshipViewSchemaVersion: CASE_RELATIONSHIP_VIEW_SCHEMA_VERSION,
+    relationshipDataVersion: CASE_RELATIONSHIP_DATA_VERSION,
+    legacyDerivedEvidence: false,
     customerType: domain.customerType,
     customerTypeLabel: domainLabels.customerTypeLabel,
     productType: domain.productType,

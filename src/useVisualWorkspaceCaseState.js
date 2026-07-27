@@ -10,31 +10,24 @@ import {
   normalizeDecisionDraft,
   normalizeReviewPackage,
 } from './data/reviewPackage.js';
+import {
+  normalizeActionsByCase,
+  normalizeCompletedToolsByCase,
+  normalizeNotesByCase,
+  normalizeQuickPadByCase,
+} from './data/caseMigration.js';
 import { caseStorageMigrationEvent } from './data/cloudSyncClient.js';
-
-const legacyToolNames = {
-  'Evidence Center': 'Document Viewer',
-  'Financial Intelligence': 'Financial Investigation',
-  'Business Intelligence': 'KYB Review',
-};
-
-function migrateCompletedTools(saved) {
-  return Object.fromEntries(Object.entries(saved).map(([caseId, tools]) => [
-    caseId,
-    [...new Set((tools ?? []).map((tool) => legacyToolNames[tool] ?? tool))],
-  ]));
-}
 
 export default function useVisualWorkspaceCaseState(activeCase) {
   const [trayByCase, setTrayByCase] = useState(() => readStorage(storageKeys.tray, {}));
-  const [notesByCase, setNotesByCase] = useState(() => readStorage(storageKeys.notes, {}));
+  const [notesByCase, setNotesByCase] = useState(() => normalizeNotesByCase(readStorage(storageKeys.notes, {})));
   const [noteDraftsByCase, setNoteDraftsByCase] = useState(() => readStorage(storageKeys.noteDrafts, {}));
-  const [completedByCase, setCompletedByCase] = useState(() => migrateCompletedTools(readStorage(storageKeys.completed, {})));
+  const [completedByCase, setCompletedByCase] = useState(() => normalizeCompletedToolsByCase(readStorage(storageKeys.completed, {})));
   const [decisionByCase, setDecisionByCase] = useState(() => readStorage(storageKeys.decisions, {}));
   const [packagesByCase, setPackagesByCase] = useState(() => readStorage(storageKeys.packages, {}));
-  const [actionsByCase, setActionsByCase] = useState(() => readStorage(storageKeys.actions, {}));
+  const [actionsByCase, setActionsByCase] = useState(() => normalizeActionsByCase(readStorage(storageKeys.actions, {})));
   const [documentRequestsByCase, setDocumentRequestsByCase] = useState(() => readStorage(storageKeys.documentRequests, {}));
-  const [quickPadByCase, setQuickPadByCase] = useState(() => readStorage(storageKeys.quickPad, {}));
+  const [quickPadByCase, setQuickPadByCase] = useState(() => normalizeQuickPadByCase(readStorage(storageKeys.quickPad, {})));
   const [payrollInvestigationsByCase, setPayrollInvestigationsByCase] = useState(() => readStorage(storageKeys.payrollInvestigations, {}));
 
   useEffect(() => writeStorage(storageKeys.tray, trayByCase), [trayByCase]);
@@ -54,14 +47,14 @@ export default function useVisualWorkspaceCaseState(activeCase) {
   useEffect(() => {
     const hydrateFromRecovery = () => {
       setTrayByCase(readStorage(storageKeys.tray, {}));
-      setNotesByCase(readStorage(storageKeys.notes, {}));
+      setNotesByCase(normalizeNotesByCase(readStorage(storageKeys.notes, {})));
       setNoteDraftsByCase(readStorage(storageKeys.noteDrafts, {}));
-      setCompletedByCase(migrateCompletedTools(readStorage(storageKeys.completed, {})));
+      setCompletedByCase(normalizeCompletedToolsByCase(readStorage(storageKeys.completed, {})));
       setDecisionByCase(readStorage(storageKeys.decisions, {}));
       setPackagesByCase(readStorage(storageKeys.packages, {}));
-      setActionsByCase(readStorage(storageKeys.actions, {}));
+      setActionsByCase(normalizeActionsByCase(readStorage(storageKeys.actions, {})));
       setDocumentRequestsByCase(readStorage(storageKeys.documentRequests, {}));
-      setQuickPadByCase(readStorage(storageKeys.quickPad, {}));
+      setQuickPadByCase(normalizeQuickPadByCase(readStorage(storageKeys.quickPad, {})));
       setPayrollInvestigationsByCase(readStorage(storageKeys.payrollInvestigations, {}));
     };
     window.addEventListener('fraud-academy:cloud-hydrated', hydrateFromRecovery);
@@ -93,7 +86,10 @@ export default function useVisualWorkspaceCaseState(activeCase) {
     currentCompleted: completedByCase[caseId] ?? ['Case Summary'],
     decisionDraft,
     reviewPackages,
-    actionLog: [...(actionsByCase[caseId] ?? []), ...(activeCase.actionLog ?? [])],
+    actionLog: [
+      ...(actionsByCase[caseId] ?? []),
+      ...(normalizeActionsByCase({ [caseId]: activeCase.actionLog ?? [] })[caseId] ?? []),
+    ],
     documentRequests: documentRequestsByCase[caseId] ?? {},
     quickPad: quickPadByCase[caseId] ?? { items: [], scratch: '' },
     payrollInvestigation: payrollInvestigationsByCase[caseId] ?? {},

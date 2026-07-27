@@ -8,9 +8,6 @@ const workspace = fs.readFileSync(path.join(rootDir, 'src/VisualWorkspace.jsx'),
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayCustomer360ThemeV1.css'), 'utf8');
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/customer-360-browser.spec.mjs'), 'utf8');
-const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_CUSTOMER_360_THEME_V1.md'), 'utf8');
-const sourceOfTruth = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'), 'utf8');
-const readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8');
 const failures = [];
 
 function mustContain(fileLabel, content, text) {
@@ -25,50 +22,51 @@ for (const anchor of [
   'customer-360-theme-v1',
   'data-customer-360-screen="approved-theme-v1"',
   'Customer 360',
-  'Customer Identity Snapshot',
+  'Customer Identity Profile',
+  'Full legal name',
+  'Preferred name',
+  'Date of birth',
+  'Training ID',
+  'Relationship length',
   'Contact Information',
   'Products & Accounts',
   'Relationship Overview',
   'Security & Access Summary',
-  'Current Case Snapshot',
-  'Recent Customer Contact',
-  'Prior Claims / Disputes',
-  'Profile Change Event Log',
-  'At a Glance',
-  'Luna Insights',
-  'Recent Documents',
-  'Suggested Next Step',
   'Accounts & Products',
-  'Recent Customer Contact Log',
-  'Prior Claims & Disputes Records',
-  'Export Profile Change Report',
-  'Related Customer Records',
-  'Claim-specific Customer 360 highlights',
-  'Search this dossier',
+  'Trusted Devices',
+  'Service Contact Notes',
+  'Profile Update Log',
+  'Export Profile Update Report',
+  'Linked Business Relationships',
+  'Search this profile',
   'customer-360-tabs',
   'Customer 360 dossier tabs',
   'Devices & Access',
-  'Customer 360 Notes',
+  'Customer 360 Learner Notes',
   'Identity Intel',
   'Login History',
   'Device Intelligence',
-  'Document Request',
-  'Open Submit Decision',
+  'Open Device History',
+  'Open Business 360',
   "markReviewed('Customer 360')",
-  'It does not determine the case outcome.',
+  'does not determine a case outcome.',
 ]) {
   mustContain('Customer360Panel.jsx', panel, anchor);
 }
 
 for (const anchor of [
   'getCustomer360Dossier',
+  'getRelationshipAccounts',
+  'builtInProfiles',
+  'generatedIdentity',
+  'normalizeProfileUpdates',
+  'completeSecuritySummary',
+  'completeServiceContacts',
+  'linkedBusinesses',
   'normalDeposits',
   'normalSpending',
-  'recentContacts',
-  'priorClaims',
-  'claimHighlights',
-  'suggestedTool',
-  'lunaInsight',
+  'trustedDevices',
+  'serviceContacts',
 ]) {
   mustContain('customer360Dossier.js', dossier, anchor);
 }
@@ -102,19 +100,10 @@ for (const anchor of [
 }
 
 mustContain('main.jsx', entrypoint, "import './displayCustomer360ThemeV1.css';");
-mustContain('customer-360-browser.spec.mjs', browser, 'approved Customer 360 is a complete Evidence First dossier');
-mustContain('customer-360-browser.spec.mjs', browser, 'Customer 360 honors explicit mobile app layout without compressing text');
-mustContain('customer-360-browser.spec.mjs', browser, 'mobile-chromium');
+mustContain('customer-360-browser.spec.mjs', browser, 'Customer 360 is a relationship-only personal profile with typed accounts and factual history');
+mustContain('customer-360-browser.spec.mjs', browser, 'Customer 360 stays within the desktop viewport at a narrower responsive width');
 mustContain('customer-360-browser.spec.mjs', browser, 'Customer 360 dossier tabs');
-mustContain('customer-360-browser.spec.mjs', browser, 'Export Profile Change Report');
-mustContain('Customer 360 handoff', handoff, 'agent/customer-360-approved-theme-v1');
-mustContain('Customer 360 handoff', handoff, 'Investigation tools only');
-mustContain('Source of Truth', sourceOfTruth, '`docs/FRAUD_ACADEMY_CUSTOMER_360_THEME_V1.md`');
-mustContain('Source of Truth', sourceOfTruth, '`src/Customer360Panel.jsx`');
-mustContain('Source of Truth', sourceOfTruth, '`src/displayCustomer360ThemeV1.css`');
-mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **final responsive/mobile polish only**');
-mustContain('README', readme, 'The approved Customer 360 handoff lives in');
-mustContain('README', readme, 'The next isolated step is **final responsive/mobile polish only**');
+mustContain('customer-360-browser.spec.mjs', browser, 'Export Profile Update Report');
 
 for (const forbidden of [
   'generatedCaseRepository',
@@ -135,6 +124,10 @@ for (const forbidden of [
   'Red flag',
   'Green flag',
   'fraud score',
+  'Current Case Snapshot',
+  'Claim-specific Customer 360 highlights',
+  'Suggested Next Step',
+  'Luna Insights',
 ]) {
   mustNotContain('Customer360Panel.jsx visible copy', panel, forbidden);
 }
@@ -145,4 +138,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Customer 360 approved-theme v1 smoke check passed. The full dossier, profile-change log, claim-specific context, responsive layout, synchronized Decision and Luna handoff, Evidence First wording, and protected persistence boundaries remain intact.');
+console.log('Customer 360 approved-theme v1 smoke check passed. The relationship-only identity, account, profile-update, trusted-security, contact-history, linked-business, responsive-theme, and Evidence First boundaries remain intact.');

@@ -1,7 +1,12 @@
 import { buildCaseBriefingPacket } from './caseBriefingDetails.js';
 import { buildCaseIntakeAnswers } from './intakeAnswers.js';
 import { systemAccessRecordsByCase } from './systemAccessRecords.js';
-import { CASE_DOMAIN_VERSION, caseDomainLabels } from './caseDomain.js';
+import {
+  CASE_DOMAIN_VERSION,
+  caseDomainLabels,
+  filterToolsForCaseDomain,
+  hasOwnershipLinkedBusinessRelationship,
+} from './caseDomain.js';
 import { containsHiddenAnswer } from './publicCaseView.js';
 
 const deviceIds = {
@@ -187,7 +192,19 @@ function buildClaimFields(item, context = {}) {
   const customerType = item.customerType ?? claimType.customerType;
   const productType = item.productType ?? claimType.productType;
   const workflowType = item.workflowType ?? claimType.workflowType ?? claimType.id;
-  const domainLabels = caseDomainLabels({ customerType, productType, workflowType });
+  const domain = {
+    customerType,
+    productType,
+    workflowType,
+    hasLinkedBusinessRelationship: item.hasLinkedBusinessRelationship,
+    businessRelationships: item.businessRelationships,
+    linkedBusinesses: item.linkedBusinesses,
+    customer: item.customer,
+    toolResults: item.toolResults,
+    relationshipAccounts: item.relationshipAccounts,
+    hasPayrollRelationship: item.hasPayrollRelationship,
+  };
+  const domainLabels = caseDomainLabels(domain);
   const reportedDate = item.reportedDate ?? context.reportedDate ?? item.opened;
   const issueStartDate = item.issueStartDate ?? context.issueStartDate ?? reportedDate;
   const legacyStatement = item.statement?.value ?? context.statement ?? item.reportedAllegation ?? item.allegation;
@@ -238,10 +255,20 @@ function buildClaimFields(item, context = {}) {
     scenario,
     reportedDate,
   });
-  const availableTools = item.availableTools ?? claimType.availableTools;
+  const availableToolCandidates = item.availableTools ?? claimType.availableTools;
+  const availableTools = filterToolsForCaseDomain(
+    hasOwnershipLinkedBusinessRelationship(domain)
+      ? dedupeStrings([...availableToolCandidates, 'Business 360'])
+      : availableToolCandidates,
+    domain,
+  );
   const caseAvailableTools = systemAccessRecordsByCase[item.id]?.length && !claimType.chargeback
-    ? dedupeStrings([...availableTools, 'System Access Lane'])
+    ? filterToolsForCaseDomain(dedupeStrings([...availableTools, 'System Access Lane']), domain)
     : availableTools;
+  const requiredTools = filterToolsForCaseDomain(
+    item.requiredTools ?? claimType.requiredTools,
+    domain,
+  );
   const responseStatus = item.merchantResponse?.status ?? item.toolResults?.merchantIntelligence?.response?.status;
   const workflowStatus = claimType.chargeback
     ? responseStatus === 'Accepted'
@@ -318,7 +345,7 @@ function buildClaimFields(item, context = {}) {
       { label: 'Primary details', value: item.transactionInfo ?? scenario.transactionInfo },
     ],
     availableTools: caseAvailableTools,
-    requiredTools: item.requiredTools ?? claimType.requiredTools,
+    requiredTools,
     evidenceAreas: item.evidenceAreas ?? claimType.evidenceAreas,
     expectedEvidenceCategories: item.expectedEvidenceCategories ?? claimType.evidenceAreas,
     taxonomyTags: {

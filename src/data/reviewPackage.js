@@ -1,8 +1,11 @@
 import {
   CASE_DOMAIN_VERSION,
   FINAL_FINDINGS,
+  filterToolsForCaseDomain,
   getWorkflowType,
   isWorkflowEnabled,
+  normalizeToolName,
+  normalizeToolNames,
   operationalDecisionsForWorkflow,
 } from './caseDomain.js';
 import { normalizeLegacyOperationalDecision } from './caseMigration.js';
@@ -50,6 +53,17 @@ export const requiredReviewTools = [
 
 export const minimumRationaleWords = 12;
 
+function normalizeNoteSnapshotEntry(note) {
+  if (typeof note === 'string') return note;
+  if (!note || typeof note !== 'object' || Array.isArray(note)) return note;
+  return Object.fromEntries(Object.entries(note).map(([key, value]) => {
+    if (['source', 'sourceTool', 'tool', 'toolName', 'type'].includes(key)) {
+      return [key, normalizeToolName(value)];
+    }
+    return [key, value];
+  }));
+}
+
 function decisionGroupLabel(workflowType) {
   if (workflowType === 'credit-application-review') return 'Application operational decision';
   if (workflowType === 'credit-risk-review') return 'Credit risk operational decision';
@@ -64,7 +78,14 @@ function decisionGroupLabel(workflowType) {
 
 export function getRequiredReviewTools(activeCase = {}) {
   const caseTools = Array.isArray(activeCase?.requiredTools) ? activeCase.requiredTools : [];
-  return unique(caseTools.length ? caseTools : requiredReviewTools);
+  const routingDomain = {
+    ...activeCase,
+    ...resolveDecisionDomain(activeCase),
+  };
+  return filterToolsForCaseDomain(
+    unique(caseTools.length ? caseTools : requiredReviewTools),
+    routingDomain,
+  );
 }
 
 export function getDecisionCallGroups(activeCase = {}) {
@@ -158,6 +179,18 @@ export function normalizeReviewPackage(reviewPackage = {}, activeCase = {}) {
       source.legacyDecisionFormat
       || (cleanText(source.choice) && !hadExplicitFinalFinding)
     ),
+    ...(Array.isArray(source.completedTools) ? {
+      completedTools: normalizeToolNames(source.completedTools),
+    } : {}),
+    ...(Array.isArray(source.requiredTools) ? {
+      requiredTools: normalizeToolNames(source.requiredTools),
+    } : {}),
+    ...(Array.isArray(source.missingTools) ? {
+      missingTools: normalizeToolNames(source.missingTools),
+    } : {}),
+    ...(Array.isArray(source.noteSnapshot) ? {
+      noteSnapshot: source.noteSnapshot.map(normalizeNoteSnapshotEntry),
+    } : {}),
   };
 }
 
@@ -177,10 +210,18 @@ export function getReviewPackageStatus({
 }) {
   const normalizedDraft = normalizeDecisionDraft(draft, activeCase);
   const { workflowType } = resolveDecisionDomain(activeCase);
+  const routingDomain = {
+    ...activeCase,
+    ...resolveDecisionDomain(activeCase),
+  };
   const requiredTools = getRequiredReviewTools(activeCase);
+  const normalizedCompletedTools = filterToolsForCaseDomain(
+    completedTools,
+    routingDomain,
+  );
   const validOperationalDecisions = getReviewChoices(activeCase);
   const validFinalFindings = getFinalFindingChoices(activeCase);
-  const missingTools = requiredTools.filter((tool) => !completedTools.includes(tool));
+  const missingTools = requiredTools.filter((tool) => !normalizedCompletedTools.includes(tool));
   const blockers = [];
   const coachingGaps = [];
   const messages = [];
@@ -188,7 +229,7 @@ export function getReviewPackageStatus({
   const hasRationale = Boolean(normalizedDraft.findingBasis);
   const indicatorSummary = summarizeDecisionIndicators(activeCase, normalizedDraft.indicators);
   const packageInputSummary = buildPackageInputSummary({
-    completedTools,
+    completedTools: normalizedCompletedTools,
     tray,
     notes,
     indicatorSummary,
@@ -290,7 +331,16 @@ export function buildReviewPackage({
 }) {
   const normalizedDraft = normalizeDecisionDraft(draft, activeCase);
   const domain = resolveDecisionDomain(activeCase);
-  const requiredTools = packageStatus?.requiredTools ?? getRequiredReviewTools(activeCase);
+  const routingDomain = {
+    ...activeCase,
+    ...domain,
+  };
+  const requiredTools = filterToolsForCaseDomain(
+    packageStatus?.requiredTools ?? getRequiredReviewTools(activeCase),
+    routingDomain,
+  );
+  const normalizedCompletedTools = filterToolsForCaseDomain(completedTools, routingDomain);
+  const missingTools = requiredTools.filter((tool) => !normalizedCompletedTools.includes(tool));
   const findingBasis = normalizedDraft.findingBasis;
   const savedAtIso = new Date().toISOString();
 
@@ -318,17 +368,18 @@ export function buildReviewPackage({
     lane: activeCase?.lane ?? null,
     confidence: normalizedDraft.confidence,
     rationaleWordCount: packageStatus?.rationaleWordCount ?? wordCount(findingBasis),
-    completedTools: [...completedTools],
+    completedTools: normalizedCompletedTools,
+    requiredTools,
     pinnedEvidence: [...tray],
     noteSnapshot: notes.slice(0, 8),
     packageInputSummary: packageStatus?.packageInputSummary ?? buildPackageInputSummary({
-      completedTools,
+      completedTools: normalizedCompletedTools,
       tray,
       notes,
     }),
-    reviewedRequired: packageStatus?.reviewedRequired ?? 0,
-    totalRequired: packageStatus?.totalRequired ?? requiredTools.length,
-    missingTools: packageStatus?.missingTools ?? [],
+    reviewedRequired: requiredTools.length - missingTools.length,
+    totalRequired: requiredTools.length,
+    missingTools,
     blockers: packageStatus?.blockers ?? [],
     coachingGaps: packageStatus?.coachingGaps ?? [],
     decisionIndicators: packageStatus?.indicatorSummary?.selectedIndicators ?? [],

@@ -1,4 +1,5 @@
 import { getCustomer360Dossier, getCustomerIdentityFacts } from './customer360Dossier.js';
+import { getBusiness360Dossier } from './business360Dossier.js';
 import { publicCaseTaxonomy } from './publicCaseView.js';
 
 const builtInProfiles = {
@@ -45,10 +46,151 @@ function reportProfile(activeCase, identity) {
   };
 }
 
-export function getIdentityIntelReport(activeCase) {
+function preferredName(value = '') {
+  return String(value).trim().split(/\s+/)[0] || 'Training customer';
+}
+
+function suppliedOwnerRecords(owner) {
+  return [
+    {
+      id: `${owner.id}-TRAINING-ID`,
+      type: 'Training ID',
+      value: owner.trainingId,
+      lastSeen: owner.identityVerificationStatus,
+    },
+    {
+      id: `${owner.id}-PHONE`,
+      type: 'Phone',
+      value: owner.personalPhone,
+      lastSeen: owner.contactHistory?.[0]?.contactDateTime ?? owner.identityVerificationStatus,
+    },
+    {
+      id: `${owner.id}-EMAIL`,
+      type: 'Email',
+      value: owner.personalEmail,
+      lastSeen: owner.contactHistory?.[0]?.contactDateTime ?? owner.identityVerificationStatus,
+    },
+  ].filter((record) => record.value && !/not available/i.test(record.value));
+}
+
+export function getIdentityIntelContextCase(caseRecord, trainingId = '') {
+  const targetTrainingId = String(trainingId ?? '').trim();
+  if (!targetTrainingId || targetTrainingId === String(caseRecord.trainingId ?? '').trim()) return caseRecord;
+  if (!(caseRecord.availableTools ?? []).includes('Business 360')) return caseRecord;
+
+  const owner = getBusiness360Dossier(caseRecord).owners.find(
+    (candidate) => String(candidate.trainingId ?? '').trim() === targetTrainingId,
+  );
+  if (!owner) return caseRecord;
+
+  const businessName = caseRecord.profile?.business
+    ?? caseRecord.businessProfile?.legalName
+    ?? 'Linked training business';
+  const trustedDevices = (owner.trustedDevices ?? []).map((device) => ({
+    id: device.deviceId,
+    name: device.deviceName,
+    type: device.deviceType,
+    platform: device.browserOrOperatingSystem,
+    firstSeen: device.firstSeen,
+    lastSeen: device.lastSeen,
+    trustStatus: device.trustStatus,
+    authentication: device.mfaMethod,
+  }));
+  const serviceContacts = (owner.contactHistory ?? []).map((contact) => ({
+    id: contact.id,
+    dateTime: contact.contactDateTime,
+    type: contact.reasonForContact,
+    channel: contact.channel,
+    outcome: contact.assistanceProvided,
+    agent: contact.agentOrDepartment,
+    notes: contact.reportedInformation,
+    relatedAccountId: contact.relatedAccountId,
+  }));
+
+  return {
+    ...caseRecord,
+    id: `${caseRecord.id}::${owner.trainingId}`,
+    person: owner.fullLegalName,
+    trainingId: owner.trainingId,
+    customerType: 'personal',
+    productType: owner.accounts?.[0]?.productType ?? 'deposit-account',
+    amount: undefined,
+    amountExposure: undefined,
+    transactionInfo: undefined,
+    legacyDerivedEvidence: true,
+    identityContext: {
+      type: 'business-owner',
+      sourceCaseId: caseRecord.id,
+      trainingId: owner.trainingId,
+      ownerId: owner.id,
+    },
+    profile: {
+      ...caseRecord.profile,
+      employer: businessName,
+      entityRole: owner.businessTitle,
+    },
+    customer: {
+      relationshipSince: owner.ownerSince,
+      segment: 'Personal relationship connected to a business owner record',
+      contact: {
+        address: owner.currentResidentialAddress,
+        phone: owner.personalPhone,
+        email: owner.personalEmail,
+        preferredChannel: owner.contactHistory?.[0]?.channel,
+      },
+      identity: {
+        legalName: owner.fullLegalName,
+        preferredName: preferredName(owner.fullLegalName),
+        dob: owner.dateOfBirth,
+        currentAddress: owner.currentResidentialAddress,
+        previousAddress: owner.previousResidentialAddress,
+        mobilePhone: owner.personalPhone,
+        email: owner.personalEmail,
+        customerSince: owner.ownerSince,
+        segment: 'Personal relationship connected to a business owner record',
+        preferredContact: owner.contactHistory?.[0]?.channel,
+        verificationStatus: owner.identityVerificationStatus,
+        verificationMethod: owner.addressVerificationStatus,
+        accountStanding: owner.accounts?.[0]?.status,
+      },
+      security: {
+        mfaStatus: trustedDevices[0]?.authentication,
+        recoveryContact: [owner.personalPhone, owner.personalEmail].filter(Boolean).join(' · '),
+        trustedDevices,
+      },
+      serviceContacts,
+      profileChanges: [],
+      businessRelationships: [{
+        id: `OWNER-LINK-${owner.id}`,
+        businessId: caseRecord.businessId
+          ?? caseRecord.businessProfile?.registrationFileNumber
+          ?? caseRecord.businessProfile?.registration
+          ?? caseRecord.id,
+        businessName,
+        relationship: owner.businessTitle,
+        ownershipPercentage: owner.ownershipPercentage,
+        relationshipSince: owner.ownerSince,
+        status: 'Relationship record available',
+      }],
+    },
+    toolResults: {
+      ...caseRecord.toolResults,
+      relationshipAccounts: owner.accounts ?? [],
+    },
+    relationshipAccounts: owner.accounts ?? [],
+    identityRecords: suppliedOwnerRecords(owner),
+    loginHistory: [],
+    parties: [],
+  };
+}
+
+export function getIdentityIntelReport(caseRecord, { trainingId = '' } = {}) {
+  const activeCase = getIdentityIntelContextCase(caseRecord, trainingId);
   const seed = stableNumber(activeCase.id);
   const identity = getCustomerIdentityFacts(activeCase);
-  const customerDossier = getCustomer360Dossier(activeCase);
+  const customerDossier = activeCase.identityContext?.type === 'business-owner'
+    ? { contact: { physicalAddress: activeCase.customer?.contact?.address } }
+    : getCustomer360Dossier(activeCase);
   const profile = { ...reportProfile(activeCase, identity), dob: identity.dob };
   const contact = activeCase.customer?.contact ?? {};
   const address = customerDossier.contact.physicalAddress ?? contact.address ?? activeCase.intake?.customerLocation ?? 'Training address not supplied';
@@ -76,6 +218,13 @@ export function getIdentityIntelReport(activeCase) {
   const historicalEmail = `${firstName.toLowerCase()}.${String(seed).slice(-3)}@archive.training.example.test`;
 
   return {
+    subject: {
+      name: activeCase.person,
+      trainingId: activeCase.trainingId,
+      contextType: activeCase.identityContext?.type ?? 'case-customer',
+      sourceCaseId: activeCase.identityContext?.sourceCaseId ?? activeCase.id,
+    },
+    sourceRecords: activeCase.identityRecords ?? [],
     profile,
     searchIds: [activeCase.trainingId, profile.profileId, mask(activeCase.trainingId)],
     searchName: activeCase.person,
@@ -113,7 +262,7 @@ export function getIdentityIntelReport(activeCase) {
       { id: 'criminal', title: 'Criminal Records (Training Only)', fields: records([['Record found', 'No fictional criminal record returned'], ['Jurisdiction', 'Not applicable'], ['Offense type', 'Not applicable'], ['Disposition', 'Not applicable'], ['Sentence', 'Not applicable'], ['Case number', 'Not applicable']]) },
       { id: 'public-records', title: 'Public Records', fields: records([['Marriage', spouse.startsWith('No ') ? 'No marriage record returned' : `Fictional marriage record · ${spouse}`], ['Divorce', 'No divorce record returned'], ['Court filings', bankruptcyFound ? 'Bankruptcy filing listed in separate section' : 'No court filing returned'], ['Civil cases', 'No civil case returned'], ['Professional discipline', 'No fictional professional discipline returned'], ['Voter registration', `${city} · fictional active registration`]]) },
       { id: 'social-digital', title: 'Social & Digital Presence', fields: records([['Known devices', devices.join(' · ') || 'No device object returned'], ['Known locations', locations.join(' · ') || city], ['Digital profile links', activeCase.identityRecords?.map((item) => item.id).join(' · ') || profile.profileId], ['Email domain history', `${email.split('@')[1]} · established fictional training domain`], ['Application activity', profile.applicationHistory]]) },
-      { id: 'additional-sources', title: 'Additional Data Sources', fields: records([['Current case', activeCase.id], ['Customer type', taxonomy.customerType], ['Product', taxonomy.productType], ['Review workflow', taxonomy.workflowType], ['Source note', 'All records in this report are fictional training data'], ['Related tools', 'Customer 360 · Document Viewer · Login History · Device Intelligence']]) },
+      { id: 'additional-sources', title: 'Additional Data Sources', fields: records([['Current case', activeCase.identityContext?.sourceCaseId ?? activeCase.id], ['Customer type', taxonomy.customerType], ['Product', taxonomy.productType], ['Review workflow', taxonomy.workflowType], ['Source note', 'All records in this report are fictional training data'], ['Related tools', 'Customer 360 · Document Viewer · Login History · Device Intelligence']]) },
     ],
   };
 }

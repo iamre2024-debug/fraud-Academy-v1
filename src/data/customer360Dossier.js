@@ -1,325 +1,913 @@
-import { getProductType } from './caseDomain.js';
-import { publicCaseTaxonomy, publicReportedAllegation } from './publicCaseView.js';
+import {
+  getRelationshipAccounts,
+  relationshipLengthFrom,
+} from './relationshipAccounts.js';
+import { containsHiddenAnswer } from './publicCaseView.js';
 
-const unavailable = 'Not available in the current training packet';
+const unavailable = 'Not available in the current training record';
+const imperativeDecisionLanguage = /^\s*(?:approve|deny|hold|release|restrict|reduce|support|do not support|escalate|maintain|request more information)\b/i;
 
-const builtInDossiers = {
+const builtInProfiles = {
   'FA-ATO-24018': {
     identity: {
+      legalName: 'Maya Sterling',
+      preferredName: 'Maya',
       dob: 'Feb 14, 1988',
       age: '38',
-      maskedMemberId: 'MEM-••••-1842',
       language: 'English',
-      verificationStatus: 'CIP identity verified · Jul 16, 2018',
-      accountStanding: 'Open · no servicing restriction recorded',
-      lastVerified: 'Jun 29, 2026',
-    },
-    contact: {
+      currentAddress: '1842 Cedar Avenue, Dallas, TX 75201 (training)',
+      previousAddress: '721 Willow Training Road, Irving, TX 75039 (training)',
+      mobilePhone: '(214) 555-0184',
       homePhone: '(214) 555-0112',
-      mailingAddress: '1842 Cedar Avenue, Dallas, TX 75201 (training)',
-      physicalAddress: '1842 Cedar Avenue, Dallas, TX 75201 (training)',
-      verificationStatus: 'Phone, email, and address confirmed in profile maintenance',
-      alertUse: 'Mobile phone receives OTP; email receives security alerts',
+      email: 'maya.training@example.test',
+      customerSince: 'Jul 16, 2018',
+      segment: 'Personal checking and savings',
+      preferredContact: 'Secure message',
+      verificationStatus: 'Identity verified',
+      verificationMethod: 'Fictional CIP identity and address records',
+      lastVerified: 'Jun 29, 2026',
+      accountStanding: 'Open — Good Standing',
     },
-    products: [
-      { id: 'ACCT-4410', product: 'Everyday Checking', maskedNumber: '••••4410', opened: 'Jul 16, 2018', status: 'Open', balance: '$5,842.63', limit: 'Not applicable', standing: 'No NSF or overdraft in the supplied 90-day baseline' },
-      { id: 'ACCT-1182', product: 'Savings', maskedNumber: '••••1182', opened: 'Aug 2, 2018', status: 'Open', balance: '$12,406.11', limit: 'Not applicable', standing: 'Open and available' },
-      { id: 'CARD-4410', product: 'Debit Card', maskedNumber: '••••4410', opened: 'Jul 16, 2018', status: 'Active', balance: 'Linked to checking', limit: '$2,500 daily purchase limit', standing: 'Replacement issued Jan 18, 2026' },
-    ],
     relationship: {
       normalDeposits: 'Payroll deposits between $3,700 and $3,950 twice monthly',
       normalSpending: 'Groceries, fuel, utilities, and card purchases averaging $2,860 monthly',
       authorizedUsers: 'No additional checking signer recorded',
-      businessRelationships: 'No business relationship linked to this consumer profile',
+      digitalBanking: 'Online and mobile banking enrolled',
     },
     security: {
       mfaStatus: 'Face ID and password; mobile OTP available',
       passwordChanged: 'Mar 4, 2026 · customer self-service',
-      trustedDevices: 'DEV-MAYA-IP16-001',
-      lockouts: 'No account lockout in the supplied 90-day history',
-      alerts: 'Security alerts routed to mobile and primary email',
-      walletEnrollment: 'One wallet token record available for comparison',
+      lockouts: 'No account lockout in the supplied servicing history',
+      alerts: 'Security alerts route to the recorded mobile phone and primary email',
       recoveryContact: '(214) 555-0184 · maya.training@example.test',
+      trustedDevices: [
+        {
+          id: 'DEV-MAYA-IP16-001',
+          name: 'Maya’s trusted phone',
+          type: 'Mobile phone',
+          platform: 'iOS · mobile app',
+          firstSeen: 'Jan 18, 2026',
+          lastSeen: 'Jun 29, 2026',
+          trustStatus: 'Trusted',
+          authentication: 'Face ID',
+        },
+      ],
     },
-    recentContacts: [
-      { id: 'CON-1001', dateTime: 'Jul 8, 2026 · 10:58 AM', type: 'Claim intake call', channel: 'Phone follow-up', outcome: 'Customer statement captured', agent: 'Training intake desk', notes: 'Customer denied the purchase and identified the personal iPhone as the usual device.' },
-      { id: 'CON-1002', dateTime: 'Jul 8, 2026 · 10:54 AM', type: 'Secure message', channel: 'Digital banking', outcome: 'Message received', agent: 'Automated case intake', notes: 'Secure message initiated the dispute packet.' },
-      { id: 'CON-1003', dateTime: 'Jun 29, 2026 · 3:14 PM', type: 'Contact verification', channel: 'Mobile app', outcome: 'Phone and email confirmed', agent: 'Customer self-service', notes: 'No contact value was changed.' },
-    ],
-    priorClaims: [
-      { id: 'CLM-HIST-1001', date: 'Oct 12, 2023', type: 'Merchant billing inquiry', amount: '$64.20', item: 'Retail card purchase', outcome: 'Closed after merchant credit', notes: 'Different merchant and issue type from the active case.', documents: 'Merchant credit notice', similar: 'No' },
+    serviceContacts: [
+      {
+        id: 'SVC-1001',
+        dateTime: 'Jun 29, 2026 · 3:14 PM',
+        type: 'Contact verification',
+        channel: 'Mobile app',
+        outcome: 'Existing phone and email confirmed',
+        agent: 'Customer self-service',
+        notes: 'The recorded contact values were retained without a change.',
+        relatedAccountId: 'ACCT-24018-4410',
+      },
+      {
+        id: 'SVC-1002',
+        dateTime: 'Mar 4, 2026 · 7:42 PM',
+        type: 'Password service',
+        channel: 'Online banking',
+        outcome: 'Password updated',
+        agent: 'Customer self-service',
+        notes: 'The profile recorded a completed password update.',
+        relatedAccountId: 'ACCT-24018-4410',
+      },
+      {
+        id: 'SVC-1003',
+        dateTime: 'Jan 18, 2026 · 1:26 PM',
+        type: 'Debit card servicing',
+        channel: 'Phone',
+        outcome: 'Replacement card activated',
+        agent: 'Card servicing',
+        notes: 'The replacement card was activated on the existing checking relationship.',
+        relatedAccountId: 'CARD-24018-4410',
+      },
     ],
   },
   'FA-CB-24007': {
     identity: {
+      legalName: 'Jordan Ellis',
+      preferredName: 'Jordan',
       dob: 'Nov 3, 1991',
       age: '34',
-      maskedMemberId: 'MEM-••••-5510',
       language: 'English',
-      verificationStatus: 'CIP identity verified · Sep 9, 2021',
-      accountStanding: 'Open · current payment standing',
-      lastVerified: 'Jun 21, 2026',
-    },
-    contact: {
+      currentAddress: '5510 Magnolia Way, Fort Worth, TX 76102 (training)',
+      previousAddress: '407 Juniper Training Street, Arlington, TX 76010 (training)',
+      mobilePhone: '(817) 555-0149',
       homePhone: 'No separate home phone recorded',
-      mailingAddress: '5510 Magnolia Way, Fort Worth, TX 76102 (training)',
-      physicalAddress: '5510 Magnolia Way, Fort Worth, TX 76102 (training)',
-      verificationStatus: 'Mobile, email, and address confirmed',
-      alertUse: 'Email receives statement alerts; mobile receives OTP',
+      email: 'jordan.training@example.test',
+      customerSince: 'Sep 9, 2021',
+      segment: 'Personal cardholder',
+      preferredContact: 'Mobile app',
+      verificationStatus: 'Identity verified',
+      verificationMethod: 'Fictional CIP identity and address records',
+      lastVerified: 'Jun 21, 2026',
+      accountStanding: 'Open — Good Standing',
     },
-    products: [
-      { id: 'CARD-8841', product: 'Rewards Credit Card', maskedNumber: '••••8841', opened: 'Sep 9, 2021', status: 'Open', balance: '$1,048.32', limit: '$8,500.00', standing: 'Autopay active · no late payment in supplied history' },
-    ],
     relationship: {
       normalDeposits: 'Not applicable to the card-only relationship',
       normalSpending: 'Recurring services and household purchases averaging $1,120 monthly',
       authorizedUsers: 'No authorized user recorded',
-      businessRelationships: 'No business relationship linked to this card profile',
+      digitalBanking: 'Online and mobile card servicing enrolled',
     },
     security: {
       mfaStatus: 'Password and biometric sign-in; mobile OTP available',
       passwordChanged: 'Feb 17, 2026 · customer self-service',
-      trustedDevices: 'DEV-JORDAN-AND-001 · DEV-JORDAN-DSK-002',
-      lockouts: 'No account lockout in the supplied 90-day history',
-      alerts: 'Billing and security alerts routed to primary email',
-      walletEnrollment: 'No wallet enrollment record in the current packet',
+      lockouts: 'No account lockout in the supplied servicing history',
+      alerts: 'Billing and security alerts route to the primary email',
       recoveryContact: '(817) 555-0149 · jordan.training@example.test',
+      trustedDevices: [
+        {
+          id: 'DEV-JORDAN-AND-001',
+          name: 'Jordan’s trusted phone',
+          type: 'Mobile phone',
+          platform: 'Android · mobile app',
+          firstSeen: 'Oct 14, 2023',
+          lastSeen: 'Jun 21, 2026',
+          trustStatus: 'Trusted',
+          authentication: 'Biometric',
+        },
+        {
+          id: 'DEV-JORDAN-DSK-002',
+          name: 'Jordan’s trusted computer',
+          type: 'Computer',
+          platform: 'Desktop browser',
+          firstSeen: 'Feb 2, 2024',
+          lastSeen: 'Jun 24, 2026',
+          trustStatus: 'Trusted',
+          authentication: 'Password + OTP',
+        },
+      ],
     },
-    recentContacts: [
-      { id: 'CON-2201', dateTime: 'Jul 8, 2026 · 9:21 AM', type: 'Dispute intake', channel: 'Mobile app', outcome: 'Recurring billing issue submitted', agent: 'Automated case intake', notes: 'Cancellation confirmation was not attached at intake.' },
-      { id: 'CON-2202', dateTime: 'Jul 8, 2026 · 9:28 AM', type: 'Document request notice', channel: 'Secure message', outcome: 'Delivered', agent: 'Training claims queue', notes: 'Cancellation confirmation requested.' },
-      { id: 'CON-2203', dateTime: 'Jun 21, 2026 · 11:14 AM', type: 'Contact verification', channel: 'Online profile', outcome: 'Contact points confirmed', agent: 'Customer self-service', notes: 'No value changed.' },
-    ],
-    priorClaims: [
-      { id: 'CLM-HIST-2201', date: 'Mar 6, 2024', type: 'Card purchase inquiry', amount: '$42.18', item: 'Restaurant purchase', outcome: 'Customer recognized transaction', notes: 'No chargeback was filed.', documents: 'Customer contact note', similar: 'No' },
+    serviceContacts: [
+      {
+        id: 'SVC-2201',
+        dateTime: 'Jun 21, 2026 · 11:14 AM',
+        type: 'Contact verification',
+        channel: 'Online profile',
+        outcome: 'Existing contact points confirmed',
+        agent: 'Customer self-service',
+        notes: 'The mobile phone and primary email were retained without a change.',
+        relatedAccountId: 'CARD-24007-8841',
+      },
+      {
+        id: 'SVC-2202',
+        dateTime: 'Feb 17, 2026 · 8:06 PM',
+        type: 'Password service',
+        channel: 'Online banking',
+        outcome: 'Password updated',
+        agent: 'Customer self-service',
+        notes: 'The profile recorded a completed password update.',
+        relatedAccountId: 'CARD-24007-8841',
+      },
     ],
   },
   'FA-CR-24003': {
     identity: {
+      legalName: 'Avery Brooks',
+      preferredName: 'Avery',
       dob: 'Jun 22, 1995',
       age: '31',
-      maskedMemberId: 'MEM-••••-2044',
       language: 'English',
-      verificationStatus: 'New-account identity review completed · Jul 7, 2026',
-      accountStanding: 'Open · new relationship with limited history',
-      lastVerified: 'Jul 7, 2026',
-    },
-    contact: {
+      currentAddress: '2044 Meadow Lane, Arlington, TX 76010 (training)',
+      previousAddress: '815 Lakeview Training Drive, Dallas, TX 75201 (training)',
+      mobilePhone: '(682) 555-0167',
       homePhone: 'No separate home phone recorded',
-      mailingAddress: '2044 Meadow Lane, Arlington, TX 76010 (training)',
-      physicalAddress: '2044 Meadow Lane, Arlington, TX 76010 (training)',
-      verificationStatus: 'Email and mobile verified during profile creation',
-      alertUse: 'Email receives security alerts; mobile receives OTP',
+      email: 'avery.training@example.test',
+      customerSince: 'Jul 7, 2026',
+      segment: 'Personal credit relationship',
+      preferredContact: 'Email',
+      verificationStatus: 'Identity verification completed',
+      verificationMethod: 'Fictional onboarding identity and address records',
+      lastVerified: 'Jul 7, 2026',
+      accountStanding: 'Open — Limited History',
     },
-    products: [
-      { id: 'LINE-3011', product: 'Consumer Credit Line', maskedNumber: '••••3011', opened: 'Jul 7, 2026', status: 'Open · restricted pending review', balance: '$0.00 posted', limit: '$2,400.00', standing: 'No payment history yet' },
-    ],
     relationship: {
       normalDeposits: 'No established deposit baseline',
       normalSpending: 'No established spending baseline',
       authorizedUsers: 'No authorized user recorded',
-      businessRelationships: 'Avery Training Ventures appears in the fictional identity report',
+      digitalBanking: 'Online banking enrolled',
     },
     security: {
       mfaStatus: 'Email code enrolled during profile creation',
       passwordChanged: 'Jul 7, 2026 · initial password setup',
-      trustedDevices: 'DEV-AVERY-SAF-001 · early-history device only',
-      lockouts: 'No lockout recorded',
-      alerts: 'New-profile and payment-method alerts routed to email',
-      walletEnrollment: 'No wallet enrollment record',
+      lockouts: 'No account lockout in the supplied servicing history',
+      alerts: 'Profile and security alerts route to the primary email',
       recoveryContact: '(682) 555-0167 · avery.training@example.test',
+      trustedDevices: [
+        {
+          id: 'DEV-AVERY-SAF-001',
+          name: 'Avery’s enrolled phone',
+          type: 'Mobile phone',
+          platform: 'iOS · Mobile Safari',
+          firstSeen: 'Jul 7, 2026',
+          lastSeen: 'Jul 7, 2026',
+          trustStatus: 'Trusted during onboarding',
+          authentication: 'Email code',
+        },
+      ],
     },
-    recentContacts: [
-      { id: 'CON-3301', dateTime: 'Jul 8, 2026 · 7:45 AM', type: 'System review notice', channel: 'Email', outcome: 'Notice delivered', agent: 'Account monitoring', notes: 'Identity and payment records were queued for review.' },
-      { id: 'CON-3302', dateTime: 'Jul 7, 2026 · 5:18 PM', type: 'New-account confirmation', channel: 'Email', outcome: 'Email code verified', agent: 'Digital onboarding', notes: 'Profile and recovery contact were established.' },
+    serviceContacts: [
+      {
+        id: 'SVC-3301',
+        dateTime: 'Jul 7, 2026 · 5:18 PM',
+        type: 'New relationship confirmation',
+        channel: 'Email',
+        outcome: 'Email and recovery phone verified',
+        agent: 'Digital onboarding',
+        notes: 'The customer profile and recovery contact were established.',
+        relatedAccountId: 'LINE-24003-3011',
+      },
+      {
+        id: 'SVC-3302',
+        dateTime: 'Jul 7, 2026 · 5:05 PM',
+        type: 'Digital profile enrollment',
+        channel: 'Mobile web',
+        outcome: 'Online profile created',
+        agent: 'Digital onboarding',
+        notes: 'A new digital-banking profile was created for the customer relationship.',
+        relatedAccountId: 'LINE-24003-3011',
+      },
     ],
-    priorClaims: [],
   },
 };
 
-function stableNumber(value = '') {
-  return [...String(value)].reduce((total, character) => total + character.charCodeAt(0), 0);
+function safeRecordText(value, fallback = unavailable) {
+  const text = String(value ?? '').trim();
+  if (!text || containsHiddenAnswer(text) || imperativeDecisionLanguage.test(text)) return fallback;
+  return text;
 }
 
-function generatedIdentity(activeCase) {
-  const seed = stableNumber(activeCase.id);
+function isLegacySourceOnly(activeCase, preset) {
+  return activeCase.legacyDerivedEvidence === true && !preset;
+}
+
+function firstSupplied(...values) {
+  return values.find((value) => value !== undefined && value !== null && String(value).trim());
+}
+
+function dateOnlyTimestamp(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return null;
+  const dateToken = text.match(/\b\d{4}-\d{2}-\d{2}\b/)?.[0]
+    ?? text.match(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},\s+\d{4}\b/i)?.[0]
+    ?? text.match(/\b\d{1,2}\/\d{1,2}\/\d{4}\b/)?.[0];
+  if (!dateToken) return null;
+  const parsed = new Date(dateToken);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate());
+}
+
+function profileUpdateIsAvailableAsOf(event, activeCase) {
+  const asOf = dateOnlyTimestamp(activeCase.reportedDate)
+    ?? dateOnlyTimestamp(activeCase.opened);
+  if (asOf === null) return true;
+  const observed = dateOnlyTimestamp(event.date ?? event.dateTime ?? event.observed);
+  return observed !== null && observed <= asOf;
+}
+
+function recordDateIsAvailableAsOf(value, activeCase) {
+  const asOf = dateOnlyTimestamp(activeCase.reportedDate)
+    ?? dateOnlyTimestamp(activeCase.opened);
+  if (asOf === null) return true;
+  const observed = dateOnlyTimestamp(value);
+  return observed === null || observed <= asOf;
+}
+
+function asOfText(value, activeCase, fallback = unavailable) {
+  return recordDateIsAvailableAsOf(value, activeCase)
+    ? safeRecordText(value, fallback)
+    : fallback;
+}
+
+function currentIntakeChannels(activeCase) {
+  return [
+    activeCase.intake?.channel,
+    activeCase.statement?.source,
+  ]
+    .map((value) => String(value ?? '').trim())
+    .filter(Boolean);
+}
+
+function generatedProfileEventUsesIntake(event, activeCase) {
+  if (!/generated (?:profile history|security profile)/i.test(String(event.source ?? ''))) return false;
+  const channels = currentIntakeChannels(activeCase);
+  if (!channels.length) return false;
+  const eventText = [
+    event.channel,
+    event.oldValue,
+    event.newValue,
+    event.detail,
+    event.notes,
+  ].filter(Boolean).join(' ').toLowerCase();
+  return channels.some((channel) => eventText.includes(channel.toLowerCase()));
+}
+
+function nonIntakeText(value, activeCase, fallback = unavailable) {
+  const text = safeRecordText(value, fallback);
+  if (text === fallback) return fallback;
+  return currentIntakeChannels(activeCase)
+    .some((channel) => text.toLowerCase().includes(channel.toLowerCase()))
+    ? fallback
+    : text;
+}
+
+function stableNumber(value = '') {
+  return [...String(value)].reduce(
+    (total, character) => ((total * 31) + character.charCodeAt(0)) % 100000,
+    17,
+  );
+}
+
+function preferredName(name = '') {
+  return String(name).trim().split(/\s+/)[0] || 'Training customer';
+}
+
+function generatedAddress(seed, city, previous = false) {
+  const streets = ['Cedar', 'Willow', 'Juniper', 'Lakeview', 'Parkline', 'Harbor'];
+  const number = (previous ? 310 : 120) + ((seed + (previous ? 47 : 0)) % 8400);
+  const locality = String(city || 'Dallas, TX').replace(/\s+\(training\)$/i, '');
+  return `${number} ${streets[(seed + (previous ? 2 : 0)) % streets.length]} Training ${previous ? 'Road' : 'Lane'}, ${locality} (training)`;
+}
+
+function suppliedIdentity(activeCase) {
+  const identity = activeCase.customer?.identity
+    ?? activeCase.identity
+    ?? activeCase.profile?.identity
+    ?? {};
+  const contact = activeCase.customer?.contact ?? {};
+  const legalName = safeRecordText(firstSupplied(identity.legalName, activeCase.person));
+  return {
+    legalName,
+    preferredName: safeRecordText(identity.preferredName),
+    dob: safeRecordText(firstSupplied(identity.dob, identity.dateOfBirth)),
+    age: safeRecordText(identity.age),
+    language: safeRecordText(identity.language),
+    currentAddress: safeRecordText(firstSupplied(
+      identity.currentAddress,
+      identity.physicalAddress,
+      contact.address,
+    )),
+    previousAddress: safeRecordText(identity.previousAddress),
+    mobilePhone: safeRecordText(firstSupplied(identity.mobilePhone, identity.phone, contact.phone)),
+    homePhone: safeRecordText(identity.homePhone),
+    email: safeRecordText(firstSupplied(identity.email, contact.email)),
+    customerSince: safeRecordText(firstSupplied(
+      identity.customerSince,
+      activeCase.customer?.relationshipSince,
+    )),
+    segment: safeRecordText(firstSupplied(identity.segment, activeCase.customer?.segment)),
+    preferredContact: nonIntakeText(firstSupplied(
+      identity.preferredContact,
+      contact.preferredChannel,
+    ), activeCase),
+    verificationStatus: safeRecordText(firstSupplied(
+      identity.verificationStatus,
+      activeCase.customer?.verificationStatus,
+    )),
+    verificationMethod: safeRecordText(identity.verificationMethod),
+    lastVerified: safeRecordText(identity.lastVerified),
+    accountStanding: safeRecordText(firstSupplied(
+      identity.accountStanding,
+      activeCase.customer?.accountStanding,
+    )),
+  };
+}
+
+function sanitizeIdentity(identity = {}) {
+  return {
+    legalName: safeRecordText(identity.legalName),
+    preferredName: safeRecordText(identity.preferredName),
+    dob: safeRecordText(identity.dob),
+    age: safeRecordText(identity.age),
+    language: safeRecordText(identity.language),
+    currentAddress: safeRecordText(identity.currentAddress),
+    previousAddress: safeRecordText(identity.previousAddress),
+    mobilePhone: safeRecordText(identity.mobilePhone),
+    homePhone: safeRecordText(identity.homePhone),
+    email: safeRecordText(identity.email),
+    customerSince: safeRecordText(identity.customerSince),
+    segment: safeRecordText(identity.segment),
+    preferredContact: safeRecordText(identity.preferredContact),
+    verificationStatus: safeRecordText(identity.verificationStatus),
+    verificationMethod: safeRecordText(identity.verificationMethod),
+    lastVerified: safeRecordText(identity.lastVerified),
+    accountStanding: safeRecordText(identity.accountStanding),
+  };
+}
+
+function generatedIdentity(activeCase, accounts) {
+  const seed = stableNumber(activeCase.trainingId ?? activeCase.id);
+  const relationshipSince = activeCase.customer?.relationshipSince ?? `${2018 + (seed % 7)}`;
   const year = 1978 + (seed % 23);
   const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][seed % 12];
   const day = 1 + (seed % 27);
+  const contact = activeCase.customer?.contact ?? {};
+  const legalName = activeCase.person ?? 'Training Customer';
+  const currentAddress = contact.address && !/^[A-Za-z .]+,\s*[A-Z]{2}$/.test(contact.address)
+    ? contact.address
+    : generatedAddress(seed, activeCase.profile?.city ?? activeCase.intake?.customerLocation);
+  const primaryKind = accounts[0]?.productKind ?? '';
+  const segment = /credit|loan/.test(primaryKind)
+    ? 'Personal credit relationship'
+    : 'Personal banking relationship';
+  const verificationYear = String(relationshipSince).match(/\b(19|20)\d{2}\b/)?.[0] ?? '2024';
+
   return {
+    legalName,
+    preferredName: preferredName(legalName),
     dob: `${month} ${day}, ${year}`,
     age: String(2026 - year),
-    maskedMemberId: `MEM-••••-${String(seed).slice(-4).padStart(4, '0')}`,
     language: seed % 4 === 0 ? 'English · Spanish preference recorded' : 'English',
-    verificationStatus: `Fictional identity verification completed · ${activeCase.issueStartDate ?? activeCase.reportedDate ?? 'case opening'}`,
-    accountStanding: activeCase.taxonomyTags?.lifecycleStage === 'new' ? 'Open · new relationship with limited history' : 'Open · servicing status available',
-    lastVerified: activeCase.issueStartDate ?? activeCase.reportedDate ?? activeCase.opened,
+    currentAddress,
+    previousAddress: generatedAddress(seed, activeCase.profile?.city ?? activeCase.intake?.customerLocation, true),
+    mobilePhone: contact.phone ?? `(555) 01${String(seed % 100).padStart(2, '0')}-${String(seed).padStart(4, '0').slice(-4)}`,
+    homePhone: 'No separate home phone recorded',
+    email: contact.email ?? `${preferredName(legalName).toLowerCase()}.${String(seed).slice(-4)}@training.example.test`,
+    customerSince: relationshipSince,
+    segment,
+    preferredContact: ['Secure message', 'Email', 'Mobile app'][seed % 3],
+    verificationStatus: 'Identity verification completed',
+    verificationMethod: 'Fictional identity and address records',
+    lastVerified: `Jun ${1 + (seed % 24)}, ${verificationYear}`,
+    accountStanding: accounts.some((account) => /hold|restrict|pending/i.test(account.status))
+      ? 'Open — Servicing Status Recorded'
+      : 'Open — Good Standing',
   };
 }
 
-function generatedProducts(activeCase) {
-  const rail = activeCase.taxonomyTags?.productRail ?? activeCase.productsAccounts?.[0]?.value ?? 'account';
-  const explicitProduct = getProductType(activeCase.productType)?.label;
-  const suffix = String(stableNumber(activeCase.id)).slice(-4).padStart(4, '0');
-  const productNames = {
-    card: 'Training Card Account',
-    payroll: 'Payroll Services Profile',
-    wire: 'Business Payment Account',
-    credit: 'Training Credit Line',
-    loan: 'Training Business Line',
-    application: 'Application Profile',
-  };
-  return [{
-    id: `PROD-${suffix}`,
-    product: explicitProduct ?? productNames[rail] ?? 'Training Deposit Account',
-    maskedNumber: `••••${suffix}`,
-    opened: activeCase.customer?.relationshipSince ?? activeCase.issueStartDate ?? activeCase.opened,
-    status: 'Open training record',
-    balance: /credit|loan/.test(rail) ? activeCase.amount ?? '$0.00' : 'Balance available in Financial Investigation',
-    limit: /credit|loan/.test(rail) ? activeCase.amount ?? unavailable : 'Not applicable',
-    standing: activeCase.taxonomyTags?.lifecycleStage === 'new' ? 'Limited relationship history' : 'Standing available for case comparison',
-  }];
-}
+function normalizeProfileUpdates(activeCase) {
+  const allowed = /address|phone|email|contact|statement|language|preference|password|recovery|mfa|authentication|security setting|authorized user|external (?:payment )?(?:account|destination)|payment destination|profile creation/i;
+  const profileSeed = stableNumber(activeCase.trainingId ?? activeCase.person ?? activeCase.id);
+  const sourceEvents = Array.isArray(activeCase.customer?.profileChanges)
+    ? activeCase.customer.profileChanges
+    : [];
+  const provided = sourceEvents
+    .map((event, index) => ({ event, index }))
+    .filter(({ event }) => allowed.test(`${event.eventType ?? ''} ${event.item ?? ''}`))
+    .filter(({ event }) => profileUpdateIsAvailableAsOf(event, activeCase))
+    .filter(({ event }) => !generatedProfileEventUsesIntake(event, activeCase))
+    .map(({ event, index }) => ({
+      id: `PROFILE-${String(profileSeed).padStart(5, '0')}-${index + 1}`,
+      updateType: safeRecordText(firstSupplied(event.eventType, event.item), 'Profile maintenance'),
+      item: safeRecordText(firstSupplied(event.item, event.eventType), 'Profile record'),
+      previousValue: safeRecordText(event.oldValue, 'Not recorded'),
+      newValue: safeRecordText(event.newValue, 'Not recorded'),
+      dateTime: safeRecordText(
+        firstSupplied(
+          event.dateTime,
+          `${event.date ?? 'Date not recorded'}${event.time ? ` · ${event.time}` : ''}`,
+        ),
+        'Date not recorded',
+      ),
+      channel: safeRecordText(event.channel, 'Customer profile'),
+      source: safeRecordText(event.source, 'Relationship servicing'),
+      actor: safeRecordText(event.user, 'Customer or authorized servicing user'),
+      deviceId: safeRecordText(event.device, 'Device not recorded'),
+      sessionId: safeRecordText(event.session, 'Session not recorded'),
+      authentication: safeRecordText(event.mfaMethod, 'Authentication method not recorded'),
+    }));
 
-function generatedContactHistory(activeCase) {
-  const channel = activeCase.intake?.channel ?? 'Case intake';
+  // When supplied records exist, filtering them must never trigger a synthetic
+  // replacement. This is especially important for migrated cases and for
+  // records excluded because they postdate the case's as-of date.
+  if (sourceEvents.length || activeCase.legacyDerivedEvidence === true) return provided;
+  const seed = stableNumber(activeCase.id);
   return [
-    { id: `${activeCase.id}-CON-1`, dateTime: activeCase.intake?.contactTime ?? activeCase.reportedDate ?? activeCase.opened, type: 'Intake or alert', channel, outcome: 'Case packet opened', agent: 'Training intake queue', notes: publicReportedAllegation(activeCase) },
-    { id: `${activeCase.id}-CON-2`, dateTime: activeCase.reportedDate ?? activeCase.opened, type: 'Case notification', channel: activeCase.customer?.contact?.preferredChannel ?? channel, outcome: 'Fictional notice recorded', agent: 'Automated training workflow', notes: 'Notification status is available for cross-reference.' },
+    {
+      id: `PROFILE-${seed}-1`,
+      updateType: 'Contact verification',
+      item: 'Primary contact information reviewed',
+      previousValue: 'Existing phone and email',
+      newValue: 'Existing phone and email retained',
+      dateTime: `Jun ${5 + (seed % 18)}, 2026 · 10:${String(seed % 60).padStart(2, '0')} AM`,
+      channel: 'Customer profile',
+      source: 'Relationship servicing',
+      actor: activeCase.person ?? 'Training customer',
+      deviceId: 'Servicing device not recorded',
+      sessionId: 'Session not recorded',
+      authentication: 'Profile verification',
+    },
+    {
+      id: `PROFILE-${seed}-2`,
+      updateType: 'Statement preference',
+      item: 'Statement delivery preference confirmed',
+      previousValue: 'Digital delivery',
+      newValue: 'Digital delivery retained',
+      dateTime: `Mar ${4 + (seed % 20)}, 2026 · 2:${String((seed + 17) % 60).padStart(2, '0')} PM`,
+      channel: 'Secure message',
+      source: 'Relationship servicing',
+      actor: activeCase.person ?? 'Training customer',
+      deviceId: 'Servicing device not recorded',
+      sessionId: 'Session not recorded',
+      authentication: 'Authenticated servicing session',
+    },
+  ].filter((event) => profileUpdateIsAvailableAsOf(event, activeCase));
+}
+
+function generatedSecurity(activeCase, identity) {
+  if (activeCase.customer?.security) return activeCase.customer.security;
+  const establishedLogins = (activeCase.loginHistory ?? []).filter((record) => (
+    /successful/i.test(record.result ?? '')
+    && /(?:-M\b|established|known|trusted)/i.test(`${record.deviceId ?? ''} ${record.device ?? ''}`)
+  ));
+  if (establishedLogins.length) {
+    const devices = [...new Map(establishedLogins.map((record) => [
+      record.deviceId,
+      {
+        id: record.deviceId,
+        name: record.device,
+        type: /mobile|phone/i.test(record.device ?? '') ? 'Mobile phone' : 'Computer',
+        platform: [record.operatingSystem, record.browserSource].filter(Boolean).join(' · '),
+        firstSeen: record.time,
+        lastSeen: record.time,
+        trustStatus: 'Established device history',
+        authentication: record.mfaStatus ?? record.method,
+      },
+    ])).values()];
+    return {
+      mfaStatus: establishedLogins[0].mfaStatus ?? establishedLogins[0].method,
+      passwordChanged: 'Password-reset information not supplied',
+      lockouts: 'Review Login History for account-lockout records',
+      alerts: `Security alerts route to ${identity.email}`,
+      recoveryContact: `${identity.mobilePhone} · ${identity.email}`,
+      trustedDevices: devices,
+    };
+  }
+  const seed = stableNumber(`${activeCase.trainingId}-${activeCase.id}`);
+  return {
+    mfaStatus: seed % 2 ? 'Password + mobile OTP enrolled' : 'Biometric + mobile OTP enrolled',
+    passwordChanged: `Apr ${1 + (seed % 24)}, 2026 · customer self-service`,
+    lockouts: 'No unresolved account lockout in the servicing profile',
+    alerts: `Security alerts route to ${identity.email}`,
+    recoveryContact: `${identity.mobilePhone} · ${identity.email}`,
+    trustedDevices: [],
+  };
+}
+
+function generatedServiceContacts(activeCase, identity, accounts) {
+  const seed = stableNumber(activeCase.id);
+  const relatedAccountId = accounts[0]?.accountId ?? activeCase.accountId ?? unavailable;
+  return [
+    {
+      id: `SVC-${seed}-1`,
+      dateTime: `Jun ${6 + (seed % 17)}, 2026 · 10:${String(seed % 60).padStart(2, '0')} AM`,
+      type: 'Contact verification',
+      channel: identity.preferredContact,
+      outcome: 'Existing contact values confirmed',
+      agent: 'Relationship servicing',
+      notes: 'The customer confirmed the recorded phone, email, and preferred contact channel.',
+      relatedAccountId,
+    },
+    {
+      id: `SVC-${seed}-2`,
+      dateTime: `Mar ${4 + (seed % 19)}, 2026 · 2:${String((seed + 21) % 60).padStart(2, '0')} PM`,
+      type: 'Statement preference service',
+      channel: 'Secure message',
+      outcome: 'Digital delivery retained',
+      agent: 'Digital servicing',
+      notes: 'The existing statement-delivery preference was reviewed without an account change.',
+      relatedAccountId,
+    },
   ];
 }
 
-function generatedPriorClaims(activeCase) {
-  if (activeCase.taxonomyTags?.lifecycleStage === 'new') return [];
-  return [{
-    id: `${activeCase.id}-HIST-1`,
-    date: 'Historical training period',
-    type: 'Prior service inquiry',
-    amount: '$0.00',
-    item: 'Relationship service record',
-    outcome: 'Closed',
-    notes: 'Different issue type; provided only as relationship context.',
-    documents: 'Contact note',
-    similar: 'No',
-  }];
-}
-
-function claimHighlights(activeCase) {
-  const taxonomy = publicCaseTaxonomy(activeCase);
-  const workflow = String(activeCase.workflowType ?? '').toLowerCase();
-  const profileChanges = activeCase.customer?.profileChanges ?? [];
-  if (workflow.includes('account-takeover')) return {
-    title: 'Access and profile context',
-    subtitle: 'Compare control changes with authentication and money movement',
-    fields: [
-      ['Password / recovery changes', profileChanges.filter((item) => /password|recovery|email|phone/i.test(`${item.eventType} ${item.item}`)).length],
-      ['MFA changes', profileChanges.filter((item) => /mfa|otp/i.test(`${item.eventType} ${item.item}`)).length],
-      ['New device records', new Set((activeCase.loginHistory ?? []).map((item) => item.deviceId ?? item.device)).size],
-      ['Alert delivery', 'Review Security & Access and Recent Contact'],
-      ['External account / payee', profileChanges.find((item) => /payee|external|wallet/i.test(`${item.eventType} ${item.item}`))?.newValue ?? 'No change listed in profile history'],
-      ['Sequence window', `${activeCase.issueStartDate ?? activeCase.opened} through ${activeCase.reportedDate ?? activeCase.opened}`],
-    ],
-  };
-  if (workflow.includes('card') || workflow.includes('merchant-non-fraud')) return {
-    title: 'Card and merchant context',
-    subtitle: 'Compare card standing, billing history, possession, and intake records',
-    fields: [
-      ['Card status', 'Open related product record'],
-      ['Last valid activity', activeCase.transactionInfo ?? unavailable],
-      ['Merchant history', 'Available in Transaction History'],
-      ['Wallet / token status', 'Open Payment Verification when available'],
-      ['Travel notes', activeCase.intake?.customerLocation ? `Customer reported ${activeCase.intake.customerLocation}` : unavailable],
-      ['Card possession / intake', publicReportedAllegation(activeCase)],
-    ],
-  };
-  if (workflow.includes('payroll') || workflow.includes('business-payment') || workflow.includes('wire') || workflow.includes('ach-transaction-review')) return {
-    title: 'Business contact and payment-change context',
-    subtitle: 'Compare administrators, callbacks, and destination maintenance',
-    fields: [
-      ['Business contact', activeCase.profile?.business ?? activeCase.person],
-      ['Owner / admin / payroll records', `${(activeCase.parties ?? []).filter((party) => /owner|control|admin/i.test(party.role ?? '')).length} relevant party record(s)`],
-      ['Employee / payment relationship', workflow.includes('payroll') ? 'Review Employee Profile and Payroll History' : 'Review Business 360 and payment records'],
-      ['Recent admin changes', `${profileChanges.length} profile-maintenance events`],
-      ['Bank profile changes', profileChanges.find((item) => /bank|destination|payroll|beneficiary/i.test(`${item.eventType} ${item.item}`))?.newValue ?? 'No destination change listed'],
-      ['Callback status', 'Review Payment Verification and Recent Contact'],
-    ],
-  };
-  if (workflow.includes('credit')) return {
-    title: 'Relationship and exposure context',
-    subtitle: 'Compare account age, payment standing, stated income, and public records',
-    fields: [
-      ['Relationship length', activeCase.customer?.relationshipSince ?? unavailable],
-      ['Payment history', 'Open Financial Investigation'],
-      ['Credit line / exposure', activeCase.amount ?? unavailable],
-      ['Revenue / income', activeCase.profile?.employer ?? 'Review income and business records'],
-      ['NSF / late payments', 'Open product and Financial Investigation records'],
-      ['Public records', 'Open Identity Intel / People Search'],
-    ],
-  };
+function suppliedSecuritySummary(activeCase) {
+  const security = activeCase.customer?.security
+    ?? activeCase.security
+    ?? activeCase.profile?.security
+    ?? {};
+  const devices = Array.isArray(security.trustedDevices) ? security.trustedDevices : [];
   return {
-    title: 'Case-specific relationship context',
-    subtitle: 'Facts supplied by the active fictional case packet',
-    fields: [['Customer type', taxonomy.customerType], ['Product', taxonomy.productType], ['Review workflow', taxonomy.workflowType], ['Available profile events', profileChanges.length], ['Exposure', activeCase.amount ?? unavailable]],
+    mfaStatus: safeRecordText(security.mfaStatus),
+    passwordChanged: safeRecordText(security.passwordChanged),
+    lockouts: safeRecordText(security.lockouts),
+    alerts: safeRecordText(security.alerts),
+    recoveryContact: safeRecordText(security.recoveryContact),
+    trustedPhone: safeRecordText(security.trustedPhone),
+    trustedEmail: safeRecordText(security.trustedEmail),
+    recentPasswordReset: safeRecordText(firstSupplied(
+      security.recentPasswordReset,
+      security.passwordChanged,
+    )),
+    securityAlertsSent: safeRecordText(firstSupplied(
+      security.securityAlertsSent,
+      security.alerts,
+    )),
+    trustedDevices: devices
+      .filter((device) => recordDateIsAvailableAsOf(device.firstSeen, activeCase))
+      .map((device, index) => ({
+      id: safeRecordText(device.id, `DEVICE-SUPPLIED-${index + 1}`),
+      name: safeRecordText(device.name),
+      type: safeRecordText(device.type),
+      platform: safeRecordText(firstSupplied(
+        device.platform,
+        device.browserOrOperatingSystem,
+      )),
+      browserOrOperatingSystem: safeRecordText(firstSupplied(
+        device.browserOrOperatingSystem,
+        device.platform,
+      )),
+      firstSeen: asOfText(device.firstSeen, activeCase),
+      lastSeen: asOfText(device.lastSeen, activeCase),
+      mostRecentSuccessfulLogin: asOfText(firstSupplied(
+        device.mostRecentSuccessfulLogin,
+        device.lastSeen,
+      ), activeCase),
+      trustStatus: safeRecordText(device.trustStatus),
+      authentication: safeRecordText(firstSupplied(
+        device.authentication,
+        device.mfaMethod,
+      )),
+      mfaMethod: safeRecordText(firstSupplied(
+        device.mfaMethod,
+        device.authentication,
+      )),
+    })),
   };
 }
 
-function nextStep(activeCase) {
-  const required = activeCase.requiredTools ?? [];
-  const preferred = required.find((tool) => !['Case Summary', 'Customer 360'].includes(tool));
-  return preferred ?? (activeCase.type?.includes('Chargeback') ? 'Transaction History' : 'Identity Intel / People Search');
+function suppliedServiceContacts(activeCase) {
+  const records = firstSupplied(
+    activeCase.customer?.serviceContacts,
+    activeCase.customer?.contactHistory,
+    activeCase.serviceContacts,
+    activeCase.contactHistory,
+  );
+  if (!Array.isArray(records)) return [];
+  return records
+    .filter((record) => recordDateIsAvailableAsOf(
+      firstSupplied(record.dateTime, record.date, record.observed),
+      activeCase,
+    ))
+    .map((record, index) => ({
+    id: safeRecordText(record.id, `SERVICE-SUPPLIED-${index + 1}`),
+    dateTime: safeRecordText(firstSupplied(
+      record.dateTime,
+      record.date && `${record.date}${record.time ? ` · ${record.time}` : ''}`,
+    )),
+    type: safeRecordText(record.type),
+    channel: safeRecordText(record.channel),
+    outcome: safeRecordText(record.outcome),
+    agent: safeRecordText(record.agent),
+    notes: safeRecordText(record.notes),
+    relatedAccountId: safeRecordText(record.relatedAccountId),
+    reasonForContact: safeRecordText(record.reasonForContact),
+    reportedInformation: safeRecordText(firstSupplied(
+      record.reportedInformation,
+      record.customerReported,
+    )),
+    assistanceProvided: safeRecordText(record.assistanceProvided),
+    documentsRequested: safeRecordText(record.documentsRequested),
+    followUpStatus: safeRecordText(record.followUpStatus),
+    agentOrDepartment: safeRecordText(firstSupplied(
+      record.agentOrDepartment,
+      record.agent,
+    )),
+  }));
+}
+
+function suppliedRelationshipSummary(activeCase) {
+  const relationship = activeCase.customer?.relationshipProfile
+    ?? activeCase.customer?.relationshipSummary
+    ?? activeCase.relationshipProfile
+    ?? {};
+  const rows = Array.isArray(activeCase.customer?.relationship)
+    ? activeCase.customer.relationship
+    : [];
+  const rowValue = (pattern) => rows.find((row) => pattern.test(String(row.label ?? '')))?.value;
+  return {
+    normalDeposits: safeRecordText(firstSupplied(
+      relationship.normalDeposits,
+      activeCase.customer?.normalDeposits,
+      rowValue(/normal deposit/i),
+    )),
+    normalSpending: safeRecordText(firstSupplied(
+      relationship.normalSpending,
+      activeCase.customer?.normalSpending,
+      rowValue(/normal spending/i),
+    )),
+    authorizedUsers: safeRecordText(firstSupplied(
+      relationship.authorizedUsers,
+      activeCase.customer?.authorizedUsers,
+      rowValue(/authorized user|additional signer/i),
+    )),
+    digitalBanking: safeRecordText(firstSupplied(
+      relationship.digitalBanking,
+      activeCase.customer?.digitalBanking,
+      rowValue(/digital banking|online banking/i),
+    )),
+  };
+}
+
+function sanitizeRelationshipSummary(relationship = {}) {
+  return {
+    normalDeposits: safeRecordText(relationship.normalDeposits),
+    normalSpending: safeRecordText(relationship.normalSpending),
+    authorizedUsers: safeRecordText(relationship.authorizedUsers),
+    digitalBanking: safeRecordText(relationship.digitalBanking),
+  };
+}
+
+function completeSecuritySummary(security, identity, activeCase) {
+  return {
+    mfaStatus: safeRecordText(security.mfaStatus),
+    passwordChanged: safeRecordText(security.passwordChanged),
+    lockouts: safeRecordText(security.lockouts),
+    alerts: safeRecordText(security.alerts),
+    recoveryContact: safeRecordText(security.recoveryContact),
+    trustedPhone: safeRecordText(security.trustedPhone ?? identity.mobilePhone),
+    trustedEmail: safeRecordText(security.trustedEmail ?? identity.email),
+    recentPasswordReset: safeRecordText(security.recentPasswordReset ?? security.passwordChanged),
+    securityAlertsSent: safeRecordText(security.securityAlertsSent ?? security.alerts),
+    trustedDevices: (security.trustedDevices ?? [])
+      .filter((device) => recordDateIsAvailableAsOf(device.firstSeen, activeCase))
+      .map((device) => ({
+      id: safeRecordText(device.id),
+      name: safeRecordText(device.name),
+      type: safeRecordText(device.type),
+      platform: safeRecordText(device.platform ?? device.browserOrOperatingSystem),
+      browserOrOperatingSystem: safeRecordText(device.browserOrOperatingSystem ?? device.platform),
+      firstSeen: asOfText(device.firstSeen, activeCase),
+      lastSeen: asOfText(device.lastSeen, activeCase),
+      mostRecentSuccessfulLogin: asOfText(device.mostRecentSuccessfulLogin ?? device.lastSeen, activeCase),
+      trustStatus: safeRecordText(device.trustStatus),
+      authentication: safeRecordText(device.authentication ?? device.mfaMethod),
+      mfaMethod: safeRecordText(device.mfaMethod ?? device.authentication),
+    })),
+  };
+}
+
+function completeServiceContacts(records = [], activeCase) {
+  return records
+    .filter((record) => recordDateIsAvailableAsOf(
+      record.dateTime ?? record.date ?? record.observed,
+      activeCase,
+    ))
+    .map((record) => ({
+    id: safeRecordText(record.id),
+    dateTime: safeRecordText(record.dateTime),
+    type: safeRecordText(record.type),
+    channel: safeRecordText(record.channel),
+    outcome: safeRecordText(record.outcome),
+    agent: safeRecordText(record.agent),
+    notes: safeRecordText(record.notes),
+    relatedAccountId: safeRecordText(record.relatedAccountId),
+    reasonForContact: safeRecordText(record.reasonForContact ?? record.type),
+    reportedInformation: safeRecordText(record.reportedInformation ?? record.customerReported ?? record.notes),
+    assistanceProvided: safeRecordText(record.assistanceProvided ?? record.outcome),
+    documentsRequested: safeRecordText(record.documentsRequested ?? 'None recorded'),
+    followUpStatus: safeRecordText(record.followUpStatus ?? (
+      /pending|requested|follow-up/i.test(`${record.outcome ?? ''} ${record.notes ?? ''}`)
+        ? 'Follow-up recorded'
+        : 'Completed'
+    )),
+    agentOrDepartment: safeRecordText(record.agentOrDepartment ?? record.agent),
+  }));
+}
+
+function normalizeOwnershipLink(raw, index) {
+  const relationship = raw.relationshipType
+    ?? raw.relationship
+    ?? raw.role
+    ?? raw.linkType
+    ?? '';
+  if (!/owner|ownership|beneficial|control/i.test(relationship)) return null;
+  const businessId = raw.businessId ?? raw.id ?? raw.entityId;
+  const businessName = raw.businessName ?? raw.legalName ?? raw.name ?? raw.entity;
+  if (!businessId || !businessName) return null;
+  return {
+    id: raw.id ?? `BUSINESS-LINK-${index + 1}`,
+    businessId,
+    businessName,
+    relationship,
+    ownershipPercentage: raw.ownershipPercentage ?? raw.ownership ?? 'Not recorded',
+    relationshipSince: raw.relationshipSince ?? raw.since ?? 'Not recorded',
+    status: raw.status ?? 'Relationship record available',
+  };
+}
+
+function linkedBusinesses(activeCase) {
+  const candidates = [
+    ...(activeCase.customer?.businessRelationships ?? []),
+    ...(activeCase.businessRelationships ?? []),
+    ...(activeCase.linkedBusinesses ?? []),
+    ...(activeCase.relationships ?? []),
+  ];
+  return candidates
+    .map(normalizeOwnershipLink)
+    .filter(Boolean)
+    .filter((item, index, all) => all.findIndex((candidate) => candidate.businessId === item.businessId) === index);
 }
 
 export function getCustomerIdentityFacts(activeCase) {
-  return (builtInDossiers[activeCase.id]?.identity ?? generatedIdentity(activeCase));
+  const accounts = getRelationshipAccounts(activeCase);
+  const profile = builtInProfiles[activeCase.id];
+  const legacySourceOnly = isLegacySourceOnly(activeCase, profile);
+  const identity = sanitizeIdentity(profile?.identity
+    ?? (legacySourceOnly
+      ? suppliedIdentity(activeCase)
+      : generatedIdentity(activeCase, accounts)));
+  const trainingId = safeRecordText(activeCase.trainingId);
+  const suppliedMaskedMemberId = activeCase.customer?.identity?.maskedMemberId
+    ?? activeCase.identity?.maskedMemberId
+    ?? activeCase.profile?.identity?.maskedMemberId;
+  return {
+    ...identity,
+    trainingId,
+    relationshipLength: /\b(?:19|20)\d{2}\b/.test(identity.customerSince)
+      ? relationshipLengthFrom(identity.customerSince)
+      : unavailable,
+    maskedMemberId: legacySourceOnly
+      ? safeRecordText(suppliedMaskedMemberId)
+      : trainingId !== unavailable
+        ? `MEM-••••-${String(trainingId).replace(/\D/g, '').slice(-4).padStart(4, '0')}`
+        : unavailable,
+  };
 }
 
 export function getCustomer360Dossier(activeCase) {
-  const preset = builtInDossiers[activeCase.id] ?? {};
-  const identity = preset.identity ?? generatedIdentity(activeCase);
-  const contact = preset.contact ?? {
-    homePhone: 'No separate home phone recorded',
-    mailingAddress: activeCase.customer?.contact?.address ?? activeCase.intake?.customerLocation ?? unavailable,
-    physicalAddress: activeCase.customer?.contact?.address ?? activeCase.intake?.customerLocation ?? unavailable,
-    verificationStatus: 'Fictional contact points available for comparison',
-    alertUse: 'Review Login History and profile-maintenance records',
-  };
-  const products = preset.products ?? generatedProducts(activeCase);
-  const relationship = preset.relationship ?? {
-    normalDeposits: 'Review the case-scoped Financial Investigation baseline',
-    normalSpending: activeCase.transactionInfo ?? 'Review Transaction History',
-    authorizedUsers: 'No additional authorized user in the supplied packet',
-    businessRelationships: activeCase.profile?.business ?? 'No separate business relationship supplied',
-  };
-  const knownDevices = [...new Set((activeCase.loginHistory ?? []).map((item) => item.deviceId ?? item.device).filter(Boolean))];
-  const security = preset.security ?? {
-    mfaStatus: [...new Set((activeCase.loginHistory ?? []).map((item) => item.method).filter(Boolean))].join(' · ') || unavailable,
-    passwordChanged: 'Review Password Reset History when available',
-    trustedDevices: knownDevices.join(' · ') || unavailable,
-    lockouts: (activeCase.loginHistory ?? []).some((item) => item.result !== 'Successful') ? 'Unsuccessful access records available' : 'No lockout recorded in the supplied packet',
-    alerts: `Alerts routed through ${activeCase.customer?.contact?.preferredChannel ?? activeCase.intake?.channel ?? 'the recorded contact channel'}`,
-    walletEnrollment: (activeCase.customer?.profileChanges ?? []).find((item) => /wallet/i.test(`${item.eventType} ${item.item}`))?.newValue ?? 'No wallet event in the supplied profile history',
-    recoveryContact: `${activeCase.customer?.contact?.phone ?? unavailable} · ${activeCase.customer?.contact?.email ?? unavailable}`,
-  };
-  const recentContacts = preset.recentContacts ?? generatedContactHistory(activeCase);
-  const priorClaims = preset.priorClaims ?? generatedPriorClaims(activeCase);
-  const suggestedTool = nextStep(activeCase);
+  const accounts = getRelationshipAccounts(activeCase);
+  const preset = builtInProfiles[activeCase.id];
+  const legacySourceOnly = isLegacySourceOnly(activeCase, preset);
+  const identity = getCustomerIdentityFacts(activeCase);
+  const security = legacySourceOnly
+    ? suppliedSecuritySummary(activeCase)
+    : completeSecuritySummary(
+      preset?.security ?? generatedSecurity(activeCase, identity),
+      identity,
+      activeCase,
+    );
+  const serviceContacts = legacySourceOnly
+    ? suppliedServiceContacts(activeCase)
+    : completeServiceContacts(
+      preset?.serviceContacts ?? generatedServiceContacts(activeCase, identity, accounts),
+      activeCase,
+    );
+  const profileUpdates = normalizeProfileUpdates(activeCase);
+  const businessRelationships = linkedBusinesses(activeCase);
+  const relationshipSource = preset?.relationship
+    ?? (legacySourceOnly
+      ? suppliedRelationshipSummary(activeCase)
+      : {
+        normalDeposits: accounts.some((account) => /checking|savings/.test(account.productKind))
+          ? 'A deposit product is listed; review dated account records for any activity history'
+          : 'No deposit product is listed',
+        normalSpending: accounts.some((account) => /card|checking/.test(account.productKind))
+          ? 'A spending-capable product is listed; review dated account records for any activity history'
+          : 'No spending product is listed',
+        authorizedUsers: 'No additional authorized user recorded',
+        digitalBanking: 'Online relationship profile available',
+      });
+  const relationship = sanitizeRelationshipSummary(relationshipSource);
+  const asOf = safeRecordText(activeCase.reportedDate ?? activeCase.opened);
 
   return {
     identity,
-    contact,
-    products,
-    relationship,
+    contact: {
+      mobilePhone: identity.mobilePhone,
+      homePhone: identity.homePhone,
+      email: identity.email,
+      mailingAddress: identity.currentAddress,
+      physicalAddress: identity.currentAddress,
+      previousAddress: identity.previousAddress,
+      preferredContact: identity.preferredContact,
+      verificationStatus: identity.verificationStatus,
+    },
+    accounts,
+    products: accounts,
+    relationship: {
+      ...relationship,
+      businessRelationships,
+    },
     security,
-    recentContacts,
-    priorClaims,
-    claimContext: claimHighlights(activeCase),
-    suggestedTool,
+    profileUpdates,
+    serviceContacts,
+    recentContacts: serviceContacts,
+    priorClaims: [],
+    coverage: {
+      asOf,
+      sourceMode: preset ? 'Built-in training profile' : legacySourceOnly ? 'Supplied records only' : 'Generated training profile',
+      identity: legacySourceOnly
+        ? 'Unsupplied identity fields are explicitly unavailable.'
+        : 'Training identity profile available.',
+      profileUpdates: profileUpdates.length
+        ? `${profileUpdates.length} profile update record${profileUpdates.length === 1 ? '' : 's'} available through ${asOf}.`
+        : `No profile update record is supplied through ${asOf}.`,
+      security: security.trustedDevices.length
+        ? `${security.trustedDevices.length} trusted-device record${security.trustedDevices.length === 1 ? '' : 's'} supplied.`
+        : 'No trusted-device record is supplied.',
+      serviceContacts: serviceContacts.length
+        ? `${serviceContacts.length} service-contact record${serviceContacts.length === 1 ? '' : 's'} supplied.`
+        : 'No service-contact record is supplied.',
+    },
     atAGlance: [
-      ['Relationship', activeCase.customer?.relationshipSince ?? unavailable],
-      ['Products', products.length],
-      ['Profile changes', activeCase.customer?.profileChanges?.length ?? 0],
-      ['Prior claims', priorClaims.length],
+      ['Relationship length', identity.relationshipLength],
+      ['Products', accounts.length],
+      ['Trusted devices', security.trustedDevices.length],
+      ['Service contacts', serviceContacts.length],
     ],
-    lunaInsight: `Start with the customer baseline, then compare profile maintenance with ${suggestedTool}. This is process guidance, not a case conclusion.`,
   };
 }

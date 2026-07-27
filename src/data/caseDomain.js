@@ -1,4 +1,7 @@
 export const CASE_DOMAIN_VERSION = 2;
+export const CASE_RELATIONSHIP_VIEW_SCHEMA_VERSION = 1;
+export const CASE_RELATIONSHIP_DATA_VERSION = 1;
+export const LEGACY_RELATIONSHIP_DATA_VERSION = 0;
 
 export const CUSTOMER_TYPES = Object.freeze({
   PERSONAL: 'personal',
@@ -54,6 +57,94 @@ export const SUSPECTED_PATTERNS = Object.freeze({
   LINKED_PRIOR_FRAUD: 'linked-prior-fraud',
   UNVERIFIABLE_INFORMATION: 'unverifiable-information',
 });
+
+export const LEGACY_TOOL_NAME_ALIASES = Object.freeze({
+  'Evidence Center': 'Document Viewer',
+  'Financial Intelligence': 'Financial Investigation',
+  'Business Intelligence': 'KYB Review',
+});
+
+const legacyToolNameLookup = new Map(
+  Object.entries(LEGACY_TOOL_NAME_ALIASES)
+    .map(([legacyName, currentName]) => [legacyName.toLowerCase(), currentName]),
+);
+const payrollOnlyTools = new Set(['Employee Profile', 'Payroll History']);
+const payrollWorkflows = new Set([
+  WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT,
+  WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER,
+]);
+const ownershipRelationshipPattern = /\b(?:beneficial\s+owner|owner|ownership|owns|control\s+person|controller|controlling|controls)\b/i;
+
+export function normalizeToolName(toolName) {
+  if (typeof toolName !== 'string') return toolName;
+  return legacyToolNameLookup.get(toolName.trim().toLowerCase()) ?? toolName;
+}
+
+export function normalizeToolNames(toolNames = []) {
+  if (!Array.isArray(toolNames)) return [];
+  return [...new Set(toolNames.map(normalizeToolName).filter(Boolean))];
+}
+
+export function hasOwnershipLinkedBusinessRelationship(caseOrDomain = {}) {
+  if (caseOrDomain.hasLinkedBusinessRelationship === true) return true;
+  const relationshipRecords = [
+    ...(Array.isArray(caseOrDomain.businessRelationships) ? caseOrDomain.businessRelationships : []),
+    ...(Array.isArray(caseOrDomain.linkedBusinesses) ? caseOrDomain.linkedBusinesses : []),
+    ...(Array.isArray(caseOrDomain.customer?.businessRelationships) ? caseOrDomain.customer.businessRelationships : []),
+    ...(Array.isArray(caseOrDomain.customer?.linkedBusinesses) ? caseOrDomain.customer.linkedBusinesses : []),
+  ];
+  return relationshipRecords.some((record) => {
+    if (typeof record === 'string') return ownershipRelationshipPattern.test(record);
+    if (!record || typeof record !== 'object' || Array.isArray(record)) return false;
+    if (
+      record.isOwner === true
+      || record.isControlPerson === true
+      || record.controlsBusiness === true
+    ) return true;
+    const ownershipPercent = Number.parseFloat(
+      record.ownershipPercentage ?? record.ownershipPercent ?? '',
+    );
+    if (Number.isFinite(ownershipPercent) && ownershipPercent > 0) return true;
+    return ownershipRelationshipPattern.test([
+      record.role,
+      record.relationship,
+      record.relationshipType,
+      record.capacity,
+      record.type,
+    ].filter(Boolean).join(' '));
+  });
+}
+
+export function hasPayrollRelationship(caseOrDomain = {}) {
+  if (caseOrDomain.hasPayrollRelationship === true) return true;
+  if (caseOrDomain.productType === PRODUCT_TYPES.PAYROLL_PRODUCT) return true;
+  if (payrollWorkflows.has(caseOrDomain.workflowType)) return true;
+  if (Array.isArray(caseOrDomain.toolResults?.payrollHistory)
+    && caseOrDomain.toolResults.payrollHistory.length > 0) return true;
+  const accounts = caseOrDomain.toolResults?.relationshipAccounts
+    ?? caseOrDomain.relationshipAccounts
+    ?? [];
+  return Array.isArray(accounts) && accounts.some((account) => (
+    account?.productType === PRODUCT_TYPES.PAYROLL_PRODUCT
+    || /payroll/i.test(`${account?.productKind ?? ''} ${account?.productLabel ?? ''}`)
+  ));
+}
+
+export function filterToolsForCaseDomain(toolNames = [], domain = {}) {
+  const normalizedTools = normalizeToolNames(toolNames);
+  const isPersonal = domain.customerType === CUSTOMER_TYPES.PERSONAL;
+  const isBusiness = domain.customerType === CUSTOMER_TYPES.BUSINESS;
+  const hasLinkedBusiness = isPersonal && hasOwnershipLinkedBusinessRelationship(domain);
+  const isPayrollReview = hasPayrollRelationship(domain);
+
+  return normalizedTools.filter((toolName) => {
+    if (isPersonal && toolName === 'Business 360' && !hasLinkedBusiness) return false;
+    if (isPersonal && (toolName === 'KYB Review' || payrollOnlyTools.has(toolName))) return false;
+    if (isBusiness && toolName === 'Customer 360') return false;
+    if (!isPayrollReview && payrollOnlyTools.has(toolName)) return false;
+    return true;
+  });
+}
 
 export const customerTypeDefinitions = Object.freeze([
   Object.freeze({ id: CUSTOMER_TYPES.PERSONAL, label: 'Personal' }),

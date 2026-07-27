@@ -53,6 +53,9 @@ jobs:
       - name: Case domain routing smoke check
         run: npm run case-domain-model-smoke-check
 
+      - name: Customer Business and Financial relationship tools smoke check
+        run: npm run relationship-tools-smoke-check
+
       - name: Payroll workflow evidence-gating smoke check
         run: npm run payroll-workflow-smoke-check
 
