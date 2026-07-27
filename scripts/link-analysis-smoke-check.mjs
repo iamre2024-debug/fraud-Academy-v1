@@ -158,6 +158,7 @@ for (const identifier of getLinkIdentifiersForCase(generatedCase)) {
 
 const component = fs.readFileSync('src/LinkAnalysisWorkspace.jsx', 'utf8');
 const panel = fs.readFileSync('src/InvestigationToolPanel.jsx', 'utf8');
+const visualWorkspace = fs.readFileSync('src/VisualWorkspace.jsx', 'utf8');
 const mobileWorkspace = fs.readFileSync('src/MobileMissionWorkspace.jsx', 'utf8');
 const styles = fs.readFileSync('src/linkAnalysisWorkspace.css', 'utf8');
 for (const anchor of [
@@ -169,11 +170,15 @@ for (const anchor of [
   'Open Related Case',
   'Luna · factual link summary',
   'requestedAccountId',
+  'revealSearch',
 ]) {
   if (!component.includes(anchor)) fail(`Dedicated Link Analysis workspace is missing: ${anchor}.`);
 }
 if (!panel.includes("if (tool === 'Link Analysis')") || !panel.includes('<LinkAnalysisWorkspace')) {
   fail('InvestigationToolPanel is not routing Link Analysis into its dedicated component.');
+}
+if (!visualWorkspace.includes("revealLinkAnalysisSearch: openedPinnedEvidence?.tool === 'Link Analysis'")) {
+  fail('Pinned Link Analysis evidence does not explicitly reveal its restored search input.');
 }
 if (!mobileWorkspace.includes('data-link-analysis-header') || !mobileWorkspace.includes('mission-link-analysis-case-select')) {
   fail('The mobile Link Analysis route is not using its dedicated compact header.');

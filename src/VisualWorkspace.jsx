@@ -487,6 +487,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     rows,
     activeRow,
     expandedId,
+    revealLinkAnalysisSearch: openedPinnedEvidence?.tool === 'Link Analysis',
     setExpandedId,
     pin,
     saveNote,

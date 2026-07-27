@@ -291,6 +291,7 @@ export default function LinkAnalysisWorkspace({
   recordAction,
   openRelatedCase,
   requestedAccountId = '',
+  revealSearch = false,
 }) {
   const suggestions = useMemo(() => getLinkIdentifiersForCase(activeCase), [activeCase]);
   const defaultSuggestion = suggestions.find((item) => item.type === 'phone')
@@ -356,6 +357,10 @@ export default function LinkAnalysisWorkspace({
     setExpandedAccountId('');
     setOpenedAccountId('');
   }, [identifierType, query, submittedQuery, suggestions]);
+
+  useEffect(() => {
+    if (revealSearch && query) setSearchOpen(true);
+  }, [query, revealSearch]);
 
   function runSearch(value = draft, type = identifierType, shouldOpenSearch = false) {
     const cleanValue = String(value ?? '').trim();
