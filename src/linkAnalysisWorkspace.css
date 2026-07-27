@@ -577,7 +577,7 @@ body[data-visual-tab="workspace"] .link-analysis-focus-node em {
   font-style: normal;
 }
 
-body[data-visual-tab="workspace"] .link-analysis-orbit-node {
+body[data-visual-tab="workspace"] .link-analysis-workspace .link-analysis-orbit-node {
   width: 148px;
   min-height: 76px;
   display: grid;
@@ -592,12 +592,25 @@ body[data-visual-tab="workspace"] .link-analysis-orbit-node {
   text-align: left;
 }
 
-body[data-visual-tab="workspace"] .link-analysis-orbit-node:hover:not(:disabled),
-body[data-visual-tab="workspace"] .link-analysis-orbit-node:focus-visible,
-body[data-visual-tab="workspace"] .link-analysis-orbit-node[data-active="true"] {
+body[data-visual-tab="workspace"] .link-analysis-workspace .link-analysis-orbit-node:hover:not(:disabled),
+body[data-visual-tab="workspace"] .link-analysis-workspace .link-analysis-orbit-node:focus-visible {
   border-color: transparent;
   background: rgba(11, 68, 129, 0.36);
   box-shadow: 0 0 25px rgba(65, 207, 255, 0.16);
+}
+
+body[data-visual-tab="workspace"] .link-analysis-workspace .link-analysis-orbit-node[data-active="true"] {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+body[data-visual-tab="workspace"] .link-analysis-workspace .link-analysis-orbit-node[data-active="true"] > span {
+  box-shadow: 0 0 0 5px rgba(47, 182, 255, 0.1), 0 0 25px rgba(68, 210, 255, 0.5);
+}
+
+body[data-visual-tab="workspace"] .link-analysis-workspace .link-analysis-node-accounts[data-active="true"] > span {
+  box-shadow: 0 0 0 5px rgba(255, 92, 190, 0.09), 0 0 25px rgba(255, 92, 190, 0.44);
 }
 
 body[data-visual-tab="workspace"] .link-analysis-orbit-node > span {
