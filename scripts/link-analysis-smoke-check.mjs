@@ -91,10 +91,32 @@ for (const [type, left, right] of [
   ['device', 'DEV-A_B', 'DEV-AB'],
   ['device', 'DEV-A B', 'DEV-AB'],
   ['training-id', 'TRN-1 23', 'TRN-123'],
+  ['phone', '(214) 555-0184', '214-555-0184 x2'],
+  ['address', '12-34 Main St.', '1234 Main St.'],
+  ['address', '12.34 Main St.', '12 34 Main St.'],
 ]) {
   if (normalizeLinkIdentifier(left, type) === normalizeLinkIdentifier(right, type)) {
     fail(`${type}: distinct identifiers ${left} and ${right} must not collapse into the same exact-match key.`);
   }
+}
+
+if (
+  normalizeLinkIdentifier('+1 214.555.0184', 'phone')
+  !== normalizeLinkIdentifier('(214) 555-0184', 'phone')
+) {
+  fail('Equivalent US phone presentation should normalize to the same typed key.');
+}
+if (
+  normalizeLinkIdentifier('12-34 Main St.', 'address')
+  !== normalizeLinkIdentifier('12-34 main st', 'address')
+) {
+  fail('Address case and terminal punctuation should normalize without removing token boundaries.');
+}
+if (
+  normalizeLinkIdentifier('(214) 555-0184', 'phone')
+  === normalizeLinkIdentifier('214 555 0184', 'address')
+) {
+  fail('Phone and address records must never share the same typed key.');
 }
 
 for (const [type, query] of [

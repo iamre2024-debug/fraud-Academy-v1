@@ -1,2642 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
-import DirectCollapsibleText from './DirectCollapsibleText.jsx';
-import DocumentViewerWorkspace from './DocumentViewerWorkspace.jsx';
-import LinkAnalysisWorkspace from './LinkAnalysisWorkspace.jsx';
-import MerchantIntelligenceWorkspace from './MerchantIntelligenceWorkspace.jsx';
-import { accessReportExportText, generateAccessHistoryReport, generatedAccessReportTypes } from './data/accessHistoryReports.js';
-import { buildCoreToolRecords } from './data/coreToolRecords.js';
-import { getBusiness360Workspace, getEmployeeProfiles, getPayrollHistory, getTransactionHistory } from './data/businessPayrollWorkspace.js';
-import { getDeviceProfiles } from './data/deviceRecords.js';
-import { getFinancialRecords } from './data/caseToolData.js';
-import { getCaseDocuments } from './data/documentRecords.js';
-import {
-  applyCustomerResponse,
-  buildPaperworkInboxRecords,
-  createPaperworkAttempt,
-  getPaperworkRequestTemplates,
-} from './data/documentRequestWorkflow.js';
-import { financialInvestigationTabs, financialRecordSearchText, getFinancialInvestigation } from './data/financialInvestigationRecords.js';
-import { getIdentityIntelReport, matchesIdentityIntelSearch } from './data/identityIntelReport.js';
-import { getLoginRecords } from './data/loginRecords.js';
-import {
-  buildPaymentLookupHint,
-  parsePaymentLookupHint,
-  resolvePaymentLookup,
-} from './data/paymentVerification.js';
-import { getIpRecords } from './data/ipRecords.js';
-import { getKybReview, kybRecordSearchText, kybReviewTabs, matchesKybReviewLookup } from './data/kybReviewRecords.js';
-import { generateKybReviewReport, hasGeneratedKybReport, kybReportExportText } from './data/kybReviewReport.js';
-import { getSessionRecords } from './data/sessionRecords.js';
-import { queueDocumentViewerRoute } from './documentViewerRoute.js';
-import { workflows } from './visualWorkspaceModel.js';
-
-const toolDetails = {
-  'Identity Intel / People Search': {
-    purpose: 'Search fictional identity records by Training ID or Name + DOB, review the match summary, then open the full profile report.',
-    question: 'Does this identity history support who they claim to be?',
-  },
-  'Login History': {
-    purpose: 'Review authentication attempts, results, methods, devices, locations, MFA, and session references without mixing in post-login activity or drawing an early conclusion.',
-    question: 'Who logged in, when, and from where?',
-  },
-  'Session History': {
-    purpose: 'Review recorded actions after authentication and connect each session to its login, profile activity, payment activity, and logout state without drawing an early conclusion.',
-    question: 'After login, what did the user do?',
-  },
-  'Device Intelligence': {
-    purpose: 'Compare fictional device identifiers, browsers, sessions, methods, locations, and network records.',
-    question: 'Which devices appear in the case activity, and where do those devices repeat?',
-  },
-  'IP Intelligence': {
-    purpose: 'Look up fictional network and location evidence, then compare it with recorded sessions and devices without drawing an early conclusion.',
-    question: 'Where did the connection originate, and has it been seen elsewhere?',
-  },
-  'Transaction History': {
-    purpose: 'Review the transaction records in scope before comparing them with other financial and customer evidence.',
-    question: 'What transactions are in scope, and what details are recorded for each item?',
-  },
-  'Merchant Intelligence': {
-    purpose: 'Review merchant identity, category, customer history, authorization, fulfillment, disputes, refunds, subscription or marketplace activity, and reason-code evidence in one claim-specific workspace.',
-    question: 'Is this a customer issue, merchant issue, fraud issue, or dispute issue?',
-  },
-  'Financial Investigation': {
-    purpose: 'Use a direct money command center to compare balances, deposits, spending, cash, digital payments, linked accounts, merchants, behavior, and funds flow.',
-    question: 'Does the money make sense?',
-  },
-  'Payment Verification': {
-    purpose: 'Review neutral payment-object and verification records without treating a status as a final case decision.',
-    question: 'What payment objects and verification states are recorded for this case?',
-  },
-  'Business 360': {
-    purpose: 'Review the business relationship, status, observed activity, and case context in one neutral record set.',
-    question: 'Which business relationships and entities are connected to the active case?',
-  },
-  'KYB Review': {
-    purpose: 'Look up a fictional business and compare registration, owners, online presence, bank ownership, revenue, payroll, and source documents.',
-    question: 'Do the business identity and operating records connect across independent sources?',
-  },
-  'Employee Profile': {
-    purpose: 'Review employee identity, role, employer, status, timing, and related case context.',
-    question: 'Which employee facts are available, and how do they connect to the case?',
-  },
-  'Payroll History': {
-    purpose: 'Review payroll periods, employers, amounts, channels, statuses, and contextual details.',
-    question: 'What payroll activity is recorded for the active case?',
-  },
-  'Document Viewer': {
-    purpose: 'Search by exact Account ID, then review the matching customer documents, complete pages, extracted fields, and source details without drawing an early conclusion.',
-    question: 'Which customer account do these documents belong to, and what can be verified from each record?',
-  },
-  'Document Request': {
-    purpose: 'Track fictional case documents that were requested, received, missing, or awaiting review without treating the request status as a case outcome.',
-    question: 'What documents were requested, received, missing, or pending review for this case?',
-  },
-  'Link Analysis': {
-    purpose: 'Review connections between customer, access, identity, device, network, and case objects.',
-    question: 'Which identifiers and records connect across the active case?',
-  },
-  'System Access Lane': {
-    purpose: 'Review neutral internal, vendor, API, and permissioned third-party access records tied to case objects.',
-    question: 'Which approved system-access records touch the active case objects?',
-  },
-};
-
-function PaymentSourceHandoff({ source, activeCase, openTool, sourceLabel }) {
-  if (!source || !activeCase.availableTools?.includes('Payment Verification')) return null;
-  const hint = buildPaymentLookupHint({
-    bankCode: source.bankCode,
-    destinationId: source.destinationId,
-    ownerName: source.ownerToCompare ?? activeCase.person,
-  });
-  const fields = [
-    ['Bank Code', source.bankCode ?? 'Not supplied'],
-    ['Destination ID', source.destinationId ?? 'Not supplied'],
-    ['Previous account / destination', source.previousDestination ?? source.oldDestination ?? 'Not supplied'],
-    ['New account / destination', source.newDestination ?? 'Not supplied'],
-    ['Change comparison', source.changeComparison ?? 'Not supplied'],
-  ];
-
-  return (
-    <section
-      className="payment-source-handoff"
-      aria-label={`${sourceLabel} payment source identifiers`}
-      data-payment-source-record={source.recordId}
-    >
-      <header>
-        <div>
-          <p>Source identifiers Â· Evidence First</p>
-          <h3>Payment account change</h3>
-          <span>Use these recorded values for the lookup. Name match, account status, and verification results stay hidden until the search runs.</span>
-        </div>
-        <strong>{source.recordId}</strong>
-      </header>
-      <dl>
-        {fields.map(([label, value]) => (
-          <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
-        ))}
-      </dl>
-      <button type="button" onClick={() => openTool('Payment Verification', 'investigate', { query: hint })}>
-        Prefill Payment Verification
-      </button>
-    </section>
-  );
-}
-
-function downloadAccessReport(report) {
-  if (typeof window === 'undefined') return;
-  const blob = new Blob([accessReportExportText(report)], { type: 'text/plain;charset=utf-8' });
-  const url = window.URL.createObjectURL(blob);
-  const link = window.document.createElement('a');
-  link.href = url;
-  link.download = `${report.id}.txt`;
-  link.click();
-  window.URL.revokeObjectURL(url);
-}
-
-function downloadKybReport(report) {
-  if (typeof window === 'undefined') return;
-  const blob = new Blob([kybReportExportText(report)], { type: 'text/plain;charset=utf-8' });
-  const url = window.URL.createObjectURL(blob);
-  const link = window.document.createElement('a');
-  link.href = url;
-  link.download = `${report.id}.txt`;
-  link.click();
-  window.URL.revokeObjectURL(url);
-}
-
-function detailFor(tool, activeCategory) {
-  return toolDetails[tool] ?? {
-    purpose: `Review the available ${activeCategory.label.toLowerCase()} records while the final decision remains locked.`,
-    question: `What records are available inside ${tool}?`,
-  };
-}
-
-function fieldPairs(columns, values) {
-  return columns.map((column, index) => ({
-    label: column,
-    value: values[index] ?? 'Not recorded',
-  }));
-}
-
-function searchableText(row) {
-  return `${row.id} ${row.label} ${row.detail} ${row.values.join(' ')}`.toLowerCase();
-}
-
-function statusTone(value = '') {
-  const normalized = value.toLowerCase();
-  if (/(^match$|open|good|answered|confirmed|available|active)/.test(normalized)) return 'good';
-  if (/(partial|pending|callback|more information|manual|recorded|tokenized)/.test(normalized)) return 'warn';
-  if (/(no match|not found|closed|frozen|nsf|unable|wrong|not confirmed|no answer)/.test(normalized)) return 'alert';
-  return 'neutral';
-}
-
-function deviceRecordSearchText(record) {
-  return [
-    record.id,
-    record.deviceName,
-    record.deviceType,
-    record.operatingSystem,
-    record.browser,
-    record.deviceFingerprint,
-    record.browserFingerprint,
-    record.firstSeen,
-    record.lastSeen,
-    record.trustedStatus,
-    record.rootedJailbroken,
-    record.emulatorIndicator,
-    record.vpnProxyIndicator,
-    record.sharedDeviceDetection,
-    record.walletUsage,
-    record.normalBehavior,
-    record.lookupResult,
-    record.investigatorUse,
-    ...(record.linkedProfiles ?? []),
-    ...(record.history ?? []),
-    ...(record.relatedRecords ?? []),
-  ].filter(Boolean).join(' ').toLowerCase();
-}
-
-function loginRecordSearchText(record) {
-  return [
-    record.id, record.timestamp, record.date, record.timeOfDay, record.eventType, record.result, record.method, record.mfaStatus, record.authChannel,
-    record.device, record.deviceId, record.browserSource, record.operatingSystem, record.location, record.ip, record.sessionReference,
-    record.failedAttemptCount, record.accountLockout, record.passwordResetLink, record.profileChangeLink,
-    record.loginContext, record.investigatorUse, ...(record.relatedRecords ?? []),
-  ].filter(Boolean).join(' ').toLowerCase();
-}
-
-function LoginHistoryWorkspace({
-  activeCase,
-  query,
-  setQuery,
-  pin,
-  saveNote,
-  markReviewed,
-  reviewed,
-  openTool,
-  jumpDecision,
-}) {
-  const [selectedLoginId, setSelectedLoginId] = useState('');
-  const [resultFilter, setResultFilter] = useState('All results');
-  const [methodFilter, setMethodFilter] = useState('All methods');
-  const [deviceFilter, setDeviceFilter] = useState('All devices');
-  const [dateFilter, setDateFilter] = useState('All dates');
-  const [reportGenerated, setReportGenerated] = useState(() => generatedAccessReportTypes(activeCase.id).includes('login'));
-  const records = getLoginRecords(activeCase);
-  const normalizedQuery = query.trim().toLowerCase();
-  const resultOptions = ['All results', ...new Set(records.map((record) => record.result))];
-  const methodOptions = ['All methods', ...new Set(records.map((record) => record.method))];
-  const deviceOptions = ['All devices', ...new Set(records.map((record) => record.deviceId ?? record.device))];
-  const dateOptions = ['All dates', ...new Set(records.map((record) => record.date))];
-  const filteredRecords = records.filter((record) => (
-    (!normalizedQuery || loginRecordSearchText(record).includes(normalizedQuery))
-    && (resultFilter === 'All results' || record.result === resultFilter)
-    && (methodFilter === 'All methods' || record.method === methodFilter)
-    && (deviceFilter === 'All devices' || (record.deviceId ?? record.device) === deviceFilter)
-    && (dateFilter === 'All dates' || record.date === dateFilter)
-  ));
-  const loginFiltersClear = !normalizedQuery && resultFilter === 'All results' && methodFilter === 'All methods' && deviceFilter === 'All devices' && dateFilter === 'All dates';
-  const activeRecord = filteredRecords.find((record) => record.id === selectedLoginId) ?? filteredRecords[0] ?? (loginFiltersClear ? records[0] : null);
-  const successfulCount = records.filter((record) => /successful/i.test(record.result)).length;
-  const deniedCount = records.filter((record) => /(failed|denied)/i.test(record.result)).length;
-  const lockoutCount = records.filter((record) => /locked/i.test(record.result)).length;
-  const uniqueDevices = new Set(records.map((record) => record.deviceId ?? record.device)).size;
-  const mfaCount = records.filter((record) => /completed|delivered|approved/i.test(record.mfaStatus)).length;
-
-  useEffect(() => {
-    setSelectedLoginId('');
-    setResultFilter('All results');
-    setMethodFilter('All methods');
-    setDeviceFilter('All devices');
-    setDateFilter('All dates');
-    setReportGenerated(generatedAccessReportTypes(activeCase.id).includes('login'));
-  }, [activeCase.id]);
-
-  function saveLoginNote(message) {
-    saveNote(`Login History: ${message}`, 'Login history');
-  }
-
-  function generateLoginReport() {
-    const report = generateAccessHistoryReport(activeCase, 'login');
-    downloadAccessReport(report);
-    setReportGenerated(true);
-    saveLoginNote(`${report.title} generated and added to Document Viewer.`);
-  }
-
-  return (
-    <>
-      <section className="login-history-findbar" aria-label="Find login history information">
-        <div>
-          <p>Login records</p>
-          <h3>Every recorded login is available below. Search a Login ID, Session ID, device, IP, location, MFA result, or linked activity to narrow the view.</h3>
-        </div>
-        <label>
-          <span>Search Login History</span>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Try: SES-7781, Dallas, MFA, password reset, Mobile Safari..."
-            aria-label="Search Login History records"
-          />
-        </label>
-        <span aria-live="polite">{filteredRecords.length} of {records.length} records shown</span>
-      </section>
-
-      <section className="access-history-filters login-history-filters" aria-label="Filter Login History">
-        <label><span>Result</span><select value={resultFilter} onChange={(event) => setResultFilter(event.target.value)} aria-label="Filter Login History by result">{resultOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
-        <label><span>Method</span><select value={methodFilter} onChange={(event) => setMethodFilter(event.target.value)} aria-label="Filter Login History by method">{methodOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
-        <label><span>Device</span><select value={deviceFilter} onChange={(event) => setDeviceFilter(event.target.value)} aria-label="Filter Login History by device">{deviceOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
-        <label><span>Date</span><select value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} aria-label="Filter Login History by date">{dateOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
-        <button type="button" onClick={() => { setQuery(''); setResultFilter('All results'); setMethodFilter('All methods'); setDeviceFilter('All devices'); setDateFilter('All dates'); }}>Clear filters</button>
-      </section>
-
-      <section className="login-history-summary" aria-label="Login history summary">
-        {[
-          ['Authentication events', records.length],
-          ['Successful', successfulCount],
-          ['Failed / denied', deniedCount],
-          ['Account lockouts', lockoutCount],
-          ['Unique devices', uniqueDevices],
-          ['MFA completed', mfaCount],
-        ].map(([label, value]) => (
-          <article key={label}><span>{label}</span><strong>{value}</strong></article>
-        ))}
-      </section>
-
-      {activeRecord ? (
-        <>
-          <div className="login-history-workspace">
-            <section className="login-record-list" aria-label="Login history records">
-              <header>
-                <p>Recorded logins</p>
-                <h3>Choose a login to expand</h3>
-              </header>
-              {filteredRecords.map((record) => (
-                <button
-                  key={record.id}
-                  type="button"
-                  className={record.id === activeRecord.id ? 'active' : ''}
-                  onClick={() => setSelectedLoginId(record.id)}
-                  data-login-history-record={record.id}
-                >
-                  <span>{record.timestamp} Â· {record.result}</span>
-                  <strong>{record.deviceId ?? record.device}</strong>
-                  <small>{record.eventType} Â· {record.location} Â· {record.ip} Â· {record.sessionReference}</small>
-                </button>
-              ))}
-              {!filteredRecords.length && (
-                <div className="investigation-tool-empty" role="status">No recorded logins match this search.</div>
-              )}
-            </section>
-
-            <section className="login-detail-panel" aria-label="Expanded login history detail">
-              <header>
-                <div>
-                  <p>Expanded authentication event</p>
-                  <h3>{activeRecord.id} Â· {activeRecord.result}</h3>
-                  <span>{activeRecord.timestamp} Â· {activeRecord.location}</span>
-                </div>
-                <button type="button" onClick={() => pin(activeRecord.id)}>Pin login event</button>
-              </header>
-
-              <dl className="login-detail-grid">
-                {[
-                  ['Date / time', activeRecord.timestamp], ['Event type', activeRecord.eventType], ['Result', activeRecord.result], ['Failed-attempt count', activeRecord.failedAttemptCount],
-                  ['Account lockout', activeRecord.accountLockout], ['Method', activeRecord.method], ['MFA status', activeRecord.mfaStatus],
-                  ['Authentication channel', activeRecord.authChannel], ['Device ID', activeRecord.deviceId ?? activeRecord.device], ['Device / browser', activeRecord.browserSource],
-                  ['Operating system', activeRecord.operatingSystem], ['IP address', activeRecord.ip], ['Location', activeRecord.location], ['Session reference', activeRecord.sessionReference],
-                ].map(([label, value]) => (
-                  <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
-                ))}
-              </dl>
-
-              <section className="login-session-panel" aria-label="Session and linked activity">
-                <article><span>Session availability</span><strong>{activeRecord.sessionReference === 'No session created' ? 'Authentication did not create a session' : `Open ${activeRecord.sessionReference} in Session History`}</strong></article>
-                <article><span>Password reset timing</span><strong>{activeRecord.passwordResetLink}</strong></article>
-                <article><span>Profile change link</span><strong>{activeRecord.profileChangeLink}</strong></article>
-                <article><span>Authentication scope</span><strong>Post-login pages and actions are kept in Session History.</strong></article>
-              </section>
-            </section>
-          </div>
-
-          <section className="login-history-lower-grid" aria-label="Login history related evidence">
-            <article className="login-related-panel">
-              <header><p>Related Records</p><h3>Evidence to cross-reference</h3></header>
-              <div>{(activeRecord.relatedRecords ?? []).map((item) => <span key={item}>{item}</span>)}</div>
-            </article>
-            <article className="login-notes-panel">
-              <header><p>Investigator Notes</p><h3>Evidence-first reminder</h3></header>
-              <p>{activeRecord.investigatorUse} A successful MFA event is evidence of authentication activity, not a final conclusion about authorization.</p>
-              <div>
-                <button type="button" onClick={() => saveLoginNote(`${activeRecord.id} reviewed: ${activeRecord.timestamp} Â· ${activeRecord.eventType} Â· ${activeRecord.result} Â· ${activeRecord.deviceId ?? activeRecord.device} Â· ${activeRecord.ip}`)}>Save login note</button>
-                <button type="button" onClick={generateLoginReport}>{reportGenerated ? 'Regenerate Login Timeline Report' : 'Generate Login Timeline Report'}</button>
-              </div>
-            </article>
-          </section>
-        </>
-      ) : (
-        <div className="investigation-tool-empty" role="status">No login history records are available for this case.</div>
-      )}
-
-      <nav className="investigation-tool-next-routes" aria-label="Login history next routes">
-        <button type="button" onClick={() => openTool('Session History')}>Open Session History</button>
-        <button type="button" onClick={() => openTool('Device Intelligence')}>Open Device Intelligence</button>
-        <button type="button" onClick={() => openTool('IP Intelligence')}>Open IP Intelligence</button>
-        <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
-      </nav>
-
-      <footer className="investigation-tool-review-bar">
-        <div>
-          <strong>Login History review</strong>
-          <span>Mark reviewed after checking authentication results, failed-attempt and lockout history, method, MFA, device, IP/location, and session references.</span>
-        </div>
-        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Login History')}>
-          {reviewed ? 'âœ“ Login History reviewed' : 'Mark Login History reviewed'}
-        </button>
-      </footer>
-    </>
-  );
-}
-
-function sessionRecordSearchText(record) {
-  return [
-    record.session, record.id, record.start, record.end, record.duration, record.logoutStatus, record.method,
-    record.device, record.deviceId, record.location, record.ip, record.result, record.investigatorUse,
-    ...(record.pagesViewed ?? []), ...(record.securitySettings ?? []), ...(record.profileActions ?? []),
-    ...(record.payeeTokenActivity ?? []), ...(record.moneyMovement ?? []), ...(record.sessionPath ?? []), ...(record.relatedRecords ?? []),
-  ].filter(Boolean).join(' ').toLowerCase();
-}
-
-function ipRecordSearchText(record) {
-  return [
-    record.id, record.ip, record.city, record.country, record.isp, record.networkType, record.residentialStatus,
-    record.vpnProxyTor, record.firstSeen, record.lastSeen, record.velocity, record.crossCasePresence, record.lookupResult,
-    ...(record.historicalLocations ?? []), ...(record.observedSessions ?? []), ...(record.observedDevices ?? []),
-    ...(record.observedLogins ?? []), ...(record.relatedRecords ?? []),
-  ].filter(Boolean).join(' ').toLowerCase();
-}
-
-function IPIntelligenceWorkspace({
-  activeCase,
-  query,
-  setQuery,
-  pin,
-  saveNote,
-  markReviewed,
-  reviewed,
-  openTool,
-  jumpDecision,
-}) {
-  const [selectedIpId, setSelectedIpId] = useState('');
-  const [submittedIp, setSubmittedIp] = useState('');
-  const [reportGenerated, setReportGenerated] = useState(() => generatedAccessReportTypes(activeCase.id).includes('ip'));
-  const records = getIpRecords(activeCase);
-  const normalizedSubmittedIp = submittedIp.trim().replace(/^IP-/i, '').toLowerCase();
-  const activeRecord = normalizedSubmittedIp
-    ? records.find((record) => record.ip.toLowerCase() === normalizedSubmittedIp && (!selectedIpId || record.id === selectedIpId))
-      ?? records.find((record) => record.ip.toLowerCase() === normalizedSubmittedIp)
-      ?? null
-    : null;
-  const lookupHasRun = normalizedSubmittedIp.length > 0;
-  const lookupMatched = Boolean(activeRecord);
-  const sessionCount = records.reduce((count, record) => count + record.observedSessions.length, 0);
-  const deviceCount = new Set(records.flatMap((record) => record.observedDevices)).size;
-
-  useEffect(() => {
-    setSelectedIpId('');
-    setSubmittedIp('');
-    setReportGenerated(generatedAccessReportTypes(activeCase.id).includes('ip'));
-  }, [activeCase.id]);
-
-  function runIpLookup() {
-    const clean = query.trim().replace(/^IP-/i, '');
-    setSubmittedIp(clean);
-    const matched = records.find((record) => record.ip.toLowerCase() === clean.toLowerCase());
-    setSelectedIpId(matched?.id ?? '');
-  }
-
-  function saveIpNote(message) {
-    saveNote(`IP Intelligence: ${message}`, 'IP intelligence');
-  }
-
-  function generateIpReport() {
-    const report = generateAccessHistoryReport(activeCase, 'ip');
-    downloadAccessReport(report);
-    setReportGenerated(true);
-    saveIpNote(`${report.title} generated and added to Document Viewer.`);
-  }
-
-  return (
-    <>
-      <section className="ip-intel-findbar" aria-label="Find IP intelligence information">
-        <div>
-          <p>IP lookup</p>
-          <h3>Enter one of the raw IP addresses below, then run the lookup to reveal its network and history records.</h3>
-        </div>
-        <label>
-          <span>Search IP Intelligence</span>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => { if (event.key === 'Enter') runIpLookup(); }}
-            placeholder="Try: 198.51.100.42"
-            aria-label="Search IP Intelligence records"
-          />
-        </label>
-        <button type="button" className="ip-lookup-action" onClick={runIpLookup} disabled={!query.trim()}>Run IP Lookup</button>
-        <span aria-live="polite">{lookupMatched ? 'Lookup complete' : lookupHasRun ? 'No exact IP match' : 'Lookup required'}</span>
-      </section>
-
-      <section className="ip-intel-summary" aria-label="IP intelligence summary">
-        {[
-          ['Raw IP records', records.length], ['Linked sessions', sessionCount], ['Observed devices', deviceCount],
-          ['Lookup state', lookupMatched ? 'Complete' : lookupHasRun ? 'No match' : 'Required'], ['Related logins', records.reduce((count, record) => count + record.observedLogins.length, 0)], ['Active case', activeCase.id],
-        ].map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}
-      </section>
-
-      {records.length ? (
-        <>
-          <div className="ip-intel-workspace">
-            <section className="ip-record-list" aria-label="IP intelligence records">
-              <header><p>Raw IP records</p><h3>Choose an IP to look up</h3></header>
-              {records.map((record) => (
-                <button
-                  key={record.id}
-                  type="button"
-                  className={record.id === activeRecord?.id ? 'active' : ''}
-                  onClick={() => { setQuery(record.ip); setSubmittedIp(''); setSelectedIpId(record.id); }}
-                  data-ip-intelligence-record={record.id}
-                >
-                  <span>{record.id}</span>
-                  <strong>{record.ip}</strong>
-                  <small>{record.observedLogins.length} authentication event{record.observedLogins.length === 1 ? '' : 's'} Â· {record.observedSessions.length} session{record.observedSessions.length === 1 ? '' : 's'} Â· {record.id === activeRecord?.id ? 'lookup complete' : 'lookup required'}</small>
-                </button>
-              ))}
-            </section>
-
-            <section className="ip-detail-panel" aria-label="Expanded IP intelligence detail">
-              {activeRecord ? (
-                <>
-                  <header>
-                    <div><p>Network lookup</p><h3>{activeRecord.ip}</h3><span>{activeRecord.lookupResult}</span></div>
-                    <button type="button" onClick={() => pin(activeRecord.ip)}>Pin IP address</button>
-                  </header>
-                  <dl className="ip-detail-grid">
-                    {[
-                      ['City / country', `${activeRecord.city}, ${activeRecord.country}`], ['ISP', activeRecord.isp], ['Network type', activeRecord.networkType],
-                      ['Residential status', activeRecord.residentialStatus], ['VPN / proxy / TOR', activeRecord.vpnProxyTor], ['First seen', activeRecord.firstSeen],
-                      ['Last seen', activeRecord.lastSeen], ['Velocity', activeRecord.velocity], ['Seen elsewhere', activeRecord.crossCasePresence],
-                    ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
-                  </dl>
-                  <section className="ip-observation-panel" aria-label="Observed IP records">
-                    <article><span>Recorded sessions</span><strong>{activeRecord.observedSessions.join(' Â· ') || 'No authenticated session recorded'}</strong></article>
-                    <article><span>Recorded devices</span><strong>{activeRecord.observedDevices.join(' Â· ')}</strong></article>
-                    <article><span>Location history</span><strong>{activeRecord.historicalLocations.join(' Â· ')}</strong></article>
-                  </section>
-                </>
-              ) : (
-                <div className="investigation-tool-empty ip-lookup-empty" role="status">
-                  <span>{lookupHasRun ? 'No exact match' : 'Lookup required'}</span>
-                  <h3>{lookupHasRun ? `No network record matched ${submittedIp}.` : 'Choose a raw IP and run the lookup.'}</h3>
-                  <p>Network type, origin, historical use, VPN/proxy/TOR data, velocity, and cross-profile presence remain hidden until an exact fictional IP lookup succeeds.</p>
-                </div>
-              )}
-            </section>
-          </div>
-
-          {activeRecord && <section className="ip-intel-lower-grid" aria-label="IP intelligence history and related evidence">
-            <article className="ip-location-panel">
-              <header><p>Location Sequence</p><h3>Evidence to compare</h3></header>
-              <div>
-                {activeRecord.observedLoginEvents.map((login) => <span key={login.id}>{login.time} Â· {login.id} Â· {login.result} Â· {login.session} Â· {login.location}</span>)}
-              </div>
-            </article>
-            <article className="ip-related-panel">
-              <header><p>Related Records</p><h3>Cross-reference points</h3></header>
-              <div>{activeRecord.relatedRecords.map((item) => <span key={item}>{item}</span>)}</div>
-            </article>
-            <article className="ip-notes-panel">
-              <header><p>Investigator Notes</p><h3>Evidence-first reminder</h3></header>
-              <p>{activeRecord.investigatorUse}</p>
-              <div>
-                <button type="button" onClick={() => saveIpNote(`${activeRecord.ip} reviewed: ${activeRecord.lookupResult}`)}>Save IP note</button>
-                <button type="button" onClick={generateIpReport}>{reportGenerated ? 'Regenerate IP Intelligence Report' : 'Generate IP Intelligence Report'}</button>
-              </div>
-            </article>
-          </section>}
-        </>
-      ) : <div className="investigation-tool-empty" role="status">No IP intelligence records are available for this case.</div>}
-
-      <nav className="investigation-tool-next-routes" aria-label="IP intelligence next routes">
-        <button type="button" onClick={() => openTool('Login History')}>Open Login History</button>
-        <button type="button" onClick={() => openTool('Session History')}>Open Session History</button>
-        <button type="button" onClick={() => openTool('Device Intelligence')}>Open Device Intelligence</button>
-        <button type="button" onClick={() => openTool('Customer 360')}>Open Customer 360</button>
-        <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
-        <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
-      </nav>
-
-      <footer className="investigation-tool-review-bar">
-        <div><strong>IP Intelligence review</strong><span>Mark reviewed after running the lookup, checking network context, and comparing it to the linked login, session, device, and timeline evidence.</span></div>
-        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} disabled={!lookupMatched} onClick={() => markReviewed('IP Intelligence')}>
-          {reviewed ? 'âœ“ IP Intelligence reviewed' : 'Mark IP Intelligence reviewed'}
-        </button>
-      </footer>
-    </>
-  );
-}
-
-function SessionHistoryWorkspace({
-  activeCase,
-  query,
-  setQuery,
-  pin,
-  saveNote,
-  markReviewed,
-  reviewed,
-  openTool,
-}) {
-  const [selectedSessionId, setSelectedSessionId] = useState('');
-  const [logoutFilter, setLogoutFilter] = useState('All logout states');
-  const [activityFilter, setActivityFilter] = useState('All activity');
-  const [deviceFilter, setDeviceFilter] = useState('All devices');
-  const [dateFilter, setDateFilter] = useState('All dates');
-  const [reportGenerated, setReportGenerated] = useState(() => generatedAccessReportTypes(activeCase.id).includes('session'));
-  const records = getSessionRecords(activeCase);
-  const normalizedQuery = query.trim().toLowerCase();
-  const logoutOptions = ['All logout states', ...new Set(records.map((record) => record.logoutStatus))];
-  const activityOptions = ['All activity', ...new Set(records.flatMap((record) => record.activityTypes ?? []))];
-  const deviceOptions = ['All devices', ...new Set(records.map((record) => record.deviceId ?? record.device))];
-  const dateOptions = ['All dates', ...new Set(records.map((record) => record.date))];
-  const filteredRecords = records.filter((record) => (
-    (!normalizedQuery || sessionRecordSearchText(record).includes(normalizedQuery))
-    && (logoutFilter === 'All logout states' || record.logoutStatus === logoutFilter)
-    && (activityFilter === 'All activity' || record.activityTypes?.includes(activityFilter))
-    && (deviceFilter === 'All devices' || (record.deviceId ?? record.device) === deviceFilter)
-    && (dateFilter === 'All dates' || record.date === dateFilter)
-  ));
-  const sessionFiltersClear = !normalizedQuery && logoutFilter === 'All logout states' && activityFilter === 'All activity' && deviceFilter === 'All devices' && dateFilter === 'All dates';
-  const activeRecord = filteredRecords.find((record) => record.session === selectedSessionId) ?? filteredRecords[0] ?? (sessionFiltersClear ? records[0] : null);
-  const loggedOutCount = records.filter((record) => /normal logout/i.test(record.logoutStatus)).length;
-  const timeoutCount = records.filter((record) => /timeout/i.test(record.logoutStatus)).length;
-  const profileActivityCount = records.filter((record) => record.hasProfileActivity).length;
-  const moneyMovementCount = records.filter((record) => record.hasMoneyActivity).length;
-  const uniqueDevices = new Set(records.map((record) => record.deviceId ?? record.device)).size;
-  const uniqueIps = new Set(records.map((record) => record.ip)).size;
-
-  useEffect(() => {
-    setSelectedSessionId('');
-    setLogoutFilter('All logout states');
-    setActivityFilter('All activity');
-    setDeviceFilter('All devices');
-    setDateFilter('All dates');
-    setReportGenerated(generatedAccessReportTypes(activeCase.id).includes('session'));
-  }, [activeCase.id]);
-
-  function saveSessionNote(message) {
-    saveNote(`Session History: ${message}`, 'Session history');
-  }
-
-  function generateSessionReport() {
-    const report = generateAccessHistoryReport(activeCase, 'session');
-    downloadAccessReport(report);
-    setReportGenerated(true);
-    saveSessionNote(`${report.title} generated and added to Document Viewer.`);
-  }
-
-  return (
-    <>
-      <section className="session-history-findbar" aria-label="Find session history information">
-        <div>
-          <p>Session records</p>
-          <h3>Every recorded session is available below. Search a Session ID, Login ID, device, IP, profile action, payment activity, or logout state to narrow the view.</h3>
-        </div>
-        <label>
-          <span>Search Session History</span>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Try: SES-7781, card controls, timeout, payment method, profile..."
-            aria-label="Search Session History records"
-          />
-        </label>
-        <span aria-live="polite">{filteredRecords.length} of {records.length} records shown</span>
-      </section>
-
-      <section className="access-history-filters session-history-filters" aria-label="Filter Session History">
-        <label><span>Logout state</span><select value={logoutFilter} onChange={(event) => setLogoutFilter(event.target.value)} aria-label="Filter Session History by logout state">{logoutOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
-        <label><span>Activity</span><select value={activityFilter} onChange={(event) => setActivityFilter(event.target.value)} aria-label="Filter Session History by activity">{activityOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
-        <label><span>Device</span><select value={deviceFilter} onChange={(event) => setDeviceFilter(event.target.value)} aria-label="Filter Session History by device">{deviceOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
-        <label><span>Date</span><select value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} aria-label="Filter Session History by date">{dateOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
-        <button type="button" onClick={() => { setQuery(''); setLogoutFilter('All logout states'); setActivityFilter('All activity'); setDeviceFilter('All devices'); setDateFilter('All dates'); }}>Clear filters</button>
-      </section>
-
-      <section className="session-history-summary" aria-label="Session history summary">
-        {[
-          ['Recorded sessions', records.length], ['Normal logout', loggedOutCount], ['Session timeout', timeoutCount],
-          ['Profile activity', profileActivityCount], ['Money activity', moneyMovementCount], ['Devices / IPs', `${uniqueDevices} / ${uniqueIps}`],
-        ].map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}
-      </section>
-
-      {activeRecord ? (
-        <>
-          <div className="session-history-workspace">
-            <section className="session-record-list" aria-label="Session history records">
-              <header><p>Recorded sessions</p><h3>Choose a session to expand</h3></header>
-              {filteredRecords.map((record) => (
-                <button
-                  key={record.session}
-                  type="button"
-                  className={record.session === activeRecord.session ? 'active' : ''}
-                  onClick={() => setSelectedSessionId(record.session)}
-                  data-session-history-record={record.session}
-                >
-                  <span>{record.start} to {record.end} Â· {record.duration}</span>
-                  <strong>{record.session}</strong>
-                  <small>{record.deviceId ?? record.device} Â· {record.logoutStatus}</small>
-                </button>
-              ))}
-              {!filteredRecords.length && <div className="investigation-tool-empty" role="status">No recorded sessions match this search.</div>}
-            </section>
-
-            <section className="session-detail-panel" aria-label="Expanded session history detail">
-              <header>
-                <div><p>Expanded session</p><h3>{activeRecord.session}</h3><span>{activeRecord.start} to {activeRecord.end} Â· {activeRecord.logoutStatus}</span></div>
-                <button type="button" onClick={() => pin(activeRecord.session)}>Pin session</button>
-              </header>
-              <dl className="session-detail-grid">
-                {[
-                  ['Login ID', activeRecord.id], ['Session start', activeRecord.start], ['Session end', activeRecord.end], ['Duration', activeRecord.duration],
-                  ['Logout / timeout', activeRecord.logoutStatus], ['Authentication method', activeRecord.method], ['Device ID', activeRecord.deviceId ?? activeRecord.device],
-                  ['IP / location', `${activeRecord.ip} Â· ${activeRecord.location}`],
-                ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
-              </dl>
-              <section className="session-activity-grid" aria-label="Session activity detail">
-                {[
-                  ['Pages viewed', activeRecord.pagesViewed], ['Security settings', activeRecord.securitySettings], ['Profile actions', activeRecord.profileActions],
-                  ['Payee / token activity', activeRecord.payeeTokenActivity], ['Transfer / purchase path', activeRecord.moneyMovement],
-                ].map(([label, items]) => (
-                  <article key={label}><span>{label}</span><strong>{items.join(' Â· ')}</strong></article>
-                ))}
-              </section>
-            </section>
-          </div>
-
-          <section className="session-history-lower-grid" aria-label="Session history sequence and related evidence">
-            <article className="session-path-panel">
-              <header><p>Session Path</p><h3>Recorded order of activity</h3></header>
-              <div>{activeRecord.sessionPath.map((item) => <span key={item}>{item}</span>)}</div>
-            </article>
-            <article className="session-related-panel">
-              <header><p>Related Records</p><h3>Evidence to cross-reference</h3></header>
-              <div>{activeRecord.relatedRecords.map((item) => <span key={item}>{item}</span>)}</div>
-            </article>
-            <article className="session-notes-panel">
-              <header><p>Investigator Notes</p><h3>Evidence-first reminder</h3></header>
-              <p>{activeRecord.investigatorUse} Read the session path with Login History, Customer 360, financial records, and Timeline before documenting a decision.</p>
-              <div>
-                <button type="button" onClick={() => saveSessionNote(`${activeRecord.session} reviewed: ${activeRecord.sessionPath.join(' / ')}`)}>Save session note</button>
-                <button type="button" onClick={generateSessionReport}>{reportGenerated ? 'Regenerate Session History Report' : 'Generate Session History Report'}</button>
-              </div>
-            </article>
-          </section>
-        </>
-      ) : <div className="investigation-tool-empty" role="status">No session history records are available for this case.</div>}
-
-      <nav className="investigation-tool-next-routes" aria-label="Session history next routes">
-        <button type="button" onClick={() => openTool('Login History')}>Open Login History</button>
-        <button type="button" onClick={() => openTool('Customer 360')}>Open Customer 360</button>
-        <button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button>
-        <button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button>
-        <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
-      </nav>
-
-      <footer className="investigation-tool-review-bar">
-        <div><strong>Session History review</strong><span>Mark reviewed after checking the session start/end, activity path, logout state, and linked profile and financial records.</span></div>
-        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Session History')}>
-          {reviewed ? 'âœ“ Session History reviewed' : 'Mark Session History reviewed'}
-        </button>
-      </footer>
-    </>
-  );
-}
-
-function DeviceIntelligenceWorkspace({
-  activeCase,
-  query,
-  setQuery,
-  pin,
-  saveNote,
-  markReviewed,
-  reviewed,
-  openTool,
-  jumpDecision,
-  quickPin,
-}) {
-  const [selectedDeviceId, setSelectedDeviceId] = useState('');
-  const records = getDeviceProfiles(activeCase);
-  const normalizedQuery = query.trim().toLowerCase();
-  const filteredRecords = records.filter((record) => !normalizedQuery || deviceRecordSearchText(record).includes(normalizedQuery));
-  const lookupHasRun = normalizedQuery.length > 0;
-  const activeRecord = filteredRecords.find((record) => record.id === selectedDeviceId)
-    ?? filteredRecords[0]
-    ?? (lookupHasRun ? null : records[0]);
-  const lookupMatched = lookupHasRun && Boolean(activeRecord);
-
-  useEffect(() => {
-    setSelectedDeviceId('');
-  }, [activeCase.id]);
-
-  function hiddenUntilLookup(value) {
-    return lookupHasRun ? value : 'Run a device lookup to reveal';
-  }
-
-  function saveDeviceNote(message) {
-    saveNote(`Device Intelligence: ${message}`, 'Device intelligence');
-  }
-
-  return (
-    <>
-      <section className="device-intel-findbar" aria-label="Find device intelligence information">
-        <div>
-          <p>Device lookup</p>
-          <h3>Search a Device ID, fingerprint, browser, session, profile, wallet, or location to reveal device intelligence.</h3>
-        </div>
-        <label>
-          <span>Search Device Intelligence</span>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Try: DEV-MAYA-IP16-001, fingerprint, emulator, shared, wallet, Safari..."
-            aria-label="Search Device Intelligence records"
-          />
-        </label>
-        <span aria-live="polite">
-          {lookupHasRun
-            ? filteredRecords.length
-              ? `${filteredRecords.length} of ${records.length} records returned`
-              : 'No matching device record returned'
-            : 'Lookup required'}
-        </span>
-      </section>
-
-      {activeRecord ? (
-        <>
-          <section className="device-intel-snapshot" aria-label="Device intelligence snapshot">
-            <article className="device-intel-hero">
-              <p>Device Snapshot</p>
-              <h3>{activeRecord.deviceName}</h3>
-              <div className="payment-chip-row">
-                <span className={`payment-status-chip ${statusTone(activeRecord.trustedStatus)}`}>{hiddenUntilLookup(activeRecord.trustedStatus)}</span>
-                <span className={`payment-status-chip ${statusTone(activeRecord.lookupResult)}`}>{hiddenUntilLookup(activeRecord.lookupResult)}</span>
-              </div>
-            </article>
-            {[
-              ['Device ID', activeRecord.id],
-              ['Fingerprint', hiddenUntilLookup(activeRecord.deviceFingerprint)],
-              ['First seen', activeRecord.firstSeen],
-              ['Last seen', activeRecord.lastSeen],
-            ].map(([label, value]) => (
-              <article key={label}>
-                <span>{label}</span>
-                <strong>{value}</strong>
-              </article>
-            ))}
-          </section>
-
-          <div className="device-intel-workspace">
-            <section className="device-record-list" aria-label="Device intelligence records">
-              <header>
-                <p>Device records</p>
-                <h3>Choose the device to compare</h3>
-              </header>
-              {(lookupHasRun ? filteredRecords : records).map((record) => (
-                <button
-                  key={record.id}
-                  type="button"
-                  className={record.id === activeRecord.id ? 'active' : ''}
-                  onClick={() => setSelectedDeviceId(record.id)}
-                  data-device-intelligence-record={record.id}
-                >
-                  <span>{record.id}</span>
-                  <strong>{record.deviceName}</strong>
-                  <small>{record.deviceType} Â· {lookupHasRun ? record.lookupResult : 'lookup needed'}</small>
-                </button>
-              ))}
-              {lookupHasRun && !filteredRecords.length && (
-                <div className="investigation-tool-empty" role="status">No device intelligence records match this lookup.</div>
-              )}
-            </section>
-
-            <section className="device-detail-panel" aria-label="Expanded device intelligence detail">
-              <header>
-                <div>
-                  <p>Expanded device history</p>
-                  <h3>{activeRecord.id}</h3>
-                  <span>{activeRecord.deviceName} Â· {activeRecord.deviceType}</span>
-                </div>
-                <button type="button" onClick={() => pin(activeRecord.id)}>Pin Device ID</button>
-                <button type="button" onClick={() => quickPin({ label: 'Device ID', value: activeRecord.id, sourceTool: 'Device Intelligence', sourceRecordId: activeRecord.id })}>Quick Pad Device ID</button>
-              </header>
-
-              <dl className="device-detail-grid">
-                {[
-                  ['Operating system', activeRecord.operatingSystem],
-                  ['Browser', activeRecord.browser],
-                  ['Browser fingerprint', hiddenUntilLookup(activeRecord.browserFingerprint)],
-                  ['Trusted status', hiddenUntilLookup(activeRecord.trustedStatus)],
-                  ['Rooted / jailbroken', hiddenUntilLookup(activeRecord.rootedJailbroken)],
-                  ['Emulator-like indicator', hiddenUntilLookup(activeRecord.emulatorIndicator)],
-                  ['VPN / proxy indicator', hiddenUntilLookup(activeRecord.vpnProxyIndicator)],
-                  ['Shared device detection', hiddenUntilLookup(activeRecord.sharedDeviceDetection)],
-                  ['Linked profiles', hiddenUntilLookup((activeRecord.linkedProfiles ?? []).join(' Â· '))],
-                  ['Wallet usage', hiddenUntilLookup(activeRecord.walletUsage)],
-                ].map(([label, value]) => (
-                  <div key={label}>
-                    <dt>{label}</dt>
-                    <dd>{value}</dd>
-                  </div>
-                ))}
-              </dl>
-
-              <section className="device-behavior-panel" aria-label="Normal behavior comparison">
-                <article>
-                  <span>Normal behavior comparison</span>
-                  <strong>{hiddenUntilLookup(activeRecord.normalBehavior)}</strong>
-                </article>
-                <article>
-                  <span>How to use it</span>
-                  <strong>{activeRecord.investigatorUse}</strong>
-                </article>
-              </section>
-            </section>
-          </div>
-
-          <section className="device-intel-lower-grid" aria-label="Device history and related records">
-            <article className="device-history-panel">
-              <header>
-                <p>Device History</p>
-                <h3>Observed sessions</h3>
-              </header>
-              <div className="device-history-list">
-                {(activeRecord.history ?? []).map((item) => <span key={item}>{item}</span>)}
-              </div>
-            </article>
-
-            <article className="device-related-panel">
-              <header>
-                <p>Related Records</p>
-                <h3>Cross-reference points</h3>
-              </header>
-              <div>
-                {(activeRecord.relatedRecords ?? []).map((item) => <span key={item}>{item}</span>)}
-              </div>
-            </article>
-
-            <article className="device-notes-panel">
-              <header>
-                <p>Investigator Notes</p>
-                <h3>Evidence-first reminder</h3>
-              </header>
-              <p>Device Intelligence reveals lookup results only after search. Compare the device with Login History, Session History, IP Intelligence, and the customer story before deciding.</p>
-              <div>
-                <button type="button" onClick={() => saveDeviceNote(`${activeRecord.id} reviewed: ${activeRecord.normalBehavior}`)}>Save device note</button>
-              </div>
-            </article>
-          </section>
-        </>
-      ) : (
-        <div className="investigation-tool-empty" role="status">
-          {lookupHasRun && records.length
-            ? 'No device intelligence records match this lookup. Check the Device ID, fingerprint, browser, session, profile, wallet, or location and try again.'
-            : 'No device intelligence records are available for this case.'}
-        </div>
-      )}
-
-      <nav className="investigation-tool-next-routes" aria-label="Device intelligence next routes">
-        <button type="button" onClick={() => openTool('Login History')}>Open Login History</button>
-        <button type="button" onClick={() => openTool('IP Intelligence')}>Open IP Intelligence</button>
-        <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
-      </nav>
-
-      <footer className="investigation-tool-review-bar">
-        <div>
-          <strong>Device Intelligence review</strong>
-          <span>Mark reviewed after searching the device, checking fingerprint/history, and comparing it to normal behavior.</span>
-        </div>
-        <button
-          type="button"
-          className={reviewed ? '' : 'investigation-tool-primary'}
-          disabled={!reviewed && !lookupMatched}
-          onClick={() => markReviewed('Device Intelligence')}
-        >
-          {reviewed ? 'âœ“ Device Intelligence reviewed' : 'Mark Device Intelligence reviewed'}
-        </button>
-      </footer>
-    </>
-  );
-}
-
-const documentRequestStatuses = ['All', 'Not Requested', 'Requested', 'Received', 'Incomplete', 'Received Late', 'No Response', 'Pending Review', 'Approved', 'Rejected', 'Expired', 'Missing', 'Exception Approved'];
-
-function documentRequestSearchText(request) {
-  return Object.values(request).filter(Boolean).join(' ').toLowerCase();
-}
-
-function DocumentRequestWorkspace({
-  activeCase,
-  query,
-  setQuery,
-  pin,
-  saveNote,
-  markReviewed,
-  reviewed,
-  openTool,
-  jumpDecision,
-  documentRequests,
-  setDocumentRequestsByCase,
-  recordAction,
-}) {
-  const [selectedRequestId, setSelectedRequestId] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [composeOpen, setComposeOpen] = useState(false);
-  const [composeDocumentId, setComposeDocumentId] = useState('');
-  const [composeReason, setComposeReason] = useState('Please provide this paperwork so the disputed claim can be reviewed.');
-  const [composeChannel, setComposeChannel] = useState('Secure upload link');
-  const [composeDueDate, setComposeDueDate] = useState(() => {
-    const due = new Date();
-    due.setDate(due.getDate() + 7);
-    return due.toISOString().slice(0, 10);
-  });
-  const [mobilePane, setMobilePane] = useState('inbox');
-  const [requestConfirmation, setRequestConfirmation] = useState('');
-  const requestTemplates = getPaperworkRequestTemplates(activeCase);
-  const requests = buildPaperworkInboxRecords(activeCase, documentRequests);
-  const merchantDocuments = getCaseDocuments(activeCase).filter((document) => document.folder === 'Merchant Evidence' && document.pages?.length);
-  const firstMerchantDocument = merchantDocuments[0];
-  const normalizedQuery = query.trim().toLowerCase();
-  const filteredRequests = requests.filter((request) => (
-    (statusFilter === 'All' || request.status === statusFilter)
-    && (!normalizedQuery || documentRequestSearchText(request).includes(normalizedQuery))
-  ));
-  const activeRequest = filteredRequests.find((request) => request.id === selectedRequestId) ?? filteredRequests[0];
-  const counts = documentRequestStatuses.slice(1).map((status) => [status, requests.filter((request) => request.status === status).length]);
-
-  useEffect(() => {
-    setSelectedRequestId('');
-    setStatusFilter('All');
-    setComposeOpen(false);
-    setComposeDocumentId('');
-    setMobilePane('inbox');
-    setRequestConfirmation('');
-  }, [activeCase.id]);
-
-  function saveRequestNote(message) {
-    saveNote(`Document Request: ${message}`, 'Document request');
-  }
-
-  function openComposer(request) {
-    const requestedSourceId = request?.sourceDocumentId;
-    const sourceDocumentId = requestTemplates.some((item) => item.id === requestedSourceId)
-      ? requestedSourceId
-      : requestTemplates[0]?.id ?? '';
-    const requestedTitle = request?.requestedDocumentType ?? request?.documentType ?? requestTemplates[0]?.title ?? 'this paperwork';
-    setComposeDocumentId(sourceDocumentId);
-    setComposeReason(['Incomplete', 'No Response'].includes(request?.status)
-      ? `Please provide a complete copy of ${requestedTitle}, including every page and visible reference.`
-      : 'Please provide this paperwork so the disputed claim can be reviewed.');
-    setComposeChannel(request?.requestDeliveryChannel === 'Not sent' ? 'Secure upload link' : request?.requestDeliveryChannel ?? 'Secure upload link');
-    setComposeOpen(true);
-    setMobilePane('compose');
-    setRequestConfirmation('');
-  }
-
-  function submitPaperworkRequest(event) {
-    event.preventDefault();
-    const document = requestTemplates.find((request) => request.id === composeDocumentId);
-    if (!document || !composeReason.trim()) return;
-    const requestedDate = new Date().toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
-    const dueDate = composeDueDate
-      ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(`${composeDueDate}T12:00:00`))
-      : 'Follow-up date not supplied';
-    const attempt = createPaperworkAttempt({
-      activeCase,
-      document,
-      reason: composeReason.trim(),
-      dueDate,
-      requestedDate,
-      deliveryChannel: composeChannel,
-    });
-    setDocumentRequestsByCase((current) => ({
-      ...current,
-      [activeCase.id]: {
-        ...(current[activeCase.id] ?? {}),
-        [document.id]: {
-          schemaVersion: 2,
-          sourceDocumentId: document.id,
-          attempts: [...(current[activeCase.id]?.[document.id]?.attempts ?? []), attempt],
-        },
-      },
-    }));
-    setSelectedRequestId(attempt.requestId);
-    setStatusFilter('All');
-    setComposeOpen(false);
-    setMobilePane('reader');
-    setRequestConfirmation(`${document.title} request sent to ${activeCase.person ?? 'the customer'} through ${composeChannel}.`);
-    saveRequestNote(`${document.title} requested from ${activeCase.person ?? 'the customer'} through ${composeChannel}; follow-up due ${dueDate}.`);
-  }
-
-  function checkCustomerResponse(request = activeRequest) {
-    if (!request || request.recordKind !== 'outbound-request' || request.status !== 'Requested' || request.responseCheckedAt) return;
-    const sourceDocument = requestTemplates.find((item) => item.id === request.sourceDocumentId);
-    if (!sourceDocument) return;
-    const checkedAt = new Date().toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
-    const currentAttempt = documentRequests[request.sourceDocumentId]?.attempts?.find((attempt) => attempt.attemptId === request.attemptId);
-    if (!currentAttempt) return;
-    const updatedAttempt = applyCustomerResponse({ activeCase, document: sourceDocument, attempt: currentAttempt, checkedAt });
-    setDocumentRequestsByCase((current) => ({
-      ...current,
-      [activeCase.id]: (() => {
-        const caseRequests = current[activeCase.id] ?? {};
-        const documentState = caseRequests[request.sourceDocumentId] ?? { schemaVersion: 2, sourceDocumentId: request.sourceDocumentId, attempts: [] };
-        const attempts = documentState.attempts.map((attempt) => attempt.attemptId === request.attemptId ? updatedAttempt : attempt);
-        return { ...caseRequests, [request.sourceDocumentId]: { ...documentState, attempts } };
-      })(),
-    }));
-    setSelectedRequestId(updatedAttempt.responseId || updatedAttempt.requestId);
-    setStatusFilter('All');
-    setMobilePane('reader');
-    const confirmation = updatedAttempt.responseStatus === 'No Response'
-      ? `${sourceDocument.title}: no customer response was received for this scenario.`
-      : updatedAttempt.responseStatus === 'Incomplete'
-        ? `${sourceDocument.title} received from the customer, but the submission is incomplete.`
-        : updatedAttempt.responseStatus === 'Received Late'
-          ? `${sourceDocument.title} received from the customer after the follow-up date.`
-          : `${sourceDocument.title} received from the customer and added as a separate Document Viewer record.`;
-    setRequestConfirmation(confirmation);
-    saveRequestNote(`${sourceDocument.title} response check recorded: ${updatedAttempt.responseStatus}.`);
-  }
-
-  function openRequest(requestId) {
-    setSelectedRequestId(requestId);
-    setComposeOpen(false);
-    setMobilePane('reader');
-    setRequestConfirmation('');
-  }
-
-  function openDocumentViewerRoute({ folder = 'All Documents', documentId = '', pane = 'inbox' } = {}) {
-    queueDocumentViewerRoute({ caseId: activeCase.id, folder, documentId, pane });
-    openTool('Document Viewer');
-  }
-
-  function openMerchantPaperwork() {
-    openDocumentViewerRoute({
-      folder: 'Merchant Evidence',
-      documentId: firstMerchantDocument?.id ?? '',
-      pane: firstMerchantDocument ? 'reader' : 'inbox',
-    });
-  }
-
-  return (
-    <>
-      <section className="document-request-findbar" aria-label="Find document request information">
-        <div>
-          <p>Paperwork inbox</p>
-          <h3>Send, track, and review case paperwork without leaving the active claim.</h3>
-        </div>
-        <label>
-          <span>Search Document Request</span>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Try: affidavit, cancellation, required, missing, Document Viewer..."
-            aria-label="Search Document Request records"
-          />
-        </label>
-        <span aria-live="polite">{filteredRequests.length} of {requests.length} requests shown</span>
-      </section>
-
-      {requestConfirmation && <div className="document-request-confirmation" role="status">âœ“ {requestConfirmation}</div>}
-
-      <div className="document-request-inbox" data-mobile-pane={composeOpen ? 'compose' : mobilePane}>
-        <aside className="document-request-statuses" aria-label="Document request statuses">
-          <button type="button" className="document-request-compose-button" onClick={() => openComposer()} disabled={!requestTemplates.length}>ï¼‹ Request Paperwork</button>
-          <p>Mailboxes</p>
-          {documentRequestStatuses.map((status) => {
-            const count = status === 'All' ? requests.length : requests.filter((request) => request.status === status).length;
-            if (status !== 'All' && count === 0) return null;
-            return <button key={status} type="button" className={statusFilter === status ? 'active' : ''} onClick={() => { setStatusFilter(status); setMobilePane('inbox'); }}>{status === 'All' ? 'All paperwork' : status}<strong>{count}</strong></button>;
-          })}
-          {firstMerchantDocument && <button type="button" className="document-request-viewer-route merchant-paperwork-route" onClick={openMerchantPaperwork}>View Merchant Paperwork <strong>{merchantDocuments.length}</strong></button>}
-          <button type="button" className="document-request-viewer-route" onClick={() => openDocumentViewerRoute()}>Open All Documents</button>
-        </aside>
-
-        <section className="document-request-list" aria-label="Document request records">
-            <header>
-              <p>{statusFilter === 'All' ? 'All paperwork' : statusFilter}</p>
-              <h3>{filteredRequests.length} conversation{filteredRequests.length === 1 ? '' : 's'}</h3>
-            </header>
-            {filteredRequests.map((request) => (
-              <button
-                key={request.id}
-                type="button"
-                className={request.id === activeRequest.id ? 'active' : ''}
-                onClick={() => openRequest(request.id)}
-                data-document-request={request.id}
-              >
-                <span className={`document-request-status-dot status-${request.status.toLowerCase().replace(/\s+/g, '-')}`} aria-hidden="true"></span>
-                <span className="document-request-message-copy"><strong>{request.documentType}</strong><small>{request.status === 'Not Requested' ? 'Not sent' : request.pagesAvailable ? `From: ${request.sender}` : `To: ${request.recipient}`} Â· {request.requirement}</small><em>{request.reason}</em></span>
-                <span className="document-request-message-meta"><small>{request.status}</small><time>{request.recordKind === 'customer-submission' ? request.receivedDate : request.requestedDate}</time></span>
-              </button>
-            ))}
-            {!filteredRequests.length && <div className="investigation-tool-empty" role="status">No document requests match this filter or search.</div>}
-          </section>
-
-        <main className="document-request-detail" aria-label={composeOpen ? 'Compose paperwork request' : 'Expanded document request detail'}>
-          {composeOpen ? (
-            <form className="document-request-compose" onSubmit={submitPaperworkRequest}>
-              <header>
-                <button type="button" className="document-request-mobile-back" onClick={() => { setComposeOpen(false); setMobilePane(activeRequest ? 'reader' : 'inbox'); }}>â€¹ Back</button>
-                <div><p>New request</p><h3>Request Paperwork</h3><span>This creates a saved request on {activeCase.id}.</span></div>
-              </header>
-              <label><span>To</span><input value={activeCase.person ?? 'Customer on the active case'} readOnly aria-label="Paperwork request recipient" /></label>
-              <label><span>Paperwork</span><select value={composeDocumentId || requestTemplates[0]?.id || ''} onChange={(event) => setComposeDocumentId(event.target.value)} aria-label="Paperwork to request">{requestTemplates.map((request) => <option key={request.id} value={request.id}>{request.title}</option>)}</select></label>
-              <label><span>Delivery method</span><select value={composeChannel} onChange={(event) => setComposeChannel(event.target.value)} aria-label="Paperwork request delivery method"><option>Secure upload link</option><option>Email</option><option>Mail</option><option>Customer service follow-up</option></select></label>
-              <label><span>Follow-up due</span><input type="date" value={composeDueDate} onChange={(event) => setComposeDueDate(event.target.value)} aria-label="Paperwork request due date" /></label>
-              <label className="document-request-compose-reason"><span>Message / reason</span><textarea value={composeReason} onChange={(event) => setComposeReason(event.target.value)} aria-label="Paperwork request reason" /></label>
-              <div className="document-request-compose-actions"><button type="button" onClick={() => { setComposeOpen(false); setMobilePane(activeRequest ? 'reader' : 'inbox'); }}>Cancel</button><button type="submit" className="primary" disabled={!composeDocumentId && !requestTemplates[0]?.id}>Send Request</button></div>
-            </form>
-          ) : activeRequest ? (<>
-            <header>
-              <button type="button" className="document-request-mobile-back" onClick={() => setMobilePane('inbox')}>â€¹ Inbox</button>
-              <div>
-                <p>Paperwork conversation</p>
-                <h3>{activeRequest.documentType}</h3>
-                <span>{activeRequest.id} Â· {activeRequest.status}</span>
-              </div>
-              <button type="button" onClick={() => pin(`${activeRequest.id} Â· ${activeRequest.documentType}`)}>Pin request</button>
-            </header>
-            {activeRequest.status === 'Not Requested' ? (
-              <section className="document-request-not-sent" role="status">
-                <span>Not requested</span>
-                <h4>No paperwork request has been sent.</h4>
-                <p>The customer has not been contacted for this item. Send a request only when the claim scenario requires this evidence.</p>
-                <button type="button" onClick={() => openComposer(activeRequest)}>Request this paperwork</button>
-              </section>
-            ) : activeRequest.pagesAvailable ? (<>
-              <section className="document-request-message-header"><dl><div><dt>From</dt><dd>{activeRequest.sender}</dd></div><div><dt>To</dt><dd>Fraud Academy Chargebacks</dd></div><div><dt>Received</dt><dd>{activeRequest.receivedDate}</dd></div><div><dt>Source</dt><dd>{activeRequest.deliveryChannel}</dd></div></dl></section>
-              <article className="document-request-message-body inbound">{activeRequest.unread && <span className="document-request-unread">New customer submission</span>}<p>Customer-submitted paperwork received for case <strong>{activeRequest.linkedCase}</strong>.</p><p>{activeRequest.reason}</p><p>Open the source document below and review the actual page before recording what it supports or leaves unresolved.</p></article>
-            </>) : activeRequest.status === 'No Response' ? (<>
-              <section className="document-request-message-header"><dl><div><dt>Request sent to</dt><dd>{activeRequest.recipient}</dd></div><div><dt>Sent</dt><dd>{activeRequest.requestedDate}</dd></div><div><dt>Follow-up checked</dt><dd>{activeRequest.responseCheckedAt}</dd></div><div><dt>Result</dt><dd>No customer submission</dd></div></dl></section>
-              <article className="document-request-message-body"><p>No document was returned after this request was checked.</p><p>The request history stays visible, but there is no source page to review for this scenario.</p></article>
-            </>) : (<>
-              <section className="document-request-message-header"><dl><div><dt>From</dt><dd>Fraud Academy Document Services</dd></div><div><dt>To</dt><dd>{activeRequest.recipient}</dd></div><div><dt>Sent</dt><dd>{activeRequest.requestedDate}</dd></div><div><dt>Delivery</dt><dd>{activeRequest.deliveryChannel}</dd></div></dl></section>
-              <article className="document-request-message-body"><p>Hello {activeRequest.recipient},</p><p>{activeRequest.reason}</p><p>Please submit the requested paperwork by <strong>{activeRequest.dueDate}</strong>. The request is now waiting for the scenario customer to respond; no document is created by the agent.</p><p>Thank you,<br />Fraud Academy Document Services</p></article>
-            </>)}
-            <dl>
-              {[
-                ['Document type', activeRequest.documentType],
-                ['Required / optional', activeRequest.requirement],
-                ['Due date', activeRequest.dueDate],
-                ['Status', activeRequest.status],
-                ['Authenticity flag', activeRequest.authenticity],
-                ['Linked case', activeRequest.linkedCase],
-                ['Linked tool', activeRequest.linkedTool],
-                ['Received date', activeRequest.receivedDate],
-                ...(activeRequest.responseCheckedAt ? [['Response checked', activeRequest.responseCheckedAt]] : []),
-              ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
-            </dl>
-            <article className="document-request-notes">
-              <span>Reviewer notes</span>
-              <p>{activeRequest.reviewerNotes}</p>
-              <small>{activeRequest.fields}</small>
-            </article>
-            <div className="document-request-actions">
-              <button type="button" onClick={() => saveRequestNote(`${activeRequest.id} follow-up recorded for ${activeRequest.status}.`)}>Save follow-up note</button>
-              {activeRequest.recordKind === 'outbound-request' && activeRequest.status === 'Requested' && !activeRequest.responseCheckedAt && <button type="button" className="document-request-check-response" onClick={() => checkCustomerResponse(activeRequest)}>Check for Customer Response</button>}
-              {['Not Requested', 'Incomplete', 'No Response'].includes(activeRequest.status) && <button type="button" onClick={() => openComposer(activeRequest)}>{activeRequest.status === 'Not Requested' ? 'Request paperwork' : 'Request again'}</button>}
-              {activeRequest.pagesAvailable && <button type="button" onClick={() => openDocumentViewerRoute({ folder: activeRequest.category, documentId: activeRequest.documentViewerId, pane: 'reader' })}>Open Customer Document</button>}
-              {firstMerchantDocument && <button type="button" onClick={openMerchantPaperwork}>View Merchant Paperwork</button>}
-            </div>
-          </>) : <div className="investigation-tool-empty" role="status">No document requests are available for this case.</div>}
-        </main>
-      </div>
-
-      <section className="document-request-summary" aria-label="Document request workflow summary">
-        {counts.filter(([, count]) => count > 0).map(([status, count]) => <article key={status}><span>{status}</span><strong>{count}</strong></article>)}
-      </section>
-
-      <nav className="investigation-tool-next-routes" aria-label="Document request next routes">
-        <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
-        <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
-      </nav>
-
-      <footer className="investigation-tool-review-bar">
-        <div>
-          <strong>Document Request review</strong>
-          <span>Review completion records workflow progress only. It does not determine the case outcome.</span>
-        </div>
-        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Document Request')}>
-          {reviewed ? 'âœ“ Document Request reviewed' : 'Mark Document Request reviewed'}
-        </button>
-      </footer>
-    </>
-  );
-}
-
-function IdentityIntelWorkspace({
-  activeCase,
-  pin,
-  saveNote,
-  markReviewed,
-  reviewed,
-  openTool,
-  jumpDecision,
-}) {
-  const report = useMemo(() => getIdentityIntelReport(activeCase), [activeCase]);
-  const [searchMode, setSearchMode] = useState('id');
-  const [idDraft, setIdDraft] = useState('');
-  const [nameDraft, setNameDraft] = useState('');
-  const [dobDraft, setDobDraft] = useState('');
-  const [submittedSearch, setSubmittedSearch] = useState(null);
-  const [searchHistory, setSearchHistory] = useState([]);
-  const [reportOpen, setReportOpen] = useState(false);
-  const [activeSectionId, setActiveSectionId] = useState('identity-summary');
-  const searchMatched = submittedSearch && matchesIdentityIntelSearch(report, submittedSearch);
-  const searchReady = searchMode === 'id' ? Boolean(idDraft.trim()) : Boolean(nameDraft.trim() && dobDraft.trim());
-  const activeSection = report.sections.find((section) => section.id === activeSectionId) ?? report.sections[0];
-
-  useEffect(() => {
-    setSearchMode('id');
-    setIdDraft('');
-    setNameDraft('');
-    setDobDraft('');
-    setSubmittedSearch(null);
-    setSearchHistory([]);
-    setReportOpen(false);
-    setActiveSectionId('identity-summary');
-  }, [activeCase.id]);
-
-  function runSearch() {
-    if (!searchReady) return;
-    const criteria = searchMode === 'id'
-      ? { mode: 'id', id: idDraft.trim() }
-      : { mode: 'name-dob', name: nameDraft.trim(), dob: dobDraft.trim() };
-    const label = criteria.mode === 'id' ? `Training ID: ${criteria.id}` : `${criteria.name} Â· ${criteria.dob}`;
-    setSubmittedSearch(criteria);
-    setSearchHistory((current) => [label, ...current.filter((item) => item !== label)].slice(0, 4));
-    setReportOpen(false);
-    setActiveSectionId('identity-summary');
-  }
-
-  function saveIdentityNote(message) {
-    saveNote(`Identity Intel: ${message}`, 'Identity Intel');
-  }
-
-  function exportIdentityReport() {
-    const lines = [
-      'Fraud Academy - Identity Search Report',
-      `Case: ${activeCase.id}`,
-      `Profile: ${report.profile.profileId}`,
-      `Subject: ${activeCase.person}`,
-      'Fictional training data only',
-      '',
-      ...report.summary.map(([label, value]) => `${label}: ${value}`),
-      '',
-      ...report.sections.flatMap((section) => [section.title, ...section.fields.map((field) => `${field.label}: ${field.value}`), '']),
-    ];
-    const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${activeCase.id}-identity-search-report.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
-  return (
-    <>
-      <section className="identity-intel-search" aria-label="Identity Intel search">
-        <div>
-          <p>People Search</p>
-          <h3>Search by fictional Training ID or by Name + DOB.</h3>
-          <span>Fictional training data only. Identity information is evidence, not a case conclusion.</span>
-        </div>
-        <div className="identity-intel-search-fields">
-          <label><span>Search method</span><select value={searchMode} onChange={(event) => setSearchMode(event.target.value)} aria-label="Choose People Search method"><option value="id">Training ID</option><option value="name-dob">Name + DOB</option></select></label>
-          {searchMode === 'id' ? <label><span>Fictional Training ID</span><input value={idDraft} onChange={(event) => setIdDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') runSearch(); }} placeholder="TRN-8842-19" aria-label="Search Identity Intel by Training ID" /></label> : <>
-            <label><span>Full name</span><input value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') runSearch(); }} placeholder="Maya Sterling" aria-label="Search Identity Intel by name" /></label>
-            <label><span>Date of birth</span><input value={dobDraft} onChange={(event) => setDobDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') runSearch(); }} placeholder="Feb 14, 1988" aria-label="Search Identity Intel by date of birth" /></label>
-          </>}
-        </div>
-        <button type="button" onClick={runSearch} disabled={!searchReady}>Run People Search</button>
-      </section>
-
-      {!submittedSearch && <section className="identity-intel-gate" aria-label="Identity report locked">
-        <strong>Identity report hidden until a search is run.</strong>
-        <span>Use a fictional profile value from the active case to reveal the report.</span>
-      </section>}
-
-      {submittedSearch && !searchMatched && <section className="identity-intel-gate" aria-label="No identity match">
-        <strong>No fictional identity match returned for this search.</strong>
-        <span>Use the fictional Training ID, or pair the customer name with the exact training DOB from Customer 360.</span>
-      </section>}
-
-      {searchMatched && <>
-        <section className="identity-intel-summary" aria-label="Identity Match Summary">
-          <header>
-            <div>
-              <p>Identity Match Summary</p>
-              <h3>{activeCase.person}</h3>
-              <span>{report.profile.profileId} Â· Fictional training profile</span>
-            </div>
-            <div className="identity-intel-summary-actions"><button type="button" onClick={() => pin(`${report.profile.profileId} Â· ${activeCase.person}`)}>Pin profile</button><button type="button" onClick={() => saveIdentityNote(`Identity Match Summary ${report.profile.profileId} reviewed for ${activeCase.person}.`)}>Save summary note</button><button type="button" className="investigation-tool-primary" onClick={() => setReportOpen(true)}>{reportOpen ? 'Full Profile Report Open' : 'View Full Profile Report'}</button></div>
-          </header>
-          <dl>
-            {report.summary.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
-          </dl>
-        </section>
-
-        <section className="identity-intel-counts" aria-label="Identity report counts">
-          {report.counts.map(([label, count]) => <article key={label}><strong>{count}</strong><span>{label}</span></article>)}
-        </section>
-
-        {!reportOpen && <section className="identity-intel-gate" aria-label="Full identity report closed"><strong>Identity Match Summary returned.</strong><span>Review the match and count bubbles, then open the full fictional profile report.</span></section>}
-
-        {reportOpen && <div className="identity-intel-workspace">
-          <section className="identity-intel-sections identity-intel-source-panel" aria-label="People Search history and source records">
-            <header><p>Search & Sources</p><h3>Criteria and matched objects</h3></header>
-            <div className="identity-intel-search-history">{searchHistory.map((item, index) => <span key={`${item}-${index}`}><strong>{index ? 'Previous search' : 'Current search'}</strong>{item}</span>)}</div>
-            <div className="identity-intel-source-records">{(activeCase.identityRecords ?? []).map((item) => <article key={item.id}><span>{item.type}</span><strong>{item.value}</strong><small>{item.id} Â· {item.lastSeen}</small><button type="button" onClick={() => pin(`${item.id} Â· ${item.value}`)}>Pin</button></article>)}</div>
-          </section>
-
-          <section className="identity-intel-report" aria-label="Expanded identity report">
-            <header>
-              <div><p>Fictional report section</p><h3>{activeSection.title}</h3></div>
-              <button type="button" onClick={() => saveIdentityNote(`${activeSection.title} reviewed for ${report.profile.profileId}.`)}>Save section note</button>
-            </header>
-            <dl>{activeSection.fields.map((field) => <div key={field.label}><dt>{field.label}</dt><dd>{field.value}</dd></div>)}</dl>
-          </section>
-
-          <aside className="identity-intel-evidence" aria-label="Evidence Explorer">
-            <header><p>Evidence Explorer</p><h3>Open a full report section</h3></header>
-            <div className="identity-intel-section-buttons">{report.sections.map((section) => <button key={section.id} type="button" aria-label={section.title} className={section.id === activeSection.id ? 'active' : ''} onClick={() => setActiveSectionId(section.id)}><strong>{section.title}</strong><span>{section.fields.length} fields</span></button>)}</div>
-            <button type="button" onClick={exportIdentityReport}>Generate Identity Search Report</button>
-          </aside>
-        </div>}
-      </>}
-
-      <nav className="investigation-tool-next-routes" aria-label="Identity Intel next routes">
-        <button type="button" onClick={() => openTool('Customer 360')}>Open Customer 360</button>
-        <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
-      </nav>
-
-      <footer className="investigation-tool-review-bar">
-        <div>
-          <strong>Identity Intel / People Search review</strong>
-          <span>Run a search, review the fictional report, and compare it with case evidence before marking this tool reviewed.</span>
-        </div>
-        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} disabled={!searchMatched || !reportOpen} onClick={() => markReviewed('Identity Intel / People Search')}>
-          {reviewed ? 'âœ“ Identity Intel / People Search reviewed' : 'Mark Identity Intel / People Search reviewed'}
-        </button>
-      </footer>
-    </>
-  );
-}
-
-function TransactionHistoryWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
-  const records = useMemo(() => getTransactionHistory(activeCase), [activeCase]);
-  const [merchantSearch, setMerchantSearch] = useState('');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
-  const [account, setAccount] = useState('All accounts');
-  const [channel, setChannel] = useState('All channels');
-  const [direction, setDirection] = useState('All activity');
-  const [selectedId, setSelectedId] = useState('');
-  const accounts = ['All accounts', ...new Set(records.map((record) => record.instrument))];
-  const channels = ['All channels', ...new Set(records.map((record) => record.channel))];
-  const filteredRecords = records.filter((record) => {
-    const date = new Date(record.posted);
-    return (!merchantSearch || `${record.id} ${record.merchant} ${record.category} ${record.instrument}`.toLowerCase().includes(merchantSearch.toLowerCase()))
-      && (account === 'All accounts' || record.instrument === account)
-      && (channel === 'All channels' || record.channel === channel)
-      && (direction === 'All activity' || record.direction === direction)
-      && (!fromDate || date >= new Date(`${fromDate}T00:00:00`))
-      && (!toDate || date <= new Date(`${toDate}T23:59:59`));
-  });
-  const activeRecord = filteredRecords.find((record) => record.id === selectedId) ?? filteredRecords[0] ?? records[0];
-  const total = filteredRecords.reduce((sum, record) => sum + record.amountValue, 0);
-
-  useEffect(() => {
-    setMerchantSearch('');
-    setFromDate('');
-    setToDate('');
-    setAccount('All accounts');
-    setChannel('All channels');
-    setDirection('All activity');
-    setSelectedId('');
-  }, [activeCase.id]);
-
-  function saveTransactionNote(message) {
-    saveNote(`Transaction History: ${message}`, 'Transaction history');
-  }
-
-  return (
-    <>
-      <section className="transaction-history-findbar" aria-label="Transaction History filters">
-        <div><p>Banking activity</p><h3>Case activity view. Filter merchant, date, account, amount context, channel, or debit and credit activity.</h3></div>
-        <label><span>Merchant or transaction</span><input value={merchantSearch} onChange={(event) => setMerchantSearch(event.target.value)} placeholder="Merchant, transaction ID, category, or account" aria-label="Search Transaction History" /></label>
-        <label><span>From date</span><input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} aria-label="Transaction History from date" /></label>
-        <label><span>To date</span><input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} aria-label="Transaction History to date" /></label>
-      </section>
-
-      <section className="transaction-history-filter-row" aria-label="Transaction History quick filters">
-        <select value={channel} onChange={(event) => setChannel(event.target.value)} aria-label="Transaction channel filter">{channels.map((item) => <option key={item}>{item}</option>)}</select>
-        <select value={direction} onChange={(event) => setDirection(event.target.value)} aria-label="Transaction debit credit filter"><option>All activity</option><option>Debit</option><option>Non-monetary</option></select>
-        <span>{filteredRecords.length} of {records.length} activity records shown</span>
-      </section>
-
-      <section className="transaction-history-summary" aria-label="Transaction History summary">
-        <article><span>Activity window</span><strong>30 days</strong></article>
-        <article><span>Records shown</span><strong>{filteredRecords.length}</strong></article>
-        <article><span>Debit activity shown</span><strong>${total.toFixed(2)}</strong></article>
-        <article><span>Accounts / cards</span><strong>{accounts.length - 1}</strong></article>
-      </section>
-
-      <div className="transaction-history-account-rail" aria-label="Transaction account and card rail">
-        {accounts.map((item) => <button key={item} type="button" className={account === item ? 'active' : ''} onClick={() => setAccount(item)}>{item}</button>)}
-      </div>
-
-      {activeRecord ? <div className="transaction-history-workspace">
-        <section className="transaction-history-list" aria-label="Transaction History activity feed">
-          <header><p>Activity feed</p><h3>Choose a transaction to expand</h3></header>
-          {filteredRecords.map((record) => <button key={record.id} type="button" className={record.id === activeRecord.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-transaction-history-record={record.id}>
-            <span>{record.posted} at {record.time}</span><strong>{record.merchant}</strong><small>{record.amount} | {record.channel} | {record.instrument}</small>
-          </button>)}
-          {!filteredRecords.length && <div className="investigation-tool-empty" role="status">No activity records match these filters.</div>}
-        </section>
-
-        <section className="transaction-history-detail" aria-label="Transaction detail drawer">
-          <header><div><p>Transaction detail drawer</p><h3>{activeRecord.id} | {activeRecord.merchant}</h3><span>{activeRecord.posted} at {activeRecord.time}</span></div><button type="button" onClick={() => pin(activeRecord.id)}>Pin transaction</button></header>
-          <dl>{[
-            ['Amount', activeRecord.amount], ['Direction', activeRecord.direction], ['Account / card', activeRecord.instrument], ['Channel', activeRecord.channel], ['Category', activeRecord.category], ['Card entry mode', activeRecord.entryMode], ['Location', activeRecord.location], ['Status', activeRecord.status],
-          ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
-          <article className="transaction-history-context"><span>Recorded context</span><p>{activeRecord.context}</p></article>
-          <div className="transaction-history-actions"><button type="button" onClick={() => saveTransactionNote(`${activeRecord.id} reviewed with ${activeRecord.entryMode} and ${activeRecord.instrument}.`)}>Save transaction note</button><button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button></div>
-        </section>
-
-        <aside className="transaction-history-evidence" aria-label="Transaction related evidence">
-          <header><p>Related evidence</p><h3>Objects and documents</h3></header>
-          <article><span>Related records</span><strong>{activeRecord.relatedRecords.join(' | ')}</strong></article>
-          <article><span>Related documents</span><strong>{activeRecord.relatedDocuments.join(' | ') || 'No document linked in current packet'}</strong></article>
-        </aside>
-      </div> : <div className="investigation-tool-empty" role="status">No transaction records are available for this case.</div>}
-
-      <nav className="investigation-tool-next-routes" aria-label="Transaction History next routes">
-        {activeCase.availableTools?.includes('Merchant Intelligence') && <button type="button" onClick={() => openTool('Merchant Intelligence')}>Open Merchant Intelligence</button>}
-        {activeCase.availableTools?.includes('Financial Investigation') && <button type="button" onClick={() => openTool('Financial Investigation')}>Open Financial Investigation</button>}
-        {activeCase.availableTools?.includes('Payment Verification') && <button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button>}
-        <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
-      </nav>
-      <footer className="investigation-tool-review-bar"><div><strong>Transaction History review</strong><span>Review the activity feed, transaction details, linked records, and documents before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Transaction History')}>{reviewed ? 'âœ“ Transaction History reviewed' : 'Mark Transaction History reviewed'}</button></footer>
-    </>
-  );
-}
-
-function FinancialInvestigationWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
-  const workspace = useMemo(() => getFinancialInvestigation(activeCase), [activeCase]);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [period, setPeriod] = useState('All periods');
-  const [recordQuery, setRecordQuery] = useState('');
-  const [selectedId, setSelectedId] = useState('');
-  const tab = financialInvestigationTabs.find((item) => item.id === activeTab) ?? financialInvestigationTabs[0];
-  const tabRecords = workspace.recordsByTab[activeTab] ?? [];
-  const periods = ['All periods', ...new Set(tabRecords.map((record) => record.period).filter(Boolean))];
-  const normalizedQuery = recordQuery.trim().toLowerCase();
-  const filteredRecords = tabRecords.filter((record) => (
-    (period === 'All periods' || record.period === period)
-    && (!normalizedQuery || financialRecordSearchText(record).includes(normalizedQuery))
-  ));
-  const activeRecord = filteredRecords.find((record) => record.id === selectedId) ?? filteredRecords[0] ?? tabRecords[0];
-  const maxComparison = Math.max(1, ...workspace.comparison.flatMap((item) => [item.baseline, item.current]));
-  const maxDeposit = Math.max(1, ...workspace.depositTrend.map((item) => item.value));
-
-  useEffect(() => {
-    setActiveTab('overview');
-    setPeriod('All periods');
-    setRecordQuery('');
-    setSelectedId('');
-  }, [activeCase.id]);
-
-  useEffect(() => {
-    setPeriod('All periods');
-    setSelectedId('');
-  }, [activeTab]);
-
-  function selectTab(tabId) {
-    setActiveTab(tabId);
-  }
-
-  function saveFinancialNote(record) {
-    saveNote(`Financial Investigation: ${record.id} - ${record.detail}`, 'Financial investigation');
-  }
-
-  function handPaymentIdentifiers(record) {
-    const fields = new Map(record.fields);
-    openTool('Payment Verification', 'investigate', {
-      query: buildPaymentLookupHint({
-        bankCode: fields.get('Bank Code') ?? '',
-        destinationId: fields.get('Destination ID') ?? '',
-        ownerName: activeCase.person,
-      }),
-    });
-  }
-
-  return (
-    <>
-      <section className="financial-investigation-kpis" aria-label="Financial Investigation account metrics">
-        {workspace.kpis.map((item) => <article key={item.label}><span>{item.label}</span><strong>{item.value}</strong><small>{item.context}</small></article>)}
-      </section>
-
-      <section className="financial-account-strip" aria-label="Financial relationship snapshot">
-        <div><p>Account in review</p><h3>{workspace.profile.account}</h3><span>{workspace.profile.accountType} | {workspace.profile.accountAge} | {workspace.profile.accountStatus}</span></div>
-        <dl><div><dt>Relationship</dt><dd>{workspace.profile.relationshipLength}</dd></div><div><dt>Credit limit</dt><dd>{workspace.profile.creditLimit}</dd></div><div><dt>Overdraft</dt><dd>{workspace.profile.overdraft}</dd></div><div><dt>Recorded alert</dt><dd>{workspace.profile.alert}</dd></div></dl>
-      </section>
-
-      <nav className="financial-investigation-tabs" aria-label="Financial Investigation sections">
-        {financialInvestigationTabs.map((item) => <button key={item.id} type="button" className={activeTab === item.id ? 'active' : ''} aria-pressed={activeTab === item.id} onClick={() => selectTab(item.id)}>{item.label}</button>)}
-      </nav>
-
-      <section className="financial-investigation-findbar" aria-label="Financial Investigation filters">
-        <div><p>{tab.label}</p><h3>{tab.question}</h3></div>
-        <label><span>Search this section</span><input value={recordQuery} onChange={(event) => setRecordQuery(event.target.value)} placeholder="Record, amount, merchant, account, source, or destination" aria-label="Search Financial Investigation records" /></label>
-        <label><span>Comparison period</span><select value={period} onChange={(event) => setPeriod(event.target.value)} aria-label="Financial Investigation period filter">{periods.map((item) => <option key={item}>{item}</option>)}</select></label>
-        <span>{filteredRecords.length} of {tabRecords.length} records shown</span>
-      </section>
-
-      {(activeTab === 'overview' || activeTab === 'trends') && (
-        <section className="financial-comparison-grid" aria-label="Financial behavior comparisons">
-          {workspace.comparison.map((item) => <article key={item.label}><header><strong>{item.label}</strong><span>{item.baseline} baseline | {item.current} current</span></header><div><i style={{ width: `${Math.max(3, (item.baseline / maxComparison) * 100)}%` }} /><b style={{ width: `${Math.max(3, (item.current / maxComparison) * 100)}%` }} /></div><p>{item.context}</p></article>)}
-        </section>
-      )}
-
-      {activeTab === 'deposits' && (
-        <section className="financial-deposit-trend" aria-label="Deposit trend">
-          <header><p>Deposit trend</p><h3>Recorded incoming funds by date</h3></header>
-          <div>{workspace.depositTrend.map((item) => <article key={`${item.label}-${item.title}`}><span>{item.label}</span><div><i style={{ height: `${Math.max(8, (item.value / maxDeposit) * 100)}%` }} /></div><strong>${item.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong><small>{item.title}</small></article>)}</div>
-        </section>
-      )}
-
-      <div className="financial-investigation-workspace">
-        <main className="financial-record-workspace">
-          <section className="financial-record-list" aria-label={`${tab.label} records`}>
-            <header><div><p>Evidence records</p><h3>{tab.label}</h3></div><span>{filteredRecords.length} shown</span></header>
-            {filteredRecords.map((record) => <button key={record.id} type="button" className={activeRecord?.id === record.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-financial-investigation-record={record.id}><span>{record.category} | {record.observed}</span><strong>{record.title}</strong><small>{record.value} | {record.status}</small></button>)}
-            {!filteredRecords.length && <div className="investigation-tool-empty" role="status">No financial records match these filters.</div>}
-          </section>
-
-          {activeRecord ? <section className="financial-record-detail" aria-label="Expanded financial record">
-            <header><div><p>Expanded evidence</p><h3>{activeRecord.id}</h3><span>{activeRecord.title} | {activeRecord.observed}</span></div><button type="button" onClick={() => pin(`${activeRecord.id} | ${activeRecord.title}`)}>Pin record</button></header>
-            <dl>{activeRecord.fields.map(([label, value]) => <div key={`${activeRecord.id}-${label}`}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
-            <article><span>Recorded context</span><p>{activeRecord.detail}</p></article>
-            <div className="financial-related-records"><span>Related records</span><div>{activeRecord.relatedRecords.map((item) => <button key={item} type="button" onClick={() => pin(item)}>{item}</button>)}</div></div>
-            {activeTab === 'linked' && <button type="button" onClick={() => handPaymentIdentifiers(activeRecord)}>Prefill Payment Verification</button>}
-            <button type="button" onClick={() => saveFinancialNote(activeRecord)}>Save evidence note</button>
-          </section> : <div className="investigation-tool-empty" role="status">Choose a financial record to open its details.</div>}
-        </main>
-
-        <aside className="financial-case-rail" aria-label="Financial Investigation case summary">
-          <header><p>Case money summary</p><h3>{activeCase.amount}</h3><span>{activeCase.claimType ?? activeCase.type}</span></header>
-          <section><p>Reviewed financial facts</p>{workspace.reviewedFacts.map((fact) => <article key={fact}>{fact}</article>)}</section>
-          <section><p>Record inventory</p><div>{financialInvestigationTabs.map((item) => <button key={item.id} type="button" onClick={() => selectTab(item.id)}><span>{item.label}</span><strong>{workspace.recordsByTab[item.id]?.length ?? 0}</strong></button>)}</div></section>
-          <nav><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button></nav>
-        </aside>
-      </div>
-
-      <nav className="investigation-tool-next-routes" aria-label="Financial Investigation next routes"><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
-      <footer className="investigation-tool-review-bar"><div><strong>Financial Investigation review</strong><span>Mark reviewed after comparing the relevant money sections and saving the evidence needed for the case package.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Financial Investigation')}>{reviewed ? 'âœ“ Financial Investigation reviewed' : 'Mark Financial Investigation reviewed'}</button></footer>
-    </>
-  );
-}
-
-function KYBReviewWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
-  const workspace = useMemo(() => getKybReview(activeCase), [activeCase]);
-  const [lookupValue, setLookupValue] = useState('');
-  const [confirmedLookup, setConfirmedLookup] = useState('');
-  const [lookupAttempted, setLookupAttempted] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [recordQuery, setRecordQuery] = useState('');
-  const [selectedId, setSelectedId] = useState('');
-  const [report, setReport] = useState(null);
-  const [reportGenerated, setReportGenerated] = useState(() => hasGeneratedKybReport(activeCase.id));
-  const searchMatched = matchesKybReviewLookup(workspace, confirmedLookup);
-  const tab = kybReviewTabs.find((item) => item.id === activeTab) ?? kybReviewTabs[0];
-  const tabRecords = workspace.recordsByTab[activeTab] ?? [];
-  const normalizedQuery = recordQuery.trim().toLowerCase();
-  const filteredRecords = searchMatched ? tabRecords.filter((record) => !normalizedQuery || kybRecordSearchText(record).includes(normalizedQuery)) : [];
-  const activeRecord = filteredRecords.find((record) => record.id === selectedId) ?? filteredRecords[0] ?? tabRecords[0];
-
-  useEffect(() => {
-    setLookupValue('');
-    setConfirmedLookup('');
-    setLookupAttempted(false);
-    setActiveTab('overview');
-    setRecordQuery('');
-    setSelectedId('');
-    setReport(null);
-    setReportGenerated(hasGeneratedKybReport(activeCase.id));
-  }, [activeCase.id]);
-
-  useEffect(() => {
-    setRecordQuery('');
-    setSelectedId('');
-  }, [activeTab]);
-
-  function runLookup(event) {
-    event.preventDefault();
-    setLookupAttempted(true);
-    setConfirmedLookup(lookupValue.trim());
-  }
-
-  function generateReport() {
-    const nextReport = generateKybReviewReport(activeCase);
-    setReport(nextReport);
-    setReportGenerated(true);
-    saveNote(`KYB Business Report generated for ${workspace.profile.legalName}.`, 'KYB Review');
-  }
-
-  return (
-    <>
-      <section className="kyb-lookup-panel" aria-label="KYB business lookup">
-        <div><p>Business lookup</p><h3>Find the exact entity before opening its KYB record</h3><span>Search by legal name, DBA, masked EIN, registration ID, or exact business address.</span></div>
-        <form onSubmit={runLookup}><label><span>Business identifier</span><input value={lookupValue} onChange={(event) => setLookupValue(event.target.value)} placeholder="Legal name, DBA, **-***1234, registration ID, or address" aria-label="Search KYB Review" /></label><button type="submit" disabled={!lookupValue.trim()}>Search business</button></form>
-        <article className="kyb-case-entity"><span>Business object attached to this training case</span><strong>{workspace.profile.dba}</strong><small>{workspace.profile.jurisdiction} | {workspace.profile.industry}</small><button type="button" onClick={() => setLookupValue(workspace.profile.legalName)}>Use legal name</button></article>
-      </section>
-
-      {lookupAttempted && !searchMatched && <div className="kyb-lookup-message" role="status"><strong>No exact fictional business match.</strong><span>Check the full legal name, DBA, masked EIN, registration ID, or complete address and search again.</span></div>}
-
-      {searchMatched && <>
-        <section className="kyb-profile-header" aria-label="Matched business profile">
-          <header><div><p>Exact business match</p><h3>{workspace.profile.legalName}</h3><span>{workspace.profile.dba} | {workspace.profile.entityType}</span></div><button type="button" onClick={() => pin(`${workspace.profile.registrationId} | ${workspace.profile.legalName}`)}>Pin business</button></header>
-          <dl>{[['Registration', workspace.profile.registrationId], ['Masked EIN', workspace.profile.ein], ['Jurisdiction', workspace.profile.jurisdiction], ['Standing', workspace.profile.standing], ['Formation', workspace.profile.formationDate], ['Address', workspace.profile.address], ['Phone', workspace.profile.phone], ['Website', workspace.profile.website]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
-        </section>
-
-        <section className="kyb-review-kpis" aria-label="KYB record inventory"><article><span>Owner / UBO records</span><strong>{workspace.counts.owners}</strong><small>Identity records connected</small></article><article><span>Business links</span><strong>{workspace.counts.businessRecords}</strong><small>Business 360 records</small></article><article><span>Payment objects</span><strong>{workspace.counts.paymentObjects}</strong><small>Ownership records available</small></article><article><span>Documents & links</span><strong>{workspace.counts.documents}</strong><small>Source inventory</small></article></section>
-
-        <nav className="kyb-review-tabs" aria-label="KYB Review sections">{kybReviewTabs.map((item) => <button key={item.id} type="button" className={activeTab === item.id ? 'active' : ''} aria-pressed={activeTab === item.id} onClick={() => setActiveTab(item.id)}>{item.label}</button>)}</nav>
-
-        <section className="kyb-review-findbar" aria-label="KYB Review record filter"><div><p>{tab.label}</p><h3>{tab.question}</h3></div><label><span>Filter opened records</span><input value={recordQuery} onChange={(event) => setRecordQuery(event.target.value)} placeholder="Record, owner, identifier, source, or value" aria-label="Filter KYB Review records" /></label><span>{filteredRecords.length} of {tabRecords.length} shown</span></section>
-
-        <div className="kyb-review-workspace">
-          <section className="kyb-record-list" aria-label={`${tab.label} KYB records`}><header><div><p>Source records</p><h3>{tab.label}</h3></div><span>{filteredRecords.length} shown</span></header>{filteredRecords.map((record) => <button key={record.id} type="button" className={activeRecord?.id === record.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-kyb-review-record={record.id}><span>{record.category} | {record.observed}</span><strong>{record.title}</strong><small>{record.value}</small></button>)}{!filteredRecords.length && <div className="investigation-tool-empty" role="status">No KYB records match this filter.</div>}</section>
-
-          {activeRecord ? <section className="kyb-record-detail" aria-label="Expanded KYB record"><header><div><p>Expanded source record</p><h3>{activeRecord.id}</h3><span>{activeRecord.title}</span></div><button type="button" onClick={() => pin(`${activeRecord.id} | ${activeRecord.title}`)}>Pin record</button></header><dl>{activeRecord.fields.map(([label, value]) => <div key={`${activeRecord.id}-${label}`}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><article><span>Recorded context</span><p>{activeRecord.detail}</p></article><div className="kyb-related-records"><span>Related records</span><div>{activeRecord.relatedRecords.map((item) => <button key={item} type="button" onClick={() => pin(item)}>{item}</button>)}</div></div><button type="button" onClick={() => saveNote(`KYB Review: ${activeRecord.id} - ${activeRecord.detail}`, 'KYB Review')}>Save evidence note</button></section> : <div className="investigation-tool-empty" role="status">Choose a KYB source record to open its details.</div>}
-
-          <aside className="kyb-case-rail" aria-label="KYB Review case summary"><header><p>Business evidence summary</p><h3>{workspace.profile.dba}</h3><span>{activeCase.id}</span></header><section><p>Reviewed business facts</p>{workspace.reviewedFacts.map((fact) => <article key={fact}>{fact}</article>)}</section><section className="kyb-report-actions"><p>KYB Business Report</p><span>Generate a factual report from the opened fictional business records. The report is stored with the matching account documents.</span><button type="button" onClick={generateReport}>{reportGenerated ? 'Regenerate report' : 'Generate report'}</button>{report && <button type="button" onClick={() => downloadKybReport(report)}>Export report</button>}</section><nav><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Financial Investigation')}>Open Financial Investigation</button></nav></aside>
-        </div>
-      </>}
-
-      <nav className="investigation-tool-next-routes" aria-label="KYB Review next routes"><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Identity Intel / People Search')}>Open Identity Intel</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
-      <footer className="investigation-tool-review-bar"><div><strong>KYB Review</strong><span>Complete an exact lookup and compare the relevant source records before marking this business review complete.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} disabled={!searchMatched} onClick={() => markReviewed('KYB Review')}>{reviewed ? 'âœ“ KYB Review reviewed' : 'Mark KYB Review reviewed'}</button></footer>
-    </>
-  );
-}
-
-function Business360Workspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
-  const workspace = useMemo(() => getBusiness360Workspace(activeCase), [activeCase]);
-  const [selectedId, setSelectedId] = useState('');
-  const activeRelationship = workspace.relationships.find((record) => record.id === selectedId) ?? workspace.relationships[0];
-  useEffect(() => setSelectedId(''), [activeCase.id]);
-
-  return (
-    <>
-      <section className="business-360-profile" aria-label="Business 360 profile">
-        <header><div><p>Business and KYB profile</p><h3>{workspace.profile.entity}</h3><span>Fictional training business context. Review evidence without assigning a case outcome.</span></div><button type="button" onClick={() => pin(workspace.profile.entity)}>Pin business</button></header>
-        <dl>{[
-          ['Entity type', workspace.profile.entityType], ['Registration', workspace.profile.registration], ['Masked EIN', workspace.profile.ein], ['Owner', workspace.profile.owner], ['Officer', workspace.profile.officer], ['Registered agent', workspace.profile.registeredAgent], ['Business address', workspace.profile.address], ['Filing date', workspace.profile.filingDate], ['Business standing', workspace.profile.standing], ['Revenue / cash-flow context', workspace.profile.revenue], ['Business contact', workspace.profile.contact], ['Relationship', workspace.profile.relationship],
-        ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
-      </section>
-
-      <PaymentSourceHandoff
-        source={workspace.paymentSource}
-        activeCase={activeCase}
-        openTool={openTool}
-        sourceLabel="Business 360"
-      />
-
-      <div className="business-360-workspace">
-        <section className="business-360-relationships" aria-label="Business relationships"><header><p>Relationships</p><h3>Choose a business object</h3></header>{workspace.relationships.map((record) => <button key={record.id} type="button" className={record.id === activeRelationship?.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-business-360-record={record.id}><span>{record.id} | {record.status}</span><strong>{record.entity}</strong><small>{record.relationship}</small></button>)}</section>
-        {activeRelationship ? <section className="business-360-detail" aria-label="Business relationship detail"><header><div><p>Selected relationship</p><h3>{activeRelationship.entity}</h3><span>{activeRelationship.observed}</span></div><button type="button" onClick={() => pin(activeRelationship.entity)}>Pin relationship</button></header><dl>{[['Relationship', activeRelationship.relationship], ['Status', activeRelationship.status], ['Observed', activeRelationship.observed], ['Case context', activeRelationship.context]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><button type="button" onClick={() => saveNote(`Business 360: ${activeRelationship.id} reviewed for ${activeCase.id}.`, 'Business 360')}>Save business note</button></section> : <div className="investigation-tool-empty" role="status">No business relationship is recorded for this case.</div>}
-        <aside className="business-360-evidence" aria-label="Business 360 evidence"><header><p>Evidence Explorer</p><h3>Business records to compare</h3></header>{workspace.intelligence.map((record) => <article key={record.id}><span>{record.type}</span><strong>{record.value}</strong><small>{record.id} | {record.observed}</small></article>)}</aside>
-      </div>
-      <nav className="investigation-tool-next-routes" aria-label="Business 360 next routes"><button type="button" onClick={() => openTool('KYB Review')}>Open KYB Review</button><button type="button" onClick={() => openTool('Employee Profile')}>Open Employee Profile</button><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
-      <footer className="investigation-tool-review-bar"><div><strong>Business 360 review</strong><span>Review the fictional business profile, relationship records, and linked evidence before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Business 360')}>{reviewed ? 'âœ“ Business 360 reviewed' : 'Mark Business 360 reviewed'}</button></footer>
-    </>
-  );
-}
-
-function EmployeeProfileWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
-  const records = useMemo(() => getEmployeeProfiles(activeCase), [activeCase]);
-  const [selectedId, setSelectedId] = useState('');
-  const activeRecord = records.find((record) => record.id === selectedId) ?? records[0];
-  useEffect(() => setSelectedId(''), [activeCase.id]);
-
-  return (
-    <>
-      <section className="employee-profile-summary" aria-label="Employee Profile summary">{[['Employee records', records.length], ['Employers', new Set(records.map((record) => record.employer)).size], ['Payroll links', records.reduce((count, record) => count + record.linkedPayroll.length, 0)], ['Active case', activeCase.id]].map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}</section>
-      <PaymentSourceHandoff
-        source={activeRecord?.paymentSource}
-        activeCase={activeCase}
-        openTool={openTool}
-        sourceLabel="Employee Profile"
-      />
-      {activeRecord ? <div className="employee-profile-workspace">
-        <section className="employee-profile-list" aria-label="Employee Profile records"><header><p>Employee records</p><h3>Choose an employee or contact</h3></header>{records.map((record) => <button key={record.id} type="button" className={record.id === activeRecord.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-employee-profile-record={record.id}><span>{record.id} | {record.status}</span><strong>{record.name}</strong><small>{record.role} | {record.employer}</small></button>)}</section>
-        <section className="employee-profile-detail" aria-label="Employee Profile detail"><header><div><p>Employee profile</p><h3>{activeRecord.name}</h3><span>{activeRecord.role} | {activeRecord.employer}</span></div><button type="button" onClick={() => pin(`${activeRecord.id} | ${activeRecord.name}`)}>Pin employee</button></header><dl>{[['Employee ID', activeRecord.id], ['Employer', activeRecord.employer], ['Role', activeRecord.role], ['Department', activeRecord.department], ['Status', activeRecord.status], ['Hire date', activeRecord.hireDate], ['Employment timeline', activeRecord.employmentTimeline], ['Official contact / callback', activeRecord.officialContact], ['Direct deposit context', activeRecord.directDeposit], ['Linked payroll records', activeRecord.linkedPayroll.join(' | ') || 'None recorded']].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><button type="button" onClick={() => saveNote(`Employee Profile: ${activeRecord.id} reviewed for ${activeCase.id}.`, 'Employee profile')}>Save employee note</button></section>
-        <aside className="employee-profile-evidence" aria-label="Employee payroll evidence"><header><p>Payroll connection</p><h3>Next evidence to review</h3></header><p>Compare the employee record, employer relationship, direct-deposit context, and any payroll change request before documenting a case decision.</p><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button></aside>
-      </div> : <div className="investigation-tool-empty" role="status">No employee records are available for this case.</div>}
-      <nav className="investigation-tool-next-routes" aria-label="Employee Profile next routes"><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
-      <footer className="investigation-tool-review-bar"><div><strong>Employee Profile review</strong><span>Review employee and employer facts, official contact details, and linked payroll context before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Employee Profile')}>{reviewed ? 'âœ“ Employee Profile reviewed' : 'Mark Employee Profile reviewed'}</button></footer>
-    </>
-  );
-}
-
-function PayrollHistoryWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
-  const records = useMemo(() => getPayrollHistory(activeCase), [activeCase]);
-  const [employer, setEmployer] = useState('All employers');
-  const [selectedId, setSelectedId] = useState('');
-  const employers = ['All employers', ...new Set(records.map((record) => record.employer))];
-  const filteredRecords = records.filter((record) => employer === 'All employers' || record.employer === employer);
-  const activeRecord = filteredRecords.find((record) => record.id === selectedId) ?? filteredRecords[0] ?? records[0];
-  useEffect(() => { setEmployer('All employers'); setSelectedId(''); }, [activeCase.id]);
-
-  return (
-    <>
-      <section className="payroll-history-findbar" aria-label="Payroll History filters"><div><p>Payroll and direct deposit</p><h3>Review each fictional payroll run, destination context, change record, callback status, and related employee evidence.</h3></div><label><span>Employer</span><select value={employer} onChange={(event) => setEmployer(event.target.value)} aria-label="Payroll History employer filter">{employers.map((item) => <option key={item}>{item}</option>)}</select></label><span>{filteredRecords.length} of {records.length} payroll records shown</span></section>
-      <section className="payroll-history-summary" aria-label="Payroll History summary">{[['Payroll records', records.length], ['Employers', employers.length - 1], ['Direct deposit records', records.filter((record) => /direct deposit/i.test(record.channel)).length], ['Linked employee records', new Set(records.flatMap((record) => record.relatedRecords.filter((item) => item.startsWith('EMP-')))).size]].map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}</section>
-      <PaymentSourceHandoff
-        source={activeRecord?.paymentSource}
-        activeCase={activeCase}
-        openTool={openTool}
-        sourceLabel="Payroll History"
-      />
-      {activeRecord ? <div className="payroll-history-workspace">
-        <section className="payroll-history-list" aria-label="Payroll History records"><header><p>Payroll runs</p><h3>Choose a payroll record</h3></header>{filteredRecords.map((record) => <button key={record.id} type="button" className={record.id === activeRecord.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-payroll-history-record={record.id}><span>{record.period} | {record.runStatus}</span><strong>{record.employee}</strong><small>{record.amount} | {record.employer}</small></button>)}</section>
-        <section className="payroll-history-detail" aria-label="Payroll History detail"><header><div><p>Payroll run detail</p><h3>{activeRecord.id} | {activeRecord.period}</h3><span>{activeRecord.employer} | {activeRecord.amount}</span></div><button type="button" onClick={() => pin(activeRecord.id)}>Pin payroll record</button></header><dl>{[['Employee', activeRecord.employee], ['Employer', activeRecord.employer], ['Payroll amount', activeRecord.amount], ['Channel', activeRecord.channel], ['Run status', activeRecord.runStatus], ['Bank Code', activeRecord.bankCode], ['Destination ID', activeRecord.destinationId], ['New account / destination', activeRecord.newDestination ?? activeRecord.destination], ['Previous account / destination', activeRecord.oldDestination ?? activeRecord.priorDestination], ['Change comparison', activeRecord.changeComparison], ['Effective date', activeRecord.effectiveDate], ['Change request', activeRecord.changeRequest], ['Admin activity', activeRecord.adminActivity], ['Trusted callback', activeRecord.callback], ['Payment record', activeRecord.paymentRecordId], ['Related records', activeRecord.relatedRecords.join(' | ')]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ?? 'Not supplied'}</dd></div>)}</dl><button type="button" onClick={() => saveNote(`Payroll History: ${activeRecord.id} reviewed for ${activeCase.id}.`, 'Payroll history')}>Save payroll note</button></section>
-        <aside className="payroll-history-controls" aria-label="Payroll related controls"><header><p>Related review</p><h3>Compare payroll evidence</h3></header><p>{activeRecord.context}</p><button type="button" onClick={() => openTool('Employee Profile')}>Open Employee Profile</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Document Request')}>Open Document Request</button></aside>
-      </div> : <div className="investigation-tool-empty" role="status">No payroll records match this filter.</div>}
-      <nav className="investigation-tool-next-routes" aria-label="Payroll History next routes"><button type="button" onClick={() => openTool('Employee Profile')}>Open Employee Profile</button><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
-      <footer className="investigation-tool-review-bar"><div><strong>Payroll History review</strong><span>Review the payroll run, destination context, change request, callback status, and linked employee records before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Payroll History')}>{reviewed ? 'âœ“ Payroll History reviewed' : 'Mark Payroll History reviewed'}</button></footer>
-    </>
-  );
-}
-
-function PaymentVerificationWorkspace({
-  activeCase,
-  query,
-  setQuery,
-  pin,
-  saveNote,
-  markReviewed,
-  reviewed,
-  openTool,
-  jumpDecision,
-  recordAction,
-}) {
-  const financial = useMemo(() => getFinancialRecords(activeCase), [activeCase]);
-  const records = financial.paymentVerification ?? [];
-  const [lookup, setLookup] = useState({ bankCode: '', destinationId: '', ownerName: '' });
-  const [lookupResult, setLookupResult] = useState(null);
-  const [lookupError, setLookupError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [lookupHistory, setLookupHistory] = useState([]);
-  const activeRecord = lookupResult?.record ?? null;
-
-  useEffect(() => {
-    setLookup({ bankCode: '', destinationId: '', ownerName: '' });
-    setLookupResult(null);
-    setLookupError('');
-    setLoading(false);
-    setLookupHistory([]);
-  }, [activeCase.id]);
-
-  useEffect(() => {
-    const hint = parsePaymentLookupHint(query);
-    if (!hint) return;
-    setLookup(hint);
-    setLookupResult(null);
-    setLookupError('');
-  }, [query]);
-
-  function updateLookup(field, value) {
-    if (parsePaymentLookupHint(query)) setQuery('');
-    setLookup((current) => ({ ...current, [field]: value }));
-    setLookupResult(null);
-    setLookupError('');
-  }
-
-  function resetLookup() {
-    setLookup({ bankCode: '', destinationId: '', ownerName: '' });
-    setLookupResult(null);
-    setLookupError('');
-    setQuery('');
-  }
-
-  async function runLookup(event) {
-    event.preventDefault();
-    if (!lookup.bankCode.trim() || !lookup.destinationId.trim() || !lookup.ownerName.trim()) {
-      setLookupError('Bank Code, Destination ID, and owner or business name are required.');
-      setLookupResult(null);
-      return;
-    }
-
-    setLookupError('');
-    setLoading(true);
-    await new Promise((resolve) => window.setTimeout(resolve, 180));
-    const result = resolvePaymentLookup(records, lookup);
-    setLookupResult(result);
-    setLoading(false);
-
-    const historyItem = {
-      id: `${Date.now()}-${lookup.bankCode}-${lookup.destinationId}`,
-      bankCode: lookup.bankCode.trim(),
-      destinationId: lookup.destinationId.trim(),
-      ownerName: lookup.ownerName.trim(),
-      outcome: result.nameMatchResult,
-      recordId: result.record?.id ?? null,
-    };
-    const nextHistory = [historyItem, ...lookupHistory].slice(0, 8);
-    setLookupHistory(nextHistory);
-    recordAction?.(
-      'Payment Verification lookup completed',
-      `${historyItem.bankCode} / ${historyItem.destinationId}: ${historyItem.outcome}.`,
-      'Payment Verification',
-    );
-  }
-
-  function savePaymentNote(message) {
-    saveNote(`Payment Verification: ${message}`, 'Payment verification');
-  }
-
-  function logAction(action) {
-    const message = `${action} recorded for ${activeRecord.id}.`;
-    savePaymentNote(message);
-    recordAction?.('Payment Verification action recorded', message, 'Payment Verification');
-  }
-
-  const relatedRoutes = [
-    'Customer 360',
-    'Financial Investigation',
-    'Employee Profile',
-    'Payroll History',
-    'Business 360',
-    'Timeline',
-  ].filter((item) => activeCase.availableTools?.includes(item) || item === 'Timeline');
-  const showCallback = activeRecord && !/^No callback requirement/i.test(activeRecord.callbackStatus);
-
-  return (
-    <>
-      <section className="payment-verification-gate" aria-label="Payment Verification search">
-        <header>
-          <div>
-            <p>Search before reveal</p>
-            <h3>Verify a specific payment destination</h3>
-            <span>Enter the identifiers from Customer 360, Financial Investigation, Business 360, Employee Profile, or Payroll History. No account result is exposed until the lookup runs.</span>
-          </div>
-          {lookupResult && <button type="button" onClick={resetLookup}>Reset lookup</button>}
-        </header>
-
-        <form onSubmit={runLookup} noValidate>
-          <label>
-            <span>Bank Code</span>
-            <input
-              value={lookup.bankCode}
-              onChange={(event) => updateLookup('bankCode', event.target.value)}
-              placeholder="Example: BC-204"
-              aria-label="Bank Code"
-              autoComplete="off"
-            />
-          </label>
-          <label>
-            <span>Destination ID</span>
-            <input
-              value={lookup.destinationId}
-              onChange={(event) => updateLookup('destinationId', event.target.value)}
-              placeholder="Example: DST-7740"
-              aria-label="Destination ID"
-              autoComplete="off"
-            />
-          </label>
-          <label>
-            <span>Owner or business name</span>
-            <input
-              value={lookup.ownerName}
-              onChange={(event) => updateLookup('ownerName', event.target.value)}
-              placeholder="Name to compare"
-              aria-label="Owner or business name"
-              autoComplete="off"
-            />
-          </label>
-          <button type="submit" className="investigation-tool-primary" disabled={loading}>
-            {loading ? 'Checking destinationâ€¦' : 'Run verification'}
-          </button>
-        </form>
-        {lookupError && <div className="payment-verification-form-error" role="alert">{lookupError}</div>}
-        {loading && <div className="payment-verification-loading" role="status">Retrieving the matching training recordâ€¦</div>}
-      </section>
-
-      {!loading && lookupResult?.state === 'not-found' && (
-        <section className="payment-verification-not-found" role="status" aria-label="Payment destination not found">
-          <span className="payment-status-chip alert">Destination Not Found</span>
-          <h3>No exact Bank Code and Destination ID pair was located.</h3>
-          <p>Check both identifiers against the source record. A missing destination does not determine the case outcome.</p>
-        </section>
-      )}
-
-      {!loading && activeRecord ? (
-        <>
-          <section className="payment-verification-snapshot" aria-label="Account snapshot">
-            <article className="payment-verification-hero">
-              <p>Account Snapshot</p>
-              <h3>{activeRecord.object}</h3>
-              <div className="payment-chip-row">
-                <span className={`payment-status-chip ${statusTone(lookupResult.nameMatchResult)}`}>{lookupResult.nameMatchResult}</span>
-                <span className={`payment-status-chip ${statusTone(activeRecord.operationalStatus)}`}>{activeRecord.operationalStatus}</span>
-                <span className={`payment-status-chip ${statusTone(activeRecord.standingStatus)}`}>{activeRecord.standingStatus}</span>
-              </div>
-            </article>
-            {[
-              ['Name match result', lookupResult.nameMatchResult],
-              ['Ownership status', activeRecord.ownershipStatus],
-              ['Operational account status', activeRecord.operationalStatus],
-              ['Prior use', activeRecord.priorUseHistory],
-            ].map(([label, value]) => (
-              <article key={label}>
-                <span>{label}</span>
-                <strong>{value}</strong>
-              </article>
-            ))}
-          </section>
-
-          <div className="payment-verification-workspace payment-verification-workspace-revealed">
-            <section className="payment-detail-panel" aria-label="Expanded payment verification detail">
-              <header>
-                <div>
-                  <p>Expanded verification</p>
-                  <h3>{activeRecord.id} Â· {activeRecord.type}</h3>
-                  <span>{activeRecord.bankName}</span>
-                </div>
-                <button type="button" onClick={() => pin(activeRecord.object)}>Pin object</button>
-              </header>
-
-              <dl className="payment-detail-grid">
-                {[
-                  ['Name match result', lookupResult.nameMatchResult],
-                  ['Account holder', activeRecord.accountHolder],
-                  ['Ownership status', activeRecord.ownershipStatus],
-                  ['Bank name', activeRecord.bankName],
-                  ['Operational account status', activeRecord.operationalStatus],
-                  ['Standing', activeRecord.standingStatus],
-                  ['Payment type', activeRecord.paymentType],
-                  ['Payment status', activeRecord.paymentStatus],
-                  ['Bank Code', activeRecord.bankCode],
-                  ['Destination ID', activeRecord.destinationId],
-                  ['Variant', activeRecord.laneVariant],
-                  ['First seen', activeRecord.firstSeen],
-                  ['Verification method', activeRecord.verificationMethod],
-                ].map(([label, value]) => (
-                  <div key={label}>
-                    <dt>{label}</dt>
-                    <dd>{value}</dd>
-                  </div>
-                ))}
-              </dl>
-
-              <section className="payment-comparison-panel" aria-label="Old versus new account comparison">
-                <article>
-                  <span>Old / prior account</span>
-                  <strong>{activeRecord.oldDestination}</strong>
-                </article>
-                <article>
-                  <span>New destination</span>
-                  <strong>{activeRecord.newDestination}</strong>
-                </article>
-                <article>
-                  <span>Payroll / vendor change comparison</span>
-                  <strong>{activeRecord.changeComparison}</strong>
-                </article>
-              </section>
-
-              <section className="payment-history-grid" aria-label="Ownership and prior-use history">
-                <article><span>Ownership history</span><strong>{activeRecord.ownershipHistory}</strong></article>
-                <article><span>Prior-use history</span><strong>{activeRecord.priorUseHistory}</strong></article>
-                <article><span>Return / NSF history</span><strong>{activeRecord.returnHistory}</strong></article>
-                <article><span>Trusted contact source</span><strong>{activeRecord.trustedContactSource}</strong></article>
-              </section>
-            </section>
-
-            <aside className="payment-verification-case-rail" aria-label="Payment Verification evidence summary">
-              <header>
-                <p>Evidence-first summary</p>
-                <h3>{activeRecord.id}</h3>
-              </header>
-              <p>{activeRecord.evidenceSummary}</p>
-              <dl>
-                <div><dt>Customer / entity link</dt><dd>{activeRecord.customerLink}</dd></div>
-                <div><dt>Review context</dt><dd>{activeRecord.reviewContext}</dd></div>
-                <div><dt>Recoverability context</dt><dd>{activeRecord.recoverability}</dd></div>
-              </dl>
-              <button type="button" onClick={() => pin(`${activeRecord.id} Â· ${activeRecord.object}`)}>Pin verified record</button>
-            </aside>
-          </div>
-
-          <section className="payment-verification-lower-grid" aria-label="Verification attempts and evidence actions">
-            <article className="payment-attempt-panel">
-              <header>
-                <p>Verification attempts</p>
-                <h3>{activeRecord.verificationAttempts.length} recorded attempt{activeRecord.verificationAttempts.length === 1 ? '' : 's'}</h3>
-              </header>
-              <div className="payment-log-list">
-                {activeRecord.verificationAttempts.map((entry) => (
-                  <div key={entry.id}>
-                    <span>{entry.time}</span>
-                    <strong>{entry.method} Â· {entry.result}</strong>
-                    <p>{entry.note}</p>
-                  </div>
-                ))}
-              </div>
-            </article>
-
-            {showCallback && <article className="payment-call-drawer">
-              <header>
-                <p>Verification Call Drawer</p>
-                <h3>Callback evidence</h3>
-              </header>
-              <p>{activeRecord.callbackStatus}</p>
-              <dl>
-                <div><dt>Trusted source</dt><dd>{activeRecord.trustedContactSource}</dd></div>
-                <div><dt>Recorded outcome</dt><dd>{activeRecord.verificationOutcome}</dd></div>
-              </dl>
-            </article>}
-
-            <article className="payment-action-panel">
-              <header><p>Evidence actions</p><h3>Document, compare, or route</h3></header>
-              <div>
-                {(activeRecord.actions ?? []).map((action) => <button key={action} type="button" onClick={() => logAction(action)}>{action}</button>)}
-                <button type="button" onClick={() => savePaymentNote(`${activeRecord.id} reviewed: ${activeRecord.notes}`)}>Save evidence note</button>
-              </div>
-            </article>
-
-            <article className="payment-related-records" aria-label="Related records">
-              <p>Related Records</p>
-              <div>{(activeRecord.relatedRecords ?? []).map((item) => <button key={item} type="button" onClick={() => pin(item)}>{item}</button>)}</div>
-            </article>
-          </section>
-        </>
-      ) : null}
-
-      {lookupHistory.length > 0 && (
-        <section className="payment-lookup-history" aria-label="Payment Verification lookup history">
-          <header><p>Lookup history</p><h3>Recent searches for this case</h3></header>
-          <div>
-            {lookupHistory.map((item) => (
-              <article key={item.id}>
-                <span>{item.bankCode} Â· {item.destinationId}</span>
-                <strong>{item.ownerName}</strong>
-                <small>{item.outcome}</small>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <nav className="investigation-tool-next-routes" aria-label="Payment verification next routes">
-        {relatedRoutes.map((route) => <button key={route} type="button" onClick={() => openTool(route)}>{`Open ${route}`}</button>)}
-        <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
-      </nav>
-
-      <footer className="investigation-tool-review-bar">
-        <div>
-          <strong>Payment Verification review</strong>
-          <span>Run a lookup before marking reviewed. Then check the name result, ownership, operational status, standing, prior use, attempts, and evidence source.</span>
-        </div>
-        <button type="button" disabled={!lookupResult} className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Payment Verification')}>
-          {reviewed ? 'âœ“ Payment Verification reviewed' : 'Mark Payment Verification reviewed'}
-        </button>
-      </footer>
-    </>
-  );
-}
-
-export default function InvestigationToolPanel({
-  activeCategory,
-  activeCase,
-  cases,
-  openDocumentAccountCase,
-  tool,
-  openTool,
-  query,
-  setQuery,
-  data,
-  rows,
-  activeRow,
-  expandedId,
-  revealLinkAnalysisSearch,
-  setExpandedId,
-  pin,
-  saveNote,
-  markReviewed,
-  currentCompleted,
-  jumpDecision,
-  documentRequests,
-  setDocumentRequestsByCase,
-  recordAction,
-  quickPin,
-  openRelatedCase,
-}) {
-  const [selectedRecordId, setSelectedRecordId] = useState('');
-  const displayData = buildCoreToolRecords(tool, activeCase, data) ?? data;
-  const normalizedQuery = query.trim().toLowerCase();
-  const displayRows = displayData === data
-    ? rows
-    : displayData.rows.filter((row) => !normalizedQuery || searchableText(row).includes(normalizedQuery));
-  const selectedId = selectedRecordId || activeRow?.id;
-  const displayActiveRow = displayRows.find((row) => row.id === selectedId) ?? displayRows[0];
-  const selectedFields = useMemo(
-    () => displayActiveRow ? fieldPairs(displayData.columns, displayActiveRow.values) : [],
-    [displayActiveRow, displayData.columns],
-  );
-  const toolDetail = detailFor(tool, activeCategory);
-  const reviewed = currentCompleted.includes(tool);
-  const reportRow = displayActiveRow ?? activeRow;
-
-  useEffect(() => {
-    setSelectedRecordId('');
-  }, [activeCase.id, tool]);
-
-  function openRecord(rowId) {
-    setSelectedRecordId(rowId);
-    setExpandedId(rowId);
-  }
-
-  function saveDisplayedNote() {
-    if (!reportRow) return;
-    saveNote(`Expanded ${tool} record ${reportRow.id}: ${reportRow.detail}`, 'Expanded record');
-  }
-
-  if (tool === 'Link Analysis') {
-    return (
-      <section
-        className="ornate-card activity-panel investigation-tools-theme-v1 link-analysis-tool-shell"
-        data-investigation-tools-screen="approved-theme-v1"
-        data-tool-name="Link Analysis"
-      >
-        <section className="investigation-tool-controls link-analysis-tool-switcher" aria-label="Investigation tool controls">
-          <label>
-            <span>Current tool group</span>
-            <select
-              className="tool-select"
-              value={tool}
-              onChange={(event) => openTool(event.target.value)}
-              aria-label="Choose investigation tool"
-            >
-              {activeCategory.tools.map((item) => <option key={item}>{item}</option>)}
-            </select>
-          </label>
-          <p>Switch tools without leaving the current case.</p>
-        </section>
-        <LinkAnalysisWorkspace
-          activeCase={activeCase}
-          cases={cases}
-          query={query}
-          setQuery={setQuery}
-          pin={pin}
-          quickPin={quickPin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          jumpDecision={jumpDecision}
-          recordAction={recordAction}
-          openRelatedCase={openRelatedCase}
-          requestedAccountId={expandedId}
-          revealSearch={revealLinkAnalysisSearch}
-        />
-      </section>
-    );
-  }
-
-  return (
-    <section
-      className="ornate-card activity-panel investigation-tools-theme-v1"
-      data-investigation-tools-screen="approved-theme-v1"
-      data-tool-name={tool}
-    >
-      <header className="investigation-tool-header">
-        <div>
-          <p className="investigation-tool-eyebrow">{activeCategory.label} Â· Evidence First</p>
-          <h2>{tool}</h2>
-          <p>{toolDetail.purpose}</p>
-        </div>
-        <div className="investigation-tool-header-actions">
-          <span>{activeCase.id}</span>
-          <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
-        </div>
-      </header>
-
-      <section className="investigation-tool-question" aria-labelledby="investigation-tool-question-heading">
-        <div aria-hidden="true">?</div>
-        <div>
-          <p>Working question</p>
-          <h3 id="investigation-tool-question-heading">{toolDetail.question}</h3>
-          <span>Review the records, expand the useful details, and save only the evidence needed for the case package.</span>
-        </div>
-      </section>
-
-      <section className="investigation-tool-controls" aria-label="Investigation tool controls">
-        <label>
-          <span>Current tool group</span>
-          <select
-            className="tool-select"
-            value={tool}
-            onChange={(event) => openTool(event.target.value)}
-            aria-label="Choose investigation tool"
-          >
-            {activeCategory.tools.map((item) => <option key={item}>{item}</option>)}
-          </select>
-        </label>
-        <div className="investigation-tool-flow" aria-label="Evidence workflow">
-          {workflows.map((item, index) => (
-            <span key={item} className={index <= 5 ? 'current-flow' : ''}>{index + 1}. {item}</span>
-          ))}
-        </div>
-      </section>
-
-      {tool === 'Identity Intel / People Search' ? (
-        <IdentityIntelWorkspace
-          activeCase={activeCase}
-          pin={pin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          openTool={openTool}
-          jumpDecision={jumpDecision}
-          recordAction={recordAction}
-        />
-      ) : tool === 'Transaction History' ? (
-        <TransactionHistoryWorkspace
-          activeCase={activeCase}
-          pin={pin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          openTool={openTool}
-          jumpDecision={jumpDecision}
-        />
-      ) : tool === 'Merchant Intelligence' ? (
-        <MerchantIntelligenceWorkspace
-          activeCase={activeCase}
-          pin={pin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          openTool={openTool}
-          jumpDecision={jumpDecision}
-          documentRequests={documentRequests}
-        />
-      ) : tool === 'Financial Investigation' ? (
-        <FinancialInvestigationWorkspace
-          activeCase={activeCase}
-          pin={pin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          openTool={openTool}
-          jumpDecision={jumpDecision}
-        />
-      ) : tool === 'Business 360' ? (
-        <Business360Workspace
-          activeCase={activeCase}
-          pin={pin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          openTool={openTool}
-          jumpDecision={jumpDecision}
-        />
-      ) : tool === 'KYB Review' ? (
-        <KYBReviewWorkspace
-          activeCase={activeCase}
-          pin={pin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          openTool={openTool}
-          jumpDecision={jumpDecision}
-        />
-      ) : tool === 'Employee Profile' ? (
-        <EmployeeProfileWorkspace
-          activeCase={activeCase}
-          pin={pin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          openTool={openTool}
-          jumpDecision={jumpDecision}
-        />
-      ) : tool === 'Payroll History' ? (
-        <PayrollHistoryWorkspace
-          activeCase={activeCase}
-          pin={pin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          openTool={openTool}
-          jumpDecision={jumpDecision}
-        />
-      ) : tool === 'Login History' ? (
-        <LoginHistoryWorkspace
-          activeCase={activeCase}
-          query={query}
-          setQuery={setQuery}
-          pin={pin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          openTool={openTool}
-          jumpDecision={jumpDecision}
-        />
-      ) : tool === 'Session History' ? (
-        <SessionHistoryWorkspace
-          activeCase={activeCase}
-          query={query}
-          setQuery={setQuery}
-          pin={pin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          openTool={openTool}
-        />
-      ) : tool === 'IP Intelligence' ? (
-        <IPIntelligenceWorkspace
-          activeCase={activeCase}
-          query={query}
-          setQuery={setQuery}
-          pin={pin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          openTool={openTool}
-          jumpDecision={jumpDecision}
-        />
-      ) : tool === 'Payment Verification' ? (
-        <PaymentVerificationWorkspace
-          activeCase={activeCase}
-          query={query}
-          setQuery={setQuery}
-          pin={pin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          openTool={openTool}
-          jumpDecision={jumpDecision}
-          recordAction={recordAction}
-        />
-      ) : tool === 'Document Viewer' ? (
-        <DocumentViewerWorkspace
-          activeCase={activeCase}
-          cases={cases}
-          openDocumentAccountCase={openDocumentAccountCase}
-          query={query}
-          setQuery={setQuery}
-          pin={pin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          openTool={openTool}
-          jumpDecision={jumpDecision}
-          documentRequests={documentRequests}
-        />
-      ) : tool === 'Document Request' ? (
-        <DocumentRequestWorkspace
-          activeCase={activeCase}
-          query={query}
-          setQuery={setQuery}
-          pin={pin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          openTool={openTool}
-          jumpDecision={jumpDecision}
-          documentRequests={documentRequests}
-          setDocumentRequestsByCase={setDocumentRequestsByCase}
-        />
-      ) : tool === 'Device Intelligence' ? (
-        <DeviceIntelligenceWorkspace
-          activeCase={activeCase}
-          query={query}
-          setQuery={setQuery}
-          pin={pin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          openTool={openTool}
-          jumpDecision={jumpDecision}
-          quickPin={quickPin}
-        />
-      ) : (
-        <>
-
-      <section className="investigation-tool-metrics" aria-label={`${tool} review summary`}>
-        <article><span>Records available</span><strong>{displayData.rows.length}</strong></article>
-        <article><span>Records shown</span><strong>{displayRows.length}</strong></article>
-        <article><span>Review status</span><strong>{reviewed ? 'Reviewed' : 'Open'}</strong></article>
-        <article><span>Active case</span><strong>{activeCase.id}</strong></article>
-      </section>
-
-      <div className="investigation-tool-search-row">
-        <label>
-          <span>Search this tool</span>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search records, values, history, devices, merchants, documents..."
-            aria-label={`Search ${tool} records`}
-          />
-        </label>
-        <span aria-live="polite">{displayRows.length} of {displayData.rows.length} shown</span>
-      </div>
-
-      <div className="investigation-tool-workspace">
-        <section className="investigation-tool-records" aria-labelledby="investigation-tool-records-heading">
-          <header className="investigation-tool-section-heading">
-            <div>
-              <p>Record review</p>
-              <h3 id="investigation-tool-records-heading">Available {tool} records</h3>
-            </div>
-            <span>{displayRows.length} shown</span>
-          </header>
-
-          <div className="investigation-tool-record-list">
-            {displayRows.map((row) => {
-              const fields = fieldPairs(displayData.columns, row.values).filter((field) => !/action/i.test(field.label)).slice(0, 3);
-              const selected = displayActiveRow?.id === row.id;
-              return (
-                <article
-                  key={row.id}
-                  className={`investigation-tool-record-card ${selected ? 'selected' : ''}`}
-                  data-investigation-record={row.id}
-                >
-                  <header>
-                    <div><span>{row.id}</span><h4>{row.label}</h4></div>
-                    <span>{selected ? 'Open' : 'Record'}</span>
-                  </header>
-                  <dl>
-                    {fields.map((field) => (
-                      <div key={`${row.id}-${field.label}`}>
-                        <dt>{field.label}</dt>
-                        <dd><DirectCollapsibleText lines={2} mobileLines={3}>{String(field.value)}</DirectCollapsibleText></dd>
-                      </div>
-                    ))}
-                  </dl>
-                  <div className="investigation-tool-record-actions">
-                    <button type="button" onClick={() => openRecord(row.id)}>{selected ? 'Record open' : 'Open record'}</button>
-                    <button type="button" onClick={() => pin(row.pin)}>Pin</button>
-                  </div>
-                </article>
-              );
-            })}
-            {!displayRows.length && (
-              <div className="investigation-tool-empty" role="status">
-                No records match this search. Clear or revise the search to continue reviewing this tool.
-              </div>
-            )}
-          </div>
-        </section>
-
-        <aside className="investigation-tool-detail" aria-label="Expanded investigation record">
-          {displayActiveRow ? (
-            <>
-              <header className="investigation-tool-detail-heading">
-                <div>
-                  <p>Expanded record</p>
-                  <h3>{displayActiveRow.id}</h3>
-                  <span>{displayActiveRow.label}</span>
-                </div>
-                <button type="button" onClick={() => pin(displayActiveRow.pin)}>Pin record</button>
-              </header>
-
-              <dl className="investigation-tool-field-grid">
-                {selectedFields.map((field) => (
-                  <div key={`${displayActiveRow.id}-${field.label}`}>
-                    <dt>{field.label}</dt>
-                    <dd><DirectCollapsibleText lines={3} mobileLines={4}>{String(field.value)}</DirectCollapsibleText></dd>
-                  </div>
-                ))}
-              </dl>
-
-              <div className="investigation-tool-review-lanes">
-                <article>
-                  <span>History</span>
-                  <h4>Record history</h4>
-                  <DirectCollapsibleText lines={3} mobileLines={4}>
-                    {displayActiveRow.id} is open inside {tool} for {activeCase.id}. Compare the recorded timing and values with the active case packet.
-                  </DirectCollapsibleText>
-                </article>
-                <article>
-                  <span>Link Analysis</span>
-                  <h4>Connected objects</h4>
-                  <DirectCollapsibleText lines={3} mobileLines={4}>
-                    {displayActiveRow.label}: {displayActiveRow.pin}. Active customer object: {activeCase.person} Â· {activeCase.trainingId}.
-                  </DirectCollapsibleText>
-                </article>
-              </div>
-
-              <div className="investigation-tool-detail-actions">
-                <button type="button" onClick={saveDisplayedNote}>Save expanded note</button>
-              </div>
-            </>
-          ) : (
-            <div className="investigation-tool-empty" role="status">Open a record to review its full details.</div>
-          )}
-        </aside>
-      </div>
-
-      <nav className="investigation-tool-next-routes" aria-label="Investigation record next routes">
-        {(tool === 'Document Viewer' || tool === 'Financial Investigation') && <button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button>}
-        <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
-        <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
-      </nav>
-
-      <footer className="investigation-tool-review-bar">
-        <div>
-          <strong>{tool} review</strong>
-          <span>Review completion records process progress only. It does not determine the case outcome.</span>
-        </div>
-        <button type="button" className="investigation-tool-primary" onClick={() => markReviewed(tool)}>
-          {reviewed ? `âœ“ ${tool} reviewed` : `Mark ${tool} reviewed`}
-        </button>
-      </footer>
-        </>
-      )}
-    </section>
-  );
-}
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíç_|é:-jZ.¶›­–)Ş³V–×÷'B²W6TVffV7BÂW6TÖVÖòÂW6U7FFRÒg&öÒw&V7Bs°¦–×÷'BF—&V7D6öÆÆ6–&ÆUFW‡Bg&öÒrâôF—&V7D6öÆÆ6–&ÆUFW‡Bæ§7‚s°¦–×÷'BFö7VÖVçEf–WvW%v÷&·76Rg&öÒrâôFö7VÖVçEf–WvW%v÷&·76Ræ§7‚s°¦–×÷'BÆ–æ´æÇ—6—5v÷&·76Rg&öÒrâôÆ–æ´æÇ—6—5v÷&·76Ræ§7‚s°¦–×÷'BÖW&6†çD–çFVÆÆ–vVæ6Uv÷&·76Rg&öÒrâôÖW&6†çD–çFVÆÆ–vVæ6Uv÷&·76Ræ§7‚s°¦–×÷'B²66W75&W÷'DW‡÷'EFW‡BÂvVæW&FT66W74†—7F÷'•&W÷'BÂvVæW&FVD66W75&W÷'EG—W2Òg&öÒrâöFFö66W74†—7F÷'•&W÷'G2æ§2s°¦–×÷'B²'V–ÆD6÷&UFööÅ&V6÷&G2Òg&öÒrâöFFö6÷&UFööÅ&V6÷&G2æ§2s°¦–×÷'B²vWD'W6–æW733cv÷&·76RÂvWDV×Æ÷–VU&öf–ÆW2ÂvWE—&öÆÄ†—7F÷'’ÂvWEG&ç67F–öä†—7F÷'’Òg&öÒrâöFFö'W6–æW75—&öÆÅv÷&·76Ræ§2s°¦–×÷'B²vWDFWf–6U&öf–ÆW2Òg&öÒrâöFFöFWf–6U&V6÷&G2æ§2s°¦–×÷'B²vWDf–ææ6–Å&V6÷&G2Òg&öÒrâöFFö66UFööÄFFæ§2s°¦–×÷'B²vWD66TFö7VÖVçG2Òg&öÒrâöFFöFö7VÖVçE&V6÷&G2æ§2s°¦–×÷'B°¢Ç”7W7FöÖW%&W7öç6RÀ¢'V–ÆEW'v÷&´–æ&÷…&V6÷&G2À¢7&VFUW'v÷&´GFV×BÀ¢vWEW'v÷&µ&WVW7EFV×ÆFW2À§Òg&öÒrâöFFöFö7VÖVçE&WVW7Ev÷&¶fÆ÷ræ§2s°¦–×÷'B²f–ææ6–Ä–çfW7F–vF–öåF'2Âf–ææ6–Å&V6÷&E6V&6…FW‡BÂvWDf–ææ6–Ä–çfW7F–vF–öâÒg&öÒrâöFFöf–ææ6–Ä–çfW7F–vF–öå&V6÷&G2æ§2s°¦–×÷'B²vWD–FVçF—G”–çFVÅ&W÷'BÂÖF6†W4–FVçF—G”–çFVÅ6V&6‚Òg&öÒrâöFFö–FVçF—G”–çFVÅ&W÷'Bæ§2s°¦–×÷'B²vWDÆöv–å&V6÷&G2Òg&öÒrâöFFöÆöv–å&V6÷&G2æ§2s°¦–×÷'B°¢'V–ÆE–ÖVçDÆöö·W†–çBÀ¢'6U–ÖVçDÆöö·W†–çBÀ¢&W6öÇfU–ÖVçDÆöö·WÀ§Òg&öÒrâöFF÷–ÖVçEfW&–f–6F–öâæ§2s°¦–×÷'B²vWD—&V6÷&G2Òg&öÒrâöFFö—&V6÷&G2æ§2s°¦–×÷'B²vWD·–%&Wf–WrÂ·–%&V6÷&E6V&6…FW‡BÂ·–%&Wf–WuF'2ÂÖF6†W4·–%&Wf–WtÆöö·WÒg&öÒrâöFFö·–%&Wf–Wu&V6÷&G2æ§2s°¦–×÷'B²vVæW&FT·–%&Wf–Wu&W÷'BÂ†4vVæW&FVD·–%&W÷'BÂ·–%&W÷'DW‡÷'EFW‡BÒg&öÒrâöFFö·–%&Wf–Wu&W÷'Bæ§2s°¦–×÷'B²vWE6W76–öå&V6÷&G2Òg&öÒrâöFF÷6W76–öå&V6÷&G2æ§2s°¦–×÷'B²VWVTFö7VÖVçEf–WvW%&÷WFRÒg&öÒrâöFö7VÖVçEf–WvW%&÷WFRæ§2s°¦–×÷'B²v÷&¶fÆ÷w2Òg&öÒrâ÷f—7VÅv÷&·76TÖöFVÂæ§2s° ¦6öç7BFööÄFWF–Ç2Ò°¢t–FVçF—G’–çFVÂòV÷ÆR6V&6‚s¢°¢W'÷6S¢u6V&6‚f–7F–öæÂ–FVçF—G’&V6÷&G2'’G&–æ–ær”B÷"æÖR²Dô"Â&Wf–WrF†RÖF6‚7VÖÖ'’ÂF†Vâ÷VâF†RgVÆÂ&öf–ÆR&W÷'BârÀ¢VW7F–öã¢tFöW2F†—2–FVçF—G’†—7F÷'’7W÷'Bv†òF†W’6Æ–ÒFò&SòrÀ¢ÒÀ¢tÆöv–â†—7F÷'’s¢°¢W'÷6S¢u&Wf–WrWF†VçF–6F–öâGFV×G2Â&W7VÇG2ÂÖWF†öG2ÂFWf–6W2ÂÆö6F–öç2ÂÔdÂæB6W76–öâ&VfW&Væ6W2v—F†÷WBÖ—†–ær–â÷7BÖÆöv–â7F—f—G’÷"G&v–ærâV&Ç’6öæ6ÇW6–öâârÀ¢VW7F–öã¢uv†òÆövvVB–âÂv†VâÂæBg&öÒv†W&SòrÀ¢ÒÀ¢u6W76–öâ†—7F÷'’s¢°¢W'÷6S¢u&Wf–Wr&V6÷&FVB7F–öç2gFW"WF†VçF–6F–öâæB6öææV7BV6‚6W76–öâFò—G2Æöv–âÂ&öf–ÆR7F—f—G’Â–ÖVçB7F—f—G’ÂæBÆöv÷WB7FFRv—F†÷WBG&v–ærâV&Ç’6öæ6ÇW6–öâârÀ¢VW7F–öã¢tgFW"Æöv–âÂv†BF–BF†RW6W"FóòrÀ¢ÒÀ¢tFWf–6R–çFVÆÆ–vVæ6Rs¢°¢W'÷6S¢t6ö×&Rf–7F–öæÂFWf–6R–FVçF–f–W'2Â'&÷w6W'2Â6W76–öç2ÂÖWF†öG2ÂÆö6F–öç2ÂæBæWGv÷&²&V6÷&G2ârÀ¢VW7F–öã¢uv†–6‚FWf–6W2V"–âF†R66R7F—f—G’ÂæBv†W&RFòF†÷6RFWf–6W2&WVCòrÀ¢ÒÀ¢t•–çFVÆÆ–vVæ6Rs¢°¢W'÷6S¢tÆöö²Wf–7F–öæÂæWGv÷&²æBÆö6F–öâWf–FVæ6RÂF†Vâ6ö×&R—Bv—F‚&V6÷&FVB6W76–öç2æBFWf–6W2v—F†÷WBG&v–ærâV&Ç’6öæ6ÇW6–öâârÀ¢VW7F–öã¢uv†W&RF–BF†R6öææV7F–öâ÷&–v–æFRÂæB†2—B&VVâ6VVâVÇ6Wv†W&SòrÀ¢ÒÀ¢uG&ç67F–öâ†—7F÷'’s¢°¢W'÷6S¢u&Wf–WrF†RG&ç67F–öâ&V6÷&G2–â66÷R&Vf÷&R6ö×&–ærF†VÒv—F‚÷F†W"f–ææ6–ÂæB7W7FöÖW"Wf–FVæ6RârÀ¢VW7F–öã¢uv†BG&ç67F–öç2&R–â66÷RÂæBv†BFWF–Ç2&R&V6÷&FVBf÷"V6‚—FVÓòrÀ¢ÒÀ¢tÖW&6†çB–çFVÆÆ–vVæ6Rs¢°¢W'÷6S¢u&Wf–WrÖW&6†çB–FVçF—G’Â6FVv÷'’Â7W7FöÖW"†—7F÷'’ÂWF†÷&—¦F–öâÂgVÆf–ÆÆÖVçBÂF—7WFW2Â&VgVæG2Â7V'67&—F–öâ÷"Ö&¶WGÆ6R7F—f—G’ÂæB&V6öâÖ6öFRWf–FVæ6R–âöæR6Æ–Ò×7V6–f–2v÷&·76RârÀ¢VW7F–öã¢t—2F†—27W7FöÖW"—77VRÂÖW&6†çB—77VRÂg&VB—77VRÂ÷"F—7WFR—77VSòrÀ¢ÒÀ¢tf–ææ6–Â–çfW7F–vF–öâs¢°¢W'÷6S¢uW6RF—&V7BÖöæW’6öÖÖæB6VçFW"Fò6ö×&R&Ææ6W2ÂFW÷6—G2Â7VæF–ærÂ66‚ÂF–v—FÂ–ÖVçG2ÂÆ–æ¶VB66÷VçG2ÂÖW&6†çG2Â&V†f–÷"ÂæBgVæG2fÆ÷rârÀ¢VW7F–öã¢tFöW2F†RÖöæW’Ö¶R6Vç6SòrÀ¢ÒÀ¢u–ÖVçBfW&–f–6F–öâs¢°¢W'÷6S¢u&Wf–WræWWG&Â–ÖVçBÖö&¦V7BæBfW&–f–6F–öâ&V6÷&G2v—F†÷WBG&VF–ær7FGW22f–æÂ66RFV6—6–öâârÀ¢VW7F–öã¢uv†B–ÖVçBö&¦V7G2æBfW&–f–6F–öâ7FFW2&R&V6÷&FVBf÷"F†—266SòrÀ¢ÒÀ¢t'W6–æW723cs¢°¢W'÷6S¢u&Wf–WrF†R'W6–æW72&VÆF–öç6†—Â7FGW2Âö'6W'fVB7F—f—G’ÂæB66R6öçFW‡B–âöæRæWWG&Â&V6÷&B6WBârÀ¢VW7F–öã¢uv†–6‚'W6–æW72&VÆF–öç6†—2æBVçF—F–W2&R6öææV7FVBFòF†R7F—fR66SòrÀ¢ÒÀ¢tµ”"&Wf–Wrs¢°¢W'÷6S¢tÆöö²Wf–7F–öæÂ'W6–æW72æB6ö×&R&Vv—7G&F–öâÂ÷væW'2ÂöæÆ–æR&W6Væ6RÂ&æ²÷væW'6†—Â&WfVçVRÂ—&öÆÂÂæB6÷W&6RFö7VÖVçG2ârÀ¢VW7F–öã¢tFòF†R'W6–æW72–FVçF—G’æB÷W&F–ær&V6÷&G26öææV7B7&÷72–æFWVæFVçB6÷W&6W3òrÀ¢ÒÀ¢tV×Æ÷–VR&öf–ÆRs¢°¢W'÷6S¢u&Wf–WrV×Æ÷–VR–FVçF—G’Â&öÆRÂV×Æ÷–W"Â7FGW2ÂF–Ö–ærÂæB&VÆFVB66R6öçFW‡BârÀ¢VW7F–öã¢uv†–6‚V×Æ÷–VRf7G2&Rf–Æ&ÆRÂæB†÷rFòF†W’6öææV7BFòF†R66SòrÀ¢ÒÀ¢u—&öÆÂ†—7F÷'’s¢°¢W'÷6S¢u&Wf–Wr—&öÆÂW&–öG2ÂV×Æ÷–W'2ÂÖ÷VçG2Â6†ææVÇ2Â7FGW6W2ÂæB6öçFW‡GVÂFWF–Ç2ârÀ¢VW7F–öã¢uv†B—&öÆÂ7F—f—G’—2&V6÷&FVBf÷"F†R7F—fR66SòrÀ¢ÒÀ¢tFö7VÖVçBf–WvW"s¢°¢W'÷6S¢u6V&6‚'’W†7B66÷VçB”BÂF†Vâ&Wf–WrF†RÖF6†–ær7W7FöÖW"Fö7VÖVçG2Â6ö×ÆWFRvW2ÂW‡G&7FVBf–VÆG2ÂæB6÷W&6RFWF–Ç2v—F†÷WBG&v–ærâV&Ç’6öæ6ÇW6–öâârÀ¢VW7F–öã¢uv†–6‚7W7FöÖW"66÷VçBFòF†W6RFö7VÖVçG2&VÆöærFòÂæBv†B6â&RfW&–f–VBg&öÒV6‚&V6÷&CòrÀ¢ÒÀ¢tFö7VÖVçB&WVW7Bs¢°¢W'÷6S¢uG&6²f–7F–öæÂ66RFö7VÖVçG2F†BvW&R&WVW7FVBÂ&V6V—fVBÂÖ—76–ærÂ÷"v—F–ær&Wf–Wrv—F†÷WBG&VF–ærF†R&WVW7B7FGW2266R÷WF6öÖRârÀ¢VW7F–öã¢uv†BFö7VÖVçG2vW&R&WVW7FVBÂ&V6V—fVBÂÖ—76–ærÂ÷"VæF–ær&Wf–Wrf÷"F†—266SòrÀ¢ÒÀ¢tÆ–æ²æÇ—6—2s¢°¢W'÷6S¢u&Wf–Wr6öææV7F–öç2&WGvVVâ7W7FöÖW"Â66W72Â–FVçF—G’ÂFWf–6RÂæWGv÷&²ÂæB66Rö&¦V7G2ârÀ¢VW7F–öã¢uv†–6‚–FVçF–f–W'2æB&V6÷&G26öææV7B7&÷72F†R7F—fR66SòrÀ¢ÒÀ¢u7—7FVÒ66W72ÆæRs¢°¢W'÷6S¢u&Wf–WræWWG&Â–çFW&æÂÂfVæF÷"Â’ÂæBW&Ö—76–öæVBF†—&B×'G’66W72&V6÷&G2F–VBFò66Rö&¦V7G2ârÀ¢VW7F–öã¢uv†–6‚&÷fVB7—7FVÒÖ66W72&V6÷&G2F÷V6‚F†R7F—fR66Rö&¦V7G3òrÀ¢ÒÀ§Ó° ¦gVæ7F–öâ–ÖVçE6÷W&6T†æFöfb‡²6÷W&6RÂ7F—fT66RÂ÷VåFööÂÂ6÷W&6TÆ&VÂÒ’°¢–b‚6÷W&6RÇÂ7F—fT66Ræf–Æ&ÆUFööÇ3òæ–æ6ÇVFW2‚u–ÖVçBfW&–f–6F–öâr’’&WGW&âçVÆÃ°¢6öç7B†–çBÒ'V–ÆE–ÖVçDÆöö·W†–çB‡°¢&æ´6öFS¢6÷W&6Ræ&æ´6öFRÀ¢FW7F–æF–öä–C¢6÷W&6RæFW7F–æF–öä–BÀ¢÷væW$æÖS¢6÷W&6Ræ÷væW%Fô6ö×&Róò7F—fT66RçW'6öâÀ¢Ò“°¢6öç7Bf–VÆG2Ò°¢²t&æ²6öFRrÂ6÷W&6Ræ&æ´6öFRóòtæ÷B7WÆ–VBuÒÀ¢²tFW7F–æF–öâ”BrÂ6÷W&6RæFW7F–æF–öä–Bóòtæ÷B7WÆ–VBuÒÀ¢²u&Wf–÷W266÷VçBòFW7F–æF–öârÂ6÷W&6Rç&Wf–÷W4FW7F–æF–öâóò6÷W&6RæöÆDFW7F–æF–öâóòtæ÷B7WÆ–VBuÒÀ¢²tæWr66÷VçBòFW7F–æF–öârÂ6÷W&6RææWtFW7F–æF–öâóòtæ÷B7WÆ–VBuÒÀ¢²t6†ævR6ö×&—6öârÂ6÷W&6Ræ6†ævT6ö×&—6öâóòtæ÷B7WÆ–VBuÒÀ¢Ó° ¢&WGW&â€¢Ç6V7F–öà¢6Æ74æÖSÒ'–ÖVçB×6÷W&6RÖ†æFöfb ¢&–ÖÆ&VÃ×¶G·6÷W&6TÆ&VÇÒ–ÖVçB6÷W&6R–FVçF–f–W'6Ğ¢FF×–ÖVçB×6÷W&6R×&V6÷&C×·6÷W&6Rç&V6÷&D–GĞ¢à¢Æ†VFW#à¢ÆF—cà¢Çå6÷W&6R–FVçF–f–W'2+rWf–FVæ6Rf—'7CÂ÷à¢Æƒ3å–ÖVçB66÷VçB6†ævSÂöƒ3à¢Ç7ãåW6RF†W6R&V6÷&FVBfÇVW2f÷"F†RÆöö·WâæÖRÖF6‚Â66÷VçB7FGW2ÂæBfW&–f–6F–öâ&W7VÇG27F’†–FFVâVçF–ÂF†R6V&6‚'Vç2ãÂ÷7ãà¢ÂöF—cà¢Ç7G&öæsç·6÷W&6Rç&V6÷&D–GÓÂ÷7G&öæsà¢Âö†VFW#à¢ÆFÃà¢¶f–VÆG2æÖ‚…¶Æ&VÂÂfÇVUÒ’Óâ€¢ÆF—b¶W“×¶Æ&VÇÓãÆGCç¶Æ&VÇÓÂöGCãÆFCç·fÇVWÓÂöFCãÂöF—cà¢’—Ğ¢ÂöFÃà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚u–ÖVçBfW&–f–6F–öârÂv–çfW7F–vFRrÂ²VW'“¢†–çBÒ—Óà¢&Vf–ÆÂ–ÖVçBfW&–f–6F–öà¢Âö'WGFöãà¢Â÷6V7F–öãà¢“°§Ğ ¦gVæ7F–öâF÷væÆöD66W75&W÷'B‡&W÷'B’°¢–b‡G—Vöbv–æF÷rÓÓÒwVæFVf–æVBr’&WGW&ã°¢6öç7B&Æö"ÒæWr&Æö"…¶66W75&W÷'DW‡÷'EFW‡B‡&W÷'B•ÒÂ²G—S¢wFW‡B÷Æ–ã¶6†'6WC×WFbÓ‚rÒ“°¢6öç7BW&ÂÒv–æF÷råU$Âæ7&VFTö&¦V7EU$Â†&Æö"“°¢6öç7BÆ–æ²Òv–æF÷ræFö7VÖVçBæ7&VFTVÆVÖVçB‚vr“°¢Æ–æ²æ‡&VbÒW&Ã°¢Æ–æ²æF÷væÆöBÒG·&W÷'Bæ–GÒçG‡F°¢Æ–æ²æ6Æ–6²‚“°¢v–æF÷råU$Âç&Wfö¶Tö&¦V7EU$Â‡W&Â“°§Ğ ¦gVæ7F–öâF÷væÆöD·–%&W÷'B‡&W÷'B’°¢–b‡G—Vöbv–æF÷rÓÓÒwVæFVf–æVBr’&WGW&ã°¢6öç7B&Æö"ÒæWr&Æö"…¶·–%&W÷'DW‡÷'EFW‡B‡&W÷'B•ÒÂ²G—S¢wFW‡B÷Æ–ã¶6†'6WC×WFbÓ‚rÒ“°¢6öç7BW&ÂÒv–æF÷råU$Âæ7&VFTö&¦V7EU$Â†&Æö"“°¢6öç7BÆ–æ²Òv–æF÷ræFö7VÖVçBæ7&VFTVÆVÖVçB‚vr“°¢Æ–æ²æ‡&VbÒW&Ã°¢Æ–æ²æF÷væÆöBÒG·&W÷'Bæ–GÒçG‡F°¢Æ–æ²æ6Æ–6²‚“°¢v–æF÷råU$Âç&Wfö¶Tö&¦V7EU$Â‡W&Â“°§Ğ ¦gVæ7F–öâFWF–Äf÷"‡FööÂÂ7F—fT6FVv÷'’’°¢&WGW&âFööÄFWF–Ç5·FööÅÒóò°¢W'÷6S¢&Wf–WrF†Rf–Æ&ÆRG¶7F—fT6FVv÷'’æÆ&VÂçFôÆ÷vW$66R‚—Ò&V6÷&G2v†–ÆRF†Rf–æÂFV6—6–öâ&VÖ–ç2Æö6¶VBæÀ¢VW7F–öã¢v†B&V6÷&G2&Rf–Æ&ÆR–ç6–FRG·FööÇÓöÀ¢Ó°§Ğ ¦gVæ7F–öâf–VÆE—'2†6öÇVÖç2ÂfÇVW2’°¢&WGW&â6öÇVÖç2æÖ‚†6öÇVÖâÂ–æFW‚’Óâ‡°¢Æ&VÃ¢6öÇVÖâÀ¢fÇVS¢fÇVW5¶–æFW…Òóòtæ÷B&V6÷&FVBrÀ¢Ò’“°§Ğ ¦gVæ7F–öâ6V&6†&ÆUFW‡B‡&÷r’°¢&WGW&âG·&÷ræ–GÒG·&÷ræÆ&VÇÒG·&÷ræFWF–ÇÒG·&÷rçfÇVW2æ¦ö–â‚rr—ÖçFôÆ÷vW$66R‚“°§Ğ ¦gVæ7F–öâ7FGW5FöæR‡fÇVRÒrr’°¢6öç7Bæ÷&ÖÆ—¦VBÒfÇVRçFôÆ÷vW$66R‚“°¢–b‚ò…æÖF6‚GÆ÷VçÆvööGÆç7vW&VGÆ6öæf—&ÖVGÆf–Æ&ÆWÆ7F—fR’òçFW7B†æ÷&ÖÆ—¦VB’’&WGW&âvvööBs°¢–b‚ò‡'F–ÇÇVæF–æwÆ6ÆÆ&6·ÆÖ÷&R–æf÷&ÖF–öçÆÖçVÇÇ&V6÷&FVGÇFö¶Væ—¦VB’òçFW7B†æ÷&ÖÆ—¦VB’’&WGW&âwv&âs°¢–b‚ò†æòÖF6‡Ææ÷Bf÷VæGÆ6Æ÷6VGÆg&÷¦VçÆç6gÇVæ&ÆWÇw&öæwÆæ÷B6öæf—&ÖVGÆæòç7vW"’òçFW7B†æ÷&ÖÆ—¦VB’’&WGW&âvÆW'Bs°¢&WGW&âvæWWG&Âs°§Ğ ¦gVæ7F–öâFWf–6U&V6÷&E6V&6…FW‡B‡&V6÷&B’°¢&WGW&â°¢&V6÷&Bæ–BÀ¢&V6÷&BæFWf–6TæÖRÀ¢&V6÷&BæFWf–6UG—RÀ¢&V6÷&Bæ÷W&F–æu7—7FVÒÀ¢&V6÷&Bæ'&÷w6W"À¢&V6÷&BæFWf–6Tf–ævW'&–çBÀ¢&V6÷&Bæ'&÷w6W$f–ævW'&–çBÀ¢&V6÷&Bæf—'7E6VVâÀ¢&V6÷&BæÆ7E6VVâÀ¢&V6÷&BçG'W7FVE7FGW2À¢&V6÷&Bç&ö÷FVD¦–Æ'&ö¶VâÀ¢&V6÷&BæV×VÆF÷$–æF–6F÷"À¢&V6÷&Bçgå&÷‡”–æF–6F÷"À¢&V6÷&Bç6†&VDFWf–6TFWFV7F–öâÀ¢&V6÷&BçvÆÆWEW6vRÀ¢&V6÷&Bææ÷&ÖÄ&V†f–÷"À¢&V6÷&BæÆöö·W&W7VÇBÀ¢&V6÷&Bæ–çfW7F–vF÷%W6RÀ¢âââ‡&V6÷&BæÆ–æ¶VE&öf–ÆW2óòµÒ’À¢âââ‡&V6÷&Bæ†—7F÷'’óòµÒ’À¢âââ‡&V6÷&Bç&VÆFVE&V6÷&G2óòµÒ’À¢Òæf–ÇFW"„&ööÆVâ’æ¦ö–â‚rr’çFôÆ÷vW$66R‚“°§Ğ ¦gVæ7F–öâÆöv–å&V6÷&E6V&6…FW‡B‡&V6÷&B’°¢&WGW&â°¢&V6÷&Bæ–BÂ&V6÷&BçF–ÖW7F×Â&V6÷&BæFFRÂ&V6÷&BçF–ÖTödF’Â&V6÷&BæWfVçEG—RÂ&V6÷&Bç&W7VÇBÂ&V6÷&BæÖWF†öBÂ&V6÷&BæÖf7FGW2Â&V6÷&BæWF„6†ææVÂÀ¢&V6÷&BæFWf–6RÂ&V6÷&BæFWf–6T–BÂ&V6÷&Bæ'&÷w6W%6÷W&6RÂ&V6÷&Bæ÷W&F–æu7—7FVÒÂ&V6÷&BæÆö6F–öâÂ&V6÷&Bæ—Â&V6÷&Bç6W76–öå&VfW&Væ6RÀ¢&V6÷&Bæf–ÆVDGFV×D6÷VçBÂ&V6÷&Bæ66÷VçDÆö6¶÷WBÂ&V6÷&Bç77v÷&E&W6WDÆ–æ²Â&V6÷&Bç&öf–ÆT6†ævTÆ–æ²À¢&V6÷&BæÆöv–ä6öçFW‡BÂ&V6÷&Bæ–çfW7F–vF÷%W6RÂâââ‡&V6÷&Bç&VÆFVE&V6÷&G2óòµÒ’À¢Òæf–ÇFW"„&ööÆVâ’æ¦ö–â‚rr’çFôÆ÷vW$66R‚“°§Ğ ¦gVæ7F–öâÆöv–ä†—7F÷'•v÷&·76R‡°¢7F—fT66RÀ¢VW'’À¢6WEVW'’À¢–âÀ¢6fTæ÷FRÀ¢Ö&µ&Wf–WvVBÀ¢&Wf–WvVBÀ¢÷VåFööÂÀ¢§V×FV6—6–öâÀ§Ò’°¢6öç7B·6VÆV7FVDÆöv–ä–BÂ6WE6VÆV7FVDÆöv–ä–EÒÒW6U7FFR‚rr“°¢6öç7B·&W7VÇDf–ÇFW"Â6WE&W7VÇDf–ÇFW%ÒÒW6U7FFR‚tÆÂ&W7VÇG2r“°¢6öç7B¶ÖWF†öDf–ÇFW"Â6WDÖWF†öDf–ÇFW%ÒÒW6U7FFR‚tÆÂÖWF†öG2r“°¢6öç7B¶FWf–6Tf–ÇFW"Â6WDFWf–6Tf–ÇFW%ÒÒW6U7FFR‚tÆÂFWf–6W2r“°¢6öç7B¶FFTf–ÇFW"Â6WDFFTf–ÇFW%ÒÒW6U7FFR‚tÆÂFFW2r“°¢6öç7B·&W÷'DvVæW&FVBÂ6WE&W÷'DvVæW&FVEÒÒW6U7FFR‚‚’ÓâvVæW&FVD66W75&W÷'EG—W2†7F—fT66Ræ–B’æ–æ6ÇVFW2‚vÆöv–âr’“°¢6öç7B&V6÷&G2ÒvWDÆöv–å&V6÷&G2†7F—fT66R“°¢6öç7Bæ÷&ÖÆ—¦VEVW'’ÒVW'’çG&–Ò‚’çFôÆ÷vW$66R‚“°¢6öç7B&W7VÇD÷F–öç2Ò²tÆÂ&W7VÇG2rÂââææWr6WB‡&V6÷&G2æÖ‚‡&V6÷&B’Óâ&V6÷&Bç&W7VÇB’•Ó°¢6öç7BÖWF†öD÷F–öç2Ò²tÆÂÖWF†öG2rÂââææWr6WB‡&V6÷&G2æÖ‚‡&V6÷&B’Óâ&V6÷&BæÖWF†öB’•Ó°¢6öç7BFWf–6T÷F–öç2Ò²tÆÂFWf–6W2rÂââææWr6WB‡&V6÷&G2æÖ‚‡&V6÷&B’Óâ&V6÷&BæFWf–6T–Bóò&V6÷&BæFWf–6R’•Ó°¢6öç7BFFT÷F–öç2Ò²tÆÂFFW2rÂââææWr6WB‡&V6÷&G2æÖ‚‡&V6÷&B’Óâ&V6÷&BæFFR’•Ó°¢6öç7Bf–ÇFW&VE&V6÷&G2Ò&V6÷&G2æf–ÇFW"‚‡&V6÷&B’Óâ€¢‚æ÷&ÖÆ—¦VEVW'’ÇÂÆöv–å&V6÷&E6V&6…FW‡B‡&V6÷&B’æ–æ6ÇVFW2†æ÷&ÖÆ—¦VEVW'’’¢bb‡&W7VÇDf–ÇFW"ÓÓÒtÆÂ&W7VÇG2rÇÂ&V6÷&Bç&W7VÇBÓÓÒ&W7VÇDf–ÇFW"¢bb†ÖWF†öDf–ÇFW"ÓÓÒtÆÂÖWF†öG2rÇÂ&V6÷&BæÖWF†öBÓÓÒÖWF†öDf–ÇFW"¢bb†FWf–6Tf–ÇFW"ÓÓÒtÆÂFWf–6W2rÇÂ‡&V6÷&BæFWf–6T–Bóò&V6÷&BæFWf–6R’ÓÓÒFWf–6Tf–ÇFW"¢bb†FFTf–ÇFW"ÓÓÒtÆÂFFW2rÇÂ&V6÷&BæFFRÓÓÒFFTf–ÇFW"¢’“°¢6öç7BÆöv–äf–ÇFW'46ÆV"Òæ÷&ÖÆ—¦VEVW'’bb&W7VÇDf–ÇFW"ÓÓÒtÆÂ&W7VÇG2rbbÖWF†öDf–ÇFW"ÓÓÒtÆÂÖWF†öG2rbbFWf–6Tf–ÇFW"ÓÓÒtÆÂFWf–6W2rbbFFTf–ÇFW"ÓÓÒtÆÂFFW2s°¢6öç7B7F—fU&V6÷&BÒf–ÇFW&VE&V6÷&G2æf–æB‚‡&V6÷&B’Óâ&V6÷&Bæ–BÓÓÒ6VÆV7FVDÆöv–ä–B’óòf–ÇFW&VE&V6÷&G5³Òóò†Æöv–äf–ÇFW'46ÆV"ò&V6÷&G5³Ò¢çVÆÂ“°¢6öç7B7V66W76gVÄ6÷VçBÒ&V6÷&G2æf–ÇFW"‚‡&V6÷&B’Óâ÷7V66W76gVÂö’çFW7B‡&V6÷&Bç&W7VÇB’’æÆVæwFƒ°¢6öç7BFVæ–VD6÷VçBÒ&V6÷&G2æf–ÇFW"‚‡&V6÷&B’Óâò†f–ÆVGÆFVæ–VB’ö’çFW7B‡&V6÷&Bç&W7VÇB’’æÆVæwFƒ°¢6öç7BÆö6¶÷WD6÷VçBÒ&V6÷&G2æf–ÇFW"‚‡&V6÷&B’ÓâöÆö6¶VBö’çFW7B‡&V6÷&Bç&W7VÇB’’æÆVæwFƒ°¢6öç7BVæ—VTFWf–6W2ÒæWr6WB‡&V6÷&G2æÖ‚‡&V6÷&B’Óâ&V6÷&BæFWf–6T–Bóò&V6÷&BæFWf–6R’’ç6—¦S°¢6öç7BÖf6÷VçBÒ&V6÷&G2æf–ÇFW"‚‡&V6÷&B’Óâö6ö×ÆWFVGÆFVÆ—fW&VGÆ&÷fVBö’çFW7B‡&V6÷&BæÖf7FGW2’’æÆVæwFƒ° ¢W6TVffV7B‚‚’Óâ°¢6WE6VÆV7FVDÆöv–ä–B‚rr“°¢6WE&W7VÇDf–ÇFW"‚tÆÂ&W7VÇG2r“°¢6WDÖWF†öDf–ÇFW"‚tÆÂÖWF†öG2r“°¢6WDFWf–6Tf–ÇFW"‚tÆÂFWf–6W2r“°¢6WDFFTf–ÇFW"‚tÆÂFFW2r“°¢6WE&W÷'DvVæW&FVB†vVæW&FVD66W75&W÷'EG—W2†7F—fT66Ræ–B’æ–æ6ÇVFW2‚vÆöv–âr’“°¢ÒÂ¶7F—fT66Ræ–EÒ“° ¢gVæ7F–öâ6fTÆöv–äæ÷FR†ÖW76vR’°¢6fTæ÷FR†Æöv–â†—7F÷'“¢G¶ÖW76vWÖÂtÆöv–â†—7F÷'’r“°¢Ğ ¢gVæ7F–öâvVæW&FTÆöv–å&W÷'B‚’°¢6öç7B&W÷'BÒvVæW&FT66W74†—7F÷'•&W÷'B†7F—fT66RÂvÆöv–âr“°¢F÷væÆöD66W75&W÷'B‡&W÷'B“°¢6WE&W÷'DvVæW&FVB‡G'VR“°¢6fTÆöv–äæ÷FR†G·&W÷'BçF—FÆWÒvVæW&FVBæBFFVBFòFö7VÖVçBf–WvW"æ“°¢Ğ ¢&WGW&â€¢Ãà¢Ç6V7F–öâ6Æ74æÖSÒ&Æöv–âÖ†—7F÷'’Öf–æF&""&–ÖÆ&VÃÒ$f–æBÆöv–â†—7F÷'’–æf÷&ÖF–öâ#à¢ÆF—cà¢ÇäÆöv–â&V6÷&G3Â÷à¢Æƒ3äWfW'’&V6÷&FVBÆöv–â—2f–Æ&ÆR&VÆ÷râ6V&6‚Æöv–â”BÂ6W76–öâ”BÂFWf–6RÂ•ÂÆö6F–öâÂÔd&W7VÇBÂ÷"Æ–æ¶VB7F—f—G’Fòæ'&÷rF†Rf–WrãÂöƒ3à¢ÂöF—cà¢ÆÆ&VÃà¢Ç7ãå6V&6‚Æöv–â†—7F÷'“Â÷7ãà¢Æ–çW@¢fÇVS×·VW'—Ğ¢öä6†ævS×²†WfVçB’Óâ6WEVW'’†WfVçBçF&vWBçfÇVR—Ğ¢Æ6V†öÆFW#Ò%G'“¢4U2ÓssƒÂFÆÆ2ÂÔdÂ77v÷&B&W6WBÂÖö&–ÆR6f&’âââ ¢&–ÖÆ&VÃÒ%6V&6‚Æöv–â†—7F÷'’&V6÷&G2 ¢óà¢ÂöÆ&VÃà¢Ç7â&–ÖÆ—fSÒ'öÆ—FR#ç¶f–ÇFW&VE&V6÷&G2æÆVæwF‡Òöb·&V6÷&G2æÆVæwF‡Ò&V6÷&G26†÷vãÂ÷7ãà¢Â÷6V7F–öãà ¢Ç6V7F–öâ6Æ74æÖSÒ&66W72Ö†—7F÷'’Öf–ÇFW'2Æöv–âÖ†—7F÷'’Öf–ÇFW'2"&–ÖÆ&VÃÒ$f–ÇFW"Æöv–â†—7F÷'’#à¢ÆÆ&VÃãÇ7ãå&W7VÇCÂ÷7ããÇ6VÆV7BfÇVS×·&W7VÇDf–ÇFW'Òöä6†ævS×²†WfVçB’Óâ6WE&W7VÇDf–ÇFW"†WfVçBçF&vWBçfÇVR—Ò&–ÖÆ&VÃÒ$f–ÇFW"Æöv–â†—7F÷'’'’&W7VÇB#ç·&W7VÇD÷F–öç2æÖ‚†—FVÒ’ÓâÆ÷F–öâ¶W“×¶—FV×Óç¶—FV×ÓÂö÷F–öãâ—ÓÂ÷6VÆV7CãÂöÆ&VÃà¢ÆÆ&VÃãÇ7ãäÖWF†öCÂ÷7ããÇ6VÆV7BfÇVS×¶ÖWF†öDf–ÇFW'Òöä6†ævS×²†WfVçB’Óâ6WDÖWF†öDf–ÇFW"†WfVçBçF&vWBçfÇVR—Ò&–ÖÆ&VÃÒ$f–ÇFW"Æöv–â†—7F÷'’'’ÖWF†öB#ç¶ÖWF†öD÷F–öç2æÖ‚†—FVÒ’ÓâÆ÷F–öâ¶W“×¶—FV×Óç¶—FV×ÓÂö÷F–öãâ—ÓÂ÷6VÆV7CãÂöÆ&VÃà¢ÆÆ&VÃãÇ7ãäFWf–6SÂ÷7ããÇ6VÆV7BfÇVS×¶FWf–6Tf–ÇFW'Òöä6†ævS×²†WfVçB’Óâ6WDFWf–6Tf–ÇFW"†WfVçBçF&vWBçfÇVR—Ò&–ÖÆ&VÃÒ$f–ÇFW"Æöv–â†—7F÷'’'’FWf–6R#ç¶FWf–6T÷F–öç2æÖ‚†—FVÒ’ÓâÆ÷F–öâ¶W“×¶—FV×Óç¶—FV×ÓÂö÷F–öãâ—ÓÂ÷6VÆV7CãÂöÆ&VÃà¢ÆÆ&VÃãÇ7ãäFFSÂ÷7ããÇ6VÆV7BfÇVS×¶FFTf–ÇFW'Òöä6†ævS×²†WfVçB’Óâ6WDFFTf–ÇFW"†WfVçBçF&vWBçfÇVR—Ò&–ÖÆ&VÃÒ$f–ÇFW"Æöv–â†—7F÷'’'’FFR#ç¶FFT÷F–öç2æÖ‚†—FVÒ’ÓâÆ÷F–öâ¶W“×¶—FV×Óç¶—FV×ÓÂö÷F–öãâ—ÓÂ÷6VÆV7CãÂöÆ&VÃà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ²6WEVW'’‚rr“²6WE&W7VÇDf–ÇFW"‚tÆÂ&W7VÇG2r“²6WDÖWF†öDf–ÇFW"‚tÆÂÖWF†öG2r“²6WDFWf–6Tf–ÇFW"‚tÆÂFWf–6W2r“²6WDFFTf–ÇFW"‚tÆÂFFW2r“²×Óä6ÆV"f–ÇFW'3Âö'WGFöãà¢Â÷6V7F–öãà ¢Ç6V7F–öâ6Æ74æÖSÒ&Æöv–âÖ†—7F÷'’×7VÖÖ'’"&–ÖÆ&VÃÒ$Æöv–â†—7F÷'’7VÖÖ'’#à¢µ°¢²tWF†VçF–6F–öâWfVçG2rÂ&V6÷&G2æÆVæwF…ÒÀ¢²u7V66W76gVÂrÂ7V66W76gVÄ6÷VçEÒÀ¢²tf–ÆVBòFVæ–VBrÂFVæ–VD6÷VçEÒÀ¢²t66÷VçBÆö6¶÷WG2rÂÆö6¶÷WD6÷VçEÒÀ¢²uVæ—VRFWf–6W2rÂVæ—VTFWf–6W5ÒÀ¢²tÔd6ö×ÆWFVBrÂÖf6÷VçEÒÀ¢ÒæÖ‚…¶Æ&VÂÂfÇVUÒ’Óâ€¢Æ'F–6ÆR¶W“×¶Æ&VÇÓãÇ7ãç¶Æ&VÇÓÂ÷7ããÇ7G&öæsç·fÇVWÓÂ÷7G&öæsãÂö'F–6ÆSà¢’—Ğ¢Â÷6V7F–öãà ¢¶7F—fU&V6÷&Bò€¢Ãà¢ÆF—b6Æ74æÖSÒ&Æöv–âÖ†—7F÷'’×v÷&·76R#à¢Ç6V7F–öâ6Æ74æÖSÒ&Æöv–â×&V6÷&BÖÆ—7B"&–ÖÆ&VÃÒ$Æöv–â†—7F÷'’&V6÷&G2#à¢Æ†VFW#à¢Çå&V6÷&FVBÆöv–ç3Â÷à¢Æƒ3ä6†ö÷6RÆöv–âFòW‡æCÂöƒ3à¢Âö†VFW#à¢¶f–ÇFW&VE&V6÷&G2æÖ‚‡&V6÷&B’Óâ€¢Æ'WGFöà¢¶W“×·&V6÷&Bæ–GĞ¢G—SÒ&'WGFöâ ¢6Æ74æÖS×·&V6÷&Bæ–BÓÓÒ7F—fU&V6÷&Bæ–Bòv7F—fRr¢rwĞ¢öä6Æ–6³×²‚’Óâ6WE6VÆV7FVDÆöv–ä–B‡&V6÷&Bæ–B—Ğ¢FFÖÆöv–âÖ†—7F÷'’×&V6÷&C×·&V6÷&Bæ–GĞ¢à¢Ç7ãç·&V6÷&BçF–ÖW7F×Ò+r·&V6÷&Bç&W7VÇGÓÂ÷7ãà¢Ç7G&öæsç·&V6÷&BæFWf–6T–Bóò&V6÷&BæFWf–6WÓÂ÷7G&öæsà¢Ç6ÖÆÃç·&V6÷&BæWfVçEG—WÒ+r·&V6÷&BæÆö6F–öçÒ+r·&V6÷&Bæ—Ò+r·&V6÷&Bç6W76–öå&VfW&Væ6WÓÂ÷6ÖÆÃà¢Âö'WGFöãà¢’—Ğ¢²f–ÇFW&VE&V6÷&G2æÆVæwF‚bb€¢ÆF—b6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂÖV×G’"&öÆSÒ'7FGW2#äæò&V6÷&FVBÆöv–ç2ÖF6‚F†—26V&6‚ãÂöF—cà¢—Ğ¢Â÷6V7F–öãà ¢Ç6V7F–öâ6Æ74æÖSÒ&Æöv–âÖFWF–Â×æVÂ"&–ÖÆ&VÃÒ$W‡æFVBÆöv–â†—7F÷'’FWF–Â#à¢Æ†VFW#à¢ÆF—cà¢ÇäW‡æFVBWF†VçF–6F–öâWfVçCÂ÷à¢Æƒ3ç¶7F—fU&V6÷&Bæ–GÒ+r¶7F—fU&V6÷&Bç&W7VÇGÓÂöƒ3à¢Ç7ãç¶7F—fU&V6÷&BçF–ÖW7F×Ò+r¶7F—fU&V6÷&BæÆö6F–öçÓÂ÷7ãà¢ÂöF—cà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ–â†7F—fU&V6÷&Bæ–B—Óå–âÆöv–âWfVçCÂö'WGFöãà¢Âö†VFW#à ¢ÆFÂ6Æ74æÖSÒ&Æöv–âÖFWF–ÂÖw&–B#à¢µ°¢²tFFRòF–ÖRrÂ7F—fU&V6÷&BçF–ÖW7F×ÒÂ²tWfVçBG—RrÂ7F—fU&V6÷&BæWfVçEG—UÒÂ²u&W7VÇBrÂ7F—fU&V6÷&Bç&W7VÇEÒÂ²tf–ÆVBÖGFV×B6÷VçBrÂ7F—fU&V6÷&Bæf–ÆVDGFV×D6÷VçEÒÀ¢²t66÷VçBÆö6¶÷WBrÂ7F—fU&V6÷&Bæ66÷VçDÆö6¶÷WEÒÂ²tÖWF†öBrÂ7F—fU&V6÷&BæÖWF†öEÒÂ²tÔd7FGW2rÂ7F—fU&V6÷&BæÖf7FGW5ÒÀ¢²tWF†VçF–6F–öâ6†ææVÂrÂ7F—fU&V6÷&BæWF„6†ææVÅÒÂ²tFWf–6R”BrÂ7F—fU&V6÷&BæFWf–6T–Bóò7F—fU&V6÷&BæFWf–6UÒÂ²tFWf–6Rò'&÷w6W"rÂ7F—fU&V6÷&Bæ'&÷w6W%6÷W&6UÒÀ¢²t÷W&F–ær7—7FVÒrÂ7F—fU&V6÷&Bæ÷W&F–æu7—7FVÕÒÂ²t•FG&W72rÂ7F—fU&V6÷&Bæ—ÒÂ²tÆö6F–öârÂ7F—fU&V6÷&BæÆö6F–öåÒÂ²u6W76–öâ&VfW&Væ6RrÂ7F—fU&V6÷&Bç6W76–öå&VfW&Væ6UÒÀ¢ÒæÖ‚…¶Æ&VÂÂfÇVUÒ’Óâ€¢ÆF—b¶W“×¶Æ&VÇÓãÆGCç¶Æ&VÇÓÂöGCãÆFCç·fÇVWÓÂöFCãÂöF—cà¢’—Ğ¢ÂöFÃà ¢Ç6V7F–öâ6Æ74æÖSÒ&Æöv–â×6W76–öâ×æVÂ"&–ÖÆ&VÃÒ%6W76–öâæBÆ–æ¶VB7F—f—G’#à¢Æ'F–6ÆSãÇ7ãå6W76–öâf–Æ&–Æ—G“Â÷7ããÇ7G&öæsç¶7F—fU&V6÷&Bç6W76–öå&VfW&Væ6RÓÓÒtæò6W76–öâ7&VFVBròtWF†VçF–6F–öâF–Bæ÷B7&VFR6W76–öâr¢÷VâG¶7F—fU&V6÷&Bç6W76–öå&VfW&Væ6WÒ–â6W76–öâ†—7F÷'–ÓÂ÷7G&öæsãÂö'F–6ÆSà¢Æ'F–6ÆSãÇ7ãå77v÷&B&W6WBF–Ö–æsÂ÷7ããÇ7G&öæsç¶7F—fU&V6÷&Bç77v÷&E&W6WDÆ–æ·ÓÂ÷7G&öæsãÂö'F–6ÆSà¢Æ'F–6ÆSãÇ7ãå&öf–ÆR6†ævRÆ–æ³Â÷7ããÇ7G&öæsç¶7F—fU&V6÷&Bç&öf–ÆT6†ævTÆ–æ·ÓÂ÷7G&öæsãÂö'F–6ÆSà¢Æ'F–6ÆSãÇ7ãäWF†VçF–6F–öâ66÷SÂ÷7ããÇ7G&öæså÷7BÖÆöv–âvW2æB7F–öç2&R¶WB–â6W76–öâ†—7F÷'’ãÂ÷7G&öæsãÂö'F–6ÆSà¢Â÷6V7F–öãà¢Â÷6V7F–öãà¢ÂöF—cà ¢Ç6V7F–öâ6Æ74æÖSÒ&Æöv–âÖ†—7F÷'’ÖÆ÷vW"Öw&–B"&–ÖÆ&VÃÒ$Æöv–â†—7F÷'’&VÆFVBWf–FVæ6R#à¢Æ'F–6ÆR6Æ74æÖSÒ&Æöv–â×&VÆFVB×æVÂ#à¢Æ†VFW#ãÇå&VÆFVB&V6÷&G3Â÷ãÆƒ3äWf–FVæ6RFò7&÷72×&VfW&Væ6SÂöƒ3ãÂö†VFW#à¢ÆF—cç²†7F—fU&V6÷&Bç&VÆFVE&V6÷&G2óòµÒ’æÖ‚†—FVÒ’ÓâÇ7â¶W“×¶—FV×Óç¶—FV×ÓÂ÷7ãâ—ÓÂöF—cà¢Âö'F–6ÆSà¢Æ'F–6ÆR6Æ74æÖSÒ&Æöv–âÖæ÷FW2×æVÂ#à¢Æ†VFW#ãÇä–çfW7F–vF÷"æ÷FW3Â÷ãÆƒ3äWf–FVæ6RÖf—'7B&VÖ–æFW#Âöƒ3ãÂö†VFW#à¢Çç¶7F—fU&V6÷&Bæ–çfW7F–vF÷%W6WÒ7V66W76gVÂÔdWfVçB—2Wf–FVæ6RöbWF†VçF–6F–öâ7F—f—G’Âæ÷Bf–æÂ6öæ6ÇW6–öâ&÷WBWF†÷&—¦F–öâãÂ÷à¢ÆF—cà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ6fTÆöv–äæ÷FR†G¶7F—fU&V6÷&Bæ–GÒ&Wf–WvVC¢G¶7F—fU&V6÷&BçF–ÖW7F×Ò+rG¶7F—fU&V6÷&BæWfVçEG—WÒ+rG¶7F—fU&V6÷&Bç&W7VÇGÒ+rG¶7F—fU&V6÷&BæFWf–6T–Bóò7F—fU&V6÷&BæFWf–6WÒ+rG¶7F—fU&V6÷&Bæ—Ö—Óå6fRÆöv–âæ÷FSÂö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×¶vVæW&FTÆöv–å&W÷'GÓç·&W÷'DvVæW&FVBòu&VvVæW&FRÆöv–âF–ÖVÆ–æR&W÷'Br¢tvVæW&FRÆöv–âF–ÖVÆ–æR&W÷'BwÓÂö'WGFöãà¢ÂöF—cà¢Âö'F–6ÆSà¢Â÷6V7F–öãà¢Âóà¢’¢€¢ÆF—b6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂÖV×G’"&öÆSÒ'7FGW2#äæòÆöv–â†—7F÷'’&V6÷&G2&Rf–Æ&ÆRf÷"F†—266RãÂöF—cà¢—Ğ ¢Ææb6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂÖæW‡B×&÷WFW2"&–ÖÆ&VÃÒ$Æöv–â†—7F÷'’æW‡B&÷WFW2#à¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚u6W76–öâ†—7F÷'’r—Óä÷Vâ6W76–öâ†—7F÷'“Âö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚tFWf–6R–çFVÆÆ–vVæ6Rr—Óä÷VâFWf–6R–çFVÆÆ–vVæ6SÂö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚t•–çFVÆÆ–vVæ6Rr—Óä÷Vâ•–çFVÆÆ–vVæ6SÂö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚uF–ÖVÆ–æRr—Óä÷VâF–ÖVÆ–æSÂö'WGFöãà¢Âöæcà ¢Æfö÷FW"6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂ×&Wf–WrÖ&"#à¢ÆF—cà¢Ç7G&öæsäÆöv–â†—7F÷'’&Wf–WsÂ÷7G&öæsà¢Ç7ãäÖ&²&Wf–WvVBgFW"6†V6¶–ærWF†VçF–6F–öâ&W7VÇG2Âf–ÆVBÖGFV×BæBÆö6¶÷WB†—7F÷'’ÂÖWF†öBÂÔdÂFWf–6RÂ•öÆö6F–öâÂæB6W76–öâ&VfW&Væ6W2ãÂ÷7ãà¢ÂöF—cà¢Æ'WGFöâG—SÒ&'WGFöâ"6Æ74æÖS×·&Wf–WvVBòrr¢v–çfW7F–vF–öâ×FööÂ×&–Ö'’wÒöä6Æ–6³×²‚’ÓâÖ&µ&Wf–WvVB‚tÆöv–â†—7F÷'’r—Óà¢·&Wf–WvVBò~)É2Æöv–â†—7F÷'’&Wf–WvVBr¢tÖ&²Æöv–â†—7F÷'’&Wf–WvVBwĞ¢Âö'WGFöãà¢Âöfö÷FW#à¢Âóà¢“°§Ğ ¦gVæ7F–öâ6W76–öå&V6÷&E6V&6…FW‡B‡&V6÷&B’°¢&WGW&â°¢&V6÷&Bç6W76–öâÂ&V6÷&Bæ–BÂ&V6÷&Bç7F'BÂ&V6÷&BæVæBÂ&V6÷&BæGW&F–öâÂ&V6÷&BæÆöv÷WE7FGW2Â&V6÷&BæÖWF†öBÀ¢&V6÷&BæFWf–6RÂ&V6÷&BæFWf–6T–BÂ&V6÷&BæÆö6F–öâÂ&V6÷&Bæ—Â&V6÷&Bç&W7VÇBÂ&V6÷&Bæ–çfW7F–vF÷%W6RÀ¢âââ‡&V6÷&BçvW5f–WvVBóòµÒ’Ââââ‡&V6÷&Bç6V7W&—G•6WGF–æw2óòµÒ’Ââââ‡&V6÷&Bç&öf–ÆT7F–öç2óòµÒ’À¢âââ‡&V6÷&Bç–VUFö¶Vä7F—f—G’óòµÒ’Ââââ‡&V6÷&BæÖöæW”Ö÷fVÖVçBóòµÒ’Ââââ‡&V6÷&Bç6W76–öåF‚óòµÒ’Ââââ‡&V6÷&Bç&VÆFVE&V6÷&G2óòµÒ’À¢Òæf–ÇFW"„&ööÆVâ’æ¦ö–â‚rr’çFôÆ÷vW$66R‚“°§Ğ ¦gVæ7F–öâ—&V6÷&E6V&6…FW‡B‡&V6÷&B’°¢&WGW&â°¢&V6÷&Bæ–BÂ&V6÷&Bæ—Â&V6÷&Bæ6—G’Â&V6÷&Bæ6÷VçG'’Â&V6÷&Bæ—7Â&V6÷&BææWGv÷&µG—RÂ&V6÷&Bç&W6–FVçF–Å7FGW2À¢&V6÷&Bçgå&÷‡•F÷"Â&V6÷&Bæf—'7E6VVâÂ&V6÷&BæÆ7E6VVâÂ&V6÷&BçfVÆö6—G’Â&V6÷&Bæ7&÷7466U&W6Væ6RÂ&V6÷&BæÆöö·W&W7VÇBÀ¢âââ‡&V6÷&Bæ†—7F÷&–6ÄÆö6F–öç2óòµÒ’Ââââ‡&V6÷&Bæö'6W'fVE6W76–öç2óòµÒ’Ââââ‡&V6÷&Bæö'6W'fVDFWf–6W2óòµÒ’À¢âââ‡&V6÷&Bæö'6W'fVDÆöv–ç2óòµÒ’Ââââ‡&V6÷&Bç&VÆFVE&V6÷&G2óòµÒ’À¢Òæf–ÇFW"„&ööÆVâ’æ¦ö–â‚rr’çFôÆ÷vW$66R‚“°§Ğ ¦gVæ7F–öâ•–çFVÆÆ–vVæ6Uv÷&·76R‡°¢7F—fT66RÀ¢VW'’À¢6WEVW'’À¢–âÀ¢6fTæ÷FRÀ¢Ö&µ&Wf–WvVBÀ¢&Wf–WvVBÀ¢÷VåFööÂÀ¢§V×FV6—6–öâÀ§Ò’°¢6öç7B·6VÆV7FVD—–BÂ6WE6VÆV7FVD—–EÒÒW6U7FFR‚rr“°¢6öç7B·7V&Ö—GFVD—Â6WE7V&Ö—GFVD—ÒÒW6U7FFR‚rr“°¢6öç7B·&W÷'DvVæW&FVBÂ6WE&W÷'DvVæW&FVEÒÒW6U7FFR‚‚’ÓâvVæW&FVD66W75&W÷'EG—W2†7F—fT66Ræ–B’æ–æ6ÇVFW2‚v—r’“°¢6öç7B&V6÷&G2ÒvWD—&V6÷&G2†7F—fT66R“°¢6öç7Bæ÷&ÖÆ—¦VE7V&Ö—GFVD—Ò7V&Ö—GFVD—çG&–Ò‚’ç&WÆ6R‚õä•Òö’Ârr’çFôÆ÷vW$66R‚“°¢6öç7B7F—fU&V6÷&BÒæ÷&ÖÆ—¦VE7V&Ö—GFVD— ¢ò&V6÷&G2æf–æB‚‡&V6÷&B’Óâ&V6÷&Bæ—çFôÆ÷vW$66R‚’ÓÓÒæ÷&ÖÆ—¦VE7V&Ö—GFVD—bb‚6VÆV7FVD—–BÇÂ&V6÷&Bæ–BÓÓÒ6VÆV7FVD—–B’¢óò&V6÷&G2æf–æB‚‡&V6÷&B’Óâ&V6÷&Bæ—çFôÆ÷vW$66R‚’ÓÓÒæ÷&ÖÆ—¦VE7V&Ö—GFVD—¢óòçVÆÀ¢¢çVÆÃ°¢6öç7BÆöö·W†5'VâÒæ÷&ÖÆ—¦VE7V&Ö—GFVD—æÆVæwF‚â°¢6öç7BÆöö·WÖF6†VBÒ&ööÆVâ†7F—fU&V6÷&B“°¢6öç7B6W76–öä6÷VçBÒ&V6÷&G2ç&VGV6R‚†6÷VçBÂ&V6÷&B’Óâ6÷VçB²&V6÷&Bæö'6W'fVE6W76–öç2æÆVæwF‚Â“°¢6öç7BFWf–6T6÷VçBÒæWr6WB‡&V6÷&G2æfÆDÖ‚‡&V6÷&B’Óâ&V6÷&Bæö'6W'fVDFWf–6W2’’ç6—¦S° ¢W6TVffV7B‚‚’Óâ°¢6WE6VÆV7FVD—–B‚rr“°¢6WE7V&Ö—GFVD—‚rr“°¢6WE&W÷'DvVæW&FVB†vVæW&FVD66W75&W÷'EG—W2†7F—fT66Ræ–B’æ–æ6ÇVFW2‚v—r’“°¢ÒÂ¶7F—fT66Ræ–EÒ“° ¢gVæ7F–öâ'Vä—Æöö·W‚’°¢6öç7B6ÆVâÒVW'’çG&–Ò‚’ç&WÆ6R‚õä•Òö’Ârr“°¢6WE7V&Ö—GFVD—†6ÆVâ“°¢6öç7BÖF6†VBÒ&V6÷&G2æf–æB‚‡&V6÷&B’Óâ&V6÷&Bæ—çFôÆ÷vW$66R‚’ÓÓÒ6ÆVâçFôÆ÷vW$66R‚’“°¢6WE6VÆV7FVD—–B†ÖF6†VCòæ–Bóòrr“°¢Ğ ¢gVæ7F–öâ6fT—æ÷FR†ÖW76vR’°¢6fTæ÷FR†•–çFVÆÆ–vVæ6S¢G¶ÖW76vWÖÂt•–çFVÆÆ–vVæ6Rr“°¢Ğ ¢gVæ7F–öâvVæW&FT—&W÷'B‚’°¢6öç7B&W÷'BÒvVæW&FT66W74†—7F÷'•&W÷'B†7F—fT66RÂv—r“°¢F÷væÆöD66W75&W÷'B‡&W÷'B“°¢6WE&W÷'DvVæW&FVB‡G'VR“°¢6fT—æ÷FR†G·&W÷'BçF—FÆWÒvVæW&FVBæBFFVBFòFö7VÖVçBf–WvW"æ“°¢Ğ ¢&WGW&â€¢Ãà¢Ç6V7F–öâ6Æ74æÖSÒ&—Ö–çFVÂÖf–æF&""&–ÖÆ&VÃÒ$f–æB•–çFVÆÆ–vVæ6R–æf÷&ÖF–öâ#à¢ÆF—cà¢Çä•Æöö·WÂ÷à¢Æƒ3äVçFW"öæRöbF†R&r•FG&W76W2&VÆ÷rÂF†Vâ'VâF†RÆöö·WFò&WfVÂ—G2æWGv÷&²æB†—7F÷'’&V6÷&G2ãÂöƒ3à¢ÂöF—cà¢ÆÆ&VÃà¢Ç7ãå6V&6‚•–çFVÆÆ–vVæ6SÂ÷7ãà¢Æ–çW@¢fÇVS×·VW'—Ğ¢öä6†ævS×²†WfVçB’Óâ6WEVW'’†WfVçBçF&vWBçfÇVR—Ğ¢öä¶W”F÷vã×²†WfVçB’Óâ²–b†WfVçBæ¶W’ÓÓÒtVçFW"r’'Vä—Æöö·W‚“²×Ğ¢Æ6V†öÆFW#Ò%G'“¢“‚ãSããC" ¢&–ÖÆ&VÃÒ%6V&6‚•–çFVÆÆ–vVæ6R&V6÷&G2 ¢óà¢ÂöÆ&VÃà¢Æ'WGFöâG—SÒ&'WGFöâ"6Æ74æÖSÒ&—ÖÆöö·WÖ7F–öâ"öä6Æ–6³×·'Vä—Æöö·WÒF—6&ÆVC×²VW'’çG&–Ò‚—Óå'Vâ•Æöö·WÂö'WGFöãà¢Ç7â&–ÖÆ—fSÒ'öÆ—FR#ç¶Æöö·WÖF6†VBòtÆöö·W6ö×ÆWFRr¢Æöö·W†5'VâòtæòW†7B•ÖF6‚r¢tÆöö·W&WV—&VBwÓÂ÷7ãà¢Â÷6V7F–öãà ¢Ç6V7F–öâ6Æ74æÖSÒ&—Ö–çFVÂ×7VÖÖ'’"&–ÖÆ&VÃÒ$•–çFVÆÆ–vVæ6R7VÖÖ'’#à¢µ°¢²u&r•&V6÷&G2rÂ&V6÷&G2æÆVæwF…ÒÂ²tÆ–æ¶VB6W76–öç2rÂ6W76–öä6÷VçEÒÂ²tö'6W'fVBFWf–6W2rÂFWf–6T6÷VçEÒÀ¢²tÆöö·W7FFRrÂÆöö·WÖF6†VBòt6ö×ÆWFRr¢Æöö·W†5'VâòtæòÖF6‚r¢u&WV—&VBuÒÂ²u&VÆFVBÆöv–ç2rÂ&V6÷&G2ç&VGV6R‚†6÷VçBÂ&V6÷&B’Óâ6÷VçB²&V6÷&Bæö'6W'fVDÆöv–ç2æÆVæwF‚Â•ÒÂ²t7F—fR66RrÂ7F—fT66Ræ–EÒÀ¢ÒæÖ‚…¶Æ&VÂÂfÇVUÒ’ÓâÆ'F–6ÆR¶W“×¶Æ&VÇÓãÇ7ãç¶Æ&VÇÓÂ÷7ããÇ7G&öæsç·fÇVWÓÂ÷7G&öæsãÂö'F–6ÆSâ—Ğ¢Â÷6V7F–öãà ¢·&V6÷&G2æÆVæwF‚ò€¢Ãà¢ÆF—b6Æ74æÖSÒ&—Ö–çFVÂ×v÷&·76R#à¢Ç6V7F–öâ6Æ74æÖSÒ&—×&V6÷&BÖÆ—7B"&–ÖÆ&VÃÒ$•–çFVÆÆ–vVæ6R&V6÷&G2#à¢Æ†VFW#ãÇå&r•&V6÷&G3Â÷ãÆƒ3ä6†ö÷6Râ•FòÆöö²WÂöƒ3ãÂö†VFW#à¢·&V6÷&G2æÖ‚‡&V6÷&B’Óâ€¢Æ'WGFöà¢¶W“×·&V6÷&Bæ–GĞ¢G—SÒ&'WGFöâ ¢6Æ74æÖS×·&V6÷&Bæ–BÓÓÒ7F—fU&V6÷&Còæ–Bòv7F—fRr¢rwĞ¢öä6Æ–6³×²‚’Óâ²6WEVW'’‡&V6÷&Bæ—“²6WE7V&Ö—GFVD—‚rr“²6WE6VÆV7FVD—–B‡&V6÷&Bæ–B“²×Ğ¢FFÖ—Ö–çFVÆÆ–vVæ6R×&V6÷&C×·&V6÷&Bæ–GĞ¢à¢Ç7ãç·&V6÷&Bæ–GÓÂ÷7ãà¢Ç7G&öæsç·&V6÷&Bæ—ÓÂ÷7G&öæsà¢Ç6ÖÆÃç·&V6÷&Bæö'6W'fVDÆöv–ç2æÆVæwF‡ÒWF†VçF–6F–öâWfVçG·&V6÷&Bæö'6W'fVDÆöv–ç2æÆVæwF‚ÓÓÒòrr¢w2wÒ+r·&V6÷&Bæö'6W'fVE6W76–öç2æÆVæwF‡Ò6W76–öç·&V6÷&Bæö'6W'fVE6W76–öç2æÆVæwF‚ÓÓÒòrr¢w2wÒ+r·&V6÷&Bæ–BÓÓÒ7F—fU&V6÷&Còæ–BòvÆöö·W6ö×ÆWFRr¢vÆöö·W&WV—&VBwÓÂ÷6ÖÆÃà¢Âö'WGFöãà¢’—Ğ¢Â÷6V7F–öãà ¢Ç6V7F–öâ6Æ74æÖSÒ&—ÖFWF–Â×æVÂ"&–ÖÆ&VÃÒ$W‡æFVB•–çFVÆÆ–vVæ6RFWF–Â#à¢¶7F—fU&V6÷&Bò€¢Ãà¢Æ†VFW#à¢ÆF—cãÇäæWGv÷&²Æöö·WÂ÷ãÆƒ3ç¶7F—fU&V6÷&Bæ—ÓÂöƒ3ãÇ7ãç¶7F—fU&V6÷&BæÆöö·W&W7VÇGÓÂ÷7ããÂöF—cà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ–â†7F—fU&V6÷&Bæ——Óå–â•FG&W73Âö'WGFöãà¢Âö†VFW#à¢ÆFÂ6Æ74æÖSÒ&—ÖFWF–ÂÖw&–B#à¢µ°¢²t6—G’ò6÷VçG'’rÂG¶7F—fU&V6÷&Bæ6—G—ÒÂG¶7F—fU&V6÷&Bæ6÷VçG'—ÖÒÂ²t•5rÂ7F—fU&V6÷&Bæ—7ÒÂ²tæWGv÷&²G—RrÂ7F—fU&V6÷&BææWGv÷&µG—UÒÀ¢²u&W6–FVçF–Â7FGW2rÂ7F—fU&V6÷&Bç&W6–FVçF–Å7FGW5ÒÂ²ueâò&÷‡’òDõ"rÂ7F—fU&V6÷&Bçgå&÷‡•F÷%ÒÂ²tf—'7B6VVârÂ7F—fU&V6÷&Bæf—'7E6VVåÒÀ¢²tÆ7B6VVârÂ7F—fU&V6÷&BæÆ7E6VVåÒÂ²ufVÆö6—G’rÂ7F—fU&V6÷&BçfVÆö6—G•ÒÂ²u6VVâVÇ6Wv†W&RrÂ7F—fU&V6÷&Bæ7&÷7466U&W6Væ6UÒÀ¢ÒæÖ‚…¶Æ&VÂÂfÇVUÒ’ÓâÆF—b¶W“×¶Æ&VÇÓãÆGCç¶Æ&VÇÓÂöGCãÆFCç·fÇVWÓÂöFCãÂöF—câ—Ğ¢ÂöFÃà¢Ç6V7F–öâ6Æ74æÖSÒ&—Öö'6W'fF–öâ×æVÂ"&–ÖÆ&VÃÒ$ö'6W'fVB•&V6÷&G2#à¢Æ'F–6ÆSãÇ7ãå&V6÷&FVB6W76–öç3Â÷7ããÇ7G&öæsç¶7F—fU&V6÷&Bæö'6W'fVE6W76–öç2æ¦ö–â‚r+rr’ÇÂtæòWF†VçF–6FVB6W76–öâ&V6÷&FVBwÓÂ÷7G&öæsãÂö'F–6ÆSà¢Æ'F–6ÆSãÇ7ãå&V6÷&FVBFWf–6W3Â÷7ããÇ7G&öæsç¶7F—fU&V6÷&Bæö'6W'fVDFWf–6W2æ¦ö–â‚r+rr—ÓÂ÷7G&öæsãÂö'F–6ÆSà¢Æ'F–6ÆSãÇ7ãäÆö6F–öâ†—7F÷'“Â÷7ããÇ7G&öæsç¶7F—fU&V6÷&Bæ†—7F÷&–6ÄÆö6F–öç2æ¦ö–â‚r+rr—ÓÂ÷7G&öæsãÂö'F–6ÆSà¢Â÷6V7F–öãà¢Âóà¢’¢€¢ÆF—b6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂÖV×G’—ÖÆöö·WÖV×G’"&öÆSÒ'7FGW2#à¢Ç7ãç¶Æöö·W†5'VâòtæòW†7BÖF6‚r¢tÆöö·W&WV—&VBwÓÂ÷7ãà¢Æƒ3ç¶Æöö·W†5'VâòæòæWGv÷&²&V6÷&BÖF6†VBG·7V&Ö—GFVD—Òæ¢t6†ö÷6R&r•æB'VâF†RÆöö·WâwÓÂöƒ3à¢ÇäæWGv÷&²G—RÂ÷&–v–âÂ†—7F÷&–6ÂW6RÂeâ÷&÷‡’õDõ"FFÂfVÆö6—G’ÂæB7&÷72×&öf–ÆR&W6Væ6R&VÖ–â†–FFVâVçF–ÂâW†7Bf–7F–öæÂ•Æöö·W7V66VVG2ãÂ÷à¢ÂöF—cà¢—Ğ¢Â÷6V7F–öãà¢ÂöF—cà ¢¶7F—fU&V6÷&BbbÇ6V7F–öâ6Æ74æÖSÒ&—Ö–çFVÂÖÆ÷vW"Öw&–B"&–ÖÆ&VÃÒ$•–çFVÆÆ–vVæ6R†—7F÷'’æB&VÆFVBWf–FVæ6R#à¢Æ'F–6ÆR6Æ74æÖSÒ&—ÖÆö6F–öâ×æVÂ#à¢Æ†VFW#ãÇäÆö6F–öâ6WVVæ6SÂ÷ãÆƒ3äWf–FVæ6RFò6ö×&SÂöƒ3ãÂö†VFW#à¢ÆF—cà¢¶7F—fU&V6÷&Bæö'6W'fVDÆöv–äWfVçG2æÖ‚†Æöv–â’ÓâÇ7â¶W“×¶Æöv–âæ–GÓç¶Æöv–âçF–ÖWÒ+r¶Æöv–âæ–GÒ+r¶Æöv–âç&W7VÇGÒ+r¶Æöv–âç6W76–öçÒ+r¶Æöv–âæÆö6F–öçÓÂ÷7ãâ—Ğ¢ÂöF—cà¢Âö'F–6ÆSà¢Æ'F–6ÆR6Æ74æÖSÒ&—×&VÆFVB×æVÂ#à¢Æ†VFW#ãÇå&VÆFVB&V6÷&G3Â÷ãÆƒ3ä7&÷72×&VfW&Væ6Rö–çG3Âöƒ3ãÂö†VFW#à¢ÆF—cç¶7F—fU&V6÷&Bç&VÆFVE&V6÷&G2æÖ‚†—FVÒ’ÓâÇ7â¶W“×¶—FV×Óç¶—FV×ÓÂ÷7ãâ—ÓÂöF—cà¢Âö'F–6ÆSà¢Æ'F–6ÆR6Æ74æÖSÒ&—Öæ÷FW2×æVÂ#à¢Æ†VFW#ãÇä–çfW7F–vF÷"æ÷FW3Â÷ãÆƒ3äWf–FVæ6RÖf—'7B&VÖ–æFW#Âöƒ3ãÂö†VFW#à¢Çç¶7F—fU&V6÷&Bæ–çfW7F–vF÷%W6WÓÂ÷à¢ÆF—cà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ6fT—æ÷FR†G¶7F—fU&V6÷&Bæ—Ò&Wf–WvVC¢G¶7F—fU&V6÷&BæÆöö·W&W7VÇGÖ—Óå6fR•æ÷FSÂö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×¶vVæW&FT—&W÷'GÓç·&W÷'DvVæW&FVBòu&VvVæW&FR•–çFVÆÆ–vVæ6R&W÷'Br¢tvVæW&FR•–çFVÆÆ–vVæ6R&W÷'BwÓÂö'WGFöãà¢ÂöF—cà¢Âö'F–6ÆSà¢Â÷6V7F–öãçĞ¢Âóà¢’¢ÆF—b6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂÖV×G’"&öÆSÒ'7FGW2#äæò•–çFVÆÆ–vVæ6R&V6÷&G2&Rf–Æ&ÆRf÷"F†—266RãÂöF—cçĞ ¢Ææb6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂÖæW‡B×&÷WFW2"&–ÖÆ&VÃÒ$•–çFVÆÆ–vVæ6RæW‡B&÷WFW2#à¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚tÆöv–â†—7F÷'’r—Óä÷VâÆöv–â†—7F÷'“Âö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚u6W76–öâ†—7F÷'’r—Óä÷Vâ6W76–öâ†—7F÷'“Âö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚tFWf–6R–çFVÆÆ–vVæ6Rr—Óä÷VâFWf–6R–çFVÆÆ–vVæ6SÂö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚t7W7FöÖW"3cr—Óä÷Vâ7W7FöÖW"3cÂö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚uF–ÖVÆ–æRr—Óä÷VâF–ÖVÆ–æSÂö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×¶§V×FV6—6–öçÓä÷Vâ7V&Ö—BFV6—6–öãÂö'WGFöãà¢Âöæcà ¢Æfö÷FW"6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂ×&Wf–WrÖ&"#à¢ÆF—cãÇ7G&öæsä•–çFVÆÆ–vVæ6R&Wf–WsÂ÷7G&öæsãÇ7ãäÖ&²&Wf–WvVBgFW"'Vææ–ærF†RÆöö·WÂ6†V6¶–æræWGv÷&²6öçFW‡BÂæB6ö×&–ær—BFòF†RÆ–æ¶VBÆöv–âÂ6W76–öâÂFWf–6RÂæBF–ÖVÆ–æRWf–FVæ6RãÂ÷7ããÂöF—cà¢Æ'WGFöâG—SÒ&'WGFöâ"6Æ74æÖS×·&Wf–WvVBòrr¢v–çfW7F–vF–öâ×FööÂ×&–Ö'’wÒF—6&ÆVC×²Æöö·WÖF6†VGÒöä6Æ–6³×²‚’ÓâÖ&µ&Wf–WvVB‚t•–çFVÆÆ–vVæ6Rr—Óà¢·&Wf–WvVBò~)É2•–çFVÆÆ–vVæ6R&Wf–WvVBr¢tÖ&²•–çFVÆÆ–vVæ6R&Wf–WvVBwĞ¢Âö'WGFöãà¢Âöfö÷FW#à¢Âóà¢“°§Ğ ¦gVæ7F–öâ6W76–öä†—7F÷'•v÷&·76R‡°¢7F—fT66RÀ¢VW'’À¢6WEVW'’À¢–âÀ¢6fTæ÷FRÀ¢Ö&µ&Wf–WvVBÀ¢&Wf–WvVBÀ¢÷VåFööÂÀ§Ò’°¢6öç7B·6VÆV7FVE6W76–öä–BÂ6WE6VÆV7FVE6W76–öä–EÒÒW6U7FFR‚rr“°¢6öç7B¶Æöv÷WDf–ÇFW"Â6WDÆöv÷WDf–ÇFW%ÒÒW6U7FFR‚tÆÂÆöv÷WB7FFW2r“°¢6öç7B¶7F—f—G”f–ÇFW"Â6WD7F—f—G”f–ÇFW%ÒÒW6U7FFR‚tÆÂ7F—f—G’r“°¢6öç7B¶FWf–6Tf–ÇFW"Â6WDFWf–6Tf–ÇFW%ÒÒW6U7FFR‚tÆÂFWf–6W2r“°¢6öç7B¶FFTf–ÇFW"Â6WDFFTf–ÇFW%ÒÒW6U7FFR‚tÆÂFFW2r“°¢6öç7B·&W÷'DvVæW&FVBÂ6WE&W÷'DvVæW&FVEÒÒW6U7FFR‚‚’ÓâvVæW&FVD66W75&W÷'EG—W2†7F—fT66Ræ–B’æ–æ6ÇVFW2‚w6W76–öâr’“°¢6öç7B&V6÷&G2ÒvWE6W76–öå&V6÷&G2†7F—fT66R“°¢6öç7Bæ÷&ÖÆ—¦VEVW'’ÒVW'’çG&–Ò‚’çFôÆ÷vW$66R‚“°¢6öç7BÆöv÷WD÷F–öç2Ò²tÆÂÆöv÷WB7FFW2rÂââææWr6WB‡&V6÷&G2æÖ‚‡&V6÷&B’Óâ&V6÷&BæÆöv÷WE7FGW2’•Ó°¢6öç7B7F—f—G”÷F–öç2Ò²tÆÂ7F—f—G’rÂââææWr6WB‡&V6÷&G2æfÆDÖ‚‡&V6÷&B’Óâ&V6÷&Bæ7F—f—G•G—W2óòµÒ’•Ó°¢6öç7BFWf–6T÷F–öç2Ò²tÆÂFWf–6W2rÂââææWr6WB‡&V6÷&G2æÖ‚‡&V6÷&B’Óâ&V6÷&BæFWf–6T–Bóò&V6÷&BæFWf–6R’•Ó°¢6öç7BFFT÷F–öç2Ò²tÆÂFFW2rÂââææWr6WB‡&V6÷&G2æÖ‚‡&V6÷&B’Óâ&V6÷&BæFFR’•Ó°¢6öç7Bf–ÇFW&VE&V6÷&G2Ò&V6÷&G2æf–ÇFW"‚‡&V6÷&B’Óâ€¢‚æ÷&ÖÆ—¦VEVW'’ÇÂ6W76–öå&V6÷&E6V&6…FW‡B‡&V6÷&B’æ–æ6ÇVFW2†æ÷&ÖÆ—¦VEVW'’’¢bb†Æöv÷WDf–ÇFW"ÓÓÒtÆÂÆöv÷WB7FFW2rÇÂ&V6÷&BæÆöv÷WE7FGW2ÓÓÒÆöv÷WDf–ÇFW"¢bb†7F—f—G”f–ÇFW"ÓÓÒtÆÂ7F—f—G’rÇÂ&V6÷&Bæ7F—f—G•G—W3òæ–æ6ÇVFW2†7F—f—G”f–ÇFW"’¢bb†FWf–6Tf–ÇFW"ÓÓÒtÆÂFWf–6W2rÇÂ‡&V6÷&BæFWf–6T–Bóò&V6÷&BæFWf–6R’ÓÓÒFWf–6Tf–ÇFW"¢bb†FFTf–ÇFW"ÓÓÒtÆÂFFW2rÇÂ&V6÷&BæFFRÓÓÒFFTf–ÇFW"¢’“°¢6öç7B6W76–öäf–ÇFW'46ÆV"Òæ÷&ÖÆ—¦VEVW'’bbÆöv÷WDf–ÇFW"ÓÓÒtÆÂÆöv÷WB7FFW2rbb7F—f—G”f–ÇFW"ÓÓÒtÆÂ7F—f—G’rbbFWf–6Tf–ÇFW"ÓÓÒtÆÂFWf–6W2rbbFFTf–ÇFW"ÓÓÒtÆÂFFW2s°¢6öç7B7F—fU&V6÷&BÒf–ÇFW&VE&V6÷&G2æf–æB‚‡&V6÷&B’Óâ&V6÷&Bç6W76–öâÓÓÒ6VÆV7FVE6W76–öä–B’óòf–ÇFW&VE&V6÷&G5³Òóò‡6W76–öäf–ÇFW'46ÆV"ò&V6÷&G5³Ò¢çVÆÂ“°¢6öç7BÆövvVD÷WD6÷VçBÒ&V6÷&G2æf–ÇFW"‚‡&V6÷&B’Óâöæ÷&ÖÂÆöv÷WBö’çFW7B‡&V6÷&BæÆöv÷WE7FGW2’’æÆVæwFƒ°¢6öç7BF–ÖV÷WD6÷VçBÒ&V6÷&G2æf–ÇFW"‚‡&V6÷&B’Óâ÷F–ÖV÷WBö’çFW7B‡&V6÷&BæÆöv÷WE7FGW2’’æÆVæwFƒ°¢6öç7B&öf–ÆT7F—f—G”6÷VçBÒ&V6÷&G2æf–ÇFW"‚‡&V6÷&B’Óâ&V6÷&Bæ†5&öf–ÆT7F—f—G’’æÆVæwFƒ°¢6öç7BÖöæW”Ö÷fVÖVçD6÷VçBÒ&V6÷&G2æf–ÇFW"‚‡&V6÷&B’Óâ&V6÷&Bæ†4ÖöæW”7F—f—G’’æÆVæwFƒ°¢6öç7BVæ—VTFWf–6W2ÒæWr6WB‡&V6÷&G2æÖ‚‡&V6÷&B’Óâ&V6÷&BæFWf–6T–Bóò&V6÷&BæFWf–6R’’ç6—¦S°¢6öç7BVæ—VT—2ÒæWr6WB‡&V6÷&G2æÖ‚‡&V6÷&B’Óâ&V6÷&Bæ—’’ç6—¦S° ¢W6TVffV7B‚‚’Óâ°¢6WE6VÆV7FVE6W76–öä–B‚rr“°¢6WDÆöv÷WDf–ÇFW"‚tÆÂÆöv÷WB7FFW2r“°¢6WD7F—f—G”f–ÇFW"‚tÆÂ7F—f—G’r“°¢6WDFWf–6Tf–ÇFW"‚tÆÂFWf–6W2r“°¢6WDFFTf–ÇFW"‚tÆÂFFW2r“°¢6WE&W÷'DvVæW&FVB†vVæW&FVD66W75&W÷'EG—W2†7F—fT66Ræ–B’æ–æ6ÇVFW2‚w6W76–öâr’“°¢ÒÂ¶7F—fT66Ræ–EÒ“° ¢gVæ7F–öâ6fU6W76–öäæ÷FR†ÖW76vR’°¢6fTæ÷FR†6W76–öâ†—7F÷'“¢G¶ÖW76vWÖÂu6W76–öâ†—7F÷'’r“°¢Ğ ¢gVæ7F–öâvVæW&FU6W76–öå&W÷'B‚’°¢6öç7B&W÷'BÒvVæW&FT66W74†—7F÷'•&W÷'B†7F—fT66RÂw6W76–öâr“°¢F÷væÆöD66W75&W÷'B‡&W÷'B“°¢6WE&W÷'DvVæW&FVB‡G'VR“°¢6fU6W76–öäæ÷FR†G·&W÷'BçF—FÆWÒvVæW&FVBæBFFVBFòFö7VÖVçBf–WvW"æ“°¢Ğ ¢&WGW&â€¢Ãà¢Ç6V7F–öâ6Æ74æÖSÒ'6W76–öâÖ†—7F÷'’Öf–æF&""&–ÖÆ&VÃÒ$f–æB6W76–öâ†—7F÷'’–æf÷&ÖF–öâ#à¢ÆF—cà¢Çå6W76–öâ&V6÷&G3Â÷à¢Æƒ3äWfW'’&V6÷&FVB6W76–öâ—2f–Æ&ÆR&VÆ÷râ6V&6‚6W76–öâ”BÂÆöv–â”BÂFWf–6RÂ•Â&öf–ÆR7F–öâÂ–ÖVçB7F—f—G’Â÷"Æöv÷WB7FFRFòæ'&÷rF†Rf–WrãÂöƒ3à¢ÂöF—cà¢ÆÆ&VÃà¢Ç7ãå6V&6‚6W76–öâ†—7F÷'“Â÷7ãà¢Æ–çW@¢fÇVS×·VW'—Ğ¢öä6†ævS×²†WfVçB’Óâ6WEVW'’†WfVçBçF&vWBçfÇVR—Ğ¢Æ6V†öÆFW#Ò%G'“¢4U2ÓssƒÂ6&B6öçG&öÇ2ÂF–ÖV÷WBÂ–ÖVçBÖWF†öBÂ&öf–ÆRâââ ¢&–ÖÆ&VÃÒ%6V&6‚6W76–öâ†—7F÷'’&V6÷&G2 ¢óà¢ÂöÆ&VÃà¢Ç7â&–ÖÆ—fSÒ'öÆ—FR#ç¶f–ÇFW&VE&V6÷&G2æÆVæwF‡Òöb·&V6÷&G2æÆVæwF‡Ò&V6÷&G26†÷vãÂ÷7ãà¢Â÷6V7F–öãà ¢Ç6V7F–öâ6Æ74æÖSÒ&66W72Ö†—7F÷'’Öf–ÇFW'26W76–öâÖ†—7F÷'’Öf–ÇFW'2"&–ÖÆ&VÃÒ$f–ÇFW"6W76–öâ†—7F÷'’#à¢ÆÆ&VÃãÇ7ãäÆöv÷WB7FFSÂ÷7ããÇ6VÆV7BfÇVS×¶Æöv÷WDf–ÇFW'Òöä6†ævS×²†WfVçB’Óâ6WDÆöv÷WDf–ÇFW"†WfVçBçF&vWBçfÇVR—Ò&–ÖÆ&VÃÒ$f–ÇFW"6W76–öâ†—7F÷'’'’Æöv÷WB7FFR#ç¶Æöv÷WD÷F–öç2æÖ‚†—FVÒ’ÓâÆ÷F–öâ¶W“×¶—FV×Óç¶—FV×ÓÂö÷F–öãâ—ÓÂ÷6VÆV7CãÂöÆ&VÃà¢ÆÆ&VÃãÇ7ãä7F—f—G“Â÷7ããÇ6VÆV7BfÇVS×¶7F—f—G”f–ÇFW'Òöä6†ævS×²†WfVçB’Óâ6WD7F—f—G”f–ÇFW"†WfVçBçF&vWBçfÇVR—Ò&–ÖÆ&VÃÒ$f–ÇFW"6W76–öâ†—7F÷'’'’7F—f—G’#ç¶7F—f—G”÷F–öç2æÖ‚†—FVÒ’ÓâÆ÷F–öâ¶W“×¶—FV×Óç¶—FV×ÓÂö÷F–öãâ—ÓÂ÷6VÆV7CãÂöÆ&VÃà¢ÆÆ&VÃãÇ7ãäFWf–6SÂ÷7ããÇ6VÆV7BfÇVS×¶FWf–6Tf–ÇFW'Òöä6†ævS×²†WfVçB’Óâ6WDFWf–6Tf–ÇFW"†WfVçBçF&vWBçfÇVR—Ò&–ÖÆ&VÃÒ$f–ÇFW"6W76–öâ†—7F÷'’'’FWf–6R#ç¶FWf–6T÷F–öç2æÖ‚†—FVÒ’ÓâÆ÷F–öâ¶W“×¶—FV×Óç¶—FV×ÓÂö÷F–öãâ—ÓÂ÷6VÆV7CãÂöÆ&VÃà¢ÆÆ&VÃãÇ7ãäFFSÂ÷7ããÇ6VÆV7BfÇVS×¶FFTf–ÇFW'Òöä6†ævS×²†WfVçB’Óâ6WDFFTf–ÇFW"†WfVçBçF&vWBçfÇVR—Ò&–ÖÆ&VÃÒ$f–ÇFW"6W76–öâ†—7F÷'’'’FFR#ç¶FFT÷F–öç2æÖ‚†—FVÒ’ÓâÆ÷F–öâ¶W“×¶—FV×Óç¶—FV×ÓÂö÷F–öãâ—ÓÂ÷6VÆV7CãÂöÆ&VÃà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ²6WEVW'’‚rr“²6WDÆöv÷WDf–ÇFW"‚tÆÂÆöv÷WB7FFW2r“²6WD7F—f—G”f–ÇFW"‚tÆÂ7F—f—G’r“²6WDFWf–6Tf–ÇFW"‚tÆÂFWf–6W2r“²6WDFFTf–ÇFW"‚tÆÂFFW2r“²×Óä6ÆV"f–ÇFW'3Âö'WGFöãà¢Â÷6V7F–öãà ¢Ç6V7F–öâ6Æ74æÖSÒ'6W76–öâÖ†—7F÷'’×7VÖÖ'’"&–ÖÆ&VÃÒ%6W76–öâ†—7F÷'’7VÖÖ'’#à¢µ°¢²u&V6÷&FVB6W76–öç2rÂ&V6÷&G2æÆVæwF…ÒÂ²tæ÷&ÖÂÆöv÷WBrÂÆövvVD÷WD6÷VçEÒÂ²u6W76–öâF–ÖV÷WBrÂF–ÖV÷WD6÷VçEÒÀ¢²u&öf–ÆR7F—f—G’rÂ&öf–ÆT7F—f—G”6÷VçEÒÂ²tÖöæW’7F—f—G’rÂÖöæW”Ö÷fVÖVçD6÷VçEÒÂ²tFWf–6W2ò•2rÂG·Væ—VTFWf–6W7ÒòG·Væ—VT—7ÖÒÀ¢ÒæÖ‚…¶Æ&VÂÂfÇVUÒ’ÓâÆ'F–6ÆR¶W“×¶Æ&VÇÓãÇ7ãç¶Æ&VÇÓÂ÷7ããÇ7G&öæsç·fÇVWÓÂ÷7G&öæsãÂö'F–6ÆSâ—Ğ¢Â÷6V7F–öãà ¢¶7F—fU&V6÷&Bò€¢Ãà¢ÆF—b6Æ74æÖSÒ'6W76–öâÖ†—7F÷'’×v÷&·76R#à¢Ç6V7F–öâ6Æ74æÖSÒ'6W76–öâ×&V6÷&BÖÆ—7B"&–ÖÆ&VÃÒ%6W76–öâ†—7F÷'’&V6÷&G2#à¢Æ†VFW#ãÇå&V6÷&FVB6W76–öç3Â÷ãÆƒ3ä6†ö÷6R6W76–öâFòW‡æCÂöƒ3ãÂö†VFW#à¢¶f–ÇFW&VE&V6÷&G2æÖ‚‡&V6÷&B’Óâ€¢Æ'WGFöà¢¶W“×·&V6÷&Bç6W76–öçĞ¢G—SÒ&'WGFöâ ¢6Æ74æÖS×·&V6÷&Bç6W76–öâÓÓÒ7F—fU&V6÷&Bç6W76–öâòv7F—fRr¢rwĞ¢öä6Æ–6³×²‚’Óâ6WE6VÆV7FVE6W76–öä–B‡&V6÷&Bç6W76–öâ—Ğ¢FF×6W76–öâÖ†—7F÷'’×&V6÷&C×·&V6÷&Bç6W76–öçĞ¢à¢Ç7ãç·&V6÷&Bç7F'GÒFò·&V6÷&BæVæGÒ+r·&V6÷&BæGW&F–öçÓÂ÷7ãà¢Ç7G&öæsç·&V6÷&Bç6W76–öçÓÂ÷7G&öæsà¢Ç6ÖÆÃç·&V6÷&BæFWf–6T–Bóò&V6÷&BæFWf–6WÒ+r·&V6÷&BæÆöv÷WE7FGW7ÓÂ÷6ÖÆÃà¢Âö'WGFöãà¢’—Ğ¢²f–ÇFW&VE&V6÷&G2æÆVæwF‚bbÆF—b6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂÖV×G’"&öÆSÒ'7FGW2#äæò&V6÷&FVB6W76–öç2ÖF6‚F†—26V&6‚ãÂöF—cçĞ¢Â÷6V7F–öãà ¢Ç6V7F–öâ6Æ74æÖSÒ'6W76–öâÖFWF–Â×æVÂ"&–ÖÆ&VÃÒ$W‡æFVB6W76–öâ†—7F÷'’FWF–Â#à¢Æ†VFW#à¢ÆF—cãÇäW‡æFVB6W76–öãÂ÷ãÆƒ3ç¶7F—fU&V6÷&Bç6W76–öçÓÂöƒ3ãÇ7ãç¶7F—fU&V6÷&Bç7F'GÒFò¶7F—fU&V6÷&BæVæGÒ+r¶7F—fU&V6÷&BæÆöv÷WE7FGW7ÓÂ÷7ããÂöF—cà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ–â†7F—fU&V6÷&Bç6W76–öâ—Óå–â6W76–öãÂö'WGFöãà¢Âö†VFW#à¢ÆFÂ6Æ74æÖSÒ'6W76–öâÖFWF–ÂÖw&–B#à¢µ°¢²tÆöv–â”BrÂ7F—fU&V6÷&Bæ–EÒÂ²u6W76–öâ7F'BrÂ7F—fU&V6÷&Bç7F'EÒÂ²u6W76–öâVæBrÂ7F—fU&V6÷&BæVæEÒÂ²tGW&F–öârÂ7F—fU&V6÷&BæGW&F–öåÒÀ¢²tÆöv÷WBòF–ÖV÷WBrÂ7F—fU&V6÷&BæÆöv÷WE7FGW5ÒÂ²tWF†VçF–6F–öâÖWF†öBrÂ7F—fU&V6÷&BæÖWF†öEÒÂ²tFWf–6R”BrÂ7F—fU&V6÷&BæFWf–6T–Bóò7F—fU&V6÷&BæFWf–6UÒÀ¢²t•òÆö6F–öârÂG¶7F—fU&V6÷&Bæ—Ò+rG¶7F—fU&V6÷&BæÆö6F–öçÖÒÀ¢ÒæÖ‚…¶Æ&VÂÂfÇVUÒ’ÓâÆF—b¶W“×¶Æ&VÇÓãÆGCç¶Æ&VÇÓÂöGCãÆFCç·fÇVWÓÂöFCãÂöF—câ—Ğ¢ÂöFÃà¢Ç6V7F–öâ6Æ74æÖSÒ'6W76–öâÖ7F—f—G’Öw&–B"&–ÖÆ&VÃÒ%6W76–öâ7F—f—G’FWF–Â#à¢µ°¢²uvW2f–WvVBrÂ7F—fU&V6÷&BçvW5f–WvVEÒÂ²u6V7W&—G’6WGF–æw2rÂ7F—fU&V6÷&Bç6V7W&—G•6WGF–æw5ÒÂ²u&öf–ÆR7F–öç2rÂ7F—fU&V6÷&Bç&öf–ÆT7F–öç5ÒÀ¢²u–VRòFö¶Vâ7F—f—G’rÂ7F—fU&V6÷&Bç–VUFö¶Vä7F—f—G•ÒÂ²uG&ç6fW"òW&6†6RF‚rÂ7F—fU&V6÷&BæÖöæW”Ö÷fVÖVçEÒÀ¢ÒæÖ‚…¶Æ&VÂÂ—FV×5Ò’Óâ€¢Æ'F–6ÆR¶W“×¶Æ&VÇÓãÇ7ãç¶Æ&VÇÓÂ÷7ããÇ7G&öæsç¶—FV×2æ¦ö–â‚r+rr—ÓÂ÷7G&öæsãÂö'F–6ÆSà¢’—Ğ¢Â÷6V7F–öãà¢Â÷6V7F–öãà¢ÂöF—cà ¢Ç6V7F–öâ6Æ74æÖSÒ'6W76–öâÖ†—7F÷'’ÖÆ÷vW"Öw&–B"&–ÖÆ&VÃÒ%6W76–öâ†—7F÷'’6WVVæ6RæB&VÆFVBWf–FVæ6R#à¢Æ'F–6ÆR6Æ74æÖSÒ'6W76–öâ×F‚×æVÂ#à¢Æ†VFW#ãÇå6W76–öâFƒÂ÷ãÆƒ3å&V6÷&FVB÷&FW"öb7F—f—G“Âöƒ3ãÂö†VFW#à¢ÆF—cç¶7F—fU&V6÷&Bç6W76–öåF‚æÖ‚†—FVÒ’ÓâÇ7â¶W“×¶—FV×Óç¶—FV×ÓÂ÷7ãâ—ÓÂöF—cà¢Âö'F–6ÆSà¢Æ'F–6ÆR6Æ74æÖSÒ'6W76–öâ×&VÆFVB×æVÂ#à¢Æ†VFW#ãÇå&VÆFVB&V6÷&G3Â÷ãÆƒ3äWf–FVæ6RFò7&÷72×&VfW&Væ6SÂöƒ3ãÂö†VFW#à¢ÆF—cç¶7F—fU&V6÷&Bç&VÆFVE&V6÷&G2æÖ‚†—FVÒ’ÓâÇ7â¶W“×¶—FV×Óç¶—FV×ÓÂ÷7ãâ—ÓÂöF—cà¢Âö'F–6ÆSà¢Æ'F–6ÆR6Æ74æÖSÒ'6W76–öâÖæ÷FW2×æVÂ#à¢Æ†VFW#ãÇä–çfW7F–vF÷"æ÷FW3Â÷ãÆƒ3äWf–FVæ6RÖf—'7B&VÖ–æFW#Âöƒ3ãÂö†VFW#à¢Çç¶7F—fU&V6÷&Bæ–çfW7F–vF÷%W6WÒ&VBF†R6W76–öâF‚v—F‚Æöv–â†—7F÷'’Â7W7FöÖW"3cÂf–ææ6–Â&V6÷&G2ÂæBF–ÖVÆ–æR&Vf÷&RFö7VÖVçF–ærFV6—6–öâãÂ÷à¢ÆF—cà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ6fU6W76–öäæ÷FR†G¶7F—fU&V6÷&Bç6W76–öçÒ&Wf–WvVC¢G¶7F—fU&V6÷&Bç6W76–öåF‚æ¦ö–â‚ròr—Ö—Óå6fR6W76–öâæ÷FSÂö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×¶vVæW&FU6W76–öå&W÷'GÓç·&W÷'DvVæW&FVBòu&VvVæW&FR6W76–öâ†—7F÷'’&W÷'Br¢tvVæW&FR6W76–öâ†—7F÷'’&W÷'BwÓÂö'WGFöãà¢ÂöF—cà¢Âö'F–6ÆSà¢Â÷6V7F–öãà¢Âóà¢’¢ÆF—b6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂÖV×G’"&öÆSÒ'7FGW2#äæò6W76–öâ†—7F÷'’&V6÷&G2&Rf–Æ&ÆRf÷"F†—266RãÂöF—cçĞ ¢Ææb6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂÖæW‡B×&÷WFW2"&–ÖÆ&VÃÒ%6W76–öâ†—7F÷'’æW‡B&÷WFW2#à¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚tÆöv–â†—7F÷'’r—Óä÷VâÆöv–â†—7F÷'“Âö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚t7W7FöÖW"3cr—Óä÷Vâ7W7FöÖW"3cÂö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚uG&ç67F–öâ†—7F÷'’r—Óä÷VâG&ç67F–öâ†—7F÷'“Âö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚u–ÖVçBfW&–f–6F–öâr—Óä÷Vâ–ÖVçBfW&–f–6F–öãÂö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚uF–ÖVÆ–æRr—Óä÷VâF–ÖVÆ–æSÂö'WGFöãà¢Âöæcà ¢Æfö÷FW"6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂ×&Wf–WrÖ&"#à¢ÆF—cãÇ7G&öæså6W76–öâ†—7F÷'’&Wf–WsÂ÷7G&öæsãÇ7ãäÖ&²&Wf–WvVBgFW"6†V6¶–ærF†R6W76–öâ7F'BöVæBÂ7F—f—G’F‚ÂÆöv÷WB7FFRÂæBÆ–æ¶VB&öf–ÆRæBf–ææ6–Â&V6÷&G2ãÂ÷7ããÂöF—cà¢Æ'WGFöâG—SÒ&'WGFöâ"6Æ74æÖS×·&Wf–WvVBòrr¢v–çfW7F–vF–öâ×FööÂ×&–Ö'’wÒöä6Æ–6³×²‚’ÓâÖ&µ&Wf–WvVB‚u6W76–öâ†—7F÷'’r—Óà¢·&Wf–WvVBò~)É26W76–öâ†—7F÷'’&Wf–WvVBr¢tÖ&²6W76–öâ†—7F÷'’&Wf–WvVBwĞ¢Âö'WGFöãà¢Âöfö÷FW#à¢Âóà¢“°§Ğ ¦gVæ7F–öâFWf–6T–çFVÆÆ–vVæ6Uv÷&·76R‡°¢7F—fT66RÀ¢VW'’À¢6WEVW'’À¢–âÀ¢6fTæ÷FRÀ¢Ö&µ&Wf–WvVBÀ¢&Wf–WvVBÀ¢÷VåFööÂÀ¢§V×FV6—6–öâÀ¢V–6µ–âÀ§Ò’°¢6öç7B·6VÆV7FVDFWf–6T–BÂ6WE6VÆV7FVDFWf–6T–EÒÒW6U7FFR‚rr“°¢6öç7B&V6÷&G2ÒvWDFWf–6U&öf–ÆW2†7F—fT66R“°¢6öç7Bæ÷&ÖÆ—¦VEVW'’ÒVW'’çG&–Ò‚’çFôÆ÷vW$66R‚“°¢6öç7Bf–ÇFW&VE&V6÷&G2Ò&V6÷&G2æf–ÇFW"‚‡&V6÷&B’Óâæ÷&ÖÆ—¦VEVW'’ÇÂFWf–6U&V6÷&E6V&6…FW‡B‡&V6÷&B’æ–æ6ÇVFW2†æ÷&ÖÆ—¦VEVW'’’“°¢6öç7BÆöö·W†5'VâÒæ÷&ÖÆ—¦VEVW'’æÆVæwF‚â°¢6öç7B7F—fU&V6÷&BÒf–ÇFW&VE&V6÷&G2æf–æB‚‡&V6÷&B’Óâ&V6÷&Bæ–BÓÓÒ6VÆV7FVDFWf–6T–B¢óòf–ÇFW&VE&V6÷&G5³Ğ¢óò†Æöö·W†5'VâòçVÆÂ¢&V6÷&G5³Ò“°¢6öç7BÆöö·WÖF6†VBÒÆöö·W†5'Vâbb&ööÆVâ†7F—fU&V6÷&B“° ¢W6TVffV7B‚‚’Óâ°¢6WE6VÆV7FVDFWf–6T–B‚rr“°¢ÒÂ¶7F—fT66Ræ–EÒ“° ¢gVæ7F–öâ†–FFVåVçF–ÄÆöö·W‡fÇVR’°¢&WGW&âÆöö·W†5'VâòfÇVR¢u'VâFWf–6RÆöö·WFò&WfVÂs°¢Ğ ¢gVæ7F–öâ6fTFWf–6Tæ÷FR†ÖW76vR’°¢6fTæ÷FR†FWf–6R–çFVÆÆ–vVæ6S¢G¶ÖW76vWÖÂtFWf–6R–çFVÆÆ–vVæ6Rr“°¢Ğ ¢&WGW&â€¢Ãà¢Ç6V7F–öâ6Æ74æÖSÒ&FWf–6RÖ–çFVÂÖf–æF&""&–ÖÆ&VÃÒ$f–æBFWf–6R–çFVÆÆ–vVæ6R–æf÷&ÖF–öâ#à¢ÆF—cà¢ÇäFWf–6RÆöö·WÂ÷à¢Æƒ3å6V&6‚FWf–6R”BÂf–ævW'&–çBÂ'&÷w6W"Â6W76–öâÂ&öf–ÆRÂvÆÆWBÂ÷"Æö6F–öâFò&WfVÂFWf–6R–çFVÆÆ–vVæ6RãÂöƒ3à¢ÂöF—cà¢ÆÆ&VÃà¢Ç7ãå6V&6‚FWf–6R–çFVÆÆ–vVæ6SÂ÷7ãà¢Æ–çW@¢fÇVS×·VW'—Ğ¢öä6†ævS×²†WfVçB’Óâ6WEVW'’†WfVçBçF&vWBçfÇVR—Ğ¢Æ6V†öÆFW#Ò%G'“¢DUbÔÔ”Ô•bÓÂf–ævW'&–çBÂV×VÆF÷"Â6†&VBÂvÆÆWBÂ6f&’âââ ¢&–ÖÆ&VÃÒ%6V&6‚FWf–6R–çFVÆÆ–vVæ6R&V6÷&G2 ¢óà¢ÂöÆ&VÃà¢Ç7â&–ÖÆ—fSÒ'öÆ—FR#à¢¶Æöö·W†5'Và¢òf–ÇFW&VE&V6÷&G2æÆVæwF€¢òG¶f–ÇFW&VE&V6÷&G2æÆVæwF‡ÒöbG·&V6÷&G2æÆVæwF‡Ò&V6÷&G2&WGW&æVF ¢¢tæòÖF6†–ærFWf–6R&V6÷&B&WGW&æVBp¢¢tÆöö·W&WV—&VBwĞ¢Â÷7ãà¢Â÷6V7F–öãà ¢¶7F—fU&V6÷&Bò€¢Ãà¢Ç6V7F–öâ6Æ74æÖSÒ&FWf–6RÖ–çFVÂ×6æ6†÷B"&–ÖÆ&VÃÒ$FWf–6R–çFVÆÆ–vVæ6R6æ6†÷B#à¢Æ'F–6ÆR6Æ74æÖSÒ&FWf–6RÖ–çFVÂÖ†W&ò#à¢ÇäFWf–6R6æ6†÷CÂ÷à¢Æƒ3ç¶7F—fU&V6÷&BæFWf–6TæÖWÓÂöƒ3à¢ÆF—b6Æ74æÖSÒ'–ÖVçBÖ6†—×&÷r#à¢Ç7â6Æ74æÖS×¶–ÖVçB×7FGW2Ö6†—G·7FGW5FöæR†7F—fU&V6÷&BçG'W7FVE7FGW2—ÖÓç¶†–FFVåVçF–ÄÆöö·W†7F—fU&V6÷&BçG'W7FVE7FGW2—ÓÂ÷7ãà¢Ç7â6Æ74æÖS×¶–ÖVçB×7FGW2Ö6†—G·7FGW5FöæR†7F—fU&V6÷&BæÆöö·W&W7VÇB—ÖÓç¶†–FFVåVçF–ÄÆöö·W†7F—fU&V6÷&BæÆöö·W&W7VÇB—ÓÂ÷7ãà¢ÂöF—cà¢Âö'F–6ÆSà¢µ°¢²tFWf–6R”BrÂ7F—fU&V6÷&Bæ–EÒÀ¢²tf–ævW'&–çBrÂ†–FFVåVçF–ÄÆöö·W†7F—fU&V6÷&BæFWf–6Tf–ævW'&–çB•ÒÀ¢²tf—'7B6VVârÂ7F—fU&V6÷&Bæf—'7E6VVåÒÀ¢²tÆ7B6VVârÂ7F—fU&V6÷&BæÆ7E6VVåÒÀ¢ÒæÖ‚…¶Æ&VÂÂfÇVUÒ’Óâ€¢Æ'F–6ÆR¶W“×¶Æ&VÇÓà¢Ç7ãç¶Æ&VÇÓÂ÷7ãà¢Ç7G&öæsç·fÇVWÓÂ÷7G&öæsà¢Âö'F–6ÆSà¢’—Ğ¢Â÷6V7F–öãà ¢ÆF—b6Æ74æÖSÒ&FWf–6RÖ–çFVÂ×v÷&·76R#à¢Ç6V7F–öâ6Æ74æÖSÒ&FWf–6R×&V6÷&BÖÆ—7B"&–ÖÆ&VÃÒ$FWf–6R–çFVÆÆ–vVæ6R&V6÷&G2#à¢Æ†VFW#à¢ÇäFWf–6R&V6÷&G3Â÷à¢Æƒ3ä6†ö÷6RF†RFWf–6RFò6ö×&SÂöƒ3à¢Âö†VFW#à¢²†Æöö·W†5'Vâòf–ÇFW&VE&V6÷&G2¢&V6÷&G2’æÖ‚‡&V6÷&B’Óâ€¢Æ'WGFöà¢¶W“×·&V6÷&Bæ–GĞ¢G—SÒ&'WGFöâ ¢6Æ74æÖS×·&V6÷&Bæ–BÓÓÒ7F—fU&V6÷&Bæ–Bòv7F—fRr¢rwĞ¢öä6Æ–6³×²‚’Óâ6WE6VÆV7FVDFWf–6T–B‡&V6÷&Bæ–B—Ğ¢FFÖFWf–6RÖ–çFVÆÆ–vVæ6R×&V6÷&C×·&V6÷&Bæ–GĞ¢à¢Ç7ãç·&V6÷&Bæ–GÓÂ÷7ãà¢Ç7G&öæsç·&V6÷&BæFWf–6TæÖWÓÂ÷7G&öæsà¢Ç6ÖÆÃç·&V6÷&BæFWf–6UG—WÒ+r¶Æöö·W†5'Vâò&V6÷&BæÆöö·W&W7VÇB¢vÆöö·WæVVFVBwÓÂ÷6ÖÆÃà¢Âö'WGFöãà¢’—Ğ¢¶Æöö·W†5'Vâbbf–ÇFW&VE&V6÷&G2æÆVæwF‚bb€¢ÆF—b6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂÖV×G’"&öÆSÒ'7FGW2#äæòFWf–6R–çFVÆÆ–vVæ6R&V6÷&G2ÖF6‚F†—2Æöö·WãÂöF—cà¢—Ğ¢Â÷6V7F–öãà ¢Ç6V7F–öâ6Æ74æÖSÒ&FWf–6RÖFWF–Â×æVÂ"&–ÖÆ&VÃÒ$W‡æFVBFWf–6R–çFVÆÆ–vVæ6RFWF–Â#à¢Æ†VFW#à¢ÆF—cà¢ÇäW‡æFVBFWf–6R†—7F÷'“Â÷à¢Æƒ3ç¶7F—fU&V6÷&Bæ–GÓÂöƒ3à¢Ç7ãç¶7F—fU&V6÷&BæFWf–6TæÖWÒ+r¶7F—fU&V6÷&BæFWf–6UG—WÓÂ÷7ãà¢ÂöF—cà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ–â†7F—fU&V6÷&Bæ–B—Óå–âFWf–6R”CÂö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’ÓâV–6µ–â‡²Æ&VÃ¢tFWf–6R”BrÂfÇVS¢7F—fU&V6÷&Bæ–BÂ6÷W&6UFööÃ¢tFWf–6R–çFVÆÆ–vVæ6RrÂ6÷W&6U&V6÷&D–C¢7F—fU&V6÷&Bæ–BÒ—ÓåV–6²BFWf–6R”CÂö'WGFöãà¢Âö†VFW#à ¢ÆFÂ6Æ74æÖSÒ&FWf–6RÖFWF–ÂÖw&–B#à¢µ°¢²t÷W&F–ær7—7FVÒrÂ7F—fU&V6÷&Bæ÷W&F–æu7—7FVÕÒÀ¢²t'&÷w6W"rÂ7F—fU&V6÷&Bæ'&÷w6W%ÒÀ¢²t'&÷w6W"f–ævW'&–çBrÂ†–FFVåVçF–ÄÆöö·W†7F—fU&V6÷&Bæ'&÷w6W$f–ævW'&–çB•ÒÀ¢²uG'W7FVB7FGW2rÂ†–FFVåVçF–ÄÆöö·W†7F—fU&V6÷&BçG'W7FVE7FGW2•ÒÀ¢²u&ö÷FVBò¦–Æ'&ö¶VârÂ†–FFVåVçF–ÄÆöö·W†7F—fU&V6÷&Bç&ö÷FVD¦–Æ'&ö¶Vâ•ÒÀ¢²tV×VÆF÷"ÖÆ–¶R–æF–6F÷"rÂ†–FFVåVçF–ÄÆöö·W†7F—fU&V6÷&BæV×VÆF÷$–æF–6F÷"•ÒÀ¢²ueâò&÷‡’–æF–6F÷"rÂ†–FFVåVçF–ÄÆöö·W†7F—fU&V6÷&Bçgå&÷‡”–æF–6F÷"•ÒÀ¢²u6†&VBFWf–6RFWFV7F–öârÂ†–FFVåVçF–ÄÆöö·W†7F—fU&V6÷&Bç6†&VDFWf–6TFWFV7F–öâ•ÒÀ¢²tÆ–æ¶VB&öf–ÆW2rÂ†–FFVåVçF–ÄÆöö·W‚†7F—fU&V6÷&BæÆ–æ¶VE&öf–ÆW2óòµÒ’æ¦ö–â‚r+rr’•ÒÀ¢²uvÆÆWBW6vRrÂ†–FFVåVçF–ÄÆöö·W†7F—fU&V6÷&BçvÆÆWEW6vR•ÒÀ¢ÒæÖ‚…¶Æ&VÂÂfÇVUÒ’Óâ€¢ÆF—b¶W“×¶Æ&VÇÓà¢ÆGCç¶Æ&VÇÓÂöGCà¢ÆFCç·fÇVWÓÂöFCà¢ÂöF—cà¢’—Ğ¢ÂöFÃà ¢Ç6V7F–öâ6Æ74æÖSÒ&FWf–6RÖ&V†f–÷"×æVÂ"&–ÖÆ&VÃÒ$æ÷&ÖÂ&V†f–÷"6ö×&—6öâ#à¢Æ'F–6ÆSà¢Ç7ãäæ÷&ÖÂ&V†f–÷"6ö×&—6öãÂ÷7ãà¢Ç7G&öæsç¶†–FFVåVçF–ÄÆöö·W†7F—fU&V6÷&Bææ÷&ÖÄ&V†f–÷"—ÓÂ÷7G&öæsà¢Âö'F–6ÆSà¢Æ'F–6ÆSà¢Ç7ãä†÷rFòW6R—CÂ÷7ãà¢Ç7G&öæsç¶7F—fU&V6÷&Bæ–çfW7F–vF÷%W6WÓÂ÷7G&öæsà¢Âö'F–6ÆSà¢Â÷6V7F–öãà¢Â÷6V7F–öãà¢ÂöF—cà ¢Ç6V7F–öâ6Æ74æÖSÒ&FWf–6RÖ–çFVÂÖÆ÷vW"Öw&–B"&–ÖÆ&VÃÒ$FWf–6R†—7F÷'’æB&VÆFVB&V6÷&G2#à¢Æ'F–6ÆR6Æ74æÖSÒ&FWf–6RÖ†—7F÷'’×æVÂ#à¢Æ†VFW#à¢ÇäFWf–6R†—7F÷'“Â÷à¢Æƒ3äö'6W'fVB6W76–öç3Âöƒ3à¢Âö†VFW#à¢ÆF—b6Æ74æÖSÒ&FWf–6RÖ†—7F÷'’ÖÆ—7B#à¢²†7F—fU&V6÷&Bæ†—7F÷'’óòµÒ’æÖ‚†—FVÒ’ÓâÇ7â¶W“×¶—FV×Óç¶—FV×ÓÂ÷7ãâ—Ğ¢ÂöF—cà¢Âö'F–6ÆSà ¢Æ'F–6ÆR6Æ74æÖSÒ&FWf–6R×&VÆFVB×æVÂ#à¢Æ†VFW#à¢Çå&VÆFVB&V6÷&G3Â÷à¢Æƒ3ä7&÷72×&VfW&Væ6Rö–çG3Âöƒ3à¢Âö†VFW#à¢ÆF—cà¢²†7F—fU&V6÷&Bç&VÆFVE&V6÷&G2óòµÒ’æÖ‚†—FVÒ’ÓâÇ7â¶W“×¶—FV×Óç¶—FV×ÓÂ÷7ãâ—Ğ¢ÂöF—cà¢Âö'F–6ÆSà ¢Æ'F–6ÆR6Æ74æÖSÒ&FWf–6RÖæ÷FW2×æVÂ#à¢Æ†VFW#à¢Çä–çfW7F–vF÷"æ÷FW3Â÷à¢Æƒ3äWf–FVæ6RÖf—'7B&VÖ–æFW#Âöƒ3à¢Âö†VFW#à¢ÇäFWf–6R–çFVÆÆ–vVæ6R&WfVÇ2Æöö·W&W7VÇG2öæÇ’gFW"6V&6‚â6ö×&RF†RFWf–6Rv—F‚Æöv–â†—7F÷'’Â6W76–öâ†—7F÷'’Â•–çFVÆÆ–vVæ6RÂæBF†R7W7FöÖW"7F÷'’&Vf÷&RFV6–F–ærãÂ÷à¢ÆF—cà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ6fTFWf–6Tæ÷FR†G¶7F—fU&V6÷&Bæ–GÒ&Wf–WvVC¢G¶7F—fU&V6÷&Bææ÷&ÖÄ&V†f–÷'Ö—Óå6fRFWf–6Ræ÷FSÂö'WGFöãà¢ÂöF—cà¢Âö'F–6ÆSà¢Â÷6V7F–öãà¢Âóà¢’¢€¢ÆF—b6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂÖV×G’"&öÆSÒ'7FGW2#à¢¶Æöö·W†5'Vâbb&V6÷&G2æÆVæwF€¢òtæòFWf–6R–çFVÆÆ–vVæ6R&V6÷&G2ÖF6‚F†—2Æöö·Wâ6†V6²F†RFWf–6R”BÂf–ævW'&–çBÂ'&÷w6W"Â6W76–öâÂ&öf–ÆRÂvÆÆWBÂ÷"Æö6F–öâæBG'’v–ââp¢¢tæòFWf–6R–çFVÆÆ–vVæ6R&V6÷&G2&Rf–Æ&ÆRf÷"F†—266RâwĞ¢ÂöF—cà¢—Ğ ¢Ææb6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂÖæW‡B×&÷WFW2"&–ÖÆ&VÃÒ$FWf–6R–çFVÆÆ–vVæ6RæW‡B&÷WFW2#à¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚tÆöv–â†—7F÷'’r—Óä÷VâÆöv–â†—7F÷'“Âö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚t•–çFVÆÆ–vVæ6Rr—Óä÷Vâ•–çFVÆÆ–vVæ6SÂö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×¶§V×FV6—6–öçÓä÷Vâ7V&Ö—BFV6—6–öãÂö'WGFöãà¢Âöæcà ¢Æfö÷FW"6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂ×&Wf–WrÖ&"#à¢ÆF—cà¢Ç7G&öæsäFWf–6R–çFVÆÆ–vVæ6R&Wf–WsÂ÷7G&öæsà¢Ç7ãäÖ&²&Wf–WvVBgFW"6V&6†–ærF†RFWf–6RÂ6†V6¶–ærf–ævW'&–çBö†—7F÷'’ÂæB6ö×&–ær—BFòæ÷&ÖÂ&V†f–÷"ãÂ÷7ãà¢ÂöF—cà¢Æ'WGFöà¢G—SÒ&'WGFöâ ¢6Æ74æÖS×·&Wf–WvVBòrr¢v–çfW7F–vF–öâ×FööÂ×&–Ö'’wĞ¢F—6&ÆVC×²&Wf–WvVBbbÆöö·WÖF6†VGĞ¢öä6Æ–6³×²‚’ÓâÖ&µ&Wf–WvVB‚tFWf–6R–çFVÆÆ–vVæ6Rr—Ğ¢à¢·&Wf–WvVBò~)É2FWf–6R–çFVÆÆ–vVæ6R&Wf–WvVBr¢tÖ&²FWf–6R–çFVÆÆ–vVæ6R&Wf–WvVBwĞ¢Âö'WGFöãà¢Âöfö÷FW#à¢Âóà¢“°§Ğ ¦6öç7BFö7VÖVçE&WVW7E7FGW6W2Ò²tÆÂrÂtæ÷B&WVW7FVBrÂu&WVW7FVBrÂu&V6V—fVBrÂt–æ6ö×ÆWFRrÂu&V6V—fVBÆFRrÂtæò&W7öç6RrÂuVæF–ær&Wf–WrrÂt&÷fVBrÂu&V¦V7FVBrÂtW‡—&VBrÂtÖ—76–ærrÂtW†6WF–öâ&÷fVBuÓ° ¦gVæ7F–öâFö7VÖVçE&WVW7E6V&6…FW‡B‡&WVW7B’°¢&WGW&âö&¦V7BçfÇVW2‡&WVW7B’æf–ÇFW"„&ööÆVâ’æ¦ö–â‚rr’çFôÆ÷vW$66R‚“°§Ğ ¦gVæ7F–öâFö7VÖVçE&WVW7Ev÷&·76R‡°¢7F—fT66RÀ¢VW'’À¢6WEVW'’À¢–âÀ¢6fTæ÷FRÀ¢Ö&µ&Wf–WvVBÀ¢&Wf–WvVBÀ¢÷VåFööÂÀ¢§V×FV6—6–öâÀ¢Fö7VÖVçE&WVW7G2À¢6WDFö7VÖVçE&WVW7G4'”66RÀ¢&V6÷&D7F–öâÀ§Ò’°¢6öç7B·6VÆV7FVE&WVW7D–BÂ6WE6VÆV7FVE&WVW7D–EÒÒW6U7FFR‚rr“°¢6öç7B·7FGW4f–ÇFW"Â6WE7FGW4f–ÇFW%ÒÒW6U7FFR‚tÆÂr“°¢6öç7B¶6ö×÷6T÷VâÂ6WD6ö×÷6T÷VåÒÒW6U7FFR†fÇ6R“°¢6öç7B¶6ö×÷6TFö7VÖVçD–BÂ6WD6ö×÷6TFö7VÖVçD–EÒÒW6U7FFR‚rr“°¢6öç7B¶6ö×÷6U&V6öâÂ6WD6ö×÷6U&V6öåÒÒW6U7FFR‚uÆV6R&÷f–FRF†—2W'v÷&²6òF†RF—7WFVB6Æ–Ò6â&R&Wf–WvVBâr“°¢6öç7B¶6ö×÷6T6†ææVÂÂ6WD6ö×÷6T6†ææVÅÒÒW6U7FFR‚u6V7W&RWÆöBÆ–æ²r“°¢6öç7B¶6ö×÷6TGVTFFRÂ6WD6ö×÷6TGVTFFUÒÒW6U7FFR‚‚’Óâ°¢6öç7BGVRÒæWrFFR‚“°¢GVRç6WDFFR†GVRævWDFFR‚’²r“°¢&WGW&âGVRçFô•4õ7G&–ær‚’ç6Æ–6RƒÂ“°¢Ò“°¢6öç7B¶Öö&–ÆUæRÂ6WDÖö&–ÆUæUÒÒW6U7FFR‚v–æ&÷‚r“°¢6öç7B·&WVW7D6öæf—&ÖF–öâÂ6WE&WVW7D6öæf—&ÖF–öåÒÒW6U7FFR‚rr“°¢6öç7B&WVW7EFV×ÆFW2ÒvWEW'v÷&µ&WVW7EFV×ÆFW2†7F—fT66R“°¢6öç7B&WVW7G2Ò'V–ÆEW'v÷&´–æ&÷…&V6÷&G2†7F—fT66RÂFö7VÖVçE&WVW7G2“°¢6öç7BÖW&6†çDFö7VÖVçG2ÒvWD66TFö7VÖVçG2†7F—fT66R’æf–ÇFW"‚†Fö7VÖVçB’ÓâFö7VÖVçBæföÆFW"ÓÓÒtÖW&6†çBWf–FVæ6RrbbFö7VÖVçBçvW3òæÆVæwF‚“°¢6öç7Bf—'7DÖW&6†çDFö7VÖVçBÒÖW&6†çDFö7VÖVçG5³Ó°¢6öç7Bæ÷&ÖÆ—¦VEVW'’ÒVW'’çG&–Ò‚’çFôÆ÷vW$66R‚“°¢6öç7Bf–ÇFW&VE&WVW7G2Ò&WVW7G2æf–ÇFW"‚‡&WVW7B’Óâ€¢‡7FGW4f–ÇFW"ÓÓÒtÆÂrÇÂ&WVW7Bç7FGW2ÓÓÒ7FGW4f–ÇFW"¢bb‚æ÷&ÖÆ—¦VEVW'’ÇÂFö7VÖVçE&WVW7E6V&6…FW‡B‡&WVW7B’æ–æ6ÇVFW2†æ÷&ÖÆ—¦VEVW'’’¢’“°¢6öç7B7F—fU&WVW7BÒf–ÇFW&VE&WVW7G2æf–æB‚‡&WVW7B’Óâ&WVW7Bæ–BÓÓÒ6VÆV7FVE&WVW7D–B’óòf–ÇFW&VE&WVW7G5³Ó°¢6öç7B6÷VçG2ÒFö7VÖVçE&WVW7E7FGW6W2ç6Æ–6Rƒ’æÖ‚‡7FGW2’Óâ·7FGW2Â&WVW7G2æf–ÇFW"‚‡&WVW7B’Óâ&WVW7Bç7FGW2ÓÓÒ7FGW2’æÆVæwF…Ò“° ¢W6TVffV7B‚‚’Óâ°¢6WE6VÆV7FVE&WVW7D–B‚rr“°¢6WE7FGW4f–ÇFW"‚tÆÂr“°¢6WD6ö×÷6T÷Vâ†fÇ6R“°¢6WD6ö×÷6TFö7VÖVçD–B‚rr“°¢6WDÖö&–ÆUæR‚v–æ&÷‚r“°¢6WE&WVW7D6öæf—&ÖF–öâ‚rr“°¢ÒÂ¶7F—fT66Ræ–EÒ“° ¢gVæ7F–öâ6fU&WVW7Dæ÷FR†ÖW76vR’°¢6fTæ÷FR†Fö7VÖVçB&WVW7C¢G¶ÖW76vWÖÂtFö7VÖVçB&WVW7Br“°¢Ğ ¢gVæ7F–öâ÷Vä6ö×÷6W"‡&WVW7B’°¢6öç7B&WVW7FVE6÷W&6T–BÒ&WVW7Còç6÷W&6TFö7VÖVçD–C°¢6öç7B6÷W&6TFö7VÖVçD–BÒ&WVW7EFV×ÆFW2ç6öÖR‚†—FVÒ’Óâ—FVÒæ–BÓÓÒ&WVW7FVE6÷W&6T–B¢ò&WVW7FVE6÷W&6T–@¢¢&WVW7EFV×ÆFW5³Óòæ–Bóòrs°¢6öç7B&WVW7FVEF—FÆRÒ&WVW7Còç&WVW7FVDFö7VÖVçEG—Róò&WVW7CòæFö7VÖVçEG—Róò&WVW7EFV×ÆFW5³ÓòçF—FÆRóòwF†—2W'v÷&²s°¢6WD6ö×÷6TFö7VÖVçD–B‡6÷W&6TFö7VÖVçD–B“°¢6WD6ö×÷6U&V6öâ…²t–æ6ö×ÆWFRrÂtæò&W7öç6RuÒæ–æ6ÇVFW2‡&WVW7Còç7FGW2¢òÆV6R&÷f–FR6ö×ÆWFR6÷’öbG·&WVW7FVEF—FÆWÒÂ–æ6ÇVF–ærWfW'’vRæBf—6–&ÆR&VfW&Væ6Ræ ¢¢uÆV6R&÷f–FRF†—2W'v÷&²6òF†RF—7WFVB6Æ–Ò6â&R&Wf–WvVBâr“°¢6WD6ö×÷6T6†ææVÂ‡&WVW7Còç&WVW7DFVÆ—fW'”6†ææVÂÓÓÒtæ÷B6VçBròu6V7W&RWÆöBÆ–æ²r¢&WVW7Còç&WVW7DFVÆ—fW'”6†ææVÂóòu6V7W&RWÆöBÆ–æ²r“°¢6WD6ö×÷6T÷Vâ‡G'VR“°¢6WDÖö&–ÆUæR‚v6ö×÷6Rr“°¢6WE&WVW7D6öæf—&ÖF–öâ‚rr“°¢Ğ ¢gVæ7F–öâ7V&Ö—EW'v÷&µ&WVW7B†WfVçB’°¢WfVçBç&WfVçDFVfVÇB‚“°¢6öç7BFö7VÖVçBÒ&WVW7EFV×ÆFW2æf–æB‚‡&WVW7B’Óâ&WVW7Bæ–BÓÓÒ6ö×÷6TFö7VÖVçD–B“°¢–b‚Fö7VÖVçBÇÂ6ö×÷6U&V6öâçG&–Ò‚’’&WGW&ã°¢6öç7B&WVW7FVDFFRÒæWrFFR‚’çFôÆö6ÆU7G&–ær…µÒÂ²ÖöçFƒ¢w6†÷'BrÂF“¢vçVÖW&–2rÂ–V#¢vçVÖW&–2rÂ†÷W#¢vçVÖW&–2rÂÖ–çWFS¢s"ÖF–v—BrÒ“°¢6öç7BGVTFFRÒ6ö×÷6TGVTFFP¢òæWr–çFÂäFFUF–ÖTf÷&ÖB‚vVâÕU2rÂ²ÖöçFƒ¢w6†÷'BrÂF“¢vçVÖW&–2rÂ–V#¢vçVÖW&–2rÒ’æf÷&ÖB†æWrFFR†G¶6ö×÷6TGVTFFWÕC#££’¢¢tföÆÆ÷r×WFFRæ÷B7WÆ–VBs°¢6öç7BGFV×BÒ7&VFUW'v÷&´GFV×B‡°¢7F—fT66RÀ¢Fö7VÖVçBÀ¢&V6öã¢6ö×÷6U&V6öâçG&–Ò‚’À¢GVTFFRÀ¢&WVW7FVDFFRÀ¢FVÆ—fW'”6†ææVÃ¢6ö×÷6T6†ææVÂÀ¢Ò“°¢6WDFö7VÖVçE&WVW7G4'”66R‚†7W'&VçB’Óâ‡°¢ââæ7W'&VçBÀ¢¶7F—fT66Ræ–EÓ¢°¢âââ†7W'&VçE¶7F—fT66Ræ–EÒóò·Ò’À¢¶Fö7VÖVçBæ–EÓ¢°¢66†VÖfW'6–öã¢"À¢6÷W&6TFö7VÖVçD–C¢Fö7VÖVçBæ–BÀ¢GFV×G3¢²âââ†7W'&VçE¶7F—fT66Ræ–EÓòå¶Fö7VÖVçBæ–EÓòæGFV×G2óòµÒ’ÂGFV×EÒÀ¢ÒÀ¢ÒÀ¢Ò’“°¢6WE6VÆV7FVE&WVW7D–B†GFV×Bç&WVW7D–B“°¢6WE7FGW4f–ÇFW"‚tÆÂr“°¢6WD6ö×÷6T÷Vâ†fÇ6R“°¢6WDÖö&–ÆUæR‚w&VFW"r“°¢6WE&WVW7D6öæf—&ÖF–öâ†G¶Fö7VÖVçBçF—FÆWÒ&WVW7B6VçBFòG¶7F—fT66RçW'6öâóòwF†R7W7FöÖW"wÒF‡&÷Vv‚G¶6ö×÷6T6†ææVÇÒæ“°¢6fU&WVW7Dæ÷FR†G¶Fö7VÖVçBçF—FÆWÒ&WVW7FVBg&öÒG¶7F—fT66RçW'6öâóòwF†R7W7FöÖW"wÒF‡&÷Vv‚G¶6ö×÷6T6†ææVÇÓ²föÆÆ÷r×WGVRG¶GVTFFWÒæ“°¢Ğ ¢gVæ7F–öâ6†V6´7W7FöÖW%&W7öç6R‡&WVW7BÒ7F—fU&WVW7B’°¢–b‚&WVW7BÇÂ&WVW7Bç&V6÷&D¶–æBÓÒv÷WF&÷VæB×&WVW7BrÇÂ&WVW7Bç7FGW2ÓÒu&WVW7FVBrÇÂ&WVW7Bç&W7öç6T6†V6¶VDB’&WGW&ã°¢6öç7B6÷W&6TFö7VÖVçBÒ&WVW7EFV×ÆFW2æf–æB‚†—FVÒ’Óâ—FVÒæ–BÓÓÒ&WVW7Bç6÷W&6TFö7VÖVçD–B“°¢–b‚6÷W&6TFö7VÖVçB’&WGW&ã°¢6öç7B6†V6¶VDBÒæWrFFR‚’çFôÆö6ÆU7G&–ær…µÒÂ²ÖöçFƒ¢w6†÷'BrÂF“¢vçVÖW&–2rÂ–V#¢vçVÖW&–2rÂ†÷W#¢vçVÖW&–2rÂÖ–çWFS¢s"ÖF–v—BrÒ“°¢6öç7B7W'&VçDGFV×BÒFö7VÖVçE&WVW7G5·&WVW7Bç6÷W&6TFö7VÖVçD–EÓòæGFV×G3òæf–æB‚†GFV×B’ÓâGFV×BæGFV×D–BÓÓÒ&WVW7BæGFV×D–B“°¢–b‚7W'&VçDGFV×B’&WGW&ã°¢6öç7BWFFVDGFV×BÒÇ”7W7FöÖW%&W7öç6R‡²7F—fT66RÂFö7VÖVçC¢6÷W&6TFö7VÖVçBÂGFV×C¢7W'&VçDGFV×BÂ6†V6¶VDBÒ“°¢6WDFö7VÖVçE&WVW7G4'”66R‚†7W'&VçB’Óâ‡°¢ââæ7W'&VçBÀ¢¶7F—fT66Ræ–EÓ¢‚‚’Óâ°¢6öç7B66U&WVW7G2Ò7W'&VçE¶7F—fT66Ræ–EÒóò·Ó°¢6öç7BFö7VÖVçE7FFRÒ66U&WVW7G5·&WVW7Bç6÷W&6TFö7VÖVçD–EÒóò²66†VÖfW'6–öã¢"Â6÷W&6TFö7VÖVçD–C¢&WVW7Bç6÷W&6TFö7VÖVçD–BÂGFV×G3¢µÒÓ°¢6öç7BGFV×G2ÒFö7VÖVçE7FFRæGFV×G2æÖ‚†GFV×B’ÓâGFV×BæGFV×D–BÓÓÒ&WVW7BæGFV×D–BòWFFVDGFV×B¢GFV×B“°¢&WGW&â²ââæ66U&WVW7G2Â·&WVW7Bç6÷W&6TFö7VÖVçD–EÓ¢²ââæFö7VÖVçE7FFRÂGFV×G2ÒÓ°¢Ò’‚’À¢Ò’“°¢6WE6VÆV7FVE&WVW7D–B‡WFFVDGFV×Bç&W7öç6T–BÇÂWFFVDGFV×Bç&WVW7D–B“°¢6WE7FGW4f–ÇFW"‚tÆÂr“°¢6WDÖö&–ÆUæR‚w&VFW"r“°¢6öç7B6öæf—&ÖF–öâÒWFFVDGFV×Bç&W7öç6U7FGW2ÓÓÒtæò&W7öç6Rp¢òG·6÷W&6TFö7VÖVçBçF—FÆWÓ¢æò7W7FöÖW"&W7öç6Rv2&V6V—fVBf÷"F†—266Væ&–òæ ¢¢WFFVDGFV×Bç&W7öç6U7FGW2ÓÓÒt–æ6ö×ÆWFRp¢òG·6÷W&6TFö7VÖVçBçF—FÆWÒ&V6V—fVBg&öÒF†R7W7FöÖW"Â'WBF†R7V&Ö—76–öâ—2–æ6ö×ÆWFRæ ¢¢WFFVDGFV×Bç&W7öç6U7FGW2ÓÓÒu&V6V—fVBÆFRp¢òG·6÷W&6TFö7VÖVçBçF—FÆWÒ&V6V—fVBg&öÒF†R7W7FöÖW"gFW"F†RföÆÆ÷r×WFFRæ ¢¢G·6÷W&6TFö7VÖVçBçF—FÆWÒ&V6V—fVBg&öÒF†R7W7FöÖW"æBFFVB26W&FRFö7VÖVçBf–WvW"&V6÷&Bæ°¢6WE&WVW7D6öæf—&ÖF–öâ†6öæf—&ÖF–öâ“°¢6fU&WVW7Dæ÷FR†G·6÷W&6TFö7VÖVçBçF—FÆWÒ&W7öç6R6†V6²&V6÷&FVC¢G·WFFVDGFV×Bç&W7öç6U7FGW7Òæ“°¢Ğ ¢gVæ7F–öâ÷Vå&WVW7B‡&WVW7D–B’°¢6WE6VÆV7FVE&WVW7D–B‡&WVW7D–B“°¢6WD6ö×÷6T÷Vâ†fÇ6R“°¢6WDÖö&–ÆUæR‚w&VFW"r“°¢6WE&WVW7D6öæf—&ÖF–öâ‚rr“°¢Ğ ¢gVæ7F–öâ÷VäFö7VÖVçEf–WvW%&÷WFR‡²föÆFW"ÒtÆÂFö7VÖVçG2rÂFö7VÖVçD–BÒrrÂæRÒv–æ&÷‚rÒÒ·Ò’°¢VWVTFö7VÖVçEf–WvW%&÷WFR‡²66T–C¢7F—fT66Ræ–BÂföÆFW"ÂFö7VÖVçD–BÂæRÒ“°¢÷VåFööÂ‚tFö7VÖVçBf–WvW"r“°¢Ğ ¢gVæ7F–öâ÷VäÖW&6†çEW'v÷&²‚’°¢÷VäFö7VÖVçEf–WvW%&÷WFR‡°¢föÆFW#¢tÖW&6†çBWf–FVæ6RrÀ¢Fö7VÖVçD–C¢f—'7DÖW&6†çDFö7VÖVçCòæ–BóòrrÀ¢æS¢f—'7DÖW&6†çDFö7VÖVçBòw&VFW"r¢v–æ&÷‚rÀ¢Ò“°¢Ğ ¢&WGW&â€¢Ãà¢Ç6V7F–öâ6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖf–æF&""&–ÖÆ&VÃÒ$f–æBFö7VÖVçB&WVW7B–æf÷&ÖF–öâ#à¢ÆF—cà¢ÇåW'v÷&²–æ&÷ƒÂ÷à¢Æƒ3å6VæBÂG&6²ÂæB&Wf–Wr66RW'v÷&²v—F†÷WBÆVf–ærF†R7F—fR6Æ–ÒãÂöƒ3à¢ÂöF—cà¢ÆÆ&VÃà¢Ç7ãå6V&6‚Fö7VÖVçB&WVW7CÂ÷7ãà¢Æ–çW@¢fÇVS×·VW'—Ğ¢öä6†ævS×²†WfVçB’Óâ6WEVW'’†WfVçBçF&vWBçfÇVR—Ğ¢Æ6V†öÆFW#Ò%G'“¢ff–Ff—BÂ6æ6VÆÆF–öâÂ&WV—&VBÂÖ—76–ærÂFö7VÖVçBf–WvW"âââ ¢&–ÖÆ&VÃÒ%6V&6‚Fö7VÖVçB&WVW7B&V6÷&G2 ¢óà¢ÂöÆ&VÃà¢Ç7â&–ÖÆ—fSÒ'öÆ—FR#ç¶f–ÇFW&VE&WVW7G2æÆVæwF‡Òöb·&WVW7G2æÆVæwF‡Ò&WVW7G26†÷vãÂ÷7ãà¢Â÷6V7F–öãà ¢·&WVW7D6öæf—&ÖF–öâbbÆF—b6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖ6öæf—&ÖF–öâ"&öÆSÒ'7FGW2#î)É2·&WVW7D6öæf—&ÖF–öçÓÂöF—cçĞ ¢ÆF—b6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖ–æ&÷‚"FFÖÖö&–ÆR×æS×¶6ö×÷6T÷Vâòv6ö×÷6Rr¢Öö&–ÆUæWÓà¢Æ6–FR6Æ74æÖSÒ&Fö7VÖVçB×&WVW7B×7FGW6W2"&–ÖÆ&VÃÒ$Fö7VÖVçB&WVW7B7FGW6W2#à¢Æ'WGFöâG—SÒ&'WGFöâ"6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖ6ö×÷6RÖ'WGFöâ"öä6Æ–6³×²‚’Óâ÷Vä6ö×÷6W"‚—ÒF—6&ÆVC×²&WVW7EFV×ÆFW2æÆVæwF‡ÓîûÈ²&WVW7BW'v÷&³Âö'WGFöãà¢ÇäÖ–Æ&÷†W3Â÷à¢¶Fö7VÖVçE&WVW7E7FGW6W2æÖ‚‡7FGW2’Óâ°¢6öç7B6÷VçBÒ7FGW2ÓÓÒtÆÂrò&WVW7G2æÆVæwF‚¢&WVW7G2æf–ÇFW"‚‡&WVW7B’Óâ&WVW7Bç7FGW2ÓÓÒ7FGW2’æÆVæwFƒ°¢–b‡7FGW2ÓÒtÆÂrbb6÷VçBÓÓÒ’&WGW&âçVÆÃ°¢&WGW&âÆ'WGFöâ¶W“×·7FGW7ÒG—SÒ&'WGFöâ"6Æ74æÖS×·7FGW4f–ÇFW"ÓÓÒ7FGW2òv7F—fRr¢rwÒöä6Æ–6³×²‚’Óâ²6WE7FGW4f–ÇFW"‡7FGW2“²6WDÖö&–ÆUæR‚v–æ&÷‚r“²×Óç·7FGW2ÓÓÒtÆÂròtÆÂW'v÷&²r¢7FGW7ÓÇ7G&öæsç¶6÷VçGÓÂ÷7G&öæsãÂö'WGFöãã°¢Ò—Ğ¢¶f—'7DÖW&6†çDFö7VÖVçBbbÆ'WGFöâG—SÒ&'WGFöâ"6Æ74æÖSÒ&Fö7VÖVçB×&WVW7B×f–WvW"×&÷WFRÖW&6†çB×W'v÷&²×&÷WFR"öä6Æ–6³×¶÷VäÖW&6†çEW'v÷&·Óåf–WrÖW&6†çBW'v÷&²Ç7G&öæsç¶ÖW&6†çDFö7VÖVçG2æÆVæwF‡ÓÂ÷7G&öæsãÂö'WGFöãçĞ¢Æ'WGFöâG—SÒ&'WGFöâ"6Æ74æÖSÒ&Fö7VÖVçB×&WVW7B×f–WvW"×&÷WFR"öä6Æ–6³×²‚’Óâ÷VäFö7VÖVçEf–WvW%&÷WFR‚—Óä÷VâÆÂFö7VÖVçG3Âö'WGFöãà¢Âö6–FSà ¢Ç6V7F–öâ6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖÆ—7B"&–ÖÆ&VÃÒ$Fö7VÖVçB&WVW7B&V6÷&G2#à¢Æ†VFW#à¢Çç·7FGW4f–ÇFW"ÓÓÒtÆÂròtÆÂW'v÷&²r¢7FGW4f–ÇFW'ÓÂ÷à¢Æƒ3ç¶f–ÇFW&VE&WVW7G2æÆVæwF‡Ò6öçfW'6F–öç¶f–ÇFW&VE&WVW7G2æÆVæwF‚ÓÓÒòrr¢w2wÓÂöƒ3à¢Âö†VFW#à¢¶f–ÇFW&VE&WVW7G2æÖ‚‡&WVW7B’Óâ€¢Æ'WGFöà¢¶W“×·&WVW7Bæ–GĞ¢G—SÒ&'WGFöâ ¢6Æ74æÖS×·&WVW7Bæ–BÓÓÒ7F—fU&WVW7Bæ–Bòv7F—fRr¢rwĞ¢öä6Æ–6³×²‚’Óâ÷Vå&WVW7B‡&WVW7Bæ–B—Ğ¢FFÖFö7VÖVçB×&WVW7C×·&WVW7Bæ–GĞ¢à¢Ç7â6Æ74æÖS×¶Fö7VÖVçB×&WVW7B×7FGW2ÖF÷B7FGW2ÒG·&WVW7Bç7FGW2çFôÆ÷vW$66R‚’ç&WÆ6R‚õÇ2²örÂrÒr—ÖÒ&–Ö†–FFVãÒ'G'VR#ãÂ÷7ãà¢Ç7â6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖÖW76vRÖ6÷’#ãÇ7G&öæsç·&WVW7BæFö7VÖVçEG—WÓÂ÷7G&öæsãÇ6ÖÆÃç·&WVW7Bç7FGW2ÓÓÒtæ÷B&WVW7FVBròtæ÷B6VçBr¢&WVW7BçvW4f–Æ&ÆRòg&öÓ¢G·&WVW7Bç6VæFW'Ö¢Fó¢G·&WVW7Bç&V6—–VçGÖÒ+r·&WVW7Bç&WV—&VÖVçGÓÂ÷6ÖÆÃãÆVÓç·&WVW7Bç&V6öçÓÂöVÓãÂ÷7ãà¢Ç7â6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖÖW76vRÖÖWF#ãÇ6ÖÆÃç·&WVW7Bç7FGW7ÓÂ÷6ÖÆÃãÇF–ÖSç·&WVW7Bç&V6÷&D¶–æBÓÓÒv7W7FöÖW"×7V&Ö—76–öârò&WVW7Bç&V6V—fVDFFR¢&WVW7Bç&WVW7FVDFFWÓÂ÷F–ÖSãÂ÷7ãà¢Âö'WGFöãà¢’—Ğ¢²f–ÇFW&VE&WVW7G2æÆVæwF‚bbÆF—b6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂÖV×G’"&öÆSÒ'7FGW2#äæòFö7VÖVçB&WVW7G2ÖF6‚F†—2f–ÇFW"÷"6V&6‚ãÂöF—cçĞ¢Â÷6V7F–öãà ¢ÆÖ–â6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖFWF–Â"&–ÖÆ&VÃ×¶6ö×÷6T÷Vâòt6ö×÷6RW'v÷&²&WVW7Br¢tW‡æFVBFö7VÖVçB&WVW7BFWF–ÂwÓà¢¶6ö×÷6T÷Vâò€¢Æf÷&Ò6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖ6ö×÷6R"öå7V&Ö—C×·7V&Ö—EW'v÷&µ&WVW7GÓà¢Æ†VFW#à¢Æ'WGFöâG—SÒ&'WGFöâ"6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖÖö&–ÆRÖ&6²"öä6Æ–6³×²‚’Óâ²6WD6ö×÷6T÷Vâ†fÇ6R“²6WDÖö&–ÆUæR†7F—fU&WVW7Bòw&VFW"r¢v–æ&÷‚r“²×Óî(’&6³Âö'WGFöãà¢ÆF—cãÇäæWr&WVW7CÂ÷ãÆƒ3å&WVW7BW'v÷&³Âöƒ3ãÇ7ãåF†—27&VFW26fVB&WVW7Böâ¶7F—fT66Ræ–GÒãÂ÷7ããÂöF—cà¢Âö†VFW#à¢ÆÆ&VÃãÇ7ãåFóÂ÷7ããÆ–çWBfÇVS×¶7F—fT66RçW'6öâóòt7W7FöÖW"öâF†R7F—fR66RwÒ&VDöæÇ’&–ÖÆ&VÃÒ%W'v÷&²&WVW7B&V6—–VçB"óãÂöÆ&VÃà¢ÆÆ&VÃãÇ7ãåW'v÷&³Â÷7ããÇ6VÆV7BfÇVS×¶6ö×÷6TFö7VÖVçD–BÇÂ&WVW7EFV×ÆFW5³Óòæ–BÇÂrwÒöä6†ævS×²†WfVçB’Óâ6WD6ö×÷6TFö7VÖVçD–B†WfVçBçF&vWBçfÇVR—Ò&–ÖÆ&VÃÒ%W'v÷&²Fò&WVW7B#ç·&WVW7EFV×ÆFW2æÖ‚‡&WVW7B’ÓâÆ÷F–öâ¶W“×·&WVW7Bæ–GÒfÇVS×·&WVW7Bæ–GÓç·&WVW7BçF—FÆWÓÂö÷F–öãâ—ÓÂ÷6VÆV7CãÂöÆ&VÃà¢ÆÆ&VÃãÇ7ãäFVÆ—fW'’ÖWF†öCÂ÷7ããÇ6VÆV7BfÇVS×¶6ö×÷6T6†ææVÇÒöä6†ævS×²†WfVçB’Óâ6WD6ö×÷6T6†ææVÂ†WfVçBçF&vWBçfÇVR—Ò&–ÖÆ&VÃÒ%W'v÷&²&WVW7BFVÆ—fW'’ÖWF†öB#ãÆ÷F–öãå6V7W&RWÆöBÆ–æ³Âö÷F–öããÆ÷F–öãäVÖ–ÃÂö÷F–öããÆ÷F–öãäÖ–ÃÂö÷F–öããÆ÷F–öãä7W7FöÖW"6W'f–6RföÆÆ÷r×WÂö÷F–öããÂ÷6VÆV7CãÂöÆ&VÃà¢ÆÆ&VÃãÇ7ãäföÆÆ÷r×WGVSÂ÷7ããÆ–çWBG—SÒ&FFR"fÇVS×¶6ö×÷6TGVTFFWÒöä6†ævS×²†WfVçB’Óâ6WD6ö×÷6TGVTFFR†WfVçBçF&vWBçfÇVR—Ò&–ÖÆ&VÃÒ%W'v÷&²&WVW7BGVRFFR"óãÂöÆ&VÃà¢ÆÆ&VÂ6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖ6ö×÷6R×&V6öâ#ãÇ7ãäÖW76vRò&V6öãÂ÷7ããÇFW‡F&VfÇVS×¶6ö×÷6U&V6öçÒöä6†ævS×²†WfVçB’Óâ6WD6ö×÷6U&V6öâ†WfVçBçF&vWBçfÇVR—Ò&–ÖÆ&VÃÒ%W'v÷&²&WVW7B&V6öâ"óãÂöÆ&VÃà¢ÆF—b6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖ6ö×÷6RÖ7F–öç2#ãÆ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ²6WD6ö×÷6T÷Vâ†fÇ6R“²6WDÖö&–ÆUæR†7F—fU&WVW7Bòw&VFW"r¢v–æ&÷‚r“²×Óä6æ6VÃÂö'WGFöããÆ'WGFöâG—SÒ'7V&Ö—B"6Æ74æÖSÒ'&–Ö'’"F—6&ÆVC×²6ö×÷6TFö7VÖVçD–Bbb&WVW7EFV×ÆFW5³Óòæ–GÓå6VæB&WVW7CÂö'WGFöããÂöF—cà¢Âöf÷&Óà¢’¢7F—fU&WVW7BòƒÃà¢Æ†VFW#à¢Æ'WGFöâG—SÒ&'WGFöâ"6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖÖö&–ÆRÖ&6²"öä6Æ–6³×²‚’Óâ6WDÖö&–ÆUæR‚v–æ&÷‚r—Óî(’–æ&÷ƒÂö'WGFöãà¢ÆF—cà¢ÇåW'v÷&²6öçfW'6F–öãÂ÷à¢Æƒ3ç¶7F—fU&WVW7BæFö7VÖVçEG—WÓÂöƒ3à¢Ç7ãç¶7F—fU&WVW7Bæ–GÒ+r¶7F—fU&WVW7Bç7FGW7ÓÂ÷7ãà¢ÂöF—cà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ–â†G¶7F—fU&WVW7Bæ–GÒ+rG¶7F—fU&WVW7BæFö7VÖVçEG—WÖ—Óå–â&WVW7CÂö'WGFöãà¢Âö†VFW#à¢¶7F—fU&WVW7Bç7FGW2ÓÓÒtæ÷B&WVW7FVBrò€¢Ç6V7F–öâ6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖæ÷B×6VçB"&öÆSÒ'7FGW2#à¢Ç7ãäæ÷B&WVW7FVCÂ÷7ãà¢ÆƒCäæòW'v÷&²&WVW7B†2&VVâ6VçBãÂöƒCà¢ÇåF†R7W7FöÖW"†2æ÷B&VVâ6öçF7FVBf÷"F†—2—FVÒâ6VæB&WVW7BöæÇ’v†VâF†R6Æ–Ò66Væ&–ò&WV—&W2F†—2Wf–FVæ6RãÂ÷à¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷Vä6ö×÷6W"†7F—fU&WVW7B—Óå&WVW7BF†—2W'v÷&³Âö'WGFöãà¢Â÷6V7F–öãà¢’¢7F—fU&WVW7BçvW4f–Æ&ÆRòƒÃà¢Ç6V7F–öâ6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖÖW76vRÖ†VFW"#ãÆFÃãÆF—cãÆGCäg&öÓÂöGCãÆFCç¶7F—fU&WVW7Bç6VæFW'ÓÂöFCãÂöF—cãÆF—cãÆGCåFóÂöGCãÆFCäg&VB6FV×’6†&vV&6·3ÂöFCãÂöF—cãÆF—cãÆGCå&V6V—fVCÂöGCãÆFCç¶7F—fU&WVW7Bç&V6V—fVDFFWÓÂöFCãÂöF—cãÆF—cãÆGCå6÷W&6SÂöGCãÆFCç¶7F—fU&WVW7BæFVÆ—fW'”6†ææVÇÓÂöFCãÂöF—cãÂöFÃãÂ÷6V7F–öãà¢Æ'F–6ÆR6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖÖW76vRÖ&öG’–æ&÷VæB#ç¶7F—fU&WVW7BçVç&VBbbÇ7â6Æ74æÖSÒ&Fö7VÖVçB×&WVW7B×Vç&VB#äæWr7W7FöÖW"7V&Ö—76–öãÂ÷7ãçÓÇä7W7FöÖW"×7V&Ö—GFVBW'v÷&²&V6V—fVBf÷"66RÇ7G&öæsç¶7F—fU&WVW7BæÆ–æ¶VD66WÓÂ÷7G&öæsâãÂ÷ãÇç¶7F—fU&WVW7Bç&V6öçÓÂ÷ãÇä÷VâF†R6÷W&6RFö7VÖVçB&VÆ÷ræB&Wf–WrF†R7GVÂvR&Vf÷&R&V6÷&F–ærv†B—B7W÷'G2÷"ÆVfW2Vç&W6öÇfVBãÂ÷ãÂö'F–6ÆSà¢Âóâ’¢7F—fU&WVW7Bç7FGW2ÓÓÒtæò&W7öç6RròƒÃà¢Ç6V7F–öâ6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖÖW76vRÖ†VFW"#ãÆFÃãÆF—cãÆGCå&WVW7B6VçBFóÂöGCãÆFCç¶7F—fU&WVW7Bç&V6—–VçGÓÂöFCãÂöF—cãÆF—cãÆGCå6VçCÂöGCãÆFCç¶7F—fU&WVW7Bç&WVW7FVDFFWÓÂöFCãÂöF—cãÆF—cãÆGCäföÆÆ÷r×W6†V6¶VCÂöGCãÆFCç¶7F—fU&WVW7Bç&W7öç6T6†V6¶VDGÓÂöFCãÂöF—cãÆF—cãÆGCå&W7VÇCÂöGCãÆFCäæò7W7FöÖW"7V&Ö—76–öãÂöFCãÂöF—cãÂöFÃãÂ÷6V7F–öãà¢Æ'F–6ÆR6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖÖW76vRÖ&öG’#ãÇäæòFö7VÖVçBv2&WGW&æVBgFW"F†—2&WVW7Bv26†V6¶VBãÂ÷ãÇåF†R&WVW7B†—7F÷'’7F—2f—6–&ÆRÂ'WBF†W&R—2æò6÷W&6RvRFò&Wf–Wrf÷"F†—266Væ&–òãÂ÷ãÂö'F–6ÆSà¢Âóâ’¢ƒÃà¢Ç6V7F–öâ6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖÖW76vRÖ†VFW"#ãÆFÃãÆF—cãÆGCäg&öÓÂöGCãÆFCäg&VB6FV×’Fö7VÖVçB6W'f–6W3ÂöFCãÂöF—cãÆF—cãÆGCåFóÂöGCãÆFCç¶7F—fU&WVW7Bç&V6—–VçGÓÂöFCãÂöF—cãÆF—cãÆGCå6VçCÂöGCãÆFCç¶7F—fU&WVW7Bç&WVW7FVDFFWÓÂöFCãÂöF—cãÆF—cãÆGCäFVÆ—fW'“ÂöGCãÆFCç¶7F—fU&WVW7BæFVÆ—fW'”6†ææVÇÓÂöFCãÂöF—cãÂöFÃãÂ÷6V7F–öãà¢Æ'F–6ÆR6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖÖW76vRÖ&öG’#ãÇä†VÆÆò¶7F—fU&WVW7Bç&V6—–VçGÒÃÂ÷ãÇç¶7F—fU&WVW7Bç&V6öçÓÂ÷ãÇåÆV6R7V&Ö—BF†R&WVW7FVBW'v÷&²'’Ç7G&öæsç¶7F—fU&WVW7BæGVTFFWÓÂ÷7G&öæsââF†R&WVW7B—2æ÷rv—F–ærf÷"F†R66Væ&–ò7W7FöÖW"Fò&W7öæC²æòFö7VÖVçB—27&VFVB'’F†RvVçBãÂ÷ãÇåF†æ²–÷RÃÆ'"óäg&VB6FV×’Fö7VÖVçB6W'f–6W3Â÷ãÂö'F–6ÆSà¢Âóâ—Ğ¢ÆFÃà¢µ°¢²tFö7VÖVçBG—RrÂ7F—fU&WVW7BæFö7VÖVçEG—UÒÀ¢²u&WV—&VBò÷F–öæÂrÂ7F—fU&WVW7Bç&WV—&VÖVçEÒÀ¢²tGVRFFRrÂ7F—fU&WVW7BæGVTFFUÒÀ¢²u7FGW2rÂ7F—fU&WVW7Bç7FGW5ÒÀ¢²tWF†VçF–6—G’fÆrrÂ7F—fU&WVW7BæWF†VçF–6—G•ÒÀ¢²tÆ–æ¶VB66RrÂ7F—fU&WVW7BæÆ–æ¶VD66UÒÀ¢²tÆ–æ¶VBFööÂrÂ7F—fU&WVW7BæÆ–æ¶VEFööÅÒÀ¢²u&V6V—fVBFFRrÂ7F—fU&WVW7Bç&V6V—fVDFFUÒÀ¢âââ†7F—fU&WVW7Bç&W7öç6T6†V6¶VDBòµ²u&W7öç6R6†V6¶VBrÂ7F—fU&WVW7Bç&W7öç6T6†V6¶VDEÕÒ¢µÒ’À¢ÒæÖ‚…¶Æ&VÂÂfÇVUÒ’ÓâÆF—b¶W“×¶Æ&VÇÓãÆGCç¶Æ&VÇÓÂöGCãÆFCç·fÇVWÓÂöFCãÂöF—câ—Ğ¢ÂöFÃà¢Æ'F–6ÆR6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖæ÷FW2#à¢Ç7ãå&Wf–WvW"æ÷FW3Â÷7ãà¢Çç¶7F—fU&WVW7Bç&Wf–WvW$æ÷FW7ÓÂ÷à¢Ç6ÖÆÃç¶7F—fU&WVW7Bæf–VÆG7ÓÂ÷6ÖÆÃà¢Âö'F–6ÆSà¢ÆF—b6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖ7F–öç2#à¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ6fU&WVW7Dæ÷FR†G¶7F—fU&WVW7Bæ–GÒföÆÆ÷r×W&V6÷&FVBf÷"G¶7F—fU&WVW7Bç7FGW7Òæ—Óå6fRföÆÆ÷r×Wæ÷FSÂö'WGFöãà¢¶7F—fU&WVW7Bç&V6÷&D¶–æBÓÓÒv÷WF&÷VæB×&WVW7Brbb7F—fU&WVW7Bç7FGW2ÓÓÒu&WVW7FVBrbb7F—fU&WVW7Bç&W7öç6T6†V6¶VDBbbÆ'WGFöâG—SÒ&'WGFöâ"6Æ74æÖSÒ&Fö7VÖVçB×&WVW7BÖ6†V6²×&W7öç6R"öä6Æ–6³×²‚’Óâ6†V6´7W7FöÖW%&W7öç6R†7F—fU&WVW7B—Óä6†V6²f÷"7W7FöÖW"&W7öç6SÂö'WGFöãçĞ¢µ²tæ÷B&WVW7FVBrÂt–æ6ö×ÆWFRrÂtæò&W7öç6RuÒæ–æ6ÇVFW2†7F—fU&WVW7Bç7FGW2’bbÆ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷Vä6ö×÷6W"†7F—fU&WVW7B—Óç¶7F—fU&WVW7Bç7FGW2ÓÓÒtæ÷B&WVW7FVBròu&WVW7BW'v÷&²r¢u&WVW7Bv–âwÓÂö'WGFöãçĞ¢¶7F—fU&WVW7BçvW4f–Æ&ÆRbbÆ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VäFö7VÖVçEf–WvW%&÷WFR‡²föÆFW#¢7F—fU&WVW7Bæ6FVv÷'’ÂFö7VÖVçD–C¢7F—fU&WVW7BæFö7VÖVçEf–WvW$–BÂæS¢w&VFW"rÒ—Óä÷Vâ7W7FöÖW"Fö7VÖVçCÂö'WGFöãçĞ¢¶f—'7DÖW&6†çDFö7VÖVçBbbÆ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×¶÷VäÖW&6†çEW'v÷&·Óåf–WrÖW&6†çBW'v÷&³Âö'WGFöãçĞ¢ÂöF—cà¢Âóâ’¢ÆF—b6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂÖV×G’"&öÆSÒ'7FGW2#äæòFö7VÖVçB&WVW7G2&Rf–Æ&ÆRf÷"F†—266RãÂöF—cçĞ¢ÂöÖ–ãà¢ÂöF—cà ¢Ç6V7F–öâ6Æ74æÖSÒ&Fö7VÖVçB×&WVW7B×7VÖÖ'’"&–ÖÆ&VÃÒ$Fö7VÖVçB&WVW7Bv÷&¶fÆ÷r7VÖÖ'’#à¢¶6÷VçG2æf–ÇFW"‚…²Â6÷VçEÒ’Óâ6÷VçBâ’æÖ‚…·7FGW2Â6÷VçEÒ’ÓâÆ'F–6ÆR¶W“×·7FGW7ÓãÇ7ãç·7FGW7ÓÂ÷7ããÇ7G&öæsç¶6÷VçGÓÂ÷7G&öæsãÂö'F–6ÆSâ—Ğ¢Â÷6V7F–öãà ¢Ææb6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂÖæW‡B×&÷WFW2"&–ÖÆ&VÃÒ$Fö7VÖVçB&WVW7BæW‡B&÷WFW2#à¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×²‚’Óâ÷VåFööÂ‚uF–ÖVÆ–æRr—Óä÷VâF–ÖVÆ–æSÂö'WGFöãà¢Æ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³×¶§V×FV6—6–öçÓä÷Vâ7V&Ö—BFV6—6–öãÂö'WGFöãà¢Âöæcà ¢Æfö÷FW"6Æ74æÖSÒ&–çfW7F–vF–öâ×FööÂ×&Wf–WrÖ&"#à¢ÆF—cà¢Ç7G&öæsäFö7VÖVçB&WVW7B&Wf–WsÂ÷7G&öæsà¢Ç7ãå&Wf–Wr6ö×ÆWF–öâ&V6÷&G2v÷&¶fÆ÷r&öw&W72öæÇ’â—BFöW2æ÷BFWFW&Ö–æRF†R66R÷WF6öÖRãÂ÷7ãà¢ÂöF—cà¢Æ'WGFöâG—SÒ&'WGFöâ"6Æ74æÖS×·&Wf–WvVBòrr¢v–çfW7F–vF–öâ×FööÂ×&–Ö'’wÒöä6Æ–6³×²‚’ÓâÖ&µ&Wf–WvVB‚tFö7VÖVçB&WVW7Br—Óà¢·&Wf–WvVBò~)É2Fö7VÖVçB&WVW7B&Wf–WvVBr¢tÖ&²Fö7VÖVçB&WVW7B&Wf–WvVBwĞ¢Âö'WGFöãà¢Âöfö÷FW#à¢Âóà¢“°§Ğ ¦gVæ7F–öâ–FVçF—G”–çFVÅv÷&·76R‡°¢7F—fT66RÀ¢–âÀ¢6fTæ÷FRÀ¢Ö&µ&Wf–WvVBÀ¢&Wf–WvVBÀ¢÷VåFööÂÀ¢§V×FV6—6–öâÀ§Ò’°¢6öç7B&W÷'BÒW6TÖVÖò‚‚’ÓâvWD–FVçF—G”–çFVÅ&W÷'B†7F—fT66R’Â¶7F—fT66UÒ“°¢6öç7B·6V&6„ÖöFRÂ6WE6V&6„ÖöFUÒÒW6U7FFR‚v–Br“°¢6öç7B¶–DG&gBÂ6WD–DG&gEÒÒW6U7FFR‚rr“°¢6öç7B¶æÖTG&gBÂ6WDæÖTG&gEÒÒW6U7FFR‚rr“°¢6öç7B¶Fö$G&gBÂ6WDFö$G&gEÒÒW6U7FFR‚rr“°¢6öç7B·7V&Ö—GFVE6V&6‚Â6WE7V&Ö—GFVE6V&6…ÒÒW6U7FFR†çVÆÂ“°¢6öç7B·6V&6„†—7F÷'’Â6WE6V&6„†—7F÷'•ÒÒW6U7FFR…µÒ“°¢6öç7B·&W÷'D÷VâÂ6WE&W÷'D÷VåÒÒW6U7FFR†fÇ6R“°¢6öç7B¶7F—fU6V7F–öä–BÂ6WD7F—fU6V7F–öä–EÒÒW6U7FFR‚v–FVçF—G’×7VÖÖ'’r“°¢6öç7B6V&6„ÖF6†VBÒ7V&Ö—GFVE6V&6‚bbÖF6†W4–FVçF—G”–çFVÅ6]}ó«h‘éì¶»§q«^uÉ ¡¥ÍÑ½Éä…¹Í½ÕÉ”É•½É‘Ìˆø(€€€€€€€€€€€€ñ¡•…‘•ÈøñÀùM•…É €˜M½ÕÉ•Ìğ½Àøñ ÌùÉ¥Ñ•É¥„…¹µ…Ñ¡•½‰©•ÑÌğ½ Ìøğ½¡•…‘•Èø(€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥‘•¹Ñ¥Ñäµ¥¹Ñ•°µÍ•…É µ¡¥ÍÑ½ÉäˆùíÍ•…É¡!¥ÍÑ½Éä¹µ…À ¡¥Ñ•´°¥¹‘•à¤€ôø€ñÍÁ…¸­•äõí€‘í¥Ñ•µô´‘í¥¹‘•áõôøñÍÑÉ½¹œùí¥¹‘•à€ü€AÉ•Ù¥½ÕÌÍ•…É œ€è€ÕÉÉ•¹ĞÍ•…É ôğ½ÍÑÉ½¹œùí¥Ñ•µôğ½ÍÁ…¸ø¥ôğ½‘¥Øø(€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥‘•¹Ñ¥Ñäµ¥¹Ñ•°µÍ½ÕÉ”µÉ•½É‘Ìˆùì¡…Ñ¥Ù•…Í”¹¥‘•¹Ñ¥ÑåI•½É‘Ì€üümt¤¹µ…À ¡¥Ñ•´¤€ôø€ñ…ÉÑ¥±”­•äõí¥Ñ•´¹¥‘ôøñÍÁ…¸ùí¥Ñ•´¹ÑåÁ•ôğ½ÍÁ…¸øñÍÑÉ½¹œùí¥Ñ•´¹Ù…±Õ•ôğ½ÍÑÉ½¹œøñÍµ…±°ùí¥Ñ•´¹¥‘ôƒ
+Üí¥Ñ•´¹±…ÍÑM••¹ôğ½Íµ…±°øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÁ¥¸¡€‘í¥Ñ•´¹¥‘ôƒ
+Ü€‘í¥Ñ•´¹Ù…±Õ•õ€¥ôùA¥¸ğ½‰ÕÑÑ½¸øğ½…ÉÑ¥±”ø¥ôğ½‘¥Øø(€€€€€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰¥‘•¹Ñ¥Ñäµ¥¹Ñ•°µÉ•Á½ÉĞˆ…É¥„µ±…‰•°ô‰áÁ…¹‘•¥‘•¹Ñ¥ÑäÉ•Á½ÉĞˆø(€€€€€€€€€€€€ñ¡•…‘•Èø(€€€€€€€€€€€€€€ñ‘¥ØøñÀù¥Ñ¥½¹…°É•Á½ÉĞÍ•Ñ¥½¸ğ½Àøñ Ìùí…Ñ¥Ù•M•Ñ¥½¸¹Ñ¥Ñ±•ôğ½ Ìøğ½‘¥Øø(€€€€€€€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÍ…Ù•%‘•¹Ñ¥Ñå9½Ñ”¡€‘í…Ñ¥Ù•M•Ñ¥½¸¹Ñ¥Ñ±•ôÉ•Ù¥•İ•™½È€‘íÉ•Á½ÉĞ¹ÁÉ½™¥±”¹ÁÉ½™¥±•%‘ô¹€¥ôùM…Ù”Í•Ñ¥½¸¹½Ñ”ğ½‰ÕÑÑ½¸ø(€€€€€€€€€€€€ğ½¡•…‘•Èø(€€€€€€€€€€€€ñ‘°ùí…Ñ¥Ù•M•Ñ¥½¸¹™¥•±‘Ì¹µ…À ¡™¥•±¤€ôø€ñ‘¥Ø­•äõí™¥•±¹±…‰•±ôøñ‘Ğùí™¥•±¹±…‰•±ôğ½‘Ğøñ‘ùí™¥•±¹Ù…±Õ•ôğ½‘øğ½‘¥Øø¥ôğ½‘°ø(€€€€€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€€€€€ñ…Í¥‘”±…ÍÍ9…µ”ô‰¥‘•¹Ñ¥Ñäµ¥¹Ñ•°µ•Ù¥‘•¹”ˆ…É¥„µ±…‰•°ô‰Ù¥‘•¹”áÁ±½É•Èˆø(€€€€€€€€€€€€ñ¡•…‘•ÈøñÀùÙ¥‘•¹”áÁ±½É•Èğ½Àøñ Ìù=Á•¸„™Õ±°É•Á½ÉĞÍ•Ñ¥½¸ğ½ Ìøğ½¡•…‘•Èø(€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥‘•¹Ñ¥Ñäµ¥¹Ñ•°µÍ•Ñ¥½¸µ‰ÕÑÑ½¹ÌˆùíÉ•Á½ÉĞ¹Í•Ñ¥½¹Ì¹µ…À ¡Í•Ñ¥½¸¤€ôø€ñ‰ÕÑÑ½¸­•äõíÍ•Ñ¥½¸¹¥‘ôÑåÁ”ô‰‰ÕÑÑ½¸ˆ…É¥„µ±…‰•°õíÍ•Ñ¥½¸¹Ñ¥Ñ±•ô±…ÍÍ9…µ”õíÍ•Ñ¥½¸¹¥€ôôô…Ñ¥Ù•M•Ñ¥½¸¹¥€ü€…Ñ¥Ù”œ€è€œô½¹±¥¬õì ¤€ôøÍ•ÑÑ¥Ù•M•Ñ¥½¹%¡Í•Ñ¥½¸¹¥¥ôøñÍÑÉ½¹œùíÍ•Ñ¥½¸¹Ñ¥Ñ±•ôğ½ÍÑÉ½¹œøñÍÁ…¸ùíÍ•Ñ¥½¸¹™¥•±‘Ì¹±•¹Ñ¡ô™¥•±‘Ìğ½ÍÁ…¸øğ½‰ÕÑÑ½¸ø¥ôğ½‘¥Øø(€€€€€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õí•áÁ½ÉÑ%‘•¹Ñ¥ÑåI•Á½ÉÑôù•¹•É…Ñ”%‘•¹Ñ¥ÑäM•…É I•Á½ÉĞğ½‰ÕÑÑ½¸ø(€€€€€€€€€€ğ½…Í¥‘”ø(€€€€€€€€ğ½‘¥Øùô(€€€€€€ğ¼ùô((€€€€€€ñ¹…Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ¹•áĞµÉ½ÕÑ•Ìˆ…É¥„µ±…‰•°ô‰%‘•¹Ñ¥Ñä%¹Ñ•°¹•áĞÉ½ÕÑ•Ìˆø(€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° ÕÍÑ½µ•È€ÌØÀœ¥ôù=Á•¸ÕÍÑ½µ•È€ÌØÀğ½‰ÕÑÑ½¸ø(€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õí©ÕµÁ•¥Í¥½¹ôù=Á•¸MÕ‰µ¥Ğ•¥Í¥½¸ğ½‰ÕÑÑ½¸ø(€€€€€€ğ½¹…Øø((€€€€€€ñ™½½Ñ•È±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÉ•Ù¥•Üµ‰…Èˆø(€€€€€€€€ñ‘¥Øø(€€€€€€€€€€ñÍÑÉ½¹œù%‘•¹Ñ¥Ñä%¹Ñ•°€¼A•½Á±”M•…É É•Ù¥•Üğ½ÍÑÉ½¹œø(€€€€€€€€€€ñÍÁ…¸ùIÕ¸„Í•…É °É•Ù¥•ÜÑ¡”™¥Ñ¥½¹…°É•Á½ÉĞ°…¹½µÁ…É”¥Ğİ¥Ñ …Í”•Ù¥‘•¹”‰•™½É”µ…É­¥¹œÑ¡¥ÌÑ½½°É•Ù¥•İ•¸ğ½ÍÁ…¸ø(€€€€€€€€ğ½‘¥Øø(€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”õíÉ•Ù¥•İ•€ü€œœ€è€¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÁÉ¥µ…Éäô‘¥Í…‰±•õì…Í•…É¡5…Ñ¡•ñğ€…É•Á½ÉÑ=Á•¹ô½¹±¥¬õì ¤€ôøµ…É­I•Ù¥•İ• %‘•¹Ñ¥Ñä%¹Ñ•°€¼A•½Á±”M•…É œ¥ôø(€€€€€€€€€íÉ•Ù¥•İ•€ü€ŸŠrL%‘•¹Ñ¥Ñä%¹Ñ•°€¼A•½Á±”M•…É É•Ù¥•İ•œ€è€5…É¬%‘•¹Ñ¥Ñä%¹Ñ•°€¼A•½Á±”M•…É É•Ù¥•İ•ô(€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€ğ½™½½Ñ•Èø(€€€€ğ¼ø(€€¤ì)ô()™Õ¹Ñ¥½¸QÉ…¹Í…Ñ¥½¹!¥ÍÑ½Éå]½É­ÍÁ…”¡ì…Ñ¥Ù•…Í”°Á¥¸°Í…Ù•9½Ñ”°µ…É­I•Ù¥•İ•°É•Ù¥•İ•°½Á•¹Q½½°°©ÕµÁ•¥Í¥½¸ô¤ì(€½¹ÍĞÉ•½É‘Ì€ôÕÍ•5•µ¼  ¤€ôø•ÑQÉ…¹Í…Ñ¥½¹!¥ÍÑ½Éä¡…Ñ¥Ù•…Í”¤°m…Ñ¥Ù•…Í•t¤ì(€½¹ÍĞmµ•É¡…¹ÑM•…É °Í•Ñ5•É¡…¹ÑM•…É¡t€ôÕÍ•MÑ…Ñ” œœ¤ì(€½¹ÍĞm™É½µ…Ñ”°Í•ÑÉ½µ…Ñ•t€ôÕÍ•MÑ…Ñ” œœ¤ì(€½¹ÍĞmÑ½…Ñ”°Í•ÑQ½…Ñ•t€ôÕÍ•MÑ…Ñ” œœ¤ì(€½¹ÍĞm…½Õ¹Ğ°Í•Ñ½Õ¹Ñt€ôÕÍ•MÑ…Ñ” ±°…½Õ¹ÑÌœ¤ì(€½¹ÍĞm¡…¹¹•°°Í•Ñ¡…¹¹•±t€ôÕÍ•MÑ…Ñ” ±°¡…¹¹•±Ìœ¤ì(€½¹ÍĞm‘¥É•Ñ¥½¸°Í•Ñ¥É•Ñ¥½¹t€ôÕÍ•MÑ…Ñ” ±°…Ñ¥Ù¥Ñäœ¤ì(€½¹ÍĞmÍ•±•Ñ•‘%°Í•ÑM•±•Ñ•‘%‘t€ôÕÍ•MÑ…Ñ” œœ¤ì(€½¹ÍĞ…½Õ¹ÑÌ€ôl±°…½Õ¹ÑÌœ°€¸¸¹¹•ÜM•Ğ¡É•½É‘Ì¹µ…À ¡É•½É¤€ôøÉ•½É¹¥¹ÍÑÉÕµ•¹Ğ¤¥tì(€½¹ÍĞ¡…¹¹•±Ì€ôl±°¡…¹¹•±Ìœ°€¸¸¹¹•ÜM•Ğ¡É•½É‘Ì¹µ…À ¡É•½É¤€ôøÉ•½É¹¡…¹¹•°¤¥tì(€½¹ÍĞ™¥±Ñ•É•‘I•½É‘Ì€ôÉ•½É‘Ì¹™¥±Ñ•È ¡É•½É¤€ôøì(€€€½¹ÍĞ‘…Ñ”€ô¹•Ü…Ñ”¡É•½É¹Á½ÍÑ•¤ì(€€€É•ÑÕÉ¸€ …µ•É¡…¹ÑM•…É ñğ€‘íÉ•½É¹¥‘ô€‘íÉ•½É¹µ•É¡…¹Ñô€‘íÉ•½É¹…Ñ•½Éåô€‘íÉ•½É¹¥¹ÍÑÉÕµ•¹Ñõ€¹Ñ½1½İ•É…Í” ¤¹¥¹±Õ‘•Ì¡µ•É¡…¹ÑM•…É ¹Ñ½1½İ•É…Í” ¤¤¤(€€€€€€˜˜€¡…½Õ¹Ğ€ôôô€±°…½Õ¹ÑÌœñğÉ•½É¹¥¹ÍÑÉÕµ•¹Ğ€ôôô…½Õ¹Ğ¤(€€€€€€˜˜€¡¡…¹¹•°€ôôô€±°¡…¹¹•±ÌœñğÉ•½É¹¡…¹¹•°€ôôô¡…¹¹•°¤(€€€€€€˜˜€¡‘¥É•Ñ¥½¸€ôôô€±°…Ñ¥Ù¥ÑäœñğÉ•½É¹‘¥É•Ñ¥½¸€ôôô‘¥É•Ñ¥½¸¤(€€€€€€˜˜€ …™É½µ…Ñ”ñğ‘…Ñ”€øô¹•Ü…Ñ”¡€‘í™É½µ…Ñ•õPÀÀèÀÀèÀÁ€¤¤(€€€€€€˜˜€ …Ñ½…Ñ”ñğ‘…Ñ”€ğô¹•Ü…Ñ”¡€‘íÑ½…Ñ•õPÈÌèÔäèÔå€¤¤ì(€ô¤ì(€½¹ÍĞ…Ñ¥Ù•I•½É€ô™¥±Ñ•É•‘I•½É‘Ì¹™¥¹ ¡É•½É¤€ôøÉ•½É¹¥€ôôôÍ•±•Ñ•‘%¤€üü™¥±Ñ•É•‘I•½É‘ÍlÁt€üüÉ•½É‘ÍlÁtì(€½¹ÍĞÑ½Ñ…°€ô™¥±Ñ•É•‘I•½É‘Ì¹É•‘Õ” ¡ÍÕ´°É•½É¤€ôøÍÕ´€¬É•½É¹…µ½Õ¹ÑY…±Õ”°€À¤ì((€ÕÍ•™™•Ğ  ¤€ôøì(€€€Í•Ñ5•É¡…¹ÑM•…É  œœ¤ì(€€€Í•ÑÉ½µ…Ñ” œœ¤ì(€€€Í•ÑQ½…Ñ” œœ¤ì(€€€Í•Ñ½Õ¹Ğ ±°…½Õ¹ÑÌœ¤ì(€€€Í•Ñ¡…¹¹•° ±°¡…¹¹•±Ìœ¤ì(€€€Í•Ñ¥É•Ñ¥½¸ ±°…Ñ¥Ù¥Ñäœ¤ì(€€€Í•ÑM•±•Ñ•‘% œœ¤ì(€ô°m…Ñ¥Ù•…Í”¹¥‘t¤ì((€™Õ¹Ñ¥½¸Í…Ù•QÉ…¹Í…Ñ¥½¹9½Ñ”¡µ•ÍÍ…”¤ì(€€€Í…Ù•9½Ñ”¡QÉ…¹Í…Ñ¥½¸!¥ÍÑ½Éäè€‘íµ•ÍÍ…•õ€°€QÉ…¹Í…Ñ¥½¸¡¥ÍÑ½Éäœ¤ì(€ô((€É•ÑÕÉ¸€ (€€€€ğø(€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰ÑÉ…¹Í…Ñ¥½¸µ¡¥ÍÑ½Éäµ™¥¹‘‰…Èˆ…É¥„µ±…‰•°ô‰QÉ…¹Í…Ñ¥½¸!¥ÍÑ½Éä™¥±Ñ•ÉÌˆø(€€€€€€€€ñ‘¥ØøñÀù	…¹­¥¹œ…Ñ¥Ù¥Ñäğ½Àøñ Ìù…Í”…Ñ¥Ù¥ÑäÙ¥•Ü¸¥±Ñ•Èµ•É¡…¹Ğ°‘…Ñ”°…½Õ¹Ğ°…µ½Õ¹Ğ½¹Ñ•áĞ°¡…¹¹•°°½È‘•‰¥Ğ…¹É•‘¥Ğ…Ñ¥Ù¥Ñä¸ğ½ Ìøğ½‘¥Øø(€€€€€€€€ñ±…‰•°øñÍÁ…¸ù5•É¡…¹Ğ½ÈÑÉ…¹Í…Ñ¥½¸ğ½ÍÁ…¸øñ¥¹ÁÕĞÙ…±Õ”õíµ•É¡…¹ÑM•…É¡ô½¹¡…¹”õì¡•Ù•¹Ğ¤€ôøÍ•Ñ5•É¡…¹ÑM•…É ¡•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ôÁ±…•¡½±‘•Èô‰5•É¡…¹Ğ°ÑÉ…¹Í…Ñ¥½¸%°…Ñ•½Éä°½È…½Õ¹Ğˆ…É¥„µ±…‰•°ô‰M•…É QÉ…¹Í…Ñ¥½¸!¥ÍÑ½Éäˆ€¼øğ½±…‰•°ø(€€€€€€€€ñ±…‰•°øñÍÁ…¸ùÉ½´‘…Ñ”ğ½ÍÁ…¸øñ¥¹ÁÕĞÑåÁ”ô‰‘…Ñ”ˆÙ…±Õ”õí™É½µ…Ñ•ô½¹¡…¹”õì¡•Ù•¹Ğ¤€ôøÍ•ÑÉ½µ…Ñ”¡•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ô…É¥„µ±…‰•°ô‰QÉ…¹Í…Ñ¥½¸!¥ÍÑ½Éä™É½´‘…Ñ”ˆ€¼øğ½±…‰•°ø(€€€€€€€€ñ±…‰•°øñÍÁ…¸ùQ¼‘…Ñ”ğ½ÍÁ…¸øñ¥¹ÁÕĞÑåÁ”ô‰‘…Ñ”ˆÙ…±Õ”õíÑ½…Ñ•ô½¹¡…¹”õì¡•Ù•¹Ğ¤€ôøÍ•ÑQ½…Ñ”¡•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ô…É¥„µ±…‰•°ô‰QÉ…¹Í…Ñ¥½¸!¥ÍÑ½ÉäÑ¼‘…Ñ”ˆ€¼øğ½±…‰•°ø(€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰ÑÉ…¹Í…Ñ¥½¸µ¡¥ÍÑ½Éäµ™¥±Ñ•ÈµÉ½Üˆ…É¥„µ±…‰•°ô‰QÉ…¹Í…Ñ¥½¸!¥ÍÑ½ÉäÅÕ¥¬™¥±Ñ•ÉÌˆø(€€€€€€€€ñÍ•±•ĞÙ…±Õ”õí¡…¹¹•±ô½¹¡…¹”õì¡•Ù•¹Ğ¤€ôøÍ•Ñ¡…¹¹•°¡•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ô…É¥„µ±…‰•°ô‰QÉ…¹Í…Ñ¥½¸¡…¹¹•°™¥±Ñ•Èˆùí¡…¹¹•±Ì¹µ…À ¡¥Ñ•´¤€ôø€ñ½ÁÑ¥½¸­•äõí¥Ñ•µôùí¥Ñ•µôğ½½ÁÑ¥½¸ø¥ôğ½Í•±•Ğø(€€€€€€€€ñÍ•±•ĞÙ…±Õ”õí‘¥É•Ñ¥½¹ô½¹¡…¹”õì¡•Ù•¹Ğ¤€ôøÍ•Ñ¥É•Ñ¥½¸¡•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ô…É¥„µ±…‰•°ô‰QÉ…¹Í…Ñ¥½¸‘•‰¥ĞÉ•‘¥Ğ™¥±Ñ•Èˆøñ½ÁÑ¥½¸ù±°…Ñ¥Ù¥Ñäğ½½ÁÑ¥½¸øñ½ÁÑ¥½¸ù•‰¥Ğğ½½ÁÑ¥½¸øñ½ÁÑ¥½¸ù9½¸µµ½¹•Ñ…Éäğ½½ÁÑ¥½¸øğ½Í•±•Ğø(€€€€€€€€ñÍÁ…¸ùí™¥±Ñ•É•‘I•½É‘Ì¹±•¹Ñ¡ô½˜íÉ•½É‘Ì¹±•¹Ñ¡ô…Ñ¥Ù¥ÑäÉ•½É‘ÌÍ¡½İ¸ğ½ÍÁ…¸ø(€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰ÑÉ…¹Í…Ñ¥½¸µ¡¥ÍÑ½ÉäµÍÕµµ…Éäˆ…É¥„µ±…‰•°ô‰QÉ…¹Í…Ñ¥½¸!¥ÍÑ½ÉäÍÕµµ…Éäˆø(€€€€€€€€ñ…ÉÑ¥±”øñÍÁ…¸ùÑ¥Ù¥Ñäİ¥¹‘½Üğ½ÍÁ…¸øñÍÑÉ½¹œøÌÀ‘…åÌğ½ÍÑÉ½¹œøğ½…ÉÑ¥±”ø(€€€€€€€€ñ…ÉÑ¥±”øñÍÁ…¸ùI•½É‘ÌÍ¡½İ¸ğ½ÍÁ…¸øñÍÑÉ½¹œùí™¥±Ñ•É•‘I•½É‘Ì¹±•¹Ñ¡ôğ½ÍÑÉ½¹œøğ½…ÉÑ¥±”ø(€€€€€€€€ñ…ÉÑ¥±”øñÍÁ…¸ù•‰¥Ğ…Ñ¥Ù¥ÑäÍ¡½İ¸ğ½ÍÁ…¸øñÍÑÉ½¹œø‘íÑ½Ñ…°¹Ñ½¥á• È¥ôğ½ÍÑÉ½¹œøğ½…ÉÑ¥±”ø(€€€€€€€€ñ…ÉÑ¥±”øñÍÁ…¸ù½Õ¹ÑÌ€¼…É‘Ìğ½ÍÁ…¸øñÍÑÉ½¹œùí…½Õ¹ÑÌ¹±•¹Ñ €´€Åôğ½ÍÑÉ½¹œøğ½…ÉÑ¥±”ø(€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰ÑÉ…¹Í…Ñ¥½¸µ¡¥ÍÑ½Éäµ…½Õ¹ĞµÉ…¥°ˆ…É¥„µ±…‰•°ô‰QÉ…¹Í…Ñ¥½¸…½Õ¹Ğ…¹…ÉÉ…¥°ˆø(€€€€€€€í…½Õ¹ÑÌ¹µ…À ¡¥Ñ•´¤€ôø€ñ‰ÕÑÑ½¸­•äõí¥Ñ•µôÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”õí…½Õ¹Ğ€ôôô¥Ñ•´€ü€…Ñ¥Ù”œ€è€œô½¹±¥¬õì ¤€ôøÍ•Ñ½Õ¹Ğ¡¥Ñ•´¥ôùí¥Ñ•µôğ½‰ÕÑÑ½¸ø¥ô(€€€€€€ğ½‘¥Øø((€€€€€í…Ñ¥Ù•I•½É€ü€ñ‘¥Ø±…ÍÍ9…µ”ô‰ÑÉ…¹Í…Ñ¥½¸µ¡¥ÍÑ½Éäµİ½É­ÍÁ…”ˆø(€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰ÑÉ…¹Í…Ñ¥½¸µ¡¥ÍÑ½Éäµ±¥ÍĞˆ…É¥„µ±…‰•°ô‰QÉ…¹Í…Ñ¥½¸!¥ÍÑ½Éä…Ñ¥Ù¥Ñä™••ˆø(€€€€€€€€€€ñ¡•…‘•ÈøñÀùÑ¥Ù¥Ñä™••ğ½Àøñ Ìù¡½½Í”„ÑÉ…¹Í…Ñ¥½¸Ñ¼•áÁ…¹ğ½ Ìøğ½¡•…‘•Èø(€€€€€€€€€í™¥±Ñ•É•‘I•½É‘Ì¹µ…À ¡É•½É¤€ôø€ñ‰ÕÑÑ½¸­•äõíÉ•½É¹¥‘ôÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”õíÉ•½É¹¥€ôôô…Ñ¥Ù•I•½É¹¥€ü€…Ñ¥Ù”œ€è€œô½¹±¥¬õì ¤€ôøÍ•ÑM•±•Ñ•‘%¡É•½É¹¥¥ô‘…Ñ„µÑÉ…¹Í…Ñ¥½¸µ¡¥ÍÑ½ÉäµÉ•½ÉõíÉ•½É¹¥‘ôø(€€€€€€€€€€€€ñÍÁ…¸ùíÉ•½É¹Á½ÍÑ•‘ô…ĞíÉ•½É¹Ñ¥µ•ôğ½ÍÁ…¸øñÍÑÉ½¹œùíÉ•½É¹µ•É¡…¹Ñôğ½ÍÑÉ½¹œøñÍµ…±°ùíÉ•½É¹…µ½Õ¹ÑôğíÉ•½É¹¡…¹¹•±ôğíÉ•½É¹¥¹ÍÑÉÕµ•¹Ñôğ½Íµ…±°ø(€€€€€€€€€€ğ½‰ÕÑÑ½¸ø¥ô(€€€€€€€€€ì…™¥±Ñ•É•‘I•½É‘Ì¹±•¹Ñ €˜˜€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ•µÁÑäˆÉ½±”ô‰ÍÑ…ÑÕÌˆù9¼…Ñ¥Ù¥ÑäÉ•½É‘Ìµ…Ñ Ñ¡•Í”™¥±Ñ•ÉÌ¸ğ½‘¥Øùô(€€€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰ÑÉ…¹Í…Ñ¥½¸µ¡¥ÍÑ½Éäµ‘•Ñ…¥°ˆ…É¥„µ±…‰•°ô‰QÉ…¹Í…Ñ¥½¸‘•Ñ…¥°‘É…İ•Èˆø(€€€€€€€€€€ñ¡•…‘•Èøñ‘¥ØøñÀùQÉ…¹Í…Ñ¥½¸‘•Ñ…¥°‘É…İ•Èğ½Àøñ Ìùí…Ñ¥Ù•I•½É¹¥‘ôğí…Ñ¥Ù•I•½É¹µ•É¡…¹Ñôğ½ ÌøñÍÁ…¸ùí…Ñ¥Ù•I•½É¹Á½ÍÑ•‘ô…Ğí…Ñ¥Ù•I•½É¹Ñ¥µ•ôğ½ÍÁ…¸øğ½‘¥Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÁ¥¸¡…Ñ¥Ù•I•½É¹¥¥ôùA¥¸ÑÉ…¹Í…Ñ¥½¸ğ½‰ÕÑÑ½¸øğ½¡•…‘•Èø(€€€€€€€€€€ñ‘°ùíl(€€€€€€€€€€€lµ½Õ¹Ğœ°…Ñ¥Ù•I•½É¹…µ½Õ¹Ñt°l¥É•Ñ¥½¸œ°…Ñ¥Ù•I•½É¹‘¥É•Ñ¥½¹t°l½Õ¹Ğ€¼…Éœ°…Ñ¥Ù•I•½É¹¥¹ÍÑÉÕµ•¹Ñt°l¡…¹¹•°œ°…Ñ¥Ù•I•½É¹¡…¹¹•±t°l…Ñ•½Éäœ°…Ñ¥Ù•I•½É¹…Ñ•½Éåt°l…É•¹ÑÉäµ½‘”œ°…Ñ¥Ù•I•½É¹•¹ÑÉå5½‘•t°l1½…Ñ¥½¸œ°…Ñ¥Ù•I•½É¹±½…Ñ¥½¹t°lMÑ…ÑÕÌœ°…Ñ¥Ù•I•½É¹ÍÑ…ÑÕÍt°(€€€€€€€€€t¹µ…À ¡m±…‰•°°Ù…±Õ•t¤€ôø€ñ‘¥Ø­•äõí±…‰•±ôøñ‘Ğùí±…‰•±ôğ½‘Ğøñ‘ùíÙ…±Õ•ôğ½‘øğ½‘¥Øø¥ôğ½‘°ø(€€€€€€€€€€ñ…ÉÑ¥±”±…ÍÍ9…µ”ô‰ÑÉ…¹Í…Ñ¥½¸µ¡¥ÍÑ½Éäµ½¹Ñ•áĞˆøñÍÁ…¸ùI•½É‘•½¹Ñ•áĞğ½ÍÁ…¸øñÀùí…Ñ¥Ù•I•½É¹½¹Ñ•áÑôğ½Àøğ½…ÉÑ¥±”ø(€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰ÑÉ…¹Í…Ñ¥½¸µ¡¥ÍÑ½Éäµ…Ñ¥½¹Ìˆøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÍ…Ù•QÉ…¹Í…Ñ¥½¹9½Ñ”¡€‘í…Ñ¥Ù•I•½É¹¥‘ôÉ•Ù¥•İ•İ¥Ñ €‘í…Ñ¥Ù•I•½É¹•¹ÑÉå5½‘•ô…¹€‘í…Ñ¥Ù•I•½É¹¥¹ÍÑÉÕµ•¹Ñô¹€¥ôùM…Ù”ÑÉ…¹Í…Ñ¥½¸¹½Ñ”ğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° Q¥µ•±¥¹”œ¥ôù=Á•¸Q¥µ•±¥¹”ğ½‰ÕÑÑ½¸øğ½‘¥Øø(€€€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€€€ñ…Í¥‘”±…ÍÍ9…µ”ô‰ÑÉ…¹Í…Ñ¥½¸µ¡¥ÍÑ½Éäµ•Ù¥‘•¹”ˆ…É¥„µ±…‰•°ô‰QÉ…¹Í…Ñ¥½¸É•±…Ñ••Ù¥‘•¹”ˆø(€€€€€€€€€€ñ¡•…‘•ÈøñÀùI•±…Ñ••Ù¥‘•¹”ğ½Àøñ Ìù=‰©•ÑÌ…¹‘½Õµ•¹ÑÌğ½ Ìøğ½¡•…‘•Èø(€€€€€€€€€€ñ…ÉÑ¥±”øñÍÁ…¸ùI•±…Ñ•É•½É‘Ìğ½ÍÁ…¸øñÍÑÉ½¹œùí…Ñ¥Ù•I•½É¹É•±…Ñ•‘I•½É‘Ì¹©½¥¸ œğ€œ¥ôğ½ÍÑÉ½¹œøğ½…ÉÑ¥±”ø(€€€€€€€€€€ñ…ÉÑ¥±”øñÍÁ…¸ùI•±…Ñ•‘½Õµ•¹ÑÌğ½ÍÁ…¸øñÍÑÉ½¹œùí…Ñ¥Ù•I•½É¹É•±…Ñ•‘½Õµ•¹ÑÌ¹©½¥¸ œğ€œ¤ñğ€9¼‘½Õµ•¹Ğ±¥¹­•¥¸ÕÉÉ•¹ĞÁ…­•Ğôğ½ÍÑÉ½¹œøğ½…ÉÑ¥±”ø(€€€€€€€€ğ½…Í¥‘”ø(€€€€€€ğ½‘¥Øø€è€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ•µÁÑäˆÉ½±”ô‰ÍÑ…ÑÕÌˆù9¼ÑÉ…¹Í…Ñ¥½¸É•½É‘Ì…É”…Ù…¥±…‰±”™½ÈÑ¡¥Ì…Í”¸ğ½‘¥Øùô((€€€€€€ñ¹…Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ¹•áĞµÉ½ÕÑ•Ìˆ…É¥„µ±…‰•°ô‰QÉ…¹Í…Ñ¥½¸!¥ÍÑ½Éä¹•áĞÉ½ÕÑ•Ìˆø(€€€€€€€í…Ñ¥Ù•…Í”¹…Ù…¥±…‰±•Q½½±Ìü¹¥¹±Õ‘•Ì 5•É¡…¹Ğ%¹Ñ•±±¥•¹”œ¤€˜˜€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° 5•É¡…¹Ğ%¹Ñ•±±¥•¹”œ¥ôù=Á•¸5•É¡…¹Ğ%¹Ñ•±±¥•¹”ğ½‰ÕÑÑ½¸ùô(€€€€€€€í…Ñ¥Ù•…Í”¹…Ù…¥±…‰±•Q½½±Ìü¹¥¹±Õ‘•Ì ¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸œ¤€˜˜€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° ¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸œ¥ôù=Á•¸¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸ğ½‰ÕÑÑ½¸ùô(€€€€€€€í…Ñ¥Ù•…Í”¹…Ù…¥±…‰±•Q½½±Ìü¹¥¹±Õ‘•Ì A…åµ•¹ĞY•É¥™¥…Ñ¥½¸œ¤€˜˜€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° A…åµ•¹ĞY•É¥™¥…Ñ¥½¸œ¥ôù=Á•¸A…åµ•¹ĞY•É¥™¥…Ñ¥½¸ğ½‰ÕÑÑ½¸ùô(€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õí©ÕµÁ•¥Í¥½¹ôù=Á•¸MÕ‰µ¥Ğ•¥Í¥½¸ğ½‰ÕÑÑ½¸ø(€€€€€€ğ½¹…Øø(€€€€€€ñ™½½Ñ•È±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÉ•Ù¥•Üµ‰…Èˆøñ‘¥ØøñÍÑÉ½¹œùQÉ…¹Í…Ñ¥½¸!¥ÍÑ½ÉäÉ•Ù¥•Üğ½ÍÑÉ½¹œøñÍÁ…¸ùI•Ù¥•ÜÑ¡”…Ñ¥Ù¥Ñä™••°ÑÉ…¹Í…Ñ¥½¸‘•Ñ…¥±Ì°±¥¹­•É•½É‘Ì°…¹‘½Õµ•¹ÑÌ‰•™½É”µ…É­¥¹œÑ¡”Ñ½½°É•Ù¥•İ•¸ğ½ÍÁ…¸øğ½‘¥Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”õíÉ•Ù¥•İ•€ü€œœ€è€¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÁÉ¥µ…Éäô½¹±¥¬õì ¤€ôøµ…É­I•Ù¥•İ• QÉ…¹Í…Ñ¥½¸!¥ÍÑ½Éäœ¥ôùíÉ•Ù¥•İ•€ü€ŸŠrLQÉ…¹Í…Ñ¥½¸!¥ÍÑ½ÉäÉ•Ù¥•İ•œ€è€5…É¬QÉ…¹Í…Ñ¥½¸!¥ÍÑ½ÉäÉ•Ù¥•İ•ôğ½‰ÕÑÑ½¸øğ½™½½Ñ•Èø(€€€€ğ¼ø(€€¤ì)ô()™Õ¹Ñ¥½¸¥¹…¹¥…±%¹Ù•ÍÑ¥…Ñ¥½¹]½É­ÍÁ…”¡ì…Ñ¥Ù•…Í”°Á¥¸°Í…Ù•9½Ñ”°µ…É­I•Ù¥•İ•°É•Ù¥•İ•°½Á•¹Q½½°°©ÕµÁ•¥Í¥½¸ô¤ì(€½¹ÍĞİ½É­ÍÁ…”€ôÕÍ•5•µ¼  ¤€ôø•Ñ¥¹…¹¥…±%¹Ù•ÍÑ¥…Ñ¥½¸¡…Ñ¥Ù•…Í”¤°m…Ñ¥Ù•…Í•t¤ì(€½¹ÍĞm…Ñ¥Ù•Q…ˆ°Í•ÑÑ¥Ù•Q…‰t€ôÕÍ•MÑ…Ñ” ½Ù•ÉÙ¥•Üœ¤ì(€½¹ÍĞmÁ•É¥½°Í•ÑA•É¥½‘t€ôÕÍ•MÑ…Ñ” ±°Á•É¥½‘Ìœ¤ì(€½¹ÍĞmÉ•½É‘EÕ•Éä°Í•ÑI•½É‘EÕ•Éåt€ôÕÍ•MÑ…Ñ” œœ¤ì(€½¹ÍĞmÍ•±•Ñ•‘%°Í•ÑM•±•Ñ•‘%‘t€ôÕÍ•MÑ…Ñ” œœ¤ì(€½¹ÍĞÑ…ˆ€ô™¥¹…¹¥…±%¹Ù•ÍÑ¥…Ñ¥½¹Q…‰Ì¹™¥¹ ¡¥Ñ•´¤€ôø¥Ñ•´¹¥€ôôô…Ñ¥Ù•Q…ˆ¤€üü™¥¹…¹¥…±%¹Ù•ÍÑ¥…Ñ¥½¹Q…‰ÍlÁtì(€½¹ÍĞÑ…‰I•½É‘Ì€ôİ½É­ÍÁ…”¹É•½É‘Í	åQ…‰m…Ñ¥Ù•Q…‰t€üümtì(€½¹ÍĞÁ•É¥½‘Ì€ôl±°Á•É¥½‘Ìœ°€¸¸¹¹•ÜM•Ğ¡Ñ…‰I•½É‘Ì¹µ…À ¡É•½É¤€ôøÉ•½É¹Á•É¥½¤¹™¥±Ñ•È¡	½½±•…¸¤¥tì(€½¹ÍĞ¹½Éµ…±¥é•‘EÕ•Éä€ôÉ•½É‘EÕ•Éä¹ÑÉ¥´ ¤¹Ñ½1½İ•É…Í” ¤ì(€½¹ÍĞ™¥±Ñ•É•‘I•½É‘Ì€ôÑ…‰I•½É‘Ì¹™¥±Ñ•È ¡É•½É¤€ôø€ (€€€€¡Á•É¥½€ôôô€±°Á•É¥½‘ÌœñğÉ•½É¹Á•É¥½€ôôôÁ•É¥½¤(€€€€˜˜€ …¹½Éµ…±¥é•‘EÕ•Éäñğ™¥¹…¹¥…±I•½É‘M•…É¡Q•áĞ¡É•½É¤¹¥¹±Õ‘•Ì¡¹½Éµ…±¥é•‘EÕ•Éä¤¤(€€¤¤ì(€½¹ÍĞ…Ñ¥Ù•I•½É€ô™¥±Ñ•É•‘I•½É‘Ì¹™¥¹ ¡É•½É¤€ôøÉ•½É¹¥€ôôôÍ•±•Ñ•‘%¤€üü™¥±Ñ•É•‘I•½É‘ÍlÁt€üüÑ…‰I•½É‘ÍlÁtì(€½¹ÍĞµ…á½µÁ…É¥Í½¸€ô5…Ñ ¹µ…à Ä°€¸¸¹İ½É­ÍÁ…”¹½µÁ…É¥Í½¸¹™±…Ñ5…À ¡¥Ñ•´¤€ôøm¥Ñ•´¹‰…Í•±¥¹”°¥Ñ•´¹ÕÉÉ•¹Ñt¤¤ì(€½¹ÍĞµ…á•Á½Í¥Ğ€ô5…Ñ ¹µ…à Ä°€¸¸¹İ½É­ÍÁ…”¹‘•Á½Í¥ÑQÉ•¹¹µ…À ¡¥Ñ•´¤€ôø¥Ñ•´¹Ù…±Õ”¤¤ì((€ÕÍ•™™•Ğ  ¤€ôøì(€€€Í•ÑÑ¥Ù•Q…ˆ ½Ù•ÉÙ¥•Üœ¤ì(€€€Í•ÑA•É¥½ ±°Á•É¥½‘Ìœ¤ì(€€€Í•ÑI•½É‘EÕ•Éä œœ¤ì(€€€Í•ÑM•±•Ñ•‘% œœ¤ì(€ô°m…Ñ¥Ù•…Í”¹¥‘t¤ì((€ÕÍ•™™•Ğ  ¤€ôøì(€€€Í•ÑA•É¥½ ±°Á•É¥½‘Ìœ¤ì(€€€Í•ÑM•±•Ñ•‘% œœ¤ì(€ô°m…Ñ¥Ù•Q…‰t¤ì((€™Õ¹Ñ¥½¸Í•±•ÑQ…ˆ¡Ñ…‰%¤ì(€€€Í•ÑÑ¥Ù•Q…ˆ¡Ñ…‰%¤ì(€ô((€™Õ¹Ñ¥½¸Í…Ù•¥¹…¹¥…±9½Ñ”¡É•½É¤ì(€€€Í…Ù•9½Ñ”¡¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸è€‘íÉ•½É¹¥‘ô€´€‘íÉ•½É¹‘•Ñ…¥±õ€°€¥¹…¹¥…°¥¹Ù•ÍÑ¥…Ñ¥½¸œ¤ì(€ô((€™Õ¹Ñ¥½¸¡…¹‘A…åµ•¹Ñ%‘•¹Ñ¥™¥•ÉÌ¡É•½É¤ì(€€€½¹ÍĞ™¥•±‘Ì€ô¹•Ü5…À¡É•½É¹™¥•±‘Ì¤ì(€€€½Á•¹Q½½° A…åµ•¹ĞY•É¥™¥…Ñ¥½¸œ°€¥¹Ù•ÍÑ¥…Ñ”œ°ì(€€€€€ÅÕ•Éäè‰Õ¥±‘A…åµ•¹Ñ1½½­ÕÁ!¥¹Ğ¡ì(€€€€€€€‰…¹­½‘”è™¥•±‘Ì¹•Ğ 	…¹¬½‘”œ¤€üü€œœ°(€€€€€€€‘•ÍÑ¥¹…Ñ¥½¹%è™¥•±‘Ì¹•Ğ •ÍÑ¥¹…Ñ¥½¸%œ¤€üü€œœ°(€€€€€€€½İ¹•É9…µ”è…Ñ¥Ù•…Í”¹Á•ÉÍ½¸°(€€€€€ô¤°(€€€ô¤ì(€ô((€É•ÑÕÉ¸€ (€€€€ğø(€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰™¥¹…¹¥…°µ¥¹Ù•ÍÑ¥…Ñ¥½¸µ­Á¥Ìˆ…É¥„µ±…‰•°ô‰¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸…½Õ¹Ğµ•ÑÉ¥Ìˆø(€€€€€€€íİ½É­ÍÁ…”¹­Á¥Ì¹µ…À ¡¥Ñ•´¤€ôø€ñ…ÉÑ¥±”­•äõí¥Ñ•´¹±…‰•±ôøñÍÁ…¸ùí¥Ñ•´¹±…‰•±ôğ½ÍÁ…¸øñÍÑÉ½¹œùí¥Ñ•´¹Ù…±Õ•ôğ½ÍÑÉ½¹œøñÍµ…±°ùí¥Ñ•´¹½¹Ñ•áÑôğ½Íµ…±°øğ½…ÉÑ¥±”ø¥ô(€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰™¥¹…¹¥…°µ…½Õ¹ĞµÍÑÉ¥Àˆ…É¥„µ±…‰•°ô‰¥¹…¹¥…°É•±…Ñ¥½¹Í¡¥ÀÍ¹…ÁÍ¡½Ğˆø(€€€€€€€€ñ‘¥ØøñÀù½Õ¹Ğ¥¸É•Ù¥•Üğ½Àøñ Ìùíİ½É­ÍÁ…”¹ÁÉ½™¥±”¹…½Õ¹Ñôğ½ ÌøñÍÁ…¸ùíİ½É­ÍÁ…”¹ÁÉ½™¥±”¹…½Õ¹ÑQåÁ•ôğíİ½É­ÍÁ…”¹ÁÉ½™¥±”¹…½Õ¹Ñ•ôğíİ½É­ÍÁ…”¹ÁÉ½™¥±”¹…½Õ¹ÑMÑ…ÑÕÍôğ½ÍÁ…¸øğ½‘¥Øø(€€€€€€€€ñ‘°øñ‘¥Øøñ‘ĞùI•±…Ñ¥½¹Í¡¥Àğ½‘Ğøñ‘ùíİ½É­ÍÁ…”¹ÁÉ½™¥±”¹É•±…Ñ¥½¹Í¡¥Á1•¹Ñ¡ôğ½‘øğ½‘¥Øøñ‘¥Øøñ‘ĞùÉ•‘¥Ğ±¥µ¥Ğğ½‘Ğøñ‘ùíİ½É­ÍÁ…”¹ÁÉ½™¥±”¹É•‘¥Ñ1¥µ¥Ñôğ½‘øğ½‘¥Øøñ‘¥Øøñ‘Ğù=Ù•É‘É…™Ğğ½‘Ğøñ‘ùíİ½É­ÍÁ…”¹ÁÉ½™¥±”¹½Ù•É‘É…™Ñôğ½‘øğ½‘¥Øøñ‘¥Øøñ‘ĞùI•½É‘•…±•ÉĞğ½‘Ğøñ‘ùíİ½É­ÍÁ…”¹ÁÉ½™¥±”¹…±•ÉÑôğ½‘øğ½‘¥Øøğ½‘°ø(€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€ñ¹…Ø±…ÍÍ9…µ”ô‰™¥¹…¹¥…°µ¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ…‰Ìˆ…É¥„µ±…‰•°ô‰¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸Í•Ñ¥½¹Ìˆø(€€€€€€€í™¥¹…¹¥…±%¹Ù•ÍÑ¥…Ñ¥½¹Q…‰Ì¹µ…À ¡¥Ñ•´¤€ôø€ñ‰ÕÑÑ½¸­•äõí¥Ñ•´¹¥‘ôÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”õí…Ñ¥Ù•Q…ˆ€ôôô¥Ñ•´¹¥€ü€…Ñ¥Ù”œ€è€œô…É¥„µÁÉ•ÍÍ•õí…Ñ¥Ù•Q…ˆ€ôôô¥Ñ•´¹¥‘ô½¹±¥¬õì ¤€ôøÍ•±•ÑQ…ˆ¡¥Ñ•´¹¥¥ôùí¥Ñ•´¹±…‰•±ôğ½‰ÕÑÑ½¸ø¥ô(€€€€€€ğ½¹…Øø((€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰™¥¹…¹¥…°µ¥¹Ù•ÍÑ¥…Ñ¥½¸µ™¥¹‘‰…Èˆ…É¥„µ±…‰•°ô‰¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸™¥±Ñ•ÉÌˆø(€€€€€€€€ñ‘¥ØøñÀùíÑ…ˆ¹±…‰•±ôğ½Àøñ ÌùíÑ…ˆ¹ÅÕ•ÍÑ¥½¹ôğ½ Ìøğ½‘¥Øø(€€€€€€€€ñ±…‰•°øñÍÁ…¸ùM•…É Ñ¡¥ÌÍ•Ñ¥½¸ğ½ÍÁ…¸øñ¥¹ÁÕĞÙ…±Õ”õíÉ•½É‘EÕ•Éåô½¹¡…¹”õì¡•Ù•¹Ğ¤€ôøÍ•ÑI•½É‘EÕ•Éä¡•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ôÁ±…•¡½±‘•Èô‰I•½É°…µ½Õ¹Ğ°µ•É¡…¹Ğ°…½Õ¹Ğ°Í½ÕÉ”°½È‘•ÍÑ¥¹…Ñ¥½¸ˆ…É¥„µ±…‰•°ô‰M•…É ¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸É•½É‘Ìˆ€¼øğ½±…‰•°ø(€€€€€€€€ñ±…‰•°øñÍÁ…¸ù½µÁ…É¥Í½¸Á•É¥½ğ½ÍÁ…¸øñÍ•±•ĞÙ…±Õ”õíÁ•É¥½‘ô½¹¡…¹”õì¡•Ù•¹Ğ¤€ôøÍ•ÑA•É¥½¡•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ô…É¥„µ±…‰•°ô‰¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸Á•É¥½™¥±Ñ•ÈˆùíÁ•É¥½‘Ì¹µ…À ¡¥Ñ•´¤€ôø€ñ½ÁÑ¥½¸­•äõí¥Ñ•µôùí¥Ñ•µôğ½½ÁÑ¥½¸ø¥ôğ½Í•±•Ğøğ½±…‰•°ø(€€€€€€€€ñÍÁ…¸ùí™¥±Ñ•É•‘I•½É‘Ì¹±•¹Ñ¡ô½˜íÑ…‰I•½É‘Ì¹±•¹Ñ¡ôÉ•½É‘ÌÍ¡½İ¸ğ½ÍÁ…¸ø(€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€ì¡…Ñ¥Ù•Q…ˆ€ôôô€½Ù•ÉÙ¥•Üœñğ…Ñ¥Ù•Q…ˆ€ôôô€ÑÉ•¹‘Ìœ¤€˜˜€ (€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰™¥¹…¹¥…°µ½µÁ…É¥Í½¸µÉ¥ˆ…É¥„µ±…‰•°ô‰¥¹…¹¥…°‰•¡…Ù¥½È½µÁ…É¥Í½¹Ìˆø(€€€€€€€€€íİ½É­ÍÁ…”¹½µÁ…É¥Í½¸¹µ…À ¡¥Ñ•´¤€ôø€ñ…ÉÑ¥±”­•äõí¥Ñ•´¹±…‰•±ôøñ¡•…‘•ÈøñÍÑÉ½¹œùí¥Ñ•´¹±…‰•±ôğ½ÍÑÉ½¹œøñÍÁ…¸ùí¥Ñ•´¹‰…Í•±¥¹•ô‰…Í•±¥¹”ğí¥Ñ•´¹ÕÉÉ•¹ÑôÕÉÉ•¹Ğğ½ÍÁ…¸øğ½¡•…‘•Èøñ‘¥Øøñ¤ÍÑå±”õíìİ¥‘Ñ è€‘í5…Ñ ¹µ…à Ì°€¡¥Ñ•´¹‰…Í•±¥¹”€¼µ…á½µÁ…É¥Í½¸¤€¨€ÄÀÀ¥ô•€õô€¼øñˆÍÑå±”õíìİ¥‘Ñ è€‘í5…Ñ ¹µ…à Ì°€¡¥Ñ•´¹ÕÉÉ•¹Ğ€¼µ…á½µÁ…É¥Í½¸¤€¨€ÄÀÀ¥ô•€õô€¼øğ½‘¥ØøñÀùí¥Ñ•´¹½¹Ñ•áÑôğ½Àøğ½…ÉÑ¥±”ø¥ô(€€€€€€€€ğ½Í•Ñ¥½¸ø(€€€€€€¥ô((€€€€€í…Ñ¥Ù•Q…ˆ€ôôô€‘•Á½Í¥ÑÌœ€˜˜€ (€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰™¥¹…¹¥…°µ‘•Á½Í¥ĞµÑÉ•¹ˆ…É¥„µ±…‰•°ô‰•Á½Í¥ĞÑÉ•¹ˆø(€€€€€€€€€€ñ¡•…‘•ÈøñÀù•Á½Í¥ĞÑÉ•¹ğ½Àøñ ÌùI•½É‘•¥¹½µ¥¹œ™Õ¹‘Ì‰ä‘…Ñ”ğ½ Ìøğ½¡•…‘•Èø(€€€€€€€€€€ñ‘¥Øùíİ½É­ÍÁ…”¹‘•Á½Í¥ÑQÉ•¹¹µ…À ¡¥Ñ•´¤€ôø€ñ…ÉÑ¥±”­•äõí€‘í¥Ñ•´¹±…‰•±ô´‘í¥Ñ•´¹Ñ¥Ñ±•õôøñÍÁ…¸ùí¥Ñ•´¹±…‰•±ôğ½ÍÁ…¸øñ‘¥Øøñ¤ÍÑå±”õíì¡•¥¡Ğè€‘í5…Ñ ¹µ…à à°€¡¥Ñ•´¹Ù…±Õ”€¼µ…á•Á½Í¥Ğ¤€¨€ÄÀÀ¥ô•€õô€¼øğ½‘¥ØøñÍÑÉ½¹œø‘í¥Ñ•´¹Ù…±Õ”¹Ñ½1½…±•MÑÉ¥¹œ •¸µULœ°ìµ¥¹¥µÕµÉ…Ñ¥½¹¥¥ÑÌè€Èô¥ôğ½ÍÑÉ½¹œøñÍµ…±°ùí¥Ñ•´¹Ñ¥Ñ±•ôğ½Íµ…±°øğ½…ÉÑ¥±”ø¥ôğ½‘¥Øø(€€€€€€€€ğ½Í•Ñ¥½¸ø(€€€€€€¥ô((€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰™¥¹…¹¥…°µ¥¹Ù•ÍÑ¥…Ñ¥½¸µİ½É­ÍÁ…”ˆø(€€€€€€€€ñµ…¥¸±…ÍÍ9…µ”ô‰™¥¹…¹¥…°µÉ•½Éµİ½É­ÍÁ…”ˆø(€€€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰™¥¹…¹¥…°µÉ•½Éµ±¥ÍĞˆ…É¥„µ±…‰•°õí€‘íÑ…ˆ¹±…‰•±ôÉ•½É‘Íôø(€€€€€€€€€€€€ñ¡•…‘•Èøñ‘¥ØøñÀùÙ¥‘•¹”É•½É‘Ìğ½Àøñ ÌùíÑ…ˆ¹±…‰•±ôğ½ Ìøğ½‘¥ØøñÍÁ…¸ùí™¥±Ñ•É•‘I•½É‘Ì¹±•¹Ñ¡ôÍ¡½İ¸ğ½ÍÁ…¸øğ½¡•…‘•Èø(€€€€€€€€€€€í™¥±Ñ•É•‘I•½É‘Ì¹µ…À ¡É•½É¤€ôø€ñ‰ÕÑÑ½¸­•äõíÉ•½É¹¥‘ôÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”õí…Ñ¥Ù•I•½Éü¹¥€ôôôÉ•½É¹¥€ü€…Ñ¥Ù”œ€è€œô½¹±¥¬õì ¤€ôøÍ•ÑM•±•Ñ•‘%¡É•½É¹¥¥ô‘…Ñ„µ™¥¹…¹¥…°µ¥¹Ù•ÍÑ¥…Ñ¥½¸µÉ•½ÉõíÉ•½É¹¥‘ôøñÍÁ…¸ùíÉ•½É¹…Ñ•½ÉåôğíÉ•½É¹½‰Í•ÉÙ•‘ôğ½ÍÁ…¸øñÍÑÉ½¹œùíÉ•½É¹Ñ¥Ñ±•ôğ½ÍÑÉ½¹œøñÍµ…±°ùíÉ•½É¹Ù…±Õ•ôğíÉ•½É¹ÍÑ…ÑÕÍôğ½Íµ…±°øğ½‰ÕÑÑ½¸ø¥ô(€€€€€€€€€€€ì…™¥±Ñ•É•‘I•½É‘Ì¹±•¹Ñ €˜˜€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ•µÁÑäˆÉ½±”ô‰ÍÑ…ÑÕÌˆù9¼™¥¹…¹¥…°É•½É‘Ìµ…Ñ Ñ¡•Í”™¥±Ñ•ÉÌ¸ğ½‘¥Øùô(€€€€€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€€€€í…Ñ¥Ù•I•½É€ü€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰™¥¹…¹¥…°µÉ•½Éµ‘•Ñ…¥°ˆ…É¥„µ±…‰•°ô‰áÁ…¹‘•™¥¹…¹¥…°É•½Éˆø(€€€€€€€€€€€€ñ¡•…‘•Èøñ‘¥ØøñÀùáÁ…¹‘••Ù¥‘•¹”ğ½Àøñ Ìùí…Ñ¥Ù•I•½É¹¥‘ôğ½ ÌøñÍÁ…¸ùí…Ñ¥Ù•I•½É¹Ñ¥Ñ±•ôğí…Ñ¥Ù•I•½É¹½‰Í•ÉÙ•‘ôğ½ÍÁ…¸øğ½‘¥Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÁ¥¸¡€‘í…Ñ¥Ù•I•½É¹¥‘ôğ€‘í…Ñ¥Ù•I•½É¹Ñ¥Ñ±•õ€¥ôùA¥¸É•½Éğ½‰ÕÑÑ½¸øğ½¡•…‘•Èø(€€€€€€€€€€€€ñ‘°ùí…Ñ¥Ù•I•½É¹™¥•±‘Ì¹µ…À ¡m±…‰•°°Ù…±Õ•t¤€ôø€ñ‘¥Ø­•äõí€‘í…Ñ¥Ù•I•½É¹¥‘ô´‘í±…‰•±õôøñ‘Ğùí±…‰•±ôğ½‘Ğøñ‘ùíÙ…±Õ•ôğ½‘øğ½‘¥Øø¥ôğ½‘°ø(€€€€€€€€€€€€ñ…ÉÑ¥±”øñÍÁ…¸ùI•½É‘•½¹Ñ•áĞğ½ÍÁ…¸øñÀùí…Ñ¥Ù•I•½É¹‘•Ñ…¥±ôğ½Àøğ½…ÉÑ¥±”ø(€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰™¥¹…¹¥…°µÉ•±…Ñ•µÉ•½É‘ÌˆøñÍÁ…¸ùI•±…Ñ•É•½É‘Ìğ½ÍÁ…¸øñ‘¥Øùí…Ñ¥Ù•I•½É¹É•±…Ñ•‘I•½É‘Ì¹µ…À ¡¥Ñ•´¤€ôø€ñ‰ÕÑÑ½¸­•äõí¥Ñ•µôÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÁ¥¸¡¥Ñ•´¥ôùí¥Ñ•µôğ½‰ÕÑÑ½¸ø¥ôğ½‘¥Øøğ½‘¥Øø(€€€€€€€€€€€í…Ñ¥Ù•Q…ˆ€ôôô€±¥¹­•œ€˜˜€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø¡…¹‘A…åµ•¹Ñ%‘•¹Ñ¥™¥•ÉÌ¡…Ñ¥Ù•I•½É¥ôùAÉ•™¥±°A…åµ•¹ĞY•É¥™¥…Ñ¥½¸ğ½‰ÕÑÑ½¸ùô(€€€€€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÍ…Ù•¥¹…¹¥…±9½Ñ”¡…Ñ¥Ù•I•½É¥ôùM…Ù”•Ù¥‘•¹”¹½Ñ”ğ½‰ÕÑÑ½¸ø(€€€€€€€€€€ğ½Í•Ñ¥½¸ø€è€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ•µÁÑäˆÉ½±”ô‰ÍÑ…ÑÕÌˆù¡½½Í”„™¥¹…¹¥…°É•½ÉÑ¼½Á•¸¥ÑÌ‘•Ñ…¥±Ì¸ğ½‘¥Øùô(€€€€€€€€ğ½µ…¥¸ø((€€€€€€€€ñ…Í¥‘”±…ÍÍ9…µ”ô‰™¥¹…¹¥…°µ…Í”µÉ…¥°ˆ…É¥„µ±…‰•°ô‰¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸…Í”ÍÕµµ…Éäˆø(€€€€€€€€€€ñ¡•…‘•ÈøñÀù…Í”µ½¹•äÍÕµµ…Éäğ½Àøñ Ìùí…Ñ¥Ù•…Í”¹…µ½Õ¹Ñôğ½ ÌøñÍÁ…¸ùí…Ñ¥Ù•…Í”¹±…¥µQåÁ”€üü…Ñ¥Ù•…Í”¹ÑåÁ•ôğ½ÍÁ…¸øğ½¡•…‘•Èø(€€€€€€€€€€ñÍ•Ñ¥½¸øñÀùI•Ù¥•İ•™¥¹…¹¥…°™…ÑÌğ½Àùíİ½É­ÍÁ…”¹É•Ù¥•İ•‘…ÑÌ¹µ…À ¡™…Ğ¤€ôø€ñ…ÉÑ¥±”­•äõí™…Ñôùí™…Ñôğ½…ÉÑ¥±”ø¥ôğ½Í•Ñ¥½¸ø(€€€€€€€€€€ñÍ•Ñ¥½¸øñÀùI•½É¥¹Ù•¹Ñ½Éäğ½Àøñ‘¥Øùí™¥¹…¹¥…±%¹Ù•ÍÑ¥…Ñ¥½¹Q…‰Ì¹µ…À ¡¥Ñ•´¤€ôø€ñ‰ÕÑÑ½¸­•äõí¥Ñ•´¹¥‘ôÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÍ•±•ÑQ…ˆ¡¥Ñ•´¹¥¥ôøñÍÁ…¸ùí¥Ñ•´¹±…‰•±ôğ½ÍÁ…¸øñÍÑÉ½¹œùíİ½É­ÍÁ…”¹É•½É‘Í	åQ…‰m¥Ñ•´¹¥‘tü¹±•¹Ñ €üü€Áôğ½ÍÑÉ½¹œøğ½‰ÕÑÑ½¸ø¥ôğ½‘¥Øøğ½Í•Ñ¥½¸ø(€€€€€€€€€€ñ¹…Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° QÉ…¹Í…Ñ¥½¸!¥ÍÑ½Éäœ¥ôù=Á•¸QÉ…¹Í…Ñ¥½¸!¥ÍÑ½Éäğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° A…åµ•¹ĞY•É¥™¥…Ñ¥½¸œ¥ôù=Á•¸A…åµ•¹ĞY•É¥™¥…Ñ¥½¸ğ½‰ÕÑÑ½¸øğ½¹…Øø(€€€€€€€€ğ½…Í¥‘”ø(€€€€€€ğ½‘¥Øø((€€€€€€ñ¹…Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ¹•áĞµÉ½ÕÑ•Ìˆ…É¥„µ±…‰•°ô‰¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸¹•áĞÉ½ÕÑ•Ìˆøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° QÉ…¹Í…Ñ¥½¸!¥ÍÑ½Éäœ¥ôù=Á•¸QÉ…¹Í…Ñ¥½¸!¥ÍÑ½Éäğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° A…åµ•¹ĞY•É¥™¥…Ñ¥½¸œ¥ôù=Á•¸A…åµ•¹ĞY•É¥™¥…Ñ¥½¸ğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õí©ÕµÁ•¥Í¥½¹ôù=Á•¸MÕ‰µ¥Ğ•¥Í¥½¸ğ½‰ÕÑÑ½¸øğ½¹…Øø(€€€€€€ñ™½½Ñ•È±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÉ•Ù¥•Üµ‰…Èˆøñ‘¥ØøñÍÑÉ½¹œù¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸É•Ù¥•Üğ½ÍÑÉ½¹œøñÍÁ…¸ù5…É¬É•Ù¥•İ•…™Ñ•È½µÁ…É¥¹œÑ¡”É•±•Ù…¹Ğµ½¹•äÍ•Ñ¥½¹Ì…¹Í…Ù¥¹œÑ¡”•Ù¥‘•¹”¹••‘•™½ÈÑ¡”…Í”Á…­…”¸ğ½ÍÁ…¸øğ½‘¥Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”õíÉ•Ù¥•İ•€ü€œœ€è€¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÁÉ¥µ…Éäô½¹±¥¬õì ¤€ôøµ…É­I•Ù¥•İ• ¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸œ¥ôùíÉ•Ù¥•İ•€ü€ŸŠrL¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸É•Ù¥•İ•œ€è€5…É¬¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸É•Ù¥•İ•ôğ½‰ÕÑÑ½¸øğ½™½½Ñ•Èø(€€€€ğ¼ø(€€¤ì)ô()™Õ¹Ñ¥½¸-e	I•Ù¥•İ]½É­ÍÁ…”¡ì…Ñ¥Ù•…Í”°Á¥¸°Í…Ù•9½Ñ”°µ…É­I•Ù¥•İ•°É•Ù¥•İ•°½Á•¹Q½½°°©ÕµÁ•¥Í¥½¸ô¤ì(€½¹ÍĞİ½É­ÍÁ…”€ôÕÍ•5•µ¼  ¤€ôø•Ñ-å‰I•Ù¥•Ü¡…Ñ¥Ù•…Í”¤°m…Ñ¥Ù•…Í•t¤ì(€½¹ÍĞm±½½­ÕÁY…±Õ”°Í•Ñ1½½­ÕÁY…±Õ•t€ôÕÍ•MÑ…Ñ” œœ¤ì(€½¹ÍĞm½¹™¥Éµ•‘1½½­ÕÀ°Í•Ñ½¹™¥Éµ•‘1½½­ÕÁt€ôÕÍ•MÑ…Ñ” œœ¤ì(€½¹ÍĞm±½½­ÕÁÑÑ•µÁÑ•°Í•Ñ1½½­ÕÁÑÑ•µÁÑ•‘t€ôÕÍ•MÑ…Ñ”¡™…±Í”¤ì(€½¹ÍĞm…Ñ¥Ù•Q…ˆ°Í•ÑÑ¥Ù•Q…‰t€ôÕÍ•MÑ…Ñ” ½Ù•ÉÙ¥•Üœ¤ì(€½¹ÍĞmÉ•½É‘EÕ•Éä°Í•ÑI•½É‘EÕ•Éåt€ôÕÍ•MÑ…Ñ” œœ¤ì(€½¹ÍĞmÍ•±•Ñ•‘%°Í•ÑM•±•Ñ•‘%‘t€ôÕÍ•MÑ…Ñ” œœ¤ì(€½¹ÍĞmÉ•Á½ÉĞ°Í•ÑI•Á½ÉÑt€ôÕÍ•MÑ…Ñ”¡¹Õ±°¤ì(€½¹ÍĞmÉ•Á½ÉÑ•¹•É…Ñ•°Í•ÑI•Á½ÉÑ•¹•É…Ñ•‘t€ôÕÍ•MÑ…Ñ”  ¤€ôø¡…Í•¹•É…Ñ•‘-å‰I•Á½ÉĞ¡…Ñ¥Ù•…Í”¹¥¤¤ì(€½¹ÍĞÍ•…É¡5…Ñ¡•€ôµ…Ñ¡•Í-å‰I•Ù¥•İ1½½­ÕÀ¡İ½É­ÍÁ…”°½¹™¥Éµ•‘1½½­ÕÀ¤ì(€½¹ÍĞÑ…ˆ€ô­å‰I•Ù¥•İQ…‰Ì¹™¥¹ ¡¥Ñ•´¤€ôø¥Ñ•´¹¥€ôôô…Ñ¥Ù•Q…ˆ¤€üü­å‰I•Ù¥•İQ…‰ÍlÁtì(€½¹ÍĞÑ…‰I•½É‘Ì€ôİ½É­ÍÁ…”¹É•½É‘Í	åQ…‰m…Ñ¥Ù•Q…‰t€üümtì(€½¹ÍĞ¹½Éµ…±¥é•‘EÕ•Éä€ôÉ•½É‘EÕ•Éä¹ÑÉ¥´ ¤¹Ñ½1½İ•É…Í” ¤ì(€½¹ÍĞ™¥±Ñ•É•‘I•½É‘Ì€ôÍ•…É¡5…Ñ¡•€üÑ…‰I•½É‘Ì¹™¥±Ñ•È ¡É•½É¤€ôø€…¹½Éµ…±¥é•‘EÕ•Éäñğ­å‰I•½É‘M•…É¡Q•áĞ¡É•½É¤¹¥¹±Õ‘•Ì¡¹½Éµ…±¥é•‘EÕ•Éä¤¤€èmtì(€½¹ÍĞ…Ñ¥Ù•I•½É€ô™¥±Ñ•É•‘I•½É‘Ì¹™¥¹ ¡É•½É¤€ôøÉ•½É¹¥€ôôôÍ•±•Ñ•‘%¤€üü™¥±Ñ•É•‘I•½É‘ÍlÁt€üüÑ…‰I•½É‘ÍlÁtì((€ÕÍ•™™•Ğ  ¤€ôøì(€€€Í•Ñ1½½­ÕÁY…±Õ” œœ¤ì(€€€Í•Ñ½¹™¥Éµ•‘1½½­ÕÀ œœ¤ì(€€€Í•Ñ1½½­ÕÁÑÑ•µÁÑ•¡™…±Í”¤ì(€€€Í•ÑÑ¥Ù•Q…ˆ ½Ù•ÉÙ¥•Üœ¤ì(€€€Í•ÑI•½É‘EÕ•Éä œœ¤ì(€€€Í•ÑM•±•Ñ•‘% œœ¤ì(€€€Í•ÑI•Á½ÉĞ¡¹Õ±°¤ì(€€€Í•ÑI•Á½ÉÑ•¹•É…Ñ•¡¡…Í•¹•É…Ñ•‘-å‰I•Á½ÉĞ¡…Ñ¥Ù•…Í”¹¥¤¤ì(€ô°m…Ñ¥Ù•…Í”¹¥‘t¤ì((€ÕÍ•™™•Ğ  ¤€ôøì(€€€Í•ÑI•½É‘EÕ•Éä œœ¤ì(€€€Í•ÑM•±•Ñ•‘% œœ¤ì(€ô°m…Ñ¥Ù•Q…‰t¤ì((€™Õ¹Ñ¥½¸ÉÕ¹1½½­ÕÀ¡•Ù•¹Ğ¤ì(€€€•Ù•¹Ğ¹ÁÉ•Ù•¹Ñ•™…Õ±Ğ ¤ì(€€€Í•Ñ1½½­ÕÁÑÑ•µÁÑ•¡ÑÉÕ”¤ì(€€€Í•Ñ½¹™¥Éµ•‘1½½­ÕÀ¡±½½­ÕÁY…±Õ”¹ÑÉ¥´ ¤¤ì(€ô((€™Õ¹Ñ¥½¸•¹•É…Ñ•I•Á½ÉĞ ¤ì(€€€½¹ÍĞ¹•áÑI•Á½ÉĞ€ô•¹•É…Ñ•-å‰I•Ù¥•İI•Á½ÉĞ¡…Ñ¥Ù•…Í”¤ì(€€€Í•ÑI•Á½ÉĞ¡¹•áÑI•Á½ÉĞ¤ì(€€€Í•ÑI•Á½ÉÑ•¹•É…Ñ•¡ÑÉÕ”¤ì(€€€Í…Ù•9½Ñ”¡-e	ÕÍ¥¹•ÍÌI•Á½ÉĞ•¹•É…Ñ•™½È€‘íİ½É­ÍÁ…”¹ÁÉ½™¥±”¹±•…±9…µ•ô¹€°€-eI•Ù¥•Üœ¤ì(€ô((€É•ÑÕÉ¸€ (€€€€ğø(€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰­åˆµ±½½­ÕÀµÁ…¹•°ˆ…É¥„µ±…‰•°ô‰-e‰ÕÍ¥¹•ÍÌ±½½­ÕÀˆø(€€€€€€€€ñ‘¥ØøñÀù	ÕÍ¥¹•ÍÌ±½½­ÕÀğ½Àøñ Ìù¥¹Ñ¡”•á…Ğ•¹Ñ¥Ñä‰•™½É”½Á•¹¥¹œ¥ÑÌ-eÉ•½Éğ½ ÌøñÍÁ…¸ùM•…É ‰ä±•…°¹…µ”°	°µ…Í­•%8°É•¥ÍÑÉ…Ñ¥½¸%°½È•á…Ğ‰ÕÍ¥¹•ÍÌ…‘‘É•ÍÌ¸ğ½ÍÁ…¸øğ½‘¥Øø(€€€€€€€€ñ™½É´½¹MÕ‰µ¥ĞõíÉÕ¹1½½­ÕÁôøñ±…‰•°øñÍÁ…¸ù	ÕÍ¥¹•ÍÌ¥‘•¹Ñ¥™¥•Èğ½ÍÁ…¸øñ¥¹ÁÕĞÙ…±Õ”õí±½½­ÕÁY…±Õ•ô½¹¡…¹”õì¡•Ù•¹Ğ¤€ôøÍ•Ñ1½½­ÕÁY…±Õ”¡•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ôÁ±…•¡½±‘•Èô‰1•…°¹…µ”°	°€¨¨´¨¨¨ÄÈÌĞ°É•¥ÍÑÉ…Ñ¥½¸%°½È…‘‘É•ÍÌˆ…É¥„µ±…‰•°ô‰M•…É -eI•Ù¥•Üˆ€¼øğ½±…‰•°øñ‰ÕÑÑ½¸ÑåÁ”ô‰ÍÕ‰µ¥Ğˆ‘¥Í…‰±•õì…±½½­ÕÁY…±Õ”¹ÑÉ¥´ ¥ôùM•…É ‰ÕÍ¥¹•ÍÌğ½‰ÕÑÑ½¸øğ½™½É´ø(€€€€€€€€ñ…ÉÑ¥±”±…ÍÍ9…µ”ô‰­åˆµ…Í”µ•¹Ñ¥ÑäˆøñÍÁ…¸ù	ÕÍ¥¹•ÍÌ½‰©•Ğ…ÑÑ…¡•Ñ¼Ñ¡¥ÌÑÉ…¥¹¥¹œ…Í”ğ½ÍÁ…¸øñÍÑÉ½¹œùíİ½É­ÍÁ…”¹ÁÉ½™¥±”¹‘‰…ôğ½ÍÑÉ½¹œøñÍµ…±°ùíİ½É­ÍÁ…”¹ÁÉ½™¥±”¹©ÕÉ¥Í‘¥Ñ¥½¹ôğíİ½É­ÍÁ…”¹ÁÉ½™¥±”¹¥¹‘ÕÍÑÉåôğ½Íµ…±°øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÍ•Ñ1½½­ÕÁY…±Õ”¡İ½É­ÍÁ…”¹ÁÉ½™¥±”¹±•…±9…µ”¥ôùUÍ”±•…°¹…µ”ğ½‰ÕÑÑ½¸øğ½…ÉÑ¥±”ø(€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€í±½½­ÕÁÑÑ•µÁÑ•€˜˜€…Í•…É¡5…Ñ¡•€˜˜€ñ‘¥Ø±…ÍÍ9…µ”ô‰­åˆµ±½½­ÕÀµµ•ÍÍ…”ˆÉ½±”ô‰ÍÑ…ÑÕÌˆøñÍÑÉ½¹œù9¼•á…Ğ™¥Ñ¥½¹…°‰ÕÍ¥¹•ÍÌµ…Ñ ¸ğ½ÍÑÉ½¹œøñÍÁ…¸ù¡•¬Ñ¡”™Õ±°±•…°¹…µ”°	°µ…Í­•%8°É•¥ÍÑÉ…Ñ¥½¸%°½È½µÁ±•Ñ”…‘‘É•ÍÌ…¹Í•…É ……¥¸¸ğ½ÍÁ…¸øğ½‘¥Øùô((€€€€€íÍ•…É¡5…Ñ¡•€˜˜€ğø(€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰­åˆµÁÉ½™¥±”µ¡•…‘•Èˆ…É¥„µ±…‰•°ô‰5…Ñ¡•‰ÕÍ¥¹•ÍÌÁÉ½™¥±”ˆø(€€€€€€€€€€ñ¡•…‘•Èøñ‘¥ØøñÀùá…Ğ‰ÕÍ¥¹•ÍÌµ…Ñ ğ½Àøñ Ìùíİ½É­ÍÁ…”¹ÁÉ½™¥±”¹±•…±9…µ•ôğ½ ÌøñÍÁ…¸ùíİ½É­ÍÁ…”¹ÁÉ½™¥±”¹‘‰…ôğíİ½É­ÍÁ…”¹ÁÉ½™¥±”¹•¹Ñ¥ÑåQåÁ•ôğ½ÍÁ…¸øğ½‘¥Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÁ¥¸¡€‘íİ½É­ÍÁ…”¹ÁÉ½™¥±”¹É•¥ÍÑÉ…Ñ¥½¹%‘ôğ€‘íİ½É­ÍÁ…”¹ÁÉ½™¥±”¹±•…±9…µ•õ€¥ôùA¥¸‰ÕÍ¥¹•ÍÌğ½‰ÕÑÑ½¸øğ½¡•…‘•Èø(€€€€€€€€€€ñ‘°ùímlI•¥ÍÑÉ…Ñ¥½¸œ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹É•¥ÍÑÉ…Ñ¥½¹%‘t°l5…Í­•%8œ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹•¥¹t°l)ÕÉ¥Í‘¥Ñ¥½¸œ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹©ÕÉ¥Í‘¥Ñ¥½¹t°lMÑ…¹‘¥¹œœ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹ÍÑ…¹‘¥¹t°l½Éµ…Ñ¥½¸œ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹™½Éµ…Ñ¥½¹…Ñ•t°l‘‘É•ÍÌœ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹…‘‘É•ÍÍt°lA¡½¹”œ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹Á¡½¹•t°l]•‰Í¥Ñ”œ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹İ•‰Í¥Ñ•ut¹µ…À ¡m±…‰•°°Ù…±Õ•t¤€ôø€ñ‘¥Ø­•äõí±…‰•±ôøñ‘Ğùí±…‰•±ôğ½‘Ğøñ‘ùíÙ…±Õ•ôğ½‘øğ½‘¥Øø¥ôğ½‘°ø(€€€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰­åˆµÉ•Ù¥•Üµ­Á¥Ìˆ…É¥„µ±…‰•°ô‰-eÉ•½É¥¹Ù•¹Ñ½Éäˆøñ…ÉÑ¥±”øñÍÁ…¸ù=İ¹•È€¼U	<É•½É‘Ìğ½ÍÁ…¸øñÍÑÉ½¹œùíİ½É­ÍÁ…”¹½Õ¹ÑÌ¹½İ¹•ÉÍôğ½ÍÑÉ½¹œøñÍµ…±°ù%‘•¹Ñ¥ÑäÉ•½É‘Ì½¹¹•Ñ•ğ½Íµ…±°øğ½…ÉÑ¥±”øñ…ÉÑ¥±”øñÍÁ…¸ù	ÕÍ¥¹•ÍÌ±¥¹­Ìğ½ÍÁ…¸øñÍÑÉ½¹œùíİ½É­ÍÁ…”¹½Õ¹ÑÌ¹‰ÕÍ¥¹•ÍÍI•½É‘Íôğ½ÍÑÉ½¹œøñÍµ…±°ù	ÕÍ¥¹•ÍÌ€ÌØÀÉ•½É‘Ìğ½Íµ…±°øğ½…ÉÑ¥±”øñ…ÉÑ¥±”øñÍÁ…¸ùA…åµ•¹Ğ½‰©•ÑÌğ½ÍÁ…¸øñÍÑÉ½¹œùíİ½É­ÍÁ…”¹½Õ¹ÑÌ¹Á…åµ•¹Ñ=‰©•ÑÍôğ½ÍÑÉ½¹œøñÍµ…±°ù=İ¹•ÉÍ¡¥ÀÉ•½É‘Ì…Ù…¥±…‰±”ğ½Íµ…±°øğ½…ÉÑ¥±”øñ…ÉÑ¥±”øñÍÁ…¸ù½Õµ•¹ÑÌ€˜±¥¹­Ìğ½ÍÁ…¸øñÍÑÉ½¹œùíİ½É­ÍÁ…”¹½Õ¹ÑÌ¹‘½Õµ•¹ÑÍôğ½ÍÑÉ½¹œøñÍµ…±°ùM½ÕÉ”¥¹Ù•¹Ñ½Éäğ½Íµ…±°øğ½…ÉÑ¥±”øğ½Í•Ñ¥½¸ø((€€€€€€€€ñ¹…Ø±…ÍÍ9…µ”ô‰­åˆµÉ•Ù¥•ÜµÑ…‰Ìˆ…É¥„µ±…‰•°ô‰-eI•Ù¥•ÜÍ•Ñ¥½¹Ìˆùí­å‰I•Ù¥•İQ…‰Ì¹µ…À ¡¥Ñ•´¤€ôø€ñ‰ÕÑÑ½¸­•äõí¥Ñ•´¹¥‘ôÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”õí…Ñ¥Ù•Q…ˆ€ôôô¥Ñ•´¹¥€ü€…Ñ¥Ù”œ€è€œô…É¥„µÁÉ•ÍÍ•õí…Ñ¥Ù•Q…ˆ€ôôô¥Ñ•´¹¥‘ô½¹±¥¬õì ¤€ôøÍ•ÑÑ¥Ù•Q…ˆ¡¥Ñ•´¹¥¥ôùí¥Ñ•´¹±…‰•±ôğ½‰ÕÑÑ½¸ø¥ôğ½¹…Øø((€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰­åˆµÉ•Ù¥•Üµ™¥¹‘‰…Èˆ…É¥„µ±…‰•°ô‰-eI•Ù¥•ÜÉ•½É™¥±Ñ•Èˆøñ‘¥ØøñÀùíÑ…ˆ¹±…‰•±ôğ½Àøñ ÌùíÑ…ˆ¹ÅÕ•ÍÑ¥½¹ôğ½ Ìøğ½‘¥Øøñ±…‰•°øñÍÁ…¸ù¥±Ñ•È½Á•¹•É•½É‘Ìğ½ÍÁ…¸øñ¥¹ÁÕĞÙ…±Õ”õíÉ•½É‘EÕ•Éåô½¹¡…¹”õì¡•Ù•¹Ğ¤€ôøÍ•ÑI•½É‘EÕ•Éä¡•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ôÁ±…•¡½±‘•Èô‰I•½É°½İ¹•È°¥‘•¹Ñ¥™¥•È°Í½ÕÉ”°½ÈÙ…±Õ”ˆ…É¥„µ±…‰•°ô‰¥±Ñ•È-eI•Ù¥•ÜÉ•½É‘Ìˆ€¼øğ½±…‰•°øñÍÁ…¸ùí™¥±Ñ•É•‘I•½É‘Ì¹±•¹Ñ¡ô½˜íÑ…‰I•½É‘Ì¹±•¹Ñ¡ôÍ¡½İ¸ğ½ÍÁ…¸øğ½Í•Ñ¥½¸ø((€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰­åˆµÉ•Ù¥•Üµİ½É­ÍÁ…”ˆø(€€€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰­åˆµÉ•½Éµ±¥ÍĞˆ…É¥„µ±…‰•°õí€‘íÑ…ˆ¹±…‰•±ô-eÉ•½É‘Íôøñ¡•…‘•Èøñ‘¥ØøñÀùM½ÕÉ”É•½É‘Ìğ½Àøñ ÌùíÑ…ˆ¹±…‰•±ôğ½ Ìøğ½‘¥ØøñÍÁ…¸ùí™¥±Ñ•É•‘I•½É‘Ì¹±•¹Ñ¡ôÍ¡½İ¸ğ½ÍÁ…¸øğ½¡•…‘•Èùí™¥±Ñ•É•‘I•½É‘Ì¹µ…À ¡É•½É¤€ôø€ñ‰ÕÑÑ½¸­•äõíÉ•½É¹¥‘ôÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”õí…Ñ¥Ù•I•½Éü¹¥€ôôôÉ•½É¹¥€ü€…Ñ¥Ù”œ€è€œô½¹±¥¬õì ¤€ôøÍ•ÑM•±•Ñ•‘%¡É•½É¹¥¥ô‘…Ñ„µ­åˆµÉ•Ù¥•ÜµÉ•½ÉõíÉ•½É¹¥‘ôøñÍÁ…¸ùíÉ•½É¹…Ñ•½ÉåôğíÉ•½É¹½‰Í•ÉÙ•‘ôğ½ÍÁ…¸øñÍÑÉ½¹œùíÉ•½É¹Ñ¥Ñ±•ôğ½ÍÑÉ½¹œøñÍµ…±°ùíÉ•½É¹Ù…±Õ•ôğ½Íµ…±°øğ½‰ÕÑÑ½¸ø¥õì…™¥±Ñ•É•‘I•½É‘Ì¹±•¹Ñ €˜˜€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ•µÁÑäˆÉ½±”ô‰ÍÑ…ÑÕÌˆù9¼-eÉ•½É‘Ìµ…Ñ Ñ¡¥Ì™¥±Ñ•È¸ğ½‘¥Øùôğ½Í•Ñ¥½¸ø((€€€€€€€€€í…Ñ¥Ù•I•½É€ü€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰­åˆµÉ•½Éµ‘•Ñ…¥°ˆ…É¥„µ±…‰•°ô‰áÁ…¹‘•-eÉ•½Éˆøñ¡•…‘•Èøñ‘¥ØøñÀùáÁ…¹‘•Í½ÕÉ”É•½Éğ½Àøñ Ìùí…Ñ¥Ù•I•½É¹¥‘ôğ½ ÌøñÍÁ…¸ùí…Ñ¥Ù•I•½É¹Ñ¥Ñ±•ôğ½ÍÁ…¸øğ½‘¥Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÁ¥¸¡€‘í…Ñ¥Ù•I•½É¹¥‘ôğ€‘í…Ñ¥Ù•I•½É¹Ñ¥Ñ±•õ€¥ôùA¥¸É•½Éğ½‰ÕÑÑ½¸øğ½¡•…‘•Èøñ‘°ùí…Ñ¥Ù•I•½É¹™¥•±‘Ì¹µ…À ¡m±…‰•°°Ù…±Õ•t¤€ôø€ñ‘¥Ø­•äõí€‘í…Ñ¥Ù•I•½É¹¥‘ô´‘í±…‰•±õôøñ‘Ğùí±…‰•±ôğ½‘Ğøñ‘ùíÙ…±Õ•ôğ½‘øğ½‘¥Øø¥ôğ½‘°øñ…ÉÑ¥±”øñÍÁ…¸ùI•½É‘•½¹Ñ•áĞğ½ÍÁ…¸øñÀùí…Ñ¥Ù•I•½É¹‘•Ñ…¥±ôğ½Àøğ½…ÉÑ¥±”øñ‘¥Ø±…ÍÍ9…µ”ô‰­åˆµÉ•±…Ñ•µÉ•½É‘ÌˆøñÍÁ…¸ùI•±…Ñ•É•½É‘Ìğ½ÍÁ…¸øñ‘¥Øùí…Ñ¥Ù•I•½É¹É•±…Ñ•‘I•½É‘Ì¹µ…À ¡¥Ñ•´¤€ôø€ñ‰ÕÑÑ½¸­•äõí¥Ñ•µôÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÁ¥¸¡¥Ñ•´¥ôùí¥Ñ•µôğ½‰ÕÑÑ½¸ø¥ôğ½‘¥Øøğ½‘¥Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÍ…Ù•9½Ñ”¡-eI•Ù¥•Üè€‘í…Ñ¥Ù•I•½É¹¥‘ô€´€‘í…Ñ¥Ù•I•½É¹‘•Ñ…¥±õ€°€-eI•Ù¥•Üœ¥ôùM…Ù”•Ù¥‘•¹”¹½Ñ”ğ½‰ÕÑÑ½¸øğ½Í•Ñ¥½¸ø€è€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ•µÁÑäˆÉ½±”ô‰ÍÑ…ÑÕÌˆù¡½½Í”„-eÍ½ÕÉ”É•½ÉÑ¼½Á•¸¥ÑÌ‘•Ñ…¥±Ì¸ğ½‘¥Øùô((€€€€€€€€€€ñ…Í¥‘”±…ÍÍ9…µ”ô‰­åˆµ…Í”µÉ…¥°ˆ…É¥„µ±…‰•°ô‰-eI•Ù¥•Ü…Í”ÍÕµµ…Éäˆøñ¡•…‘•ÈøñÀù	ÕÍ¥¹•ÍÌ•Ù¥‘•¹”ÍÕµµ…Éäğ½Àøñ Ìùíİ½É­ÍÁ…”¹ÁÉ½™¥±”¹‘‰…ôğ½ ÌøñÍÁ…¸ùí…Ñ¥Ù•…Í”¹¥‘ôğ½ÍÁ…¸øğ½¡•…‘•ÈøñÍ•Ñ¥½¸øñÀùI•Ù¥•İ•‰ÕÍ¥¹•ÍÌ™…ÑÌğ½Àùíİ½É­ÍÁ…”¹É•Ù¥•İ•‘…ÑÌ¹µ…À ¡™…Ğ¤€ôø€ñ…ÉÑ¥±”­•äõí™…Ñôùí™…Ñôğ½…ÉÑ¥±”ø¥ôğ½Í•Ñ¥½¸øñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰­åˆµÉ•Á½ÉĞµ…Ñ¥½¹ÌˆøñÀù-e	ÕÍ¥¹•ÍÌI•Á½ÉĞğ½ÀøñÍÁ…¸ù•¹•É…Ñ”„™…ÑÕ…°É•Á½ÉĞ™É½´Ñ¡”½Á•¹•™¥Ñ¥½¹…°‰ÕÍ¥¹•ÍÌÉ•½É‘Ì¸Q¡”É•Á½ÉĞ¥ÌÍÑ½É•İ¥Ñ Ñ¡”µ…Ñ¡¥¹œ…½Õ¹Ğ‘½Õµ•¹ÑÌ¸ğ½ÍÁ…¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õí•¹•É…Ñ•I•Á½ÉÑôùíÉ•Á½ÉÑ•¹•É…Ñ•€ü€I••¹•É…Ñ”É•Á½ÉĞœ€è€•¹•É…Ñ”É•Á½ÉĞôğ½‰ÕÑÑ½¸ùíÉ•Á½ÉĞ€˜˜€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø‘½İ¹±½…‘-å‰I•Á½ÉĞ¡É•Á½ÉĞ¥ôùáÁ½ÉĞÉ•Á½ÉĞğ½‰ÕÑÑ½¸ùôğ½Í•Ñ¥½¸øñ¹…Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° 	ÕÍ¥¹•ÍÌ€ÌØÀœ¥ôù=Á•¸	ÕÍ¥¹•ÍÌ€ÌØÀğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° A…åµ•¹ĞY•É¥™¥…Ñ¥½¸œ¥ôù=Á•¸A…åµ•¹ĞY•É¥™¥…Ñ¥½¸ğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° ¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸œ¥ôù=Á•¸¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸ğ½‰ÕÑÑ½¸øğ½¹…Øøğ½…Í¥‘”ø(€€€€€€€€ğ½‘¥Øø(€€€€€€ğ¼ùô((€€€€€€ñ¹…Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ¹•áĞµÉ½ÕÑ•Ìˆ…É¥„µ±…‰•°ô‰-eI•Ù¥•Ü¹•áĞÉ½ÕÑ•Ìˆøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° 	ÕÍ¥¹•ÍÌ€ÌØÀœ¥ôù=Á•¸	ÕÍ¥¹•ÍÌ€ÌØÀğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° %‘•¹Ñ¥Ñä%¹Ñ•°€¼A•½Á±”M•…É œ¥ôù=Á•¸%‘•¹Ñ¥Ñä%¹Ñ•°ğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õí©ÕµÁ•¥Í¥½¹ôù=Á•¸MÕ‰µ¥Ğ•¥Í¥½¸ğ½‰ÕÑÑ½¸øğ½¹…Øø(€€€€€€ñ™½½Ñ•È±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÉ•Ù¥•Üµ‰…Èˆøñ‘¥ØøñÍÑÉ½¹œù-eI•Ù¥•Üğ½ÍÑÉ½¹œøñÍÁ…¸ù½µÁ±•Ñ”…¸•á…Ğ±½½­ÕÀ…¹½µÁ…É”Ñ¡”É•±•Ù…¹ĞÍ½ÕÉ”É•½É‘Ì‰•™½É”µ…É­¥¹œÑ¡¥Ì‰ÕÍ¥¹•ÍÌÉ•Ù¥•Ü½µÁ±•Ñ”¸ğ½ÍÁ…¸øğ½‘¥Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”õíÉ•Ù¥•İ•€ü€œœ€è€¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÁÉ¥µ…Éäô‘¥Í…‰±•õì…Í•…É¡5…Ñ¡•‘ô½¹±¥¬õì ¤€ôøµ…É­I•Ù¥•İ• -eI•Ù¥•Üœ¥ôùíÉ•Ù¥•İ•€ü€ŸŠrL-eI•Ù¥•ÜÉ•Ù¥•İ•œ€è€5…É¬-eI•Ù¥•ÜÉ•Ù¥•İ•ôğ½‰ÕÑÑ½¸øğ½™½½Ñ•Èø(€€€€ğ¼ø(€€¤ì)ô()™Õ¹Ñ¥½¸	ÕÍ¥¹•ÍÌÌØÁ]½É­ÍÁ…”¡ì…Ñ¥Ù•…Í”°Á¥¸°Í…Ù•9½Ñ”°µ…É­I•Ù¥•İ•°É•Ù¥•İ•°½Á•¹Q½½°°©ÕµÁ•¥Í¥½¸ô¤ì(€½¹ÍĞİ½É­ÍÁ…”€ôÕÍ•5•µ¼  ¤€ôø•Ñ	ÕÍ¥¹•ÍÌÌØÁ]½É­ÍÁ…”¡…Ñ¥Ù•…Í”¤°m…Ñ¥Ù•…Í•t¤ì(€½¹ÍĞmÍ•±•Ñ•‘%°Í•ÑM•±•Ñ•‘%‘t€ôÕÍ•MÑ…Ñ” œœ¤ì(€½¹ÍĞ…Ñ¥Ù•I•±…Ñ¥½¹Í¡¥À€ôİ½É­ÍÁ…”¹É•±…Ñ¥½¹Í¡¥ÁÌ¹™¥¹ ¡É•½É¤€ôøÉ•½É¹¥€ôôôÍ•±•Ñ•‘%¤€üüİ½É­ÍÁ…”¹É•±…Ñ¥½¹Í¡¥ÁÍlÁtì(€ÕÍ•™™•Ğ  ¤€ôøÍ•ÑM•±•Ñ•‘% œœ¤°m…Ñ¥Ù•…Í”¹¥‘t¤ì((€É•ÑÕÉ¸€ (€€€€ğø(€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰‰ÕÍ¥¹•ÍÌ´ÌØÀµÁÉ½™¥±”ˆ…É¥„µ±…‰•°ô‰	ÕÍ¥¹•ÍÌ€ÌØÀÁÉ½™¥±”ˆø(€€€€€€€€ñ¡•…‘•Èøñ‘¥ØøñÀù	ÕÍ¥¹•ÍÌ…¹-eÁÉ½™¥±”ğ½Àøñ Ìùíİ½É­ÍÁ…”¹ÁÉ½™¥±”¹•¹Ñ¥Ñåôğ½ ÌøñÍÁ…¸ù¥Ñ¥½¹…°ÑÉ…¥¹¥¹œ‰ÕÍ¥¹•ÍÌ½¹Ñ•áĞ¸I•Ù¥•Ü•Ù¥‘•¹”İ¥Ñ¡½ÕĞ…ÍÍ¥¹¥¹œ„…Í”½ÕÑ½µ”¸ğ½ÍÁ…¸øğ½‘¥Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÁ¥¸¡İ½É­ÍÁ…”¹ÁÉ½™¥±”¹•¹Ñ¥Ñä¥ôùA¥¸‰ÕÍ¥¹•ÍÌğ½‰ÕÑÑ½¸øğ½¡•…‘•Èø(€€€€€€€€ñ‘°ùíl(€€€€€€€€€l¹Ñ¥ÑäÑåÁ”œ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹•¹Ñ¥ÑåQåÁ•t°lI•¥ÍÑÉ…Ñ¥½¸œ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹É•¥ÍÑÉ…Ñ¥½¹t°l5…Í­•%8œ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹•¥¹t°l=İ¹•Èœ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹½İ¹•Ét°l=™™¥•Èœ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹½™™¥•Ét°lI•¥ÍÑ•É•…•¹Ğœ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹É•¥ÍÑ•É•‘•¹Ñt°l	ÕÍ¥¹•ÍÌ…‘‘É•ÍÌœ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹…‘‘É•ÍÍt°l¥±¥¹œ‘…Ñ”œ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹™¥±¥¹…Ñ•t°l	ÕÍ¥¹•ÍÌÍÑ…¹‘¥¹œœ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹ÍÑ…¹‘¥¹t°lI•Ù•¹Õ”€¼…Í µ™±½Ü½¹Ñ•áĞœ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹É•Ù•¹Õ•t°l	ÕÍ¥¹•ÍÌ½¹Ñ…Ğœ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹½¹Ñ…Ñt°lI•±…Ñ¥½¹Í¡¥Àœ°İ½É­ÍÁ…”¹ÁÉ½™¥±”¹É•±…Ñ¥½¹Í¡¥Át°(€€€€€€€t¹µ…À ¡m±…‰•°°Ù…±Õ•t¤€ôø€ñ‘¥Ø­•äõí±…‰•±ôøñ‘Ğùí±…‰•±ôğ½‘Ğøñ‘ùíÙ…±Õ•ôğ½‘øğ½‘¥Øø¥ôğ½‘°ø(€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€ñA…åµ•¹ÑM½ÕÉ•!…¹‘½™˜(€€€€€€€Í½ÕÉ”õíİ½É­ÍÁ…”¹Á…åµ•¹ÑM½ÕÉ•ô(€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€Í½ÕÉ•1…‰•°ô‰	ÕÍ¥¹•ÍÌ€ÌØÀˆ(€€€€€€¼ø((€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰‰ÕÍ¥¹•ÍÌ´ÌØÀµİ½É­ÍÁ…”ˆø(€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰‰ÕÍ¥¹•ÍÌ´ÌØÀµÉ•±…Ñ¥½¹Í¡¥ÁÌˆ…É¥„µ±…‰•°ô‰	ÕÍ¥¹•ÍÌÉ•±…Ñ¥½¹Í¡¥ÁÌˆøñ¡•…‘•ÈøñÀùI•±…Ñ¥½¹Í¡¥ÁÌğ½Àøñ Ìù¡½½Í”„‰ÕÍ¥¹•ÍÌ½‰©•Ğğ½ Ìøğ½¡•…‘•Èùíİ½É­ÍÁ…”¹É•±…Ñ¥½¹Í¡¥ÁÌ¹µ…À ¡É•½É¤€ôø€ñ‰ÕÑÑ½¸­•äõíÉ•½É¹¥‘ôÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”õíÉ•½É¹¥€ôôô…Ñ¥Ù•I•±…Ñ¥½¹Í¡¥Àü¹¥€ü€…Ñ¥Ù”œ€è€œô½¹±¥¬õì ¤€ôøÍ•ÑM•±•Ñ•‘%¡É•½É¹¥¥ô‘…Ñ„µ‰ÕÍ¥¹•ÍÌ´ÌØÀµÉ•½ÉõíÉ•½É¹¥‘ôøñÍÁ…¸ùíÉ•½É¹¥‘ôğíÉ•½É¹ÍÑ…ÑÕÍôğ½ÍÁ…¸øñÍÑÉ½¹œùíÉ•½É¹•¹Ñ¥Ñåôğ½ÍÑÉ½¹œøñÍµ…±°ùíÉ•½É¹É•±…Ñ¥½¹Í¡¥Áôğ½Íµ…±°øğ½‰ÕÑÑ½¸ø¥ôğ½Í•Ñ¥½¸ø(€€€€€€€í…Ñ¥Ù•I•±…Ñ¥½¹Í¡¥À€ü€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰‰ÕÍ¥¹•ÍÌ´ÌØÀµ‘•Ñ…¥°ˆ…É¥„µ±…‰•°ô‰	ÕÍ¥¹•ÍÌÉ•±…Ñ¥½¹Í¡¥À‘•Ñ…¥°ˆøñ¡•…‘•Èøñ‘¥ØøñÀùM•±•Ñ•É•±…Ñ¥½¹Í¡¥Àğ½Àøñ Ìùí…Ñ¥Ù•I•±…Ñ¥½¹Í¡¥À¹•¹Ñ¥Ñåôğ½ ÌøñÍÁ…¸ùí…Ñ¥Ù•I•±…Ñ¥½¹Í¡¥À¹½‰Í•ÉÙ•‘ôğ½ÍÁ…¸øğ½‘¥Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÁ¥¸¡…Ñ¥Ù•I•±…Ñ¥½¹Í¡¥À¹•¹Ñ¥Ñä¥ôùA¥¸É•±…Ñ¥½¹Í¡¥Àğ½‰ÕÑÑ½¸øğ½¡•…‘•Èøñ‘°ùímlI•±…Ñ¥½¹Í¡¥Àœ°…Ñ¥Ù•I•±…Ñ¥½¹Í¡¥À¹É•±…Ñ¥½¹Í¡¥Át°lMÑ…ÑÕÌœ°…Ñ¥Ù•I•±…Ñ¥½¹Í¡¥À¹ÍÑ…ÑÕÍt°l=‰Í•ÉÙ•œ°…Ñ¥Ù•I•±…Ñ¥½¹Í¡¥À¹½‰Í•ÉÙ•‘t°l…Í”½¹Ñ•áĞœ°…Ñ¥Ù•I•±…Ñ¥½¹Í¡¥À¹½¹Ñ•áÑut¹µ…À ¡m±…‰•°°Ù…±Õ•t¤€ôø€ñ‘¥Ø­•äõí±…‰•±ôøñ‘Ğùí±…‰•±ôğ½‘Ğøñ‘ùíÙ…±Õ•ôğ½‘øğ½‘¥Øø¥ôğ½‘°øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÍ…Ù•9½Ñ”¡	ÕÍ¥¹•ÍÌ€ÌØÀè€‘í…Ñ¥Ù•I•±…Ñ¥½¹Í¡¥À¹¥‘ôÉ•Ù¥•İ•™½È€‘í…Ñ¥Ù•…Í”¹¥‘ô¹€°€	ÕÍ¥¹•ÍÌ€ÌØÀœ¥ôùM…Ù”‰ÕÍ¥¹•ÍÌ¹½Ñ”ğ½‰ÕÑÑ½¸øğ½Í•Ñ¥½¸ø€è€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ•µÁÑäˆÉ½±”ô‰ÍÑ…ÑÕÌˆù9¼‰ÕÍ¥¹•ÍÌÉ•±…Ñ¥½¹Í¡¥À¥ÌÉ•½É‘•™½ÈÑ¡¥Ì…Í”¸ğ½‘¥Øùô(€€€€€€€€ñ…Í¥‘”±…ÍÍ9…µ”ô‰‰ÕÍ¥¹•ÍÌ´ÌØÀµ•Ù¥‘•¹”ˆ…É¥„µ±…‰•°ô‰	ÕÍ¥¹•ÍÌ€ÌØÀ•Ù¥‘•¹”ˆøñ¡•…‘•ÈøñÀùÙ¥‘•¹”áÁ±½É•Èğ½Àøñ Ìù	ÕÍ¥¹•ÍÌÉ•½É‘ÌÑ¼½µÁ…É”ğ½ Ìøğ½¡•…‘•Èùíİ½É­ÍÁ…”¹¥¹Ñ•±±¥•¹”¹µ…À ¡É•½É¤€ôø€ñ…ÉÑ¥±”­•äõíÉ•½É¹¥‘ôøñÍÁ…¸ùíÉ•½É¹ÑåÁ•ôğ½ÍÁ…¸øñÍÑÉ½¹œùíÉ•½É¹Ù…±Õ•ôğ½ÍÑÉ½¹œøñÍµ…±°ùíÉ•½É¹¥‘ôğíÉ•½É¹½‰Í•ÉÙ•‘ôğ½Íµ…±°øğ½…ÉÑ¥±”ø¥ôğ½…Í¥‘”ø(€€€€€€ğ½‘¥Øø(€€€€€€ñ¹…Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ¹•áĞµÉ½ÕÑ•Ìˆ…É¥„µ±…‰•°ô‰	ÕÍ¥¹•ÍÌ€ÌØÀ¹•áĞÉ½ÕÑ•Ìˆøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° -eI•Ù¥•Üœ¥ôù=Á•¸-eI•Ù¥•Üğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° µÁ±½å•”AÉ½™¥±”œ¥ôù=Á•¸µÁ±½å•”AÉ½™¥±”ğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° A…åÉ½±°!¥ÍÑ½Éäœ¥ôù=Á•¸A…åÉ½±°!¥ÍÑ½Éäğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õí©ÕµÁ•¥Í¥½¹ôù=Á•¸MÕ‰µ¥Ğ•¥Í¥½¸ğ½‰ÕÑÑ½¸øğ½¹…Øø(€€€€€€ñ™½½Ñ•È±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÉ•Ù¥•Üµ‰…Èˆøñ‘¥ØøñÍÑÉ½¹œù	ÕÍ¥¹•ÍÌ€ÌØÀÉ•Ù¥•Üğ½ÍÑÉ½¹œøñÍÁ…¸ùI•Ù¥•ÜÑ¡”™¥Ñ¥½¹…°‰ÕÍ¥¹•ÍÌÁÉ½™¥±”°É•±…Ñ¥½¹Í¡¥ÀÉ•½É‘Ì°…¹±¥¹­••Ù¥‘•¹”‰•™½É”µ…É­¥¹œÑ¡”Ñ½½°É•Ù¥•İ•¸ğ½ÍÁ…¸øğ½‘¥Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”õíÉ•Ù¥•İ•€ü€œœ€è€¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÁÉ¥µ…Éäô½¹±¥¬õì ¤€ôøµ…É­I•Ù¥•İ• 	ÕÍ¥¹•ÍÌ€ÌØÀœ¥ôùíÉ•Ù¥•İ•€ü€ŸŠrL	ÕÍ¥¹•ÍÌ€ÌØÀÉ•Ù¥•İ•œ€è€5…É¬	ÕÍ¥¹•ÍÌ€ÌØÀÉ•Ù¥•İ•ôğ½‰ÕÑÑ½¸øğ½™½½Ñ•Èø(€€€€ğ¼ø(€€¤ì)ô()™Õ¹Ñ¥½¸µÁ±½å••AÉ½™¥±•]½É­ÍÁ…”¡ì…Ñ¥Ù•…Í”°Á¥¸°Í…Ù•9½Ñ”°µ…É­I•Ù¥•İ•°É•Ù¥•İ•°½Á•¹Q½½°°©ÕµÁ•¥Í¥½¸ô¤ì(€½¹ÍĞÉ•½É‘Ì€ôÕÍ•5•µ¼  ¤€ôø•ÑµÁ±½å••AÉ½™¥±•Ì¡…Ñ¥Ù•…Í”¤°m…Ñ¥Ù•…Í•t¤ì(€½¹ÍĞmÍ•±•Ñ•‘%°Í•ÑM•±•Ñ•‘%‘t€ôÕÍ•MÑ…Ñ” œœ¤ì(€½¹ÍĞ…Ñ¥Ù•I•½É€ôÉ•½É‘Ì¹™¥¹ ¡É•½É¤€ôøÉ•½É¹¥€ôôôÍ•±•Ñ•‘%¤€üüÉ•½É‘ÍlÁtì(€ÕÍ•™™•Ğ  ¤€ôøÍ•ÑM•±•Ñ•‘% œœ¤°m…Ñ¥Ù•…Í”¹¥‘t¤ì((€É•ÑÕÉ¸€ (€€€€ğø(€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰•µÁ±½å•”µÁÉ½™¥±”µÍÕµµ…Éäˆ…É¥„µ±…‰•°ô‰µÁ±½å•”AÉ½™¥±”ÍÕµµ…ÉäˆùímlµÁ±½å•”É•½É‘Ìœ°É•½É‘Ì¹±•¹Ñ¡t°lµÁ±½å•ÉÌœ°¹•ÜM•Ğ¡É•½É‘Ì¹µ…À ¡É•½É¤€ôøÉ•½É¹•µÁ±½å•È¤¤¹Í¥é•t°lA…åÉ½±°±¥¹­Ìœ°É•½É‘Ì¹É•‘Õ” ¡½Õ¹Ğ°É•½É¤€ôø½Õ¹Ğ€¬É•½É¹±¥¹­•‘A…åÉ½±°¹±•¹Ñ °€À¥t°lÑ¥Ù”…Í”œ°…Ñ¥Ù•…Í”¹¥‘ut¹µ…À ¡m±…‰•°°Ù…±Õ•t¤€ôø€ñ…ÉÑ¥±”­•äõí±…‰•±ôøñÍÁ…¸ùí±…‰•±ôğ½ÍÁ…¸øñÍÑÉ½¹œùíÙ…±Õ•ôğ½ÍÑÉ½¹œøğ½…ÉÑ¥±”ø¥ôğ½Í•Ñ¥½¸ø(€€€€€€ñA…åµ•¹ÑM½ÕÉ•!…¹‘½™˜(€€€€€€€Í½ÕÉ”õí…Ñ¥Ù•I•½Éü¹Á…åµ•¹ÑM½ÕÉ•ô(€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€Í½ÕÉ•1…‰•°ô‰µÁ±½å•”AÉ½™¥±”ˆ(€€€€€€¼ø(€€€€€í…Ñ¥Ù•I•½É€ü€ñ‘¥Ø±…ÍÍ9…µ”ô‰•µÁ±½å•”µÁÉ½™¥±”µİ½É­ÍÁ…”ˆø(€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰•µÁ±½å•”µÁÉ½™¥±”µ±¥ÍĞˆ…É¥„µ±…‰•°ô‰µÁ±½å•”AÉ½™¥±”É•½É‘Ìˆøñ¡•…‘•ÈøñÀùµÁ±½å•”É•½É‘Ìğ½Àøñ Ìù¡½½Í”…¸•µÁ±½å•”½È½¹Ñ…Ğğ½ Ìøğ½¡•…‘•ÈùíÉ•½É‘Ì¹µ…À ¡É•½É¤€ôø€ñ‰ÕÑÑ½¸­•äõíÉ•½É¹¥‘ôÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”õíÉ•½É¹¥€ôôô…Ñ¥Ù•I•½É¹¥€ü€…Ñ¥Ù”œ€è€œô½¹±¥¬õì ¤€ôøÍ•ÑM•±•Ñ•‘%¡É•½É¹¥¥ô‘…Ñ„µ•µÁ±½å•”µÁÉ½™¥±”µÉ•½ÉõíÉ•½É¹¥‘ôøñÍÁ…¸ùíÉ•½É¹¥‘ôğíÉ•½É¹ÍÑ…ÑÕÍôğ½ÍÁ…¸øñÍÑÉ½¹œùíÉ•½É¹¹…µ•ôğ½ÍÑÉ½¹œøñÍµ…±°ùíÉ•½É¹É½±•ôğíÉ•½É¹•µÁ±½å•Éôğ½Íµ…±°øğ½‰ÕÑÑ½¸ø¥ôğ½Í•Ñ¥½¸ø(€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰•µÁ±½å•”µÁÉ½™¥±”µ‘•Ñ…¥°ˆ…É¥„µ±…‰•°ô‰µÁ±½å•”AÉ½™¥±”‘•Ñ…¥°ˆøñ¡•…‘•Èøñ‘¥ØøñÀùµÁ±½å•”ÁÉ½™¥±”ğ½Àøñ Ìùí…Ñ¥Ù•I•½É¹¹…µ•ôğ½ ÌøñÍÁ…¸ùí…Ñ¥Ù•I•½É¹É½±•ôğí…Ñ¥Ù•I•½É¹•µÁ±½å•Éôğ½ÍÁ…¸øğ½‘¥Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÁ¥¸¡€‘í…Ñ¥Ù•I•½É¹¥‘ôğ€‘í…Ñ¥Ù•I•½É¹¹…µ•õ€¥ôùA¥¸•µÁ±½å•”ğ½‰ÕÑÑ½¸øğ½¡•…‘•Èøñ‘°ùímlµÁ±½å•”%œ°…Ñ¥Ù•I•½É¹¥‘t°lµÁ±½å•Èœ°…Ñ¥Ù•I•½É¹•µÁ±½å•Ét°lI½±”œ°…Ñ¥Ù•I•½É¹É½±•t°l•Á…ÉÑµ•¹Ğœ°…Ñ¥Ù•I•½É¹‘•Á…ÉÑµ•¹Ñt°lMÑ…ÑÕÌœ°…Ñ¥Ù•I•½É¹ÍÑ…ÑÕÍt°l!¥É”‘…Ñ”œ°…Ñ¥Ù•I•½É¹¡¥É•…Ñ•t°lµÁ±½åµ•¹ĞÑ¥µ•±¥¹”œ°…Ñ¥Ù•I•½É¹•µÁ±½åµ•¹ÑQ¥µ•±¥¹•t°l=™™¥¥…°½¹Ñ…Ğ€¼…±±‰…¬œ°…Ñ¥Ù•I•½É¹½™™¥¥…±½¹Ñ…Ñt°l¥É•Ğ‘•Á½Í¥Ğ½¹Ñ•áĞœ°…Ñ¥Ù•I•½É¹‘¥É•Ñ•Á½Í¥Ñt°l1¥¹­•Á…åÉ½±°É•½É‘Ìœ°…Ñ¥Ù•I•½É¹±¥¹­•‘A…åÉ½±°¹©½¥¸ œğ€œ¤ñğ€9½¹”É•½É‘•ut¹µ…À ¡m±…‰•°°Ù…±Õ•t¤€ôø€ñ‘¥Ø­•äõí±…‰•±ôøñ‘Ğùí±…‰•±ôğ½‘Ğøñ‘ùíÙ…±Õ•ôğ½‘øğ½‘¥Øø¥ôğ½‘°øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÍ…Ù•9½Ñ”¡µÁ±½å•”AÉ½™¥±”è€‘í…Ñ¥Ù•I•½É¹¥‘ôÉ•Ù¥•İ•™½È€‘í…Ñ¥Ù•…Í”¹¥‘ô¹€°€µÁ±½å•”ÁÉ½™¥±”œ¥ôùM…Ù”•µÁ±½å•”¹½Ñ”ğ½‰ÕÑÑ½¸øğ½Í•Ñ¥½¸ø(€€€€€€€€ñ…Í¥‘”±…ÍÍ9…µ”ô‰•µÁ±½å•”µÁÉ½™¥±”µ•Ù¥‘•¹”ˆ…É¥„µ±…‰•°ô‰µÁ±½å•”Á…åÉ½±°•Ù¥‘•¹”ˆøñ¡•…‘•ÈøñÀùA…åÉ½±°½¹¹•Ñ¥½¸ğ½Àøñ Ìù9•áĞ•Ù¥‘•¹”Ñ¼É•Ù¥•Üğ½ Ìøğ½¡•…‘•ÈøñÀù½µÁ…É”Ñ¡”•µÁ±½å•”É•½É°•µÁ±½å•ÈÉ•±…Ñ¥½¹Í¡¥À°‘¥É•Ğµ‘•Á½Í¥Ğ½¹Ñ•áĞ°…¹…¹äÁ…åÉ½±°¡…¹”É•ÅÕ•ÍĞ‰•™½É”‘½Õµ•¹Ñ¥¹œ„…Í”‘•¥Í¥½¸¸ğ½Àøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° A…åÉ½±°!¥ÍÑ½Éäœ¥ôù=Á•¸A…åÉ½±°!¥ÍÑ½Éäğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° A…åµ•¹ĞY•É¥™¥…Ñ¥½¸œ¥ôù=Á•¸A…åµ•¹ĞY•É¥™¥…Ñ¥½¸ğ½‰ÕÑÑ½¸øğ½…Í¥‘”ø(€€€€€€ğ½‘¥Øø€è€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ•µÁÑäˆÉ½±”ô‰ÍÑ…ÑÕÌˆù9¼•µÁ±½å•”É•½É‘Ì…É”…Ù…¥±…‰±”™½ÈÑ¡¥Ì…Í”¸ğ½‘¥Øùô(€€€€€€ñ¹…Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ¹•áĞµÉ½ÕÑ•Ìˆ…É¥„µ±…‰•°ô‰µÁ±½å•”AÉ½™¥±”¹•áĞÉ½ÕÑ•Ìˆøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° 	ÕÍ¥¹•ÍÌ€ÌØÀœ¥ôù=Á•¸	ÕÍ¥¹•ÍÌ€ÌØÀğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° A…åÉ½±°!¥ÍÑ½Éäœ¥ôù=Á•¸A…åÉ½±°!¥ÍÑ½Éäğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õí©ÕµÁ•¥Í¥½¹ôù=Á•¸MÕ‰µ¥Ğ•¥Í¥½¸ğ½‰ÕÑÑ½¸øğ½¹…Øø(€€€€€€ñ™½½Ñ•È±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÉ•Ù¥•Üµ‰…Èˆøñ‘¥ØøñÍÑÉ½¹œùµÁ±½å•”AÉ½™¥±”É•Ù¥•Üğ½ÍÑÉ½¹œøñÍÁ…¸ùI•Ù¥•Ü•µÁ±½å•”…¹•µÁ±½å•È™…ÑÌ°½™™¥¥…°½¹Ñ…Ğ‘•Ñ…¥±Ì°…¹±¥¹­•Á…åÉ½±°½¹Ñ•áĞ‰•™½É”µ…É­¥¹œÑ¡”Ñ½½°É•Ù¥•İ•¸ğ½ÍÁ…¸øğ½‘¥Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”õíÉ•Ù¥•İ•€ü€œœ€è€¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÁÉ¥µ…Éäô½¹±¥¬õì ¤€ôøµ…É­I•Ù¥•İ• µÁ±½å•”AÉ½™¥±”œ¥ôùíÉ•Ù¥•İ•€ü€ŸŠrLµÁ±½å•”AÉ½™¥±”É•Ù¥•İ•œ€è€5…É¬µÁ±½å•”AÉ½™¥±”É•Ù¥•İ•ôğ½‰ÕÑÑ½¸øğ½™½½Ñ•Èø(€€€€ğ¼ø(€€¤ì)ô()™Õ¹Ñ¥½¸A…åÉ½±±!¥ÍÑ½Éå]½É­ÍÁ…”¡ì…Ñ¥Ù•…Í”°Á¥¸°Í…Ù•9½Ñ”°µ…É­I•Ù¥•İ•°É•Ù¥•İ•°½Á•¹Q½½°°©ÕµÁ•¥Í¥½¸ô¤ì(€½¹ÍĞÉ•½É‘Ì€ôÕÍ•5•µ¼  ¤€ôø•ÑA…åÉ½±±!¥ÍÑ½Éä¡…Ñ¥Ù•…Í”¤°m…Ñ¥Ù•…Í•t¤ì(€½¹ÍĞm•µÁ±½å•È°Í•ÑµÁ±½å•Ét€ôÕÍ•MÑ…Ñ” ±°•µÁ±½å•ÉÌœ¤ì(€½¹ÍĞmÍ•±•Ñ•‘%°Í•ÑM•±•Ñ•‘%‘t€ôÕÍ•MÑ…Ñ” œœ¤ì(€½¹ÍĞ•µÁ±½å•ÉÌ€ôl±°•µÁ±½å•ÉÌœ°€¸¸¹¹•ÜM•Ğ¡É•½É‘Ì¹µ…À ¡É•½É¤€ôøÉ•½É¹•µÁ±½å•È¤¥tì(€½¹ÍĞ™¥±Ñ•É•‘I•½É‘Ì€ôÉ•½É‘Ì¹™¥±Ñ•È ¡É•½É¤€ôø•µÁ±½å•È€ôôô€±°•µÁ±½å•ÉÌœñğÉ•½É¹•µÁ±½å•È€ôôô•µÁ±½å•È¤ì(€½¹ÍĞ…Ñ¥Ù•I•½É€ô™¥±Ñ•É•‘I•½É‘Ì¹™¥¹ ¡É•½É¤€ôøÉ•½É¹¥€ôôôÍ•±•Ñ•‘%¤€üü™¥±Ñ•É•‘I•½É‘ÍlÁt€üüÉ•½É‘ÍlÁtì(€ÕÍ•™™•Ğ  ¤€ôøìÍ•ÑµÁ±½å•È ±°•µÁ±½å•ÉÌœ¤ìÍ•ÑM•±•Ñ•‘% œœ¤ìô°m…Ñ¥Ù•…Í”¹¥‘t¤ì((€É•ÑÕÉ¸€ (€€€€ğø(€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰Á…åÉ½±°µ¡¥ÍÑ½Éäµ™¥¹‘‰…Èˆ…É¥„µ±…‰•°ô‰A…åÉ½±°!¥ÍÑ½Éä™¥±Ñ•ÉÌˆøñ‘¥ØøñÀùA…åÉ½±°…¹‘¥É•Ğ‘•Á½Í¥Ğğ½Àøñ ÌùI•Ù¥•Ü•… ™¥Ñ¥½¹…°Á…åÉ½±°ÉÕ¸°‘•ÍÑ¥¹…Ñ¥½¸½¹Ñ•áĞ°¡…¹”É•½É°…±±‰…¬ÍÑ…ÑÕÌ°…¹É•±…Ñ••µÁ±½å•”•Ù¥‘•¹”¸ğ½ Ìøğ½‘¥Øøñ±…‰•°øñÍÁ…¸ùµÁ±½å•Èğ½ÍÁ…¸øñÍ•±•ĞÙ…±Õ”õí•µÁ±½å•Éô½¹¡…¹”õì¡•Ù•¹Ğ¤€ôøÍ•ÑµÁ±½å•È¡•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ô…É¥„µ±…‰•°ô‰A…åÉ½±°!¥ÍÑ½Éä•µÁ±½å•È™¥±Ñ•Èˆùí•µÁ±½å•ÉÌ¹µ…À ¡¥Ñ•´¤€ôø€ñ½ÁÑ¥½¸­•äõí¥Ñ•µôùí¥Ñ•µôğ½½ÁÑ¥½¸ø¥ôğ½Í•±•Ğøğ½±…‰•°øñÍÁ…¸ùí™¥±Ñ•É•‘I•½É‘Ì¹±•¹Ñ¡ô½˜íÉ•½É‘Ì¹±•¹Ñ¡ôÁ…åÉ½±°É•½É‘ÌÍ¡½İ¸ğ½ÍÁ…¸øğ½Í•Ñ¥½¸ø(€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰Á…åÉ½±°µ¡¥ÍÑ½ÉäµÍÕµµ…Éäˆ…É¥„µ±…‰•°ô‰A…åÉ½±°!¥ÍÑ½ÉäÍÕµµ…ÉäˆùímlA…åÉ½±°É•½É‘Ìœ°É•½É‘Ì¹±•¹Ñ¡t°lµÁ±½å•ÉÌœ°•µÁ±½å•ÉÌ¹±•¹Ñ €´€Åt°l¥É•Ğ‘•Á½Í¥ĞÉ•½É‘Ìœ°É•½É‘Ì¹™¥±Ñ•È ¡É•½É¤€ôø€½‘¥É•Ğ‘•Á½Í¥Ğ½¤¹Ñ•ÍĞ¡É•½É¹¡…¹¹•°¤¤¹±•¹Ñ¡t°l1¥¹­••µÁ±½å•”É•½É‘Ìœ°¹•ÜM•Ğ¡É•½É‘Ì¹™±…Ñ5…À ¡É•½É¤€ôøÉ•½É¹É•±…Ñ•‘I•½É‘Ì¹™¥±Ñ•È ¡¥Ñ•´¤€ôø¥Ñ•´¹ÍÑ…ÉÑÍ]¥Ñ  5@´œ¤¤¤¤¹Í¥é•ut¹µ…À ¡m±…‰•°°Ù…±Õ•t¤€ôø€ñ…ÉÑ¥±”­•äõí±…‰•±ôøñÍÁ…¸ùí±…‰•±ôğ½ÍÁ…¸øñÍÑÉ½¹œùíÙ…±Õ•ôğ½ÍÑÉ½¹œøğ½…ÉÑ¥±”ø¥ôğ½Í•Ñ¥½¸ø(€€€€€€ñA…åµ•¹ÑM½ÕÉ•!…¹‘½™˜(€€€€€€€Í½ÕÉ”õí…Ñ¥Ù•I•½Éü¹Á…åµ•¹ÑM½ÕÉ•ô(€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€Í½ÕÉ•1…‰•°ô‰A…åÉ½±°!¥ÍÑ½Éäˆ(€€€€€€¼ø(€€€€€í…Ñ¥Ù•I•½É€ü€ñ‘¥Ø±…ÍÍ9…µ”ô‰Á…åÉ½±°µ¡¥ÍÑ½Éäµİ½É­ÍÁ…”ˆø(€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰Á…åÉ½±°µ¡¥ÍÑ½Éäµ±¥ÍĞˆ…É¥„µ±…‰•°ô‰A…åÉ½±°!¥ÍÑ½ÉäÉ•½É‘Ìˆøñ¡•…‘•ÈøñÀùA…åÉ½±°ÉÕ¹Ìğ½Àøñ Ìù¡½½Í”„Á…åÉ½±°É•½Éğ½ Ìøğ½¡•…‘•Èùí™¥±Ñ•É•‘I•½É‘Ì¹µ…À ¡É•½É¤€ôø€ñ‰ÕÑÑ½¸­•äõíÉ•½É¹¥‘ôÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”õíÉ•½É¹¥€ôôô…Ñ¥Ù•I•½É¹¥€ü€…Ñ¥Ù”œ€è€œô½¹±¥¬õì ¤€ôøÍ•ÑM•±•Ñ•‘%¡É•½É¹¥¥ô‘…Ñ„µÁ…åÉ½±°µ¡¥ÍÑ½ÉäµÉ•½ÉõíÉ•½É¹¥‘ôøñÍÁ…¸ùíÉ•½É¹Á•É¥½‘ôğíÉ•½É¹ÉÕ¹MÑ…ÑÕÍôğ½ÍÁ…¸øñÍÑÉ½¹œùíÉ•½É¹•µÁ±½å••ôğ½ÍÑÉ½¹œøñÍµ…±°ùíÉ•½É¹…µ½Õ¹ÑôğíÉ•½É¹•µÁ±½å•Éôğ½Íµ…±°øğ½‰ÕÑÑ½¸ø¥ôğ½Í•Ñ¥½¸ø(€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰Á…åÉ½±°µ¡¥ÍÑ½Éäµ‘•Ñ…¥°ˆ…É¥„µ±…‰•°ô‰A…åÉ½±°!¥ÍÑ½Éä‘•Ñ…¥°ˆøñ¡•…‘•Èøñ‘¥ØøñÀùA…åÉ½±°ÉÕ¸‘•Ñ…¥°ğ½Àøñ Ìùí…Ñ¥Ù•I•½É¹¥‘ôğí…Ñ¥Ù•I•½É¹Á•É¥½‘ôğ½ ÌøñÍÁ…¸ùí…Ñ¥Ù•I•½É¹•µÁ±½å•Éôğí…Ñ¥Ù•I•½É¹…µ½Õ¹Ñôğ½ÍÁ…¸øğ½‘¥Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÁ¥¸¡…Ñ¥Ù•I•½É¹¥¥ôùA¥¸Á…åÉ½±°É•½Éğ½‰ÕÑÑ½¸øğ½¡•…‘•Èøñ‘°ùímlµÁ±½å•”œ°…Ñ¥Ù•I•½É¹•µÁ±½å••t°lµÁ±½å•Èœ°…Ñ¥Ù•I•½É¹•µÁ±½å•Ét°lA…åÉ½±°…µ½Õ¹Ğœ°…Ñ¥Ù•I•½É¹…µ½Õ¹Ñt°l¡…¹¹•°œ°…Ñ¥Ù•I•½É¹¡…¹¹•±t°lIÕ¸ÍÑ…ÑÕÌœ°…Ñ¥Ù•I•½É¹ÉÕ¹MÑ…ÑÕÍt°l	…¹¬½‘”œ°…Ñ¥Ù•I•½É¹‰…¹­½‘•t°l•ÍÑ¥¹…Ñ¥½¸%œ°…Ñ¥Ù•I•½É¹‘•ÍÑ¥¹…Ñ¥½¹%‘t°l9•Ü…½Õ¹Ğ€¼‘•ÍÑ¥¹…Ñ¥½¸œ°…Ñ¥Ù•I•½É¹¹•İ•ÍÑ¥¹…Ñ¥½¸€üü…Ñ¥Ù•I•½É¹‘•ÍÑ¥¹…Ñ¥½¹t°lAÉ•Ù¥½ÕÌ…½Õ¹Ğ€¼‘•ÍÑ¥¹…Ñ¥½¸œ°…Ñ¥Ù•I•½É¹½±‘•ÍÑ¥¹…Ñ¥½¸€üü…Ñ¥Ù•I•½É¹ÁÉ¥½É•ÍÑ¥¹…Ñ¥½¹t°l¡…¹”½µÁ…É¥Í½¸œ°…Ñ¥Ù•I•½É¹¡…¹•½µÁ…É¥Í½¹t°l™™•Ñ¥Ù”‘…Ñ”œ°…Ñ¥Ù•I•½É¹•™™•Ñ¥Ù•…Ñ•t°l¡…¹”É•ÅÕ•ÍĞœ°…Ñ¥Ù•I•½É¹¡…¹•I•ÅÕ•ÍÑt°l‘µ¥¸…Ñ¥Ù¥Ñäœ°…Ñ¥Ù•I•½É¹…‘µ¥¹Ñ¥Ù¥Ñåt°lQÉÕÍÑ•…±±‰…¬œ°…Ñ¥Ù•I•½É¹…±±‰…­t°lA…åµ•¹ĞÉ•½Éœ°…Ñ¥Ù•I•½É¹Á…åµ•¹ÑI•½É‘%‘t°lI•±…Ñ•É•½É‘Ìœ°…Ñ¥Ù•I•½É¹É•±…Ñ•‘I•½É‘Ì¹©½¥¸ œğ€œ¥ut¹µ…À ¡m±…‰•°°Ù…±Õ•t¤€ôø€ñ‘¥Ø­•äõí±…‰•±ôøñ‘Ğùí±…‰•±ôğ½‘Ğøñ‘ùíÙ…±Õ”€üü€9½ĞÍÕÁÁ±¥•ôğ½‘øğ½‘¥Øø¥ôğ½‘°øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÍ…Ù•9½Ñ”¡A…åÉ½±°!¥ÍÑ½Éäè€‘í…Ñ¥Ù•I•½É¹¥‘ôÉ•Ù¥•İ•™½È€‘í…Ñ¥Ù•…Í”¹¥‘ô¹€°€A…åÉ½±°¡¥ÍÑ½Éäœ¥ôùM…Ù”Á…åÉ½±°¹½Ñ”ğ½‰ÕÑÑ½¸øğ½Í•Ñ¥½¸ø(€€€€€€€€ñ…Í¥‘”±…ÍÍ9…µ”ô‰Á…åÉ½±°µ¡¥ÍÑ½Éäµ½¹ÑÉ½±Ìˆ…É¥„µ±…‰•°ô‰A…åÉ½±°É•±…Ñ•½¹ÑÉ½±Ìˆøñ¡•…‘•ÈøñÀùI•±…Ñ•É•Ù¥•Üğ½Àøñ Ìù½µÁ…É”Á…åÉ½±°•Ù¥‘•¹”ğ½ Ìøğ½¡•…‘•ÈøñÀùí…Ñ¥Ù•I•½É¹½¹Ñ•áÑôğ½Àøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° µÁ±½å•”AÉ½™¥±”œ¥ôù=Á•¸µÁ±½å•”AÉ½™¥±”ğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° A…åµ•¹ĞY•É¥™¥…Ñ¥½¸œ¥ôù=Á•¸A…åµ•¹ĞY•É¥™¥…Ñ¥½¸ğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° ½Õµ•¹ĞI•ÅÕ•ÍĞœ¥ôù=Á•¸½Õµ•¹ĞI•ÅÕ•ÍĞğ½‰ÕÑÑ½¸øğ½…Í¥‘”ø(€€€€€€ğ½‘¥Øø€è€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ•µÁÑäˆÉ½±”ô‰ÍÑ…ÑÕÌˆù9¼Á…åÉ½±°É•½É‘Ìµ…Ñ Ñ¡¥Ì™¥±Ñ•È¸ğ½‘¥Øùô(€€€€€€ñ¹…Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ¹•áĞµÉ½ÕÑ•Ìˆ…É¥„µ±…‰•°ô‰A…åÉ½±°!¥ÍÑ½Éä¹•áĞÉ½ÕÑ•Ìˆøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° µÁ±½å•”AÉ½™¥±”œ¥ôù=Á•¸µÁ±½å•”AÉ½™¥±”ğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° 	ÕÍ¥¹•ÍÌ€ÌØÀœ¥ôù=Á•¸	ÕÍ¥¹•ÍÌ€ÌØÀğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° Q¥µ•±¥¹”œ¥ôù=Á•¸Q¥µ•±¥¹”ğ½‰ÕÑÑ½¸øñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õí©ÕµÁ•¥Í¥½¹ôù=Á•¸MÕ‰µ¥Ğ•¥Í¥½¸ğ½‰ÕÑÑ½¸øğ½¹…Øø(€€€€€€ñ™½½Ñ•È±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÉ•Ù¥•Üµ‰…Èˆøñ‘¥ØøñÍÑÉ½¹œùA…åÉ½±°!¥ÍÑ½ÉäÉ•Ù¥•Üğ½ÍÑÉ½¹œøñÍÁ…¸ùI•Ù¥•ÜÑ¡”Á…åÉ½±°ÉÕ¸°‘•ÍÑ¥¹…Ñ¥½¸½¹Ñ•áĞ°¡…¹”É•ÅÕ•ÍĞ°…±±‰…¬ÍÑ…ÑÕÌ°…¹±¥¹­••µÁ±½å•”É•½É‘Ì‰•™½É”µ…É­¥¹œÑ¡”Ñ½½°É•Ù¥•İ•¸ğ½ÍÁ…¸øğ½‘¥Øøñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”õíÉ•Ù¥•İ•€ü€œœ€è€¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÁÉ¥µ…Éäô½¹±¥¬õì ¤€ôøµ…É­I•Ù¥•İ• A…åÉ½±°!¥ÍÑ½Éäœ¥ôùíÉ•Ù¥•İ•€ü€ŸŠrLA…åÉ½±°!¥ÍÑ½ÉäÉ•Ù¥•İ•œ€è€5…É¬A…åÉ½±°!¥ÍÑ½ÉäÉ•Ù¥•İ•ôğ½‰ÕÑÑ½¸øğ½™½½Ñ•Èø(€€€€ğ¼ø(€€¤ì)ô()™Õ¹Ñ¥½¸A…åµ•¹ÑY•É¥™¥…Ñ¥½¹]½É­ÍÁ…”¡ì(€…Ñ¥Ù•…Í”°(€ÅÕ•Éä°(€Í•ÑEÕ•Éä°(€Á¥¸°(€Í…Ù•9½Ñ”°(€µ…É­I•Ù¥•İ•°(€É•Ù¥•İ•°(€½Á•¹Q½½°°(€©ÕµÁ•¥Í¥½¸°(€É•½É‘Ñ¥½¸°)ô¤ì(€½¹ÍĞ™¥¹…¹¥…°€ôÕÍ•5•µ¼  ¤€ôø•Ñ¥¹…¹¥…±I•½É‘Ì¡…Ñ¥Ù•…Í”¤°m…Ñ¥Ù•…Í•t¤ì(€½¹ÍĞÉ•½É‘Ì€ô™¥¹…¹¥…°¹Á…åµ•¹ÑY•É¥™¥…Ñ¥½¸€üümtì(€½¹ÍĞm±½½­ÕÀ°Í•Ñ1½½­ÕÁt€ôÕÍ•MÑ…Ñ”¡ì‰…¹­½‘”è€œœ°‘•ÍÑ¥¹…Ñ¥½¹%è€œœ°½İ¹•É9…µ”è€œœô¤ì(€½¹ÍĞm±½½­ÕÁI•ÍÕ±Ğ°Í•Ñ1½½­ÕÁI•ÍÕ±Ñt€ôÕÍ•MÑ…Ñ”¡¹Õ±°¤ì(€½¹ÍĞm±½½­ÕÁÉÉ½È°Í•Ñ1½½­ÕÁÉÉ½Ét€ôÕÍ•MÑ…Ñ” œœ¤ì(€½¹ÍĞm±½…‘¥¹œ°Í•Ñ1½…‘¥¹t€ôÕÍ•MÑ…Ñ”¡™…±Í”¤ì(€½¹ÍĞm±½½­ÕÁ!¥ÍÑ½Éä°Í•Ñ1½½­ÕÁ!¥ÍÑ½Éåt€ôÕÍ•MÑ…Ñ”¡mt¤ì(€½¹ÍĞ…Ñ¥Ù•I•½É€ô±½½­ÕÁI•ÍÕ±Ğü¹É•½É€üü¹Õ±°ì((€ÕÍ•™™•Ğ  ¤€ôøì(€€€Í•Ñ1½½­ÕÀ¡ì‰…¹­½‘”è€œœ°‘•ÍÑ¥¹…Ñ¥½¹%è€œœ°½İ¹•É9…µ”è€œœô¤ì(€€€Í•Ñ1½½­ÕÁI•ÍÕ±Ğ¡¹Õ±°¤ì(€€€Í•Ñ1½½­ÕÁÉÉ½È œœ¤ì(€€€Í•Ñ1½…‘¥¹œ¡™…±Í”¤ì(€€€Í•Ñ1½½­ÕÁ!¥ÍÑ½Éä¡mt¤ì(€ô°m…Ñ¥Ù•…Í”¹¥‘t¤ì((€ÕÍ•™™•Ğ  ¤€ôøì(€€€½¹ÍĞ¡¥¹Ğ€ôÁ…ÉÍ•A…åµ•¹Ñ1½½­ÕÁ!¥¹Ğ¡ÅÕ•Éä¤ì(€€€¥˜€ …¡¥¹Ğ¤É•ÑÕÉ¸ì(€€€Í•Ñ1½½­ÕÀ¡¡¥¹Ğ¤ì(€€€Í•Ñ1½½­ÕÁI•ÍÕ±Ğ¡¹Õ±°¤ì(€€€Í•Ñ1½½­ÕÁÉÉ½È œœ¤ì(€ô°mÅÕ•Éåt¤ì((€™Õ¹Ñ¥½¸ÕÁ‘…Ñ•1½½­ÕÀ¡™¥•±°Ù…±Õ”¤ì(€€€¥˜€¡Á…ÉÍ•A…åµ•¹Ñ1½½­ÕÁ!¥¹Ğ¡ÅÕ•Éä¤¤Í•ÑEÕ•Éä œœ¤ì(€€€Í•Ñ1½½­ÕÀ ¡ÕÉÉ•¹Ğ¤€ôø€¡ì€¸¸¹ÕÉÉ•¹Ğ°m™¥•±‘tèÙ…±Õ”ô¤¤ì(€€€Í•Ñ1½½­ÕÁI•ÍÕ±Ğ¡¹Õ±°¤ì(€€€Í•Ñ1½½­ÕÁÉÉ½È œœ¤ì(€ô((€™Õ¹Ñ¥½¸É•Í•Ñ1½½­ÕÀ ¤ì(€€€Í•Ñ1½½­ÕÀ¡ì‰…¹­½‘”è€œœ°‘•ÍÑ¥¹…Ñ¥½¹%è€œœ°½İ¹•É9…µ”è€œœô¤ì(€€€Í•Ñ1½½­ÕÁI•ÍÕ±Ğ¡¹Õ±°¤ì(€€€Í•Ñ1½½­ÕÁÉÉ½È œœ¤ì(€€€Í•ÑEÕ•Éä œœ¤ì(€ô((€…Íå¹Œ™Õ¹Ñ¥½¸ÉÕ¹1½½­ÕÀ¡•Ù•¹Ğ¤ì(€€€•Ù•¹Ğ¹ÁÉ•Ù•¹Ñ•™…Õ±Ğ ¤ì(€€€¥˜€ …±½½­ÕÀ¹‰…¹­½‘”¹ÑÉ¥´ ¤ñğ€…±½½­ÕÀ¹‘•ÍÑ¥¹…Ñ¥½¹%¹ÑÉ¥´ ¤ñğ€…±½½­ÕÀ¹½İ¹•É9…µ”¹ÑÉ¥´ ¤¤ì(€€€€€Í•Ñ1½½­ÕÁÉÉ½È 	…¹¬½‘”°•ÍÑ¥¹…Ñ¥½¸%°…¹½İ¹•È½È‰ÕÍ¥¹•ÍÌ¹…µ”…É”É•ÅÕ¥É•¸œ¤ì(€€€€€Í•Ñ1½½­ÕÁI•ÍÕ±Ğ¡¹Õ±°¤ì(€€€€€É•ÑÕÉ¸ì(€€€ô((€€€Í•Ñ1½½­ÕÁÉÉ½È œœ¤ì(€€€Í•Ñ1½…‘¥¹œ¡ÑÉÕ”¤ì(€€€…İ…¥Ğ¹•ÜAÉ½µ¥Í” ¡É•Í½±Ù”¤€ôøİ¥¹‘½Ü¹Í•ÑQ¥µ•½ÕĞ¡É•Í½±Ù”°€ÄàÀ¤¤ì(€€€½¹ÍĞÉ•ÍÕ±Ğ€ôÉ•Í½±Ù•A…åµ•¹Ñ1½½­ÕÀ¡É•½É‘Ì°±½½­ÕÀ¤ì(€€€Í•Ñ1½½­ÕÁI•ÍÕ±Ğ¡É•ÍÕ±Ğ¤ì(€€€Í•Ñ1½…‘¥¹œ¡™…±Í”¤ì((€€€½¹ÍĞ¡¥ÍÑ½Éå%Ñ•´€ôì(€€€€€¥è€‘í…Ñ”¹¹½Ü ¥ô´‘í±½½­ÕÀ¹‰…¹­½‘•ô´‘í±½½­ÕÀ¹‘•ÍÑ¥¹…Ñ¥½¹%‘õ€°(€€€€€‰…¹­½‘”è±½½­ÕÀ¹‰…¹­½‘”¹ÑÉ¥´ ¤°(€€€€€‘•ÍÑ¥¹…Ñ¥½¹%è±½½­ÕÀ¹‘•ÍÑ¥¹…Ñ¥½¹%¹ÑÉ¥´ ¤°(€€€€€½İ¹•É9…µ”è±½½­ÕÀ¹½İ¹•É9…µ”¹ÑÉ¥´ ¤°(€€€€€½ÕÑ½µ”èÉ•ÍÕ±Ğ¹¹…µ•5…Ñ¡I•ÍÕ±Ğ°(€€€€€É•½É‘%èÉ•ÍÕ±Ğ¹É•½Éü¹¥€üü¹Õ±°°(€€€ôì(€€€½¹ÍĞ¹•áÑ!¥ÍÑ½Éä€ôm¡¥ÍÑ½Éå%Ñ•´°€¸¸¹±½½­ÕÁ!¥ÍÑ½Éåt¹Í±¥” À°€à¤ì(€€€Í•Ñ1½½­ÕÁ!¥ÍÑ½Éä¡¹•áÑ!¥ÍÑ½Éä¤ì(€€€É•½É‘Ñ¥½¸ü¸ (€€€€€€A…åµ•¹ĞY•É¥™¥…Ñ¥½¸±½½­ÕÀ½µÁ±•Ñ•œ°(€€€€€€‘í¡¥ÍÑ½Éå%Ñ•´¹‰…¹­½‘•ô€¼€‘í¡¥ÍÑ½Éå%Ñ•´¹‘•ÍÑ¥¹…Ñ¥½¹%‘ôè€‘í¡¥ÍÑ½Éå%Ñ•´¹½ÕÑ½µ•ô¹€°(€€€€€€A…åµ•¹ĞY•É¥™¥…Ñ¥½¸œ°(€€€€¤ì(€ô((€™Õ¹Ñ¥½¸Í…Ù•A…åµ•¹Ñ9½Ñ”¡µ•ÍÍ…”¤ì(€€€Í…Ù•9½Ñ”¡A…åµ•¹ĞY•É¥™¥…Ñ¥½¸è€‘íµ•ÍÍ…•õ€°€A…åµ•¹ĞÙ•É¥™¥…Ñ¥½¸œ¤ì(€ô((€™Õ¹Ñ¥½¸±½Ñ¥½¸¡…Ñ¥½¸¤ì(€€€½¹ÍĞµ•ÍÍ…”€ô€‘í…Ñ¥½¹ôÉ•½É‘•™½È€‘í…Ñ¥Ù•I•½É¹¥‘ô¹€ì(€€€Í…Ù•A…åµ•¹Ñ9½Ñ”¡µ•ÍÍ…”¤ì(€€€É•½É‘Ñ¥½¸ü¸ A…åµ•¹ĞY•É¥™¥…Ñ¥½¸…Ñ¥½¸É•½É‘•œ°µ•ÍÍ…”°€A…åµ•¹ĞY•É¥™¥…Ñ¥½¸œ¤ì(€ô((€½¹ÍĞÉ•±…Ñ•‘I½ÕÑ•Ì€ôl(€€€€ÕÍÑ½µ•È€ÌØÀœ°(€€€€¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸œ°(€€€€µÁ±½å•”AÉ½™¥±”œ°(€€€€A…åÉ½±°!¥ÍÑ½Éäœ°(€€€€	ÕÍ¥¹•ÍÌ€ÌØÀœ°(€€€€Q¥µ•±¥¹”œ°(€t¹™¥±Ñ•È ¡¥Ñ•´¤€ôø…Ñ¥Ù•…Í”¹…Ù…¥±…‰±•Q½½±Ìü¹¥¹±Õ‘•Ì¡¥Ñ•´¤ñğ¥Ñ•´€ôôô€Q¥µ•±¥¹”œ¤ì(€½¹ÍĞÍ¡½İ…±±‰…¬€ô…Ñ¥Ù•I•½É€˜˜€„½y9¼…±±‰…¬É•ÅÕ¥É•µ•¹Ğ½¤¹Ñ•ÍĞ¡…Ñ¥Ù•I•½É¹…±±‰…­MÑ…ÑÕÌ¤ì((€É•ÑÕÉ¸€ (€€€€ğø(€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰Á…åµ•¹ĞµÙ•É¥™¥…Ñ¥½¸µ…Ñ”ˆ…É¥„µ±…‰•°ô‰A…åµ•¹ĞY•É¥™¥…Ñ¥½¸Í•…É ˆø(€€€€€€€€ñ¡•…‘•Èø(€€€€€€€€€€ñ‘¥Øø(€€€€€€€€€€€€ñÀùM•…É ‰•™½É”É•Ù•…°ğ½Àø(€€€€€€€€€€€€ñ ÌùY•É¥™ä„ÍÁ•¥™¥ŒÁ…åµ•¹Ğ‘•ÍÑ¥¹…Ñ¥½¸ğ½ Ìø(€€€€€€€€€€€€ñÍÁ…¸ù¹Ñ•ÈÑ¡”¥‘•¹Ñ¥™¥•ÉÌ™É½´ÕÍÑ½µ•È€ÌØÀ°¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸°	ÕÍ¥¹•ÍÌ€ÌØÀ°µÁ±½å•”AÉ½™¥±”°½ÈA…åÉ½±°!¥ÍÑ½Éä¸9¼…½Õ¹ĞÉ•ÍÕ±Ğ¥Ì•áÁ½Í•Õ¹Ñ¥°Ñ¡”±½½­ÕÀÉÕ¹Ì¸ğ½ÍÁ…¸ø(€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€í±½½­ÕÁI•ÍÕ±Ğ€˜˜€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õíÉ•Í•Ñ1½½­ÕÁôùI•Í•Ğ±½½­ÕÀğ½‰ÕÑÑ½¸ùô(€€€€€€€€ğ½¡•…‘•Èø((€€€€€€€€ñ™½É´½¹MÕ‰µ¥ĞõíÉÕ¹1½½­ÕÁô¹½Y…±¥‘…Ñ”ø(€€€€€€€€€€ñ±…‰•°ø(€€€€€€€€€€€€ñÍÁ…¸ù	…¹¬½‘”ğ½ÍÁ…¸ø(€€€€€€€€€€€€ñ¥¹ÁÕĞ(€€€€€€€€€€€€€Ù…±Õ”õí±½½­ÕÀ¹‰…¹­½‘•ô(€€€€€€€€€€€€€½¹¡…¹”õì¡•Ù•¹Ğ¤€ôøÕÁ‘…Ñ•1½½­ÕÀ ‰…¹­½‘”œ°•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ô(€€€€€€€€€€€€€Á±…•¡½±‘•Èô‰á…µÁ±”è	´ÈÀĞˆ(€€€€€€€€€€€€€…É¥„µ±…‰•°ô‰	…¹¬½‘”ˆ(€€€€€€€€€€€€€…ÕÑ½½µÁ±•Ñ”ô‰½™˜ˆ(€€€€€€€€€€€€¼ø(€€€€€€€€€€ğ½±…‰•°ø(€€€€€€€€€€ñ±…‰•°ø(€€€€€€€€€€€€ñÍÁ…¸ù•ÍÑ¥¹…Ñ¥½¸%ğ½ÍÁ…¸ø(€€€€€€€€€€€€ñ¥¹ÁÕĞ(€€€€€€€€€€€€€Ù…±Õ”õí±½½­ÕÀ¹‘•ÍÑ¥¹…Ñ¥½¹%‘ô(€€€€€€€€€€€€€½¹¡…¹”õì¡•Ù•¹Ğ¤€ôøÕÁ‘…Ñ•1½½­ÕÀ ‘•ÍÑ¥¹…Ñ¥½¹%œ°•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ô(€€€€€€€€€€€€€Á±…•¡½±‘•Èô‰á…µÁ±”èMP´ÜÜĞÀˆ(€€€€€€€€€€€€€…É¥„µ±…‰•°ô‰•ÍÑ¥¹…Ñ¥½¸%ˆ(€€€€€€€€€€€€€…ÕÑ½½µÁ±•Ñ”ô‰½™˜ˆ(€€€€€€€€€€€€¼ø(€€€€€€€€€€ğ½±…‰•°ø(€€€€€€€€€€ñ±…‰•°ø(€€€€€€€€€€€€ñÍÁ…¸ù=İ¹•È½È‰ÕÍ¥¹•ÍÌ¹…µ”ğ½ÍÁ…¸ø(€€€€€€€€€€€€ñ¥¹ÁÕĞ(€€€€€€€€€€€€€Ù…±Õ”õí±½½­ÕÀ¹½İ¹•É9…µ•ô(€€€€€€€€€€€€€½¹¡…¹”õì¡•Ù•¹Ğ¤€ôøÕÁ‘…Ñ•1½½­ÕÀ ½İ¹•É9…µ”œ°•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ô(€€€€€€€€€€€€€Á±…•¡½±‘•Èô‰9…µ”Ñ¼½µÁ…É”ˆ(€€€€€€€€€€€€€…É¥„µ±…‰•°ô‰=İ¹•È½È‰ÕÍ¥¹•ÍÌ¹…µ”ˆ(€€€€€€€€€€€€€…ÕÑ½½µÁ±•Ñ”ô‰½™˜ˆ(€€€€€€€€€€€€¼ø(€€€€€€€€€€ğ½±…‰•°ø(€€€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰ÍÕ‰µ¥Ğˆ±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÁÉ¥µ…Éäˆ‘¥Í…‰±•õí±½…‘¥¹ôø(€€€€€€€€€€€í±½…‘¥¹œ€ü€¡•­¥¹œ‘•ÍÑ¥¹…Ñ¥½»Š˜œ€è€IÕ¸Ù•É¥™¥…Ñ¥½¸ô(€€€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€ğ½™½É´ø(€€€€€€€í±½½­ÕÁÉÉ½È€˜˜€ñ‘¥Ø±…ÍÍ9…µ”ô‰Á…åµ•¹ĞµÙ•É¥™¥…Ñ¥½¸µ™½É´µ•ÉÉ½ÈˆÉ½±”ô‰…±•ÉĞˆùí±½½­ÕÁÉÉ½Éôğ½‘¥Øùô(€€€€€€€í±½…‘¥¹œ€˜˜€ñ‘¥Ø±…ÍÍ9…µ”ô‰Á…åµ•¹ĞµÙ•É¥™¥…Ñ¥½¸µ±½…‘¥¹œˆÉ½±”ô‰ÍÑ…ÑÕÌˆùI•ÑÉ¥•Ù¥¹œÑ¡”µ…Ñ¡¥¹œÑÉ…¥¹¥¹œÉ•½É“Š˜ğ½‘¥Øùô(€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€ì…±½…‘¥¹œ€˜˜±½½­ÕÁI•ÍÕ±Ğü¹ÍÑ…Ñ”€ôôô€¹½Ğµ™½Õ¹œ€˜˜€ (€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰Á…åµ•¹ĞµÙ•É¥™¥…Ñ¥½¸µ¹½Ğµ™½Õ¹ˆÉ½±”ô‰ÍÑ…ÑÕÌˆ…É¥„µ±…‰•°ô‰A…åµ•¹Ğ‘•ÍÑ¥¹…Ñ¥½¸¹½Ğ™½Õ¹ˆø(€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰Á…åµ•¹ĞµÍÑ…ÑÕÌµ¡¥À…±•ÉĞˆù•ÍÑ¥¹…Ñ¥½¸9½Ğ½Õ¹ğ½ÍÁ…¸ø(€€€€€€€€€€ñ Ìù9¼•á…Ğ	…¹¬½‘”…¹•ÍÑ¥¹…Ñ¥½¸%Á…¥Èİ…Ì±½…Ñ•¸ğ½ Ìø(€€€€€€€€€€ñÀù¡•¬‰½Ñ ¥‘•¹Ñ¥™¥•ÉÌ……¥¹ÍĞÑ¡”Í½ÕÉ”É•½É¸µ¥ÍÍ¥¹œ‘•ÍÑ¥¹…Ñ¥½¸‘½•Ì¹½Ğ‘•Ñ•Éµ¥¹”Ñ¡”…Í”½ÕÑ½µ”¸ğ½Àø(€€€€€€€€ğ½Í•Ñ¥½¸ø(€€€€€€¥ô((€€€€€ì…±½…‘¥¹œ€˜˜…Ñ¥Ù•I•½É€ü€ (€€€€€€€€ğø(€€€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰Á…åµ•¹ĞµÙ•É¥™¥…Ñ¥½¸µÍ¹…ÁÍ¡½Ğˆ…É¥„µ±…‰•°ô‰½Õ¹ĞÍ¹…ÁÍ¡½Ğˆø(€€€€€€€€€€€€ñ…ÉÑ¥±”±…ÍÍ9…µ”ô‰Á…åµ•¹ĞµÙ•É¥™¥…Ñ¥½¸µ¡•É¼ˆø(€€€€€€€€€€€€€€ñÀù½Õ¹ĞM¹…ÁÍ¡½Ğğ½Àø(€€€€€€€€€€€€€€ñ Ìùí…Ñ¥Ù•I•½É¹½‰©•Ñôğ½ Ìø(€€€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰Á…åµ•¹Ğµ¡¥ÀµÉ½Üˆø(€€€€€€€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”õíÁ…åµ•¹ĞµÍÑ…ÑÕÌµ¡¥À€‘íÍÑ…ÑÕÍQ½¹”¡±½½­ÕÁI•ÍÕ±Ğ¹¹…µ•5…Ñ¡I•ÍÕ±Ğ¥õôùí±½½­ÕÁI•ÍÕ±Ğ¹¹…µ•5…Ñ¡I•ÍÕ±Ñôğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”õíÁ…åµ•¹ĞµÍÑ…ÑÕÌµ¡¥À€‘íÍÑ…ÑÕÍQ½¹”¡…Ñ¥Ù•I•½É¹½Á•É…Ñ¥½¹…±MÑ…ÑÕÌ¥õôùí…Ñ¥Ù•I•½É¹½Á•É…Ñ¥½¹…±MÑ…ÑÕÍôğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”õíÁ…åµ•¹ĞµÍÑ…ÑÕÌµ¡¥À€‘íÍÑ…ÑÕÍQ½¹”¡…Ñ¥Ù•I•½É¹ÍÑ…¹‘¥¹MÑ…ÑÕÌ¥õôùí…Ñ¥Ù•I•½É¹ÍÑ…¹‘¥¹MÑ…ÑÕÍôğ½ÍÁ…¸ø(€€€€€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€€€ğ½…ÉÑ¥±”ø(€€€€€€€€€€€íl(€€€€€€€€€€€€€l9…µ”µ…Ñ É•ÍÕ±Ğœ°±½½­ÕÁI•ÍÕ±Ğ¹¹…µ•5…Ñ¡I•ÍÕ±Ñt°(€€€€€€€€€€€€€l=İ¹•ÉÍ¡¥ÀÍÑ…ÑÕÌœ°…Ñ¥Ù•I•½É¹½İ¹•ÉÍ¡¥ÁMÑ…ÑÕÍt°(€€€€€€€€€€€€€l=Á•É…Ñ¥½¹…°…½Õ¹ĞÍÑ…ÑÕÌœ°…Ñ¥Ù•I•½É¹½Á•É…Ñ¥½¹…±MÑ…ÑÕÍt°(€€€€€€€€€€€€€lAÉ¥½ÈÕÍ”œ°…Ñ¥Ù•I•½É¹ÁÉ¥½ÉUÍ•!¥ÍÑ½Éåt°(€€€€€€€€€€€t¹µ…À ¡m±…‰•°°Ù…±Õ•t¤€ôø€ (€€€€€€€€€€€€€€ñ…ÉÑ¥±”­•äõí±…‰•±ôø(€€€€€€€€€€€€€€€€ñÍÁ…¸ùí±…‰•±ôğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€ñÍÑÉ½¹œùíÙ…±Õ•ôğ½ÍÑÉ½¹œø(€€€€€€€€€€€€€€ğ½…ÉÑ¥±”ø(€€€€€€€€€€€€¤¥ô(€€€€€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰Á…åµ•¹ĞµÙ•É¥™¥…Ñ¥½¸µİ½É­ÍÁ…”Á…åµ•¹ĞµÙ•É¥™¥…Ñ¥½¸µİ½É­ÍÁ…”µÉ•Ù•…±•ˆø(€€€€€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰Á…åµ•¹Ğµ‘•Ñ…¥°µÁ…¹•°ˆ…É¥„µ±…‰•°ô‰áÁ…¹‘•Á…åµ•¹ĞÙ•É¥™¥…Ñ¥½¸‘•Ñ…¥°ˆø(€€€€€€€€€€€€€€ñ¡•…‘•Èø(€€€€€€€€€€€€€€€€ñ‘¥Øø(€€€€€€€€€€€€€€€€€€ñÀùáÁ…¹‘•Ù•É¥™¥…Ñ¥½¸ğ½Àø(€€€€€€€€€€€€€€€€€€ñ Ìùí…Ñ¥Ù•I•½É¹¥‘ôƒ
+Üí…Ñ¥Ù•I•½É¹ÑåÁ•ôğ½ Ìø(€€€€€€€€€€€€€€€€€€ñÍÁ…¸ùí…Ñ¥Ù•I•½É¹‰…¹­9…µ•ôğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÁ¥¸¡…Ñ¥Ù•I•½É¹½‰©•Ğ¥ôùA¥¸½‰©•Ğğ½‰ÕÑÑ½¸ø(€€€€€€€€€€€€€€ğ½¡•…‘•Èø((€€€€€€€€€€€€€€ñ‘°±…ÍÍ9…µ”ô‰Á…åµ•¹Ğµ‘•Ñ…¥°µÉ¥ˆø(€€€€€€€€€€€€€€€íl(€€€€€€€€€€€€€€€€€l9…µ”µ…Ñ É•ÍÕ±Ğœ°±½½­ÕÁI•ÍÕ±Ğ¹¹…µ•5…Ñ¡I•ÍÕ±Ñt°(€€€€€€€€€€€€€€€€€l½Õ¹Ğ¡½±‘•Èœ°…Ñ¥Ù•I•½É¹…½Õ¹Ñ!½±‘•Ét°(€€€€€€€€€€€€€€€€€l=İ¹•ÉÍ¡¥ÀÍÑ…ÑÕÌœ°…Ñ¥Ù•I•½É¹½İ¹•ÉÍ¡¥ÁMÑ…ÑÕÍt°(€€€€€€€€€€€€€€€€€l	…¹¬¹…µ”œ°…Ñ¥Ù•I•½É¹‰…¹­9…µ•t°(€€€€€€€€€€€€€€€€€l=Á•É…Ñ¥½¹…°…½Õ¹ĞÍÑ…ÑÕÌœ°…Ñ¥Ù•I•½É¹½Á•É…Ñ¥½¹…±MÑ…ÑÕÍt°(€€€€€€€€€€€€€€€€€lMÑ…¹‘¥¹œœ°…Ñ¥Ù•I•½É¹ÍÑ…¹‘¥¹MÑ…ÑÕÍt°(€€€€€€€€€€€€€€€€€lA…åµ•¹ĞÑåÁ”œ°…Ñ¥Ù•I•½É¹Á…åµ•¹ÑQåÁ•t°(€€€€€€€€€€€€€€€€€lA…åµ•¹ĞÍÑ…ÑÕÌœ°…Ñ¥Ù•I•½É¹Á…åµ•¹ÑMÑ…ÑÕÍt°(€€€€€€€€€€€€€€€€€l	…¹¬½‘”œ°…Ñ¥Ù•I•½É¹‰…¹­½‘•t°(€€€€€€€€€€€€€€€€€l•ÍÑ¥¹…Ñ¥½¸%œ°…Ñ¥Ù•I•½É¹‘•ÍÑ¥¹…Ñ¥½¹%‘t°(€€€€€€€€€€€€€€€€€lY…É¥…¹Ğœ°…Ñ¥Ù•I•½É¹±…¹•Y…É¥…¹Ñt°(€€€€€€€€€€€€€€€€€l¥ÉÍĞÍ••¸œ°…Ñ¥Ù•I•½É¹™¥ÉÍÑM••¹t°(€€€€€€€€€€€€€€€€€lY•É¥™¥…Ñ¥½¸µ•Ñ¡½œ°…Ñ¥Ù•I•½É¹Ù•É¥™¥…Ñ¥½¹5•Ñ¡½‘t°(€€€€€€€€€€€€€€€t¹µ…À ¡m±…‰•°°Ù…±Õ•t¤€ôø€ (€€€€€€€€€€€€€€€€€€ñ‘¥Ø­•äõí±…‰•±ôø(€€€€€€€€€€€€€€€€€€€€ñ‘Ğùí±…‰•±ôğ½‘Ğø(€€€€€€€€€€€€€€€€€€€€ñ‘ùíÙ…±Õ•ôğ½‘ø(€€€€€€€€€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€€€€€€€¤¥ô(€€€€€€€€€€€€€€ğ½‘°ø((€€€€€€€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰Á…åµ•¹Ğµ½µÁ…É¥Í½¸µÁ…¹•°ˆ…É¥„µ±…‰•°ô‰=±Ù•ÉÍÕÌ¹•Ü…½Õ¹Ğ½µÁ…É¥Í½¸ˆø(€€€€€€€€€€€€€€€€ñ…ÉÑ¥±”ø(€€€€€€€€€€€€€€€€€€ñÍÁ…¸ù=±€¼ÁÉ¥½È…½Õ¹Ğğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€€€ñÍÑÉ½¹œùí…Ñ¥Ù•I•½É¹½±‘•ÍÑ¥¹…Ñ¥½¹ôğ½ÍÑÉ½¹œø(€€€€€€€€€€€€€€€€ğ½…ÉÑ¥±”ø(€€€€€€€€€€€€€€€€ñ…ÉÑ¥±”ø(€€€€€€€€€€€€€€€€€€ñÍÁ…¸ù9•Ü‘•ÍÑ¥¹…Ñ¥½¸ğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€€€ñÍÑÉ½¹œùí…Ñ¥Ù•I•½É¹¹•İ•ÍÑ¥¹…Ñ¥½¹ôğ½ÍÑÉ½¹œø(€€€€€€€€€€€€€€€€ğ½…ÉÑ¥±”ø(€€€€€€€€€€€€€€€€ñ…ÉÑ¥±”ø(€€€€€€€€€€€€€€€€€€ñÍÁ…¸ùA…åÉ½±°€¼Ù•¹‘½È¡…¹”½µÁ…É¥Í½¸ğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€€€ñÍÑÉ½¹œùí…Ñ¥Ù•I•½É¹¡…¹•½µÁ…É¥Í½¹ôğ½ÍÑÉ½¹œø(€€€€€€€€€€€€€€€€ğ½…ÉÑ¥±”ø(€€€€€€€€€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰Á…åµ•¹Ğµ¡¥ÍÑ½ÉäµÉ¥ˆ…É¥„µ±…‰•°ô‰=İ¹•ÉÍ¡¥À…¹ÁÉ¥½ÈµÕÍ”¡¥ÍÑ½Éäˆø(€€€€€€€€€€€€€€€€ñ…ÉÑ¥±”øñÍÁ…¸ù=İ¹•ÉÍ¡¥À¡¥ÍÑ½Éäğ½ÍÁ…¸øñÍÑÉ½¹œùí…Ñ¥Ù•I•½É¹½İ¹•ÉÍ¡¥Á!¥ÍÑ½Éåôğ½ÍÑÉ½¹œøğ½…ÉÑ¥±”ø(€€€€€€€€€€€€€€€€ñ…ÉÑ¥±”øñÍÁ…¸ùAÉ¥½ÈµÕÍ”¡¥ÍÑ½Éäğ½ÍÁ…¸øñÍÑÉ½¹œùí…Ñ¥Ù•I•½É¹ÁÉ¥½ÉUÍ•!¥ÍÑ½Éåôğ½ÍÑÉ½¹œøğ½…ÉÑ¥±”ø(€€€€€€€€€€€€€€€€ñ…ÉÑ¥±”øñÍÁ…¸ùI•ÑÕÉ¸€¼9M¡¥ÍÑ½Éäğ½ÍÁ…¸øñÍÑÉ½¹œùí…Ñ¥Ù•I•½É¹É•ÑÕÉ¹!¥ÍÑ½Éåôğ½ÍÑÉ½¹œøğ½…ÉÑ¥±”ø(€€€€€€€€€€€€€€€€ñ…ÉÑ¥±”øñÍÁ…¸ùQÉÕÍÑ•½¹Ñ…ĞÍ½ÕÉ”ğ½ÍÁ…¸øñÍÑÉ½¹œùí…Ñ¥Ù•I•½É¹ÑÉÕÍÑ•‘½¹Ñ…ÑM½ÕÉ•ôğ½ÍÑÉ½¹œøğ½…ÉÑ¥±”ø(€€€€€€€€€€€€€€ğ½Í•Ñ¥½¸ø(€€€€€€€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€€€€€€€ñ…Í¥‘”±…ÍÍ9…µ”ô‰Á…åµ•¹ĞµÙ•É¥™¥…Ñ¥½¸µ…Í”µÉ…¥°ˆ…É¥„µ±…‰•°ô‰A…åµ•¹ĞY•É¥™¥…Ñ¥½¸•Ù¥‘•¹”ÍÕµµ…Éäˆø(€€€€€€€€€€€€€€ñ¡•…‘•Èø(€€€€€€€€€€€€€€€€ñÀùÙ¥‘•¹”µ™¥ÉÍĞÍÕµµ…Éäğ½Àø(€€€€€€€€€€€€€€€€ñ Ìùí…Ñ¥Ù•I•½É¹¥‘ôğ½ Ìø(€€€€€€€€€€€€€€ğ½¡•…‘•Èø(€€€€€€€€€€€€€€ñÀùí…Ñ¥Ù•I•½É¹•Ù¥‘•¹•MÕµµ…Éåôğ½Àø(€€€€€€€€€€€€€€ñ‘°ø(€€€€€€€€€€€€€€€€ñ‘¥Øøñ‘ĞùÕÍÑ½µ•È€¼•¹Ñ¥Ñä±¥¹¬ğ½‘Ğøñ‘ùí…Ñ¥Ù•I•½É¹ÕÍÑ½µ•É1¥¹­ôğ½‘øğ½‘¥Øø(€€€€€€€€€€€€€€€€ñ‘¥Øøñ‘ĞùI•Ù¥•Ü½¹Ñ•áĞğ½‘Ğøñ‘ùí…Ñ¥Ù•I•½É¹É•Ù¥•İ½¹Ñ•áÑôğ½‘øğ½‘¥Øø(€€€€€€€€€€€€€€€€ñ‘¥Øøñ‘ĞùI•½Ù•É…‰¥±¥Ñä½¹Ñ•áĞğ½‘Ğøñ‘ùí…Ñ¥Ù•I•½É¹É•½Ù•É…‰¥±¥Ñåôğ½‘øğ½‘¥Øø(€€€€€€€€€€€€€€ğ½‘°ø(€€€€€€€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÁ¥¸¡€‘í…Ñ¥Ù•I•½É¹¥‘ôƒ
+Ü€‘í…Ñ¥Ù•I•½É¹½‰©•Ñõ€¥ôùA¥¸Ù•É¥™¥•É•½Éğ½‰ÕÑÑ½¸ø(€€€€€€€€€€€€ğ½…Í¥‘”ø(€€€€€€€€€€ğ½‘¥Øø((€€€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰Á…åµ•¹ĞµÙ•É¥™¥…Ñ¥½¸µ±½İ•ÈµÉ¥ˆ…É¥„µ±…‰•°ô‰Y•É¥™¥…Ñ¥½¸…ÑÑ•µÁÑÌ…¹•Ù¥‘•¹”…Ñ¥½¹Ìˆø(€€€€€€€€€€€€ñ…ÉÑ¥±”±…ÍÍ9…µ”ô‰Á…åµ•¹Ğµ…ÑÑ•µÁĞµÁ…¹•°ˆø(€€€€€€€€€€€€€€ñ¡•…‘•Èø(€€€€€€€€€€€€€€€€ñÀùY•É¥™¥…Ñ¥½¸…ÑÑ•µÁÑÌğ½Àø(€€€€€€€€€€€€€€€€ñ Ìùí…Ñ¥Ù•I•½É¹Ù•É¥™¥…Ñ¥½¹ÑÑ•µÁÑÌ¹±•¹Ñ¡ôÉ•½É‘•…ÑÑ•µÁÑí…Ñ¥Ù•I•½É¹Ù•É¥™¥…Ñ¥½¹ÑÑ•µÁÑÌ¹±•¹Ñ €ôôô€Ä€ü€œœ€è€Ìôğ½ Ìø(€€€€€€€€€€€€€€ğ½¡•…‘•Èø(€€€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰Á…åµ•¹Ğµ±½œµ±¥ÍĞˆø(€€€€€€€€€€€€€€€í…Ñ¥Ù•I•½É¹Ù•É¥™¥…Ñ¥½¹ÑÑ•µÁÑÌ¹µ…À ¡•¹ÑÉä¤€ôø€ (€€€€€€€€€€€€€€€€€€ñ‘¥Ø­•äõí•¹ÑÉä¹¥‘ôø(€€€€€€€€€€€€€€€€€€€€ñÍÁ…¸ùí•¹ÑÉä¹Ñ¥µ•ôğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€€€€€ñÍÑÉ½¹œùí•¹ÑÉä¹µ•Ñ¡½‘ôƒ
+Üí•¹ÑÉä¹É•ÍÕ±Ñôğ½ÍÑÉ½¹œø(€€€€€€€€€€€€€€€€€€€€ñÀùí•¹ÑÉä¹¹½Ñ•ôğ½Àø(€€€€€€€€€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€€€€€€€¤¥ô(€€€€€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€€€ğ½…ÉÑ¥±”ø((€€€€€€€€€€€íÍ¡½İ…±±‰…¬€˜˜€ñ…ÉÑ¥±”±…ÍÍ9…µ”ô‰Á…åµ•¹Ğµ…±°µ‘É…İ•Èˆø(€€€€€€€€€€€€€€ñ¡•…‘•Èø(€€€€€€€€€€€€€€€€ñÀùY•É¥™¥…Ñ¥½¸…±°É…İ•Èğ½Àø(€€€€€€€€€€€€€€€€ñ Ìù…±±‰…¬•Ù¥‘•¹”ğ½ Ìø(€€€€€€€€€€€€€€ğ½¡•…‘•Èø(€€€€€€€€€€€€€€ñÀùí…Ñ¥Ù•I•½É¹…±±‰…­MÑ…ÑÕÍôğ½Àø(€€€€€€€€€€€€€€ñ‘°ø(€€€€€€€€€€€€€€€€ñ‘¥Øøñ‘ĞùQÉÕÍÑ•Í½ÕÉ”ğ½‘Ğøñ‘ùí…Ñ¥Ù•I•½É¹ÑÉÕÍÑ•‘½¹Ñ…ÑM½ÕÉ•ôğ½‘øğ½‘¥Øø(€€€€€€€€€€€€€€€€ñ‘¥Øøñ‘ĞùI•½É‘•½ÕÑ½µ”ğ½‘Ğøñ‘ùí…Ñ¥Ù•I•½É¹Ù•É¥™¥…Ñ¥½¹=ÕÑ½µ•ôğ½‘øğ½‘¥Øø(€€€€€€€€€€€€€€ğ½‘°ø(€€€€€€€€€€€€ğ½…ÉÑ¥±”ùô((€€€€€€€€€€€€ñ…ÉÑ¥±”±…ÍÍ9…µ”ô‰Á…åµ•¹Ğµ…Ñ¥½¸µÁ…¹•°ˆø(€€€€€€€€€€€€€€ñ¡•…‘•ÈøñÀùÙ¥‘•¹”…Ñ¥½¹Ìğ½Àøñ Ìù½Õµ•¹Ğ°½µÁ…É”°½ÈÉ½ÕÑ”ğ½ Ìøğ½¡•…‘•Èø(€€€€€€€€€€€€€€ñ‘¥Øø(€€€€€€€€€€€€€€€ì¡…Ñ¥Ù•I•½É¹…Ñ¥½¹Ì€üümt¤¹µ…À ¡…Ñ¥½¸¤€ôø€ñ‰ÕÑÑ½¸­•äõí…Ñ¥½¹ôÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø±½Ñ¥½¸¡…Ñ¥½¸¥ôùí…Ñ¥½¹ôğ½‰ÕÑÑ½¸ø¥ô(€€€€€€€€€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÍ…Ù•A…åµ•¹Ñ9½Ñ”¡€‘í…Ñ¥Ù•I•½É¹¥‘ôÉ•Ù¥•İ•è€‘í…Ñ¥Ù•I•½É¹¹½Ñ•Íõ€¥ôùM…Ù”•Ù¥‘•¹”¹½Ñ”ğ½‰ÕÑÑ½¸ø(€€€€€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€€€ğ½…ÉÑ¥±”ø((€€€€€€€€€€€€ñ…ÉÑ¥±”±…ÍÍ9…µ”ô‰Á…åµ•¹ĞµÉ•±…Ñ•µÉ•½É‘Ìˆ…É¥„µ±…‰•°ô‰I•±…Ñ•É•½É‘Ìˆø(€€€€€€€€€€€€€€ñÀùI•±…Ñ•I•½É‘Ìğ½Àø(€€€€€€€€€€€€€€ñ‘¥Øùì¡…Ñ¥Ù•I•½É¹É•±…Ñ•‘I•½É‘Ì€üümt¤¹µ…À ¡¥Ñ•´¤€ôø€ñ‰ÕÑÑ½¸­•äõí¥Ñ•µôÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÁ¥¸¡¥Ñ•´¥ôùí¥Ñ•µôğ½‰ÕÑÑ½¸ø¥ôğ½‘¥Øø(€€€€€€€€€€€€ğ½…ÉÑ¥±”ø(€€€€€€€€€€ğ½Í•Ñ¥½¸ø(€€€€€€€€ğ¼ø(€€€€€€¤€è¹Õ±±ô((€€€€€í±½½­ÕÁ!¥ÍÑ½Éä¹±•¹Ñ €ø€À€˜˜€ (€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰Á…åµ•¹Ğµ±½½­ÕÀµ¡¥ÍÑ½Éäˆ…É¥„µ±…‰•°ô‰A…åµ•¹ĞY•É¥™¥…Ñ¥½¸±½½­ÕÀ¡¥ÍÑ½Éäˆø(€€€€€€€€€€ñ¡•…‘•ÈøñÀù1½½­ÕÀ¡¥ÍÑ½Éäğ½Àøñ ÌùI••¹ĞÍ•…É¡•Ì™½ÈÑ¡¥Ì…Í”ğ½ Ìøğ½¡•…‘•Èø(€€€€€€€€€€ñ‘¥Øø(€€€€€€€€€€€í±½½­ÕÁ!¥ÍÑ½Éä¹µ…À ¡¥Ñ•´¤€ôø€ (€€€€€€€€€€€€€€ñ…ÉÑ¥±”­•äõí¥Ñ•´¹¥‘ôø(€€€€€€€€€€€€€€€€ñÍÁ…¸ùí¥Ñ•´¹‰…¹­½‘•ôƒ
+Üí¥Ñ•´¹‘•ÍÑ¥¹…Ñ¥½¹%‘ôğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€ñÍÑÉ½¹œùí¥Ñ•´¹½İ¹•É9…µ•ôğ½ÍÑÉ½¹œø(€€€€€€€€€€€€€€€€ñÍµ…±°ùí¥Ñ•´¹½ÕÑ½µ•ôğ½Íµ…±°ø(€€€€€€€€€€€€€€ğ½…ÉÑ¥±”ø(€€€€€€€€€€€€¤¥ô(€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€ğ½Í•Ñ¥½¸ø(€€€€€€¥ô((€€€€€€ñ¹…Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ¹•áĞµÉ½ÕÑ•Ìˆ…É¥„µ±…‰•°ô‰A…åµ•¹ĞÙ•É¥™¥…Ñ¥½¸¹•áĞÉ½ÕÑ•Ìˆø(€€€€€€€íÉ•±…Ñ•‘I½ÕÑ•Ì¹µ…À ¡É½ÕÑ”¤€ôø€ñ‰ÕÑÑ½¸­•äõíÉ½ÕÑ•ôÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½°¡É½ÕÑ”¥ôùí=Á•¸€‘íÉ½ÕÑ•õôğ½‰ÕÑÑ½¸ø¥ô(€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õí©ÕµÁ•¥Í¥½¹ôù=Á•¸MÕ‰µ¥Ğ•¥Í¥½¸ğ½‰ÕÑÑ½¸ø(€€€€€€ğ½¹…Øø((€€€€€€ñ™½½Ñ•È±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÉ•Ù¥•Üµ‰…Èˆø(€€€€€€€€ñ‘¥Øø(€€€€€€€€€€ñÍÑÉ½¹œùA…åµ•¹ĞY•É¥™¥…Ñ¥½¸É•Ù¥•Üğ½ÍÑÉ½¹œø(€€€€€€€€€€ñÍÁ…¸ùIÕ¸„±½½­ÕÀ‰•™½É”µ…É­¥¹œÉ•Ù¥•İ•¸Q¡•¸¡•¬Ñ¡”¹…µ”É•ÍÕ±Ğ°½İ¹•ÉÍ¡¥À°½Á•É…Ñ¥½¹…°ÍÑ…ÑÕÌ°ÍÑ…¹‘¥¹œ°ÁÉ¥½ÈÕÍ”°…ÑÑ•µÁÑÌ°…¹•Ù¥‘•¹”Í½ÕÉ”¸ğ½ÍÁ…¸ø(€€€€€€€€ğ½‘¥Øø(€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ‘¥Í…‰±•õì…±½½­ÕÁI•ÍÕ±Ñô±…ÍÍ9…µ”õíÉ•Ù¥•İ•€ü€œœ€è€¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÁÉ¥µ…Éäô½¹±¥¬õì ¤€ôøµ…É­I•Ù¥•İ• A…åµ•¹ĞY•É¥™¥…Ñ¥½¸œ¥ôø(€€€€€€€€€íÉ•Ù¥•İ•€ü€ŸŠrLA…åµ•¹ĞY•É¥™¥…Ñ¥½¸É•Ù¥•İ•œ€è€5…É¬A…åµ•¹ĞY•É¥™¥…Ñ¥½¸É•Ù¥•İ•ô(€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€ğ½™½½Ñ•Èø(€€€€ğ¼ø(€€¤ì)ô()•áÁ½ÉĞ‘•™…Õ±Ğ™Õ¹Ñ¥½¸%¹Ù•ÍÑ¥…Ñ¥½¹Q½½±A…¹•°¡ì(€…Ñ¥Ù•…Ñ•½Éä°(€…Ñ¥Ù•…Í”°(€…Í•Ì°(€½Á•¹½Õµ•¹Ñ½Õ¹Ñ…Í”°(€Ñ½½°°(€½Á•¹Q½½°°(€ÅÕ•Éä°(€Í•ÑEÕ•Éä°(€‘…Ñ„°(€É½İÌ°(€…Ñ¥Ù•I½Ü°(€•áÁ…¹‘•‘%°(€É•Ù•…±1¥¹­¹…±åÍ¥ÍM•…É °(€Í•ÑáÁ…¹‘•‘%°(€Á¥¸°(€Í…Ù•9½Ñ”°(€µ…É­I•Ù¥•İ•°(€ÕÉÉ•¹Ñ½µÁ±•Ñ•°(€©ÕµÁ•¥Í¥½¸°(€‘½Õµ•¹ÑI•ÅÕ•ÍÑÌ°(€Í•Ñ½Õµ•¹ÑI•ÅÕ•ÍÑÍ	å…Í”°(€É•½É‘Ñ¥½¸°(€ÅÕ¥­A¥¸°(€½Á•¹I•±…Ñ•‘…Í”°(€½Á•¹•‘A¥¹¹•‘Ù¥‘•¹”°)ô¤ì(€½¹ÍĞmÍ•±•Ñ•‘I•½É‘%°Í•ÑM•±•Ñ•‘I•½É‘%‘t€ôÕÍ•MÑ…Ñ” œœ¤ì(€½¹ÍĞ‘¥ÍÁ±…å…Ñ„€ô‰Õ¥±‘½É•Q½½±I•½É‘Ì¡Ñ½½°°…Ñ¥Ù•…Í”°‘…Ñ„¤€üü‘…Ñ„ì(€½¹ÍĞ¹½Éµ…±¥é•‘EÕ•Éä€ôÅÕ•Éä¹ÑÉ¥´ ¤¹Ñ½1½İ•É…Í” ¤ì(€½¹ÍĞ‘¥ÍÁ±…åI½İÌ€ô‘¥ÍÁ±…å…Ñ„€ôôô‘…Ñ„(€€€€üÉ½İÌ(€€€€è‘¥ÍÁ±…å…Ñ„¹É½İÌ¹™¥±Ñ•È ¡É½Ü¤€ôø€…¹½Éµ…±¥é•‘EÕ•ÉäñğÍ•…É¡…‰±•Q•áĞ¡É½Ü¤¹¥¹±Õ‘•Ì¡¹½Éµ…±¥é•‘EÕ•Éä¤¤ì(€½¹ÍĞÍ•±•Ñ•‘%€ôÍ•±•Ñ•‘I•½É‘%ñğ…Ñ¥Ù•I½Üü¹¥ì(€½¹ÍĞ‘¥ÍÁ±…åÑ¥Ù•I½Ü€ô‘¥ÍÁ±…åI½İÌ¹™¥¹ ¡É½Ü¤€ôøÉ½Ü¹¥€ôôôÍ•±•Ñ•‘%¤€üü‘¥ÍÁ±…åI½İÍlÁtì(€½¹ÍĞÍ•±•Ñ•‘¥•±‘Ì€ôÕÍ•5•µ¼ (€€€€ ¤€ôø‘¥ÍÁ±…åÑ¥Ù•I½Ü€ü™¥•±‘A…¥ÉÌ¡‘¥ÍÁ±…å…Ñ„¹½±Õµ¹Ì°‘¥ÍÁ±…åÑ¥Ù•I½Ü¹Ù…±Õ•Ì¤€èmt°(€€€m‘¥ÍÁ±…åÑ¥Ù•I½Ü°‘¥ÍÁ±…å…Ñ„¹½±Õµ¹Ít°(€€¤ì(€½¹ÍĞÑ½½±•Ñ…¥°€ô‘•Ñ…¥±½È¡Ñ½½°°…Ñ¥Ù•…Ñ•½Éä¤ì(€½¹ÍĞÉ•Ù¥•İ•€ôÕÉÉ•¹Ñ½µÁ±•Ñ•¹¥¹±Õ‘•Ì¡Ñ½½°¤ì(€½¹ÍĞÉ•Á½ÉÑI½Ü€ô‘¥ÍÁ±…åÑ¥Ù•I½Ü€üü…Ñ¥Ù•I½Üì((€ÕÍ•™™•Ğ  ¤€ôøì(€€€Í•ÑM•±•Ñ•‘I•½É‘% œœ¤ì(€ô°m…Ñ¥Ù•…Í”¹¥°Ñ½½±t¤ì((€™Õ¹Ñ¥½¸½Á•¹I•½É¡É½İ%¤ì(€€€Í•ÑM•±•Ñ•‘I•½É‘%¡É½İ%¤ì(€€€Í•ÑáÁ…¹‘•‘%¡É½İ%¤ì(€ô((€™Õ¹Ñ¥½¸Í…Ù•¥ÍÁ±…å•‘9½Ñ” ¤ì(€€€¥˜€ …É•Á½ÉÑI½Ü¤É•ÑÕÉ¸ì(€€€Í…Ù•9½Ñ”¡áÁ…¹‘•€‘íÑ½½±ôÉ•½É€‘íÉ•Á½ÉÑI½Ü¹¥‘ôè€‘íÉ•Á½ÉÑI½Ü¹‘•Ñ…¥±õ€°€áÁ…¹‘•É•½Éœ¤ì(€ô((€¥˜€¡Ñ½½°€ôôô€1¥¹¬¹…±åÍ¥Ìœ¤ì(€€€É•ÑÕÉ¸€ (€€€€€€ñÍ•Ñ¥½¸(€€€€€€€±…ÍÍ9…µ”ô‰½É¹…Ñ”µ…É…Ñ¥Ù¥ÑäµÁ…¹•°¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½±ÌµÑ¡•µ”µØÄ±¥¹¬µ…¹…±åÍ¥ÌµÑ½½°µÍ¡•±°ˆ(€€€€€€€‘…Ñ„µ¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½±ÌµÍÉ••¸ô‰…ÁÁÉ½Ù•µÑ¡•µ”µØÄˆ(€€€€€€€‘…Ñ„µÑ½½°µ¹…µ”ô‰1¥¹¬¹…±åÍ¥Ìˆ(€€€€€€ø(€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ½¹ÑÉ½±Ì±¥¹¬µ…¹…±åÍ¥ÌµÑ½½°µÍİ¥Ñ¡•Èˆ…É¥„µ±…‰•°ô‰%¹Ù•ÍÑ¥…Ñ¥½¸Ñ½½°½¹ÑÉ½±Ìˆø(€€€€€€€€€€ñ±…‰•°ø(€€€€€€€€€€€€ñÍÁ…¸ùÕÉÉ•¹ĞÑ½½°É½ÕÀğ½ÍÁ…¸ø(€€€€€€€€€€€€ñÍ•±•Ğ(€€€€€€€€€€€€€±…ÍÍ9…µ”ô‰Ñ½½°µÍ•±•Ğˆ(€€€€€€€€€€€€€Ù…±Õ”õíÑ½½±ô(€€€€€€€€€€€€€½¹¡…¹”õì¡•Ù•¹Ğ¤€ôø½Á•¹Q½½°¡•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ô(€€€€€€€€€€€€€…É¥„µ±…‰•°ô‰¡½½Í”¥¹Ù•ÍÑ¥…Ñ¥½¸Ñ½½°ˆ(€€€€€€€€€€€€ø(€€€€€€€€€€€€€í…Ñ¥Ù•…Ñ•½Éä¹Ñ½½±Ì¹µ…À ¡¥Ñ•´¤€ôø€ñ½ÁÑ¥½¸­•äõí¥Ñ•µôùí¥Ñ•µôğ½½ÁÑ¥½¸ø¥ô(€€€€€€€€€€€€ğ½Í•±•Ğø(€€€€€€€€€€ğ½±…‰•°ø(€€€€€€€€€€ñÀùMİ¥Ñ Ñ½½±Ìİ¥Ñ¡½ÕĞ±•…Ù¥¹œÑ¡”ÕÉÉ•¹Ğ…Í”¸ğ½Àø(€€€€€€€€ğ½Í•Ñ¥½¸ø(€€€€€€€€ñ1¥¹­¹…±åÍ¥Í]½É­ÍÁ…”(€€€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€€€…Í•Ìõí…Í•Íô(€€€€€€€€€ÅÕ•ÉäõíÅÕ•Éåô(€€€€€€€€€Í•ÑEÕ•ÉäõíÍ•ÑEÕ•Éåô(€€€€€€€€€Á¥¸õíÁ¥¹ô(€€€€€€€€€ÅÕ¥­A¥¸õíÅÕ¥­A¥¹ô(€€€€€€€€€Í…Ù•9½Ñ”õíÍ…Ù•9½Ñ•ô(€€€€€€€€€µ…É­I•Ù¥•İ•õíµ…É­I•Ù¥•İ•‘ô(€€€€€€€€€É•Ù¥•İ•õíÉ•Ù¥•İ•‘ô(€€€€€€€€€©ÕµÁ•¥Í¥½¸õí©ÕµÁ•¥Í¥½¹ô(€€€€€€€€€É•½É‘Ñ¥½¸õíÉ•½É‘Ñ¥½¹ô(€€€€€€€€€½Á•¹I•±…Ñ•‘…Í”õí½Á•¹I•±…Ñ•‘…Í•ô(€€€€€€€€€É•ÅÕ•ÍÑ•‘½Õ¹Ñ%õí•áÁ…¹‘•‘%‘ô(€€€€€€€€€½Á•¹•‘A¥¹¹•‘Ù¥‘•¹”õí½Á•¹•‘A¥¹¹•‘Ù¥‘•¹•ô(€€€€€€€€€É•Ù•…±M•…É õíÉ•Ù•…±1¥¹­¹…±åÍ¥ÍM•…É¡ô(€€€€€€€€¼ø(€€€€€€ğ½Í•Ñ¥½¸ø(€€€€¤ì(€ô((€É•ÑÕÉ¸€ (€€€€ñÍ•Ñ¥½¸(€€€€€±…ÍÍ9…µ”ô‰½É¹…Ñ”µ…É…Ñ¥Ù¥ÑäµÁ…¹•°¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½±ÌµÑ¡•µ”µØÄˆ(€€€€€‘…Ñ„µ¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½±ÌµÍÉ••¸ô‰…ÁÁÉ½Ù•µÑ¡•µ”µØÄˆ(€€€€€‘…Ñ„µÑ½½°µ¹…µ”õíÑ½½±ô(€€€€ø(€€€€€€ñ¡•…‘•È±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ¡•…‘•Èˆø(€€€€€€€€ñ‘¥Øø(€€€€€€€€€€ñÀ±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ•å•‰É½Üˆùí…Ñ¥Ù•…Ñ•½Éä¹±…‰•±ôƒ
+ÜÙ¥‘•¹”¥ÉÍĞğ½Àø(€€€€€€€€€€ñ ÈùíÑ½½±ôğ½ Èø(€€€€€€€€€€ñÀùíÑ½½±•Ñ…¥°¹ÁÕÉÁ½Í•ôğ½Àø(€€€€€€€€ğ½‘¥Øø(€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ¡•…‘•Èµ…Ñ¥½¹Ìˆø(€€€€€€€€€€ñÍÁ…¸ùí…Ñ¥Ù•…Í”¹¥‘ôğ½ÍÁ…¸ø(€€€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õí©ÕµÁ•¥Í¥½¹ôù=Á•¸MÕ‰µ¥Ğ•¥Í¥½¸ğ½‰ÕÑÑ½¸ø(€€€€€€€€ğ½‘¥Øø(€€€€€€ğ½¡•…‘•Èø((€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÅÕ•ÍÑ¥½¸ˆ…É¥„µ±…‰•±±•‘‰äô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÅÕ•ÍÑ¥½¸µ¡•…‘¥¹œˆø(€€€€€€€€ñ‘¥Ø…É¥„µ¡¥‘‘•¸ô‰ÑÉÕ”ˆøüğ½‘¥Øø(€€€€€€€€ñ‘¥Øø(€€€€€€€€€€ñÀù]½É­¥¹œÅÕ•ÍÑ¥½¸ğ½Àø(€€€€€€€€€€ñ Ì¥ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÅÕ•ÍÑ¥½¸µ¡•…‘¥¹œˆùíÑ½½±•Ñ…¥°¹ÅÕ•ÍÑ¥½¹ôğ½ Ìø(€€€€€€€€€€ñÍÁ…¸ùI•Ù¥•ÜÑ¡”É•½É‘Ì°•áÁ…¹Ñ¡”ÕÍ•™Õ°‘•Ñ…¥±Ì°…¹Í…Ù”½¹±äÑ¡”•Ù¥‘•¹”¹••‘•™½ÈÑ¡”…Í”Á…­…”¸ğ½ÍÁ…¸ø(€€€€€€€€ğ½‘¥Øø(€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ½¹ÑÉ½±Ìˆ…É¥„µ±…‰•°ô‰%¹Ù•ÍÑ¥…Ñ¥½¸Ñ½½°½¹ÑÉ½±Ìˆø(€€€€€€€€ñ±…‰•°ø(€€€€€€€€€€ñÍÁ…¸ùÕÉÉ•¹ĞÑ½½°É½ÕÀğ½ÍÁ…¸ø(€€€€€€€€€€ñÍ•±•Ğ(€€€€€€€€€€€±…ÍÍ9…µ”ô‰Ñ½½°µÍ•±•Ğˆ(€€€€€€€€€€€Ù…±Õ”õíÑ½½±ô(€€€€€€€€€€€½¹¡…¹”õì¡•Ù•¹Ğ¤€ôø½Á•¹Q½½°¡•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ô(€€€€€€€€€€€…É¥„µ±…‰•°ô‰¡½½Í”¥¹Ù•ÍÑ¥…Ñ¥½¸Ñ½½°ˆ(€€€€€€€€€€ø(€€€€€€€€€€€í…Ñ¥Ù•…Ñ•½Éä¹Ñ½½±Ì¹µ…À ¡¥Ñ•´¤€ôø€ñ½ÁÑ¥½¸­•äõí¥Ñ•µôùí¥Ñ•µôğ½½ÁÑ¥½¸ø¥ô(€€€€€€€€€€ğ½Í•±•Ğø(€€€€€€€€ğ½±…‰•°ø(€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ™±½Üˆ…É¥„µ±…‰•°ô‰Ù¥‘•¹”İ½É­™±½Üˆø(€€€€€€€€€íİ½É­™±½İÌ¹µ…À ¡¥Ñ•´°¥¹‘•à¤€ôø€ (€€€€€€€€€€€€ñÍÁ…¸­•äõí¥Ñ•µô±…ÍÍ9…µ”õí¥¹‘•à€ğô€Ô€ü€ÕÉÉ•¹Ğµ™±½Üœ€è€œôùí¥¹‘•à€¬€Åô¸í¥Ñ•µôğ½ÍÁ…¸ø(€€€€€€€€€€¤¥ô(€€€€€€€€ğ½‘¥Øø(€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€íÑ½½°€ôôô€%‘•¹Ñ¥Ñä%¹Ñ•°€¼A•½Á±”M•…É œ€ü€ (€€€€€€€€ñ%‘•¹Ñ¥Ñå%¹Ñ•±]½É­ÍÁ…”(€€€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€€€Á¥¸õíÁ¥¹ô(€€€€€€€€€Í…Ù•9½Ñ”õíÍ…Ù•9½Ñ•ô(€€€€€€€€€µ…É­I•Ù¥•İ•õíµ…É­I•Ù¥•İ•‘ô(€€€€€€€€€É•Ù¥•İ•õíÉ•Ù¥•İ•‘ô(€€€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€€€©ÕµÁ•¥Í¥½¸õí©ÕµÁ•¥Í¥½¹ô(€€€€€€€€€É•½É‘Ñ¥½¸õíÉ•½É‘Ñ¥½¹ô(€€€€€€€€¼ø(€€€€€€¤€èÑ½½°€ôôô€QÉ…¹Í…Ñ¥½¸!¥ÍÑ½Éäœ€ü€ (€€€€€€€€ñQÉ…¹Í…Ñ¥½¹!¥ÍÑ½Éå]½É­ÍÁ…”(€€€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€€€Á¥¸õíÁ¥¹ô(€€€€€€€€€Í…Ù•9½Ñ”õíÍ…Ù•9½Ñ•ô(€€€€€€€€€µ…É­I•Ù¥•İ•õíµ…É­I•Ù¥•İ•‘ô(€€€€€€€€€É•Ù¥•İ•õíÉ•Ù¥•İ•‘ô(€€€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€€€©ÕµÁ•¥Í¥½¸õí©ÕµÁ•¥Í¥½¹ô(€€€€€€€€¼ø(€€€€€€¤€èÑ½½°€ôôô€5•É¡…¹Ğ%¹Ñ•±±¥•¹”œ€ü€ (€€€€€€€€ñ5•É¡…¹Ñ%¹Ñ•±±¥•¹•]½É­ÍÁ…”(€€€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€€€Á¥¸õíÁ¥¹ô(€€€€€€€€€Í…Ù•9½Ñ”õíÍ…Ù•9½Ñ•ô(€€€€€€€€€µ…É­I•Ù¥•İ•õíµ…É­I•Ù¥•İ•‘ô(€€€€€€€€€É•Ù¥•İ•õíÉ•Ù¥•İ•‘ô(€€€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€€€©ÕµÁ•¥Í¥½¸õí©ÕµÁ•¥Í¥½¹ô(€€€€€€€€€‘½Õµ•¹ÑI•ÅÕ•ÍÑÌõí‘½Õµ•¹ÑI•ÅÕ•ÍÑÍô(€€€€€€€€¼ø(€€€€€€¤€èÑ½½°€ôôô€¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸œ€ü€ (€€€€€€€€ñ¥¹…¹¥…±%¹Ù•ÍÑ¥…Ñ¥½¹]½É­ÍÁ…”(€€€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€€€Á¥¸õíÁ¥¹ô(€€€€€€€€€Í…Ù•9½Ñ”õíÍ…Ù•9½Ñ•ô(€€€€€€€€€µ…É­I•Ù¥•İ•õíµ…É­I•Ù¥•İ•‘ô(€€€€€€€€€É•Ù¥•İ•õíÉ•Ù¥•İ•‘ô(€€€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€€€©ÕµÁ•¥Í¥½¸õí©ÕµÁ•¥Í¥½¹ô(€€€€€€€€¼ø(€€€€€€¤€èÑ½½°€ôôô€	ÕÍ¥¹•ÍÌ€ÌØÀœ€ü€ (€€€€€€€€ñ	ÕÍ¥¹•ÍÌÌØÁ]½É­ÍÁ…”(€€€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€€€Á¥¸õíÁ¥¹ô(€€€€€€€€€Í…Ù•9½Ñ”õíÍ…Ù•9½Ñ•ô(€€€€€€€€€µ…É­I•Ù¥•İ•õíµ…É­I•Ù¥•İ•‘ô(€€€€€€€€€É•Ù¥•İ•õíÉ•Ù¥•İ•‘ô(€€€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€€€©ÕµÁ•¥Í¥½¸õí©ÕµÁ•¥Í¥½¹ô(€€€€€€€€¼ø(€€€€€€¤€èÑ½½°€ôôô€-eI•Ù¥•Üœ€ü€ (€€€€€€€€ñ-e	I•Ù¥•İ]½É­ÍÁ…”(€€€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€€€Á¥¸õíÁ¥¹ô(€€€€€€€€€Í…Ù•9½Ñ”õíÍ…Ù•9½Ñ•ô(€€€€€€€€€µ…É­I•Ù¥•İ•õíµ…É­I•Ù¥•İ•‘ô(€€€€€€€€€É•Ù¥•İ•õíÉ•Ù¥•İ•‘ô(€€€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€€€©ÕµÁ•¥Í¥½¸õí©ÕµÁ•¥Í¥½¹ô(€€€€€€€€¼ø(€€€€€€¤€èÑ½½°€ôôô€µÁ±½å•”AÉ½™¥±”œ€ü€ (€€€€€€€€ñµÁ±½å••AÉ½™¥±•]½É­ÍÁ…”(€€€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€€€Á¥¸õíÁ¥¹ô(€€€€€€€€€Í…Ù•9½Ñ”õíÍ…Ù•9½Ñ•ô(€€€€€€€€€µ…É­I•Ù¥•İ•õíµ…É­I•Ù¥•İ•‘ô(€€€€€€€€€É•Ù¥•İ•õíÉ•Ù¥•İ•‘ô(€€€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€€€©ÕµÁ•¥Í¥½¸õí©ÕµÁ•¥Í¥½¹ô(€€€€€€€€¼ø(€€€€€€¤€èÑ½½°€ôôô€A…åÉ½±°!¥ÍÑ½Éäœ€ü€ (€€€€€€€€ñA…åÉ½±±!¥ÍÑ½Éå]½É­ÍÁ…”(€€€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€€€Á¥¸õíÁ¥¹ô(€€€€€€€€€Í…Ù•9½Ñ”õíÍ…Ù•9½Ñ•ô(€€€€€€€€€µ…É­I•Ù¥•İ•õíµ…É­I•Ù¥•İ•‘ô(€€€€€€€€€É•Ù¥•İ•õíÉ•Ù¥•İ•‘ô(€€€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€€€©ÕµÁ•¥Í¥½¸õí©ÕµÁ•¥Í¥½¹ô(€€€€€€€€¼ø(€€€€€€¤€èÑ½½°€ôôô€1½¥¸!¥ÍÑ½Éäœ€ü€ (€€€€€€€€ñ1½¥¹!¥ÍÑ½Éå]½É­ÍÁ…”(€€€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€€€ÅÕ•ÉäõíÅÕ•Éåô(€€€€€€€€€Í•ÑEÕ•ÉäõíÍ•ÑEÕ•Éåô(€€€€€€€€€Á¥¸õíÁ¥¹ô(€€€€€€€€€Í…Ù•9½Ñ”õíÍ…Ù•9½Ñ•ô(€€€€€€€€€µ…É­I•Ù¥•İ•õíµ…É­I•Ù¥•İ•‘ô(€€€€€€€€€É•Ù¥•İ•õíÉ•Ù¥•İ•‘ô(€€€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€€€©ÕµÁ•¥Í¥½¸õí©ÕµÁ•¥Í¥½¹ô(€€€€€€€€¼ø(€€€€€€¤€èÑ½½°€ôôô€M•ÍÍ¥½¸!¥ÍÑ½Éäœ€ü€ (€€€€€€€€ñM•ÍÍ¥½¹!¥ÍÑ½Éå]½É­ÍÁ…”(€€€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€€€ÅÕ•ÉäõíÅÕ•Éåô(€€€€€€€€€Í•ÑEÕ•ÉäõíÍ•ÑEÕ•Éåô(€€€€€€€€€Á¥¸õíÁ¥¹ô(€€€€€€€€€Í…Ù•9½Ñ”õíÍ…Ù•9½Ñ•ô(€€€€€€€€€µ…É­I•Ù¥•İ•õíµ…É­I•Ù¥•İ•‘ô(€€€€€€€€€É•Ù¥•İ•õíÉ•Ù¥•İ•‘ô(€€€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€€¼ø(€€€€€€¤€èÑ½½°€ôôô€%@%¹Ñ•±±¥•¹”œ€ü€ (€€€€€€€€ñ%A%¹Ñ•±±¥•¹•]½É­ÍÁ…”(€€€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€€€ÅÕ•ÉäõíÅÕ•Éåô(€€€€€€€€€Í•ÑEÕ•ÉäõíÍ•ÑEÕ•Éåô(€€€€€€€€€Á¥¸õíÁ¥¹ô(€€€€€€€€€Í…Ù•9½Ñ”õíÍ…Ù•9½Ñ•ô(€€€€€€€€€µ…É­I•Ù¥•İ•õíµ…É­I•Ù¥•İ•‘ô(€€€€€€€€€É•Ù¥•İ•õíÉ•Ù¥•İ•‘ô(€€€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€€€©ÕµÁ•¥Í¥½¸õí©ÕµÁ•¥Í¥½¹ô(€€€€€€€€¼ø(€€€€€€¤€èÑ½½°€ôôô€A…åµ•¹ĞY•É¥™¥…Ñ¥½¸œ€ü€ (€€€€€€€€ñA…åµ•¹ÑY•É¥™¥…Ñ¥½¹]½É­ÍÁ…”(€€€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€€€ÅÕ•ÉäõíÅÕ•Éåô(€€€€€€€€€Í•ÑEÕ•ÉäõíÍ•ÑEÕ•Éåô(€€€€€€€€€Á¥¸õíÁ¥¹ô(€€€€€€€€€Í…Ù•9½Ñ”õíÍ…Ù•9½Ñ•ô(€€€€€€€€€µ…É­I•Ù¥•İ•õíµ…É­I•Ù¥•İ•‘ô(€€€€€€€€€É•Ù¥•İ•õíÉ•Ù¥•İ•‘ô(€€€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€€€©ÕµÁ•¥Í¥½¸õí©ÕµÁ•¥Í¥½¹ô(€€€€€€€€€É•½É‘Ñ¥½¸õíÉ•½É‘Ñ¥½¹ô(€€€€€€€€¼ø(€€€€€€¤€èÑ½½°€ôôô€½Õµ•¹ĞY¥•İ•Èœ€ü€ (€€€€€€€€ñ½Õµ•¹ÑY¥•İ•É]½É­ÍÁ…”(€€€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€€€…Í•Ìõí…Í•Íô(€€€€€€€€€½Á•¹½Õµ•¹Ñ½Õ¹Ñ…Í”õí½Á•¹½Õµ•¹Ñ½Õ¹Ñ…Í•ô(€€€€€€€€€ÅÕ•ÉäõíÅÕ•Éåô(€€€€€€€€€Í•ÑEÕ•ÉäõíÍ•ÑEÕ•Éåô(€€€€€€€€€Á¥¸õíÁ¥¹ô(€€€€€€€€€Í…Ù•9½Ñ”õíÍ…Ù•9½Ñ•ô(€€€€€€€€€µ…É­I•Ù¥•İ•õíµ…É­I•Ù¥•İ•‘ô(€€€€€€€€€É•Ù¥•İ•õíÉ•Ù¥•İ•‘ô(€€€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€€€©ÕµÁ•¥Í¥½¸õí©ÕµÁ•¥Í¥½¹ô(€€€€€€€€€‘½Õµ•¹ÑI•ÅÕ•ÍÑÌõí‘½Õµ•¹ÑI•ÅÕ•ÍÑÍô(€€€€€€€€¼ø(€€€€€€¤€èÑ½½°€ôôô€½Õµ•¹ĞI•ÅÕ•ÍĞœ€ü€ (€€€€€€€€ñ½Õµ•¹ÑI•ÅÕ•ÍÑ]½É­ÍÁ…”(€€€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€€€ÅÕ•ÉäõíÅÕ•Éåô(€€€€€€€€€Í•ÑEÕ•ÉäõíÍ•ÑEÕ•Éåô(€€€€€€€€€Á¥¸õíÁ¥¹ô(€€€€€€€€€Í…Ù•9½Ñ”õíÍ…Ù•9½Ñ•ô(€€€€€€€€€µ…É­I•Ù¥•İ•õíµ…É­I•Ù¥•İ•‘ô(€€€€€€€€€É•Ù¥•İ•õíÉ•Ù¥•İ•‘ô(€€€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€€€©ÕµÁ•¥Í¥½¸õí©ÕµÁ•¥Í¥½¹ô(€€€€€€€€€‘½Õµ•¹ÑI•ÅÕ•ÍÑÌõí‘½Õµ•¹ÑI•ÅÕ•ÍÑÍô(€€€€€€€€€Í•Ñ½Õµ•¹ÑI•ÅÕ•ÍÑÍ	å…Í”õíÍ•Ñ½Õµ•¹ÑI•ÅÕ•ÍÑÍ	å…Í•ô(€€€€€€€€¼ø(€€€€€€¤€èÑ½½°€ôôô€•Ù¥”%¹Ñ•±±¥•¹”œ€ü€ (€€€€€€€€ñ•Ù¥•%¹Ñ•±±¥•¹•]½É­ÍÁ…”(€€€€€€€€€…Ñ¥Ù•…Í”õí…Ñ¥Ù•…Í•ô(€€€€€€€€€ÅÕ•ÉäõíÅÕ•Éåô(€€€€€€€€€Í•ÑEÕ•ÉäõíÍ•ÑEÕ•Éåô(€€€€€€€€€Á¥¸õíÁ¥¹ô(€€€€€€€€€Í…Ù•9½Ñ”õíÍ…Ù•9½Ñ•ô(€€€€€€€€€µ…É­I•Ù¥•İ•õíµ…É­I•Ù¥•İ•‘ô(€€€€€€€€€É•Ù¥•İ•õíÉ•Ù¥•İ•‘ô(€€€€€€€€€½Á•¹Q½½°õí½Á•¹Q½½±ô(€€€€€€€€€©ÕµÁ•¥Í¥½¸õí©ÕµÁ•¥Í¥½¹ô(€€€€€€€€€ÅÕ¥­A¥¸õíÅÕ¥­A¥¹ô(€€€€€€€€¼ø(€€€€€€¤€è€ (€€€€€€€€ğø((€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µµ•ÑÉ¥Ìˆ…É¥„µ±…‰•°õí€‘íÑ½½±ôÉ•Ù¥•ÜÍÕµµ…Éåôø(€€€€€€€€ñ…ÉÑ¥±”øñÍÁ…¸ùI•½É‘Ì…Ù…¥±…‰±”ğ½ÍÁ…¸øñÍÑÉ½¹œùí‘¥ÍÁ±…å…Ñ„¹É½İÌ¹±•¹Ñ¡ôğ½ÍÑÉ½¹œøğ½…ÉÑ¥±”ø(€€€€€€€€ñ…ÉÑ¥±”øñÍÁ…¸ùI•½É‘ÌÍ¡½İ¸ğ½ÍÁ…¸øñÍÑÉ½¹œùí‘¥ÍÁ±…åI½İÌ¹±•¹Ñ¡ôğ½ÍÑÉ½¹œøğ½…ÉÑ¥±”ø(€€€€€€€€ñ…ÉÑ¥±”øñÍÁ…¸ùI•Ù¥•ÜÍÑ…ÑÕÌğ½ÍÁ…¸øñÍÑÉ½¹œùíÉ•Ù¥•İ•€ü€I•Ù¥•İ•œ€è€=Á•¸ôğ½ÍÑÉ½¹œøğ½…ÉÑ¥±”ø(€€€€€€€€ñ…ÉÑ¥±”øñÍÁ…¸ùÑ¥Ù”…Í”ğ½ÍÁ…¸øñÍÑÉ½¹œùí…Ñ¥Ù•…Í”¹¥‘ôğ½ÍÑÉ½¹œøğ½…ÉÑ¥±”ø(€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÍ•…É µÉ½Üˆø(€€€€€€€€ñ±…‰•°ø(€€€€€€€€€€ñÍÁ…¸ùM•…É Ñ¡¥ÌÑ½½°ğ½ÍÁ…¸ø(€€€€€€€€€€ñ¥¹ÁÕĞ(€€€€€€€€€€€Ù…±Õ”õíÅÕ•Éåô(€€€€€€€€€€€½¹¡…¹”õì¡•Ù•¹Ğ¤€ôøÍ•ÑEÕ•Éä¡•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ô(€€€€€€€€€€€Á±…•¡½±‘•Èô‰M•…É É•½É‘Ì°Ù…±Õ•Ì°¡¥ÍÑ½Éä°‘•Ù¥•Ì°µ•É¡…¹ÑÌ°‘½Õµ•¹ÑÌ¸¸¸ˆ(€€€€€€€€€€€…É¥„µ±…‰•°õíM•…É €‘íÑ½½±ôÉ•½É‘Íô(€€€€€€€€€€¼ø(€€€€€€€€ğ½±…‰•°ø(€€€€€€€€ñÍÁ…¸…É¥„µ±¥Ù”ô‰Á½±¥Ñ”ˆùí‘¥ÍÁ±…åI½İÌ¹±•¹Ñ¡ô½˜í‘¥ÍÁ±…å…Ñ„¹É½İÌ¹±•¹Ñ¡ôÍ¡½İ¸ğ½ÍÁ…¸ø(€€€€€€ğ½‘¥Øø((€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µİ½É­ÍÁ…”ˆø(€€€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÉ•½É‘Ìˆ…É¥„µ±…‰•±±•‘‰äô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÉ•½É‘Ìµ¡•…‘¥¹œˆø(€€€€€€€€€€ñ¡•…‘•È±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÍ•Ñ¥½¸µ¡•…‘¥¹œˆø(€€€€€€€€€€€€ñ‘¥Øø(€€€€€€€€€€€€€€ñÀùI•½ÉÉ•Ù¥•Üğ½Àø(€€€€€€€€€€€€€€ñ Ì¥ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÉ•½É‘Ìµ¡•…‘¥¹œˆùÙ…¥±…‰±”íÑ½½±ôÉ•½É‘Ìğ½ Ìø(€€€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€€€ñÍÁ…¸ùí‘¥ÍÁ±…åI½İÌ¹±•¹Ñ¡ôÍ¡½İ¸ğ½ÍÁ…¸ø(€€€€€€€€€€ğ½¡•…‘•Èø((€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÉ•½Éµ±¥ÍĞˆø(€€€€€€€€€€€í‘¥ÍÁ±…åI½İÌ¹µ…À ¡É½Ü¤€ôøì(€€€€€€€€€€€€€½¹ÍĞ™¥•±‘Ì€ô™¥•±‘A…¥ÉÌ¡‘¥ÍÁ±…å…Ñ„¹½±Õµ¹Ì°É½Ü¹Ù…±Õ•Ì¤¹™¥±Ñ•È ¡™¥•±¤€ôø€„½…Ñ¥½¸½¤¹Ñ•ÍĞ¡™¥•±¹±…‰•°¤¤¹Í±¥” À°€Ì¤ì(€€€€€€€€€€€€€½¹ÍĞÍ•±•Ñ•€ô‘¥ÍÁ±…åÑ¥Ù•I½Üü¹¥€ôôôÉ½Ü¹¥ì(€€€€€€€€€€€€€É•ÑÕÉ¸€ (€€€€€€€€€€€€€€€€ñ…ÉÑ¥±”(€€€€€€€€€€€€€€€€€­•äõíÉ½Ü¹¥‘ô(€€€€€€€€€€€€€€€€€±…ÍÍ9…µ”õí¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÉ•½Éµ…É€‘íÍ•±•Ñ•€ü€Í•±•Ñ•œ€è€œõô(€€€€€€€€€€€€€€€€€‘…Ñ„µ¥¹Ù•ÍÑ¥…Ñ¥½¸µÉ•½ÉõíÉ½Ü¹¥‘ô(€€€€€€€€€€€€€€€€ø(€€€€€€€€€€€€€€€€€€ñ¡•…‘•Èø(€€€€€€€€€€€€€€€€€€€€ñ‘¥ØøñÍÁ…¸ùíÉ½Ü¹¥‘ôğ½ÍÁ…¸øñ ĞùíÉ½Ü¹±…‰•±ôğ½ Ğøğ½‘¥Øø(€€€€€€€€€€€€€€€€€€€€ñÍÁ…¸ùíÍ•±•Ñ•€ü€=Á•¸œ€è€I•½Éôğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€€€ğ½¡•…‘•Èø(€€€€€€€€€€€€€€€€€€ñ‘°ø(€€€€€€€€€€€€€€€€€€€í™¥•±‘Ì¹µ…À ¡™¥•±¤€ôø€ (€€€€€€€€€€€€€€€€€€€€€€ñ‘¥Ø­•äõí€‘íÉ½Ü¹¥‘ô´‘í™¥•±¹±…‰•±õôø(€€€€€€€€€€€€€€€€€€€€€€€€ñ‘Ğùí™¥•±¹±…‰•±ôğ½‘Ğø(€€€€€€€€€€€€€€€€€€€€€€€€ñ‘øñ¥É•Ñ½±±…ÁÍ¥‰±•Q•áĞ±¥¹•ÌõìÉôµ½‰¥±•1¥¹•ÌõìÍôùíMÑÉ¥¹œ¡™¥•±¹Ù…±Õ”¥ôğ½¥É•Ñ½±±…ÁÍ¥‰±•Q•áĞøğ½‘ø(€€€€€€€€€€€€€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€€€€€€€€€€€¤¥ô(€€€€€€€€€€€€€€€€€€ğ½‘°ø(€€€€€€€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÉ•½Éµ…Ñ¥½¹Ìˆø(€€€€€€€€€€€€€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹I•½É¡É½Ü¹¥¥ôùíÍ•±•Ñ•€ü€I•½É½Á•¸œ€è€=Á•¸É•½Éôğ½‰ÕÑÑ½¸ø(€€€€€€€€€€€€€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÁ¥¸¡É½Ü¹Á¥¸¥ôùA¥¸ğ½‰ÕÑÑ½¸ø(€€€€€€€€€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€€€€€€€ğ½…ÉÑ¥±”ø(€€€€€€€€€€€€€€¤ì(€€€€€€€€€€€ô¥ô(€€€€€€€€€€€ì…‘¥ÍÁ±…åI½İÌ¹±•¹Ñ €˜˜€ (€€€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ•µÁÑäˆÉ½±”ô‰ÍÑ…ÑÕÌˆø(€€€€€€€€€€€€€€€9¼É•½É‘Ìµ…Ñ Ñ¡¥ÌÍ•…É ¸±•…È½ÈÉ•Ù¥Í”Ñ¡”Í•…É Ñ¼½¹Ñ¥¹Õ”É•Ù¥•İ¥¹œÑ¡¥ÌÑ½½°¸(€€€€€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€€€¥ô(€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€ğ½Í•Ñ¥½¸ø((€€€€€€€€ñ…Í¥‘”±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ‘•Ñ…¥°ˆ…É¥„µ±…‰•°ô‰áÁ…¹‘•¥¹Ù•ÍÑ¥…Ñ¥½¸É•½Éˆø(€€€€€€€€€í‘¥ÍÁ±…åÑ¥Ù•I½Ü€ü€ (€€€€€€€€€€€€ğø(€€€€€€€€€€€€€€ñ¡•…‘•È±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ‘•Ñ…¥°µ¡•…‘¥¹œˆø(€€€€€€€€€€€€€€€€ñ‘¥Øø(€€€€€€€€€€€€€€€€€€ñÀùáÁ…¹‘•É•½Éğ½Àø(€€€€€€€€€€€€€€€€€€ñ Ìùí‘¥ÍÁ±…åÑ¥Ù•I½Ü¹¥‘ôğ½ Ìø(€€€€€€€€€€€€€€€€€€ñÍÁ…¸ùí‘¥ÍÁ±…åÑ¥Ù•I½Ü¹±…‰•±ôğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôøÁ¥¸¡‘¥ÍÁ±…åÑ¥Ù•I½Ü¹Á¥¸¥ôùA¥¸É•½Éğ½‰ÕÑÑ½¸ø(€€€€€€€€€€€€€€ğ½¡•…‘•Èø((€€€€€€€€€€€€€€ñ‘°±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ™¥•±µÉ¥ˆø(€€€€€€€€€€€€€€€íÍ•±•Ñ•‘¥•±‘Ì¹µ…À ¡™¥•±¤€ôø€ (€€€€€€€€€€€€€€€€€€ñ‘¥Ø­•äõí€‘í‘¥ÍÁ±…åÑ¥Ù•I½Ü¹¥‘ô´‘í™¥•±¹±…‰•±õôø(€€€€€€€€€€€€€€€€€€€€ñ‘Ğùí™¥•±¹±…‰•±ôğ½‘Ğø(€€€€€€€€€€€€€€€€€€€€ñ‘øñ¥É•Ñ½±±…ÁÍ¥‰±•Q•áĞ±¥¹•ÌõìÍôµ½‰¥±•1¥¹•ÌõìÑôùíMÑÉ¥¹œ¡™¥•±¹Ù…±Õ”¥ôğ½¥É•Ñ½±±…ÁÍ¥‰±•Q•áĞøğ½‘ø(€€€€€€€€€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€€€€€€€¤¥ô(€€€€€€€€€€€€€€ğ½‘°ø((€€€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÉ•Ù¥•Üµ±…¹•Ìˆø(€€€€€€€€€€€€€€€€ñ…ÉÑ¥±”ø(€€€€€€€€€€€€€€€€€€ñÍÁ…¸ù!¥ÍÑ½Éäğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€€€ñ ĞùI•½É¡¥ÍÑ½Éäğ½ Ğø(€€€€€€€€€€€€€€€€€€ñ¥É•Ñ½±±…ÁÍ¥‰±•Q•áĞ±¥¹•ÌõìÍôµ½‰¥±•1¥¹•ÌõìÑôø(€€€€€€€€€€€€€€€€€€€í‘¥ÍÁ±…åÑ¥Ù•I½Ü¹¥‘ô¥Ì½Á•¸¥¹Í¥‘”íÑ½½±ô™½Èí…Ñ¥Ù•…Í”¹¥‘ô¸½µÁ…É”Ñ¡”É•½É‘•Ñ¥µ¥¹œ…¹Ù…±Õ•Ìİ¥Ñ Ñ¡”…Ñ¥Ù”…Í”Á…­•Ğ¸(€€€€€€€€€€€€€€€€€€ğ½¥É•Ñ½±±…ÁÍ¥‰±•Q•áĞø(€€€€€€€€€€€€€€€€ğ½…ÉÑ¥±”ø(€€€€€€€€€€€€€€€€ñ…ÉÑ¥±”ø(€€€€€€€€€€€€€€€€€€ñÍÁ…¸ù1¥¹¬¹…±åÍ¥Ìğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€€€ñ Ğù½¹¹•Ñ•½‰©•ÑÌğ½ Ğø(€€€€€€€€€€€€€€€€€€ñ¥É•Ñ½±±…ÁÍ¥‰±•Q•áĞ±¥¹•ÌõìÍôµ½‰¥±•1¥¹•ÌõìÑôø(€€€€€€€€€€€€€€€€€€€í‘¥ÍÁ±…åÑ¥Ù•I½Ü¹±…‰•±ôèí‘¥ÍÁ±…åÑ¥Ù•I½Ü¹Á¥¹ô¸Ñ¥Ù”ÕÍÑ½µ•È½‰©•Ğèí…Ñ¥Ù•…Í”¹Á•ÉÍ½¹ôƒ
+Üí…Ñ¥Ù•…Í”¹ÑÉ…¥¹¥¹%‘ô¸(€€€€€€€€€€€€€€€€€€ğ½¥É•Ñ½±±…ÁÍ¥‰±•Q•áĞø(€€€€€€€€€€€€€€€€ğ½…ÉÑ¥±”ø(€€€€€€€€€€€€€€ğ½‘¥Øø((€€€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ‘•Ñ…¥°µ…Ñ¥½¹Ìˆø(€€€€€€€€€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õíÍ…Ù•¥ÍÁ±…å•‘9½Ñ•ôùM…Ù”•áÁ…¹‘•¹½Ñ”ğ½‰ÕÑÑ½¸ø(€€€€€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€€€ğ¼ø(€€€€€€€€€€¤€è€ (€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ•µÁÑäˆÉ½±”ô‰ÍÑ…ÑÕÌˆù=Á•¸„É•½ÉÑ¼É•Ù¥•Ü¥ÑÌ™Õ±°‘•Ñ…¥±Ì¸ğ½‘¥Øø(€€€€€€€€€€¥ô(€€€€€€€€ğ½…Í¥‘”ø(€€€€€€ğ½‘¥Øø((€€€€€€ñ¹…Ø±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µ¹•áĞµÉ½ÕÑ•Ìˆ…É¥„µ±…‰•°ô‰%¹Ù•ÍÑ¥…Ñ¥½¸É•½É¹•áĞÉ½ÕÑ•Ìˆø(€€€€€€€ì¡Ñ½½°€ôôô€½Õµ•¹ĞY¥•İ•ÈœñğÑ½½°€ôôô€¥¹…¹¥…°%¹Ù•ÍÑ¥…Ñ¥½¸œ¤€˜˜€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° QÉ…¹Í…Ñ¥½¸!¥ÍÑ½Éäœ¥ôù=Á•¸QÉ…¹Í…Ñ¥½¸!¥ÍÑ½Éäğ½‰ÕÑÑ½¸ùô(€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õì ¤€ôø½Á•¹Q½½° Q¥µ•±¥¹”œ¥ôù=Á•¸Q¥µ•±¥¹”ğ½‰ÕÑÑ½¸ø(€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õí©ÕµÁ•¥Í¥½¹ôù=Á•¸MÕ‰µ¥Ğ•¥Í¥½¸ğ½‰ÕÑÑ½¸ø(€€€€€€ğ½¹…Øø((€€€€€€ñ™½½Ñ•È±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÉ•Ù¥•Üµ‰…Èˆø(€€€€€€€€ñ‘¥Øø(€€€€€€€€€€ñÍÑÉ½¹œùíÑ½½±ôÉ•Ù¥•Üğ½ÍÑÉ½¹œø(€€€€€€€€€€ñÍÁ…¸ùI•Ù¥•Ü½µÁ±•Ñ¥½¸É•½É‘ÌÁÉ½•ÍÌÁÉ½É•ÍÌ½¹±ä¸%Ğ‘½•Ì¹½Ğ‘•Ñ•Éµ¥¹”Ñ¡”…Í”½ÕÑ½µ”¸ğ½ÍÁ…¸ø(€€€€€€€€ğ½‘¥Øø(€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”ô‰¥¹Ù•ÍÑ¥…Ñ¥½¸µÑ½½°µÁÉ¥µ…Éäˆ½¹±¥¬õì ¤€ôøµ…É­I•Ù¥•İ•¡Ñ½½°¥ôø(€€€€€€€€€íÉ•Ù¥•İ•€üƒŠrL€‘íÑ½½±ôÉ•Ù¥•İ•‘€€è5…É¬€‘íÑ½½±ôÉ•Ù¥•İ•‘ô(€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€ğ½™½½Ñ•Èø(€€€€€€€€ğ¼ø(€€€€€€¥ô(€€€€ğ½Í•Ñ¥½¸ø(€€¤ì)ô(

@@ -31,7 +31,12 @@ for (const pin of [
   `LNK-Phone Number: ${phone} · ACCT-02455-HIST`,
 ]) {
   const result = resolvePinnedEvidence(pin, activeCase, workspaceTools);
-  if (result?.tool !== 'Link Analysis' || result.query !== phone) {
+  if (
+    result?.tool !== 'Link Analysis'
+    || result.query !== phone
+    || result.identifierType !== 'phone'
+    || result.row !== null
+  ) {
     throw new Error(`${pin} did not restore the exact Link Analysis search value.`);
   }
   const reopened = searchLinkRelationships({
@@ -43,6 +48,19 @@ for (const pin of [
   if (reopened.matches.length < 3) {
     throw new Error(`${pin} reopened Link Analysis without its matched accounts.`);
   }
+}
+
+const addressPin = resolvePinnedEvidence(
+  'LNK-Address: 12-34 Main St. · ACCT-TEST-1002',
+  activeCase,
+  workspaceTools,
+);
+if (
+  addressPin?.query !== '12-34 Main St.'
+  || addressPin.identifierType !== 'address'
+  || addressPin.recordId !== 'ACCT-TEST-1002'
+) {
+  throw new Error('Typed Link Analysis address pin did not preserve its original search and linked account.');
 }
 
 console.log('Pinned evidence navigation smoke check passed.');

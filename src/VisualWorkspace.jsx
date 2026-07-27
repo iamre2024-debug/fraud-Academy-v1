@@ -502,6 +502,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     recordAction,
     quickPin,
     openRelatedCase,
+    openedPinnedEvidence,
   };
 
   const quickPadLayer = (

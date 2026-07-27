@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  formatLinkAnalysisPin,
   getLinkIdentifiersForCase,
   getLinkMapContext,
   inferLinkIdentifierType,
@@ -291,21 +292,37 @@ export default function LinkAnalysisWorkspace({
   recordAction,
   openRelatedCase,
   requestedAccountId = '',
+  openedPinnedEvidence,
   revealSearch = false,
 }) {
   const suggestions = useMemo(() => getLinkIdentifiersForCase(activeCase), [activeCase]);
   const defaultSuggestion = suggestions.find((item) => item.type === 'phone')
     ?? suggestions.find((item) => item.type === 'training-id')
     ?? suggestions[0];
-  const [identifierType, setIdentifierType] = useState(defaultSuggestion?.type ?? 'phone');
-  const [draft, setDraft] = useState(defaultSuggestion?.value ?? '');
-  const [submittedQuery, setSubmittedQuery] = useState(defaultSuggestion?.value ?? '');
+  const routedIdentifierType = openedPinnedEvidence?.tool === 'Link Analysis'
+    && String(query ?? '').trim() === String(openedPinnedEvidence.query ?? '').trim()
+    ? openedPinnedEvidence.identifierType ?? ''
+    : '';
+  const requestedSuggestion = suggestions.find((item) => (
+    (!routedIdentifierType || item.type === routedIdentifierType)
+    && normalizeLinkIdentifier(item.value, item.type) === normalizeLinkIdentifier(query, item.type)
+  ));
+  const initialQuery = String(query ?? '').trim() || defaultSuggestion?.value || '';
+  const initialType = routedIdentifierType
+    || requestedSuggestion?.type
+    || inferLinkIdentifierType('', initialQuery)
+    || defaultSuggestion?.type
+    || 'phone';
+  const [identifierType, setIdentifierType] = useState(initialType);
+  const [draft, setDraft] = useState(initialQuery);
+  const [submittedQuery, setSubmittedQuery] = useState(initialQuery);
   const [expandedAccountId, setExpandedAccountId] = useState('');
   const [openedAccountId, setOpenedAccountId] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const accountListRef = useRef(null);
   const dossierRef = useRef(null);
+  const activeCaseIdRef = useRef(activeCase.id);
   const context = useMemo(() => getLinkMapContext(activeCase), [activeCase]);
   const result = useMemo(() => searchLinkRelationships({
     query: submittedQuery,
@@ -329,6 +346,11 @@ export default function LinkAnalysisWorkspace({
   }, [requestedAccountId, result.matches]);
 
   useEffect(() => {
+    if (activeCaseIdRef.current === activeCase.id) {
+      if (!query && initialQuery) setQuery(initialQuery);
+      return;
+    }
+    activeCaseIdRef.current = activeCase.id;
     const nextSuggestions = getLinkIdentifiersForCase(activeCase);
     const next = nextSuggestions.find((item) => item.type === 'phone')
       ?? nextSuggestions.find((item) => item.type === 'training-id')
@@ -342,21 +364,29 @@ export default function LinkAnalysisWorkspace({
     setShowAll(false);
     setSearchOpen(false);
     setQuery(nextValue);
-  }, [activeCase.id, setQuery]);
+  }, [activeCase.id, initialQuery, query, setQuery]);
 
   useEffect(() => {
-    if (!query) return;
+    const nextQuery = String(query ?? '').trim();
+    if (!nextQuery) return;
     const suggestion = suggestions.find((item) => (
-      normalizeLinkIdentifier(item.value, item.type) === normalizeLinkIdentifier(query, item.type)
+      (!routedIdentifierType || item.type === routedIdentifierType)
+      && normalizeLinkIdentifier(item.value, item.type) === normalizeLinkIdentifier(nextQuery, item.type)
     ));
-    const nextType = suggestion?.type ?? inferLinkIdentifierType('', query) ?? identifierType;
-    if (normalizeLinkIdentifier(query, nextType) === normalizeLinkIdentifier(submittedQuery, nextType)) return;
+    const nextType = routedIdentifierType
+      || suggestion?.type
+      || inferLinkIdentifierType('', nextQuery)
+      || identifierType;
+    if (
+      nextType === identifierType
+      && normalizeLinkIdentifier(nextQuery, nextType) === normalizeLinkIdentifier(submittedQuery, nextType)
+    ) return;
     setIdentifierType(nextType);
-    setDraft(query);
-    setSubmittedQuery(query);
+    setDraft(nextQuery);
+    setSubmittedQuery(nextQuery);
     setExpandedAccountId('');
     setOpenedAccountId('');
-  }, [identifierType, query, submittedQuery, suggestions]);
+  }, [identifierType, query, routedIdentifierType, submittedQuery, suggestions]);
 
   useEffect(() => {
     if (revealSearch && query) setSearchOpen(true);
@@ -392,7 +422,11 @@ export default function LinkAnalysisWorkspace({
   }
 
   function linkPinValue(match) {
-    return `LNK-${match.identifierTypeLabel}: ${match.exactSharedIdentifier} · ${match.accountId}`;
+    return formatLinkAnalysisPin({
+      identifierType: match.identifierType,
+      value: match.exactSharedIdentifier,
+      accountId: match.accountId,
+    });
   }
 
   function pinLink(match) {
@@ -528,7 +562,15 @@ export default function LinkAnalysisWorkspace({
                 </div>
                 <div>
                   <button type="button" onClick={copyToQuickPad} disabled={!quickPin}><LinkGlyph type="pin" size={16} /> Quick Pad</button>
-                  <button type="button" onClick={() => pin(`LNK-${result.identifierTypeLabel}: ${result.searchedIdentifier}`)}>Pin Search</button>
+                  <button
+                    type="button"
+                    onClick={() => pin(formatLinkAnalysisPin({
+                      identifierType: result.identifierType,
+                      value: result.searchedIdentifier,
+                    }))}
+                  >
+                    Pin Search
+                  </button>
                 </div>
               </section>
 

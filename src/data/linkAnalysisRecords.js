@@ -24,42 +24,83 @@ function clean(value) {
   return String(value ?? '').trim();
 }
 
-function normalizeIpv4(value) {
-  const parts = value.split('.');
+function normalizedText(value) {
+  return clean(value).normalize('NFKC').toLowerCase();
+}
+
+function normalizeIdentifierType(type = '') {
+  const candidate = normalizedText(type).replace(/[\s_]+/g, '-');
+  const directMatch = linkIdentifierTypes.find((item) => item.id === candidate);
+  if (directMatch) return directMatch.id;
+  const labelMatch = linkIdentifierTypes.find((item) => (
+    normalizedText(item.label) === normalizedText(type)
+    || normalizedText(item.shortLabel) === normalizedText(type)
+  ));
+  return labelMatch?.id ?? '';
+}
+
+function canonicalPhone(value) {
+  const source = normalizedText(value).replace(/^tel:\s*/, '');
+  const extensionMatch = source.match(/\s*(?:ext(?:ension)?\.?|x|#)\s*(\d+)\s*$/i);
+  const extension = extensionMatch?.[1] ?? '';
+  const base = extensionMatch ? source.slice(0, extensionMatch.index).trim() : source;
+
+  // Do not silently turn a digit-bearing email or address into a phone key.
+  if (/[a-z]/i.test(base)) return `invalid:${base.replace(/\s+/g, ' ')}`;
+
+  let digits = base.replace(/\D/g, '');
+  if (digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1);
+  return extension ? `${digits};ext=${extension}` : digits;
+}
+
+function canonicalEmail(value) {
+  const source = normalizedText(value);
+  const at = source.indexOf('@');
+  if (at < 1 || at !== source.lastIndexOf('@')) return source.replace(/\s+/g, ' ');
+  return `${source.slice(0, at).trim()}@${source.slice(at + 1).trim()}`;
+}
+
+function canonicalAddress(value) {
+  return normalizedText(value)
+    .replace(/\b([a-z]+)\./g, '$1')
+    .replace(/,/g, ' ')
+    .replace(/\s*([/-])\s*/g, '$1')
+    .replace(/\s*#\s*/g, ' #')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function canonicalIp(value) {
+  const source = normalizedText(value).replace(/^\[|\]$/g, '');
+  const parts = source.split('.');
   if (
     parts.length !== 4
     || !parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255)
   ) {
-    return value.toLowerCase();
+    return source.replace(/\s+/g, '');
   }
   return parts.map((part) => String(Number(part))).join('.');
 }
 
 export function normalizeLinkIdentifier(value, identifierType = '') {
-  const exactValue = clean(value);
-  const resolvedType = identifierType || inferLinkIdentifierType('', exactValue);
-
-  if (resolvedType === 'phone') {
-    return exactValue.replace(/\D+/g, '');
-  }
-  if (resolvedType === 'email') {
-    return exactValue.toLowerCase();
-  }
-  if (resolvedType === 'ip') {
-    return normalizeIpv4(exactValue);
-  }
-  if (['training-id', 'device', 'bank-code', 'destination-id'].includes(resolvedType)) {
-    return exactValue.toLowerCase();
-  }
-  if (resolvedType === 'address') {
-    return exactValue.toLowerCase().replace(/\s+/g, ' ');
-  }
-  return exactValue.toLowerCase();
+  const resolvedType = normalizeIdentifierType(identifierType)
+    || inferLinkIdentifierType('', clean(value));
+  const canonical = resolvedType === 'phone'
+    ? canonicalPhone(value)
+    : resolvedType === 'email'
+      ? canonicalEmail(value)
+      : resolvedType === 'address'
+        ? canonicalAddress(value)
+        : resolvedType === 'ip'
+          ? canonicalIp(value)
+          : normalizedText(value).replace(/\s+/g, ' ');
+  return `${resolvedType || 'generic'}:${canonical}`;
 }
 
 function typeMeta(typeId) {
-  return linkIdentifierTypes.find((item) => item.id === typeId) ?? {
-    id: typeId || 'identifier',
+  const resolvedType = normalizeIdentifierType(typeId);
+  return linkIdentifierTypes.find((item) => item.id === resolvedType) ?? {
+    id: resolvedType || 'identifier',
     label: 'Identifier',
     shortLabel: 'Identifier',
   };
@@ -75,7 +116,30 @@ export function inferLinkIdentifierType(type = '', value = '') {
   if (/bank code/.test(joined) || /^bc-/i.test(value)) return 'bank-code';
   if (/destination/.test(joined) || /^dst-/i.test(value)) return 'destination-id';
   if (/device/.test(joined) || /^dev-/i.test(value)) return 'device';
+  if (/^(?:\+?1[\s.-]?)?(?:\(\d{3}\)|\d{3})[\s.-]?\d{3}[\s.-]?\d{4}(?:\s*(?:ext(?:ension)?\.?|x|#)\s*\d+)?$/i.test(clean(value))) return 'phone';
+  if (/^\d+\s+\S+(?:\s+\S+)*(?:\s|,)+(?:st(?:reet)?|ave(?:nue)?|rd|road|blvd|boulevard|ln|lane|dr|drive|ct|court|way)\b/i.test(clean(value))) return 'address';
   return '';
+}
+
+export function formatLinkAnalysisPin({ identifierType, value, accountId = '' } = {}) {
+  const resolvedType = normalizeIdentifierType(identifierType);
+  const exactValue = clean(value);
+  if (!resolvedType || !exactValue) return '';
+  const base = `LNK-${typeMeta(resolvedType).label}: ${exactValue}`;
+  return accountId ? `${base} · ${clean(accountId)}` : base;
+}
+
+export function parseLinkAnalysisPin(value) {
+  const match = clean(value).match(/^LNK-([^:]+):\s*(.+?)(?:\s+·\s+(.+))?$/i);
+  if (!match) return null;
+  const identifierType = normalizeIdentifierType(match[1]);
+  const searchedIdentifier = clean(match[2]);
+  if (!identifierType || !searchedIdentifier) return null;
+  return {
+    identifierType,
+    searchedIdentifier,
+    accountId: clean(match[3]),
+  };
 }
 
 function addIdentifier(target, {
@@ -89,8 +153,8 @@ function addIdentifier(target, {
 }) {
   const exactValue = clean(value);
   if (!type || !exactValue || /not supplied|not available|not applicable/i.test(exactValue)) return;
-  const key = `${type}:${normalizeLinkIdentifier(exactValue, type)}`;
-  if (target.some((item) => `${item.type}:${normalizeLinkIdentifier(item.value, item.type)}` === key)) return;
+  const key = normalizeLinkIdentifier(exactValue, type);
+  if (target.some((item) => item.type === type && normalizeLinkIdentifier(item.value, item.type) === key)) return;
   target.push({
     type,
     typeLabel: typeMeta(type).label,
@@ -486,22 +550,27 @@ export function searchLinkRelationships({
 
   const currentAccountId = activeCase.accountId ?? activeCase.id;
   const activeIdentifiers = getLinkIdentifiersForCase(activeCase);
-  const hintedType = identifierType || inferLinkIdentifierType('', searchedIdentifier);
-  const currentIdentifier = activeIdentifiers.find((item) => (
-    (!hintedType || item.type === hintedType)
+  const requestedType = normalizeIdentifierType(identifierType);
+  const currentCandidates = activeIdentifiers.filter((item) => (
+    (!requestedType || item.type === requestedType)
     && normalizeLinkIdentifier(item.value, item.type) === normalizeLinkIdentifier(searchedIdentifier, item.type)
   ));
-  const resolvedType = identifierType || currentIdentifier?.type || hintedType;
-  const queryKey = normalizeLinkIdentifier(searchedIdentifier, resolvedType);
+  const candidateTypes = [...new Set(currentCandidates.map((item) => item.type))];
+  const inferredType = inferLinkIdentifierType('', searchedIdentifier);
+  const resolvedType = requestedType
+    || (candidateTypes.length === 1 ? candidateTypes[0] : '')
+    || inferredType;
+  const queryKey = resolvedType ? normalizeLinkIdentifier(searchedIdentifier, resolvedType) : '';
+  const currentIdentifier = resolvedType
+    ? currentCandidates.find((item) => item.type === resolvedType)
+    : null;
   const found = [];
   const seenAccounts = new Set();
 
   for (const account of buildLinkAccountIndex(cases, activeCase)) {
     const identifier = account.identifiers.find((item) => (
-      (!resolvedType || item.type === resolvedType)
-      && normalizeLinkIdentifier(item.value, item.type) === (
-        resolvedType ? queryKey : normalizeLinkIdentifier(searchedIdentifier, item.type)
-      )
+      item.type === resolvedType
+      && normalizeLinkIdentifier(item.value, item.type) === queryKey
     ));
     if (!identifier || seenAccounts.has(account.accountId)) continue;
     seenAccounts.add(account.accountId);

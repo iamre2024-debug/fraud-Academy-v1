@@ -65,6 +65,7 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
   const accountPin = `LNK-Phone Number: (214) 555-0184 · ${firstAccountId}`;
   await page.getByRole('button', { name: `Open pinned evidence ${accountPin}` }).click();
   await expect(panel).toHaveAttribute('data-tool-name', 'Link Analysis');
+  await expect(page.locator('[data-opened-pinned-evidence="true"]')).not.toContainText('LNK-IDR-1002');
   await expect(search).toHaveValue('(214) 555-0184');
   await expect(workspace.locator('[data-link-account]')).toHaveCount(3);
   await expect(workspace.locator(`[data-link-account="${firstAccountId}"]`)).toHaveAttribute('data-expanded', 'true');
