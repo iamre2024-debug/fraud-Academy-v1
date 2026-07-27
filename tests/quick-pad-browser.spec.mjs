@@ -55,6 +55,7 @@ async function assertMobilePadGeometry(page, pad) {
   const scrollBeforeOpen = await mobileViewport.evaluate((element) => element.scrollTop);
   await page.getByRole('button', { name: /Open Quick Pad/ }).click();
   await expect.poll(() => mobileViewport.evaluate((element) => element.scrollTop)).toBe(scrollBeforeOpen);
+  await expect.poll(() => page.locator('.case-quick-pad-panel').evaluate((panel) => panel.scrollTop)).toBe(0);
 
   const openGeometry = await page.evaluate(() => {
     const panel = document.querySelector('.case-quick-pad-panel');
