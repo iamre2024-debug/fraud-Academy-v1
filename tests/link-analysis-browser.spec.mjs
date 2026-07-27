@@ -19,7 +19,7 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
   const search = workspace.getByRole('textbox', { name: 'Search Link Analysis identifier' });
   await expect(search).toHaveValue('(214) 555-0184');
   await expect(workspace.locator('[data-link-account]')).toHaveCount(3);
-  await expect(workspace.getByText('3 matched accounts', { exact: true })).toBeVisible();
+  await expect(searchShell.locator('summary small')).toHaveText('3 matched accounts');
 
   const firstAccount = workspace.locator('[data-link-account]').first();
   await firstAccount.locator('.link-analysis-account-heading').click();
@@ -41,7 +41,7 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
   await expect(search).toHaveValue('DST-CARD-4410');
   await search.fill('NO-EXACT-MATCH');
   await workspace.getByRole('button', { name: 'Search Links', exact: true }).click();
-  await expect(workspace.getByText('0 matched accounts', { exact: true })).toBeVisible();
+  await expect(workspace.locator('.link-analysis-account-list .link-analysis-empty strong')).toHaveText('0 matched accounts');
 
   await searchShell.locator('summary').click();
   await workspace.locator('.link-analysis-suggestions button').filter({ hasText: '(214) 555-0184' }).click();
