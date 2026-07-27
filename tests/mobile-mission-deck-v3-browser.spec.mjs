@@ -2,7 +2,11 @@ import { expect, test } from '@playwright/test';
 
 async function capture(page, testInfo, name) {
   if (process.env.CAPTURE_MISSION_VISUALS !== '1') return;
-  await page.screenshot({ path: testInfo.outputPath(`${name}.png`), fullPage: true });
+  await page.screenshot({
+    path: testInfo.outputPath(`${name}.png`),
+    animations: 'disabled',
+    fullPage: false,
+  });
 }
 
 async function captureElement(locator, testInfo, name) {
