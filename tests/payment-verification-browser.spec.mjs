@@ -88,8 +88,9 @@ test('Payment Verification selects the actual account from duplicate destination
     ownerName: 'Avery Brooks',
   });
 
+  const result = panel.getByRole('status', { name: 'Payment verification result' });
   const snapshot = panel.getByRole('region', { name: 'Account snapshot' });
-  await expect(snapshot).toContainText('Partial Match');
+  await expect(result).toContainText('Partial Match');
   await expect(snapshot).toContainText('Partially matches person name');
   await expect(snapshot).toContainText('Open');
   await expect(snapshot).toContainText('No NSF found');
@@ -98,7 +99,6 @@ test('Payment Verification selects the actual account from duplicate destination
   await expect(confirmation).toContainText('Source record');
   await expect(confirmation).toContainText('PAY-3302');
 
-  const result = panel.getByRole('status', { name: 'Payment verification result' });
   await expect(result).not.toContainText(/A\. Brooks|account holder|ownership history|prior-use history|return \/ NSF history|verification attempts|evidence-first summary/i);
   await expect(result).not.toContainText(/\b(?:approve|deny|hold|release|ready for payments)\b/i);
 

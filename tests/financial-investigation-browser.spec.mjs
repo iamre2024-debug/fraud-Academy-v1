@@ -37,10 +37,10 @@ async function openCaseQueue(page) {
   return queue;
 }
 
-async function expectSavedCaseState(page, testInfo, { pin, noteCount }) {
+async function expectSavedCaseState(page, testInfo, { pin, pinCount, noteCount }) {
   if (testInfo.project.name === 'mobile-chromium') {
     const status = page.locator('.mission-workspace-status');
-    await expect(status).toContainText('⭐ 1 pinned');
+    await expect(status).toContainText(`⭐ ${pinCount} pinned`);
     await expect(status).toContainText(`📝 ${noteCount} notes`);
     return;
   }
@@ -96,9 +96,20 @@ test('Financial Investigation renders actual dashboard evidence and keeps explor
   const detail = explorer.getByRole('region', { name: 'Expanded financial record' });
   await expect(detail).toBeVisible();
   await expect(detail).toContainText(firstRecordId);
+  let pinCountBefore = 0;
+  if (testInfo.project.name === 'mobile-chromium') {
+    const pinCountMatch = (await page.locator('.mission-workspace-status').innerText())
+      .match(/⭐\s+(\d+)\s+pinned/);
+    expect(pinCountMatch).not.toBeNull();
+    pinCountBefore = Number(pinCountMatch[1]);
+  }
   await detail.getByRole('button', { name: 'Pin record', exact: true }).click();
   await detail.getByRole('button', { name: 'Save evidence note', exact: true }).click();
-  await expectSavedCaseState(page, testInfo, { pin: firstRecordId, noteCount: 1 });
+  await expectSavedCaseState(page, testInfo, {
+    pin: firstRecordId,
+    pinCount: pinCountBefore + 1,
+    noteCount: 1,
+  });
 
   await deck.getByRole('button', { name: 'Mark Financial Investigation reviewed', exact: true }).click();
   await expect(deck.getByRole('button', { name: '✓ Financial Investigation reviewed', exact: true })).toBeVisible();
@@ -140,7 +151,10 @@ test('Financial Investigation exposes generated payroll totals, filters, and exa
   await queue.getByLabel('Generate case count').selectOption('1');
   await queue.getByRole('button', { name: 'Generate cases', exact: true }).click();
 
-  const generatedCaseId = await page.locator('.visual-case-switcher select').inputValue();
+  await expect(page.locator('[data-workspace-page="briefing"]')).toBeVisible();
+  const caseSelector = page.locator('.visual-case-switcher select');
+  await expect(caseSelector).toHaveValue(/^FA-PCA-G\d+$/);
+  const generatedCaseId = await caseSelector.inputValue();
   expect(generatedCaseId).toMatch(/^FA-PCA-G\d+$/);
 
   const panel = await openFinancialInvestigation(page);
