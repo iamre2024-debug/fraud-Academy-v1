@@ -170,12 +170,15 @@ test('mobile mounts the approved Fraud Academy shell and generated cases inherit
     await page.setViewportSize(viewport);
     await assertPhoneGeometry(page);
     await assertHomePanelGeometry(page, viewport.width <= 340 ? 1 : 2);
+    await page.locator('.mission-mobile-viewport').evaluate((element) => {
+      element.scrollTop = 0;
+    });
+    await capture(page, testInfo, `home-dashboard-${viewport.width}`);
     await captureElement(
       dashboard.locator('.mobile-dashboard-panels'),
       testInfo,
       `home-agent-quotes-${viewport.width}`,
     );
-    await capture(page, testInfo, `home-dashboard-${viewport.width}`);
   }
   await page.setViewportSize({ width: 390, height: 844 });
 
