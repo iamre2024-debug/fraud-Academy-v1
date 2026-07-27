@@ -166,7 +166,7 @@ function writeMetadata(metadata) {
 }
 
 export function migrateLocalCaseStorage(generatedCases = []) {
-  if (!browserAvailable()) return false;
+  if (!browserAvailable() || !generatedCases.length) return false;
   try {
     const previousRaw = readRawResources({ skipMigration: true });
     const migratedRaw = migratePersistenceResources(previousRaw, generatedCases).rawByKey;
@@ -199,10 +199,6 @@ export function migrateLocalCaseStorage(generatedCases = []) {
     return false;
   }
 }
-
-// This module is imported by the active workspace state model before React
-// initializes its case-scoped storage hooks.
-migrateLocalCaseStorage();
 
 export function recordLocalSliceChange(key, previousValue, nextValue) {
   if (!browserAvailable() || !cloudResourceModes[key]) return;

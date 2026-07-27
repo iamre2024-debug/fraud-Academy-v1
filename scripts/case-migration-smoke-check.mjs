@@ -207,6 +207,12 @@ const {
 } = await import('../src/data/generatedCaseRepository.js');
 
 assert.equal(
+  migrateLocalCaseStorage([legacyGeneratedCase]),
+  true,
+  'The pre-cloud migration must wait for authoritative generated-case context.',
+);
+
+assert.equal(
   classifyLegacyCase({
     id: 'FA-AWC-WIRE-1',
     claimTypeId: 'ach-wire-check',
@@ -325,7 +331,11 @@ assert.ok(
   JSON.parse(localStorage.getItem(keyNames.metadata)).resources[keyNames.decisions][caseId],
   'Local migration should advance cloud metadata for the migrated draft.',
 );
-assert.equal(migrateLocalCaseStorage(), false, 'The storage migration must be idempotent.');
+assert.equal(
+  migrateLocalCaseStorage([legacyGeneratedCase]),
+  false,
+  'The storage migration must be idempotent.',
+);
 
 const lateContextCaseId = 'FA-CR-G0000999';
 localStorage.setItem(keyNames.decisions, JSON.stringify({
@@ -336,7 +346,7 @@ localStorage.setItem(keyNames.decisions, JSON.stringify({
   },
 }));
 assert.equal(
-  migrateLocalCaseStorage(),
+  migrateLocalCaseStorage([legacyGeneratedCase]),
   false,
   'The stored schema-version gate must prevent a second global migration pass.',
 );

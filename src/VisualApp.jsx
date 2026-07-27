@@ -31,22 +31,25 @@ export default function VisualApp() {
     let cancelled = false;
 
     const refreshGeneratedCases = () => {
-      listGeneratedCases()
+      return listGeneratedCases()
         .then((generatedCases) => {
           if (cancelled) return;
-          migrateLocalCaseStorage(generatedCases);
+          migrateLocalCaseStorage([...baseCases, ...generatedCases]);
           setCaseCatalog(assertNoHiddenFindingLeak(
             enrichTrainingCases(combineCaseCatalog(baseCases, generatedCases)),
             'hydrated case catalog props',
           ));
         })
         .catch(() => {
-          if (!cancelled) setCaseCatalog(enrichedBaseCases);
+          if (cancelled) return;
+          migrateLocalCaseStorage(baseCases);
+          setCaseCatalog(enrichedBaseCases);
         });
     };
 
-    initializeCloudSync();
-    refreshGeneratedCases();
+    refreshGeneratedCases().finally(() => {
+      if (!cancelled) initializeCloudSync();
+    });
     window.addEventListener('fraud-academy:generated-cases-updated', refreshGeneratedCases);
 
     return () => {
