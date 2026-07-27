@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import DocumentViewerWorkspace from './DocumentViewerWorkspace.jsx';
+import LinkAnalysisWorkspace from './LinkAnalysisWorkspace.jsx';
 import MerchantIntelligenceWorkspace from './MerchantIntelligenceWorkspace.jsx';
 import { accessReportExportText, generateAccessHistoryReport, generatedAccessReportTypes } from './data/accessHistoryReports.js';
 import { buildCoreToolRecords } from './data/coreToolRecords.js';
@@ -2208,6 +2209,7 @@ export default function InvestigationToolPanel({
   setDocumentRequestsByCase,
   recordAction,
   quickPin,
+  openRelatedCase,
 }) {
   const [selectedRecordId, setSelectedRecordId] = useState('');
   const displayData = buildCoreToolRecords(tool, activeCase, data) ?? data;
@@ -2237,6 +2239,31 @@ export default function InvestigationToolPanel({
   function saveDisplayedNote() {
     if (!reportRow) return;
     saveNote(`Expanded ${tool} record ${reportRow.id}: ${reportRow.detail}`, 'Expanded record');
+  }
+
+  if (tool === 'Link Analysis') {
+    return (
+      <section
+        className="ornate-card activity-panel investigation-tools-theme-v1 link-analysis-tool-shell"
+        data-investigation-tools-screen="approved-theme-v1"
+        data-tool-name="Link Analysis"
+      >
+        <LinkAnalysisWorkspace
+          activeCase={activeCase}
+          cases={cases}
+          query={query}
+          setQuery={setQuery}
+          pin={pin}
+          quickPin={quickPin}
+          saveNote={saveNote}
+          markReviewed={markReviewed}
+          reviewed={reviewed}
+          jumpDecision={jumpDecision}
+          recordAction={recordAction}
+          openRelatedCase={openRelatedCase}
+        />
+      </section>
+    );
   }
 
   return (

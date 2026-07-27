@@ -325,6 +325,17 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     showWorkspaceScreen('tool');
   }
 
+  function openRelatedCase(nextCaseId) {
+    if (!cases.some((item) => item.id === nextCaseId)) return;
+    recordAction('Opened related case', `${nextCaseId} opened from Link Analysis.`, 'Link Analysis');
+    if (nextCaseId === activeCase.id) {
+      setActiveStage('briefing');
+      showWorkspaceScreen('briefing');
+      return;
+    }
+    onCaseChange(nextCaseId, 'briefing');
+  }
+
   function jumpDecision() {
     onNavigate('workspace');
     setActiveStage('determination');
@@ -488,6 +499,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setDocumentRequestsByCase,
     recordAction,
     quickPin,
+    openRelatedCase,
   };
 
   const quickPadLayer = (
