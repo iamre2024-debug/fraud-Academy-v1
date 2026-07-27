@@ -1,253 +1,353 @@
-import { expandClaimScenarios } from './claimScenarioCatalog.js';
+import {
+  CUSTOMER_TYPES,
+  PRODUCT_TYPES,
+  WORKFLOW_TYPES,
+  caseDomainLabels,
+  generatorDomainChoices,
+  getEnabledWorkflowTypes,
+  getProductType,
+  getWorkflowType,
+  isWorkflowEnabled,
+  operationalDecisionsForWorkflow,
+} from './caseDomain.js';
+import { expandClaimScenarios, getScenarioTruth } from './claimScenarioCatalog.js';
 
 const commonEvidenceAreas = ['Customer or entity statement', 'Case timeline', 'Related documents', 'Pinned evidence and notes'];
+const commonTools = ['Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'];
+const accessTools = ['Login History', 'Session History', 'Device Intelligence', 'IP Intelligence'];
+const paymentTools = ['Transaction History', 'Financial Investigation', 'Payment Verification'];
+const payrollFinancialTools = ['Financial Investigation', 'Payment Verification'];
+const personalTools = ['Customer 360', 'Identity Intel / People Search'];
+const businessTools = ['Business 360', 'Identity Intel / People Search'];
 
-function scenario({ id, title, subtype, summary, statement, channel, amount, transactionInfo, priority = 'Medium', family, entityRole }) {
-  return { id, title, subtype, summary, statement, channel, amount, transactionInfo, priority, family, entityRole };
-}
-
-const claimTypeDefinitions = [
+const definitions = [
   {
-    id: 'account-takeover',
-    label: 'Account Takeover Claim',
-    shortLabel: 'Account Takeover',
-    prefix: 'ATO',
-    lane: 'Account access',
-    subtypes: ['credential stuffing', 'phishing', 'OTP phishing', 'vishing', 'SIM swap', 'remote access malware', 'help desk reset abuse', 'session hijack', 'profile change before transfer', 'new payee/external account add', 'wallet enrollment after takeover'],
-    intakePrompts: ['What account activity does the customer say they did not authorize?', 'Which alerts, reset messages, or contact attempts were noticed?', 'Which devices and locations does the customer recognize?'],
-    evidenceAreas: ['Card possession and customer statement', 'Login, session, device, and IP history', 'Profile and payment activity', ...commonEvidenceAreas],
-    availableTools: ['Customer 360', 'Identity Intel / People Search', 'Login History', 'Session History', 'Device Intelligence', 'IP Intelligence', 'Transaction History', 'Financial Investigation', 'Payment Verification', 'Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'],
-    requiredTools: ['Case Summary', 'Customer 360', 'Login History', 'Session History', 'Device Intelligence', 'IP Intelligence', 'Transaction History', 'Document Viewer', 'Link Analysis'],
-    documents: ['Customer statement', 'Login and session packet', 'Authorization record', 'Requested supporting document'],
-    taxonomy: { authorizationType: 'unauthorized', lifecycleStage: 'login', productRail: 'card', riskPattern: 'cyber compromise', customerRole: 'victim' },
-    scenarios: [
-      scenario({ id: 'ato-phishing-wallet', title: 'New wallet and account access review', subtype: 'phishing', summary: 'Customer reports unfamiliar account access and card activity after receiving a message that appeared to be from the bank.', statement: 'I received a message about my account, signed in, and later saw activity I do not recognize.', channel: 'Secure message + phone follow-up', amount: '$742.18', transactionInfo: 'Digital marketplace purchase · card not present · training card ending 2209', priority: 'High', entityRole: 'Consumer account holder' }),
-      scenario({ id: 'ato-session-control', title: 'Session and profile access review', subtype: 'session hijack', summary: 'A system alert grouped account access, profile activity, and a disputed transaction for neutral review.', statement: 'I noticed a card transaction after checking my account from my regular phone.', channel: 'Mobile app claim form', amount: '$486.22', transactionInfo: 'Online retail purchase · card not present · training card ending 5106', priority: 'High', entityRole: 'Consumer account holder' }),
-    ],
-  },
-  {
-    id: 'fraud-chargeback',
-    label: 'Fraud Chargeback Claim',
-    shortLabel: 'Fraud Chargeback',
-    prefix: 'FCB',
-    lane: 'Card dispute',
-    subtypes: ['lost card', 'stolen card', 'never received card', 'counterfeit/skimming', 'CNP fraud', 'digital wallet token fraud', 'ATM/POS fraud', 'unauthorized online purchase'],
-    intakePrompts: ['When did the cardholder notice the charge and when might the issue have started?', 'Was the card lost or stolen, and was it still in the cardholder possession?', 'Did anyone else have access to the card or PIN?', 'Is a digital wallet in use, and what was the last valid transaction?', 'Did the cardholder contact the merchant or travel near the transaction date?'],
+    id: WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM,
+    prefix: 'UCT',
+    lane: 'Card transaction claim',
+    customerTypes: [CUSTOMER_TYPES.PERSONAL],
+    productTypes: [PRODUCT_TYPES.CREDIT_CARD],
+    intakePrompts: ['Which card transaction does the customer report as unauthorized?', 'When was it noticed and was the card still in the customer’s possession?', 'Which authorization, device, wallet, merchant, and fulfillment records are available?'],
     evidenceAreas: ['Card possession timeline', 'Authorization and entry mode', 'Wallet token history', 'Merchant and cardholder records', 'Prior claims and last valid transaction', ...commonEvidenceAreas],
-    availableTools: ['Customer 360', 'Transaction History', 'Merchant Intelligence', 'Login History', 'Session History', 'Device Intelligence', 'Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'],
-    requiredTools: ['Case Summary', 'Customer 360', 'Transaction History', 'Merchant Intelligence', 'Document Viewer', 'Document Request', 'Link Analysis'],
+    availableTools: [...personalTools, 'Transaction History', 'Financial Investigation', 'Merchant Intelligence', ...accessTools.slice(0, 3), ...commonTools],
+    requiredTools: ['Case Summary', 'Customer 360', 'Transaction History', 'Merchant Intelligence', 'Document Viewer', 'Link Analysis'],
     documents: ['Cardholder statement', 'Authorization record', 'Merchant packet', 'Card status record'],
-    taxonomy: { authorizationType: 'unauthorized', lifecycleStage: 'transaction', productRail: 'card', riskPattern: 'identity', customerRole: 'victim' },
-    chargeback: {
-      reasonCode: 'Training card-not-present unauthorized transaction review',
-      responseDeadline: 'Jul 15, 2026 · 3:00 PM',
-      merchantEvidence: 'Merchant order, account-login, AVS/CVV, device, and IP records',
-      authorizationReview: 'Authorization time, entry mode, wallet token, and authentication context',
-      fulfillmentReview: 'Delivery or service records when they are present in the packet',
-      customerContact: 'Cardholder statement, card possession timeline, and merchant-contact history',
-    },
-    scenarios: [
-      scenario({ id: 'fcb-cnp-purchase', title: 'Unrecognized online card purchase', subtype: 'CNP fraud', summary: 'Cardholder reports an online card purchase they do not recognize. Card, authorization, and access records are available for review.', statement: 'I do not recognize this online purchase and still have my physical card.', channel: 'Phone claim intake', amount: '$328.64', transactionInfo: 'Online merchant purchase · card not present · training card ending 4410', priority: 'High', entityRole: 'Cardholder' }),
-      scenario({ id: 'fcb-wallet-token', title: 'Digital wallet card activity review', subtype: 'digital wallet token fraud', summary: 'Cardholder reports unfamiliar card activity after a new wallet token event appeared in the training packet.', statement: 'I saw a card transaction after an alert about a wallet I did not add.', channel: 'Secure message', amount: '$512.09', transactionInfo: 'Digital wallet purchase · tokenized card payment · training card ending 7734', priority: 'High', entityRole: 'Cardholder' }),
-    ],
+    legacyProductRail: 'card',
   },
   {
-    id: 'non-fraud-chargeback',
-    label: 'Non-Fraud Chargeback Claim',
-    shortLabel: 'Non-Fraud Chargeback',
-    prefix: 'NCB',
-    lane: 'Card dispute',
-    subtypes: ['incorrect amount', 'duplicate billing', 'refund not received', 'canceled service billed', 'item not as described', 'services not rendered', 'return credit not posted', 'subscription terms dispute'],
-    intakePrompts: ['What did the customer purchase, cancel, return, or ask the merchant to refund?', 'When did the customer first notice the billing issue?', 'What contact has already occurred with the merchant?', 'Which receipt, policy, delivery, return, or refund records are available?', 'Which dispute reason and required evidence should be documented?'],
-    evidenceAreas: ['Receipt or invoice', 'Merchant response', 'Cancellation or refund policy', 'Return tracking or proof of delivery', 'Customer contact with merchant', 'Reason code guide', ...commonEvidenceAreas],
-    availableTools: ['Customer 360', 'Transaction History', 'Merchant Intelligence', 'Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'],
-    requiredTools: ['Case Summary', 'Customer 360', 'Transaction History', 'Merchant Intelligence', 'Document Viewer', 'Document Request'],
-    documents: ['Customer dispute form', 'Merchant billing packet', 'Cancellation or refund evidence', 'Reason code guide'],
-    taxonomy: { authorizationType: 'authorized', lifecycleStage: 'dispute', productRail: 'card', riskPattern: 'behavior', customerRole: 'victim' },
-    chargeback: {
-      reasonCode: 'Training canceled-service / recurring billing review',
-      responseDeadline: 'Jul 15, 2026 · 3:00 PM',
-      merchantEvidence: 'Merchant billing history, policy, response, and prior customer-contact records',
-      authorizationReview: 'Authorization and recurring-billing setup records',
-      fulfillmentReview: 'Cancellation, refund, return, shipping, or service-delivery records',
-      customerContact: 'Customer statement, merchant-contact timeline, and requested outcome',
-    },
-    scenarios: [
-      scenario({ id: 'ncb-recurring-cancellation', title: 'Recurring billing after cancellation', subtype: 'canceled service billed', summary: 'Cardholder reports recurring billing after cancellation. Merchant history, policy, and supporting documents are available for review.', statement: 'I canceled the service and continued to see the same charge on my statement.', channel: 'Mobile app dispute form', amount: '$189.44', transactionInfo: 'Subscription merchant billing · recurring card payment · training card ending 8841', priority: 'Medium', entityRole: 'Cardholder' }),
-      scenario({ id: 'ncb-duplicate-billing', title: 'Duplicate merchant billing review', subtype: 'duplicate billing', summary: 'A customer reports two similar merchant charges and asks for the billing records to be reviewed.', statement: 'I believe I was billed twice for the same purchase.', channel: 'Secure message', amount: '$214.89', transactionInfo: 'Retail merchant billing · two posted card payments · training card ending 7712', priority: 'Medium', entityRole: 'Cardholder' }),
-    ],
+    id: WORKFLOW_TYPES.MERCHANT_NON_FRAUD_DISPUTE,
+    prefix: 'MND',
+    lane: 'Merchant dispute',
+    customerTypes: [CUSTOMER_TYPES.PERSONAL],
+    productTypes: [PRODUCT_TYPES.CREDIT_CARD],
+    intakePrompts: ['What purchase, cancellation, return, service, or refund issue did the customer report?', 'What contact has already occurred with the merchant?', 'Which receipt, policy, delivery, return, or refund records are available?'],
+    evidenceAreas: ['Receipt or invoice', 'Merchant response', 'Cancellation or refund policy', 'Return tracking or proof of delivery', 'Customer contact with merchant', ...commonEvidenceAreas],
+    availableTools: ['Customer 360', 'Transaction History', 'Financial Investigation', 'Merchant Intelligence', ...commonTools],
+    requiredTools: ['Case Summary', 'Customer 360', 'Transaction History', 'Merchant Intelligence', 'Document Viewer'],
+    documents: ['Customer dispute form', 'Merchant billing packet', 'Cancellation or refund evidence', 'Reason-code guide'],
+    legacyProductRail: 'card',
   },
   {
-    id: 'first-party-fraud',
-    label: 'First-Party Fraud Claim',
-    shortLabel: 'First-Party Fraud',
-    prefix: 'FPF',
-    lane: 'Consumer claim review',
-    subtypes: ['friendly fraud', 'household member use', 'digital goods used', 'delivery proof conflicts with claim', 'repeated non-receipt pattern', 'refund/return abuse', 'dispute after usage'],
-    intakePrompts: ['What does the customer say occurred?', 'What purchase, delivery, or prior claim records are in scope?', 'Which records should be requested before documenting a conclusion?'],
-    evidenceAreas: ['Customer statement', 'Order, authorization, and delivery records', 'Prior claims pattern', 'Merchant contact and refund history', ...commonEvidenceAreas],
-    availableTools: ['Customer 360', 'Transaction History', 'Merchant Intelligence', 'Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'],
-    requiredTools: ['Case Summary', 'Customer 360', 'Transaction History', 'Merchant Intelligence', 'Document Viewer', 'Document Request', 'Link Analysis'],
-    documents: ['Customer statement', 'Order record', 'Delivery or service record', 'Prior claim summary'],
-    taxonomy: { authorizationType: 'unclear', lifecycleStage: 'dispute', productRail: 'card', riskPattern: 'first-party', customerRole: 'both' },
-    scenarios: [
-      scenario({ id: 'fpf-delivery-review', title: 'Delivery and prior claim review', subtype: 'false dispute after delivery', summary: 'A card dispute packet contains customer, merchant, delivery, and prior activity records for neutral comparison.', statement: 'I did not receive the item and want the transaction reviewed.', channel: 'Card dispute intake', amount: '$638.40', transactionInfo: 'Retail purchase dispute · delivery record available · training card ending 9088', priority: 'Medium', entityRole: 'Cardholder' }),
-    ],
+    id: WORKFLOW_TYPES.CARD_ACCOUNT_TAKEOVER,
+    prefix: 'CAT',
+    lane: 'Card account access',
+    customerTypes: [CUSTOMER_TYPES.PERSONAL],
+    productTypes: [PRODUCT_TYPES.CREDIT_CARD],
+    intakePrompts: ['What card-account access or maintenance activity was reported?', 'Which alerts, reset messages, or contact attempts were noticed?', 'Which devices, sessions, locations, and wallet events does the customer recognize?'],
+    evidenceAreas: ['Card possession and customer statement', 'Login, session, device, and IP history', 'Profile, wallet, and transaction activity', ...commonEvidenceAreas],
+    availableTools: [...personalTools, ...accessTools, 'Transaction History', 'Financial Investigation', 'Payment Verification', ...commonTools],
+    requiredTools: ['Case Summary', 'Customer 360', 'Login History', 'Session History', 'Device Intelligence', 'IP Intelligence', 'Transaction History', 'Link Analysis'],
+    documents: ['Customer statement', 'Login and session packet', 'Card-account maintenance record', 'Authorization record'],
+    legacyProductRail: 'card',
   },
   {
-    id: 'payroll-direct-deposit',
-    label: 'Payroll / Direct Deposit Change Claim',
-    shortLabel: 'Payroll / Direct Deposit',
-    prefix: 'PAY',
-    lane: 'Payroll and employer review',
-    subtypes: ['spoofed employee email', 'compromised employee email', 'fake new-hire payroll setup', 'payroll admin portal compromise', 'existing employee destination changed', 'payroll card diversion', 'ghost employee payroll'],
-    intakePrompts: ['Who requested the payroll or destination change?', 'Is the employee or vendor new or established?', 'Which trusted contact can verify the request?'],
-    evidenceAreas: ['Employee and employer relationship', 'Payroll and destination history', 'Trusted callback record', 'Payment verification', 'Payroll change timing', ...commonEvidenceAreas],
-    availableTools: ['Business 360', 'KYB Review', 'Employee Profile', 'Payroll History', 'Financial Investigation', 'Payment Verification', 'Identity Intel / People Search', 'Login History', 'Session History', 'Device Intelligence', 'IP Intelligence', 'Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'],
+    id: WORKFLOW_TYPES.PERSONAL_ACCOUNT_TAKEOVER,
+    prefix: 'PAT',
+    lane: 'Deposit account access',
+    customerTypes: [CUSTOMER_TYPES.PERSONAL],
+    productTypes: [PRODUCT_TYPES.DEPOSIT_ACCOUNT],
+    intakePrompts: ['What deposit-account access, profile, or payment activity was reported?', 'Which devices and locations does the customer recognize?', 'Which profile, payee, destination, and transaction changes occurred in the review window?'],
+    evidenceAreas: ['Customer statement', 'Login, session, device, and IP history', 'Profile, payee, and payment activity', ...commonEvidenceAreas],
+    availableTools: [...personalTools, ...accessTools, ...paymentTools, ...commonTools],
+    requiredTools: ['Case Summary', 'Customer 360', 'Login History', 'Session History', 'Device Intelligence', 'IP Intelligence', 'Transaction History', 'Payment Verification', 'Link Analysis'],
+    documents: ['Customer statement', 'Login and session packet', 'Profile-change record', 'Payment authorization record'],
+    legacyProductRail: 'deposit',
+  },
+  {
+    id: WORKFLOW_TYPES.ACH_TRANSACTION_CLAIM,
+    prefix: 'ACH',
+    lane: 'ACH transaction claim',
+    customerTypes: [CUSTOMER_TYPES.PERSONAL],
+    productTypes: [PRODUCT_TYPES.DEPOSIT_ACCOUNT],
+    intakePrompts: ['Which ACH debit does the customer report as unauthorized?', 'What originator or prior relationship is known?', 'Which authorization, return, and account records are available?'],
+    evidenceAreas: ['ACH entry and originator record', 'Customer authorization record', 'Prior originator relationship', 'Return timing', ...commonEvidenceAreas],
+    availableTools: ['Customer 360', ...paymentTools, 'Identity Intel / People Search', ...commonTools],
+    requiredTools: ['Case Summary', 'Customer 360', 'Transaction History', 'Payment Verification', 'Document Viewer', 'Link Analysis'],
+    documents: ['Customer ACH statement', 'ACH entry record', 'Originator authorization record', 'Return-timing record'],
+    legacyProductRail: 'ach',
+  },
+  {
+    id: WORKFLOW_TYPES.WIRE_TRANSACTION_CLAIM,
+    prefix: 'PWR',
+    lane: 'Wire transaction claim',
+    customerTypes: [CUSTOMER_TYPES.PERSONAL],
+    productTypes: [PRODUCT_TYPES.DEPOSIT_ACCOUNT],
+    intakePrompts: ['Which wire does the customer report as unauthorized or induced?', 'Who initiated and approved the instruction?', 'Which beneficiary, callback, authorization, and recovery records are available?'],
+    evidenceAreas: ['Wire instruction and approval timeline', 'Beneficiary ownership', 'Trusted contact record', 'Funds and recovery status', ...commonEvidenceAreas],
+    availableTools: ['Customer 360', ...paymentTools, 'Identity Intel / People Search', ...accessTools, ...commonTools],
+    requiredTools: ['Case Summary', 'Customer 360', 'Transaction History', 'Payment Verification', 'Document Viewer', 'Link Analysis'],
+    documents: ['Customer wire statement', 'Wire instruction', 'Beneficiary record', 'Recovery record'],
+    legacyProductRail: 'wire',
+  },
+  {
+    id: WORKFLOW_TYPES.BUSINESS_ACCOUNT_TAKEOVER,
+    prefix: 'BAT',
+    lane: 'Business account access',
+    customerTypes: [CUSTOMER_TYPES.BUSINESS],
+    productTypes: [PRODUCT_TYPES.BUSINESS_ACCOUNT, PRODUCT_TYPES.BUSINESS_CREDIT_CARD, PRODUCT_TYPES.BUSINESS_LOAN],
+    intakePrompts: ['What business-account access or administrator activity opened the review?', 'Which initiator, approver, device, IP, and session records are available?', 'Which profile, payment, or administrator changes occurred?'],
+    evidenceAreas: ['Business and administrator records', 'Login, session, device, and IP history', 'Initiator, approver, profile, and payment changes', ...commonEvidenceAreas],
+    availableTools: [...businessTools, ...accessTools, ...paymentTools, ...commonTools],
+    requiredTools: ['Case Summary', 'Business 360', 'Login History', 'Session History', 'Device Intelligence', 'IP Intelligence', 'Transaction History', 'Link Analysis'],
+    documents: ['Business access statement', 'Administrator roster', 'Login and session packet', 'Profile or payment-change record'],
+    legacyProductRail: 'business-account',
+  },
+  {
+    id: WORKFLOW_TYPES.BUSINESS_PAYMENT_INSTRUCTION_CHANGE_ALERT,
+    prefix: 'BPI',
+    lane: 'Business payment instruction',
+    customerTypes: [CUSTOMER_TYPES.BUSINESS],
+    productTypes: [PRODUCT_TYPES.BUSINESS_ACCOUNT],
+    intakePrompts: ['What payment or instruction change did the platform or business report?', 'Which trusted contact can verify the instruction?', 'Which beneficiary, approval, destination, and funds-status records are available?'],
+    evidenceAreas: ['Instruction and approval timeline', 'Trusted contact verification', 'Beneficiary and destination history', 'Funds and recovery status', ...commonEvidenceAreas],
+    availableTools: [...businessTools, ...paymentTools, ...accessTools, ...commonTools],
+    requiredTools: ['Case Summary', 'Business 360', 'Payment Verification', 'Transaction History', 'Document Viewer', 'Link Analysis'],
+    documents: ['Payment instruction record', 'Vendor master record', 'Trusted callback log', 'Beneficiary record'],
+    legacyProductRail: 'business-payment',
+  },
+  {
+    id: WORKFLOW_TYPES.ACH_TRANSACTION_REVIEW,
+    prefix: 'BAR',
+    lane: 'Business ACH review',
+    customerTypes: [CUSTOMER_TYPES.BUSINESS],
+    productTypes: [PRODUCT_TYPES.BUSINESS_ACCOUNT],
+    intakePrompts: ['Which business ACH payment or change is in scope?', 'Who initiated and approved it?', 'Which originator, destination, authorization, funds, and recovery records are available?'],
+    evidenceAreas: ['ACH instruction and approval timeline', 'Originator or destination ownership', 'Initiator and approver records', 'Funds and recovery status', ...commonEvidenceAreas],
+    availableTools: [...businessTools, ...paymentTools, ...accessTools, ...commonTools],
+    requiredTools: ['Case Summary', 'Business 360', 'Transaction History', 'Payment Verification', 'Document Viewer', 'Link Analysis'],
+    documents: ['ACH instruction', 'Approval record', 'Originator or destination record', 'Funds-status record'],
+    legacyProductRail: 'ach',
+  },
+  {
+    id: WORKFLOW_TYPES.WIRE_TRANSACTION_REVIEW,
+    prefix: 'BWR',
+    lane: 'Business wire review',
+    customerTypes: [CUSTOMER_TYPES.BUSINESS],
+    productTypes: [PRODUCT_TYPES.BUSINESS_ACCOUNT],
+    intakePrompts: ['Which business wire payment or instruction is in scope?', 'Who initiated and approved it?', 'Which beneficiary, callback, funds-status, and recovery records are available?'],
+    evidenceAreas: ['Wire instruction and approval timeline', 'Beneficiary ownership and prior use', 'Trusted contact record', 'Funds and recovery status', ...commonEvidenceAreas],
+    availableTools: [...businessTools, ...paymentTools, ...accessTools, ...commonTools],
+    requiredTools: ['Case Summary', 'Business 360', 'Transaction History', 'Payment Verification', 'Document Viewer', 'Link Analysis'],
+    documents: ['Wire instruction', 'Approval record', 'Beneficiary record', 'Recall or recovery record'],
+    legacyProductRail: 'wire',
+  },
+  {
+    id: WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT,
+    prefix: 'PCA',
+    lane: 'Payroll change',
+    customerTypes: [CUSTOMER_TYPES.BUSINESS],
+    productTypes: [PRODUCT_TYPES.PAYROLL_PRODUCT],
+    intakePrompts: ['What employee, destination, amount, timing, or administrator change did the platform observe?', 'What do the payroll and destination histories show?', 'Which trusted business contact can verify the change if risk remains?'],
+    evidenceAreas: ['Business and employee records', 'Payroll and change history', 'Destination ownership and prior use', 'Administrator activity and trusted callback', ...commonEvidenceAreas],
+    availableTools: ['Business 360', 'Employee Profile', 'Payroll History', ...payrollFinancialTools, ...accessTools, ...commonTools],
     requiredTools: ['Case Summary', 'Business 360', 'Employee Profile', 'Payroll History', 'Payment Verification', 'Document Viewer'],
-    documents: ['Payroll change request', 'Employee profile record', 'Trusted callback log', 'Direct deposit record'],
-    taxonomy: { authorizationType: 'unclear', lifecycleStage: 'servicing/account management', productRail: 'payroll', riskPattern: 'vendor compromise', customerRole: 'unknown' },
-    scenarios: [
-      scenario({ id: 'pay-direct-deposit-change', title: 'Employee direct deposit change review', subtype: 'employee direct deposit change', summary: 'An employer inquiry and payroll packet show a direct deposit change before the next payroll run.', statement: 'I received a notice that my pay destination changed, but I did not submit a new form.', channel: 'Employer inquiry', amount: '$2,860.00', transactionInfo: 'Payroll destination update · employee direct deposit · training destination ending 0042', priority: 'High', entityRole: 'Employee' }),
-    ],
+    documents: ['Platform payroll-change record', 'Employee profile record', 'Payroll history', 'Trusted callback log'],
+    legacyProductRail: 'payroll',
   },
   {
-    id: 'email-bec',
-    label: 'Email Fraud / BEC Claim',
-    shortLabel: 'Email Fraud / BEC',
-    prefix: 'BEC',
-    lane: 'Email and payment instruction review',
-    subtypes: ['vendor bank change', 'look-alike domain', 'mailbox compromise', 'CEO urgent payment', 'invoice diversion', 'reply-to mismatch', 'mailbox rule forwarding', 'beneficiary change before payment'],
-    intakePrompts: ['Who sent or approved the payment instruction?', 'Which trusted contact details were used for verification?', 'What email, domain, beneficiary, and payment records are available?'],
-    evidenceAreas: ['Email and domain records', 'Sender and callback details', 'Beneficiary and payment timeline', 'Vendor or employee relationship', ...commonEvidenceAreas],
-    availableTools: ['Identity Intel / People Search', 'Payment Verification', 'Business 360', 'KYB Review', 'Login History', 'Session History', 'Device Intelligence', 'IP Intelligence', 'Transaction History', 'Financial Investigation', 'Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'],
-    requiredTools: ['Case Summary', 'Identity Intel / People Search', 'Payment Verification', 'Business 360', 'Document Viewer', 'Link Analysis'],
-    documents: ['Email message packet', 'Vendor master record', 'Trusted callback log', 'Payment instruction record'],
-    taxonomy: { authorizationType: 'unclear', lifecycleStage: 'transaction', productRail: 'wire', riskPattern: 'vendor compromise', customerRole: 'victim' },
-    scenarios: [
-      scenario({ id: 'bec-vendor-change', title: 'Vendor payment instruction review', subtype: 'vendor payment change', summary: 'A business reports an email-based request to change a vendor payment destination before a scheduled payment.', statement: 'The payment instruction looked like it came from our vendor, but the destination details were different.', channel: 'Business operations inquiry', amount: '$8,450.00', transactionInfo: 'Vendor payment instruction · external destination update · training destination ending 8412', priority: 'High', entityRole: 'Business contact' }),
-    ],
+    id: WORKFLOW_TYPES.PAYROLL_ACCOUNT_TAKEOVER,
+    prefix: 'PAO',
+    lane: 'Payroll account access',
+    customerTypes: [CUSTOMER_TYPES.BUSINESS],
+    productTypes: [PRODUCT_TYPES.PAYROLL_PRODUCT],
+    intakePrompts: ['Which new device, IP, session, administrator, or payroll activity opened the alert?', 'Who initiated and approved the payroll?', 'What do payroll history, funds status, and recovery records show?'],
+    evidenceAreas: ['Administrator, initiator, and approver records', 'Device, IP, and session history', 'Payroll amount and destination changes', 'Funds and recovery status', ...commonEvidenceAreas],
+    availableTools: ['Business 360', 'Employee Profile', 'Payroll History', ...payrollFinancialTools, ...accessTools, ...commonTools],
+    requiredTools: ['Case Summary', 'Business 360', 'Payroll History', 'Login History', 'Session History', 'Device Intelligence', 'IP Intelligence', 'Payment Verification', 'Link Analysis'],
+    documents: ['Payroll access alert', 'Administrator roster', 'Initiator and approver record', 'Payroll funds-status record'],
+    legacyProductRail: 'payroll',
   },
   {
-    id: 'credit-risk',
-    label: 'Credit Risk Review',
-    shortLabel: 'Credit Risk',
-    prefix: 'CR',
-    lane: 'Credit decision review',
-    subtypes: ['credit line increase', 'income inflation', 'first-payment default concern', 'repayment stress', 'bust-out concern', 'synthetic identity concern', 'fake application', 'loan stacking', 'business revenue mismatch', 'first-party credit abuse'],
-    intakePrompts: ['What type of credit request or account review opened this case?', 'What employer, income source, gross/net income, or business revenue was stated?', 'What payment, utilization, NSF, late-payment, or cash-flow history is available?', 'Are bank statements, paystubs, credit-file, or business documents available?', 'What debt obligations, bankruptcy/public-record, or business changes should be documented?', 'Which documents and verification records are still needed?'],
-    evidenceAreas: ['Identity and application records', 'Income and employment verification', 'DTI and credit report summary', 'Cash flow, bank statements, payment history, utilization, and inquiries', 'Document request status', ...commonEvidenceAreas],
-    availableTools: ['Customer 360', 'Identity Intel / People Search', 'Payment Verification', 'Financial Investigation', 'Transaction History', 'Business 360', 'KYB Review', 'Employee Profile', 'Payroll History', 'Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'],
-    requiredTools: ['Case Summary', 'Customer 360', 'Identity Intel / People Search', 'Payment Verification', 'Financial Investigation', 'Document Viewer'],
-    documents: ['Credit review alert', 'Income or revenue support', 'Bank statement', 'Credit file summary', 'Document request tracker'],
-    taxonomy: { authorizationType: 'unclear', lifecycleStage: 'onboarding', productRail: 'credit', riskPattern: 'credit stress', customerRole: 'unknown' },
-    credit: { deadline: 'Jul 15, 2026 · 4:00 PM', reasonCode: 'Training credit review documentation', adverseActionStatus: 'Not started', escalationPath: 'Senior credit review', outcomes: ['Support Credit Request', 'Do Not Support Credit Request', 'More Information Needed', 'Maintain Account', 'Reduce Exposure', 'Refer to Collections or Hardship', 'Refer to Fraud Review', 'Escalate Senior Review'] },
-    scenarios: [
-      scenario({ id: 'cr-new-consumer', title: 'New consumer credit request review', subtype: 'credit line increase', family: 'New consumer application', summary: 'A new consumer credit profile requested rapid line usage. Identity, payment, income, and early account records are available for review.', statement: 'I recently opened the account and requested access to the available credit line.', channel: 'System alert', amount: '$2,400.00', transactionInfo: 'Credit line usage request · payment setup packet · training Destination ID token', priority: 'Medium', entityRole: 'Credit applicant' }),
-      scenario({ id: 'cr-existing-consumer', title: 'Existing consumer account review', subtype: 'repayment stress', family: 'Existing consumer account review', summary: 'An existing account review groups payment history, cash-flow context, utilization, and documents for a neutral credit decision review.', statement: 'I am asking to keep the account available while my recent payment situation changes.', channel: 'Account monitoring queue', amount: '$4,800.00', transactionInfo: 'Existing credit account review · utilization and payment history · training account ending 3011', priority: 'Medium', entityRole: 'Existing account holder' }),
-      scenario({ id: 'cr-new-business', title: 'New business credit application review', subtype: 'business revenue mismatch', family: 'New business application', summary: 'A new business credit application includes entity, owner, revenue, bank, and document records for review.', statement: 'Our business is applying for a credit line to support operating expenses.', channel: 'Business credit application', amount: '$18,000.00', transactionInfo: 'Business credit request · stated revenue packet · training business account ending 7280', priority: 'High', entityRole: 'Business applicant' }),
-      scenario({ id: 'cr-existing-business', title: 'Existing business exposure review', subtype: 'bust-out concern', family: 'Existing business account review', summary: 'An existing business account review includes deposits, payment performance, entity changes, and exposure records.', statement: 'The business requests continued access while revenue and payment activity are reviewed.', channel: 'Portfolio monitoring queue', amount: '$22,500.00', transactionInfo: 'Business credit exposure review · payment and revenue packet · training line ending 8840', priority: 'High', entityRole: 'Business account owner' }),
-    ],
+    id: WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW,
+    prefix: 'CAR',
+    lane: 'Credit application',
+    customerTypes: [CUSTOMER_TYPES.PERSONAL, CUSTOMER_TYPES.BUSINESS],
+    productTypes: [PRODUCT_TYPES.CREDIT_CARD, PRODUCT_TYPES.PERSONAL_LOAN, PRODUCT_TYPES.PAYROLL_PRODUCT, PRODUCT_TYPES.BUSINESS_CREDIT_CARD, PRODUCT_TYPES.BUSINESS_LOAN],
+    intakePrompts: ['What application information or eligibility question opened the review?', 'Which identity, entity, owner, control-person, guarantor, administrator, credit, and repayment records apply?', 'Which verification steps are complete and which require more information?'],
+    evidenceAreas: ['Application and identity records', 'Business registration and identifying information when applicable', 'Submitter, owner, control person, guarantor, and administrator verification when applicable', 'Credit and repayment information', 'Cross-account links for each relevant party', ...commonEvidenceAreas],
+    availableTools: [...personalTools, ...businessTools, ...paymentTools, ...accessTools, ...commonTools],
+    requiredTools: ['Case Summary', 'Identity Intel / People Search', 'Payment Verification', 'Document Viewer', 'Link Analysis'],
+    documents: ['Credit application', 'Identity and party-verification records', 'Income or revenue support', 'Credit and repayment summary', 'Document request tracker'],
+    legacyProductRail: 'credit',
   },
   {
-    id: 'business-loan-bust-out',
-    label: 'Business Loan / Bust-Out Review',
-    shortLabel: 'Business Loan / Bust-Out',
-    prefix: 'BLO',
-    lane: 'Business credit review',
-    subtypes: ['sleeper LLC sudden draw', 'rapid credit line stacking', 'synthetic owner identity', 'tradeline piggyback business application', 'revenue mismatch', 'large draws after limit increase', 'business legitimacy mismatch'],
-    intakePrompts: ['What business credit event opened this review?', 'Which owner, revenue, entity, and account records are in scope?', 'Which documents are complete and which remain requested?'],
-    evidenceAreas: ['Business registration and owner identity', 'Revenue, cash flow, and bank statements', 'Credit report and invoices/contracts', 'Beneficial ownership and business address', ...commonEvidenceAreas],
-    availableTools: ['Business 360', 'KYB Review', 'Identity Intel / People Search', 'Financial Investigation', 'Transaction History', 'Payment Verification', 'Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'],
-    requiredTools: ['Case Summary', 'Business 360', 'KYB Review', 'Financial Investigation', 'Document Viewer', 'Document Request'],
-    documents: ['Business registration packet', 'Owner identity record', 'Revenue support', 'Bank statement and invoice packet'],
-    taxonomy: { authorizationType: 'unclear', lifecycleStage: 'onboarding', productRail: 'loan', riskPattern: 'credit stress', customerRole: 'unknown' },
-    credit: { deadline: 'Jul 16, 2026 · 12:00 PM', reasonCode: 'Training business-credit documentation', adverseActionStatus: 'Not started', escalationPath: 'Business credit review', outcomes: ['Approve Application', 'Deny Application', 'Approve With Restrictions', 'Request Documents', 'Hold Pending Verification', 'Escalate to Credit Risk', 'Refer to Fraud Review'] },
-    scenarios: [
-      scenario({ id: 'blo-sudden-draw', title: 'Business credit draw and revenue review', subtype: 'large draw after limit increase', summary: 'A business credit packet contains entity, owner, revenue, bank, and line-usage records following a recent draw.', statement: 'The business needs access to its approved line for a seasonal operating expense.', channel: 'Business credit monitoring', amount: '$31,200.00', transactionInfo: 'Business credit draw · line increase history · training business line ending 6180', priority: 'High', entityRole: 'Business owner' }),
-    ],
-  },
-  {
-    id: 'application-verification',
-    label: 'Application Verification Review',
-    shortLabel: 'Application Verification',
-    prefix: 'AVR',
-    lane: 'Identity and application review',
-    subtypes: ['ID mismatch', 'address cannot be verified', 'thin identity profile', 'new email and new device', 'selfie/liveness mismatch', 'phone ownership mismatch', 'synthetic identity concern', 'stolen identity application'],
-    intakePrompts: ['What application field or document needs verification?', 'Which identity, address, phone, email, or device records are available?', 'What document or verification step remains open?'],
-    evidenceAreas: ['Profile and application fields', 'Identity document and selfie/liveness records', 'Address, phone, and email verification', 'Device and IP context', ...commonEvidenceAreas],
-    availableTools: ['Customer 360', 'Identity Intel / People Search', 'Device Intelligence', 'IP Intelligence', 'Login History', 'Payment Verification', 'Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'],
-    requiredTools: ['Case Summary', 'Customer 360', 'Identity Intel / People Search', 'Device Intelligence', 'IP Intelligence', 'Document Viewer'],
-    documents: ['Application record', 'Identity document review', 'Address verification record', 'Phone and email verification'],
-    taxonomy: { authorizationType: 'unclear', lifecycleStage: 'onboarding', productRail: 'credit', riskPattern: 'document risk', customerRole: 'unknown' },
-    scenarios: [
-      scenario({ id: 'avr-address-device', title: 'Application identity and address review', subtype: 'address cannot be verified', summary: 'An application packet contains identity, address, contact, device, and document records requiring verification.', statement: 'I submitted the application using my current contact information and address.', channel: 'Application verification queue', amount: '$0.00', transactionInfo: 'New application profile · identity and address packet · no transaction in scope', priority: 'Medium', entityRole: 'Applicant' }),
-    ],
-  },
-  {
-    id: 'ach-wire-check',
-    label: 'ACH / Wire / Check Review',
-    shortLabel: 'ACH / Wire / Check',
-    prefix: 'AWC',
-    lane: 'Payment rail review',
-    subtypes: ['ACH unauthorized return', 'wire beneficiary change', 'check alteration', 'check endorsement concern', 'payment recovery review'],
-    intakePrompts: ['Which payment rail and transaction is in scope?', 'Who requested, approved, or released the payment?', 'Which beneficiary, callback, or payment records need verification?'],
-    evidenceAreas: ['Payment request and approval timeline', 'Beneficiary or originator details', 'Callback and trusted contact record', 'ACH/wire/check transaction history', ...commonEvidenceAreas],
-    availableTools: ['Transaction History', 'Financial Investigation', 'Payment Verification', 'Identity Intel / People Search', 'Business 360', 'KYB Review', 'Document Viewer', 'Document Request', 'Link Analysis', 'Timeline'],
-    requiredTools: ['Case Summary', 'Transaction History', 'Payment Verification', 'Document Viewer', 'Document Request', 'Link Analysis'],
-    documents: ['Payment instruction', 'Beneficiary or originator record', 'Callback verification log', 'Payment rail record'],
-    taxonomy: { authorizationType: 'unclear', lifecycleStage: 'transaction', productRail: 'wire', riskPattern: 'vendor compromise', customerRole: 'unknown' },
-    scenarios: [
-      scenario({ id: 'awc-wire-beneficiary', title: 'Wire beneficiary change review', subtype: 'wire beneficiary change', summary: 'A payment queue contains an updated beneficiary instruction, payment timeline, and verification records.', statement: 'Our team received a request to send the payment to a different beneficiary account.', channel: 'Payments operations queue', amount: '$12,750.00', transactionInfo: 'Wire payment instruction · beneficiary destination update · training destination ending 0917', priority: 'High', entityRole: 'Business payment contact' }),
-    ],
+    id: WORKFLOW_TYPES.CREDIT_RISK_REVIEW,
+    prefix: 'CRR',
+    lane: 'Credit risk',
+    customerTypes: [CUSTOMER_TYPES.PERSONAL, CUSTOMER_TYPES.BUSINESS],
+    productTypes: [PRODUCT_TYPES.CREDIT_CARD, PRODUCT_TYPES.PERSONAL_LOAN, PRODUCT_TYPES.PAYROLL_PRODUCT, PRODUCT_TYPES.BUSINESS_CREDIT_CARD, PRODUCT_TYPES.BUSINESS_LOAN],
+    intakePrompts: ['What existing exposure or post-approval behavior opened the review?', 'What do payment history, NSF activity, utilization, cash flow, and debt obligations show?', 'Which changes, linked exposures, and documents require reconciliation?'],
+    evidenceAreas: ['Existing account and exposure records', 'Payment, NSF, utilization, and cash-flow history', 'Debt stacking and post-approval behavior', 'Entity and owner information when applicable', ...commonEvidenceAreas],
+    availableTools: [...personalTools, ...businessTools, ...paymentTools, ...commonTools],
+    requiredTools: ['Case Summary', 'Financial Investigation', 'Transaction History', 'Payment Verification', 'Document Viewer', 'Link Analysis'],
+    documents: ['Existing exposure alert', 'Payment and utilization history', 'Cash-flow or bank statement', 'Credit-file summary', 'Document request tracker'],
+    legacyProductRail: 'credit',
   },
 ];
 
-export const coreClaimTypes = claimTypeDefinitions.map(expandClaimScenarios);
+function defaultDomainFor(definition) {
+  for (const customerType of definition.customerTypes) {
+    const productType = definition.productTypes.find((candidate) => isWorkflowEnabled(customerType, candidate, definition.id));
+    if (productType) return { customerType, productType, workflowType: definition.id };
+  }
+  throw new Error(`No enabled product exists for ${definition.id}`);
+}
 
+const claimTypeDefinitions = definitions.map((definition) => {
+  const workflow = getWorkflowType(definition.id);
+  const defaultDomain = defaultDomainFor(definition);
+  return {
+    ...definition,
+    ...defaultDomain,
+    label: workflow.label,
+    shortLabel: workflow.label,
+    workflowType: definition.id,
+    operationalDecisions: operationalDecisionsForWorkflow(definition.id),
+    taxonomy: {
+      customerType: defaultDomain.customerType,
+      productType: defaultDomain.productType,
+      workflowType: definition.id,
+      lifecycleStage: definition.id === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW ? 'onboarding' : definition.id === WORKFLOW_TYPES.CREDIT_RISK_REVIEW ? 'account monitoring' : 'investigation',
+      productRail: definition.legacyProductRail,
+      customerRole: defaultDomain.customerType === CUSTOMER_TYPES.BUSINESS ? 'business account holder' : 'personal customer',
+    },
+  };
+});
+
+export const coreClaimTypes = claimTypeDefinitions.map(expandClaimScenarios);
 export const coreClaimTypeIds = coreClaimTypes.map((claimType) => claimType.id);
 
-const legacyClaimTypeIds = {
-  'account takeover': 'account-takeover',
-  'account takeover claim': 'account-takeover',
-  'chargeback claim': 'non-fraud-chargeback',
-  'fraud chargeback claim': 'fraud-chargeback',
-  'non-fraud chargeback claim': 'non-fraud-chargeback',
-  'first party fraud': 'first-party-fraud',
-  'first-party fraud claim': 'first-party-fraud',
-  'email fraud': 'email-bec',
-  'email fraud / bec claim': 'email-bec',
-  'payroll risk review': 'payroll-direct-deposit',
-  'payroll / direct deposit change claim': 'payroll-direct-deposit',
-  'credit risk review': 'credit-risk',
-  'business loan / bust-out review': 'business-loan-bust-out',
-  'application verification review': 'application-verification',
-  'ach / wire / check review': 'ach-wire-check',
-};
+export const legacyClaimTypeIds = Object.freeze({
+  'account-takeover': WORKFLOW_TYPES.PERSONAL_ACCOUNT_TAKEOVER,
+  'account takeover': WORKFLOW_TYPES.PERSONAL_ACCOUNT_TAKEOVER,
+  'account takeover claim': WORKFLOW_TYPES.PERSONAL_ACCOUNT_TAKEOVER,
+  'fraud-chargeback': WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM,
+  'fraud chargeback claim': WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM,
+  'chargeback claim': WORKFLOW_TYPES.MERCHANT_NON_FRAUD_DISPUTE,
+  'non-fraud-chargeback': WORKFLOW_TYPES.MERCHANT_NON_FRAUD_DISPUTE,
+  'non-fraud chargeback claim': WORKFLOW_TYPES.MERCHANT_NON_FRAUD_DISPUTE,
+  'first-party-fraud': WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM,
+  'first party fraud': WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM,
+  'first-party fraud claim': WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM,
+  'payroll-direct-deposit': WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT,
+  'payroll risk review': WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT,
+  'payroll / direct deposit change claim': WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT,
+  'email-bec': WORKFLOW_TYPES.BUSINESS_PAYMENT_INSTRUCTION_CHANGE_ALERT,
+  'email fraud': WORKFLOW_TYPES.BUSINESS_PAYMENT_INSTRUCTION_CHANGE_ALERT,
+  'email fraud / bec claim': WORKFLOW_TYPES.BUSINESS_PAYMENT_INSTRUCTION_CHANGE_ALERT,
+  'credit-risk': WORKFLOW_TYPES.CREDIT_RISK_REVIEW,
+  'credit risk review': WORKFLOW_TYPES.CREDIT_RISK_REVIEW,
+  'business-loan-bust-out': WORKFLOW_TYPES.CREDIT_RISK_REVIEW,
+  'business loan / bust-out review': WORKFLOW_TYPES.CREDIT_RISK_REVIEW,
+  'application-verification': WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW,
+  'application verification review': WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW,
+  'ach-wire-check': WORKFLOW_TYPES.WIRE_TRANSACTION_REVIEW,
+  'ach / wire / check review': WORKFLOW_TYPES.WIRE_TRANSACTION_REVIEW,
+});
 
-export function getClaimType(claimTypeId) {
-  return coreClaimTypes.find((item) => item.id === claimTypeId) ?? coreClaimTypes[0];
+export function normalizeWorkflowType(value) {
+  const candidate = String(value ?? '').trim();
+  if (coreClaimTypeIds.includes(candidate)) return candidate;
+  return legacyClaimTypeIds[candidate.toLowerCase()];
+}
+
+export function getClaimType(claimTypeOrWorkflowType) {
+  const workflowType = normalizeWorkflowType(claimTypeOrWorkflowType) ?? WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM;
+  return coreClaimTypes.find((item) => item.id === workflowType) ?? coreClaimTypes[0];
 }
 
 export function claimTypeIdForCase(item = {}) {
-  if (item.claimTypeId && coreClaimTypeIds.includes(item.claimTypeId)) return item.claimTypeId;
-  return legacyClaimTypeIds[String(item.type ?? item.claimType ?? '').trim().toLowerCase()] ?? 'account-takeover';
+  const explicitWorkflow = normalizeWorkflowType(item.workflowType);
+  if (explicitWorkflow) return explicitWorkflow;
+  const legacyId = normalizeWorkflowType(item.claimTypeId);
+  if (legacyId) return legacyId;
+  return normalizeWorkflowType(item.type ?? item.claimType) ?? WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM;
 }
 
 export function getClaimTypeForCase(item = {}) {
   return getClaimType(claimTypeIdForCase(item));
 }
 
-export function getScenario(claimTypeId, scenarioId) {
-  const claimType = getClaimType(claimTypeId);
-  return claimType.scenarios.find((item) => item.id === scenarioId) ?? claimType.scenarios[0];
+export function getScenario(claimTypeOrWorkflowType, scenarioId) {
+  const claimType = getClaimType(claimTypeOrWorkflowType);
+  return claimType.scenarios.find((item) => item.id === scenarioId || item.legacyScenarioId === scenarioId) ?? claimType.scenarios[0];
+}
+
+export function getScenarioWithTruth(claimTypeOrWorkflowType, scenarioId) {
+  const claimType = getClaimType(claimTypeOrWorkflowType);
+  const scenario = getScenario(claimType.id, scenarioId);
+  return {
+    ...scenario,
+    generationKey: scenario.generationKey,
+    legacyScenarioId: scenario.legacyScenarioId,
+    scenarioTruthId: scenario.scenarioTruthId,
+    caseTruth: getScenarioTruth(claimType.id, scenario.id),
+  };
+}
+
+export function findScenarioById(scenarioId) {
+  for (const claimType of coreClaimTypes) {
+    const scenario = claimType.scenarios.find((item) => item.id === scenarioId || item.legacyScenarioId === scenarioId);
+    if (scenario) return { claimType, scenario };
+  }
+  return undefined;
 }
 
 export function claimGeneratorChoices() {
-  return coreClaimTypes.map((claimType) => ({
-    id: claimType.id,
-    label: claimType.label,
-    lane: claimType.lane,
-    scenarios: claimType.scenarios.map((item) => ({ id: item.id, title: item.title, subtype: item.subtype })),
+  return generatorDomainChoices.map((customer) => ({
+    ...customer,
+    products: customer.products.map((product) => ({
+      ...product,
+      workflows: product.workflows.map((workflow) => {
+        const claimType = getClaimType(workflow.id);
+        return {
+          ...workflow,
+          scenarios: claimType.scenarios
+            .filter((scenario) => (
+              (!scenario.customerTypes?.length || scenario.customerTypes.includes(customer.id))
+              && (!scenario.productTypes?.length || scenario.productTypes.includes(product.id))
+            ))
+            .map((scenario) => ({
+              id: scenario.id,
+              title: scenario.title,
+              alertReason: scenario.alertReason,
+              reportedAllegation: scenario.reportedAllegation,
+            })),
+        };
+      }),
+    })),
   }));
+}
+
+export function getClaimTypeForDomain({ customerType, productType, workflowType }) {
+  if (!isWorkflowEnabled(customerType, productType, workflowType)) {
+    const labels = caseDomainLabels({ customerType, productType, workflowType });
+    throw new RangeError(`${labels.workflowTypeLabel || workflowType} is not enabled for ${labels.productTypeLabel || productType}`);
+  }
+  return getClaimType(workflowType);
+}
+
+export function enabledClaimTypesForProduct(customerType, productType) {
+  if (getProductType(productType)?.customerType !== customerType) return [];
+  return getEnabledWorkflowTypes(customerType, productType).map(getClaimType);
 }

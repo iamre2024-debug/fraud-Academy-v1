@@ -176,22 +176,19 @@ for (const claimType of coreClaimTypes) {
 
     if (generated.claimTypeId === 'payroll-direct-deposit') {
       const canonicalRecord = records[0];
-      const payrollRecords = getPayrollHistory(generated);
-      if (!payrollRecords.length) {
-        fail(`${scenario.id} has no generated Payroll History records.`);
+      const payrollWorkspace = getPayrollHistory(generated);
+      if (!payrollWorkspace.payrollRuns.length) {
+        fail(`${scenario.id} has no generated company Payroll History runs.`);
       }
-      for (const payrollRecord of payrollRecords) {
-        for (const field of canonicalChangeFields) {
-          if (payrollRecord[field] !== canonicalRecord[field]) {
-            fail(`${scenario.id}/${payrollRecord.id} ${field} does not match ${canonicalRecord.id}.`);
-          }
-        }
-        const payrollText = Object.values(payrollRecord).filter((value) => typeof value === 'string').join(' ');
-        if (!payrollText.includes(canonicalRecord.bankCode) || !payrollText.includes(canonicalRecord.destinationId)) {
-          fail(`${scenario.id}/${payrollRecord.id} omits the canonical Bank Code or Destination ID.`);
-        }
-        if (placeholderOrNoChangePattern.test(payrollText)) {
-          fail(`${scenario.id}/${payrollRecord.id} contains a masked, placeholder, or contradictory no-change destination.`);
+      for (const payrollRun of payrollWorkspace.payrollRuns) {
+        const destinations = payrollRun.employees[0]?.paystub?.paymentDestinations ?? [];
+        const hasCurrentDestination = destinations.some((destination) => destination.bankCode === canonicalRecord.bankCode && destination.destinationId === canonicalRecord.destinationId);
+        const currentDestinationEffective = new Date(payrollRun.payDate) >= new Date(canonicalRecord.firstSeen);
+        if (currentDestinationEffective && !hasCurrentDestination) fail(`${scenario.id}/${payrollRun.id} omits the destination effective for that payroll snapshot.`);
+        if (!currentDestinationEffective && hasCurrentDestination) fail(`${scenario.id}/${payrollRun.id} backfills a destination introduced after the payroll posted.`);
+        const payrollText = JSON.stringify(payrollRun);
+        for (const gatedField of ['accountHolder', 'ownerMatch', 'ownershipStatus', 'operationalStatus', 'priorUseHistory']) {
+          if (payrollText.includes(gatedField)) fail(`${scenario.id}/${payrollRun.id} exposes gated Payment Verification field ${gatedField}.`);
         }
       }
     }
@@ -217,7 +214,6 @@ if (!fallbackRecord || requiredFields.some((field) => fallbackRecord[field] === 
 }
 
 const panel = fs.readFileSync(new URL('../src/InvestigationToolPanel.jsx', import.meta.url), 'utf8');
-const customer = fs.readFileSync(new URL('../src/Customer360Panel.jsx', import.meta.url), 'utf8');
 for (const anchor of [
   'Search before reveal',
   'Bank Code',
@@ -235,18 +231,23 @@ for (const anchor of [
   if (!panel.includes(anchor)) fail(`Payment Verification UI is missing: ${anchor}`);
 }
 for (const anchor of [
-  'Payment Account Change',
-  'Payment Verification Inputs',
+  'function PaymentSourceHandoff',
+  "activeCase.availableTools?.includes('Payment Verification')",
+  'Source identifiers · Evidence First',
+  'Payment account change',
   'Bank Code',
   'Destination ID',
   'Previous account / destination',
   'New account / destination',
   'Change comparison',
-  'Payment account change details for',
+  'data-payment-source-record',
   'Prefill Payment Verification',
   'buildPaymentLookupHint',
 ]) {
-  if (!customer.includes(anchor)) fail(`Customer 360 handoff is missing: ${anchor}`);
+  if (!panel.includes(anchor)) fail(`Payment source handoff is missing: ${anchor}`);
+}
+if ((panel.match(/<PaymentSourceHandoff/g) ?? []).length < 2) {
+  fail('Payment source handoff is not connected to every supported source workspace.');
 }
 
 if (failures.length) {

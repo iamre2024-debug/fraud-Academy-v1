@@ -111,7 +111,7 @@ function documentExportText(document) {
     `Case: ${document.caseId}`,
     `Account ID: ${document.accountId}`,
     `Customer: ${document.customer}`,
-    `Claim type: ${document.claimType}`,
+    `Review workflow: ${document.claimType}`,
     `Status: ${document.status}`,
     `Review status: ${document.reviewStatus}`,
     `Source: ${document.source}`,
@@ -414,7 +414,7 @@ export default function DocumentViewerWorkspace({
                   <summary>All status details</summary>
                   <dl>
                     <div><dt>Account ID</dt><dd>{activeDocument.accountId}</dd></div>
-                    <div><dt>Claim type</dt><dd>{activeDocument.claimType}</dd></div>
+                    <div><dt>Review workflow</dt><dd>{activeDocument.claimType}</dd></div>
                     <div><dt>Quality review</dt><dd>{activeDocument.authenticity}</dd></div>
                     {activeDocument.requestDueDate && <div><dt>Request due</dt><dd>{activeDocument.requestDueDate}</dd></div>}
                   </dl>
@@ -556,7 +556,7 @@ export default function DocumentViewerWorkspace({
                 <div><dt>Case</dt><dd>{activeDocument.caseId}</dd></div>
                 <div><dt>Account ID</dt><dd>{activeDocument.accountId}</dd></div>
                 <div><dt>Customer / entity</dt><dd>{activeDocument.customer}</dd></div>
-                <div><dt>Claim type</dt><dd>{activeDocument.claimType}</dd></div>
+                <div><dt>Review workflow</dt><dd>{activeDocument.claimType}</dd></div>
                 <div><dt>Source</dt><dd>{activeDocument.source}</dd></div>
                 <div><dt>Received</dt><dd>{activeDocument.received}</dd></div>
                 <div><dt>Request status</dt><dd>{activeDocument.requestStatus}</dd></div>

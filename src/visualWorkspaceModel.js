@@ -1,9 +1,14 @@
-import { getBusinessRecords, getFinancialRecords } from './data/caseToolData.js';
+import { getFinancialRecords } from './data/caseToolData.js';
 import { getCaseDocumentRequests, getCaseDocuments } from './data/documentRecords.js';
 import { getMerchantIntelligence } from './data/merchantIntelligenceRecords.js';
 import { recordLocalSliceChange } from './data/cloudSyncClient.js';
 import { storageKeys } from './data/persistenceKeys.js';
 import { getSystemAccessRecords } from './data/systemAccessRecords.js';
+import {
+  getBusiness360Workspace,
+  getEmployeeProfiles,
+  getPayrollHistory,
+} from './data/businessPayrollWorkspace.js';
 
 // Persistence split compatibility anchors:
 // tray: 'fraud-academy-visual-tray-v1'
@@ -18,7 +23,7 @@ export const categories = [
   { key: 'digital', label: 'Digital Activity', icon: '⌁', tools: ['Login History', 'Session History', 'Device Intelligence', 'IP Intelligence'] },
   { key: 'financial', label: 'Financial', icon: '$', tools: ['Transaction History', 'Financial Investigation', 'Payment Verification'] },
   { key: 'merchant', label: 'Merchant', icon: 'MCC', tools: ['Merchant Intelligence'] },
-  { key: 'business', label: 'Business', icon: '⌂', tools: ['Business 360', 'KYB Review', 'Employee Profile', 'Payroll History'] },
+  { key: 'business', label: 'Business', icon: '⌂', tools: ['Business 360', 'Employee Profile', 'Payroll History'] },
   { key: 'evidence', label: 'Evidence', icon: '▰', tools: ['Document Viewer', 'Document Request'] },
   { key: 'connections', label: 'Connections', icon: '⌘', tools: ['Link Analysis', 'System Access Lane'] },
   { key: 'investigation', label: 'Investigation', icon: '⌕', tools: ['Timeline'] },
@@ -28,7 +33,16 @@ export const workflows = ['Record', 'Expand', 'Search', 'History', 'Link Analysi
 
 export { storageKeys };
 
-export const defaultDecisionDraft = { choice: '', confidence: 'Medium', reason: '', indicators: {} };
+export const defaultDecisionDraft = {
+  operationalDecision: '',
+  finalFinding: '',
+  findingBasis: '',
+  confidence: 'Medium',
+  indicators: {},
+  // Compatibility aliases for drafts saved before the decision-domain migration.
+  choice: '',
+  reason: '',
+};
 
 export function readStorage(key, fallback) {
   if (typeof window === 'undefined') return fallback;
@@ -61,7 +75,6 @@ function makeRow(id, values, pin = id, label = 'Record') {
 
 export function rowsFor(tool, activeCase) {
   const financial = getFinancialRecords(activeCase);
-  const business = getBusinessRecords(activeCase);
   const documents = getCaseDocuments(activeCase);
 
   if (tool === 'Customer 360') {
@@ -139,30 +152,40 @@ export function rowsFor(tool, activeCase) {
   }
 
   if (tool === 'Business 360') {
+    const workspace = getBusiness360Workspace(activeCase);
     return {
-      columns: ['Record', 'Entity', 'Relationship', 'Status', 'Observed', 'Context', 'Action'],
-      rows: business.business360.map((item) => makeRow(item.id, [item.id, item.entity, item.relationship, item.status, item.observed, item.context, 'Pin'], item.entity, 'Business')),
-    };
-  }
-
-  if (tool === 'KYB Review') {
-    return {
-      columns: ['Record', 'Type', 'Value', 'Observed', 'Context', 'Case', 'Action'],
-      rows: business.businessIntel.map((item) => makeRow(item.id, [item.id, item.type, item.value, item.observed, item.context, activeCase.id, 'Pin'], item.id, 'KYB record')),
+      columns: ['Record', 'Section', 'Title', 'Value', 'Observed', 'Source detail', 'Action'],
+      rows: workspace.records.map((item) => makeRow(
+        item.id,
+        [item.id, item.category, item.title, item.value, item.observed, item.detail, 'Pin'],
+        item.id,
+        'Business 360 record',
+      )),
     };
   }
 
   if (tool === 'Employee Profile') {
+    const employees = getEmployeeProfiles(activeCase);
     return {
       columns: ['Record', 'Name', 'Role', 'Employer', 'Status', 'Last Seen', 'Context'],
-      rows: business.employeeProfile.map((item) => makeRow(item.id, [item.id, item.name, item.role, item.employer, item.status, item.lastSeen, item.context], item.name, 'Employee profile')),
+      rows: employees.map((item) => makeRow(item.id, [item.id, item.name, item.role, item.employer, item.status, item.lastSeen, item.employmentTimeline], item.name, 'Employee profile')),
     };
   }
 
   if (tool === 'Payroll History') {
+    const payroll = getPayrollHistory(activeCase);
     return {
-      columns: ['Record', 'Period', 'Employer', 'Amount', 'Channel', 'Status', 'Context'],
-      rows: business.payrollHistory.map((item) => makeRow(item.id, [item.id, item.period, item.employer, item.amount, item.channel, item.status, item.context], item.id, 'Payroll record')),
+      columns: ['Record', 'Type', 'Pay date', 'Pay period', 'Status', 'Amount / identifier', 'Context'],
+      rows: payroll.payrollRuns.flatMap((run) => [
+        makeRow(run.id, [run.id, `${run.runType} payroll run`, run.payDate, run.payPeriod.label, run.status, run.totalPayrollCost, `${run.employeeCount} employees`], run.id, 'Payroll run'),
+        ...run.employees.flatMap((employee) => [
+          makeRow(employee.paystub.id, [employee.paystub.id, 'Individual paystub', run.payDate, run.payPeriod.label, employee.paymentStatus, employee.netPay, employee.name], employee.paystub.id, 'Paystub'),
+          ...employee.paystub.paymentDestinations.flatMap((destination) => [
+            makeRow(destination.id, [destination.id, 'Payment destination', run.payDate, run.payPeriod.label, destination.status, destination.bankCode, destination.destinationId], destination.bankCode, 'Bank Code'),
+            makeRow(`${destination.id}-DESTINATION`, [`${destination.id}-DESTINATION`, 'Payment destination', run.payDate, run.payPeriod.label, destination.status, destination.destinationId, destination.paymentRecordId], destination.destinationId, 'Destination ID'),
+          ]),
+        ]),
+      ]),
     };
   }
 

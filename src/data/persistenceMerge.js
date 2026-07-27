@@ -1,4 +1,10 @@
 import { cloudResourceKeys, cloudResourceModes } from './persistenceKeys.js';
+import {
+  mergeGeneratedCaseRecords,
+  migrateGeneratedCase,
+  migrateCloudSnapshotCaseData,
+  migratePersistenceResources,
+} from './caseMigration.js';
 
 export const cloudSnapshotSchemaVersion = 1;
 
@@ -128,12 +134,21 @@ function defaultVersion(deviceId = 'legacy') {
   return { at: 1, deviceId };
 }
 
-export function buildCloudSnapshot({ rawByKey, metadata, generatedCases = [], deviceId }) {
+export function buildCloudSnapshot({
+  rawByKey,
+  metadata,
+  generatedCases = [],
+  generatedCaseTruthSnapshots = [],
+  deviceId,
+}) {
+  const migrated = migratePersistenceResources(rawByKey, generatedCases);
+  const migratedRawByKey = migrated.rawByKey;
+  const migratedGeneratedCases = migrated.generatedCases;
   const resources = {};
 
   for (const key of cloudResourceKeys) {
     const mode = cloudResourceModes[key];
-    const rawEntries = rawByKey[key] ?? {};
+    const rawEntries = migratedRawByKey[key] ?? {};
     const metaEntries = metadata.resources?.[key] ?? {};
     const caseIds = new Set([...Object.keys(rawEntries), ...Object.keys(metaEntries)]);
     const entries = {};
@@ -176,7 +191,7 @@ export function buildCloudSnapshot({ rawByKey, metadata, generatedCases = [], de
   }
 
   const generatedItems = {};
-  generatedCases.forEach((generatedCase, position) => {
+  migratedGeneratedCases.forEach((generatedCase, position) => {
     const itemId = itemIdentity(generatedCase);
     generatedItems[itemId] = {
       value: generatedCase,
@@ -188,11 +203,26 @@ export function buildCloudSnapshot({ rawByKey, metadata, generatedCases = [], de
       deleted: false,
     };
   });
+  const generatedTruthItems = {};
+  generatedCaseTruthSnapshots.forEach((snapshot, position) => {
+    if (!snapshot?.caseId || !snapshot?.truth) return;
+    const itemId = itemIdentity(snapshot);
+    generatedTruthItems[itemId] = {
+      value: snapshot,
+      position,
+      version: {
+        at: Number(snapshot.capturedAt) || 1,
+        deviceId: 'generated-case-truth-repository',
+      },
+      deleted: false,
+    };
+  });
 
   return {
     schemaVersion: cloudSnapshotSchemaVersion,
     resources,
     generatedCases: { mode: 'array', items: generatedItems },
+    generatedCaseTruth: { mode: 'array', items: generatedTruthItems },
   };
 }
 
@@ -213,18 +243,72 @@ function mergeArrayItems(leftItems = {}, rightItems = {}) {
   ]));
 }
 
+function mergeGeneratedItems(leftItems = {}, rightItems = {}) {
+  const itemIds = new Set([...Object.keys(leftItems), ...Object.keys(rightItems)]);
+  return Object.fromEntries([...itemIds].map((itemId) => {
+    const left = leftItems[itemId];
+    const right = rightItems[itemId];
+    const winner = winningEntry(left, right);
+    if (!left || !right || left.deleted || right.deleted || left.value === undefined || right.value === undefined) {
+      return [itemId, winner?.value === undefined
+        ? winner
+        : { ...winner, value: migrateGeneratedCase(winner.value) }];
+    }
+    return [itemId, {
+      ...winner,
+      value: mergeGeneratedCaseRecords(left.value, right.value),
+      deleted: false,
+    }];
+  }));
+}
+
+function truthSnapshotAuthority(snapshot) {
+  const sourceAuthority = {
+    'legacy-embedded': 3,
+    'generated-at-creation': 2,
+    'runtime-derived': 1,
+  };
+  return [
+    Number(snapshot?.version) || 0,
+    sourceAuthority[snapshot?.source] ?? 0,
+  ];
+}
+
+function mergeGeneratedTruthItems(leftItems = {}, rightItems = {}) {
+  const itemIds = new Set([...Object.keys(leftItems), ...Object.keys(rightItems)]);
+  return Object.fromEntries([...itemIds].map((itemId) => {
+    const left = leftItems[itemId];
+    const right = rightItems[itemId];
+    const winner = winningEntry(left, right);
+    if (!left || !right || left.deleted || right.deleted || left.value === undefined || right.value === undefined) {
+      return [itemId, winner];
+    }
+    const leftAuthority = truthSnapshotAuthority(left.value);
+    const rightAuthority = truthSnapshotAuthority(right.value);
+    const rightHasMoreAuthority = rightAuthority[0] > leftAuthority[0]
+      || (rightAuthority[0] === leftAuthority[0] && rightAuthority[1] > leftAuthority[1]);
+    return [itemId, {
+      ...winner,
+      value: rightHasMoreAuthority ? right.value : left.value,
+      deleted: false,
+    }];
+  }));
+}
+
 export function mergeCloudSnapshots(left = {}, right = {}) {
+  const migratedLeft = migrateCloudSnapshotCaseData(left);
+  const migratedRight = migrateCloudSnapshotCaseData(right);
   const resources = {};
   const resourceKeys = new Set([
     ...cloudResourceKeys,
-    ...Object.keys(left.resources ?? {}),
-    ...Object.keys(right.resources ?? {}),
+    ...Object.keys(migratedLeft.resources ?? {}),
+    ...Object.keys(migratedRight.resources ?? {}),
   ]);
 
   for (const key of resourceKeys) {
-    const mode = cloudResourceModes[key] ?? left.resources?.[key]?.mode ?? right.resources?.[key]?.mode;
-    const leftEntries = left.resources?.[key]?.entries ?? {};
-    const rightEntries = right.resources?.[key]?.entries ?? {};
+    const mode = cloudResourceModes[key] ?? migratedLeft.resources?.[key]?.mode ?? migratedRight.resources?.[key]?.mode;
+    const leftEntries = migratedLeft.resources?.[key]?.entries ?? {};
+    const rightEntries = migratedRight.resources?.[key]?.entries ?? {};
     const caseIds = new Set([...Object.keys(leftEntries), ...Object.keys(rightEntries)]);
     const entries = {};
 
@@ -247,7 +331,16 @@ export function mergeCloudSnapshots(left = {}, right = {}) {
     resources,
     generatedCases: {
       mode: 'array',
-      items: mergeArrayItems(left.generatedCases?.items, right.generatedCases?.items),
+      // Merge raw generated records so the case-domain schema versions can
+      // choose taxonomy fields while retaining the left/local worked record.
+      items: mergeGeneratedItems(left.generatedCases?.items, right.generatedCases?.items),
+    },
+    generatedCaseTruth: {
+      mode: 'array',
+      items: mergeGeneratedTruthItems(
+        left.generatedCaseTruth?.items,
+        right.generatedCaseTruth?.items,
+      ),
     },
   };
 }
@@ -264,10 +357,11 @@ function visibleArray(items = {}) {
 }
 
 export function materializeCloudSnapshot(snapshot) {
+  const migratedSnapshot = migrateCloudSnapshotCaseData(snapshot);
   const rawByKey = {};
 
   for (const key of cloudResourceKeys) {
-    const resource = snapshot.resources?.[key];
+    const resource = migratedSnapshot.resources?.[key];
     const rawEntries = {};
     for (const [caseId, entry] of Object.entries(resource?.entries ?? {})) {
       if (resource.mode === 'array') {
@@ -282,7 +376,8 @@ export function materializeCloudSnapshot(snapshot) {
 
   return {
     rawByKey,
-    generatedCases: visibleArray(snapshot.generatedCases?.items),
+    generatedCases: visibleArray(migratedSnapshot.generatedCases?.items),
+    generatedCaseTruthSnapshots: visibleArray(migratedSnapshot.generatedCaseTruth?.items),
   };
 }
 

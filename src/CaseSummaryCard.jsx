@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
+import {
+  publicAlertReason,
+  publicCaseFacts,
+  publicCaseSummary,
+  publicCaseTaxonomy,
+  publicReportedAllegation,
+} from './data/publicCaseView.js';
 
 function displayFacts(activeCase) {
-  const facts = activeCase.keyFacts?.length ? activeCase.keyFacts : [
-    ['Lane', activeCase.lane ?? 'Not supplied'],
-    ['Subtype', activeCase.subtype ?? 'Not supplied'],
-    ['Reported date', activeCase.reportedDate ?? activeCase.opened],
-    ['Issue start date', activeCase.issueStartDate ?? 'Not supplied'],
-    ['Amount / exposure', activeCase.amountExposure ?? activeCase.amount],
-  ];
-  return facts.slice(0, 8);
+  return publicCaseFacts(activeCase);
 }
 
 export default function CaseSummaryCard({
@@ -25,9 +25,14 @@ export default function CaseSummaryCard({
   const [mobilePage, setMobilePage] = useState(1);
   const [mobileIntakePage, setMobileIntakePage] = useState(0);
   const intake = activeCase.intake ?? {};
+  const taxonomy = publicCaseTaxonomy(activeCase);
   const documents = activeCase.documents ?? [];
   const intakeAnswers = activeCase.intakeAnswers ?? [];
-  const statement = activeCase.statement ?? { label: 'Customer statement', value: activeCase.allegation ?? activeCase.queueReason, source: intake.channel ?? 'Case queue' };
+  const statement = {
+    label: activeCase.statement?.label ?? (intake.channel === 'System alert' ? 'Reported alert' : 'Reported allegation'),
+    value: publicReportedAllegation(activeCase),
+    source: activeCase.statement?.source ?? intake.channel ?? 'Case queue',
+  };
   const chargebackDetails = activeCase.chargebackDecision;
   const facts = displayFacts(activeCase);
   const assignedInvestigator = activeCase.assignedInvestigator ?? activeCase.caseBriefing?.assignedInvestigator ?? 'Training queue · unassigned';
@@ -45,7 +50,7 @@ export default function CaseSummaryCard({
     .filter((item) => !['Case Summary', 'Customer 360', 'Document Viewer'].includes(item) && availableToolNames.has(item))
     .slice(0, 3);
   const mobilePageCount = chargebackDetails || activeCase.creditDecision ? 7 : 6;
-  const mobilePageLabels = ['Overview', 'Briefing summary', 'Claim intake', 'Statement and facts', 'Case parties', 'Case details', chargebackDetails ? 'Chargeback details' : 'Credit details'];
+  const mobilePageLabels = ['Overview', 'Briefing summary', 'Case intake', 'Statement and facts', 'Case parties', 'Case details', chargebackDetails ? 'Card review details' : 'Credit details'];
 
   useEffect(() => {
     setMobilePage(1);
@@ -115,12 +120,12 @@ export default function CaseSummaryCard({
             </div>
             <div className="case-summary-meta-grid">
               <article><small>Name</small><strong>{activeCase.person}</strong></article>
-              <article><small>Claim ID</small><strong>{activeCase.claimId ?? activeCase.id}</strong></article>
+              <article><small>Case ID</small><strong>{activeCase.claimId ?? activeCase.id}</strong></article>
               <article><small>Account ID</small><strong>{activeCase.accountId}</strong></article>
-              <article><small>Total claim amount</small><strong>{activeCase.amount}</strong></article>
-              <article><small>Case type</small><strong>{activeCase.claimType ?? activeCase.type}</strong></article>
-              <article><small>Lane</small><strong>{activeCase.lane ?? 'Not supplied'}</strong></article>
-              <article><small>Subtype</small><strong>{activeCase.subtype ?? 'Not supplied'}</strong></article>
+              <article><small>Amount / exposure</small><strong>{activeCase.amount}</strong></article>
+              <article><small>Customer type</small><strong>{taxonomy.customerType}</strong></article>
+              <article><small>Product</small><strong>{taxonomy.productType}</strong></article>
+              <article><small>Review workflow</small><strong>{taxonomy.workflowType}</strong></article>
               <article className="wide">
                 <small>Transaction / payee info</small>
                 <DirectCollapsibleText as="strong" lines={2} mobileLines={3}>
@@ -130,7 +135,7 @@ export default function CaseSummaryCard({
               <article className="wide">
                 <small>Short summary</small>
                 <DirectCollapsibleText as="strong" lines={2} mobileLines={3}>
-                  {activeCase.shortSummary ?? activeCase.queueReason}
+                  {publicCaseSummary(activeCase)}
                 </DirectCollapsibleText>
               </article>
             </div>
@@ -144,7 +149,7 @@ export default function CaseSummaryCard({
                 <h3>Briefing summary</h3>
               </div>
             </div>
-            <p className="case-briefing-allegation">{activeCase.caseBriefing?.summary ?? activeCase.allegation ?? activeCase.queueReason}</p>
+            <p className="case-briefing-allegation">{publicAlertReason(activeCase)}</p>
             <dl className="case-briefing-intake-grid">
               <div><dt>Intake channel</dt><dd>{intake.channel ?? 'Case queue'}</dd></div>
               <div><dt>Reported / opened</dt><dd>{activeCase.reportedDate ?? intake.contactTime ?? activeCase.opened}</dd></div>
@@ -156,7 +161,7 @@ export default function CaseSummaryCard({
           </article>
 
           <section className="case-briefing-metrics" aria-label="Case at a glance" data-mobile-briefing-page="2" data-mobile-briefing-active={mobilePage === 2 ? 'true' : 'false'}>
-            <article><span>Claim amount</span><strong>{activeCase.amount}</strong></article>
+            <article><span>Amount / exposure</span><strong>{activeCase.amount}</strong></article>
             <article><span>Queue status</span><strong>{activeCase.status ?? 'Open'}</strong></article>
             <article><span>Priority</span><strong>{activeCase.priority ?? 'Standard'}</strong></article>
             <article data-briefing-owner="true"><span>Assigned investigator</span><strong>{assignedInvestigator}</strong><small>{assignmentTeam}</small></article>
@@ -169,7 +174,7 @@ export default function CaseSummaryCard({
               <span aria-hidden="true">03</span>
               <div>
                 <p>Structured intake</p>
-                <h3>Claim Intake Form</h3>
+                <h3>Case Intake Form</h3>
               </div>
             </div>
             {intakeAnswers.length > 1 && (
@@ -254,8 +259,8 @@ export default function CaseSummaryCard({
               <div className="case-briefing-card-heading">
                 <span aria-hidden="true">08</span>
                 <div>
-                  <p>Chargeback review rail</p>
-                  <h3>Reason code and review details</h3>
+                  <p>Card and dispute review rail</p>
+                  <h3>Network and evidence details</h3>
                 </div>
               </div>
               <dl className="case-briefing-facts-grid">

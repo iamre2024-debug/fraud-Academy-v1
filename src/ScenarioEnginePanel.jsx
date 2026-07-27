@@ -22,13 +22,13 @@ export default function ScenarioEnginePanel() {
         <div className="scenario-template-tabs" aria-label="Scenario templates">
           {scenarioTemplates.map((template) => (
             <button key={template.id} className={template.id === selectedTemplate.id ? 'selected' : ''} onClick={() => setSelectedTemplateId(template.id)}>
-              {template.claimType}
+              {template.workflowTypeLabel ?? template.claimType}
             </button>
           ))}
         </div>
 
         <article className="scenario-template-card">
-          <span className="case-pill soft">{selectedTemplate.claimType}</span>
+          <span className="case-pill soft">{selectedTemplate.workflowTypeLabel ?? selectedTemplate.claimType}</span>
           <h4>{selectedTemplate.title}</h4>
           <p>{selectedTemplate.caseReason}</p>
           <small>{selectedTemplate.investigatorQuestion}</small>

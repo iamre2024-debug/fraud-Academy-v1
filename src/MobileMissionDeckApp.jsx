@@ -5,6 +5,7 @@ import CasesThemeV1Panel from './CasesThemeV1Panel.jsx';
 import LunaApiAccessSetting from './LunaApiAccessSetting.jsx';
 import CloudSyncControl from './CloudSyncControl.jsx';
 import ProfileThemeV1Panel from './ProfileThemeV1Panel.jsx';
+import { publicCaseTaxonomy } from './data/publicCaseView.js';
 
 const reducedMotionKey = 'fraud-academy-reduced-motion-v1';
 
@@ -278,7 +279,7 @@ function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGene
       <section className="mission-case-deck" aria-label="Layered active case deck">
         {queuedCases.map((item, index) => (
           <button key={item.id} type="button" className={`mission-case-layer layer-${index + 1}`} onClick={() => onOpenCase(item.id)}>
-            <span>{item.id}</span><small>{item.priority} · {item.type}</small>
+            <span>{item.id}</span><small>{item.priority} · {publicCaseTaxonomy(item).workflowType}</small>
           </button>
         ))}
         <article className="mission-active-file">
@@ -286,11 +287,11 @@ function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGene
           <div className="mission-active-file-copy">
             <span className="mission-live-chip">● ACTIVE CASE</span>
             <h2>{activeCase.id}</h2>
-            <p>{activeCase.type}</p>
+            <p>{publicCaseTaxonomy(activeCase).workflowType}</p>
             <dl>
               <div><dt>👤 Customer</dt><dd>{activeCase.person}</dd></div>
               <div><dt>💵 Exposure</dt><dd>{activeCase.amount}</dd></div>
-              <div><dt>📍 Lane</dt><dd>{activeCase.lane ?? 'Investigation'}</dd></div>
+              <div><dt>🏦 Product</dt><dd>{publicCaseTaxonomy(activeCase).productType}</dd></div>
             </dl>
             <div className="mission-progress-line"><span style={{ width: `${progress}%` }} /><strong>{progress}%</strong></div>
             <button type="button" onClick={() => onOpenCase(activeCase.id)}>Enter mission workspace <span>→</span></button>

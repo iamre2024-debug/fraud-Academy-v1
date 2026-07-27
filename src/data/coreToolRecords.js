@@ -2,6 +2,7 @@ import { getBusinessRecords, getFinancialRecords } from './caseToolData.js';
 import { getCaseDocuments } from './documentRecords.js';
 import { getMerchantIntelligence } from './merchantIntelligenceRecords.js';
 import { isPaymentProfileEvent, paymentChangeMetadata } from './paymentVerification.js';
+import { WORKFLOW_TYPES } from './caseDomain.js';
 
 function row(id, values, pin = id, label = 'Record') {
   const normalized = values.map((value) => value ?? 'Not recorded');
@@ -77,24 +78,6 @@ export function buildCoreToolRecords(tool, activeCase, fallbackData = { rows: []
     )),
   };
 
-  if (tool === 'KYB Review') return {
-    columns: ['Record', 'Type', 'Business / Value', 'Observed', 'Relationships', 'Related Activity', 'Context'],
-    rows: [
-      ...business.businessIntel.map((item) => row(
-        item.id,
-        [item.id, item.type, item.value, item.observed, business.business360.map((entry) => entry.entity).join(' · ') || 'None recorded', joinIds(financial.transactions), item.context],
-        item.id,
-        'KYB record',
-      )),
-      ...business.business360.map((item) => row(
-        `REL-${item.id}`,
-        [`REL-${item.id}`, 'Business relationship', item.entity, item.observed, item.relationship, item.status, item.context],
-        item.entity,
-        'Business relationship',
-      )),
-    ],
-  };
-
   if (tool === 'Document Viewer') return {
     columns: ['Document', 'Folder', 'Status', 'Source', 'Received / Updated', 'Reference', 'Summary / Preview'],
     rows: documents.map((item) => row(
@@ -119,7 +102,10 @@ export function buildCoreToolRecords(tool, activeCase, fallbackData = { rows: []
 
   if (tool === 'Timeline') {
     const fallbackDate = activeCase.reportedDate ?? activeCase.opened ?? 'Training date';
-    const chargeback = ['fraud-chargeback', 'non-fraud-chargeback', 'first-party-fraud'].includes(activeCase.claimTypeId)
+    const chargeback = [
+      WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM,
+      WORKFLOW_TYPES.MERCHANT_NON_FRAUD_DISPUTE,
+    ].includes(activeCase.workflowType ?? activeCase.claimTypeId)
       || Boolean(activeCase.chargebackDecision);
     const transactionRows = financial.transactions.map((item) => row(`TML-${item.id}`, [`TML-${item.id}`, `${item.posted} · ${item.time}`, item.merchant, 'Transaction History', item.id, activeCase.id, `${item.amount} · ${item.status}`], item.id, 'Transaction timeline'));
     const rows = chargeback
