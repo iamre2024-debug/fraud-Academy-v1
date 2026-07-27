@@ -11,8 +11,10 @@ const workspaceController = read('src/VisualWorkspace.jsx');
 const briefing = read('src/MobileMissionCaseBriefing.jsx');
 const documentViewer = read('src/DocumentViewerWorkspace.jsx');
 const referenceTools = read('src/MobileMerchantDocumentPages.jsx');
+const accessReferenceTools = read('src/MobileLoginSessionPages.jsx');
 const styles = read('src/mobileMissionDeckV3.css');
 const referenceStyles = read('src/mobileMerchantDocumentReference.css');
+const accessReferenceStyles = read('src/mobileLoginSessionReference.css');
 const legacyStyles = read('src/mobileBlueMissionDeck.css');
 const playwrightConfig = read('playwright.config.mjs');
 const failures = [];
@@ -24,6 +26,7 @@ function requireAnchor(label, content, anchor) {
 for (const anchor of [
   "import './mobileMissionDeckV3.css';",
   "import './mobileMerchantDocumentReference.css';",
+  "import './mobileLoginSessionReference.css';",
 ]) requireAnchor('main.jsx', entrypoint, anchor);
 
 if (entrypoint.includes("import './mobileBlueMissionDeck.css';")) failures.push('The legacy Blue Mission Deck override file must not load.');
@@ -65,7 +68,8 @@ for (const anchor of [
   'mission-document-request-page',
   'mission-merchant-reference-page',
   'mission-login-history-page',
-  'MissionLoginHistoryHeading',
+  'mission-session-history-page',
+  'data-session-history-page',
   '<BottomInvestigationGrid',
   '<SubmitDecisionPanel',
   'decision-luna-portal-anchor',
@@ -119,6 +123,22 @@ for (const anchor of [
 ]) requireAnchor('MobileMerchantDocumentPages.jsx', referenceTools, anchor);
 
 for (const anchor of [
+  'MobileLoginHistoryPage',
+  'MobileSessionHistoryPage',
+  'data-mobile-login-reference',
+  'data-mobile-session-reference',
+  'Track and analyze recorded authentication events.',
+  'Review recorded user sessions and actions.',
+  'Quick Login History result filters',
+  'Quick Session History logout filters',
+  'Authentication event detail',
+  'Session detail',
+  'Session path',
+  'Debrief after submit',
+  'Evidence First',
+]) requireAnchor('MobileLoginSessionPages.jsx', accessReferenceTools, anchor);
+
+for (const anchor of [
   'A dedicated mobile component system',
   '.mission-mobile-root',
   '.mission-mobile-dock',
@@ -152,10 +172,26 @@ for (const anchor of [
   '@media (max-width: 350px)',
 ]) requireAnchor('mobileMerchantDocumentReference.css', referenceStyles, anchor);
 
+for (const anchor of [
+  'Login History + Session History mobile reference rebuild',
+  '.mobile-access-header',
+  '.mobile-access-search',
+  '.mobile-access-quick-filters',
+  '.mobile-login-record-list',
+  '.mobile-session-timeline',
+  '.mobile-access-detail-panel',
+  '.mobile-session-path-panel',
+  '@media (max-width: 350px)',
+]) requireAnchor('mobileLoginSessionReference.css', accessReferenceStyles, anchor);
+
 if (/body\[data-layout-mode="desktop"\]/.test(referenceStyles)) failures.push('Merchant/Document reference styles must not alter the desktop layout.');
 if (/font-size:\s*(?:0\.[0-6]\d*)rem/.test(referenceStyles)) failures.push('Merchant/Document reference styles must preserve the 12px mobile type floor.');
 if (!/Under review/.test(referenceTools) || /High Risk/.test(referenceTools)) failures.push('Merchant mobile reference must use neutral review wording instead of the mockup risk conclusion.');
 if (/KYB Review|caseTruth|correctDetermination|fraud score/i.test(referenceTools)) failures.push('Merchant/Document mobile reference restores a retired or answer-bearing surface.');
+if (/body\[data-layout-mode="desktop"\]/.test(accessReferenceStyles)) failures.push('Login/Session reference styles must not alter the desktop layout.');
+if (/font-size:\s*(?:0\.[0-6]\d*)rem/.test(accessReferenceStyles)) failures.push('Login/Session reference styles must preserve the 12px mobile type floor.');
+if (/High Trust|Medium Trust|Low Trust|Suspicious|Impossible Travel|High Risk IP/i.test(accessReferenceTools)) failures.push('Login/Session mobile reference must display source facts instead of mockup risk or trust conclusions.');
+if (/KYB Review|caseTruth|correctDetermination|fraud score|accepted determination/i.test(accessReferenceTools)) failures.push('Login/Session mobile reference restores a retired or answer-bearing surface.');
 
 const importantCount = (styles.match(/!important/g) ?? []).length;
 if (importantCount > 12) failures.push(`Mission Deck v3 has ${importantCount} !important overrides; it must remain structurally scoped.`);
