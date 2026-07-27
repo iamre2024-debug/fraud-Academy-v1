@@ -275,7 +275,7 @@ function buildClaimFields(item, context = {}) {
 }
 
 function enrichOneCase(item) {
-  if (item.id?.includes('-G') && item.generatedPacketVersion !== 6 && item.claimTypeId && item.scenarioId) {
+  if (item.id?.includes('-G') && item.generatedPacketVersion !== 7 && item.claimTypeId && item.scenarioId) {
     const index = item.generatedAt ?? Number(String(item.id).replace(/\D/g, '').slice(-8)) ?? Date.now();
     const refreshed = createGeneratedCase({
       index,
@@ -307,6 +307,7 @@ function enrichOneCase(item) {
     const shouldUpgradeSummary = item.id?.includes('-G') && (!storedSummary || /fictional packet contains both routine and exception evidence/i.test(storedSummary));
     const generatedSummary = shouldUpgradeSummary ? buildGeneratedCaseSummary({
       person: item.person,
+      claimType,
       scenario,
       employer: item.profile?.employer,
       business: item.profile?.business,
