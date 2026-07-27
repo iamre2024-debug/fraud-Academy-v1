@@ -68,6 +68,8 @@ for (const anchor of [
   'Source record unavailable',
   'data-document-request-step',
   'data-mobile-indicator-view={workspaceScreen}',
+  'mission-review-bar',
+  'const isReviewScreen =',
   'disabled={stageStatus[key]?.state === \'locked\'}',
 ]) requireAnchor('MobileMissionWorkspace.jsx', workspace, anchor);
 
@@ -112,7 +114,7 @@ for (const anchor of [
   '.document-mobile-review-tabs',
   '.document-mobile-fields-panel',
   '.document-mobile-step-controls',
-  '.mission-decision-page .mission-decision-progress',
+  '.mission-workspace-bar',
   'body:has(iframe[title="Netlify Drawer"]) .mission-mobile-dock',
   '@media (max-width: 370px)',
 ]) requireAnchor('mobileMissionDeckV3.css', styles, anchor);
@@ -120,6 +122,7 @@ for (const anchor of [
 const importantCount = (styles.match(/!important/g) ?? []).length;
 if (importantCount > 12) failures.push(`Mission Deck v3 has ${importantCount} !important overrides; it must remain structurally scoped.`);
 if (/body\[data-layout-mode="desktop"\]/.test(styles)) failures.push('Mission Deck v3 must not alter the desktop layout.');
+if (styles.includes('.mission-decision-progress')) failures.push('Mission Deck v3 still contains the retired decision progress rail.');
 if (/#ff4fd8|#d76bff|#ff9be9/i.test(styles)) failures.push('Mission Deck v3 contains the retired pink/purple palette.');
 if (/width:\s*min\(100%,\s*430px\)/.test(styles)) failures.push('Mission Deck v3 must fill the phone viewport instead of using the retired 430px shell cap.');
 if (!styles.includes('--md-shell-width: 94vw;')) failures.push('Mission Deck v3 must preserve a proportional phone shell across browser zoom levels.');
