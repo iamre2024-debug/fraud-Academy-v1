@@ -924,6 +924,36 @@
   body[data-layout-mode="mobile"] [data-tool-name="Payment Verification"] > .investigation-tool-question {
     display:none !important;
   }
+  body[data-layout-mode="mobile"] [data-tool-name="Payment Verification"] .payment-verification-gate > header {
+    display:grid;
+    gap:8px;
+  }
+  body[data-layout-mode="mobile"] [data-tool-name="Payment Verification"] .payment-verification-gate > header p {
+    color:#72e4ff !important;
+  }
+  body[data-layout-mode="mobile"] [data-tool-name="Payment Verification"] .payment-verification-gate > header h3 {
+    color:#f7fbff !important;
+  }
+  body[data-layout-mode="mobile"] [data-tool-name="Payment Verification"] .payment-verification-gate > header span {
+    color:#a7bdd6 !important;
+  }
+  body[data-layout-mode="mobile"] [data-tool-name="Payment Verification"] .payment-verification-gate label {
+    color:#b7cee5 !important;
+  }
+  body[data-layout-mode="mobile"] [data-tool-name="Payment Verification"] .payment-verification-gate > header > button {
+    justify-self:start;
+    width:auto;
+    min-height:40px;
+    padding:7px 11px;
+    color:#e9faff;
+    border:1px solid rgba(76,203,255,.32);
+    background:rgba(17,76,135,.58);
+  }
+  body[data-layout-mode="mobile"] [data-tool-name="Payment Verification"] .payment-verification-gate form > button[type="submit"] {
+    color:#fff;
+    border-color:rgba(113,231,255,.58);
+    background:linear-gradient(135deg,#168ddd,#694ad6);
+  }
   body[data-layout-mode="mobile"] [data-tool-name="Payment Verification"] .payment-verification-gate form,
   body[data-layout-mode="mobile"] [data-tool-name="Payment Verification"] .payment-verification-result-grid,
   body[data-layout-mode="mobile"] [data-tool-name="Payment Verification"] .payment-verification-result,
