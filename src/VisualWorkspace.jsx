@@ -50,15 +50,29 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   const submitRef = useRef(null);
   const workspaceScreenHistory = useRef([]);
   const requestedWorkspaceScreenRef = useRef(requestedWorkspaceScreen);
+  const pendingLinkedRouteRef = useRef(null);
 
   const activeCase = cases.find((item) => item.id === activeCaseId) ?? cases[0];
 
   useEffect(() => {
-    const nextScreen = requestedWorkspaceScreen || 'briefing';
+    const pendingRoute = pendingLinkedRouteRef.current?.caseId === activeCase.id
+      ? pendingLinkedRouteRef.current
+      : null;
+    const nextScreen = pendingRoute?.screen ?? requestedWorkspaceScreen ?? 'briefing';
     workspaceScreenHistory.current = [];
     requestedWorkspaceScreenRef.current = nextScreen;
-    setActiveStage(stageForWorkspaceScreen(nextScreen, tool));
+    setActiveStage(stageForWorkspaceScreen(nextScreen, pendingRoute?.tool ?? tool));
     setWorkspaceScreen(nextScreen);
+    if (pendingRoute) {
+      setCategoryKey(groupForTool(pendingRoute.tool)?.key ?? 'identity');
+      setTool(pendingRoute.tool);
+      setQuery(pendingRoute.query ?? '');
+      setExpandedId(pendingRoute.recordId ?? '');
+      pendingLinkedRouteRef.current = null;
+    } else {
+      setQuery('');
+      setExpandedId('');
+    }
     setOpenedPinnedEvidence(null);
   }, [activeCase.id]);
 
@@ -100,7 +114,17 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setDocumentRequestsByCase,
     setQuickPadByCase,
   } = useVisualWorkspaceCaseState(activeCase);
-  const availableToolNames = useMemo(() => new Set(activeCase.availableTools?.length ? activeCase.availableTools : workspaceTools), [activeCase]);
+  const availableToolNames = useMemo(() => {
+    const available = new Set(activeCase.availableTools?.length ? activeCase.availableTools : workspaceTools);
+    if (layoutMode === 'mobile') {
+      available.delete('KYB Review');
+      available.delete('System Access Lane');
+      const payrollBusiness = activeCase.claimTypeId === 'payroll-direct-deposit'
+        || activeCase.taxonomyTags?.productRail === 'payroll';
+      if (payrollBusiness) available.delete('Transaction History');
+    }
+    return available;
+  }, [activeCase, layoutMode]);
   const visibleCategories = useMemo(() => investigationToolGroups
     .map((group) => ({ ...group, tools: group.tools.filter((toolName) => availableToolNames.has(toolName)) }))
     .filter((group) => group.tools.length), [availableToolNames]);
@@ -325,6 +349,33 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     showWorkspaceScreen('tool');
   }
 
+  function openRelatedCase(nextCaseId) {
+    recordAction('Opened related case', `${nextCaseId} opened from Link Analysis.`, 'Link Analysis');
+    if (nextCaseId === activeCase.id) {
+      setActiveStage('briefing');
+      showWorkspaceScreen('briefing');
+      return;
+    }
+    onCaseChange(nextCaseId, 'briefing');
+  }
+
+  function openRelatedAccount(nextCaseId, accountId) {
+    recordAction('Opened related account', `${accountId} opened from Link Analysis.`, 'Link Analysis');
+    if (nextCaseId === activeCase.id) {
+      openTool('Customer 360', 'investigate', { query: accountId });
+      setExpandedId(accountId);
+      return;
+    }
+    pendingLinkedRouteRef.current = {
+      caseId: nextCaseId,
+      screen: 'tool',
+      tool: 'Customer 360',
+      query: accountId,
+      recordId: accountId,
+    };
+    onCaseChange(nextCaseId, 'tool');
+  }
+
   function jumpDecision() {
     onNavigate('workspace');
     setActiveStage('determination');
@@ -370,15 +421,22 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
   function updateQuickPad(updater) {
     setQuickPadByCase((current) => {
-      const currentPad = current[activeCase.id] ?? { items: [], scratch: '' };
-      return { ...current, [activeCase.id]: updater(currentPad) };
+      const currentPad = current[activeCase.id] ?? { items: [], scratch: '', lastSavedAt: '' };
+      const updatedPad = updater(currentPad);
+      return {
+        ...current,
+        [activeCase.id]: {
+          ...updatedPad,
+          lastSavedAt: new Date().toISOString(),
+        },
+      };
     });
   }
 
   function quickPin({ label, value, sourceTool = activeTool, sourceRecordId = '' }) {
     if (!value) return;
     updateQuickPad((current) => {
-      const id = `${sourceTool}:${label}:${value}`;
+      const id = `${String(label).trim().toLowerCase()}:${String(value).trim().toLowerCase()}`;
       const item = { id, label, value: String(value), sourceTool, sourceRecordId };
       return {
         ...current,
@@ -411,6 +469,16 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   }
 
   function openQuickPadSource(item) {
+    if (item.sourceTool === 'Case Briefing' || item.label === 'Case ID') {
+      setActiveStage('briefing');
+      showWorkspaceScreen('briefing');
+      recordAction('Opened Quick Pad source', `${item.label} reopened in Case Briefing.`, 'Quick Pad');
+      return;
+    }
+    if (!availableToolNames.has(item.sourceTool)) {
+      recordAction('Quick Pad source unavailable', `${item.label} source is not available in this case.`, 'Quick Pad');
+      return;
+    }
     openTool(item.sourceTool, stageForTool(item.sourceTool), { query: item.value });
     setExpandedId(item.sourceRecordId ?? '');
     recordAction('Opened Quick Pad source', `${item.label} reopened in ${item.sourceTool}.`, 'Quick Pad');
@@ -482,12 +550,17 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     currentCompleted,
     jumpDecision,
     notes,
+    actionLog,
+    reviewPackages,
     cases,
     openDocumentAccountCase,
     documentRequests,
     setDocumentRequestsByCase,
     recordAction,
     quickPin,
+    layoutMode,
+    openRelatedCase,
+    openRelatedAccount,
   };
 
   const quickPadLayer = (
@@ -495,6 +568,8 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       activeCase={activeCase}
       items={quickPad.items ?? []}
       scratch={quickPad.scratch ?? ''}
+      lastSavedAt={quickPad.lastSavedAt ?? ''}
+      notes={notes}
       onScratchChange={setQuickPadScratch}
       onRemove={removeQuickPadItem}
       onUse={useQuickPadItem}

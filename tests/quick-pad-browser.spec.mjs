@@ -24,10 +24,15 @@ test('Quick Pad keeps an account ID available across tools and reloads', async (
   await beginInvestigation.click();
 
   const customer = page.locator('[data-customer-360-screen="approved-theme-v1"]');
-  await customer.getByRole('tab', { name: 'Accounts', exact: true }).click();
+  if (test.info().project.name !== 'mobile-chromium') {
+    await customer.getByRole('tab', { name: 'Accounts', exact: true }).click();
+  }
   const account = customer.locator('[data-customer-account]').first();
   const accountId = await account.getAttribute('data-customer-account');
-  await account.getByRole('button', { name: `Add ${accountId} to Quick Pad` }).click();
+  const pinAccount = test.info().project.name === 'mobile-chromium'
+    ? account.getByRole('button', { name: `Pin Account ID ${accountId} to Quick Pad` })
+    : account.getByRole('button', { name: `Add ${accountId} to Quick Pad` });
+  await pinAccount.click();
 
   const trigger = page.getByRole('button', { name: 'Open Quick Pad, 1 saved item' });
   await expect(trigger).toBeVisible();
@@ -38,8 +43,13 @@ test('Quick Pad keeps an account ID available across tools and reloads', async (
   await pad.getByRole('button', { name: 'Copy', exact: true }).click();
   await expect(pad.getByRole('button', { name: 'Copied', exact: true })).toBeVisible();
 
-  await pad.getByRole('button', { name: 'Use here', exact: true }).click();
-  await expect(customer.getByRole('textbox', { name: 'Search Customer 360 dossier' })).toHaveValue(accountId);
+  if (test.info().project.name === 'mobile-chromium') {
+    await pad.getByRole('button', { name: 'Open record', exact: true }).click();
+    await expect(customer.locator(`[data-customer-account="${accountId}"]`)).toBeVisible();
+  } else {
+    await pad.getByRole('button', { name: 'Use here', exact: true }).click();
+    await expect(customer.getByRole('textbox', { name: 'Search Customer 360 dossier' })).toHaveValue(accountId);
+  }
 
   await page.reload();
   await page.getByRole('button', { name: 'Open Quick Pad, 1 saved item' }).click();

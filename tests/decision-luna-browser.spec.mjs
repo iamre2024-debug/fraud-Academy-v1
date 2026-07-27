@@ -27,7 +27,7 @@ async function openDecision(page) {
   return decision;
 }
 
-test('a choice-only decision saves and unlocks Luna on desktop and mobile', async ({ page }, testInfo) => {
+test('workflow decision inputs save and unlock Luna on desktop and mobile', async ({ page }, testInfo) => {
   await seedIncompleteCase(page);
   await page.goto('/');
 
@@ -35,17 +35,13 @@ test('a choice-only decision saves and unlocks Luna on desktop and mobile', asyn
   await expect(page.locator('body')).toHaveAttribute('data-layout-detected', detectedLayout);
   await expect(page.locator('body')).toHaveAttribute('data-layout-mode', detectedLayout);
   const settingsButton = page.getByRole('button', { name: 'Open Settings', exact: true });
-  await settingsButton.click();
-  const layoutControl = testInfo.project.name === 'mobile-chromium'
-    ? page.getByRole('combobox', { name: 'Layout mode', exact: true })
-    : page.getByRole('group', { name: 'Layout mode', exact: true });
-  if (testInfo.project.name === 'mobile-chromium') {
-    await expect(layoutControl).toHaveValue('auto');
-  } else {
+  const layoutControl = page.getByRole('group', { name: 'Layout mode', exact: true });
+  if (testInfo.project.name !== 'mobile-chromium') {
+    await settingsButton.click();
     await expect(layoutControl.getByRole('button')).toHaveCount(3);
     await expect(layoutControl.getByRole('button', { name: 'Auto', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await settingsButton.click();
   }
-  await settingsButton.click();
 
   const decision = await openDecision(page);
   await expect(decision).toHaveAttribute('data-case-id', caseId);
@@ -98,7 +94,7 @@ test('a choice-only decision saves and unlocks Luna on desktop and mobile', asyn
   expect(decisionLayout.position).toBe('static');
   if (testInfo.project.name === 'mobile-chromium') {
     expect(decisionLayout.workspaceColumns).toBe(1);
-    expect(decisionLayout.metricColumns).toBe(1);
+    expect(decisionLayout.metricColumns).toBe(2);
     expect(decisionLayout.flagColumns).toBe(1);
   } else {
     expect(decisionLayout.workspaceColumns).toBe(1);
@@ -108,7 +104,12 @@ test('a choice-only decision saves and unlocks Luna on desktop and mobile', asyn
 
   await openDecision(page);
 
-  await decision.getByRole('radio', { name: learnerChoice, exact: true }).check();
+  const selectedChoice = testInfo.project.name === 'mobile-chromium' ? 'Insufficient' : learnerChoice;
+  await decision.getByRole('radio', { name: selectedChoice, exact: true }).check();
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(savePackage).toBeDisabled();
+    await decision.getByRole('radio', { name: 'Inconclusive', exact: true }).check();
+  }
   await decision.getByRole('combobox', { name: 'Learner confidence' }).selectOption('High');
   await expect(savePackage).toBeEnabled();
   await savePackage.click();
@@ -124,11 +125,16 @@ test('a choice-only decision saves and unlocks Luna on desktop and mobile', asyn
   expect(savedPackage.reason).toBe('');
   expect(savedPackage.blockers).toEqual([]);
   expect(savedPackage.coachingGaps.length).toBeGreaterThan(0);
+  if (testInfo.project.name === 'mobile-chromium') {
+    expect(savedPackage.operationalDecision).toBe('Insufficient');
+    expect(savedPackage.finalFinding).toBe('Inconclusive');
+    expect(savedPackage.decisionMode).toBe('separated');
+  }
 
   const luna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');
   await expect(luna).toBeVisible();
   await expect(luna.getByRole('heading', { name: 'What you submitted', exact: true })).toBeVisible();
-  await expect(luna.getByText(learnerChoice, { exact: true })).toBeVisible();
+  await expect(luna.getByText(selectedChoice, { exact: true })).toBeVisible();
   await expect(luna.getByRole('heading', { name: 'How well your decision was supported', exact: true })).toBeVisible();
   await expect(luna.getByRole('heading', { name: 'What you handled well', exact: true })).toBeVisible();
   await expect(luna.getByRole('heading', { name: 'What to improve next time', exact: true })).toBeVisible();
@@ -214,7 +220,7 @@ test('a choice-only decision saves and unlocks Luna on desktop and mobile', asyn
   const persistedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');
   await openWorkflowStage(page, /Debrief/);
   await expect(persistedLuna).toBeVisible();
-  await expect(persistedLuna).toContainText(learnerChoice);
+  await expect(persistedLuna).toContainText(selectedChoice);
 
   await persistedLuna.getByRole('button', { name: 'Finish and Return to Queue', exact: true }).click();
   await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'cases');

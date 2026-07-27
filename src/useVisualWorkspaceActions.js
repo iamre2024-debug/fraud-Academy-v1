@@ -104,6 +104,8 @@ export default function useVisualWorkspaceActions({
       ...current,
       [activeCase.id]: {
         ...(current[activeCase.id] ?? defaultDecisionDraft),
+        ...(field === 'operationalDecision' ? { choice: value, decisionMode: 'separated' } : {}),
+        ...(field === 'finalFinding' ? { decisionMode: 'separated' } : {}),
         [field]: value,
       },
     }));

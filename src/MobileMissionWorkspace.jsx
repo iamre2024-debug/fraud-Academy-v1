@@ -1,8 +1,17 @@
 import BottomInvestigationGrid from './BottomInvestigationGrid.jsx';
 import CategoryTileRail from './CategoryTileRail.jsx';
-import Customer360Panel from './Customer360Panel.jsx';
 import InvestigationToolPanel from './InvestigationToolPanel.jsx';
+import MobileLinkAnalysisPanel from './MobileLinkAnalysisPanel.jsx';
+import MobileLunaPortrait from './MobileLunaPortrait.jsx';
 import MobileMissionCaseBriefing from './MobileMissionCaseBriefing.jsx';
+import {
+  MobileBusiness360Page,
+  MobileCustomer360Page,
+  MobileEmployeeProfilePage,
+  MobileFinancialInvestigationPage,
+  MobilePayrollHistoryPage,
+} from './MobileReferenceToolPages.jsx';
+import MobileToolQuickPins from './MobileToolQuickPins.jsx';
 import SubmitDecisionPanel from './SubmitDecisionPanel.jsx';
 import TimelinePanel from './TimelinePanel.jsx';
 
@@ -77,17 +86,29 @@ export default function MobileMissionWorkspace({
     : screenCopy[workspaceScreen] ?? ['🛰️', 'Mission Workspace'];
   const isRoot = workspaceScreen === 'briefing';
   const isTool = workspaceScreen === 'tool' || workspaceScreen === 'timeline';
+  const screenSubtitle = isTool
+    ? 'Factual records · Evidence First'
+    : workspaceScreen === 'briefing'
+      ? 'Read the allegation before reviewing evidence'
+      : workspaceScreen === 'determination'
+        ? 'Operational decision and final finding'
+        : 'Case-specific investigation workspace';
+  const referenceToolProps = {
+    ...activeToolProps,
+    reviewed: currentCompleted.includes(activeTool),
+  };
 
   return (
     <main className="mission-workspace-v3" data-workspace-screen={workspaceScreen} data-active-tool={activeTool}>
       <header className="mission-workspace-bar">
         <button type="button" className="mission-workspace-back" disabled={isRoot} onClick={goBackWorkspaceScreen} aria-label="Back to previous mission screen">‹</button>
-        <div><span>{screenIcon}</span><p>{activeCase.id}</p><h1>{screenTitle}</h1></div>
-        <button type="button" className={workspaceScreen === 'workflow' ? 'active' : ''} onClick={() => workspaceScreen === 'workflow' ? goBackWorkspaceScreen() : showWorkspaceScreen('workflow')} aria-label="Open mission pages">☷</button>
+        <div className="mission-workspace-title"><span>{screenIcon}</span><p>{activeCase.id}</p><h1>{screenTitle}</h1><small>{screenSubtitle}</small></div>
+        <MobileLunaPortrait size={36} className="mission-workspace-luna" />
+        <button type="button" className={workspaceScreen === 'workflow' ? 'active' : ''} onClick={() => workspaceScreen === 'workflow' ? goBackWorkspaceScreen() : showWorkspaceScreen('workflow')} aria-label="Open workspace menu">•••</button>
       </header>
 
       <section className="mission-workspace-case-selector" aria-label="Active mission file">
-        <span>ACTIVE FILE</span>
+        <span>ACTIVE CASE</span>
         <label className="visual-case-switcher">
           <select value={activeCase.id} onChange={(event) => changeCase(event.target.value)} aria-label="Choose active mission case">
             {cases.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.person}</option>)}
@@ -153,6 +174,14 @@ export default function MobileMissionWorkspace({
               <button type="button" onClick={openNotes}>📝 Notes <span>{notes.length}</span></button>
               <button type="button" onClick={jumpDecision}>✅ Decide</button>
             </nav>
+            {activeToolProps.activeCategory?.tools?.length > 1 && (
+              <label className="mission-mobile-tool-switcher">
+                <span>Tool in this group</span>
+                <select value={activeTool} onChange={(event) => openTool(event.target.value)} aria-label="Choose mobile investigation tool">
+                  {activeToolProps.activeCategory.tools.map((toolName) => <option key={toolName} value={toolName}>{toolName}</option>)}
+                </select>
+              </label>
+            )}
             {openedPinnedEvidence && !openedPinnedEvidence.unresolved && (
               <section className="mission-opened-pin" data-opened-pinned-evidence="true">
                 <div><p>Opened from pinned evidence</p><h2>{openedPinnedEvidence.value}</h2><small>Source: {openedPinnedEvidence.tool}</small></div>
@@ -161,9 +190,27 @@ export default function MobileMissionWorkspace({
             )}
             {activeTool === 'Document Request' && <MissionDocumentRequestHeading activeCase={activeCase} documentRequests={documentRequests} />}
             {activeTool === 'Login History' && <MissionLoginHistoryHeading activeCase={activeCase} />}
+            {activeTool !== 'Link Analysis' && (
+              <MobileToolQuickPins
+                activeTool={activeTool}
+                activeCase={activeCase}
+                activeRow={activeToolProps.activeRow}
+                quickPin={activeToolProps.quickPin}
+              />
+            )}
             <div className="mission-tool-content">
               {activeTool === 'Customer 360' ? (
-                <Customer360Panel {...activeToolProps} />
+                <MobileCustomer360Page {...referenceToolProps} />
+              ) : activeTool === 'Business 360' ? (
+                <MobileBusiness360Page {...referenceToolProps} />
+              ) : activeTool === 'Financial Investigation' ? (
+                <MobileFinancialInvestigationPage {...referenceToolProps} />
+              ) : activeTool === 'Employee Profile' ? (
+                <MobileEmployeeProfilePage {...referenceToolProps} />
+              ) : activeTool === 'Payroll History' ? (
+                <MobilePayrollHistoryPage {...referenceToolProps} />
+              ) : activeTool === 'Link Analysis' ? (
+                <MobileLinkAnalysisPanel {...referenceToolProps} />
               ) : activeTool === 'Timeline' ? (
                 <TimelinePanel {...activeToolProps} />
               ) : (
@@ -223,6 +270,7 @@ export default function MobileMissionWorkspace({
               updateDecisionIndicator={updateDecisionIndicator}
               submitDecision={submitDecision}
               openDebrief={openDebrief}
+              layoutMode="mobile"
             />
           </section>
         )}

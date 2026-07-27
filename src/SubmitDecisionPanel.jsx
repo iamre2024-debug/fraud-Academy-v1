@@ -1,5 +1,10 @@
 import DecisionFlagChecklist from './DecisionFlagChecklist.jsx';
-import { getDecisionCallGroups, reviewChoices } from './data/reviewPackage.js';
+import {
+  getDecisionCallGroups,
+  getFinalFindingOptions,
+  getOperationalDecisionOptions,
+  reviewChoices,
+} from './data/reviewPackage.js';
 
 export default function SubmitDecisionPanel({
   submitRef,
@@ -13,6 +18,7 @@ export default function SubmitDecisionPanel({
   updateDecisionIndicator,
   submitDecision,
   openDebrief,
+  layoutMode = 'desktop',
 }) {
   const latestPackage = reviewPackages[0] ?? null;
   const submissionLabel = latestPackage
@@ -24,6 +30,9 @@ export default function SubmitDecisionPanel({
       : 'Select a determination';
   const decisionGroups = getDecisionCallGroups(activeCase);
   const selectionGroups = decisionGroups.length ? decisionGroups : [{ label: 'Learner choices', options: reviewChoices }];
+  const separatedMobileDecision = layoutMode === 'mobile';
+  const operationalOptions = getOperationalDecisionOptions(activeCase);
+  const finalFindingOptions = getFinalFindingOptions(activeCase);
 
   function submitAndOpenDebrief(event) {
     const reviewPackage = submitDecision(event);
@@ -90,30 +99,80 @@ export default function SubmitDecisionPanel({
             <span>Choose the lane-appropriate action. Add the support you have, then submit whenever you are ready for the debrief.</span>
           </header>
 
-          <fieldset className="decision-choice-fieldset">
-            <legend>Determination choice</legend>
-            <div className="decision-choice-groups">
-              {selectionGroups.map((group) => (
-                <section key={group.label} className="decision-choice-group" aria-label={group.label}>
-                  <h4>{group.label}</h4>
-                  <div>
-                    {group.options.map((item) => (
-                      <label key={item} data-choice-selected={decisionDraft.choice === item ? 'true' : 'false'}>
-                        <input
-                          type="radio"
-                          name={`decision-choice-${activeCase.id}`}
-                          value={item}
-                          checked={decisionDraft.choice === item}
-                          onChange={(event) => updateDecision('choice', event.target.value)}
-                        />
-                        <span>{item}</span>
-                      </label>
-                    ))}
-                  </div>
-                </section>
-              ))}
-            </div>
-          </fieldset>
+          {separatedMobileDecision ? (
+            <>
+              <fieldset className="decision-choice-fieldset" data-decision-part="operational">
+                <legend>Operational decision</legend>
+                <p className="decision-field-help">Choose the action this workflow should take. This is separate from the factual finding below.</p>
+                <div className="decision-choice-groups">
+                  <section className="decision-choice-group" aria-label="Operational decision">
+                    <div>
+                      {operationalOptions.map((item) => (
+                        <label key={item} data-choice-selected={decisionDraft.operationalDecision === item ? 'true' : 'false'}>
+                          <input
+                            type="radio"
+                            name={`operational-decision-${activeCase.id}`}
+                            value={item}
+                            checked={decisionDraft.operationalDecision === item}
+                            onChange={(event) => updateDecision('operationalDecision', event.target.value)}
+                          />
+                          <span>{item}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+              </fieldset>
+
+              <fieldset className="decision-choice-fieldset" data-decision-part="finding">
+                <legend>Final investigative finding</legend>
+                <p className="decision-field-help">Record what the reviewed evidence establishes. No finding is selected for you.</p>
+                <div className="decision-choice-groups">
+                  <section className="decision-choice-group" aria-label="Final investigative finding">
+                    <div>
+                      {finalFindingOptions.map((item) => (
+                        <label key={item} data-choice-selected={decisionDraft.finalFinding === item ? 'true' : 'false'}>
+                          <input
+                            type="radio"
+                            name={`final-finding-${activeCase.id}`}
+                            value={item}
+                            checked={decisionDraft.finalFinding === item}
+                            onChange={(event) => updateDecision('finalFinding', event.target.value)}
+                          />
+                          <span>{item}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+              </fieldset>
+            </>
+          ) : (
+            <fieldset className="decision-choice-fieldset">
+              <legend>Determination choice</legend>
+              <div className="decision-choice-groups">
+                {selectionGroups.map((group) => (
+                  <section key={group.label} className="decision-choice-group" aria-label={group.label}>
+                    <h4>{group.label}</h4>
+                    <div>
+                      {group.options.map((item) => (
+                        <label key={item} data-choice-selected={decisionDraft.choice === item ? 'true' : 'false'}>
+                          <input
+                            type="radio"
+                            name={`decision-choice-${activeCase.id}`}
+                            value={item}
+                            checked={decisionDraft.choice === item}
+                            onChange={(event) => updateDecision('choice', event.target.value)}
+                          />
+                          <span>{item}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </fieldset>
+          )}
 
           <label className="decision-confidence">
             <span>Confidence</span>
@@ -162,7 +221,11 @@ export default function SubmitDecisionPanel({
           <div>
             <p>Submission confirmation</p>
             <h3>Decision submitted for {latestPackage.caseId}</h3>
-            <span>{latestPackage.choice || 'No determination selected'} · {latestPackage.confidence} confidence · saved {latestPackage.savedAt}</span>
+            <span>
+              Operational: {latestPackage.operationalDecision || latestPackage.choice || 'Not recorded'}
+              {latestPackage.finalFinding ? ` · Finding: ${latestPackage.finalFinding}` : ''}
+              {` · ${latestPackage.confidence} confidence · saved ${latestPackage.savedAt}`}
+            </span>
           </div>
           <button type="button" className="decision-open-debrief" onClick={() => openDebrief?.(latestPackage)}>Open Luna Debrief</button>
         </section>

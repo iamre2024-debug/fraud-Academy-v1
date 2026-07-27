@@ -8,10 +8,11 @@ const entrypoint = read('src/main.jsx');
 const shell = read('src/MobileMissionDeckApp.jsx');
 const workspace = read('src/MobileMissionWorkspace.jsx');
 const workspaceController = read('src/VisualWorkspace.jsx');
-const briefing = read('src/MobileMissionCaseBriefing.jsx');
+const referencePages = read('src/MobileReferenceToolPages.jsx');
+const linkAnalysis = read('src/MobileLinkAnalysisPanel.jsx');
+const quickPad = read('src/CaseQuickPad.jsx');
+const theme = read('src/mobileReferenceTheme.css');
 const documentViewer = read('src/DocumentViewerWorkspace.jsx');
-const styles = read('src/mobileMissionDeckV3.css');
-const legacyStyles = read('src/mobileBlueMissionDeck.css');
 const playwrightConfig = read('playwright.config.mjs');
 const failures = [];
 
@@ -21,10 +22,13 @@ function requireAnchor(label, content, anchor) {
 
 for (const anchor of [
   "import './mobileMissionDeckV3.css';",
+  "import './mobileReferenceTheme.css';",
 ]) requireAnchor('main.jsx', entrypoint, anchor);
 
-if (entrypoint.includes("import './mobileBlueMissionDeck.css';")) failures.push('The legacy Blue Mission Deck override file must not load.');
-if (entrypoint.includes("import './mobileNeonCardStack.css';")) failures.push('The retired Neon Card Stack must not load.');
+if (entrypoint.indexOf("import './mobileReferenceTheme.css';") < entrypoint.indexOf("import './mobileMissionDeckV3.css';")) {
+  failures.push('The canonical mobile reference theme must load after the prior mobile shell.');
+}
+if (entrypoint.includes("import './mobileBlueMissionDeck.css';")) failures.push('The retired Blue Mission Deck override must not load.');
 
 for (const anchor of [
   'useResponsiveLayoutMode',
@@ -32,43 +36,42 @@ for (const anchor of [
   '<MobileMissionDeckApp',
   'layoutMode="mobile"',
   'onOpenWorkspace={openMobileWorkspace}',
-  'quickGenerator={<GeneratedCaseControls inline',
 ]) requireAnchor('VisualApp.jsx', app, anchor);
 
 for (const anchor of [
   'mission-mobile-root',
   'mission-mobile-dock',
-  'mission-case-deck',
-  'mission-active-file',
-  'MissionLighthouse',
-  'CasesThemeV1Panel',
-  'inline',
-  'AcademyThemeV1Panel',
-  'ProfileThemeV1Panel',
+  "label: 'Home'",
+  "label: 'Cases'",
+  "label: 'Workspace'",
+  "label: 'Academy'",
+  "label: 'Agent'",
+  "label: 'Quotes'",
+  'Good morning Ree, let’s stop fraud ✨',
+  '<MobileLunaPortrait',
+  'mobile-dashboard-active-file',
+  'MissionQuotesPage',
   'mission-mobile-workspace-page',
-  "onOpenWorkspace(nextWorkspaceScreen)",
-  "onNavigate('workspace', 'tool-menu')",
 ]) requireAnchor('MobileMissionDeckApp.jsx', shell, anchor);
 
 for (const anchor of [
   'mission-workspace-v3',
-  'mission-workspace-surface',
+  'mission-workspace-bar',
   '<MobileMissionCaseBriefing',
-  '<MissionPath',
   '<CategoryTileRail',
-  '<Customer360Panel',
+  '<MobileCustomer360Page',
+  '<MobileBusiness360Page',
+  '<MobileFinancialInvestigationPage',
+  '<MobileEmployeeProfilePage',
+  '<MobilePayrollHistoryPage',
+  '<MobileLinkAnalysisPanel',
+  '<TimelinePanel',
   '<InvestigationToolPanel',
-  'mission-document-request-page',
-  'MissionDocumentRequestHeading',
-  'mission-login-history-page',
-  'MissionLoginHistoryHeading',
-  '<BottomInvestigationGrid',
   '<SubmitDecisionPanel',
+  'layoutMode="mobile"',
+  'mission-document-request-page',
+  'mission-login-history-page',
   'decision-luna-portal-anchor',
-  'Source record unavailable',
-  'data-document-request-step',
-  'data-mobile-indicator-view={workspaceScreen}',
-  'disabled={stageStatus[key]?.state === \'locked\'}',
 ]) requireAnchor('MobileMissionWorkspace.jsx', workspace, anchor);
 
 for (const anchor of [
@@ -76,16 +79,44 @@ for (const anchor of [
   'forceHistory',
   'removeUnavailablePinnedEvidence',
   "nextStage === 'debrief' && !hasReviewPackage",
+  "available.delete('KYB Review')",
+  "available.delete('System Access Lane')",
+  'quickPadLayer',
 ]) requireAnchor('VisualWorkspace.jsx', workspaceController, anchor);
 
 for (const anchor of [
-  'mission-briefing-file',
-  'mission-briefing-tabs',
-  'Statement & facts',
-  'Paperwork deck',
-  'Investigation launchpad',
-  "activeCase.availableTools",
-]) requireAnchor('MobileMissionCaseBriefing.jsx', briefing, anchor);
+  'data-customer-360-screen',
+  'Accounts & products',
+  'Trusted devices & security',
+  'data-business-360-screen',
+  'Compact payroll overview',
+  'data-financial-investigation-screen',
+  'Account Review',
+  'Spending Analysis',
+  'data-employee-profile-screen',
+  'data-payroll-history-screen',
+]) requireAnchor('MobileReferenceToolPages.jsx', referencePages, anchor);
+
+for (const anchor of [
+  'Search before relationships appear',
+  'Phone Number',
+  'matched account',
+  'mobile-link-map',
+  'Open related account',
+  'Quick Pad account',
+]) requireAnchor('MobileLinkAnalysisPanel.jsx', linkAnalysis, anchor);
+
+for (const anchor of [
+  'case-quick-pad-trigger',
+  'case-quick-pad-panel',
+  'Quick IDs',
+  'Scratch note',
+  'Notebook',
+  'Last saved',
+  'visualViewport',
+  'Open record',
+  'Unpin',
+]) requireAnchor('CaseQuickPad.jsx', quickPad, anchor);
 
 for (const anchor of [
   'mobileReviewStep',
@@ -93,63 +124,43 @@ for (const anchor of [
   'document-mobile-review-shell',
   'Document review pages',
   'Evidence-first field summary',
-  'Continue to decision',
 ]) requireAnchor('DocumentViewerWorkspace.jsx', documentViewer, anchor);
 
 for (const anchor of [
-  'A dedicated mobile component system',
-  '.mission-mobile-root',
+  '--fa-bg',
   '.mission-mobile-dock',
-  '.mission-case-deck',
-  '.mission-briefing-file',
-  '.mission-evidence-page .mission-evidence-map',
-  '.mission-document-request-heading',
-  '.mission-document-request-page .mission-tool-content .document-request-inbox',
-  '.mission-login-history-heading',
-  '.mission-login-history-page .login-history-workspace',
-  '.mission-tool-content .document-preview-workspace',
-  '.document-mobile-review-shell',
-  '.document-mobile-review-tabs',
-  '.document-mobile-fields-panel',
-  '.document-mobile-step-controls',
-  '.mission-decision-page .mission-decision-progress',
-  'body:has(iframe[title="Netlify Drawer"]) .mission-mobile-dock',
-  '@media (max-width: 370px)',
-]) requireAnchor('mobileMissionDeckV3.css', styles, anchor);
+  'grid-template-columns: repeat(6, minmax(0, 1fr))',
+  '.mission-workspace-bar',
+  '.mobile-reference-dashboard',
+  '.mobile-reference-panel',
+  '.mobile-link-map',
+  '.timeline-event-list',
+  '.case-quick-pad',
+  'env(safe-area-inset-bottom)',
+  '--quick-pad-keyboard-inset',
+  '@media (max-width: 340px)',
+  '@media (max-height: 650px)',
+]) requireAnchor('mobileReferenceTheme.css', theme, anchor);
 
-const importantCount = (styles.match(/!important/g) ?? []).length;
-if (importantCount > 12) failures.push(`Mission Deck v3 has ${importantCount} !important overrides; it must remain structurally scoped.`);
-if (/body\[data-layout-mode="desktop"\]/.test(styles)) failures.push('Mission Deck v3 must not alter the desktop layout.');
-if (/#ff4fd8|#d76bff|#ff9be9/i.test(styles)) failures.push('Mission Deck v3 contains the retired pink/purple palette.');
-if (/width:\s*min\(100%,\s*430px\)/.test(styles)) failures.push('Mission Deck v3 must fill the phone viewport instead of using the retired 430px shell cap.');
-if (!styles.includes('--md-shell-width: 94vw;')) failures.push('Mission Deck v3 must preserve a proportional phone shell across browser zoom levels.');
-if (/calc\(50vw\s*-\s*(?:205|209)px\)/.test(styles)) failures.push('Mission Deck v3 must not position controls against the retired 430px shell.');
-if (!styles.includes('.mission-map-tool-node')) failures.push('Mission evidence groups must render as connected blue map nodes.');
-if (!/\.investigation-tool-groups-theme-v1\s*>\s*\.visual-category-row\s*\{[^}]*display:\s*none/s.test(styles)) {
-  failures.push('Mission evidence map must remove the retired separate category-card row.');
+if (!/^@media \(max-width: 700px\)/.test(theme.trim())) {
+  failures.push('The mobile reference theme must be isolated behind the mobile breakpoint.');
 }
-if (!/\.mission-mobile-dock\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/s.test(styles)) {
-  failures.push('Mission Deck v3 must keep primary navigation in a five-column bottom dock.');
-}
-if (styles.length >= legacyStyles.length * 1.4) failures.push('Mission Deck v3 has grown into another oversized legacy override layer.');
-const undersizedMobileRemValues = [...styles.matchAll(/font-size:\s*(0\.\d+)rem/g)]
-  .map((match) => Number(match[1]))
-  .filter((value) => value < 0.75);
-if (undersizedMobileRemValues.length) {
-  failures.push(`Mission Deck v3 contains ${undersizedMobileRemValues.length} rem font sizes below the 12px mobile floor.`);
+if (/body\[data-layout-mode="desktop"\]/.test(theme)) {
+  failures.push('The mobile reference theme must not alter the desktop layout.');
 }
 
 for (const browserSpec of [
+  'mobile-reference-browser',
   'mobile-workspace-pages-browser',
   'document-request-browser',
   'decision-luna-browser',
-  'final-responsive-browser',
+  'quick-pad-browser',
 ]) requireAnchor('playwright.config.mjs mobile project', playwrightConfig, browserSpec);
 
 if (failures.length) {
-  console.error('Mobile Blue Mission Deck structural smoke check failed:');
+  console.error('Fraud Academy mobile reference structural smoke check failed:');
   failures.forEach((failure) => console.error(`- ${failure}`));
   process.exit(1);
 }
 
-console.log('Mobile Blue Mission Deck v3 smoke check passed. Phones mount a dedicated page tree; desktop and shared case logic remain separate.');
+console.log('Fraud Academy mobile reference smoke check passed. Mobile mounts a dedicated midnight-blue page system while desktop and shared case logic remain separate.');

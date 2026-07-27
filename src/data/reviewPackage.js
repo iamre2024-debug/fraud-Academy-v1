@@ -218,13 +218,40 @@ export function getReviewChoices(activeCase = {}) {
   return unique(getDecisionCallGroups(activeCase).flatMap((group) => group.options));
 }
 
+export function getOperationalDecisionOptions(activeCase = {}) {
+  if (['fraud-chargeback', 'non-fraud-chargeback'].includes(activeCase?.claimTypeId)) {
+    return ['Pay', 'Deny'];
+  }
+
+  if (activeCase?.creditDecision || activeCase?.claimTypeId === 'application-verification') {
+    return ['Approve', 'Deny', 'More Information'];
+  }
+
+  return ['Support', 'Do Not Support', 'Insufficient', 'Escalate'];
+}
+
+export function getFinalFindingOptions(activeCase = {}) {
+  if (activeCase?.creditDecision || activeCase?.claimTypeId === 'application-verification') {
+    return ['Application facts verified', 'Application facts not verified', 'Inconclusive'];
+  }
+
+  return ['Fraud established', 'Fraud not established', 'Inconclusive'];
+}
+
 export function isValidReviewPackage(activeCase = {}, reviewPackage = {}) {
+  if (reviewPackage?.decisionMode === 'separated') {
+    return getOperationalDecisionOptions(activeCase).includes(reviewPackage.operationalDecision)
+      && getFinalFindingOptions(activeCase).includes(reviewPackage.finalFinding);
+  }
   return Boolean(reviewPackage?.choice) && getReviewChoices(activeCase).includes(reviewPackage.choice);
 }
 
 export function getReviewPackageStatus({ activeCase, completedTools = [], tray = [], notes = [], draft = {} }) {
   const requiredTools = getRequiredReviewTools(activeCase);
-  const validChoices = getReviewChoices(activeCase);
+  const separatedDecision = draft.decisionMode === 'separated';
+  const decisionChoice = separatedDecision ? draft.operationalDecision : draft.choice;
+  const validChoices = separatedDecision ? getOperationalDecisionOptions(activeCase) : getReviewChoices(activeCase);
+  const validFindings = getFinalFindingOptions(activeCase);
   const missingTools = requiredTools.filter((tool) => !completedTools.includes(tool));
   const blockers = [];
   const coachingGaps = [];
@@ -233,10 +260,16 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
   const hasRationale = Boolean(draft.reason?.trim());
   const indicatorSummary = summarizeDecisionIndicators(activeCase, draft.indicators);
   const packageInputSummary = buildPackageInputSummary({ completedTools, tray, notes, indicatorSummary });
-  const conflictsWithCriticalRed = indicatorSummary.overrideIndicators.length > 0 && isSupportiveDecision(draft.choice);
+  const conflictsWithCriticalRed = indicatorSummary.overrideIndicators.length > 0 && isSupportiveDecision(decisionChoice);
 
-  if (!draft.choice) blockers.push('select a learner choice');
-  if (draft.choice && !validChoices.includes(draft.choice)) blockers.push('select a valid learner choice from the current decision call list');
+  if (!decisionChoice) blockers.push(separatedDecision ? 'select an operational decision' : 'select a learner choice');
+  if (decisionChoice && !validChoices.includes(decisionChoice)) {
+    blockers.push(separatedDecision
+      ? 'select a valid operational decision for this workflow'
+      : 'select a valid learner choice from the current decision call list');
+  }
+  if (separatedDecision && !draft.finalFinding) blockers.push('select a final investigative finding');
+  if (separatedDecision && draft.finalFinding && !validFindings.includes(draft.finalFinding)) blockers.push('select a valid final investigative finding');
   if (!indicatorSummary.selectedCount) coachingGaps.push('no case flags selected');
   if (indicatorSummary.incompleteIndicators.length) coachingGaps.push(`proof or explanation missing for: ${indicatorSummary.incompleteIndicators.map((item) => item.prompt).join(' | ')}`);
   if (conflictsWithCriticalRed) coachingGaps.push('the determination conflicts with a documented critical red flag');
@@ -245,8 +278,9 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
 
   if (blockers.length) {
     messages.push(`Submission requirement: ${blockers.join('; ')}.`);
-    if (!draft.choice) messages.push('Select the learner decision choice.');
-    if (draft.choice && !validChoices.includes(draft.choice)) messages.push('The selected learner choice is no longer in the current decision call list.');
+    if (!decisionChoice) messages.push('Select the operational decision.');
+    if (decisionChoice && !validChoices.includes(decisionChoice)) messages.push('The selected operational decision is no longer valid for this workflow.');
+    if (separatedDecision && !draft.finalFinding) messages.push('Select the final investigative finding separately.');
   } else {
     messages.push('A valid determination is selected. You may submit without reviewing every tool.');
   }
@@ -262,6 +296,8 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
     totalRequired: requiredTools.length,
     requiredTools,
     validChoices,
+    validFindings,
+    separatedDecision,
     missingTools,
     blockers,
     coachingGaps,
@@ -270,7 +306,9 @@ export function getReviewPackageStatus({ activeCase, completedTools = [], tray =
     minimumRationaleWords,
     packageInputSummary,
     indicatorSummary,
-    ready: Boolean(draft.choice) && validChoices.includes(draft.choice),
+    ready: Boolean(decisionChoice)
+      && validChoices.includes(decisionChoice)
+      && (!separatedDecision || validFindings.includes(draft.finalFinding)),
   };
 }
 
@@ -283,7 +321,10 @@ export function buildReviewPackage({ caseId, agentId, activeCase, draft, complet
     claimTypeId: activeCase?.claimTypeId ?? null,
     claimType: activeCase?.claimType ?? activeCase?.type ?? null,
     lane: activeCase?.lane ?? null,
-    choice: draft.choice,
+    choice: draft.choice || draft.operationalDecision,
+    operationalDecision: draft.operationalDecision || draft.choice,
+    finalFinding: draft.finalFinding || '',
+    decisionMode: draft.decisionMode || 'legacy',
     confidence: draft.confidence || 'Medium',
     reason: draft.reason,
     rationaleWordCount: packageStatus?.rationaleWordCount ?? wordCount(draft.reason),

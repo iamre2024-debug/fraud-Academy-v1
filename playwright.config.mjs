@@ -15,7 +15,16 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    launchOptions: localChromium ? { executablePath: localChromium } : undefined,
+    launchOptions: localChromium ? {
+      executablePath: localChromium,
+      args: [
+        '--single-process',
+        '--no-zygote',
+        '--disable-setuid-sandbox',
+        '--disable-webgl',
+        '--disable-site-isolation-trials',
+      ],
+    } : undefined,
   },
   webServer: {
     command: 'npx vite preview --host 127.0.0.1 --port 4173',
@@ -27,7 +36,7 @@ export default defineConfig({
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
     {
       name: 'mobile-chromium',
-      testMatch: /(?:mobile-mission-deck-v3-browser|mobile-workspace-pages-browser|document-request-browser|document-viewer-browser|decision-luna-browser|final-responsive-browser|payment-verification-browser|login-history-browser|device-intelligence-browser|quick-pad-browser|cloud-persistence-browser)\.spec\.mjs$/,
+      testMatch: /(?:mobile-reference-browser|mobile-mission-deck-v3-browser|mobile-workspace-pages-browser|document-request-browser|document-viewer-browser|decision-luna-browser|final-responsive-browser|payment-verification-browser|login-history-browser|device-intelligence-browser|quick-pad-browser|cloud-persistence-browser)\.spec\.mjs$/,
       use: { ...devices['Pixel 7'] },
     },
   ],

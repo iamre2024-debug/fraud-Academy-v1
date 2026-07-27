@@ -17,6 +17,113 @@ function uniqueSources(rows) {
   return [...new Set(rows.map((row) => String(row.values[3] ?? 'Other')))].sort((a, b) => a.localeCompare(b));
 }
 
+function runtimeTimelineRows(activeCase, actionLog = [], notes = [], documentRequests = {}, reviewPackages = []) {
+  const rows = [];
+  const makeRow = (id, time, event, source, linkedObject, detail, pin = linkedObject) => ({
+    id,
+    values: [id, time || 'Time not recorded', event, source, linkedObject || activeCase.id, activeCase.id, detail],
+    pin: pin || id,
+    label: event,
+    detail,
+  });
+
+  if (activeCase.allegation) {
+    rows.push(makeRow(
+      `TML-${activeCase.id}-ALLEGATION`,
+      activeCase.reportedDate ?? activeCase.opened,
+      'Reported allegation',
+      'Case Briefing',
+      activeCase.id,
+      activeCase.allegation,
+      activeCase.id,
+    ));
+  }
+
+  Object.values(documentRequests).flatMap((request) => request?.attempts ?? []).forEach((attempt) => {
+    rows.push(makeRow(
+      `TML-${attempt.requestId}`,
+      attempt.requestedDate,
+      'Document request sent',
+      'Document Request',
+      attempt.sourceDocumentId,
+      `${attempt.documentTitle} requested through ${attempt.requestDeliveryChannel}.`,
+      attempt.requestId,
+    ));
+    if (attempt.responseCheckedAt) {
+      rows.push(makeRow(
+        `TML-${attempt.responseId || attempt.attemptId}-RESPONSE`,
+        attempt.receivedDate === 'Not received' ? attempt.responseCheckedAt : attempt.receivedDate,
+        attempt.customerSubmission?.pages?.length ? 'Document received' : 'Document response checked',
+        'Document Request',
+        attempt.responseId || attempt.sourceDocumentId,
+        `${attempt.documentTitle}: ${attempt.responseStatus || 'response checked'}.`,
+        attempt.responseId || attempt.sourceDocumentId,
+      ));
+    }
+  });
+
+  actionLog.forEach((entry) => {
+    rows.push(makeRow(
+      `TML-${entry.id}`,
+      entry.time,
+      entry.action,
+      entry.source || 'Investigation activity',
+      activeCase.id,
+      entry.detail,
+      entry.id,
+    ));
+  });
+
+  notes.forEach((note, index) => {
+    const [time = 'Time not recorded', type = 'Investigator note', ...detailParts] = String(note).split(' · ');
+    rows.push(makeRow(
+      `TML-${activeCase.id}-NOTE-${index + 1}`,
+      time,
+      'Investigator note',
+      type,
+      activeCase.id,
+      detailParts.join(' · ') || String(note),
+      `NOTE-${activeCase.id}-${index + 1}`,
+    ));
+  });
+
+  reviewPackages.forEach((reviewPackage, index) => {
+    const decision = reviewPackage.operationalDecision || reviewPackage.choice || 'Decision recorded';
+    const finding = reviewPackage.finalFinding ? ` Final finding: ${reviewPackage.finalFinding}.` : '';
+    rows.push(makeRow(
+      `TML-${reviewPackage.id || `${activeCase.id}-DECISION-${index + 1}`}`,
+      reviewPackage.savedAt,
+      'Decision submitted',
+      'Submit Decision',
+      reviewPackage.id || activeCase.id,
+      `Operational decision: ${decision}.${finding}`,
+      reviewPackage.id || activeCase.id,
+    ));
+  });
+
+  return rows;
+}
+
+function timelineSortValue(value, fallbackDate) {
+  let display = String(value ?? '').trim();
+  if (/^\d{1,2}:\d{2}\s*[AP]M$/i.test(display)) display = `${fallbackDate} ${display}`;
+  display = display.replace(/\s+[·-]\s+/, ' ');
+  const parsed = new Date(display);
+  return Number.isNaN(parsed.getTime()) ? Number.MAX_SAFE_INTEGER : parsed.getTime();
+}
+
+function mergeTimelineRows(baseRows, runtimeRows, fallbackDate) {
+  const seen = new Set();
+  return [...baseRows, ...runtimeRows]
+    .filter((row) => {
+      const key = `${row.values[1]}|${row.values[2]}|${row.values[3]}|${row.values[4]}`.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((left, right) => timelineSortValue(left.values[1], fallbackDate) - timelineSortValue(right.values[1], fallbackDate));
+}
+
 export default function TimelinePanel({
   activeCase,
   query,
@@ -30,10 +137,26 @@ export default function TimelinePanel({
   currentCompleted,
   openTool,
   jumpDecision,
+  actionLog = [],
+  notes = [],
+  documentRequests = {},
+  reviewPackages = [],
 }) {
   const [selectedEventId, setSelectedEventId] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
-  const timelineData = buildCoreToolRecords('Timeline', activeCase, data) ?? data;
+  const baseTimelineData = buildCoreToolRecords('Timeline', activeCase, data) ?? data;
+  const runtimeRows = useMemo(
+    () => runtimeTimelineRows(activeCase, actionLog, notes, documentRequests, reviewPackages),
+    [activeCase, actionLog, documentRequests, notes, reviewPackages],
+  );
+  const timelineData = useMemo(() => ({
+    ...baseTimelineData,
+    rows: mergeTimelineRows(
+      baseTimelineData.rows,
+      runtimeRows,
+      activeCase.reportedDate ?? activeCase.opened ?? 'Training date',
+    ),
+  }), [activeCase.opened, activeCase.reportedDate, baseTimelineData, runtimeRows]);
   const sources = useMemo(() => uniqueSources(timelineData.rows), [timelineData.rows]);
   const normalizedQuery = query.trim().toLowerCase();
   const filteredEvents = useMemo(
@@ -215,7 +338,22 @@ export default function TimelinePanel({
       </div>
 
       <nav className="timeline-next-routes" aria-label="Timeline next routes">
-        <button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button>
+        <button
+          type="button"
+          onClick={() => openTool(
+            activeCase.availableTools?.includes('Transaction History')
+              ? 'Transaction History'
+              : activeCase.availableTools?.includes('Payroll History')
+                ? 'Payroll History'
+                : 'Financial Investigation',
+          )}
+        >
+          Open {activeCase.availableTools?.includes('Transaction History')
+            ? 'Transaction History'
+            : activeCase.availableTools?.includes('Payroll History')
+              ? 'Payroll History'
+              : 'Financial Investigation'}
+        </button>
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
 

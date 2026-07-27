@@ -185,7 +185,9 @@ for (const anchor of [
 
 mustContain('main.jsx', entrypoint, "import './displayDecisionLunaThemeV1.css';");
 mustContain('main.jsx', entrypoint, "import './displayDecisionLunaLayoutSafetyV1.css';");
-mustContain('decision-luna-browser.spec.mjs', browser, 'a choice-only decision saves and unlocks Luna on desktop and mobile');
+mustContain('decision-luna-browser.spec.mjs', browser, 'workflow decision inputs save and unlock Luna on desktop and mobile');
+mustContain('decision-luna-browser.spec.mjs', browser, "savedPackage.operationalDecision");
+mustContain('decision-luna-browser.spec.mjs', browser, "savedPackage.finalFinding");
 mustContain('decision-luna-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('decision-luna-browser.spec.mjs', browser, 'data-decision-screen="approved-theme-v1"');
 mustContain('decision-luna-browser.spec.mjs', browser, 'data-luna-state="locked"');

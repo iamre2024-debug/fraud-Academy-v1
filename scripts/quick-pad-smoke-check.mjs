@@ -8,6 +8,9 @@ const customer = read('src/Customer360Panel.jsx');
 const device = read('src/InvestigationToolPanel.jsx');
 const component = read('src/CaseQuickPad.jsx');
 const styles = read('src/caseQuickPad.css');
+const mobileStyles = read('src/mobileReferenceTheme.css');
+const mobilePins = read('src/MobileToolQuickPins.jsx');
+const linkAnalysis = read('src/MobileLinkAnalysisPanel.jsx');
 
 const checks = [
   ['Quick Pad has its own persisted storage key', model.includes("quickPad: 'fraud-academy-quick-pad-v1'")],
@@ -19,9 +22,17 @@ const checks = [
   ['Account IDs can be added from Customer 360', customer.includes("label: 'Account ID'")],
   ['Bank and destination IDs can be added', customer.includes("label: 'Bank Code'") && customer.includes("label: 'Destination ID'")],
   ['Device IDs can be added', device.includes("label: 'Device ID'")],
+  ['Supported tool IDs have mobile Quick Pad actions', ['Customer ID', 'Training ID', 'Business ID', 'Employee ID', 'Bank Code', 'Destination ID', 'Phone number', 'Email', 'Device ID', 'IP address', 'Merchant ID', 'Transaction ID', 'Case ID'].every((label) => mobilePins.includes(`label: '${label}'`))],
+  ['Link results can be saved without becoming evidence', linkAnalysis.includes('Quick Pad account') && !linkAnalysis.includes('pinEvidence')],
   ['Scratch text can become a formal case note', workspace.includes("saveNote(quickPad.scratch, 'Quick Pad note')")],
+  ['Quick Pad reports auto-save and last-saved state', component.includes('Auto-save ready') && component.includes('Last saved')],
+  ['Case notes and investigator notebook remain separate', component.includes('Investigator-wide notebook archive') && component.includes("agentNotebookKey = 'fraud-academy-agent-notepad-v1'")],
+  ['Quick Pad responds to the visual viewport keyboard inset', component.includes('window.visualViewport') && mobileStyles.includes('--quick-pad-keyboard-inset')],
+  ['Opening and closing preserve page scroll', component.includes('scrollPositionRef') && component.includes('window.scrollTo')],
+  ['Every saved ID offers copy, source, and unpin actions', ['Copy', 'Open record', 'Unpin'].every((label) => component.includes(label))],
   ['Panel stays compact on phones', styles.includes('max-height: min(300px, 36dvh)')],
   ['Panel clears the fixed mobile dock', styles.includes('bottom: calc(88px + env(safe-area-inset-bottom))')],
+  ['Reference theme keeps the charm above the six-tab safe-area dock', mobileStyles.includes('bottom:calc(var(--fa-dock-height)') && mobileStyles.includes('env(safe-area-inset-bottom)')],
 ];
 
 const failed = checks.filter(([, passed]) => !passed);

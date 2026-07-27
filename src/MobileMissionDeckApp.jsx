@@ -4,6 +4,7 @@ import AcademyThemeV1Panel from './AcademyThemeV1Panel.jsx';
 import CasesThemeV1Panel from './CasesThemeV1Panel.jsx';
 import LunaApiAccessSetting from './LunaApiAccessSetting.jsx';
 import CloudSyncControl from './CloudSyncControl.jsx';
+import MobileLunaPortrait from './MobileLunaPortrait.jsx';
 import ProfileThemeV1Panel from './ProfileThemeV1Panel.jsx';
 
 const reducedMotionKey = 'fraud-academy-reduced-motion-v1';
@@ -15,11 +16,12 @@ const storageKeys = {
 };
 
 const routes = [
-  { key: 'dashboard', icon: '🧭', label: 'Home' },
-  { key: 'cases', icon: '🗂️', label: 'Cases' },
-  { key: 'workspace', icon: '🛰️', label: 'Mission' },
-  { key: 'academy', icon: '🌙', label: 'Academy' },
-  { key: 'profile', icon: '🐈‍⬛', label: 'Agent' },
+  { key: 'dashboard', icon: '⌂', label: 'Home' },
+  { key: 'cases', icon: '▤', label: 'Cases' },
+  { key: 'workspace', icon: '✦', label: 'Workspace' },
+  { key: 'academy', icon: '♢', label: 'Academy' },
+  { key: 'profile', icon: '♡', label: 'Agent' },
+  { key: 'quotes', icon: '❝', label: 'Quotes' },
 ];
 
 function readJson(key, fallback) {
@@ -117,19 +119,18 @@ export default function MobileMissionDeckApp({
   return (
     <div className="mission-mobile-root" data-mobile-mission-tab={activeTab}>
       <MissionAtmosphere />
-      <header className="mission-mobile-header">
+      {activeTab !== 'workspace' && <header className="mission-mobile-header">
         <button type="button" className="mission-mobile-brand" aria-label="Open dashboard" onClick={() => navigate('dashboard')}>
-          <span aria-hidden="true">🛡️</span>
-          <span><strong>Fraud Academy</strong><small>Mission Deck</small></span>
+          <span aria-hidden="true">✦</span>
+          <span><strong>Fraud Academy</strong><small>Investigation OS</small></span>
         </button>
         <button type="button" className="mission-mobile-case-chip" onClick={() => navigate('workspace', 'briefing')}>
-          <span>Active mission</span><strong>{activeCase?.id}</strong>
+          <span>Active case</span><strong>{activeCase?.id}</strong>
         </button>
         <div className="mission-mobile-header-actions">
-          <button type="button" aria-label="Open Help" aria-expanded={control === 'help'} onClick={() => setControl((current) => current === 'help' ? '' : 'help')}>❔</button>
-          <button type="button" aria-label="Open Settings" aria-expanded={control === 'settings'} onClick={() => setControl((current) => current === 'settings' ? '' : 'settings')}>⚙️</button>
+          <button type="button" aria-label="Open menu" aria-expanded={Boolean(control)} onClick={() => setControl((current) => current ? '' : 'settings')}>•••</button>
         </div>
-      </header>
+      </header>}
 
       {control && (
         <section className="mission-mobile-control-sheet" aria-live="polite" data-control={control}>
@@ -223,6 +224,10 @@ export default function MobileMissionDeckApp({
             />
           )}
         </section>
+
+        <section className="mission-mobile-page" hidden={activeTab !== 'quotes'} data-mission-page="quotes">
+          {activeTab === 'quotes' && <MissionQuotesPage onNavigate={navigate} />}
+        </section>
       </div>
 
       <nav className="mission-mobile-dock" aria-label="Mission navigation">
@@ -262,86 +267,72 @@ function MissionAtmosphere() {
 }
 
 function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGenerator, snapshot }) {
-  const queuedCases = cases.filter((item) => item.id !== activeCase?.id).slice(0, 3);
   const reviewed = snapshot.completedByCase[activeCase?.id]?.length ?? 0;
   const notes = snapshot.notesByCase[activeCase?.id]?.length ?? 0;
   const packages = snapshot.packagesByCase[activeCase?.id]?.length ?? 0;
-  const progress = Math.min(100, 12 + reviewed * 4 + notes * 4 + packages * 20);
+  const requiredTools = activeCase?.requiredTools?.length ?? 0;
+  const reviewedRequired = (snapshot.completedByCase[activeCase?.id] ?? [])
+    .filter((item) => activeCase?.requiredTools?.includes(item)).length;
+  const workspaceProgress = requiredTools ? Math.round((reviewedRequired / requiredTools) * 100) : 0;
+  const academyProgress = Math.min(100, snapshot.packages * 10);
+  const needsAttention = /high|urgent/i.test(activeCase?.priority ?? '') && !packages;
 
   return (
-    <div className="mission-dashboard-v3">
-      <section className="mission-dashboard-intro">
-        <div><span>🌌 Mission Control</span><h1>Good evening, Agent</h1><p>Your active investigation is waiting in the field deck.</p></div>
-        <button type="button" onClick={() => onNavigate('profile')}><span>🐈‍⬛</span><small>Luna</small></button>
+    <div className="mobile-reference-dashboard">
+      <section className="mobile-dashboard-greeting">
+        <div><span>✦ Good morning</span><h1>Good morning Ree, let’s stop fraud ✨</h1><p>One case, one workspace, one evidence-first investigation at a time.</p></div>
+        <i aria-hidden="true">୨୧</i>
       </section>
 
-      <section className="mission-case-deck" aria-label="Layered active case deck">
-        {queuedCases.map((item, index) => (
-          <button key={item.id} type="button" className={`mission-case-layer layer-${index + 1}`} onClick={() => onOpenCase(item.id)}>
-            <span>{item.id}</span><small>{item.priority} · {item.type}</small>
-          </button>
-        ))}
-        <article className="mission-active-file">
-          <MissionLighthouse />
-          <div className="mission-active-file-copy">
-            <span className="mission-live-chip">● ACTIVE CASE</span>
-            <h2>{activeCase.id}</h2>
-            <p>{activeCase.type}</p>
-            <dl>
-              <div><dt>👤 Customer</dt><dd>{activeCase.person}</dd></div>
-              <div><dt>💵 Exposure</dt><dd>{activeCase.amount}</dd></div>
-              <div><dt>📍 Lane</dt><dd>{activeCase.lane ?? 'Investigation'}</dd></div>
-            </dl>
-            <div className="mission-progress-line"><span style={{ width: `${progress}%` }} /><strong>{progress}%</strong></div>
-            <button type="button" onClick={() => onOpenCase(activeCase.id)}>Enter mission workspace <span>→</span></button>
-          </div>
-          <b className="mission-file-ribbon">UNDER INVESTIGATION</b>
-        </article>
+      <button type="button" className="mobile-dashboard-luna" onClick={() => onNavigate('profile')}>
+        <MobileLunaPortrait size={76} />
+        <span><small>Your investigation assistant</small><strong>Luna</strong><p>Answers stay protected until a decision is submitted.</p></span>
+        <b>›</b>
+      </button>
+
+      <section className="mobile-dashboard-grid" aria-label="Fraud Academy dashboard">
+        <button type="button" className="mobile-dashboard-card mobile-dashboard-active-case" onClick={() => onOpenCase(activeCase.id)}>
+          <span>Active cases</span><strong>{cases.length}</strong><small>Open {activeCase.id}</small><em>▤</em>
+        </button>
+        <button type="button" className="mobile-dashboard-card mobile-dashboard-alerts" onClick={() => onOpenCase(activeCase.id)}>
+          <span>Alerts</span><strong>{needsAttention ? '1' : '0'}</strong><small>{needsAttention ? `${activeCase.priority} priority case needs review` : 'No active-case reminder'}</small><em>✦</em>
+        </button>
+        <button type="button" className="mobile-dashboard-card mobile-dashboard-workspace" onClick={() => onNavigate('workspace', 'tool-menu')}>
+          <span>Workspace progress</span><strong>{workspaceProgress}%</strong><small>{reviewedRequired}/{requiredTools} required tools reviewed</small><i><b style={{ width: `${workspaceProgress}%` }} /></i><em>⌁</em>
+        </button>
+        <button type="button" className="mobile-dashboard-card mobile-dashboard-academy" onClick={() => onNavigate('academy')}>
+          <span>Academy progress</span><strong>{academyProgress}%</strong><small>{snapshot.packages} completed case package{snapshot.packages === 1 ? '' : 's'}</small><i><b style={{ width: `${academyProgress}%` }} /></i><em>♢</em>
+        </button>
       </section>
 
-      <section className="mission-command-drawers" aria-label="Mission shortcuts">
-        <button type="button" onClick={() => onNavigate('cases')}><span>🗂️</span><strong>Case Queue</strong><small>{cases.length} files ready</small></button>
-        <button type="button" onClick={() => onNavigate('workspace', 'tool-menu')}><span>🧬</span><strong>Evidence Map</strong><small>{reviewed} tools reviewed</small></button>
-        <button type="button" onClick={() => onNavigate('progress')}><span>🏅</span><strong>Progress</strong><small>{snapshot.packages} saved packages</small></button>
+      <section className="mobile-dashboard-active-file">
+        <header><span>ACTIVE CASE</span><strong>{activeCase.priority}</strong></header>
+        <h2>{activeCase.id}</h2><p>{activeCase.type}</p>
+        <dl><div><dt>Customer / business</dt><dd>{activeCase.person}</dd></div><div><dt>Review workflow</dt><dd>{activeCase.lane ?? 'Investigation'}</dd></div><div><dt>Reported amount</dt><dd>{activeCase.amount}</dd></div><div><dt>Saved notes</dt><dd>{notes}</dd></div></dl>
+        <button type="button" onClick={() => onOpenCase(activeCase.id)}>Open workspace <span>→</span></button>
       </section>
 
-      <section className="mission-dashboard-generator">
-        <header><span>✨</span><div><p>Scenario forge</p><h2>Generate a new case</h2></div></header>
+      <section className="mobile-dashboard-panels">
+        <button type="button" onClick={() => onNavigate('profile')}><span>♡</span><div><small>Agent panel</small><strong>Ree’s investigator file</strong><p>{reviewed} tools reviewed · {packages} submitted package{packages === 1 ? '' : 's'}</p></div><b>›</b></button>
+        <button type="button" onClick={() => onNavigate('quotes')}><span>❝</span><div><small>Quotes panel</small><strong>Evidence before assumptions.</strong><p>Open today’s Fraud Academy encouragement.</p></div><b>›</b></button>
+      </section>
+
+      <details className="mobile-dashboard-generator">
+        <summary><span>✦</span><div><small>Scenario generator</small><strong>Create another fictional case</strong></div><b>＋</b></summary>
         {quickGenerator}
-      </section>
-
-      <aside className="mission-luna-signal">
-        <span aria-hidden="true">🌙</span>
-        <div><strong>Luna signal is protected</strong><p>Manager coaching appears only after you submit the decision package.</p></div>
-      </aside>
+      </details>
     </div>
   );
 }
 
-function MissionLighthouse() {
+function MissionQuotesPage({ onNavigate }) {
   return (
-    <svg className="mission-lighthouse" viewBox="0 0 360 300" aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id="mission-v3-sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#123f75" />
-          <stop offset="0.55" stopColor="#061b37" />
-          <stop offset="1" stopColor="#020915" />
-        </linearGradient>
-        <linearGradient id="mission-v3-beam" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#bff7ff" stopOpacity="0" />
-          <stop offset="0.5" stopColor="#bff7ff" stopOpacity="0.8" />
-          <stop offset="1" stopColor="#bff7ff" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <rect width="360" height="300" rx="24" fill="url(#mission-v3-sky)" />
-      <g fill="#91efff"><circle cx="34" cy="40" r="2" /><circle cx="91" cy="76" r="1.5" /><circle cx="285" cy="35" r="1.5" /><circle cx="327" cy="92" r="2" /><circle cx="188" cy="55" r="1" /></g>
-      <path d="M185 137 L355 86 L355 125 L187 151 Z" fill="url(#mission-v3-beam)" />
-      <path d="M0 251 C68 218 129 245 183 226 C238 207 302 218 360 192 L360 300 L0 300 Z" fill="#03101f" />
-      <path d="M224 250 L242 132 L273 132 L294 250 Z" fill="#d2edf5" />
-      <rect x="239" y="111" width="38" height="23" rx="3" fill="#d8f9ff" stroke="#62deff" strokeWidth="3" />
-      <path d="M236 111 L258 92 L281 111 Z" fill="#102c4b" stroke="#62deff" strokeWidth="3" />
-      <rect x="253" y="79" width="11" height="14" fill="#8defff" />
-      <path d="M0 272 C71 255 116 281 177 263 C244 243 299 275 360 249" fill="none" stroke="#35d8ff" strokeOpacity="0.6" strokeWidth="3" />
-    </svg>
+    <div className="mobile-quotes-page">
+      <header><span>✦ Fraud Academy</span><h1>Words for careful investigators</h1><p>Cute encouragement, professional judgment, and no case answers.</p></header>
+      <article><i>❝</i><blockquote>Evidence before assumptions. Facts before findings.</blockquote><span>Today’s investigator reminder</span></article>
+      <article><i>♡</i><blockquote>A strong decision explains what the records prove—and what they do not.</blockquote><span>Luna’s notebook</span></article>
+      <article><i>✦</i><blockquote>Slow down at the right moment. One verified link can change the whole timeline.</blockquote><span>Fraud Academy</span></article>
+      <button type="button" onClick={() => onNavigate('workspace', 'briefing')}>Return to active case</button>
+    </div>
   );
 }

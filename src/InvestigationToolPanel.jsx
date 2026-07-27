@@ -1860,6 +1860,7 @@ function PaymentVerificationWorkspace({
   openTool,
   jumpDecision,
   recordAction,
+  quickPin,
 }) {
   const financial = useMemo(() => getFinancialRecords(activeCase), [activeCase]);
   const records = financial.paymentVerification ?? [];
@@ -2069,6 +2070,33 @@ function PaymentVerificationWorkspace({
                   </div>
                 ))}
               </dl>
+
+              <section className="payment-quick-pad-actions" aria-label="Save payment identifiers to Quick Pad">
+                <p>Quick Pad identifiers</p>
+                <button
+                  type="button"
+                  onClick={() => quickPin?.({
+                    label: 'Bank Code',
+                    value: activeRecord.bankCode,
+                    sourceTool: 'Payment Verification',
+                    sourceRecordId: activeRecord.id,
+                  })}
+                >
+                  📌 Bank Code
+                </button>
+                <button
+                  type="button"
+                  onClick={() => quickPin?.({
+                    label: 'Destination ID',
+                    value: activeRecord.destinationId,
+                    sourceTool: 'Payment Verification',
+                    sourceRecordId: activeRecord.id,
+                  })}
+                >
+                  📌 Destination ID
+                </button>
+                <small>Quick Pad copies remain separate from pinned evidence.</small>
+              </section>
 
               <section className="payment-comparison-panel" aria-label="Old versus new account comparison">
                 <article>
@@ -2295,6 +2323,7 @@ export default function InvestigationToolPanel({
           openTool={openTool}
           jumpDecision={jumpDecision}
           recordAction={recordAction}
+          quickPin={quickPin}
         />
       ) : tool === 'Transaction History' ? (
         <TransactionHistoryWorkspace

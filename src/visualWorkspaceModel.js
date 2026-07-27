@@ -28,7 +28,15 @@ export const workflows = ['Record', 'Expand', 'Search', 'History', 'Link Analysi
 
 export { storageKeys };
 
-export const defaultDecisionDraft = { choice: '', confidence: 'Medium', reason: '', indicators: {} };
+export const defaultDecisionDraft = {
+  choice: '',
+  operationalDecision: '',
+  finalFinding: '',
+  decisionMode: '',
+  confidence: 'Medium',
+  reason: '',
+  indicators: {},
+};
 
 export function readStorage(key, fallback) {
   if (typeof window === 'undefined') return fallback;
