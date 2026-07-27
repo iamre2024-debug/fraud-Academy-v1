@@ -112,6 +112,14 @@ export default function CaseQuickPad({
     };
   }, [open, viewportInset]);
 
+  useEffect(() => {
+    if (!open || !panelRef.current) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      panelRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [open]);
+
   async function copyItem(item) {
     await copyText(item.value);
     setCopiedId(item.id);
