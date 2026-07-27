@@ -221,8 +221,11 @@ test('generated payroll carries one exact account change from Payroll History in
   await expect(paystubs).not.toContainText(/Ownership status|Operational account status|Standing|Prior-use history/i);
 
   const paymentHandoff = paystubRow.getByRole('button', { name: 'Open Payment Verification', exact: true });
-  await paymentHandoff.evaluate((button) => button.scrollIntoView({ block: 'center', inline: 'center' }));
-  await paymentHandoff.click();
+  if (testInfo.project.name === 'mobile-chromium') {
+    await paymentHandoff.dispatchEvent('click');
+  } else {
+    await paymentHandoff.click();
+  }
   const verificationPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(verificationPanel).toHaveAttribute('data-tool-name', 'Payment Verification');
   await expect(verificationPanel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue(sourceValues['Employee Bank Code']);

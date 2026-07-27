@@ -114,7 +114,8 @@ test('Device and IP Intelligence use dedicated mobile evidence pages without cha
   await firstIp.click();
   await expect(ipPage.getByRole('textbox', { name: 'Search IP Intelligence records' })).toHaveValue(ipAddress);
   await ipPage.getByRole('button', { name: 'Run IP Lookup', exact: true }).click();
-  await expect(ipPage.locator('.ip-detail-grid')).toContainText(ipAddress);
+  await expect(ipPage.locator('.mobile-ip-detail')).toContainText(ipAddress);
+  await expect(ipPage.locator('.ip-detail-grid')).toContainText('ASN / provider');
   await expect(ipPage.locator('.mobile-ip-usage [data-ip-usage-event]').first()).toBeVisible();
   await expect(ipPage.getByRole('button', { name: 'Mark IP Intelligence reviewed', exact: true })).toBeEnabled();
   await page.screenshot({ path: testInfo.outputPath('ip-intelligence-reference-mobile.png'), fullPage: true });
