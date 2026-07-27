@@ -1,3 +1,6 @@
+import { WORKFLOW_TYPES } from './caseDomain.js';
+import { UNKNOWN_REQUEST_METHOD } from './payrollInvestigation.js';
+
 function clean(value, fallback = 'Not recorded in the current intake') {
   const text = String(value ?? '').trim();
   return text || fallback;
@@ -41,6 +44,9 @@ export function buildCaseIntakeAnswers({
   loginHistory = [],
   profileChanges = [],
   customer = {},
+  customerType,
+  productType,
+  workflowType,
 }) {
   const transactions = toolResults.transactions ?? [];
   const transaction = transactions[0];
@@ -74,7 +80,13 @@ export function buildCaseIntakeAnswers({
     const normalized = prompt.toLowerCase();
     let answer;
 
-    if (/account activity.*not authorize|what does the customer say occurred/.test(normalized)) {
+    if (workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT && /what employee|destination|amount|timing|administrator change|who requested|request method/.test(normalized)) {
+      answer = `The platform observed ${activity}. Request method: ${UNKNOWN_REQUEST_METHOD}. No request-channel evidence has been supplied at intake.`;
+    } else if (workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT && /payroll and destination histories|employee or vendor new or established/.test(normalized)) {
+      answer = `${employee ? `${employee.name} has an ${employee.status.toLowerCase()} record with ${employee.employer}` : 'Review the affected employee record'}. ${payment ? `${payment.object} was first seen ${payment.firstSeen}; ${payment.priorUse}.` : 'Review destination ownership and prior use.'}`;
+    } else if (workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT && /trusted business contact|trusted contact/.test(normalized)) {
+      answer = `If the activity remains risky, contact the business using a trusted, previously known contact method. The business response and how it says the change was requested have not yet been recorded.`;
+    } else if (/account activity.*not authorize|what does the customer say occurred/.test(normalized)) {
       answer = `${quotedStatement(statement)}. The activity attached to the claim is ${transactionFact}.`;
     } else if (/alerts?|reset messages?|contact attempts?/.test(normalized)) {
       const loginFact = failedLogin
@@ -128,7 +140,7 @@ export function buildCaseIntakeAnswers({
     } else if (/who requested.*payroll|who requested.*destination change/.test(normalized)) {
       answer = `${subject} is named in the ${channel} intake. ${quotedStatement(statement)}. The requested change is ${activity}.`;
     } else if (/employee or vendor new or established/.test(normalized)) {
-      answer = `${employee ? `${employee.name} has an ${employee.status.toLowerCase()} record with ${employee.employer}` : `${person} is linked to ${clean(employer, business)}`}. Relationship since: ${clean(customer.relationshipSince)}. ${payment ? `The destination shows ${payment.priorUse.toLowerCase()} and was first seen ${payment.firstSeen}.` : 'No destination-history record is attached.'}`;
+      answer = `${employee ? `${employee.name} has an ${(employee.employmentStatus ?? employee.status ?? 'recorded').toLowerCase()} record with ${employee.employer}` : `${person} is linked to ${clean(employer, business)}`}. Relationship since: ${clean(customer.relationshipSince)}. ${payment ? 'A payment destination record is attached; ownership, status, and prior-use results require an exact Payment Verification search.' : 'No destination-history record is attached.'}`;
     } else if (/trusted contact/.test(normalized)) {
       const callbackDocument = [...inventory.available, ...inventory.requested].find((item) => /callback/i.test(item));
       const callbackStatus = inventory.available.includes(callbackDocument) ? 'available' : inventory.requested.includes(callbackDocument) ? 'still requested' : 'not included';
@@ -136,7 +148,7 @@ export function buildCaseIntakeAnswers({
     } else if (/who sent or approved|payment instruction/.test(normalized) && /who/.test(normalized)) {
       answer = `${subject} is the business contact named in the ${channel} intake; no separate approver identity is recorded. ${quotedStatement(statement)}. The instruction concerns ${activity}.`;
     } else if (/email, domain, beneficiary|email.*payment records/.test(normalized)) {
-      answer = `${activity}. ${payment ? `${payment.object} is held by ${payment.accountHolder}; ${payment.ownerMatch}; ${payment.priorUse}.` : 'No beneficiary destination record is attached.'} Email/payment documents available: ${availableDocuments}; still requested: ${requestedDocuments}.`;
+      answer = `${activity}. ${payment ? `${payment.object} is recorded for exact lookup in Payment Verification; ownership, status, and prior-use results are not shown in intake.` : 'No beneficiary destination record is attached.'} Email/payment documents available: ${availableDocuments}; still requested: ${requestedDocuments}.`;
     } else if (/type of credit request|account review opened/.test(normalized)) {
       answer = `${subtype} opened the ${credit?.relationshipStage ?? 'credit review'} for ${subject}. The requested exposure is ${credit?.requestedExposure ?? amount}; the activity is ${activity}.`;
     } else if (/employer, income source|gross\/net income|business revenue was stated/.test(normalized)) {
@@ -146,7 +158,7 @@ export function buildCaseIntakeAnswers({
     } else if (/payment, utilization|utilization, nsf|late-payment|cash-flow history/.test(normalized)) {
       answer = credit
         ? `Utilization is ${credit.utilization}; payment history is ${credit.paymentHistory}; NSF/returns are ${credit.nsfReturns}; average monthly deposits are ${credit.averageMonthlyDeposits} and average outflow is ${credit.averageMonthlyOutflow}.`
-        : `${payment ? `${payment.object} has ${payment.priorUse.toLowerCase()}` : 'No payment object is attached'}; ${transactions.length} transaction record(s) cover ${issueStartDate} through ${reportedDate}.`;
+        : `${payment ? `${payment.object} is available for exact lookup in Payment Verification` : 'No payment object is attached'}; ${transactions.length} transaction record(s) cover ${issueStartDate} through ${reportedDate}.`;
     } else if (/bank statements|paystubs|credit-file|business documents available/.test(normalized)) {
       const complete = credit?.completedDocuments ?? [];
       const missing = credit?.missingDocuments ?? [];
@@ -174,7 +186,7 @@ export function buildCaseIntakeAnswers({
     } else if (/who requested, approved|released the payment/.test(normalized)) {
       answer = `${subject} is named in the ${channel} intake; no separate releaser identity is recorded. ${quotedStatement(statement)}. The instruction concerns ${activity}.`;
     } else if (/beneficiary, callback|payment records need verification/.test(normalized)) {
-      answer = `${payment ? `${payment.object} is held by ${payment.accountHolder}; ${payment.ownerMatch}; first seen ${payment.firstSeen}; ${payment.priorUse}.` : 'No beneficiary object is attached.'} Callback or verification records still open: ${list(inventory.requested.filter((item) => /callback|verification|beneficiary/i.test(item)))}.`;
+      answer = `${payment ? `${payment.object} is recorded for exact lookup in Payment Verification; its ownership, status, and prior-use results remain gated until that search runs.` : 'No beneficiary object is attached.'} Callback or verification records still open: ${list(inventory.requested.filter((item) => /callback|verification|beneficiary/i.test(item)))}.`;
     } else {
       answer = `${subject} reported ${activity} for ${amount}. The activity began ${issueStartDate}, was reported ${reportedDate}, and entered through ${channel}. ${quotedStatement(statement)}.`;
     }

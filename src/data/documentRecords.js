@@ -1,7 +1,7 @@
 import { evidenceRecordsByCase } from './evidenceRecords.js';
 import { getGeneratedAccessReportDocuments } from './accessHistoryReports.js';
 import { getCustomer360Dossier } from './customer360Dossier.js';
-import { getGeneratedKybReportDocuments } from './kybReviewReport.js';
+import { getGeneratedBusiness360ReportDocuments } from './kybReviewReport.js';
 import { getMerchantIntelligence } from './merchantIntelligenceRecords.js';
 
 function valueOr(value, fallback) {
@@ -150,7 +150,7 @@ function standardDocuments(activeCase) {
       extractionConfidence: 'Medium',
       summary: 'Fictional EIN assignment notice with the masked tax identifier, legal entity, mailing address, and notice details.',
       trainingTip: 'Compare the legal entity, masked EIN, owners, address, state registration, and bank ownership across independent records.',
-      relatedTools: ['Business 360', 'KYB Review', 'Identity Intel / People Search', 'Document Request'],
+      relatedTools: ['Business 360', 'Identity Intel / People Search', 'Document Request'],
       relatedEvidence: [`SOS-${einSuffix}`, `EIN-**-***${einSuffix}`, context.caseId],
       fields: [
         ['Legal business name', context.business],
@@ -270,7 +270,7 @@ function standardDocuments(activeCase) {
   if (tools.has('Financial Investigation') || /credit|loan/i.test(activeCase.claimTypeId ?? activeCase.type ?? '')) {
     includedIds.add(`${context.caseId}-DOC-BANK`);
   }
-  if (tools.has('Business 360') || tools.has('KYB Review')) {
+  if (tools.has('Business 360')) {
     includedIds.add(`${context.caseId}-DOC-EIN`);
     includedIds.add(`${context.caseId}-DOC-TAX`);
   }
@@ -318,7 +318,7 @@ function legacyCaseDocuments(activeCase) {
     ],
     pages: hasDocumentPage ? [
       page(item.title ?? item.name ?? `Case document ${index + 1}`, 'CASE PACKET COPY - FICTIONAL TRAINING DOCUMENT', [
-        section('Document summary', [['Case', context.caseId], ['Customer', context.person], ['Claim type', context.claimType], ['Status', item.status ?? 'Available']]),
+        section('Document summary', [['Case', context.caseId], ['Customer', context.person], ['Review workflow', context.claimType], ['Status', item.status ?? 'Available']]),
         section('Packet details', [], { paragraphs: [item.preview ?? item.detail ?? 'Case-scoped training document.', `Fields: ${item.fields ?? 'Case ID and document status'}`] }),
       ], { kind: 'case' }),
     ] : [],
@@ -380,11 +380,13 @@ function chargebackSourceDocuments(activeCase) {
 }
 
 export function getCaseDocuments(activeCase = {}) {
-  const chargeback = ['fraud-chargeback', 'non-fraud-chargeback', 'first-party-fraud'].includes(activeCase.claimTypeId)
+  const chargeback = ['unauthorized-card-transaction-claim', 'merchant-non-fraud-dispute'].includes(
+    activeCase.workflowType ?? activeCase.claimTypeId,
+  )
     || Boolean(activeCase.chargebackDecision);
   const combined = chargeback
     ? chargebackSourceDocuments(activeCase)
-    : [...standardDocuments(activeCase), ...getGeneratedAccessReportDocuments(activeCase), ...getGeneratedKybReportDocuments(activeCase), ...legacyCaseDocuments(activeCase)];
+    : [...standardDocuments(activeCase), ...getGeneratedAccessReportDocuments(activeCase), ...getGeneratedBusiness360ReportDocuments(activeCase), ...legacyCaseDocuments(activeCase)];
   return combined.filter((item, index) => combined.findIndex((candidate) => candidate.id === item.id) === index);
 }
 

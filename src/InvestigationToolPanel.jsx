@@ -1,10 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import DocumentViewerWorkspace from './DocumentViewerWorkspace.jsx';
+import FinancialInvestigationDossierWorkspace from './FinancialInvestigationWorkspace.jsx';
+import LinkAnalysisWorkspace from './LinkAnalysisWorkspace.jsx';
 import MerchantIntelligenceWorkspace from './MerchantIntelligenceWorkspace.jsx';
 import { accessReportExportText, generateAccessHistoryReport, generatedAccessReportTypes } from './data/accessHistoryReports.js';
 import { buildCoreToolRecords } from './data/coreToolRecords.js';
-import { getBusiness360Workspace, getEmployeeProfiles, getPayrollHistory, getTransactionHistory } from './data/businessPayrollWorkspace.js';
+import {
+  employeePayrollHistory,
+  findPayrollRecord,
+  getBusiness360Workspace,
+  getEmployeeProfiles,
+  getPayrollHistory,
+  getTransactionHistory,
+} from './data/businessPayrollWorkspace.js';
 import { getDeviceProfiles } from './data/deviceRecords.js';
 import { getFinancialRecords } from './data/caseToolData.js';
 import { getCaseDocuments } from './data/documentRecords.js';
@@ -15,7 +24,11 @@ import {
   getPaperworkRequestTemplates,
 } from './data/documentRequestWorkflow.js';
 import { financialInvestigationTabs, financialRecordSearchText, getFinancialInvestigation } from './data/financialInvestigationRecords.js';
-import { getIdentityIntelReport, matchesIdentityIntelSearch } from './data/identityIntelReport.js';
+import {
+  getIdentityIntelContextCase,
+  getIdentityIntelReport,
+  matchesIdentityIntelSearch,
+} from './data/identityIntelReport.js';
 import { getLoginRecords } from './data/loginRecords.js';
 import {
   buildPaymentLookupHint,
@@ -23,9 +36,24 @@ import {
   resolvePaymentLookup,
 } from './data/paymentVerification.js';
 import { getIpRecords } from './data/ipRecords.js';
-import { getKybReview, kybRecordSearchText, kybReviewTabs, matchesKybReviewLookup } from './data/kybReviewRecords.js';
-import { generateKybReviewReport, hasGeneratedKybReport, kybReportExportText } from './data/kybReviewReport.js';
+import {
+  businessRecordSearchText,
+  businessResearchSections,
+  matchesBusinessResearchLookup,
+} from './data/kybReviewRecords.js';
+import {
+  business360ReportExportText,
+  generateBusiness360Report,
+  hasGeneratedBusiness360Report,
+} from './data/kybReviewReport.js';
 import { getSessionRecords } from './data/sessionRecords.js';
+import { publicCaseTaxonomy } from './data/publicCaseView.js';
+import { formatMoney } from './data/relationshipAccounts.js';
+import {
+  normalizePayrollInvestigationState,
+  recordTrustedBusinessResponse,
+  visiblePayrollEmailEvidence,
+} from './data/payrollInvestigation.js';
 import { queueDocumentViewerRoute } from './documentViewerRoute.js';
 import { workflows } from './visualWorkspaceModel.js';
 
@@ -59,28 +87,24 @@ const toolDetails = {
     question: 'Is this a customer issue, merchant issue, fraud issue, or dispute issue?',
   },
   'Financial Investigation': {
-    purpose: 'Use a direct money command center to compare balances, deposits, spending, cash, digital payments, linked accounts, merchants, behavior, and funds flow.',
-    question: 'Does the money make sense?',
+    purpose: 'Organize the account, spending, deposit, payment, loan, and payroll records that apply to this customer and product without deciding the case.',
+    question: 'What financial activity is recorded for this product and review period?',
   },
   'Payment Verification': {
     purpose: 'Review neutral payment-object and verification records without treating a status as a final case decision.',
     question: 'What payment objects and verification states are recorded for this case?',
   },
   'Business 360': {
-    purpose: 'Review the business relationship, status, observed activity, and case context in one neutral record set.',
-    question: 'Which business relationships and entities are connected to the active case?',
-  },
-  'KYB Review': {
-    purpose: 'Look up a fictional business and compare registration, owners, online presence, bank ownership, revenue, payroll, and source documents.',
-    question: 'Do the business identity and operating records connect across independent sources?',
+    purpose: 'Review a reusable fictional business profile across identity, ownership, operating footprint, institution relationships, and Luna source research.',
+    question: 'Which business facts match, differ, or remain unavailable across the recorded sources?',
   },
   'Employee Profile': {
     purpose: 'Review employee identity, role, employer, status, timing, and related case context.',
     question: 'Which employee facts are available, and how do they connect to the case?',
   },
   'Payroll History': {
-    purpose: 'Review payroll periods, employers, amounts, channels, statuses, and contextual details.',
-    question: 'What payroll activity is recorded for the active case?',
+    purpose: 'Move from company payroll history to a reconciled payroll run, an employee-only paycheck history, and an immutable paystub snapshot.',
+    question: 'What did the selected company pay in each run, and which event-level paycheck records support those totals?',
   },
   'Document Viewer': {
     purpose: 'Search by exact Account ID, then review the matching customer documents, complete pages, extracted fields, and source details without drawing an early conclusion.',
@@ -100,47 +124,6 @@ const toolDetails = {
   },
 };
 
-function PaymentSourceHandoff({ source, activeCase, openTool, sourceLabel }) {
-  if (!source || !activeCase.availableTools?.includes('Payment Verification')) return null;
-  const hint = buildPaymentLookupHint({
-    bankCode: source.bankCode,
-    destinationId: source.destinationId,
-    ownerName: source.ownerToCompare ?? activeCase.person,
-  });
-  const fields = [
-    ['Bank Code', source.bankCode ?? 'Not supplied'],
-    ['Destination ID', source.destinationId ?? 'Not supplied'],
-    ['Previous account / destination', source.previousDestination ?? source.oldDestination ?? 'Not supplied'],
-    ['New account / destination', source.newDestination ?? 'Not supplied'],
-    ['Change comparison', source.changeComparison ?? 'Not supplied'],
-  ];
-
-  return (
-    <section
-      className="payment-source-handoff"
-      aria-label={`${sourceLabel} payment source identifiers`}
-      data-payment-source-record={source.recordId}
-    >
-      <header>
-        <div>
-          <p>Source identifiers · Evidence First</p>
-          <h3>Payment account change</h3>
-          <span>Use these recorded values for the lookup. Name match, account status, and verification results stay hidden until the search runs.</span>
-        </div>
-        <strong>{source.recordId}</strong>
-      </header>
-      <dl>
-        {fields.map(([label, value]) => (
-          <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
-        ))}
-      </dl>
-      <button type="button" onClick={() => openTool('Payment Verification', 'investigate', { query: hint })}>
-        Prefill Payment Verification
-      </button>
-    </section>
-  );
-}
-
 function downloadAccessReport(report) {
   if (typeof window === 'undefined') return;
   const blob = new Blob([accessReportExportText(report)], { type: 'text/plain;charset=utf-8' });
@@ -152,9 +135,9 @@ function downloadAccessReport(report) {
   window.URL.revokeObjectURL(url);
 }
 
-function downloadKybReport(report) {
+function downloadBusiness360Report(report) {
   if (typeof window === 'undefined') return;
-  const blob = new Blob([kybReportExportText(report)], { type: 'text/plain;charset=utf-8' });
+  const blob = new Blob([business360ReportExportText(report)], { type: 'text/plain;charset=utf-8' });
   const url = window.URL.createObjectURL(blob);
   const link = window.document.createElement('a');
   link.href = url;
@@ -1305,6 +1288,7 @@ function DocumentRequestWorkspace({
 
 function IdentityIntelWorkspace({
   activeCase,
+  query,
   pin,
   saveNote,
   markReviewed,
@@ -1312,7 +1296,10 @@ function IdentityIntelWorkspace({
   openTool,
   jumpDecision,
 }) {
-  const report = useMemo(() => getIdentityIntelReport(activeCase), [activeCase]);
+  const report = useMemo(
+    () => getIdentityIntelReport(activeCase, { trainingId: query }),
+    [activeCase, query],
+  );
   const [searchMode, setSearchMode] = useState('id');
   const [idDraft, setIdDraft] = useState('');
   const [nameDraft, setNameDraft] = useState('');
@@ -1326,15 +1313,16 @@ function IdentityIntelWorkspace({
   const activeSection = report.sections.find((section) => section.id === activeSectionId) ?? report.sections[0];
 
   useEffect(() => {
+    const routedTrainingId = String(query ?? '').trim();
     setSearchMode('id');
-    setIdDraft('');
+    setIdDraft(routedTrainingId);
     setNameDraft('');
     setDobDraft('');
-    setSubmittedSearch(null);
-    setSearchHistory([]);
+    setSubmittedSearch(routedTrainingId ? { mode: 'id', id: routedTrainingId } : null);
+    setSearchHistory(routedTrainingId ? [`Training ID: ${routedTrainingId}`] : []);
     setReportOpen(false);
     setActiveSectionId('identity-summary');
-  }, [activeCase.id]);
+  }, [activeCase.id, query, report.subject.trainingId]);
 
   function runSearch() {
     if (!searchReady) return;
@@ -1355,9 +1343,9 @@ function IdentityIntelWorkspace({
   function exportIdentityReport() {
     const lines = [
       'Fraud Academy - Identity Search Report',
-      `Case: ${activeCase.id}`,
+      `Case: ${report.subject.sourceCaseId}`,
       `Profile: ${report.profile.profileId}`,
-      `Subject: ${activeCase.person}`,
+      `Subject: ${report.subject.name}`,
       'Fictional training data only',
       '',
       ...report.summary.map(([label, value]) => `${label}: ${value}`),
@@ -1367,7 +1355,7 @@ function IdentityIntelWorkspace({
     const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${activeCase.id}-identity-search-report.txt`;
+    link.download = `${report.subject.sourceCaseId}-identity-search-report.txt`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -1405,10 +1393,10 @@ function IdentityIntelWorkspace({
           <header>
             <div>
               <p>Identity Match Summary</p>
-              <h3>{activeCase.person}</h3>
+              <h3>{report.subject.name}</h3>
               <span>{report.profile.profileId} · Fictional training profile</span>
             </div>
-            <div className="identity-intel-summary-actions"><button type="button" onClick={() => pin(`${report.profile.profileId} · ${activeCase.person}`)}>Pin profile</button><button type="button" onClick={() => saveIdentityNote(`Identity Match Summary ${report.profile.profileId} reviewed for ${activeCase.person}.`)}>Save summary note</button><button type="button" className="investigation-tool-primary" onClick={() => setReportOpen(true)}>{reportOpen ? 'Full Profile Report Open' : 'View Full Profile Report'}</button></div>
+            <div className="identity-intel-summary-actions"><button type="button" onClick={() => pin(`${report.profile.profileId} · ${report.subject.name}`)}>Pin profile</button><button type="button" onClick={() => saveIdentityNote(`Identity Match Summary ${report.profile.profileId} reviewed for ${report.subject.name}.`)}>Save summary note</button><button type="button" className="investigation-tool-primary" onClick={() => setReportOpen(true)}>{reportOpen ? 'Full Profile Report Open' : 'View Full Profile Report'}</button></div>
           </header>
           <dl>
             {report.summary.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
@@ -1425,7 +1413,7 @@ function IdentityIntelWorkspace({
           <section className="identity-intel-sections identity-intel-source-panel" aria-label="People Search history and source records">
             <header><p>Search & Sources</p><h3>Criteria and matched objects</h3></header>
             <div className="identity-intel-search-history">{searchHistory.map((item, index) => <span key={`${item}-${index}`}><strong>{index ? 'Previous search' : 'Current search'}</strong>{item}</span>)}</div>
-            <div className="identity-intel-source-records">{(activeCase.identityRecords ?? []).map((item) => <article key={item.id}><span>{item.type}</span><strong>{item.value}</strong><small>{item.id} · {item.lastSeen}</small><button type="button" onClick={() => pin(`${item.id} · ${item.value}`)}>Pin</button></article>)}</div>
+            <div className="identity-intel-source-records">{report.sourceRecords.map((item) => <article key={item.id}><span>{item.type}</span><strong>{item.value}</strong><small>{item.id} · {item.lastSeen}</small><button type="button" onClick={() => pin(`${item.id} · ${item.value}`)}>Pin</button></article>)}</div>
           </section>
 
           <section className="identity-intel-report" aria-label="Expanded identity report">
@@ -1561,7 +1549,7 @@ function TransactionHistoryWorkspace({ activeCase, pin, saveNote, markReviewed, 
   );
 }
 
-function FinancialInvestigationWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
+function LegacyFinancialInvestigationWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
   const workspace = useMemo(() => getFinancialInvestigation(activeCase), [activeCase]);
   const [activeTab, setActiveTab] = useState('overview');
   const [period, setPeriod] = useState('All periods');
@@ -1664,7 +1652,7 @@ function FinancialInvestigationWorkspace({ activeCase, pin, saveNote, markReview
         </main>
 
         <aside className="financial-case-rail" aria-label="Financial Investigation case summary">
-          <header><p>Case money summary</p><h3>{activeCase.amount}</h3><span>{activeCase.claimType ?? activeCase.type}</span></header>
+          <header><p>Case money summary</p><h3>{activeCase.amount}</h3><span>{publicCaseTaxonomy(activeCase).workflowType}</span></header>
           <section><p>Reviewed financial facts</p>{workspace.reviewedFacts.map((fact) => <article key={fact}>{fact}</article>)}</section>
           <section><p>Record inventory</p><div>{financialInvestigationTabs.map((item) => <button key={item.id} type="button" onClick={() => selectTab(item.id)}><span>{item.label}</span><strong>{workspace.recordsByTab[item.id]?.length ?? 0}</strong></button>)}</div></section>
           <nav><button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button></nav>
@@ -1677,118 +1665,101 @@ function FinancialInvestigationWorkspace({ activeCase, pin, saveNote, markReview
   );
 }
 
-function KYBReviewWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
-  const workspace = useMemo(() => getKybReview(activeCase), [activeCase]);
+function Business360Workspace({ activeCase, query, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
+  const workspace = useMemo(() => getBusiness360Workspace(activeCase), [activeCase]);
+  const profile = workspace.profile;
   const [lookupValue, setLookupValue] = useState('');
-  const [confirmedLookup, setConfirmedLookup] = useState('');
-  const [lookupAttempted, setLookupAttempted] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [lookupStatus, setLookupStatus] = useState('');
+  const [activeTab, setActiveTab] = useState('identity');
   const [recordQuery, setRecordQuery] = useState('');
   const [selectedId, setSelectedId] = useState('');
   const [report, setReport] = useState(null);
-  const [reportGenerated, setReportGenerated] = useState(() => hasGeneratedKybReport(activeCase.id));
-  const searchMatched = matchesKybReviewLookup(workspace, confirmedLookup);
-  const tab = kybReviewTabs.find((item) => item.id === activeTab) ?? kybReviewTabs[0];
-  const tabRecords = workspace.recordsByTab[activeTab] ?? [];
-  const normalizedQuery = recordQuery.trim().toLowerCase();
-  const filteredRecords = searchMatched ? tabRecords.filter((record) => !normalizedQuery || kybRecordSearchText(record).includes(normalizedQuery)) : [];
-  const activeRecord = filteredRecords.find((record) => record.id === selectedId) ?? filteredRecords[0] ?? tabRecords[0];
+  const [reportGenerated, setReportGenerated] = useState(() => hasGeneratedBusiness360Report(activeCase.id));
+  const activeSection = businessResearchSections.find((section) => section.id === activeTab) ?? businessResearchSections[0];
+  const sectionRecords = workspace.recordsBySection[activeTab] ?? [];
+  const normalizedRecordQuery = recordQuery.trim().toLowerCase();
+  const filteredRecords = sectionRecords.filter((record) => !normalizedRecordQuery || businessRecordSearchText(record).includes(normalizedRecordQuery));
+  const activeRecord = filteredRecords.find((record) => record.id === selectedId) ?? filteredRecords[0] ?? sectionRecords[0];
 
   useEffect(() => {
     setLookupValue('');
-    setConfirmedLookup('');
-    setLookupAttempted(false);
-    setActiveTab('overview');
+    setLookupStatus('');
+    setActiveTab('identity');
     setRecordQuery('');
     setSelectedId('');
     setReport(null);
-    setReportGenerated(hasGeneratedKybReport(activeCase.id));
+    setReportGenerated(hasGeneratedBusiness360Report(activeCase.id));
   }, [activeCase.id]);
 
   useEffect(() => {
-    setRecordQuery('');
-    setSelectedId('');
-  }, [activeTab]);
+    if (!query) return;
+    for (const section of businessResearchSections) {
+      const match = (workspace.recordsBySection[section.id] ?? []).find((record) => businessRecordSearchText(record).includes(query.trim().toLowerCase()));
+      if (!match) continue;
+      setActiveTab(section.id);
+      setSelectedId(match.id);
+      break;
+    }
+  }, [query, workspace]);
 
   function runLookup(event) {
     event.preventDefault();
-    setLookupAttempted(true);
-    setConfirmedLookup(lookupValue.trim());
+    setLookupStatus(matchesBusinessResearchLookup(workspace, lookupValue) ? 'matched' : 'unmatched');
   }
 
   function generateReport() {
-    const nextReport = generateKybReviewReport(activeCase);
+    const nextReport = generateBusiness360Report(activeCase);
     setReport(nextReport);
     setReportGenerated(true);
-    saveNote(`KYB Business Report generated for ${workspace.profile.legalName}.`, 'KYB Review');
+    saveNote(`Business 360 Research Report generated for ${profile.legalName}.`, 'Business 360');
   }
 
   return (
     <>
-      <section className="kyb-lookup-panel" aria-label="KYB business lookup">
-        <div><p>Business lookup</p><h3>Find the exact entity before opening its KYB record</h3><span>Search by legal name, DBA, masked EIN, registration ID, or exact business address.</span></div>
-        <form onSubmit={runLookup}><label><span>Business identifier</span><input value={lookupValue} onChange={(event) => setLookupValue(event.target.value)} placeholder="Legal name, DBA, **-***1234, registration ID, or address" aria-label="Search KYB Review" /></label><button type="submit" disabled={!lookupValue.trim()}>Search business</button></form>
-        <article className="kyb-case-entity"><span>Business object attached to this training case</span><strong>{workspace.profile.dba}</strong><small>{workspace.profile.jurisdiction} | {workspace.profile.industry}</small><button type="button" onClick={() => setLookupValue(workspace.profile.legalName)}>Use legal name</button></article>
+      <section className="business-360-lookup" aria-label="Business 360 entity lookup">
+        <div><p>Entity lookup</p><h3>Open the reusable business profile</h3><span>Search the fictional training index by exact legal name, DBA, masked EIN, registration number, or physical address.</span></div>
+        <form onSubmit={runLookup}><label><span>Business identifier</span><input value={lookupValue} onChange={(event) => setLookupValue(event.target.value)} placeholder="Legal name, DBA, masked EIN, registration, or address" aria-label="Search Business 360" /></label><button type="submit" disabled={!lookupValue.trim()}>Search business</button></form>
+        <button type="button" onClick={() => setLookupValue(profile.legalName)}>Use {profile.dba}</button>
       </section>
+      {lookupStatus === 'matched' && <div className="business-360-lookup-result" role="status"><strong>Exact fictional training record located.</strong><span>{profile.legalName} · {profile.registrationId}</span></div>}
+      {lookupStatus === 'unmatched' && <div className="business-360-lookup-result warning" role="status"><strong>No exact record located.</strong><span>This lookup result does not establish whether a business exists. Check the identifier or compare another recorded source.</span></div>}
 
-      {lookupAttempted && !searchMatched && <div className="kyb-lookup-message" role="status"><strong>No exact fictional business match.</strong><span>Check the full legal name, DBA, masked EIN, registration ID, or complete address and search again.</span></div>}
-
-      {searchMatched && <>
-        <section className="kyb-profile-header" aria-label="Matched business profile">
-          <header><div><p>Exact business match</p><h3>{workspace.profile.legalName}</h3><span>{workspace.profile.dba} | {workspace.profile.entityType}</span></div><button type="button" onClick={() => pin(`${workspace.profile.registrationId} | ${workspace.profile.legalName}`)}>Pin business</button></header>
-          <dl>{[['Registration', workspace.profile.registrationId], ['Masked EIN', workspace.profile.ein], ['Jurisdiction', workspace.profile.jurisdiction], ['Standing', workspace.profile.standing], ['Formation', workspace.profile.formationDate], ['Address', workspace.profile.address], ['Phone', workspace.profile.phone], ['Website', workspace.profile.website]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
-        </section>
-
-        <section className="kyb-review-kpis" aria-label="KYB record inventory"><article><span>Owner / UBO records</span><strong>{workspace.counts.owners}</strong><small>Identity records connected</small></article><article><span>Business links</span><strong>{workspace.counts.businessRecords}</strong><small>Business 360 records</small></article><article><span>Payment objects</span><strong>{workspace.counts.paymentObjects}</strong><small>Ownership records available</small></article><article><span>Documents & links</span><strong>{workspace.counts.documents}</strong><small>Source inventory</small></article></section>
-
-        <nav className="kyb-review-tabs" aria-label="KYB Review sections">{kybReviewTabs.map((item) => <button key={item.id} type="button" className={activeTab === item.id ? 'active' : ''} aria-pressed={activeTab === item.id} onClick={() => setActiveTab(item.id)}>{item.label}</button>)}</nav>
-
-        <section className="kyb-review-findbar" aria-label="KYB Review record filter"><div><p>{tab.label}</p><h3>{tab.question}</h3></div><label><span>Filter opened records</span><input value={recordQuery} onChange={(event) => setRecordQuery(event.target.value)} placeholder="Record, owner, identifier, source, or value" aria-label="Filter KYB Review records" /></label><span>{filteredRecords.length} of {tabRecords.length} shown</span></section>
-
-        <div className="kyb-review-workspace">
-          <section className="kyb-record-list" aria-label={`${tab.label} KYB records`}><header><div><p>Source records</p><h3>{tab.label}</h3></div><span>{filteredRecords.length} shown</span></header>{filteredRecords.map((record) => <button key={record.id} type="button" className={activeRecord?.id === record.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-kyb-review-record={record.id}><span>{record.category} | {record.observed}</span><strong>{record.title}</strong><small>{record.value}</small></button>)}{!filteredRecords.length && <div className="investigation-tool-empty" role="status">No KYB records match this filter.</div>}</section>
-
-          {activeRecord ? <section className="kyb-record-detail" aria-label="Expanded KYB record"><header><div><p>Expanded source record</p><h3>{activeRecord.id}</h3><span>{activeRecord.title}</span></div><button type="button" onClick={() => pin(`${activeRecord.id} | ${activeRecord.title}`)}>Pin record</button></header><dl>{activeRecord.fields.map(([label, value]) => <div key={`${activeRecord.id}-${label}`}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><article><span>Recorded context</span><p>{activeRecord.detail}</p></article><div className="kyb-related-records"><span>Related records</span><div>{activeRecord.relatedRecords.map((item) => <button key={item} type="button" onClick={() => pin(item)}>{item}</button>)}</div></div><button type="button" onClick={() => saveNote(`KYB Review: ${activeRecord.id} - ${activeRecord.detail}`, 'KYB Review')}>Save evidence note</button></section> : <div className="investigation-tool-empty" role="status">Choose a KYB source record to open its details.</div>}
-
-          <aside className="kyb-case-rail" aria-label="KYB Review case summary"><header><p>Business evidence summary</p><h3>{workspace.profile.dba}</h3><span>{activeCase.id}</span></header><section><p>Reviewed business facts</p>{workspace.reviewedFacts.map((fact) => <article key={fact}>{fact}</article>)}</section><section className="kyb-report-actions"><p>KYB Business Report</p><span>Generate a factual report from the opened fictional business records. The report is stored with the matching account documents.</span><button type="button" onClick={generateReport}>{reportGenerated ? 'Regenerate report' : 'Generate report'}</button>{report && <button type="button" onClick={() => downloadKybReport(report)}>Export report</button>}</section><nav><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Financial Investigation')}>Open Financial Investigation</button></nav></aside>
-        </div>
-      </>}
-
-      <nav className="investigation-tool-next-routes" aria-label="KYB Review next routes"><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Identity Intel / People Search')}>Open Identity Intel</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
-      <footer className="investigation-tool-review-bar"><div><strong>KYB Review</strong><span>Complete an exact lookup and compare the relevant source records before marking this business review complete.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} disabled={!searchMatched} onClick={() => markReviewed('KYB Review')}>{reviewed ? '✓ KYB Review reviewed' : 'Mark KYB Review reviewed'}</button></footer>
-    </>
-  );
-}
-
-function Business360Workspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
-  const workspace = useMemo(() => getBusiness360Workspace(activeCase), [activeCase]);
-  const [selectedId, setSelectedId] = useState('');
-  const activeRelationship = workspace.relationships.find((record) => record.id === selectedId) ?? workspace.relationships[0];
-  useEffect(() => setSelectedId(''), [activeCase.id]);
-
-  return (
-    <>
       <section className="business-360-profile" aria-label="Business 360 profile">
-        <header><div><p>Business and KYB profile</p><h3>{workspace.profile.entity}</h3><span>Fictional training business context. Review evidence without assigning a case outcome.</span></div><button type="button" onClick={() => pin(workspace.profile.entity)}>Pin business</button></header>
+        <header><div><p>Reusable business profile</p><h3>{profile.legalName}</h3><span>{profile.dba} · {profile.entityType}</span></div><button type="button" onClick={() => pin(`${profile.businessId} | ${profile.legalName}`)}>Pin business</button></header>
         <dl>{[
-          ['Entity type', workspace.profile.entityType], ['Registration', workspace.profile.registration], ['Masked EIN', workspace.profile.ein], ['Owner', workspace.profile.owner], ['Officer', workspace.profile.officer], ['Registered agent', workspace.profile.registeredAgent], ['Business address', workspace.profile.address], ['Filing date', workspace.profile.filingDate], ['Business standing', workspace.profile.standing], ['Revenue / cash-flow context', workspace.profile.revenue], ['Business contact', workspace.profile.contact], ['Relationship', workspace.profile.relationship],
+          ['Legal name', profile.legalName], ['DBA', profile.dba], ['Entity type', profile.entityType], ['Masked EIN', profile.ein], ['State registration / file number', profile.registrationId], ['Formation date', profile.formationDate], ['Formation state', profile.formationState], ['Current standing', profile.standing], ['Industry', profile.industry], ['NAICS', profile.naics],
         ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
       </section>
 
-      <PaymentSourceHandoff
-        source={workspace.paymentSource}
-        activeCase={activeCase}
-        openTool={openTool}
-        sourceLabel="Business 360"
-      />
+      <section className="business-360-inventory" aria-label="Business 360 record inventory">
+        <article><span>Beneficial owners</span><strong>{workspace.counts.owners}</strong></article>
+        <article><span>Institution accounts</span><strong>{workspace.counts.accounts}</strong></article>
+        <article><span>Luna checks</span><strong>{workspace.counts.researchChecks}</strong></article>
+        <article><span>Fictional sources</span><strong>{workspace.counts.sourceRecords}</strong></article>
+      </section>
+
+      <nav className="business-360-tabs" aria-label="Business 360 sections">{businessResearchSections.map((section) => <button key={section.id} type="button" className={activeTab === section.id ? 'active' : ''} aria-pressed={activeTab === section.id} onClick={() => { setActiveTab(section.id); setSelectedId(''); setRecordQuery(''); }}>{section.label}</button>)}</nav>
+
+      {activeTab === 'ownership' && <section className="business-360-section-card" aria-label="Ownership and control summary"><header><p>Ownership and control</p><h3>{profile.ownership.controllingParty.name} · {profile.ownership.controllingParty.title}</h3></header><div>{profile.ownership.beneficialOwners.map((owner) => <article key={owner.id}><span>{owner.title} · {owner.ownershipPercentage}%</span><strong>{owner.legalName}</strong><small>{owner.trainingId} · {owner.controlStatus} · {owner.guarantorStatus}</small><p>DOB: {owner.dateOfBirth}</p><p>Current residential address: {owner.currentResidentialAddress}</p><p>Previous residential address: {owner.previousResidentialAddress}</p><p>{owner.phone} · {owner.email}</p><small>{owner.verificationDetails}</small><button type="button" onClick={() => openTool('Identity Intel / People Search', 'investigate', { query: owner.trainingId })}>Open Owner Identity Profile</button></article>)}</div></section>}
+      {activeTab === 'footprint' && <section className="business-360-section-card" aria-label="Operating footprint summary"><header><p>Operating footprint</p><h3>{profile.footprint.businessAge} in operation</h3></header><dl>{[['Physical address', profile.footprint.physicalAddress], ['Mailing address', profile.footprint.mailingAddress], ['Registered agent', profile.footprint.registeredAgent], ['Phone', profile.footprint.phone], ['Business email', profile.footprint.email], ['Website', profile.footprint.website], ['Business age', profile.footprint.businessAge], ['Known operating locations', profile.footprint.operatingLocations.join(' · ')], ['Estimated employee count', profile.footprint.estimatedEmployeeCount]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section>}
+      {activeTab === 'relationship' && <section className="business-360-section-card" aria-label="Institution relationship summary"><header><p>Institution relationship</p><h3>Relationship since {profile.relationship.relationshipStartDate} · {profile.relationship.clientDuration}</h3></header><dl>{[
+        ['Credit and loan details', profile.relationship.creditAndLoanDetails.join(' · ') || 'No credit or loan product recorded'],
+        ['Profile changes', profile.relationship.profileChanges.join(' · ')],
+        ['Access and security', profile.relationship.accessSecurity.join(' · ')],
+        ['Contact notes', profile.relationship.contactNotes.join(' · ')],
+        ['Payroll relationship summary', profile.relationship.payrollRelationshipSummary],
+      ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><div>{profile.relationship.accounts.map((account) => <article key={account.id}><span>{account.id} · {account.status}</span><strong>{account.product}</strong><small>Limit {account.limit} · Balance {account.balance}</small><p>Restrictions or holds: {account.restrictions}</p><p>NSF / returned-payment context: {account.nsfContext}</p><p>Recorded repayment source: {account.repaymentSource}</p></article>)}</div></section>}
+      {activeTab === 'research' && <section className="luna-business-research" aria-label="Luna Business Research"><header><div><p>Luna Business Research</p><h3>Factual comparisons across simulated sources</h3><span>Every source shown is fictional training data. No live government, licensing, domain, directory, or internet search occurred.</span></div></header><div>{profile.research.map((research) => <article key={research.id} data-luna-status={research.status}><span>{research.topic}</span><strong>{research.status}</strong><p>{research.finding}</p><small>Fictional source checked: {research.source}</small><small>Checked date: {research.checkedDate}</small></article>)}</div><p className="luna-business-caution">“No record located” is a source result, not proof that a business does not exist.</p></section>}
+
+      <section className="business-360-findbar" aria-label="Business 360 record filter"><div><p>{activeSection.label}</p><h3>{activeSection.question}</h3></div><label><span>Filter records in this section</span><input value={recordQuery} onChange={(event) => setRecordQuery(event.target.value)} placeholder="Record, owner, identifier, source, or value" /></label><span>{filteredRecords.length} of {sectionRecords.length} shown</span></section>
 
       <div className="business-360-workspace">
-        <section className="business-360-relationships" aria-label="Business relationships"><header><p>Relationships</p><h3>Choose a business object</h3></header>{workspace.relationships.map((record) => <button key={record.id} type="button" className={record.id === activeRelationship?.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-business-360-record={record.id}><span>{record.id} | {record.status}</span><strong>{record.entity}</strong><small>{record.relationship}</small></button>)}</section>
-        {activeRelationship ? <section className="business-360-detail" aria-label="Business relationship detail"><header><div><p>Selected relationship</p><h3>{activeRelationship.entity}</h3><span>{activeRelationship.observed}</span></div><button type="button" onClick={() => pin(activeRelationship.entity)}>Pin relationship</button></header><dl>{[['Relationship', activeRelationship.relationship], ['Status', activeRelationship.status], ['Observed', activeRelationship.observed], ['Case context', activeRelationship.context]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><button type="button" onClick={() => saveNote(`Business 360: ${activeRelationship.id} reviewed for ${activeCase.id}.`, 'Business 360')}>Save business note</button></section> : <div className="investigation-tool-empty" role="status">No business relationship is recorded for this case.</div>}
-        <aside className="business-360-evidence" aria-label="Business 360 evidence"><header><p>Evidence Explorer</p><h3>Business records to compare</h3></header>{workspace.intelligence.map((record) => <article key={record.id}><span>{record.type}</span><strong>{record.value}</strong><small>{record.id} | {record.observed}</small></article>)}</aside>
+        <section className="business-360-record-list" aria-label={`${activeSection.label} records`}><header><p>Profile and source records</p><h3>{activeSection.label}</h3></header>{filteredRecords.map((record) => <button key={record.id} type="button" className={activeRecord?.id === record.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-business-360-record={record.id}><span>{record.category} · {record.observed}</span><strong>{record.title}</strong><small>{record.value}</small></button>)}{!filteredRecords.length && <div className="investigation-tool-empty" role="status">No Business 360 records match this filter.</div>}</section>
+        {activeRecord ? <section className="business-360-record-detail" aria-label="Expanded Business 360 record"><header><div><p>Expanded record</p><h3>{activeRecord.id}</h3><span>{activeRecord.title}</span></div><button type="button" onClick={() => pin(`${activeRecord.id} | ${activeRecord.title}`)}>Pin record</button></header><dl>{activeRecord.fields.map(([label, value]) => <div key={`${activeRecord.id}-${label}`}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><article><span>Recorded detail</span><p>{activeRecord.detail}</p></article>{activeRecord.relatedRecords?.length > 0 && <div className="business-360-related-records"><span>Related records</span><div>{activeRecord.relatedRecords.map((item) => <button key={item} type="button" onClick={() => pin(item)}>{item}</button>)}</div></div>}<button type="button" onClick={() => saveNote(`Business 360: ${activeRecord.id} — ${activeRecord.detail}`, 'Business 360')}>Save business note</button></section> : <div className="investigation-tool-empty" role="status">Choose a business record to open its details.</div>}
+        <aside className="business-360-report" aria-label="Business 360 report"><header><p>Reusable research report</p><h3>Business 360 Research Report</h3></header><p>Generate a factual export from this profile and its fictional source checks. The report does not assign an investigation outcome.</p><button type="button" onClick={generateReport}>{reportGenerated ? 'Regenerate report' : 'Generate report'}</button>{report && <button type="button" onClick={() => downloadBusiness360Report(report)}>Export report</button>}</aside>
       </div>
-      <nav className="investigation-tool-next-routes" aria-label="Business 360 next routes"><button type="button" onClick={() => openTool('KYB Review')}>Open KYB Review</button><button type="button" onClick={() => openTool('Employee Profile')}>Open Employee Profile</button><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
-      <footer className="investigation-tool-review-bar"><div><strong>Business 360 review</strong><span>Review the fictional business profile, relationship records, and linked evidence before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Business 360')}>{reviewed ? '✓ Business 360 reviewed' : 'Mark Business 360 reviewed'}</button></footer>
+      <nav className="investigation-tool-next-routes" aria-label="Business 360 next routes">{workspace.navigation.map((route) => <button key={route} type="button" onClick={() => openTool(route)}>{`Open ${route}`}</button>)}<button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      <footer className="investigation-tool-review-bar"><div><strong>Business 360 review</strong><span>Review the reusable identity, ownership, footprint, relationship, and fictional source records before marking the profile reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Business 360')}>{reviewed ? '✓ Business 360 reviewed' : 'Mark Business 360 reviewed'}</button></footer>
     </>
   );
 }
@@ -1802,16 +1773,44 @@ function EmployeeProfileWorkspace({ activeCase, pin, saveNote, markReviewed, rev
   return (
     <>
       <section className="employee-profile-summary" aria-label="Employee Profile summary">{[['Employee records', records.length], ['Employers', new Set(records.map((record) => record.employer)).size], ['Payroll links', records.reduce((count, record) => count + record.linkedPayroll.length, 0)], ['Active case', activeCase.id]].map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}</section>
-      <PaymentSourceHandoff
-        source={activeRecord?.paymentSource}
-        activeCase={activeCase}
-        openTool={openTool}
-        sourceLabel="Employee Profile"
-      />
       {activeRecord ? <div className="employee-profile-workspace">
         <section className="employee-profile-list" aria-label="Employee Profile records"><header><p>Employee records</p><h3>Choose an employee or contact</h3></header>{records.map((record) => <button key={record.id} type="button" className={record.id === activeRecord.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-employee-profile-record={record.id}><span>{record.id} | {record.status}</span><strong>{record.name}</strong><small>{record.role} | {record.employer}</small></button>)}</section>
-        <section className="employee-profile-detail" aria-label="Employee Profile detail"><header><div><p>Employee profile</p><h3>{activeRecord.name}</h3><span>{activeRecord.role} | {activeRecord.employer}</span></div><button type="button" onClick={() => pin(`${activeRecord.id} | ${activeRecord.name}`)}>Pin employee</button></header><dl>{[['Employee ID', activeRecord.id], ['Employer', activeRecord.employer], ['Role', activeRecord.role], ['Department', activeRecord.department], ['Status', activeRecord.status], ['Hire date', activeRecord.hireDate], ['Employment timeline', activeRecord.employmentTimeline], ['Official contact / callback', activeRecord.officialContact], ['Direct deposit context', activeRecord.directDeposit], ['Linked payroll records', activeRecord.linkedPayroll.join(' | ') || 'None recorded']].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><button type="button" onClick={() => saveNote(`Employee Profile: ${activeRecord.id} reviewed for ${activeCase.id}.`, 'Employee profile')}>Save employee note</button></section>
-        <aside className="employee-profile-evidence" aria-label="Employee payroll evidence"><header><p>Payroll connection</p><h3>Next evidence to review</h3></header><p>Compare the employee record, employer relationship, direct-deposit context, and any payroll change request before documenting a case decision.</p><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button></aside>
+        <section className="employee-profile-detail" aria-label="Employee Profile detail"><header><div><p>Employee profile</p><h3>{activeRecord.legalName ?? activeRecord.name}</h3><span>{activeRecord.position ?? activeRecord.role} | {activeRecord.employer}</span></div><button type="button" onClick={() => pin(`${activeRecord.id} | ${activeRecord.name}`)}>Pin employee</button></header><dl>{[
+          ['Legal name', activeRecord.legalName ?? activeRecord.name],
+          ['Date of birth', activeRecord.dateOfBirth],
+          ['Training ID', activeRecord.trainingId],
+          ['Current residential address', activeRecord.currentResidentialAddress],
+          ['Previous residential address', activeRecord.previousResidentialAddress],
+          ['Employee ID', activeRecord.id],
+          ['Employer', activeRecord.employer],
+          ['Department', activeRecord.department],
+          ['Position', activeRecord.position ?? activeRecord.role],
+          ['Manager', activeRecord.manager],
+          ['Employment status', activeRecord.status],
+          ['Work location', activeRecord.workLocation],
+          ['Hire date', activeRecord.hireDate],
+          ['Termination date', activeRecord.terminationDate],
+          ['Pay schedule', activeRecord.paySchedule],
+          ['Compensation type', activeRecord.compensationType ?? activeRecord.payType],
+          ['Current rate or salary', activeRecord.currentRate],
+          ['Rate history', activeRecord.rateHistory?.map((item) => `${item.effectiveDate}: ${item.value}`).join(' · ')],
+          ['W-4 filing status', activeRecord.w4FilingStatus],
+          ['W-4 multiple-jobs selection', activeRecord.w4MultipleJobsSelection],
+          ['W-4 dependents', activeRecord.w4Dependents],
+          ['W-4 other income', activeRecord.w4OtherIncome],
+          ['W-4 deductions', activeRecord.w4Deductions],
+          ['W-4 extra withholding', activeRecord.w4ExtraWithholding],
+          ['Federal election', activeRecord.federalElection],
+          ['State election', activeRecord.stateElection],
+          ['Local election', activeRecord.localElection],
+          ['Tax jurisdiction', activeRecord.taxJurisdiction],
+          ['Tax exemption status', activeRecord.taxExemptionStatus],
+          ['Tax effective date', activeRecord.taxEffectiveDate],
+          ['Official contact / callback', activeRecord.officialContact],
+          ['Payment-method context', activeRecord.directDeposit],
+          ['Linked payroll records', activeRecord.linkedPayroll.join(' | ') || 'None recorded'],
+        ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ?? 'Not supplied'}</dd></div>)}</dl><button type="button" onClick={() => saveNote(`Employee Profile: ${activeRecord.id} reviewed.`, 'Employee Profile')}>Save employee note</button></section>
+        <aside className="employee-profile-evidence" aria-label="Employee payroll evidence"><header><p>Payroll connection</p><h3>Historical paychecks</h3></header><p>Open Payroll History to review the employee’s paycheck snapshots. Payment ownership and account standing remain available only after an exact Payment Verification search.</p><button type="button" onClick={() => openTool('Payroll History', 'investigate', { query: activeRecord.id })}>Open Payroll History</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button></aside>
       </div> : <div className="investigation-tool-empty" role="status">No employee records are available for this case.</div>}
       <nav className="investigation-tool-next-routes" aria-label="Employee Profile next routes"><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Payroll History')}>Open Payroll History</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
       <footer className="investigation-tool-review-bar"><div><strong>Employee Profile review</strong><span>Review employee and employer facts, official contact details, and linked payroll context before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Employee Profile')}>{reviewed ? '✓ Employee Profile reviewed' : 'Mark Employee Profile reviewed'}</button></footer>
@@ -1819,32 +1818,185 @@ function EmployeeProfileWorkspace({ activeCase, pin, saveNote, markReviewed, rev
   );
 }
 
-function PayrollHistoryWorkspace({ activeCase, pin, saveNote, markReviewed, reviewed, openTool, jumpDecision }) {
-  const records = useMemo(() => getPayrollHistory(activeCase), [activeCase]);
-  const [employer, setEmployer] = useState('All employers');
-  const [selectedId, setSelectedId] = useState('');
-  const employers = ['All employers', ...new Set(records.map((record) => record.employer))];
-  const filteredRecords = records.filter((record) => employer === 'All employers' || record.employer === employer);
-  const activeRecord = filteredRecords.find((record) => record.id === selectedId) ?? filteredRecords[0] ?? records[0];
-  useEffect(() => { setEmployer('All employers'); setSelectedId(''); }, [activeCase.id]);
+function payrollMoney(value) {
+  return Number(value ?? 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+}
+
+function PayrollHistoryWorkspace({
+  activeCase,
+  query,
+  pin,
+  saveNote,
+  markReviewed,
+  reviewed,
+  openTool,
+  jumpDecision,
+  quickPin,
+  recordAction,
+}) {
+  const workspace = useMemo(() => getPayrollHistory(activeCase), [activeCase]);
+  const [view, setView] = useState('company');
+  const [selectedRunId, setSelectedRunId] = useState('');
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+  const [selectedPaystubId, setSelectedPaystubId] = useState('');
+  const company = workspace.companyPayrollProfile;
+  const selectedRun = workspace.payrollRuns.find((run) => run.id === selectedRunId) ?? null;
+  const selectedRunEmployee = selectedRun?.employees.find((employee) => employee.employeeId === selectedEmployeeId) ?? null;
+  const history = useMemo(
+    () => employeePayrollHistory(workspace, selectedEmployeeId),
+    [workspace, selectedEmployeeId],
+  );
+  const selectedPaycheck = history.paychecks.find((paycheck) => paycheck.paystub.id === selectedPaystubId)
+    ?? (selectedRunEmployee ? { ...selectedRunEmployee, runId: selectedRun?.id, paystub: selectedRunEmployee.paystub } : null);
+  const paystub = selectedPaycheck?.paystub ?? null;
+
+  useEffect(() => {
+    setView('company');
+    setSelectedRunId('');
+    setSelectedEmployeeId('');
+    setSelectedPaystubId('');
+  }, [activeCase.id]);
+
+  useEffect(() => {
+    const match = findPayrollRecord(workspace, query);
+    if (!match) return;
+    setSelectedRunId(match.run.id);
+    if (match.type === 'run') {
+      setView('run');
+      return;
+    }
+    setSelectedEmployeeId(match.employee.employeeId);
+    if (match.type === 'employee') {
+      setView('employee');
+      return;
+    }
+    setSelectedPaystubId(match.paystub.id);
+    setView('paystub');
+  }, [query, workspace]);
+
+  function openRun(run) {
+    setSelectedRunId(run.id);
+    setSelectedEmployeeId('');
+    setSelectedPaystubId('');
+    setView('run');
+  }
+
+  function openEmployee(run, employee) {
+    setSelectedRunId(run.id);
+    setSelectedEmployeeId(employee.employeeId);
+    setSelectedPaystubId('');
+    setView('employee');
+  }
+
+  function openPaystub(paycheck) {
+    setSelectedRunId(paycheck.runId);
+    setSelectedEmployeeId(paycheck.employeeId);
+    setSelectedPaystubId(paycheck.paystub.id);
+    setView('paystub');
+  }
+
+  async function copyPayrollValue(label, value) {
+    if (!value || value === 'Not applicable') return;
+    try {
+      if (window.navigator.clipboard?.writeText) {
+        await window.navigator.clipboard.writeText(String(value));
+      } else {
+        throw new Error('Clipboard API unavailable');
+      }
+    } catch {
+      const field = window.document.createElement('textarea');
+      field.value = String(value);
+      field.setAttribute('readonly', '');
+      field.style.position = 'fixed';
+      field.style.opacity = '0';
+      window.document.body.appendChild(field);
+      field.select();
+      window.document.execCommand('copy');
+      field.remove();
+    }
+    recordAction?.('Copied payroll identifier', `${label} ${value} copied from immutable paystub ${paystub?.id}.`, 'Payroll History');
+  }
+
+  function openPaymentVerification(destination) {
+    const hint = buildPaymentLookupHint({
+      bankCode: destination.bankCode,
+      destinationId: destination.destinationId,
+      ownerName: paystub.employee.legalName,
+    });
+    openTool('Payment Verification', 'investigate', { query: hint });
+  }
+
+  if (!company || !workspace.payrollRuns.length) {
+    return (
+      <>
+        <div className="investigation-tool-empty" role="status">No company payroll history is recorded for this business profile.</div>
+        <nav className="investigation-tool-next-routes" aria-label="Payroll History next routes"><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
+      </>
+    );
+  }
 
   return (
     <>
-      <section className="payroll-history-findbar" aria-label="Payroll History filters"><div><p>Payroll and direct deposit</p><h3>Review each fictional payroll run, destination context, change record, callback status, and related employee evidence.</h3></div><label><span>Employer</span><select value={employer} onChange={(event) => setEmployer(event.target.value)} aria-label="Payroll History employer filter">{employers.map((item) => <option key={item}>{item}</option>)}</select></label><span>{filteredRecords.length} of {records.length} payroll records shown</span></section>
-      <section className="payroll-history-summary" aria-label="Payroll History summary">{[['Payroll records', records.length], ['Employers', employers.length - 1], ['Direct deposit records', records.filter((record) => /direct deposit/i.test(record.channel)).length], ['Linked employee records', new Set(records.flatMap((record) => record.relatedRecords.filter((item) => item.startsWith('EMP-')))).size]].map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}</section>
-      <PaymentSourceHandoff
-        source={activeRecord?.paymentSource}
-        activeCase={activeCase}
-        openTool={openTool}
-        sourceLabel="Payroll History"
-      />
-      {activeRecord ? <div className="payroll-history-workspace">
-        <section className="payroll-history-list" aria-label="Payroll History records"><header><p>Payroll runs</p><h3>Choose a payroll record</h3></header>{filteredRecords.map((record) => <button key={record.id} type="button" className={record.id === activeRecord.id ? 'active' : ''} onClick={() => setSelectedId(record.id)} data-payroll-history-record={record.id}><span>{record.period} | {record.runStatus}</span><strong>{record.employee}</strong><small>{record.amount} | {record.employer}</small></button>)}</section>
-        <section className="payroll-history-detail" aria-label="Payroll History detail"><header><div><p>Payroll run detail</p><h3>{activeRecord.id} | {activeRecord.period}</h3><span>{activeRecord.employer} | {activeRecord.amount}</span></div><button type="button" onClick={() => pin(activeRecord.id)}>Pin payroll record</button></header><dl>{[['Employee', activeRecord.employee], ['Employer', activeRecord.employer], ['Payroll amount', activeRecord.amount], ['Channel', activeRecord.channel], ['Run status', activeRecord.runStatus], ['Bank Code', activeRecord.bankCode], ['Destination ID', activeRecord.destinationId], ['New account / destination', activeRecord.newDestination ?? activeRecord.destination], ['Previous account / destination', activeRecord.oldDestination ?? activeRecord.priorDestination], ['Change comparison', activeRecord.changeComparison], ['Effective date', activeRecord.effectiveDate], ['Change request', activeRecord.changeRequest], ['Admin activity', activeRecord.adminActivity], ['Trusted callback', activeRecord.callback], ['Payment record', activeRecord.paymentRecordId], ['Related records', activeRecord.relatedRecords.join(' | ')]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ?? 'Not supplied'}</dd></div>)}</dl><button type="button" onClick={() => saveNote(`Payroll History: ${activeRecord.id} reviewed for ${activeCase.id}.`, 'Payroll history')}>Save payroll note</button></section>
-        <aside className="payroll-history-controls" aria-label="Payroll related controls"><header><p>Related review</p><h3>Compare payroll evidence</h3></header><p>{activeRecord.context}</p><button type="button" onClick={() => openTool('Employee Profile')}>Open Employee Profile</button><button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button><button type="button" onClick={() => openTool('Document Request')}>Open Document Request</button></aside>
-      </div> : <div className="investigation-tool-empty" role="status">No payroll records match this filter.</div>}
+      <nav className="payroll-breadcrumbs" aria-label="Payroll History hierarchy">
+        <button type="button" className={view === 'company' ? 'active' : ''} onClick={() => setView('company')}>Company Payroll History</button>
+        <span>›</span><button type="button" disabled={!selectedRun} className={view === 'run' ? 'active' : ''} onClick={() => selectedRun && setView('run')}>Payroll Run Detail</button>
+        <span>›</span><button type="button" disabled={!selectedEmployeeId} className={view === 'employee' ? 'active' : ''} onClick={() => selectedEmployeeId && setView('employee')}>Employee Payroll History</button>
+        <span>›</span><button type="button" disabled={!paystub} className={view === 'paystub' ? 'active' : ''} onClick={() => paystub && setView('paystub')}>Individual Paystub</button>
+      </nav>
+
+      {view === 'company' && <>
+        <section className="payroll-company-header" aria-label="Company payroll header"><header><div><p>Company Payroll History</p><h3>{company.legalName}</h3><span>Immutable payroll snapshots for {company.selectedDateRange}</span></div><button type="button" onClick={() => pin(company.payrollId)}>Pin payroll ID</button></header><dl>{[['Payroll ID', company.payrollId], ['Pay schedule', company.paySchedule], ['Next pay date', company.nextPayDate], ['Active employee count', company.activeEmployeeCount], ['Selected date range', company.selectedDateRange]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section>
+        <section className="payroll-company-summary" aria-label="Company payroll selected-range summary">{[
+          ['Total payroll cost', workspace.summary.totalPayrollCost],
+          ['Employees paid', workspace.summary.employeesPaid, false],
+          ['Gross wages', workspace.summary.grossWages],
+          ['Employee taxes withheld', workspace.summary.employeeTaxes],
+          ['Employer taxes', workspace.summary.employerTaxes],
+          ['Deductions', workspace.summary.deductions],
+          ['Employer contributions', workspace.summary.employerContributions],
+          ['Reimbursements', workspace.summary.reimbursements],
+          ['Net pay', workspace.summary.netPay],
+          ['Total funding amount', workspace.summary.totalFundingAmount],
+        ].map(([label, value, money = true]) => <article key={label}><span>{label}</span><strong>{money ? payrollMoney(value) : value}</strong></article>)}</section>
+        <section className="payroll-run-list" aria-label="Company payroll runs"><header><div><p>Payroll runs</p><h3>{workspace.payrollRuns.length} runs in the selected range</h3></div><span>Company-level history</span></header>{[...workspace.payrollRuns].reverse().map((run) => <article key={run.id} data-payroll-run={run.id}><div><span>{run.runType} · {run.status}</span><strong>{run.id}</strong><small>Pay date {run.payDate} · {run.payPeriod.label}</small></div><dl><div><dt>Employees</dt><dd>{run.employeeCount}</dd></div><div><dt>Gross wages</dt><dd>{payrollMoney(run.grossWages)}</dd></div><div><dt>Net pay</dt><dd>{payrollMoney(run.netPay)}</dd></div><div><dt>Total payroll cost</dt><dd>{payrollMoney(run.totalPayrollCost)}</dd></div></dl><button type="button" onClick={() => openRun(run)}>Open Payroll</button></article>)}</section>
+      </>}
+
+      {view === 'run' && selectedRun && <>
+        <section className="payroll-run-detail" aria-label="Payroll Run Detail"><header><div><p>Payroll Run Detail</p><h3>{selectedRun.id}</h3><span>{selectedRun.runType} · {selectedRun.status}</span></div><button type="button" onClick={() => pin(selectedRun.id)}>Pin payroll run</button></header><dl>{[
+          ['Run ID', selectedRun.id], ['Pay period', selectedRun.payPeriod.label], ['Pay date', selectedRun.payDate], ['Run type', selectedRun.runType], ['Status', selectedRun.status], ['Number of employees', selectedRun.employeeCount], ['Gross wages', payrollMoney(selectedRun.grossWages)], ['Employee taxes', payrollMoney(selectedRun.employeeTaxes)], ['Employer taxes', payrollMoney(selectedRun.employerTaxes)], ['Deductions', payrollMoney(selectedRun.deductions)], ['Employer contributions', payrollMoney(selectedRun.employerContributions)], ['Reimbursements', payrollMoney(selectedRun.reimbursements)], ['Net pay', payrollMoney(selectedRun.netPay)], ['Funding amount', payrollMoney(selectedRun.totalFundingAmount)], ['Funding status', selectedRun.fundingStatus], ['Total company debit', payrollMoney(selectedRun.totalCompanyDebit)], ['Company funding Bank Code', selectedRun.companyFunding.bankCode], ['Company funding account used', selectedRun.companyFunding.accountUsed], ['Submission date', selectedRun.submissionDate], ['Settlement date', selectedRun.settlementDate], ['Submitted by', selectedRun.submittedBy], ['Approved by', selectedRun.approvedBy],
+        ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section>
+        <section className="payroll-employee-table" aria-label="Employees included in payroll run"><header><p>Employees included</p><h3>{selectedRun.employeeCount} paycheck snapshots</h3></header><div className="payroll-table-scroll"><table><thead><tr>{['Employee name', 'Employee ID', 'Department', 'Pay type', 'Regular hours', 'Overtime hours', 'Gross pay', 'Taxes', 'Deductions', 'Net pay', 'Payment method', 'Payment status'].map((label) => <th key={label}>{label}</th>)}</tr></thead><tbody>{selectedRun.employees.map((employee) => <tr key={employee.paystub.id}><td><button type="button" onClick={() => openEmployee(selectedRun, employee)}>{employee.name}</button></td><td>{employee.employeeId}</td><td>{employee.department}</td><td>{employee.payType}</td><td>{employee.regularHours}</td><td>{employee.overtimeHours}</td><td>{payrollMoney(employee.grossPay)}</td><td>{payrollMoney(employee.taxes)}</td><td>{payrollMoney(employee.deductions)}</td><td>{payrollMoney(employee.netPay)}</td><td>{employee.paymentMethod}</td><td>{employee.paymentStatus}</td></tr>)}</tbody></table></div></section>
+      </>}
+
+      {view === 'employee' && history.employee && <>
+        <section className="payroll-employee-history-header" aria-label="Employee Payroll History"><div><p>Employee Payroll History</p><h3>{history.employee.name}</h3><span>{history.employee.employeeId} · {company.legalName}</span></div><button type="button" onClick={() => openTool('Employee Profile', 'investigate', { query: history.employee.employeeId })}>Open Employee Profile</button></section>
+        <section className="payroll-employee-ytd" aria-label="Employee payroll year summary">{[['Selected year', history.selectedYear, false], ['Paycheck count', history.paycheckCount, false], ['YTD gross', history.ytdGross], ['YTD net', history.ytdNet]].map(([label, value, money = true]) => <article key={label}><span>{label}</span><strong>{money ? payrollMoney(value) : value}</strong></article>)}</section>
+        <section className="payroll-paycheck-list" aria-label={`${history.employee.name} paycheck history`}><header><p>Paychecks only</p><h3>{history.paycheckCount} recorded paychecks</h3></header>{history.paychecks.map((paycheck) => <button key={paycheck.paystub.id} type="button" onClick={() => openPaystub(paycheck)} data-paycheck={paycheck.paystub.id}><span>{paycheck.paymentStatus}</span><strong>{paycheck.payDate} · {paycheck.payPeriod.label}</strong><small>{paycheck.payrollType} · Gross {payrollMoney(paycheck.grossPay)} · Net {payrollMoney(paycheck.netPay)}</small></button>)}</section>
+      </>}
+
+      {view === 'paystub' && paystub && <>
+        <section className="paystub-sheet" aria-label="Individual Paystub"><header><div><p>Individual Paystub</p><h3>{paystub.id}</h3><span>Immutable payroll snapshot as of {paystub.payDate}</span></div><button type="button" onClick={() => pin(paystub.id)}>Pin paystub</button></header>
+          <div className="paystub-parties"><section><h4>Employer</h4><dl>{[['Legal name', paystub.employer.legalName], ['Address', paystub.employer.address], ['Masked EIN', paystub.employer.maskedEin]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section><section><h4>Employee</h4><dl>{[['Legal name', paystub.employee.legalName], ['Address', paystub.employee.address], ['Employee ID', paystub.employee.employeeId]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section><section><h4>Paycheck</h4><dl>{[['Pay period', paystub.payPeriod.label], ['Pay date', paystub.payDate], ['Paystub ID', paystub.id], ['Payroll type', paystub.payrollType]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section></div>
+
+          <section className="paystub-ledger" aria-label="Paystub earnings"><h4>Earnings</h4><table><thead><tr><th>Earning type</th><th>Hours</th><th>Rate</th><th>Current amount</th><th>YTD amount</th></tr></thead><tbody>{paystub.earnings.map((item) => <tr key={item.type}><td>{item.type}</td><td>{item.hours}</td><td>{typeof item.rate === 'number' ? payrollMoney(item.rate) : item.rate}</td><td>{payrollMoney(item.current)}</td><td>{payrollMoney(item.ytd)}</td></tr>)}</tbody></table></section>
+          <section className="paystub-ledger" aria-label="Paystub taxes"><h4>Taxes</h4><table><thead><tr><th>Tax</th><th>Current</th><th>YTD</th></tr></thead><tbody>{paystub.taxes.map((item) => <tr key={item.type}><td>{item.type}</td><td>{payrollMoney(item.current)}</td><td>{payrollMoney(item.ytd)}</td></tr>)}</tbody></table></section>
+          <section className="paystub-ledger" aria-label="Paystub deductions and contributions"><h4>Deductions and contributions</h4><table><thead><tr><th>Type</th><th>Category</th><th>Current</th><th>YTD</th></tr></thead><tbody>{paystub.deductions.map((item) => <tr key={`deduction-${item.type}`}><td>{item.type}</td><td>Employee deduction</td><td>{payrollMoney(item.current)}</td><td>{payrollMoney(item.ytd)}</td></tr>)}{paystub.employerContributions.map((item) => <tr key={`contribution-${item.type}`}><td>{item.type}</td><td>Employer contribution</td><td>{payrollMoney(item.current)}</td><td>{payrollMoney(item.ytd)}</td></tr>)}</tbody></table></section>
+          <div className="paystub-supplemental"><section><h4>Reimbursements</h4>{paystub.reimbursements.length ? paystub.reimbursements.map((item) => <p key={item.type}>{item.type}: {payrollMoney(item.current)} current · {payrollMoney(item.ytd)} YTD</p>) : <p>None recorded</p>}</section><section><h4>Adjustments</h4>{paystub.adjustments.length ? paystub.adjustments.map((item) => <p key={item.type}>{item.type}: {payrollMoney(item.current)} current · {payrollMoney(item.ytd)} YTD</p>) : <p>None recorded</p>}</section></div>
+          <section className="paystub-totals" aria-label="Paystub totals">{[['Gross pay', paystub.summary.grossPay], ['Total deductions', paystub.summary.totalDeductions], ['Net pay', paystub.summary.netPay]].map(([label, value]) => <article key={label}><span>{label}</span><strong>{payrollMoney(value)}</strong></article>)}</section>
+          <section className="paystub-ytd" aria-label="Paystub YTD snapshot"><header><h4>YTD snapshot</h4><span>As of {paystub.payDate}</span></header><dl>{Object.entries(paystub.ytdSnapshot).map(([label, value]) => <div key={label}><dt>{label.replace(/([A-Z])/g, ' $1')}</dt><dd>{payrollMoney(value)}</dd></div>)}</dl></section>
+        </section>
+
+        <section className="paystub-payment" aria-label="Paystub payment destinations"><header><div><p>Payment</p><h3>{paystub.paymentDestinations.length > 1 ? 'Split direct deposit destinations' : paystub.paymentDestinations[0]?.method}</h3><span>Only identifiers and status recorded for this payroll event are shown.</span></div></header>{paystub.paymentDestinations.map((destination) => {
+          const identifiersApply = !destination.destinationUnavailable
+            && destination.bankCode !== 'Not applicable'
+            && destination.destinationId !== 'Not applicable';
+          return <article key={destination.id} data-payroll-destination={destination.destinationId} data-destination-unavailable={destination.destinationUnavailable ? 'true' : undefined}><dl>{[['Payment method', destination.method], ['Employee Bank Code', destination.bankCode], ['Destination ID', destination.destinationId], ['Deposited amount', payrollMoney(destination.amount)], ['Payment status', destination.status], ['Settlement date', destination.settlementDate], ['Payment record ID', destination.paymentRecordId ?? 'Not recorded'], ...(destination.method === 'Paper check' ? [['Check number', destination.checkNumber]] : [])].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>{destination.destinationUnavailable && <p role="status">{destination.unavailableReason}</p>}{identifiersApply && <div className="paystub-payment-actions"><button type="button" onClick={() => copyPayrollValue('Bank Code', destination.bankCode)}>Copy Bank Code</button><button type="button" onClick={() => quickPin({ label: 'Bank Code', value: destination.bankCode, sourceTool: 'Payroll History', sourceRecordId: paystub.id })}>Pin Bank Code to Quick Pad</button><button type="button" onClick={() => copyPayrollValue('Destination ID', destination.destinationId)}>Copy Destination ID</button><button type="button" onClick={() => quickPin({ label: 'Destination ID', value: destination.destinationId, sourceTool: 'Payroll History', sourceRecordId: paystub.id })}>Pin Destination ID to Quick Pad</button><button type="button" onClick={() => openPaymentVerification(destination)}>Open Payment Verification</button></div>}</article>;
+        })}</section>
+        <button type="button" onClick={() => saveNote(`Payroll History: immutable paystub ${paystub.id} reviewed.`, 'Payroll History')}>Save paystub note</button>
+      </>}
+
       <nav className="investigation-tool-next-routes" aria-label="Payroll History next routes"><button type="button" onClick={() => openTool('Employee Profile')}>Open Employee Profile</button><button type="button" onClick={() => openTool('Business 360')}>Open Business 360</button><button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button><button type="button" onClick={jumpDecision}>Open Submit Decision</button></nav>
-      <footer className="investigation-tool-review-bar"><div><strong>Payroll History review</strong><span>Review the payroll run, destination context, change request, callback status, and linked employee records before marking the tool reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Payroll History')}>{reviewed ? '✓ Payroll History reviewed' : 'Mark Payroll History reviewed'}</button></footer>
+      <footer className="investigation-tool-review-bar"><div><strong>Payroll History review</strong><span>Review the company totals, applicable run, employee paycheck history, and event-level paystub before marking Payroll History reviewed.</span></div><button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Payroll History')}>{reviewed ? '✓ Payroll History reviewed' : 'Mark Payroll History reviewed'}</button></footer>
     </>
   );
 }
@@ -1860,6 +2012,7 @@ function PaymentVerificationWorkspace({
   openTool,
   jumpDecision,
   recordAction,
+  quickPin,
 }) {
   const financial = useMemo(() => getFinancialRecords(activeCase), [activeCase]);
   const records = financial.paymentVerification ?? [];
@@ -2140,6 +2293,18 @@ function PaymentVerificationWorkspace({
             <article className="payment-action-panel">
               <header><p>Evidence actions</p><h3>Document, compare, or route</h3></header>
               <div>
+                <button type="button" onClick={() => quickPin?.({
+                  label: 'Bank Code',
+                  value: activeRecord.bankCode,
+                  sourceTool: 'Payment Verification',
+                  sourceRecordId: activeRecord.id,
+                })}>Quick Pad Bank Code</button>
+                <button type="button" onClick={() => quickPin?.({
+                  label: 'Destination ID',
+                  value: activeRecord.destinationId,
+                  sourceTool: 'Payment Verification',
+                  sourceRecordId: activeRecord.id,
+                })}>Quick Pad Destination ID</button>
                 {(activeRecord.actions ?? []).map((action) => <button key={action} type="button" onClick={() => logAction(action)}>{action}</button>)}
                 <button type="button" onClick={() => savePaymentNote(`${activeRecord.id} reviewed: ${activeRecord.notes}`)}>Save evidence note</button>
               </div>
@@ -2191,6 +2356,7 @@ export default function InvestigationToolPanel({
   activeCase,
   cases,
   openDocumentAccountCase,
+  openRelatedCase,
   tool,
   openTool,
   query,
@@ -2208,8 +2374,18 @@ export default function InvestigationToolPanel({
   setDocumentRequestsByCase,
   recordAction,
   quickPin,
+  payrollInvestigation,
+  setPayrollInvestigationsByCase,
 }) {
   const [selectedRecordId, setSelectedRecordId] = useState('');
+  const identityContextCase = useMemo(
+    () => (
+      ['Identity Intel / People Search', 'Login History', 'Session History', 'Device Intelligence'].includes(tool)
+        ? getIdentityIntelContextCase(activeCase, query)
+        : activeCase
+    ),
+    [activeCase, query, tool],
+  );
   const displayData = buildCoreToolRecords(tool, activeCase, data) ?? data;
   const normalizedQuery = query.trim().toLowerCase();
   const displayRows = displayData === data
@@ -2288,6 +2464,7 @@ export default function InvestigationToolPanel({
       {tool === 'Identity Intel / People Search' ? (
         <IdentityIntelWorkspace
           activeCase={activeCase}
+          query={query}
           pin={pin}
           saveNote={saveNote}
           markReviewed={markReviewed}
@@ -2295,6 +2472,7 @@ export default function InvestigationToolPanel({
           openTool={openTool}
           jumpDecision={jumpDecision}
           recordAction={recordAction}
+          quickPin={quickPin}
         />
       ) : tool === 'Transaction History' ? (
         <TransactionHistoryWorkspace
@@ -2305,6 +2483,7 @@ export default function InvestigationToolPanel({
           reviewed={reviewed}
           openTool={openTool}
           jumpDecision={jumpDecision}
+          recordAction={recordAction}
         />
       ) : tool === 'Merchant Intelligence' ? (
         <MerchantIntelligenceWorkspace
@@ -2318,8 +2497,9 @@ export default function InvestigationToolPanel({
           documentRequests={documentRequests}
         />
       ) : tool === 'Financial Investigation' ? (
-        <FinancialInvestigationWorkspace
+        <FinancialInvestigationDossierWorkspace
           activeCase={activeCase}
+          query={query}
           pin={pin}
           saveNote={saveNote}
           markReviewed={markReviewed}
@@ -2330,16 +2510,7 @@ export default function InvestigationToolPanel({
       ) : tool === 'Business 360' ? (
         <Business360Workspace
           activeCase={activeCase}
-          pin={pin}
-          saveNote={saveNote}
-          markReviewed={markReviewed}
-          reviewed={reviewed}
-          openTool={openTool}
-          jumpDecision={jumpDecision}
-        />
-      ) : tool === 'KYB Review' ? (
-        <KYBReviewWorkspace
-          activeCase={activeCase}
+          query={query}
           pin={pin}
           saveNote={saveNote}
           markReviewed={markReviewed}
@@ -2360,16 +2531,19 @@ export default function InvestigationToolPanel({
       ) : tool === 'Payroll History' ? (
         <PayrollHistoryWorkspace
           activeCase={activeCase}
+          query={query}
           pin={pin}
           saveNote={saveNote}
           markReviewed={markReviewed}
           reviewed={reviewed}
           openTool={openTool}
           jumpDecision={jumpDecision}
+          quickPin={quickPin}
+          recordAction={recordAction}
         />
       ) : tool === 'Login History' ? (
         <LoginHistoryWorkspace
-          activeCase={activeCase}
+          activeCase={identityContextCase}
           query={query}
           setQuery={setQuery}
           pin={pin}
@@ -2381,7 +2555,7 @@ export default function InvestigationToolPanel({
         />
       ) : tool === 'Session History' ? (
         <SessionHistoryWorkspace
-          activeCase={activeCase}
+          activeCase={identityContextCase}
           query={query}
           setQuery={setQuery}
           pin={pin}
@@ -2444,9 +2618,23 @@ export default function InvestigationToolPanel({
           documentRequests={documentRequests}
           setDocumentRequestsByCase={setDocumentRequestsByCase}
         />
+      ) : tool === 'Link Analysis' ? (
+        <LinkAnalysisWorkspace
+          activeCase={activeCase}
+          cases={cases}
+          query={query}
+          setQuery={setQuery}
+          pin={pin}
+          saveNote={saveNote}
+          markReviewed={markReviewed}
+          reviewed={reviewed}
+          jumpDecision={jumpDecision}
+          openRelatedCase={openRelatedCase}
+          recordAction={recordAction}
+        />
       ) : tool === 'Device Intelligence' ? (
         <DeviceIntelligenceWorkspace
-          activeCase={activeCase}
+          activeCase={identityContextCase}
           query={query}
           setQuery={setQuery}
           pin={pin}

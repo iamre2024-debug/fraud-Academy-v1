@@ -11,9 +11,13 @@ import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import { coreClaimTypes } from './data/claimRegistry.js';
 import { combineCaseCatalog, generateAndSaveCases, listGeneratedCases } from './data/generatedCaseRepository.js';
-import { initializeCloudSync } from './data/cloudSyncClient.js';
+import { initializeCloudSync, migrateLocalCaseStorage } from './data/cloudSyncClient.js';
+import { assertNoHiddenFindingLeak } from './data/hiddenFindingGuard.js';
 
-const enrichedBaseCases = enrichTrainingCases(baseCases);
+const enrichedBaseCases = assertNoHiddenFindingLeak(
+  enrichTrainingCases(baseCases),
+  'built-in case catalog props',
+);
 
 export default function VisualApp() {
   const [caseCatalog, setCaseCatalog] = useState(enrichedBaseCases);
@@ -30,7 +34,11 @@ export default function VisualApp() {
       listGeneratedCases()
         .then((generatedCases) => {
           if (cancelled) return;
-          setCaseCatalog(enrichTrainingCases(combineCaseCatalog(baseCases, generatedCases)));
+          migrateLocalCaseStorage(generatedCases);
+          setCaseCatalog(assertNoHiddenFindingLeak(
+            enrichTrainingCases(combineCaseCatalog(baseCases, generatedCases)),
+            'hydrated case catalog props',
+          ));
         })
         .catch(() => {
           if (!cancelled) setCaseCatalog(enrichedBaseCases);
@@ -58,16 +66,22 @@ export default function VisualApp() {
   }
 
   function handleGeneratedCase(nextCase) {
-    setCaseCatalog((current) => enrichTrainingCases(combineCaseCatalog(baseCases, [nextCase, ...current.filter((item) => !baseCases.some((base) => base.id === item.id))])));
+    setCaseCatalog((current) => assertNoHiddenFindingLeak(
+      enrichTrainingCases(combineCaseCatalog(baseCases, [nextCase, ...current.filter((item) => !baseCases.some((base) => base.id === item.id))])),
+      'generated case catalog props',
+    ));
     openCase(nextCase.id);
   }
 
   async function handleGeneratedCases(config) {
     const createdCases = await generateAndSaveCases(config);
-    setCaseCatalog((current) => enrichTrainingCases(combineCaseCatalog(
-      baseCases,
-      [...createdCases, ...current.filter((item) => !baseCases.some((base) => base.id === item.id))],
-    )));
+    setCaseCatalog((current) => assertNoHiddenFindingLeak(
+      enrichTrainingCases(combineCaseCatalog(
+        baseCases,
+        [...createdCases, ...current.filter((item) => !baseCases.some((base) => base.id === item.id))],
+      )),
+      'generated case catalog props',
+    ));
     if (createdCases.length === 1) openCase(createdCases[0].id);
     return createdCases;
   }

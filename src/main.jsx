@@ -2,6 +2,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import VisualApp from './VisualApp.jsx';
+import { migrateLocalCaseStorage } from './data/cloudSyncClient.js';
 import './visualWorkspace.css';
 import './visualPolish.css';
 import './mobileViewportFix.css';
@@ -42,6 +43,8 @@ import './documentInbox.css';
 import './mobileMissionDeckV3.css';
 import './caseQuickPad.css';
 import './cloudSync.css';
+
+migrateLocalCaseStorage();
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

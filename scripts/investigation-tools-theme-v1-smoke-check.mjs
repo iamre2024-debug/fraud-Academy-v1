@@ -151,21 +151,20 @@ for (const anchor of [
   'Transaction account and card rail',
   'Save transaction note',
   'Business360Workspace',
-  'Business and KYB profile',
+  'Reusable business profile',
   'Business 360 review',
   'EmployeeProfileWorkspace',
   'Official contact / callback',
   'Employee Profile review',
   'PayrollHistoryWorkspace',
-  'Payroll and direct deposit',
-  'Trusted callback',
+  'Company Payroll History',
+  'Individual Paystub',
   'Payroll History review',
   'FinancialInvestigationWorkspace',
-  'Does the money make sense?',
-  'KYBReviewWorkspace',
+  'What financial activity is recorded for this product and review period?',
   'Search business',
-  'Generate report',
-  'stored with the matching account documents',
+  'Business 360 Research Report',
+  'The report does not assign an investigation outcome.',
 ]) {
   mustContain('InvestigationToolPanel.jsx', panel, anchor);
 }
@@ -345,11 +344,10 @@ for (const anchor of [
   'getEmployeeProfiles',
   'getPayrollHistory',
   'Card not present',
-  'ownerToCompare',
-  'oldDestination',
-  'newDestination',
-  'changeComparison',
-  'Training payroll callback channel',
+  'w4FilingStatus',
+  'taxJurisdiction',
+  'summarizeCompanyPayroll',
+  'payrollContractIssues',
 ]) {
   mustContain('businessPayrollWorkspace.js', businessPayrollWorkspace, anchor);
 }
@@ -400,19 +398,31 @@ for (const anchor of ['Login Timeline Report', 'Session History Report', 'IP Int
 }
 
 mustContain('documentRecords.js', documentRecords, 'getGeneratedAccessReportDocuments');
-mustContain('documentRecords.js', documentRecords, 'getGeneratedKybReportDocuments');
+mustContain('documentRecords.js', documentRecords, 'getGeneratedBusiness360ReportDocuments');
 mustContain('displayInvestigationToolsThemeV1.css', styles, '.access-history-filters');
 mustContain('displayInvestigationToolsThemeV1.css', styles, '.ip-lookup-action');
 
-for (const anchor of ['financialInvestigationTabs', 'Account Overview', 'Deposit Analysis', 'Spending Analysis', 'Cash Activity', 'Digital Payments', 'Linked Accounts', 'Merchant Billing History', 'Behavior Trends', 'Funds Flow', 'Mule / Cash-Out Pattern', 'getFinancialInvestigation', 'financialRecordSearchText']) {
+for (const anchor of [
+  'financialInvestigationTabs',
+  'Account Review',
+  'Current vs Historical',
+  'Spending Analysis',
+  'Personal Deposit Analysis',
+  'Credit & Loan Payments',
+  'Business Payroll Analysis',
+  'recordsBySection',
+  'getFinancialInvestigation',
+  'getFinancialInvestigationSections',
+  'financialRecordSearchText',
+]) {
   mustContain('financialInvestigationRecords.js', financialInvestigation, anchor);
 }
 
-for (const anchor of ['kybReviewTabs', 'Owners & UBO', 'Bank Ownership', 'Revenue & Cash Flow', 'getKybReview', 'matchesKybReviewLookup']) {
+for (const anchor of ['businessResearchSections', 'Ownership & Control', 'Institution Relationship', 'Luna Business Research', 'getBusinessResearch', 'matchesBusinessResearchLookup']) {
   mustContain('kybReviewRecords.js', kybReview, anchor);
 }
 
-for (const anchor of ['KYB Business Report', 'generateKybReviewReport', 'getGeneratedKybReportDocuments', 'does not determine the case outcome']) {
+for (const anchor of ['Business 360 Research Report', 'generateBusiness360Report', 'getGeneratedBusiness360ReportDocuments', 'does not assign an investigation outcome']) {
   mustContain('kybReviewReport.js', kybReport, anchor);
 }
 
@@ -428,8 +438,9 @@ mustContain('investigation-tools-browser.spec.mjs', browser, 'approved Investiga
 mustContain('investigation-tools-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('document-viewer-browser.spec.mjs', documentBrowser, 'requires an Account ID');
 mustContain('document-viewer-browser.spec.mjs', documentBrowser, 'Document comparison');
-mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'Financial Investigation and KYB Review provide complete responsive workspaces');
-mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'Open in Document Viewer');
+mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'personal credit-card Financial Investigation formats dated comparisons and reconciles spending filters');
+mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'business payroll Financial Investigation reconciles month and pay-period totals and routes the exact run');
+mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'Open ${selectedRun.id} in Payroll History');
 mustContain('Investigation tools handoff', handoff, 'agent/investigation-tools-approved-theme-v1');
 mustContain('Investigation tools handoff', handoff, 'Timeline only');
 mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **final responsive/mobile polish only**');

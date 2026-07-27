@@ -1,4 +1,16 @@
-import { createGeneratedCase } from './generatedCases.js';
+import {
+  createGeneratedCase,
+  getGeneratedCaseTruth,
+  registerGeneratedCaseTruthSnapshot,
+} from './generatedCases.js';
+import {
+  CASE_MIGRATION_VERSION,
+  mergeGeneratedCaseRecords,
+  migrateLegacyCaseTruth,
+  migrateGeneratedCases,
+  persistedGeneratedCaseRecord,
+  publicGeneratedCaseRecord,
+} from './caseMigration.js';
 
 const databaseName = 'fraud-academy-os-v1';
 const databaseVersion = 1;
@@ -7,7 +19,95 @@ const metaStoreName = 'metadata';
 const legacyCasesKey = 'fraud-academy-generated-cases-v1';
 const legacySequenceKey = 'fraud-academy-generated-case-sequence-v1';
 const migrationKey = 'generated-cases-localstorage-migrated-v1';
+const domainMigrationKey = `generated-cases-domain-migrated-v${CASE_MIGRATION_VERSION}`;
 const sequenceKey = 'generated-case-sequence-v1';
+const truthSnapshotKey = 'generated-case-truth-snapshots-v1';
+const truthSnapshotVersion = 2;
+const fallbackMetadataStorageKey = 'fraud-academy-generated-case-metadata-v1';
+
+let fallbackMetadata = new Map();
+
+function sameValue(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function cloneValue(value) {
+  if (value === undefined) return undefined;
+  if (typeof structuredClone === 'function') return structuredClone(value);
+  return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeTruthSnapshotStore(value) {
+  const byCaseId = value?.byCaseId && typeof value.byCaseId === 'object' && !Array.isArray(value.byCaseId)
+    ? value.byCaseId
+    : {};
+  return {
+    version: truthSnapshotVersion,
+    byCaseId: Object.fromEntries(Object.entries(byCaseId)
+      .filter(([caseId, snapshot]) => caseId && snapshot?.truth && typeof snapshot.truth === 'object')
+      .map(([caseId, snapshot]) => [caseId, {
+        ...snapshot,
+        id: snapshot.id ?? caseId,
+        caseId,
+        version: Math.max(Number(snapshot.version) || 0, truthSnapshotVersion),
+        truth: {
+          ...cloneValue(snapshot.truth),
+          hiddenFinding: snapshot.truth.hiddenFinding ?? snapshot.truth.finalFinding,
+        },
+      }])),
+  };
+}
+
+function truthForCase(item) {
+  if (!item?.id) return undefined;
+  if (item.caseTruth && typeof item.caseTruth === 'object' && !Array.isArray(item.caseTruth)) {
+    return migrateLegacyCaseTruth(item);
+  }
+  return getGeneratedCaseTruth(item, { submitted: true });
+}
+
+function buildTruthSnapshot(item, source = 'runtime-derived') {
+  const truth = truthForCase(item);
+  if (!truth || typeof truth !== 'object') return null;
+  return {
+    id: item.id,
+    caseId: item.id,
+    version: truthSnapshotVersion,
+    domainSchemaVersion: Number(item.domainSchemaVersion) || 0,
+    scenarioTruthId: item.scenarioTruthId ?? null,
+    workflowType: item.workflowType ?? null,
+    scenarioId: item.scenarioId ?? null,
+    capturedAt: Number(item.generatedAt) || 1,
+    source: item.caseTruth && typeof item.caseTruth === 'object'
+      ? 'legacy-embedded'
+      : source,
+    truth: {
+      ...cloneValue(truth),
+      hiddenFinding: truth.hiddenFinding ?? truth.finalFinding,
+    },
+  };
+}
+
+function registerTruthSnapshots(store) {
+  for (const [caseId, snapshot] of Object.entries(store.byCaseId)) {
+    registerGeneratedCaseTruthSnapshot(caseId, snapshot.truth);
+  }
+}
+
+async function hydrateTruthSnapshots(repository, records = [], source = 'runtime-derived') {
+  const store = normalizeTruthSnapshotStore(await repository.getMeta(truthSnapshotKey));
+  let changed = false;
+  for (const item of records) {
+    if (!item?.id || store.byCaseId[item.id]) continue;
+    const snapshot = buildTruthSnapshot(item, source);
+    if (!snapshot) continue;
+    store.byCaseId[item.id] = snapshot;
+    changed = true;
+  }
+  registerTruthSnapshots(store);
+  if (changed) await repository.setMeta(truthSnapshotKey, store);
+  return store;
+}
 
 function requestResult(request) {
   return new Promise((resolve, reject) => {
@@ -69,16 +169,60 @@ function writeLegacySequence(value) {
   window.localStorage.setItem(legacySequenceKey, String(value));
 }
 
+function readFallbackMetadata() {
+  if (typeof window === 'undefined') return {};
+  try {
+    const value = window.localStorage.getItem(fallbackMetadataStorageKey);
+    const parsed = value ? JSON.parse(value) : {};
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeFallbackMetadata(value) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(fallbackMetadataStorageKey, JSON.stringify(value));
+  } catch {
+    // Generated cases remain available even if storage policy or quota blocks metadata writes.
+  }
+}
+
 function createLocalStorageRepository() {
-  return {
+  const repository = {
     kind: 'localStorage',
-    async list() {
-      return readLegacyCases();
+    async listPersisted() {
+      const records = readLegacyCases();
+      await hydrateTruthSnapshots(repository, records);
+      const migrated = migrateGeneratedCases(records).map(persistedGeneratedCaseRecord);
+      if (!sameValue(records, migrated)) writeLegacyCases(migrated);
+      await hydrateTruthSnapshots(repository, migrated);
+      return migrated;
     },
-    async put(item) {
+    async list() {
+      return (await this.listPersisted()).map(publicGeneratedCaseRecord);
+    },
+    async put(item, { truthSource = 'runtime-derived' } = {}) {
+      await hydrateTruthSnapshots(repository, [item], truthSource);
+      const migratedItem = persistedGeneratedCaseRecord(item);
       const current = readLegacyCases();
-      writeLegacyCases([item, ...current.filter((entry) => entry.id !== item.id)]);
-      return item;
+      writeLegacyCases([migratedItem, ...current.filter((entry) => entry.id !== migratedItem.id)]);
+      return publicGeneratedCaseRecord(migratedItem);
+    },
+    async getMeta(key) {
+      if (fallbackMetadata.has(key)) return cloneValue(fallbackMetadata.get(key));
+      const stored = readFallbackMetadata();
+      if (!Object.hasOwn(stored, key)) return undefined;
+      fallbackMetadata.set(key, cloneValue(stored[key]));
+      return cloneValue(stored[key]);
+    },
+    async setMeta(key, value) {
+      fallbackMetadata.set(key, cloneValue(value));
+      writeFallbackMetadata({
+        ...readFallbackMetadata(),
+        [key]: cloneValue(value),
+      });
     },
     async getSequence() {
       return readLegacySequence();
@@ -87,29 +231,45 @@ function createLocalStorageRepository() {
       writeLegacySequence(value);
     },
   };
+  return repository;
 }
 
 function createIndexedDbRepository(database) {
-  return {
+  async function putManyRecords(items) {
+    if (!items.length) return;
+    await hydrateTruthSnapshots(repository, items);
+    const transaction = database.transaction(caseStoreName, 'readwrite');
+    const store = transaction.objectStore(caseStoreName);
+    for (const item of items) store.put(persistedGeneratedCaseRecord(item));
+    await transactionDone(transaction);
+  }
+
+  const repository = {
     kind: 'indexedDB',
-    async list() {
+    async listPersisted() {
       const transaction = database.transaction(caseStoreName, 'readonly');
       const records = await requestResult(transaction.objectStore(caseStoreName).getAll());
       await transactionDone(transaction);
-      return records.sort((left, right) => (right.generatedAt ?? 0) - (left.generatedAt ?? 0));
+      await hydrateTruthSnapshots(repository, records);
+      const migrated = migrateGeneratedCases(records).map(persistedGeneratedCaseRecord);
+      const changed = migrated.filter((item, index) => !sameValue(item, records[index]));
+      if (changed.length) await putManyRecords(changed);
+      await hydrateTruthSnapshots(repository, migrated);
+      return migrated.sort((left, right) => (right.generatedAt ?? 0) - (left.generatedAt ?? 0));
     },
-    async put(item) {
+    async list() {
+      return (await this.listPersisted()).map(publicGeneratedCaseRecord);
+    },
+    async put(item, { truthSource = 'runtime-derived' } = {}) {
+      await hydrateTruthSnapshots(repository, [item], truthSource);
+      const migratedItem = persistedGeneratedCaseRecord(item);
       const transaction = database.transaction(caseStoreName, 'readwrite');
-      transaction.objectStore(caseStoreName).put(item);
+      transaction.objectStore(caseStoreName).put(migratedItem);
       await transactionDone(transaction);
-      return item;
+      return publicGeneratedCaseRecord(migratedItem);
     },
     async putMany(items) {
-      if (!items.length) return;
-      const transaction = database.transaction(caseStoreName, 'readwrite');
-      const store = transaction.objectStore(caseStoreName);
-      for (const item of items) store.put(item);
-      await transactionDone(transaction);
+      await putManyRecords(items);
     },
     async getMeta(key) {
       const transaction = database.transaction(metaStoreName, 'readonly');
@@ -129,6 +289,7 @@ function createIndexedDbRepository(database) {
       await this.setMeta(sequenceKey, value);
     },
   };
+  return repository;
 }
 
 async function migrateLegacyCases(repository) {
@@ -142,6 +303,13 @@ async function migrateLegacyCases(repository) {
   await repository.setMeta(migrationKey, true);
 }
 
+async function markDomainMigration(repository) {
+  if (repository.kind !== 'indexedDB') return;
+  if (await repository.getMeta(domainMigrationKey)) return;
+  await repository.list();
+  await repository.setMeta(domainMigrationKey, true);
+}
+
 let repositoryPromise;
 
 export async function getGeneratedCaseRepository() {
@@ -151,6 +319,7 @@ export async function getGeneratedCaseRepository() {
       .catch(() => createLocalStorageRepository())
       .then(async (repository) => {
         await migrateLegacyCases(repository);
+        await markDomainMigration(repository);
         return repository;
       });
   }
@@ -162,6 +331,63 @@ export async function listGeneratedCases() {
   return repository.list();
 }
 
+export async function listPersistedGeneratedCases() {
+  const repository = await getGeneratedCaseRepository();
+  return repository.listPersisted();
+}
+
+export async function listGeneratedCaseTruthSnapshots() {
+  const repository = await getGeneratedCaseRepository();
+  const store = await hydrateTruthSnapshots(repository, await repository.list());
+  return Object.values(store.byCaseId).map(cloneValue);
+}
+
+function truthSnapshotAuthority(snapshot) {
+  const sourceAuthority = {
+    'legacy-embedded': 3,
+    'generated-at-creation': 2,
+    'runtime-derived': 1,
+  };
+  return [
+    Number(snapshot?.version) || 0,
+    sourceAuthority[snapshot?.source] ?? 0,
+  ];
+}
+
+export async function mergeGeneratedCaseTruthSnapshots(snapshots = []) {
+  const repository = await getGeneratedCaseRepository();
+  const store = await hydrateTruthSnapshots(repository, []);
+  let changed = false;
+
+  for (const candidate of snapshots) {
+    const caseId = candidate?.caseId ?? candidate?.id;
+    if (!caseId || !candidate?.truth || typeof candidate.truth !== 'object') continue;
+    const incoming = normalizeTruthSnapshotStore({
+      byCaseId: { [caseId]: candidate },
+    }).byCaseId[caseId];
+    const existing = store.byCaseId[caseId];
+    const existingAuthority = truthSnapshotAuthority(existing);
+    const incomingAuthority = truthSnapshotAuthority(incoming);
+    if (
+      existing
+      && (
+        existingAuthority[0] > incomingAuthority[0]
+        || (
+          existingAuthority[0] === incomingAuthority[0]
+          && existingAuthority[1] >= incomingAuthority[1]
+        )
+      )
+    ) continue;
+    store.byCaseId[caseId] = incoming;
+    registerGeneratedCaseTruthSnapshot(caseId, incoming.truth);
+    changed = true;
+  }
+
+  if (changed) await repository.setMeta(truthSnapshotKey, store);
+  registerTruthSnapshots(store);
+  return Object.values(store.byCaseId).map(cloneValue);
+}
+
 function notifyGeneratedCasesChanged(reason = 'updated') {
   if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function' || typeof CustomEvent === 'undefined') return;
   window.dispatchEvent(new CustomEvent('fraud-academy:generated-cases-updated', {
@@ -171,18 +397,28 @@ function notifyGeneratedCasesChanged(reason = 'updated') {
 
 export async function mergeGeneratedCases(items = []) {
   const repository = await getGeneratedCaseRepository();
-  const existing = await repository.list();
+  const existing = await repository.listPersisted();
   const existingById = new Map(existing.map((item) => [item.id, item]));
-  const incoming = items.filter((item) => item?.id && !existingById.has(item.id));
-  if (!incoming.length) return existing;
+  const changed = [];
+
+  for (const item of items) {
+    if (!item?.id) continue;
+    const current = existingById.get(item.id);
+    const merged = mergeGeneratedCaseRecords(current, item);
+    if (!current || !sameValue(current, merged)) {
+      existingById.set(item.id, merged);
+      changed.push(merged);
+    }
+  }
+  if (!changed.length) return repository.list();
 
   if (typeof repository.putMany === 'function') {
-    await repository.putMany(incoming);
+    await repository.putMany(changed);
   } else {
-    for (const item of incoming) await repository.put(item);
+    for (const item of changed) await repository.put(item);
   }
 
-  const highestSequence = incoming.reduce(
+  const highestSequence = changed.reduce(
     (highest, item) => Math.max(highest, Number(item.generatedAt) || 0),
     Number(await repository.getSequence()) || 0,
   );
@@ -193,6 +429,11 @@ export async function mergeGeneratedCases(items = []) {
 
 function generatorConfig(config = {}) {
   return {
+    customerType: config.customerType,
+    productType: config.productType,
+    workflowType: config.workflowType,
+    alertReason: config.alertReason,
+    reportedAllegation: config.reportedAllegation,
     claimTypeId: config.claimTypeId,
     scenarioId: config.scenarioId,
     difficulty: config.difficulty,
@@ -215,7 +456,7 @@ export async function generateAndSaveCase(config = {}) {
   }
 
   await repository.setSequence(seed);
-  await repository.put(nextCase);
+  nextCase = await repository.put(nextCase, { truthSource: 'generated-at-creation' });
   notifyGeneratedCasesChanged('generated');
   return nextCase;
 }
