@@ -10,7 +10,6 @@ const workspaceActions = fs.readFileSync(path.join(rootDir, 'src/useVisualWorksp
 const lunaPanel = fs.readFileSync(path.join(rootDir, 'src/LunaPostSubmissionPanel.jsx'), 'utf8');
 const lunaApiClient = fs.readFileSync(path.join(rootDir, 'src/data/lunaApi.js'), 'utf8');
 const lunaApi = fs.readFileSync(path.join(rootDir, 'api/luna-debrief.js'), 'utf8');
-const visualTextCollapse = fs.readFileSync(path.join(rootDir, 'src/VisualTextCollapse.jsx'), 'utf8');
 const failures = [];
 
 function mustContain(fileLabel, content, text) {
@@ -28,17 +27,21 @@ mustContain('useVisualWorkspaceActions.js', workspaceActions, "window.dispatchEv
 mustContain('useVisualWorkspaceActions.js', workspaceActions, "markReviewed('Submit Decision')");
 
 for (const anchor of [
-  'Luna Manager Debrief',
-  'Post-decision review · Fraud manager',
   'data-luna-screen="approved-theme-v1"',
+  'data-luna-layout="reference-debrief"',
   "data-luna-state={locked ? 'locked' : 'unlocked'}",
-  'Post-submission coaching stays locked',
   'Evidence First lock is active',
-  'What your answer actually says',
-  'What was actually happening',
-  'Why the decision was right or wrong',
+  'What You Did Well',
+  'Evidence You Might Have Missed',
+  'Risk Tip from Luna',
+  "Luna&apos;s Motivation",
+  'state.debrief.riskTip',
+  'state.debrief.motivation',
+  'state.debrief.missedEvidence',
+  'managerReview.strengths',
+  '<LunaMascot',
+  'shareDebrief',
   "window.addEventListener('fraud-academy:package-saved'",
-  "import DirectCollapsibleText from './DirectCollapsibleText.jsx';",
 ]) {
   mustContain('LunaPostSubmissionPanel.jsx', lunaPanel, anchor);
 }
@@ -78,12 +81,13 @@ for (const anchor of [
   mustContain('src/data/lunaApi.js', lunaApiClient, anchor);
 }
 
-const directWrapperCount = (lunaPanel.match(/<DirectCollapsibleText/g) ?? []).length;
-if (directWrapperCount < 6) {
-  failures.push(`LunaPostSubmissionPanel.jsx must render manager reasoning, outcome, and coaching lists through DirectCollapsibleText; found ${directWrapperCount}.`);
+for (const legacyPanel of [
+  'luna-v1-score-banner',
+  'luna-v1-debrief-grid',
+  'Decision-quality breakdown',
+]) {
+  mustNotContain('LunaPostSubmissionPanel.jsx', lunaPanel, legacyPanel);
 }
-
-mustNotContain('VisualTextCollapse.jsx', visualTextCollapse, '.luna-list-card p');
 
 const generatedCase = createGeneratedCase({
   index: 71001,
@@ -228,4 +232,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Luna fraud-manager smoke check passed. Luna remains post-submission only, preserves deterministic truth, explains the investigator decision, reveals the actual scenario outcome, and provides manager coaching.');
+console.log('Luna reference-debrief smoke check passed. Luna remains post-submission only, preserves deterministic truth, compares the two submitted fields independently, and presents case-scoped strengths, missed evidence, risk guidance, and motivation.');
