@@ -45,12 +45,6 @@ async function openCoreTool(page, category, tool) {
   await expect(panel).toHaveAttribute('data-tool-name', tool);
   await expect(panel.getByRole('heading', { name: tool, exact: true })).toBeVisible();
 
-  if (tool === 'KYB Review') {
-    await panel.getByRole('button', { name: 'Use legal name', exact: true }).click();
-    await panel.getByRole('button', { name: 'Search business', exact: true }).click();
-    await expect(panel.locator('.kyb-profile-header')).toBeVisible();
-  }
-
   if (tool === 'Document Viewer') {
     const activeCaseId = await page.locator('.visual-case-switcher select').inputValue();
     const activeAccountId = builtInCases.find((item) => item.id === activeCaseId)?.accountId;
@@ -75,9 +69,9 @@ async function openCoreTool(page, category, tool) {
       record: '[data-document-record]',
       detail: '.document-preview-workspace',
     },
-    'KYB Review': {
-      record: '[data-kyb-review-record]',
-      detail: '.kyb-record-detail',
+    'Business 360': {
+      record: '[data-business-360-record]',
+      detail: '.business-360-record-detail',
     },
   };
   const selectors = specializedSelectors[tool] ?? {
@@ -206,7 +200,7 @@ test('completed core modules and System Access Lane render real records', async 
   await expect(caseSelector).toHaveValue(builtInCases[2].id);
 
   await openCoreTool(page, 'Business & Payment Verification', 'Payment Verification');
-  await openCoreTool(page, 'Business & Payment Verification', 'KYB Review');
+  await openCoreTool(page, 'Business & Payment Verification', 'Business 360');
   await openCoreTool(page, 'Documents & Requests', 'Document Viewer');
   await openCoreTool(page, 'Links & Related Cases', 'Link Analysis');
   await openCoreTool(page, 'Links & Related Cases', 'System Access Lane');

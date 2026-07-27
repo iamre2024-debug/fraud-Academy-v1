@@ -199,26 +199,29 @@ test('generated payroll carries one exact account change from Payroll History in
   const toolSelector = payrollPanel.getByRole('combobox', { name: 'Choose investigation tool' });
   await toolSelector.selectOption('Payroll History');
   await expect(payrollPanel).toHaveAttribute('data-tool-name', 'Payroll History');
+  await payrollPanel.getByRole('region', { name: 'Company payroll runs' })
+    .getByRole('button', { name: 'Open Payroll', exact: true })
+    .first()
+    .click();
+  const employees = payrollPanel.getByRole('region', { name: 'Employees included in payroll run' });
+  await employees.locator('tbody tr').first().getByRole('button').click();
+  const employeeHistory = payrollPanel.getByRole('region', { name: /paycheck history$/i });
+  await employeeHistory.locator('[data-paycheck]').first().click();
 
-  const source = payrollPanel.getByRole('region', { name: 'Payroll History payment source identifiers', exact: true });
+  const source = payrollPanel.getByRole('region', { name: 'Paystub payment destinations', exact: true });
   await expect(source).toBeVisible();
-  const sourceValues = await source.locator('dl > div').evaluateAll((rows) => Object.fromEntries(rows.map((row) => [
+  const sourceValues = await source.locator('article').first().locator('dl > div').evaluateAll((rows) => Object.fromEntries(rows.map((row) => [
     row.querySelector('dt')?.textContent?.trim(),
     row.querySelector('dd')?.textContent?.trim(),
   ])));
-  expect(sourceValues['Bank Code']).toMatch(/^BC-[A-Z0-9-]+$/i);
+  expect(sourceValues['Employee Bank Code']).toMatch(/^BC-[A-Z0-9-]+$/i);
   expect(sourceValues['Destination ID']).toMatch(/^DST-[A-Z0-9-]+$/i);
-  for (const label of ['Previous account / destination', 'New account / destination', 'Change comparison']) {
-    expect(sourceValues[label]).toBeTruthy();
-    expect(sourceValues[label]).not.toMatch(/not supplied|•{2,}|no new destination(?: added)?/i);
-  }
-  expect(sourceValues['New account / destination']).toContain(sourceValues['Bank Code']);
-  expect(sourceValues['New account / destination']).toContain(sourceValues['Destination ID']);
+  await expect(source).not.toContainText(/Ownership status|Operational account status|Standing|Prior-use history/i);
 
-  await source.getByRole('button', { name: 'Prefill Payment Verification', exact: true }).click();
+  await source.getByRole('button', { name: 'Open Payment Verification', exact: true }).click();
   const verificationPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(verificationPanel).toHaveAttribute('data-tool-name', 'Payment Verification');
-  await expect(verificationPanel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue(sourceValues['Bank Code']);
+  await expect(verificationPanel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue(sourceValues['Employee Bank Code']);
   await expect(verificationPanel.getByRole('textbox', { name: 'Destination ID', exact: true })).toHaveValue(sourceValues['Destination ID']);
   await expect(verificationPanel.getByRole('textbox', { name: 'Owner or business name', exact: true })).not.toHaveValue('');
   await expect(verificationPanel.locator('.payment-verification-snapshot')).toHaveCount(0);
@@ -226,9 +229,7 @@ test('generated payroll carries one exact account change from Payroll History in
   await expect(verificationPanel.locator('.payment-comparison-panel')).toHaveCount(0);
 
   await verificationPanel.getByRole('button', { name: 'Run verification', exact: true }).click();
-  const comparison = verificationPanel.getByRole('region', { name: 'Old versus new account comparison', exact: true });
-  await expect(comparison).toContainText(sourceValues['Previous account / destination']);
-  await expect(comparison).toContainText(sourceValues['New account / destination']);
-  await expect(comparison).toContainText(sourceValues['Change comparison']);
+  await expect(verificationPanel.locator('.payment-detail-panel')).toContainText(sourceValues['Employee Bank Code']);
+  await expect(verificationPanel.locator('.payment-detail-panel')).toContainText(sourceValues['Destination ID']);
   await page.screenshot({ path: testInfo.outputPath(`payment-verification-generated-payroll-${testInfo.project.name}.png`), fullPage: true });
 });

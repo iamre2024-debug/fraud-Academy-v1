@@ -15,6 +15,8 @@ import VisualShellHeader from './VisualShellHeader.jsx';
 import MobileMissionWorkspace from './MobileMissionWorkspace.jsx';
 import CaseQuickPad from './CaseQuickPad.jsx';
 import {
+  canonicalToolName,
+  canonicalToolNames,
   groupForTool,
   investigationToolGroups,
   workspaceTools,
@@ -100,7 +102,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setDocumentRequestsByCase,
     setQuickPadByCase,
   } = useVisualWorkspaceCaseState(activeCase);
-  const availableToolNames = useMemo(() => new Set(activeCase.availableTools?.length ? activeCase.availableTools : workspaceTools), [activeCase]);
+  const availableToolNames = useMemo(() => new Set(canonicalToolNames(activeCase.availableTools?.length ? activeCase.availableTools : workspaceTools)), [activeCase]);
   const visibleCategories = useMemo(() => investigationToolGroups
     .map((group) => ({ ...group, tools: group.tools.filter((toolName) => availableToolNames.has(toolName)) }))
     .filter((group) => group.tools.length), [availableToolNames]);
@@ -238,7 +240,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setWorkspaceScreen(previous.screen);
     setActiveStage(previous.activeStage ?? stageForWorkspaceScreen(previous.screen, previous.tool));
     setCategoryKey(previous.categoryKey ?? categoryKey);
-    setTool(previous.tool ?? activeTool);
+    setTool(canonicalToolName(previous.tool ?? activeTool));
     setQuery(previous.query ?? '');
     setExpandedId(previous.expandedId ?? '');
     setOpenedPinnedEvidence(previous.openedPinnedEvidence ?? null);
@@ -246,16 +248,17 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   }
 
   function openTool(nextTool, nextStage = stageForTool(nextTool), { scroll = true, query: nextQuery = '' } = {}) {
-    if (!availableToolNames.has(nextTool)) return;
-    const nextCategory = visibleCategories.find((item) => item.tools.includes(nextTool)) ?? groupForTool(nextTool) ?? visibleCategories[0];
+    const canonicalTool = canonicalToolName(nextTool);
+    if (!availableToolNames.has(canonicalTool)) return;
+    const nextCategory = visibleCategories.find((item) => item.tools.includes(canonicalTool)) ?? groupForTool(canonicalTool) ?? visibleCategories[0];
     onNavigate('workspace');
     setActiveStage(nextStage);
     setCategoryKey(nextCategory.key);
-    setTool(nextTool);
+    setTool(canonicalTool);
     setQuery(nextQuery);
     setExpandedId('');
     setOpenedPinnedEvidence(null);
-    const nextScreen = nextTool === 'Timeline' ? 'timeline' : 'tool';
+    const nextScreen = canonicalTool === 'Timeline' ? 'timeline' : 'tool';
     showWorkspaceScreen(nextScreen, {
       forceHistory: workspaceScreen === nextScreen && activeTool !== nextTool,
     });
@@ -300,7 +303,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
   function changeCase(nextCaseId) {
     const nextCase = cases.find((item) => item.id === nextCaseId);
-    const nextTools = new Set(nextCase?.availableTools?.length ? nextCase.availableTools : workspaceTools);
+    const nextTools = new Set(canonicalToolNames(nextCase?.availableTools?.length ? nextCase.availableTools : workspaceTools));
     const nextCategory = investigationToolGroups
       .map((group) => ({ ...group, tools: group.tools.filter((toolName) => nextTools.has(toolName)) }))
       .find((group) => group.tools.length);
@@ -378,8 +381,9 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   function quickPin({ label, value, sourceTool = activeTool, sourceRecordId = '' }) {
     if (!value) return;
     updateQuickPad((current) => {
-      const id = `${sourceTool}:${label}:${value}`;
-      const item = { id, label, value: String(value), sourceTool, sourceRecordId };
+      const canonicalSourceTool = canonicalToolName(sourceTool);
+      const id = `${canonicalSourceTool}:${label}:${value}`;
+      const item = { id, label, value: String(value), sourceTool: canonicalSourceTool, sourceRecordId };
       return {
         ...current,
         items: [item, ...(current.items ?? []).filter((saved) => saved.id !== id)],
@@ -411,9 +415,10 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   }
 
   function openQuickPadSource(item) {
-    openTool(item.sourceTool, stageForTool(item.sourceTool), { query: item.value });
+    const sourceTool = canonicalToolName(item.sourceTool);
+    openTool(sourceTool, stageForTool(sourceTool), { query: item.value });
     setExpandedId(item.sourceRecordId ?? '');
-    recordAction('Opened Quick Pad source', `${item.label} reopened in ${item.sourceTool}.`, 'Quick Pad');
+    recordAction('Opened Quick Pad source', `${item.label} reopened in ${sourceTool}.`, 'Quick Pad');
   }
 
   function selectWorkflowStage(nextStage) {

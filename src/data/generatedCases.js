@@ -11,6 +11,7 @@ import {
   buildScenarioDecisionData,
   buildScenarioEvents,
 } from './generatedCasePackets.js';
+import { canonicalToolNames } from '../investigationToolGroups.js';
 
 const generatedCaseStorageKey = 'fraud-academy-generated-cases-v1';
 const generatedCaseSequenceKey = 'fraud-academy-generated-case-sequence-v1';
@@ -387,12 +388,32 @@ function makeClaimDetails({ scenario, reportedDate, issueStartDate, transactionI
   return base;
 }
 
+function availableToolsForScenario(claimType, scenario) {
+  let tools = canonicalToolNames(scenario.toolkitTools ?? claimType.availableTools);
+  const businessCredit = claimType.id === 'business-loan-bust-out'
+    || (claimType.id === 'credit-risk' && /business/i.test(`${scenario.family} ${scenario.entityRole}`));
+  const payrollRelevant = /payroll|employee|employment/i.test([
+    scenario.id,
+    scenario.subtype,
+    scenario.family,
+    scenario.entityRole,
+  ].join(' '));
+  if (businessCredit && !payrollRelevant) {
+    tools = tools.filter((tool) => !['Employee Profile', 'Payroll History'].includes(tool));
+  }
+  return tools;
+}
+
 export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const config = generatorOptions(indexOrOptions, options);
   const index = safeIndex(config.index);
   const claimType = selectClaimType(index, config.claimTypeId);
   const scenario = scenarioVariant(scenarioForGeneration(claimType, index, config.scenarioId), index);
-  const caseClaimType = { ...claimType, availableTools: scenario.toolkitTools ?? claimType.availableTools };
+  const caseClaimType = {
+    ...claimType,
+    availableTools: availableToolsForScenario(claimType, scenario),
+    requiredTools: canonicalToolNames(claimType.requiredTools),
+  };
   const difficulty = ['light', 'standard', 'deep'].includes(config.difficulty) ? config.difficulty : 'standard';
   const depth = depthConfig[config.evidenceDepth] ?? depthConfig.standard;
   const difficultyProfile = difficultyConfig[difficulty];
@@ -511,7 +532,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     timelinePattern: scenario.timelinePattern,
     commonMistake: scenario.commonMistake,
     miniExample: scenario.miniExample,
-    generatedPacketVersion: 6,
+    generatedPacketVersion: 7,
     difficulty,
     evidenceDepth: depth.label,
     priority: scenario.priority,
@@ -566,8 +587,8 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
       ['Lane', claimType.lane], ['Subtype', scenario.subtype], ['Reported date', reportedDate], ['Issue start date', issueStartDate], ['Amount / exposure', scenario.amount], ['Scenario', scenario.title], ['Difficulty', difficultyProfile.label], ['Evidence depth', depth.label],
     ],
     productsAccounts: [{ label: 'Product rail', value: taxonomyTags.productRail }, { label: 'Entity role', value: scenario.entityRole }, { label: 'Primary account context', value: scenario.transactionInfo }],
-    availableTools: scenario.toolkitTools ?? claimType.availableTools,
-    requiredTools: claimType.requiredTools,
+    availableTools: caseClaimType.availableTools,
+    requiredTools: caseClaimType.requiredTools,
     evidenceAreas: claimType.evidenceAreas,
     expectedEvidenceCategories: scenario.expectedEvidence ?? claimType.evidenceAreas,
     taxonomyTags,

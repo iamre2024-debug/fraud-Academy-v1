@@ -3,6 +3,7 @@ import path from 'node:path';
 import { trainingCases as baseCases } from '../src/data/cases.js';
 import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
 import { businessRecordsByCase } from '../src/data/businessRecords.js';
+import { getBusinessResearch } from '../src/data/kybReviewRecords.js';
 import { getDeviceProfiles } from '../src/data/deviceRecords.js';
 import { getLoginRecords } from '../src/data/loginRecords.js';
 import { getIpRecords } from '../src/data/ipRecords.js';
@@ -72,6 +73,7 @@ for (const item of cases) {
 
   const financial = financialRecordsByCase[item.id] ?? {};
   const business = businessRecordsByCase[item.id] ?? {};
+  const businessResearch = getBusinessResearch(item);
   const documents = getCaseDocuments(item);
   const documentRequests = getCaseDocumentRequests(item);
   const customerDossier = getCustomer360Dossier(item);
@@ -89,7 +91,7 @@ for (const item of cases) {
   requireCount(`${prefix} enriched session records`, sessionRecords.length, 4);
   if (!loginRecords.some((record) => /failed|locked/i.test(record.result))) failures.push(`${prefix} has no failed or locked authentication event for comparison.`);
   requireCount(`${prefix} business relationship records`, business.business360?.length ?? 0, 1);
-  requireCount(`${prefix} business intelligence records`, business.businessIntel?.length ?? 0, 1);
+  requireCount(`${prefix} Business 360 research records`, Object.values(businessResearch.recordsBySection).flat().length, 6);
   const chargeback = ['fraud-chargeback', 'non-fraud-chargeback', 'first-party-fraud'].includes(item.claimTypeId);
   requireCount(`${prefix} document viewer records`, documents.length, chargeback ? 6 : 5);
   requireCount(`${prefix} document request records`, documentRequests.length, chargeback ? 2 : 3);

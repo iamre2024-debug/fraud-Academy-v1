@@ -22,7 +22,7 @@ const pinPrefixRoutes = [
   [/^(?:PAY|PV|BNK|DST)-/i, 'Payment Verification'],
   [/^(?:MER|MRC|MCC|ORD|FUL|CBK)-/i, 'Merchant Intelligence'],
   [/^(?:BIZ|REL)-/i, 'Business 360'],
-  [/^(?:KYB|REG|SOS|EIN)-/i, 'KYB Review'],
+  [/^(?:KYB|REG|SOS|EIN)-/i, 'Business 360'],
   [/^EMP-/i, 'Employee Profile'],
   [/^(?:PAYR|PR)-/i, 'Payroll History'],
   [/^DOC-/i, 'Document Viewer'],

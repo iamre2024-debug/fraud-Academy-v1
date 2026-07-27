@@ -77,24 +77,6 @@ export function buildCoreToolRecords(tool, activeCase, fallbackData = { rows: []
     )),
   };
 
-  if (tool === 'KYB Review') return {
-    columns: ['Record', 'Type', 'Business / Value', 'Observed', 'Relationships', 'Related Activity', 'Context'],
-    rows: [
-      ...business.businessIntel.map((item) => row(
-        item.id,
-        [item.id, item.type, item.value, item.observed, business.business360.map((entry) => entry.entity).join(' · ') || 'None recorded', joinIds(financial.transactions), item.context],
-        item.id,
-        'KYB record',
-      )),
-      ...business.business360.map((item) => row(
-        `REL-${item.id}`,
-        [`REL-${item.id}`, 'Business relationship', item.entity, item.observed, item.relationship, item.status, item.context],
-        item.entity,
-        'Business relationship',
-      )),
-    ],
-  };
-
   if (tool === 'Document Viewer') return {
     columns: ['Document', 'Folder', 'Status', 'Source', 'Received / Updated', 'Reference', 'Summary / Preview'],
     rows: documents.map((item) => row(

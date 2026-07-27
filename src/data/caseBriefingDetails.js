@@ -217,7 +217,7 @@ export function buildCaseBriefingPacket({ item, claimType, scenario, reportedDat
   const parts = transactionParts(item.transactionInfo ?? scenario.transactionInfo);
   const firstTransaction = item.toolResults?.transactions?.[0];
   const payment = item.toolResults?.paymentVerification?.[0];
-  const payroll = item.toolResults?.payrollHistory?.[0];
+  const payroll = item.toolResults?.payrollRuns?.at(-1);
   const employee = item.toolResults?.employeeProfile?.[0];
   const businessRecord = item.toolResults?.business360?.[0];
   const activityEvent = item.events?.find((event) => /transaction|purchase|payment|limit|credit|payroll/i.test(`${event.label} ${event.object}`));
@@ -240,7 +240,7 @@ export function buildCaseBriefingPacket({ item, claimType, scenario, reportedDat
     recordId: firstValue(firstTransaction?.id, activityEvent?.id, `${item.id}-DETAIL-1`),
     destination: firstValue(payment?.destinationId, profileChange?.newValue, parts[2], 'Destination record available'),
     paymentRecord: firstValue(payment?.id, `${item.id}-PAYMENT-1`),
-    payrollRecord: firstValue(payroll ? `${payroll.period} · ${payroll.amount}` : null, 'Payroll history available'),
+    payrollRecord: firstValue(payroll ? `${payroll.payPeriod?.label ?? payroll.payDate} · ${payroll.employeeCount} employees` : null, 'Payroll history available'),
     employer: firstValue(item.profile?.employer, employee?.employer),
     business: firstValue(item.profile?.business, businessRecord?.entity),
     relationship: firstValue(
