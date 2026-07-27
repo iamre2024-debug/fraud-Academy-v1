@@ -1517,8 +1517,8 @@ body[data-visual-tab="workspace"] .link-analysis-review-bar button.primary {
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-phone { left: 17%; }
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-email { left: 83%; }
-  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-device { left: 15%; }
-  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-bank { left: 85%; }
+  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-device { left: 17%; }
+  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-bank { left: 83%; }
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-destination { left: 24%; }
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-accounts { left: 76%; }
 
