@@ -140,7 +140,9 @@ test('personal credit-card Financial Investigation formats dated comparisons and
   const comparisonCards = comparisonGrid.locator('article');
   await expect(comparisonCards).toHaveCount(personalCardModel.comparisons.length);
   for (const comparison of personalCardModel.comparisons) {
-    const card = comparisonCards.filter({ hasText: comparison.label });
+    const card = comparisonCards.filter({
+      has: page.getByText(comparison.label, { exact: true }),
+    });
     await expect(card).toHaveCount(1);
     await expect(card).toContainText(`Baseline ${comparison.baselineDisplay}`);
     await expect(card).toContainText(comparison.baselineDateRange);

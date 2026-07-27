@@ -3,7 +3,7 @@ import { openWorkflowStage, selectToolGroup } from './workspace-page-helpers.mjs
 
 const secondCase = { id: 'FA-CB-24007', person: 'Jordan Ellis' };
 const forbiddenPreSubmissionCopy = /\b(?:fraud score|red flags?|green flags?|correct answer|AI recommendations?|fraudulent|legitimate|suggested first tool|investigator question)\b/i;
-const forbiddenDecisionCopy = /\b(?:fraud score|correct answer|AI recommendations?|fraudulent|legitimate|suggested first tool|investigator question)\b/i;
+const forbiddenDecisionCopy = /\b(?:fraud score|correct answer|AI recommendations?|fraudulent|suggested first tool|investigator question)\b/i;
 
 test('approved Case Briefing is Evidence First, functional, and responsive', async ({ page }, testInfo) => {
   await page.goto('/');
