@@ -53,8 +53,8 @@ for (const [claimIndex, claimType] of coreClaimTypes.entries()) {
   if (documentPatterns.size < 3) failures.push(`${claimType.label} produced only ${documentPatterns.size} repeated-case document patterns.`);
 }
 
-if (repeatedClaimCases.some((item) => item.generatedPacketVersion !== 6 || !item.scenarioVariantId || !item.scenarioVariant)) {
-  failures.push('Repeated generated cases are missing version 6 scenario-variation metadata.');
+if (repeatedClaimCases.some((item) => item.generatedPacketVersion !== 7 || !item.scenarioVariantId || !item.scenarioVariant)) {
+  failures.push('Repeated generated cases are missing version 7 scenario-variation metadata.');
 }
 
 const determinations = new Set(allAutoCases.map((item) => item.correctDetermination).filter(Boolean));
