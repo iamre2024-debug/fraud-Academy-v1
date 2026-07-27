@@ -12,6 +12,7 @@
     --fa-text: #f7fbff;
     --fa-muted: #9db7d5;
     --fa-dock-height: 76px;
+    --fa-quick-pad-rail: 62px;
     color: var(--fa-text);
     background:
       radial-gradient(circle at 18% 12%, rgba(30, 104, 224, .18), transparent 32%),
@@ -42,6 +43,29 @@
     color: var(--fa-text);
     background: transparent;
     isolation: isolate;
+  }
+
+  body[data-layout-mode="mobile"] .mission-mobile-root[data-mobile-mission-tab="workspace"] {
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  body[data-layout-mode="mobile"] .mission-mobile-root[data-mobile-mission-tab="workspace"] .mission-mobile-viewport {
+    height: calc(100dvh - var(--fa-dock-height) - var(--fa-quick-pad-rail) - env(safe-area-inset-bottom));
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-width: none;
+  }
+
+  body[data-layout-mode="mobile"] .mission-mobile-root[data-mobile-mission-tab="workspace"] .mission-mobile-viewport::-webkit-scrollbar {
+    display: none;
+  }
+
+  body[data-layout-mode="mobile"] .mission-mobile-root[data-mobile-mission-tab="workspace"] .mission-mobile-workspace-page {
+    min-height: 100%;
   }
 
   body[data-layout-mode="mobile"] .mission-mobile-atmosphere {

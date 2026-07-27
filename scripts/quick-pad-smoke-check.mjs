@@ -33,6 +33,7 @@ const checks = [
   ['Panel stays compact on phones', styles.includes('max-height: min(300px, 36dvh)')],
   ['Panel clears the fixed mobile dock', styles.includes('bottom: calc(88px + env(safe-area-inset-bottom))')],
   ['Reference theme keeps the charm above the six-tab safe-area dock', mobileStyles.includes('bottom:calc(var(--fa-dock-height)') && mobileStyles.includes('env(safe-area-inset-bottom)')],
+  ['Closed charm has a reserved mobile rail outside investigation content', mobileStyles.includes('--fa-quick-pad-rail') && mobileStyles.includes('overflow-y: auto')],
 ];
 
 const failed = checks.filter(([, passed]) => !passed);

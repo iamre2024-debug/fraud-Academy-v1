@@ -40,7 +40,7 @@ export default function CaseQuickPad({
   const [copiedId, setCopiedId] = useState('');
   const [viewportInset, setViewportInset] = useState(0);
   const triggerRef = useRef(null);
-  const scrollPositionRef = useRef(0);
+  const scrollPositionRef = useRef({ target: null, top: 0 });
   const agentNotes = useMemo(() => {
     if (typeof window === 'undefined') return [];
     try {
@@ -85,10 +85,29 @@ export default function CaseQuickPad({
     window.setTimeout(() => setCopiedId(''), 1400);
   }
 
+  function readScrollPosition() {
+    const mobileViewport = document.querySelector(
+      '.mission-mobile-root[data-mobile-mission-tab="workspace"] .mission-mobile-viewport',
+    );
+    if (mobileViewport && /(auto|scroll)/.test(window.getComputedStyle(mobileViewport).overflowY)) {
+      return { target: mobileViewport, top: mobileViewport.scrollTop };
+    }
+    return { target: window, top: window.scrollY };
+  }
+
+  function restoreScrollPosition() {
+    const { target, top } = scrollPositionRef.current;
+    if (target === window || !target) {
+      window.scrollTo({ top, left: 0, behavior: 'auto' });
+      return;
+    }
+    if (target.isConnected) target.scrollTo({ top, left: 0, behavior: 'auto' });
+  }
+
   function closePad() {
     setOpen(false);
     window.requestAnimationFrame(() => {
-      window.scrollTo({ top: scrollPositionRef.current, left: 0, behavior: 'auto' });
+      restoreScrollPosition();
       triggerRef.current?.focus({ preventScroll: true });
     });
   }
@@ -98,9 +117,9 @@ export default function CaseQuickPad({
       closePad();
       return;
     }
-    scrollPositionRef.current = window.scrollY;
+    scrollPositionRef.current = readScrollPosition();
     setOpen(true);
-    window.requestAnimationFrame(() => window.scrollTo({ top: scrollPositionRef.current, left: 0, behavior: 'auto' }));
+    window.requestAnimationFrame(restoreScrollPosition);
   }
 
   function savedConfirmation() {

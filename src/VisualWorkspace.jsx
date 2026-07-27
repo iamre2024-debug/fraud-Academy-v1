@@ -221,7 +221,12 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   }
 
   function resetWorkspacePageScroll() {
-    window.setTimeout(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }), 0);
+    window.setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      document.querySelector(
+        '.mission-mobile-root[data-mobile-mission-tab="workspace"] .mission-mobile-viewport',
+      )?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }, 0);
   }
 
   function currentWorkspaceSnapshot(screen = workspaceScreen) {

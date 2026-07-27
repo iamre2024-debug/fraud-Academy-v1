@@ -51,6 +51,9 @@ async function assertMobileGeometry(page) {
   const geometry = await page.evaluate(() => {
     const dock = document.querySelector('.mission-mobile-dock')?.getBoundingClientRect();
     const quickPad = document.querySelector('.case-quick-pad-trigger')?.getBoundingClientRect();
+    const workspaceViewport = document.querySelector(
+      '.mission-mobile-root[data-mobile-mission-tab="workspace"] .mission-mobile-viewport',
+    )?.getBoundingClientRect();
     const buttons = [...document.querySelectorAll('.mission-mobile-dock button')].map((button) => {
       const rect = button.getBoundingClientRect();
       return { width: rect.width, height: rect.height, label: button.textContent.trim() };
@@ -63,6 +66,7 @@ async function assertMobileGeometry(page) {
       bodyWidth: document.body.scrollWidth,
       dock: dock ? { left: dock.left, right: dock.right, top: dock.top, bottom: dock.bottom } : null,
       quickPad: quickPad ? { left: quickPad.left, right: quickPad.right, top: quickPad.top, bottom: quickPad.bottom } : null,
+      workspaceViewport: workspaceViewport ? { top: workspaceViewport.top, bottom: workspaceViewport.bottom } : null,
       buttons,
     };
   });
@@ -77,6 +81,7 @@ async function assertMobileGeometry(page) {
   if (geometry.quickPad) {
     expect(geometry.quickPad.right).toBeLessThanOrEqual(geometry.layoutWidth);
     expect(geometry.quickPad.bottom).toBeLessThanOrEqual(geometry.dock.top);
+    expect(geometry.quickPad.top).toBeGreaterThanOrEqual(geometry.workspaceViewport.bottom - 1);
   }
 }
 
@@ -91,7 +96,12 @@ async function screenshot(page, name) {
 }
 
 async function captureQuickPadPair(page, slug) {
-  await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }));
+  await page.evaluate(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    document.querySelector(
+      '.mission-mobile-root[data-mobile-mission-tab="workspace"] .mission-mobile-viewport',
+    )?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  });
   await expect(page.getByRole('button', { name: /Open Quick Pad/ })).toBeVisible();
   await screenshot(page, `${slug}-quick-pad-collapsed`);
   await page.getByRole('button', { name: /Open Quick Pad/ }).click();
