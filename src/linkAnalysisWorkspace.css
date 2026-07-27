@@ -1515,10 +1515,10 @@ body[data-visual-tab="workspace"] .link-analysis-review-bar button.primary {
     font-size: 0.5rem;
   }
 
-  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-phone { left: 17%; }
-  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-email { left: 83%; }
-  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-device { left: 17%; }
-  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-bank { left: 83%; }
+  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-phone,
+  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-device { left: 18%; }
+  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-email,
+  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-bank { left: 82%; }
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-destination { left: 24%; }
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-accounts { left: 76%; }
 
@@ -1602,9 +1602,9 @@ body[data-visual-tab="workspace"] .link-analysis-review-bar button.primary {
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-phone,
-  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-device { left: 16%; }
+  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-device { left: 18%; }
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-email,
-  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-bank { left: 84%; }
+  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-bank { left: 82%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

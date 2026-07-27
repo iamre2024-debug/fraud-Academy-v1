@@ -86,6 +86,14 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
     const accounts = document.querySelector('.link-analysis-account-list');
     const mapBox = map?.getBoundingClientRect();
     const orbitNodes = [...document.querySelectorAll('.link-analysis-orbit-node')];
+    const nodeBounds = orbitNodes.map((node) => {
+      const box = node.getBoundingClientRect();
+      return {
+        label: node.getAttribute('aria-label'),
+        left: Math.round(box.left * 100) / 100,
+        right: Math.round(box.right * 100) / 100,
+      };
+    });
     const viewportWidth = window.innerWidth;
     const fits = (element) => {
       const box = element?.getBoundingClientRect();
@@ -102,10 +110,9 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
       panelFits: fits(panelElement),
       mapFits: fits(map),
       accountsFit: fits(accounts),
-      nodesFit: Boolean(mapBox) && orbitNodes.every((node) => {
-        const box = node.getBoundingClientRect();
-        return box.left >= mapBox.left - 1 && box.right <= mapBox.right + 1;
-      }),
+      nodesOutsideMap: mapBox
+        ? nodeBounds.filter((node) => node.left < mapBox.left - 1 || node.right > mapBox.right + 1)
+        : [{ label: 'Relationship map missing', left: 0, right: 0 }],
       pairedNodesSeparate: pairedNodeSelectors.every(([leftSelector, rightSelector]) => {
         const left = document.querySelector(leftSelector)?.getBoundingClientRect();
         const right = document.querySelector(rightSelector)?.getBoundingClientRect();
@@ -119,7 +126,7 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
   expect(layout.panelFits).toBe(true);
   expect(layout.mapFits).toBe(true);
   expect(layout.accountsFit).toBe(true);
-  expect(layout.nodesFit).toBe(true);
+  expect(layout.nodesOutsideMap).toEqual([]);
   expect(layout.pairedNodesSeparate).toBe(true);
   expect(layout.columns).toBe(testInfo.project.name === 'mobile-chromium' ? 1 : 2);
 
