@@ -199,6 +199,12 @@ for (const anchor of [
 if (!panel.includes("if (tool === 'Link Analysis')") || !panel.includes('<LinkAnalysisWorkspace')) {
   fail('InvestigationToolPanel is not routing Link Analysis into its dedicated component.');
 }
+if (panel.includes('\uFFFD')) {
+  fail('InvestigationToolPanel must remain valid UTF-8 JSX source.');
+}
+if (!panel.includes('openedPinnedEvidence={openedPinnedEvidence}')) {
+  fail('InvestigationToolPanel is not forwarding typed pinned-evidence context to Link Analysis.');
+}
 if (!visualWorkspace.includes("revealLinkAnalysisSearch: openedPinnedEvidence?.tool === 'Link Analysis'")) {
   fail('Pinned Link Analysis evidence does not explicitly reveal its restored search input.');
 }
