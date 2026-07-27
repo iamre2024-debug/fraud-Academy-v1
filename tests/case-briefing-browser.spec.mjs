@@ -100,8 +100,8 @@ async function verifyMobileBriefing(page, testInfo) {
     if (process.env.CAPTURE_MISSION_VISUALS === '1' && [320, 390, 430].includes(viewportSize.width)) {
       await page.screenshot({
         path: testInfo.outputPath(`case-briefing-${viewportSize.width}.png`),
-        fullPage: true,
         animations: 'disabled',
+        fullPage: false,
       });
     }
   }
