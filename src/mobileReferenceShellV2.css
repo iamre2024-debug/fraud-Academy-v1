@@ -32,13 +32,18 @@
   }
 
   body[data-layout-mode="mobile"] .mobile-fraud-shield svg,
-  body[data-layout-mode="mobile"] .mobile-luna-portrait svg {
+  body[data-layout-mode="mobile"] .mobile-luna-portrait svg,
+  body[data-layout-mode="mobile"] .mobile-luna-portrait img {
     display: block;
     width: 100%;
     height: 100%;
   }
 
   body[data-layout-mode="mobile"] .mobile-luna-portrait {
+    overflow: hidden;
+    border: 1px solid rgba(67, 193, 255, .42);
+    border-radius: 50%;
+    background: #030a21;
     filter:
       drop-shadow(0 0 9px rgba(57, 190, 255, .34))
       drop-shadow(0 4px 8px rgba(0, 2, 16, .46));
@@ -512,93 +517,193 @@
   }
 
   body[data-layout-mode="mobile"] .mobile-dashboard-panels > button {
-    min-height: 126px;
-    padding: 11px;
+    min-height: 148px;
+    padding: 12px;
     border-radius: 18px;
   }
 
   body[data-layout-mode="mobile"] .mobile-dashboard-panels > .mobile-dashboard-agent {
-    grid-template-columns: minmax(0, 1fr) 74px;
-    align-items: end;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 84px;
+    align-items: center;
+    gap: 8px;
     background:
       radial-gradient(circle at 85% 25%, rgba(49, 155, 255, .22), transparent 32%),
       linear-gradient(145deg, rgba(8, 35, 76, .98), rgba(6, 20, 49, .98));
   }
 
-  body[data-layout-mode="mobile"] .mobile-dashboard-agent > span {
-    min-width: 0;
-  }
-
-  body[data-layout-mode="mobile"] .mobile-dashboard-agent small,
-  body[data-layout-mode="mobile"] .mobile-dashboard-agent strong,
-  body[data-layout-mode="mobile"] .mobile-dashboard-agent p {
+  body[data-layout-mode="mobile"] .mobile-dashboard-agent-copy {
     display: block;
-    margin: 0;
+    width: auto;
+    height: auto;
+    min-width: 0;
+    color: inherit;
+    border-radius: 0;
+    background: transparent;
   }
 
   body[data-layout-mode="mobile"] .mobile-dashboard-agent small {
-    color: #dcecff;
-    font-size: .57rem;
+    color: #8eddf7;
+    font-size: .55rem;
+    font-weight: 850;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+  }
+
+  body[data-layout-mode="mobile"] .mobile-dashboard-agent small > i {
+    color: var(--fa-shell-pink);
+    font-size: .68rem;
+    font-style: normal;
+    text-shadow: 0 0 8px rgba(255, 109, 200, .7);
   }
 
   body[data-layout-mode="mobile"] .mobile-dashboard-agent strong {
-    margin-top: 7px;
-    font-size: .82rem;
+    margin-top: 5px;
+    color: #fff;
+    font-size: .93rem;
+    line-height: 1.15;
   }
 
   body[data-layout-mode="mobile"] .mobile-dashboard-agent strong i {
-    margin-left: 3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 4px;
     color: #4ae7cd;
-    font-size: .46rem;
+    font-size: .48rem;
     font-style: normal;
     font-weight: 800;
   }
 
+  body[data-layout-mode="mobile"] .mobile-dashboard-agent strong i b {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #4ae7cd;
+    box-shadow: 0 0 7px rgba(74, 231, 205, .8);
+  }
+
   body[data-layout-mode="mobile"] .mobile-dashboard-agent p {
-    margin-top: 6px;
-    color: #9fb5d0;
-    font-size: .56rem;
-    line-height: 1.42;
+    margin-top: 7px;
+    color: #a9bdd5;
+    font-size: .57rem;
+    line-height: 1.45;
+  }
+
+  body[data-layout-mode="mobile"] .mobile-dashboard-panel-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    width: auto;
+    height: auto;
+    margin-top: 9px;
+    padding: 5px 8px;
+    color: #e8f8ff;
+    border: 1px solid rgba(54, 193, 255, .34);
+    border-radius: 999px;
+    background: rgba(20, 88, 166, .28);
+    font-size: .52rem;
+    font-weight: 800;
+  }
+
+  body[data-layout-mode="mobile"] .mobile-dashboard-panel-action b {
+    color: #69e1ff;
+    font-size: .72rem;
+  }
+
+  body[data-layout-mode="mobile"] .mobile-dashboard-agent-portrait {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 84px;
+    height: 96px;
+    min-width: 0;
+    color: inherit;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  body[data-layout-mode="mobile"] .mobile-dashboard-agent-portrait > i {
+    position: absolute;
+    right: -1px;
+    bottom: 7px;
+    color: var(--fa-shell-pink);
+    font-size: .75rem;
+    font-style: normal;
+    text-shadow: 0 0 9px rgba(255, 109, 200, .8);
   }
 
   body[data-layout-mode="mobile"] .mobile-dashboard-panels > .mobile-dashboard-quote {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
     align-items: flex-start;
-    justify-content: center;
+    align-content: stretch;
+    gap: 7px;
+    padding: 12px 10px;
     background:
       radial-gradient(circle at 85% 15%, rgba(231, 72, 214, .18), transparent 35%),
       linear-gradient(145deg, rgba(35, 19, 76, .98), rgba(10, 24, 55, .98));
   }
 
-  body[data-layout-mode="mobile"] .mobile-dashboard-quote > span {
-    display: block;
+  body[data-layout-mode="mobile"] .mobile-dashboard-quote-heading {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     width: auto;
     height: auto;
-    color: var(--fa-shell-pink);
+    color: inherit;
+    border-radius: 0;
     background: transparent;
-    font-size: 1.3rem;
+  }
+
+  body[data-layout-mode="mobile"] .mobile-dashboard-quote-heading > span {
+    display: grid;
+    place-items: center;
+    width: 27px;
+    height: 27px;
+    flex: 0 0 auto;
+    color: #281449;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #82e9ff, #df8eff);
+    box-shadow: 0 0 12px rgba(110, 197, 255, .22);
+    font-size: .9rem;
+  }
+
+  body[data-layout-mode="mobile"] .mobile-dashboard-quote-heading small {
+    color: #e7dfff;
+    font-size: .49rem;
+    font-weight: 800;
+    line-height: 1.25;
+    text-transform: uppercase;
   }
 
   body[data-layout-mode="mobile"] .mobile-dashboard-quote strong {
-    margin-top: 4px;
-    font-size: .72rem;
-    line-height: 1.4;
+    align-self: center;
+    color: #fff;
+    font-size: .7rem;
+    line-height: 1.45;
   }
 
-  body[data-layout-mode="mobile"] .mobile-dashboard-quote > .mobile-dashboard-quote-label {
-    margin-top: -19px;
-    margin-left: 27px;
-    color: #f0e5ff;
-    font-size: .56rem;
-    font-weight: 800;
-  }
-
-  body[data-layout-mode="mobile"] .mobile-dashboard-quote small {
-    margin-top: 8px;
+  body[data-layout-mode="mobile"] .mobile-dashboard-quote > .mobile-dashboard-quote-caption {
     color: #a9b9d2;
-    font-size: .51rem;
-    line-height: 1.35;
+    font-size: .46rem;
+    line-height: 1.4;
+    text-transform: none;
+  }
+
+  body[data-layout-mode="mobile"] .mobile-dashboard-quote-arrow {
+    position: absolute;
+    right: 9px;
+    bottom: 8px;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    color: #6be3ff;
+    border: 1px solid rgba(70, 191, 255, .24);
+    border-radius: 50%;
+    background: rgba(19, 64, 123, .4);
+    font-size: .82rem;
   }
 
   body[data-layout-mode="mobile"] .mobile-dashboard-generator {
@@ -1619,7 +1724,41 @@
     }
 
     body[data-layout-mode="mobile"] .mobile-dashboard-panels > button {
-      min-height: 108px;
+      min-height: 140px;
+    }
+
+    body[data-layout-mode="mobile"] .mobile-dashboard-panels > .mobile-dashboard-agent {
+      grid-template-columns: minmax(0, 1fr) 96px;
+      padding-left: 14px;
+    }
+
+    body[data-layout-mode="mobile"] .mobile-dashboard-agent-portrait {
+      width: 96px;
+      height: 102px;
+    }
+
+    body[data-layout-mode="mobile"] .mobile-dashboard-agent-portrait .mobile-luna-portrait {
+      width: 92px;
+      height: 92px;
+    }
+
+    body[data-layout-mode="mobile"] .mobile-dashboard-agent p {
+      max-width: 166px;
+      font-size: .61rem;
+    }
+
+    body[data-layout-mode="mobile"] .mobile-dashboard-panels > .mobile-dashboard-quote {
+      min-height: 136px;
+      padding: 13px 15px;
+    }
+
+    body[data-layout-mode="mobile"] .mobile-dashboard-quote strong {
+      font-size: .84rem;
+    }
+
+    body[data-layout-mode="mobile"] .mobile-dashboard-quote > .mobile-dashboard-quote-caption {
+      max-width: calc(100% - 28px);
+      font-size: .54rem;
     }
 
     body[data-layout-mode="mobile"] .mission-workspace-bar {

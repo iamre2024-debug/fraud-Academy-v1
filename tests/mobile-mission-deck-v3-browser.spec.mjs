@@ -5,6 +5,14 @@ async function capture(page, testInfo, name) {
   await page.screenshot({ path: testInfo.outputPath(`${name}.png`), fullPage: true });
 }
 
+async function captureElement(locator, testInfo, name) {
+  if (process.env.CAPTURE_MISSION_VISUALS !== '1') return;
+  await locator.screenshot({
+    path: testInfo.outputPath(`${name}.png`),
+    animations: 'disabled',
+  });
+}
+
 async function assertPhoneGeometry(page) {
   const geometry = await page.evaluate(() => {
     const dock = document.querySelector('.mission-mobile-dock')?.getBoundingClientRect();
@@ -35,6 +43,88 @@ async function assertPhoneGeometry(page) {
   expect(geometry.buttons.map((button) => button.label)).toEqual(['⌂Home', '▣Cases', '⊞Workspace', '◇Academy', '☾Agent', '❝Quotes']);
 }
 
+async function assertHomePanelGeometry(page, expectedColumns) {
+  const geometry = await page.evaluate(() => {
+    const rect = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      const bounds = element.getBoundingClientRect();
+      return {
+        left: bounds.left,
+        right: bounds.right,
+        top: bounds.top,
+        bottom: bounds.bottom,
+        width: bounds.width,
+        height: bounds.height,
+      };
+    };
+    const overflow = (selector) => {
+      const element = document.querySelector(selector);
+      return element ? {
+        clientWidth: element.clientWidth,
+        clientHeight: element.clientHeight,
+        scrollWidth: element.scrollWidth,
+        scrollHeight: element.scrollHeight,
+      } : null;
+    };
+    const grid = document.querySelector('.mobile-dashboard-panels');
+    return {
+      viewportWidth: window.innerWidth,
+      columns: grid
+        ? getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length
+        : 0,
+      grid: rect('.mobile-dashboard-panels'),
+      agent: rect('.mobile-dashboard-agent'),
+      agentCopy: rect('.mobile-dashboard-agent-copy'),
+      agentPortrait: rect('.mobile-dashboard-agent-portrait'),
+      luna: rect('.mobile-dashboard-agent-portrait .mobile-luna-portrait'),
+      quote: rect('.mobile-dashboard-quote'),
+      quoteHeading: rect('.mobile-dashboard-quote-heading'),
+      quoteText: rect('.mobile-dashboard-quote > strong'),
+      quoteCaption: rect('.mobile-dashboard-quote-caption'),
+      quoteArrow: rect('.mobile-dashboard-quote-arrow'),
+      agentOverflow: overflow('.mobile-dashboard-agent'),
+      quoteOverflow: overflow('.mobile-dashboard-quote'),
+    };
+  });
+
+  const inside = (outer, inner) => (
+    inner.left >= outer.left - 1
+    && inner.right <= outer.right + 1
+    && inner.top >= outer.top - 1
+    && inner.bottom <= outer.bottom + 1
+  );
+  const intersectionArea = (a, b) => (
+    Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+    * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))
+  );
+
+  expect(geometry.columns).toBe(expectedColumns);
+  for (const panel of [geometry.grid, geometry.agent, geometry.quote]) {
+    expect(panel.left).toBeGreaterThanOrEqual(0);
+    expect(panel.right).toBeLessThanOrEqual(geometry.viewportWidth + 1);
+  }
+  for (const child of [geometry.agentCopy, geometry.agentPortrait, geometry.luna]) {
+    expect(inside(geometry.agent, child)).toBe(true);
+  }
+  for (const child of [
+    geometry.quoteHeading,
+    geometry.quoteText,
+    geometry.quoteCaption,
+    geometry.quoteArrow,
+  ]) {
+    expect(inside(geometry.quote, child)).toBe(true);
+  }
+  expect(geometry.agentCopy.width).toBeGreaterThan(60);
+  expect(geometry.luna.width).toBeGreaterThanOrEqual(80);
+  expect(intersectionArea(geometry.agentCopy, geometry.agentPortrait)).toBe(0);
+  expect(intersectionArea(geometry.agent, geometry.quote)).toBe(0);
+  expect(geometry.agentOverflow.scrollWidth).toBeLessThanOrEqual(geometry.agentOverflow.clientWidth + 1);
+  expect(geometry.agentOverflow.scrollHeight).toBeLessThanOrEqual(geometry.agentOverflow.clientHeight + 1);
+  expect(geometry.quoteOverflow.scrollWidth).toBeLessThanOrEqual(geometry.quoteOverflow.clientWidth + 1);
+  expect(geometry.quoteOverflow.scrollHeight).toBeLessThanOrEqual(geometry.quoteOverflow.clientHeight + 1);
+}
+
 test('mobile mounts the approved Fraud Academy shell and generated cases inherit the reference tool pages', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Dedicated phone renderer');
   await page.addInitScript(() => {
@@ -47,6 +137,9 @@ test('mobile mounts the approved Fraud Academy shell and generated cases inherit
   await expect(root).toBeVisible();
   await expect(page.locator('.visual-os-frame')).toHaveCount(0);
   await expect(dock.getByRole('button')).toHaveCount(6);
+  await dock.getByRole('button', { name: /Home/ }).click();
+  const dashboard = page.locator('.mobile-reference-dashboard');
+  await expect(dashboard).toBeVisible();
 
   for (const viewport of [
     { width: 320, height: 568 },
@@ -57,19 +150,24 @@ test('mobile mounts the approved Fraud Academy shell and generated cases inherit
   ]) {
     await page.setViewportSize(viewport);
     await assertPhoneGeometry(page);
+    if ([320, 360, 390, 430].includes(viewport.width)) {
+      await assertHomePanelGeometry(page, viewport.width <= 340 ? 1 : 2);
+      await captureElement(
+        dashboard.locator('.mobile-dashboard-panels'),
+        testInfo,
+        `home-agent-quotes-${viewport.width}`,
+      );
+    }
   }
   await page.setViewportSize({ width: 390, height: 844 });
 
-  await dock.getByRole('button', { name: /Home/ }).click();
-  const dashboard = page.locator('.mobile-reference-dashboard');
-  await expect(dashboard).toBeVisible();
   await expect(dashboard.getByRole('heading', { name: 'Good morning Ree, let’s stop fraud ✨' })).toBeVisible();
   await expect(dashboard.getByRole('button', { name: 'Open Luna agent panel' })).toContainText('Luna');
   await expect(dashboard.locator('.mobile-dashboard-grid .mobile-dashboard-card')).toHaveCount(3);
   await expect(dashboard.locator('.mobile-dashboard-active-case')).toContainText('FA-ATO-24018');
   await expect(dashboard.locator('.mobile-dashboard-academy-panel')).toContainText('Academy Progress');
   await expect(dashboard.locator('.mobile-dashboard-panels')).toContainText('Agent Panel');
-  await expect(dashboard.locator('.mobile-dashboard-panels')).toContainText('Quotes');
+  await expect(dashboard.locator('.mobile-dashboard-panels')).toContainText('Follow the facts');
   await capture(page, testInfo, '01-approved-dashboard');
 
   await dock.getByRole('button', { name: /Quotes/ }).click();

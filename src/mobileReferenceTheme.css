@@ -305,10 +305,18 @@
     width: var(--luna-size);
     height: var(--luna-size);
     flex: 0 0 auto;
+    overflow: hidden;
+    border-radius: 50%;
     filter: drop-shadow(0 0 12px rgba(78, 220, 255, .28));
   }
 
-  body[data-layout-mode="mobile"] .mobile-luna-portrait svg { width: 100%; height: 100%; }
+  body[data-layout-mode="mobile"] .mobile-luna-portrait svg,
+  body[data-layout-mode="mobile"] .mobile-luna-portrait img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
   body[data-layout-mode="mobile"] .mobile-dashboard-luna small,
   body[data-layout-mode="mobile"] .mobile-dashboard-luna strong,
   body[data-layout-mode="mobile"] .mobile-dashboard-luna p { display: block; margin: 0; }
@@ -384,23 +392,18 @@
 
   body[data-layout-mode="mobile"] .mobile-dashboard-panels { display: grid; gap: 9px; }
   body[data-layout-mode="mobile"] .mobile-dashboard-panels > button {
-    display: grid;
-    grid-template-columns: 38px minmax(0,1fr) auto;
-    align-items: center;
-    gap: 10px;
+    position: relative;
+    min-width: 0;
     min-height: 82px;
     padding: 11px 13px;
+    overflow: hidden;
     color: #fff;
     text-align: left;
   }
-  body[data-layout-mode="mobile"] .mobile-dashboard-panels > button > span { display:grid; place-items:center; width:38px; height:38px; border-radius:13px; color:#08132c; background:linear-gradient(135deg,#71e7ff,#d98cff); }
-  body[data-layout-mode="mobile"] .mobile-dashboard-panels small,
-  body[data-layout-mode="mobile"] .mobile-dashboard-panels strong,
-  body[data-layout-mode="mobile"] .mobile-dashboard-panels p { display:block; margin:0; }
-  body[data-layout-mode="mobile"] .mobile-dashboard-panels small { color:#9eb8d5; font-size:.58rem; text-transform:uppercase; }
-  body[data-layout-mode="mobile"] .mobile-dashboard-panels strong { margin-top:2px; font-size:.79rem; }
-  body[data-layout-mode="mobile"] .mobile-dashboard-panels p { margin-top:3px; color:#9fb5d0; font-size:.66rem; }
-  body[data-layout-mode="mobile"] .mobile-dashboard-panels > button > b { color:#63dcff; font-size:1.25rem; }
+  body[data-layout-mode="mobile"] .mobile-dashboard-panels :where(small, strong, p) {
+    display: block;
+    margin: 0;
+  }
 
   body[data-layout-mode="mobile"] .mobile-dashboard-generator { overflow: hidden; }
   body[data-layout-mode="mobile"] .mobile-dashboard-generator > summary { display:grid; grid-template-columns:36px minmax(0,1fr) auto; align-items:center; gap:10px; min-height:68px; padding:10px 13px; cursor:pointer; list-style:none; }

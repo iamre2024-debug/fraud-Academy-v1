@@ -344,12 +344,36 @@ function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGene
       </section>
 
       <section className="mobile-dashboard-panels">
-        <button type="button" className="mobile-dashboard-agent" onClick={() => onNavigate('profile')}>
-          <span><small>Agent Panel</small><strong>Luna <i>Online</i></strong><p>I’m here to help organize case facts and evidence.</p></span>
-          <MobileLunaPortrait size={74} />
+        <button
+          type="button"
+          className="mobile-dashboard-agent"
+          onClick={() => onNavigate('profile')}
+          aria-label="Open Luna agent panel"
+        >
+          <span className="mobile-dashboard-agent-copy">
+            <small><i aria-hidden="true">♡</i> Agent Panel</small>
+            <strong>Luna <i><b aria-hidden="true" /> Online</i></strong>
+            <p>Review facts, spot patterns, and keep every decision evidence-first.</p>
+            <span className="mobile-dashboard-panel-action">Ask Luna <b aria-hidden="true">›</b></span>
+          </span>
+          <span className="mobile-dashboard-agent-portrait">
+            <MobileLunaPortrait size={84} />
+            <i aria-hidden="true">♥</i>
+          </span>
         </button>
-        <button type="button" className="mobile-dashboard-quote" onClick={() => onNavigate('quotes')}>
-          <span>❝</span><small className="mobile-dashboard-quote-label">Quotes</small><strong>Fraud is clever,<br />but so are we.</strong><small>Every careful step builds a stronger case.</small>
+        <button
+          type="button"
+          className="mobile-dashboard-quote"
+          onClick={() => onNavigate('quotes')}
+          aria-label="Open investigator quotes"
+        >
+          <span className="mobile-dashboard-quote-heading">
+            <span aria-hidden="true">❝</span>
+            <small>Investigator note</small>
+          </span>
+          <strong>Follow the facts.<br />Let verified details lead.</strong>
+          <small className="mobile-dashboard-quote-caption">Evidence first. Conclusions last.</small>
+          <span className="mobile-dashboard-quote-arrow" aria-hidden="true">›</span>
         </button>
       </section>
 

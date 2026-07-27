@@ -189,6 +189,7 @@ jobs:
 
       - name: Desktop and mobile browser smoke
         env:
+          CAPTURE_MISSION_VISUALS: '1'
           MOBILE_REFERENCE_SCREENSHOT_DIR: test-results/mobile-reference-screenshots
           PLAYWRIGHT_JSON_OUTPUT_FILE: playwright-results.json
         run: npm run browser-smoke-check:ci -- --reporter=json

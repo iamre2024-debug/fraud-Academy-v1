@@ -12,6 +12,8 @@ const referencePages = read('src/MobileReferenceToolPages.jsx');
 const linkAnalysis = read('src/MobileLinkAnalysisPanel.jsx');
 const quickPad = read('src/CaseQuickPad.jsx');
 const theme = read('src/mobileReferenceTheme.css');
+const shellV2 = read('src/mobileReferenceShellV2.css');
+const lunaPortrait = read('src/MobileLunaPortrait.jsx');
 const documentViewer = read('src/DocumentViewerWorkspace.jsx');
 const playwrightConfig = read('playwright.config.mjs');
 const failures = [];
@@ -49,10 +51,35 @@ for (const anchor of [
   "label: 'Quotes'",
   'Good morning Ree, let’s stop fraud ✨',
   '<MobileLunaPortrait',
+  'mobile-dashboard-agent-copy',
+  'Follow the facts.',
+  'Evidence first. Conclusions last.',
   'mobile-dashboard-active-file',
   'MissionQuotesPage',
   'mission-mobile-workspace-page',
 ]) requireAnchor('MobileMissionDeckApp.jsx', shell, anchor);
+
+for (const anchor of [
+  "import lunaMobilePortrait from './assets/luna-mobile.webp';",
+  '<img',
+  'decoding="async"',
+]) requireAnchor('MobileLunaPortrait.jsx', lunaPortrait, anchor);
+
+for (const anchor of [
+  '.mobile-dashboard-agent-copy',
+  '.mobile-dashboard-agent-portrait',
+  '.mobile-dashboard-quote-heading',
+  '.mobile-dashboard-quote-caption',
+  '.mobile-dashboard-quote-arrow',
+]) requireAnchor('mobileReferenceShellV2.css', shellV2, anchor);
+
+if (/\.mobile-dashboard-panels\s*>\s*button\s*>\s*span/.test(theme)) {
+  failures.push('The dashboard theme must not force every panel span into the icon geometry.');
+}
+
+if (!fs.existsSync(path.join(root, 'src/assets/luna-mobile.webp'))) {
+  failures.push('The reusable Luna mobile portrait asset is missing.');
+}
 
 for (const anchor of [
   'mission-workspace-v3',
