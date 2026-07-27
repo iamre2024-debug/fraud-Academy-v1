@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import BottomInvestigationGrid from './BottomInvestigationGrid.jsx';
 import CategoryTileRail from './CategoryTileRail.jsx';
 import InvestigationToolPanel from './InvestigationToolPanel.jsx';
@@ -82,6 +83,50 @@ export default function MobileMissionWorkspace({
   const isRoot = workspaceScreen === 'briefing';
   const isTool = workspaceScreen === 'tool' || workspaceScreen === 'timeline';
   const is360Tool = isTool && ['Customer 360', 'Business 360'].includes(activeTool);
+  const [mobile360MenuOpen, setMobile360MenuOpen] = useState(false);
+  const [mobile360DetailRequest, setMobile360DetailRequest] = useState({ detail: '', token: 0 });
+  const mobile360ActionButtonRef = useRef(null);
+  const mobile360MenuCloseRef = useRef(null);
+  const mobile360ProfileName = activeTool === 'Customer 360'
+    ? activeCase.customer?.identity?.legalName ?? activeCase.person ?? 'Customer'
+    : activeCase.businessProfile?.legalName ?? activeCase.profile?.business ?? activeCase.businessName ?? 'Business';
+
+  useEffect(() => {
+    setMobile360MenuOpen(false);
+  }, [activeCase.id, activeTool, workspaceScreen]);
+
+  useEffect(() => {
+    if (!mobile360MenuOpen) return undefined;
+
+    function closeOnEscape(event) {
+      if (event.key === 'Escape') setMobile360MenuOpen(false);
+    }
+
+    document.body.setAttribute('data-mobile-360-actions', 'open');
+    document.addEventListener('keydown', closeOnEscape);
+    window.setTimeout(() => mobile360MenuCloseRef.current?.focus(), 0);
+
+    return () => {
+      document.body.removeAttribute('data-mobile-360-actions');
+      document.removeEventListener('keydown', closeOnEscape);
+      mobile360ActionButtonRef.current?.focus();
+    };
+  }, [mobile360MenuOpen]);
+
+  function requestMobile360Detail(detail) {
+    setMobile360DetailRequest((current) => ({ detail, token: current.token + 1 }));
+    setMobile360MenuOpen(false);
+  }
+
+  function pinMobile360Profile() {
+    activeToolProps.pin?.(`${activeTool} profile · ${mobile360ProfileName}`);
+    setMobile360MenuOpen(false);
+  }
+
+  function markMobile360Reviewed() {
+    activeToolProps.markReviewed?.(activeTool);
+    setMobile360MenuOpen(false);
+  }
 
   return (
     <main className="mission-workspace-v3" data-workspace-screen={workspaceScreen} data-active-tool={activeTool}>
@@ -101,9 +146,85 @@ export default function MobileMissionWorkspace({
             </>
           )}
         </div>
-        {is360Tool && <Mobile360LunaBadge />}
-        <button type="button" className={workspaceScreen === 'workflow' ? 'active' : ''} onClick={() => workspaceScreen === 'workflow' ? goBackWorkspaceScreen() : showWorkspaceScreen('workflow')} aria-label="Open mission pages">{is360Tool ? '•••' : '☷'}</button>
+        {is360Tool && (
+          <Mobile360LunaBadge
+            actionLabel={activeTool === 'Business 360' ? 'Open Luna Business Research' : undefined}
+            onClick={activeTool === 'Business 360' ? () => requestMobile360Detail('research') : undefined}
+          />
+        )}
+        <button
+          ref={is360Tool ? mobile360ActionButtonRef : undefined}
+          type="button"
+          className={workspaceScreen === 'workflow' ? 'active' : ''}
+          onClick={() => {
+            if (is360Tool) {
+              setMobile360MenuOpen((open) => !open);
+            } else if (workspaceScreen === 'workflow') {
+              goBackWorkspaceScreen();
+            } else {
+              showWorkspaceScreen('workflow');
+            }
+          }}
+          aria-controls={is360Tool ? 'mobile-360-actions-menu' : undefined}
+          aria-expanded={is360Tool ? mobile360MenuOpen : undefined}
+          aria-label={is360Tool ? `Open ${activeTool} actions` : 'Open mission pages'}
+        >
+          {is360Tool ? '•••' : '☷'}
+        </button>
       </header>
+
+      {is360Tool && mobile360MenuOpen && (
+        <div
+          className="mobile-360-actions-backdrop"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) setMobile360MenuOpen(false);
+          }}
+        >
+          <section
+            id="mobile-360-actions-menu"
+            className="mobile-360-actions-menu"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${activeTool} actions`}
+          >
+            <header>
+              <div>
+                <p>{activeTool}</p>
+                <h2>Profile actions</h2>
+              </div>
+              <button ref={mobile360MenuCloseRef} type="button" onClick={() => setMobile360MenuOpen(false)} aria-label="Close profile actions">×</button>
+            </header>
+            <nav aria-label={`${activeTool} detail pages`}>
+              {activeTool === 'Business 360' ? (
+                <>
+                  <button type="button" onClick={() => requestMobile360Detail('profile')}>🏢 Business profile</button>
+                  <button type="button" onClick={() => requestMobile360Detail('owners')}>👥 Owners &amp; control</button>
+                  <button type="button" onClick={() => requestMobile360Detail('research')}>🌙 Luna Business Research</button>
+                  <button type="button" onClick={() => requestMobile360Detail('notes')}>📝 Recent notes</button>
+                </>
+              ) : (
+                <>
+                  <button type="button" onClick={() => requestMobile360Detail('profile')}>👤 Customer profile</button>
+                  <button type="button" onClick={() => requestMobile360Detail('updates')}>🗂️ Profile updates</button>
+                  <button type="button" onClick={() => requestMobile360Detail('security')}>🛡️ Trusted devices &amp; security</button>
+                  <button type="button" onClick={() => requestMobile360Detail('accounts')}>💳 Accounts &amp; products</button>
+                  <button type="button" onClick={() => requestMobile360Detail('relationship')}>💞 Relationship</button>
+                  <button type="button" onClick={() => requestMobile360Detail('notes')}>📝 Recent notes</button>
+                </>
+              )}
+            </nav>
+            <nav className="mobile-360-workflow-actions" aria-label="Investigation workflow actions">
+              <button type="button" onClick={pinMobile360Profile}>⭐ Pin profile</button>
+              <button type="button" onClick={() => { openNotes(); setMobile360MenuOpen(false); }}>📝 Case notes</button>
+              <button type="button" onClick={() => { showWorkspaceScreen('tool-menu'); setMobile360MenuOpen(false); }}>🧰 All tools</button>
+              <button type="button" onClick={markMobile360Reviewed}>
+                {currentCompleted.includes(activeTool) ? '✓ Reviewed' : '✓ Mark reviewed'}
+              </button>
+              <button type="button" onClick={() => { jumpDecision(); setMobile360MenuOpen(false); }}>✅ Submit Decision</button>
+            </nav>
+          </section>
+        </div>
+      )}
 
       {!is360Tool && (
         <section className="mission-workspace-case-selector" aria-label="Active mission file">
@@ -186,11 +307,14 @@ export default function MobileMissionWorkspace({
             {activeTool === 'Login History' && <MissionLoginHistoryHeading activeCase={activeCase} />}
             <div className="mission-tool-content">
               {activeTool === 'Customer 360' ? (
-                <MobileCustomer360Reference {...activeToolProps} />
+                <MobileCustomer360Reference
+                  {...activeToolProps}
+                  detailRequest={mobile360DetailRequest}
+                />
               ) : activeTool === 'Business 360' ? (
                 <MobileBusiness360Reference
                   {...activeToolProps}
-                  reviewed={currentCompleted.includes('Business 360')}
+                  detailRequest={mobile360DetailRequest}
                 />
               ) : activeTool === 'Timeline' ? (
                 <TimelinePanel {...activeToolProps} />
@@ -259,9 +383,11 @@ export default function MobileMissionWorkspace({
         {workspaceScreen !== 'debrief' && <div className="decision-luna-portal-anchor" hidden />}
       </div>
 
-      <footer className="mission-workspace-status">
-        <span>⭐ {tray.length} pinned</span><span>📝 {notes.length} notes</span><span>📡 {actionLog.length} actions</span>
-      </footer>
+      {!is360Tool && (
+        <footer className="mission-workspace-status">
+          <span>⭐ {tray.length} pinned</span><span>📝 {notes.length} notes</span><span>📡 {actionLog.length} actions</span>
+        </footer>
+      )}
     </main>
   );
 }

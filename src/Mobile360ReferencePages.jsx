@@ -123,9 +123,12 @@ function BusinessMark() {
   );
 }
 
-export function Mobile360LunaBadge() {
-  return (
-    <aside className="mobile-360-luna-badge" aria-label="Luna, your AI assistant">
+export function Mobile360LunaBadge({
+  onClick,
+  actionLabel = 'Open Luna',
+}) {
+  const content = (
+    <>
       <svg viewBox="0 0 64 64" aria-hidden="true">
         <defs>
           <linearGradient id="mobile-360-luna" x1="0" y1="0" x2="1" y2="1">
@@ -145,6 +148,18 @@ export function Mobile360LunaBadge() {
         <path d="M12 36h10m20 0h10M13 41l9-2m20 0 9 2" stroke="#7ca4c0" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
       <span><strong>Luna ✨</strong><small>Your AI assistant</small></span>
+    </>
+  );
+  if (onClick) {
+    return (
+      <button type="button" className="mobile-360-luna-badge" onClick={onClick} aria-label={actionLabel}>
+        {content}
+      </button>
+    );
+  }
+  return (
+    <aside className="mobile-360-luna-badge" aria-label="Luna, your AI assistant">
+      {content}
     </aside>
   );
 }
@@ -252,11 +267,11 @@ function Mobile360Drawer({ open, title, eyebrow, onClose, children }) {
       if (event.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', handleKeyDown);
-    document.body.dataset.mobile360Drawer = 'open';
+    document.body.setAttribute('data-mobile-360-drawer', 'open');
     window.setTimeout(() => closeRef.current?.focus(), 0);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      delete document.body.dataset.mobile360Drawer;
+      document.body.removeAttribute('data-mobile-360-drawer');
       priorFocus?.focus?.();
     };
   }, [onClose, open]);
@@ -277,24 +292,21 @@ function Mobile360Drawer({ open, title, eyebrow, onClose, children }) {
 
 function AccountCard({
   account,
-  sourceTool,
-  quickPin,
   onOpen,
   compact = false,
 }) {
   const utilization = accountUtilization(account);
   return (
-    <article className={`mobile-360-account-card${compact ? ' compact' : ''}`} data-360-account={account.accountId}>
+    <button
+      type="button"
+      className={`mobile-360-account-card${compact ? ' compact' : ''}`}
+      data-360-account={account.accountId}
+      onClick={onOpen}
+      aria-label={`Open ${account.productLabel} ${account.maskedDestinationId ?? account.maskedAccountId}`}
+    >
       <header>
         <span aria-hidden="true">{isCreditAccount(account) ? '▣' : /saving/i.test(account.productLabel) ? '$' : '▤'}</span>
-        <div><strong>{account.productLabel}</strong><small>{account.maskedAccountId}</small></div>
-        <QuickPinButton
-          label="Account ID"
-          value={account.accountId}
-          sourceTool={sourceTool}
-          sourceRecordId={account.accountId}
-          quickPin={quickPin}
-        />
+        <div><strong>{account.productLabel}</strong><small>{account.maskedDestinationId ?? account.maskedAccountId}</small></div>
       </header>
       <p>{accountAmount(account)}</p>
       <small>{display(account.status)}</small>
@@ -303,8 +315,7 @@ function AccountCard({
           <i style={{ '--mobile-360-meter': `${utilization}%` }} />
         </span>
       )}
-      <button type="button" onClick={onOpen}>Open account</button>
-    </article>
+    </button>
   );
 }
 
@@ -312,9 +323,10 @@ function AccountDetails({ account, available, openTool, quickPin, sourceTool }) 
   const route = accountRoute(account, available);
   return (
     <article className="mobile-360-detail-card" data-360-account-detail={account.accountId}>
-      <header><div><span>{account.maskedAccountId}</span><h3>{account.productLabel}</h3></div><strong>{display(account.status)}</strong></header>
+      <header><div><span>{account.maskedDestinationId ?? account.maskedAccountId}</span><h3>{account.productLabel}</h3></div><strong>{display(account.status)}</strong></header>
       <FactGrid rows={[
-        ['Account ID', account.maskedAccountId],
+        ['Destination ID', account.maskedDestinationId ?? account.maskedAccountId],
+        ['Bank Code', account.bankCode],
         ['Opened', account.openDate],
         ['Current balance', formatMoney(account.currentBalance)],
         ['Available balance', formatMoney(account.availableBalance)],
@@ -330,8 +342,8 @@ function AccountDetails({ account, available, openTool, quickPin, sourceTool }) 
       ]} />
       <nav>
         <QuickPinButton
-          label="Account ID"
-          value={account.accountId}
+          label="Destination ID"
+          value={account.destinationId ?? account.accountId}
           sourceTool={sourceTool}
           sourceRecordId={account.accountId}
           quickPin={quickPin}
@@ -355,6 +367,48 @@ function CustomerDrawerContent({
   saveNote,
   notes,
 }) {
+  if (detail === 'profile') {
+    return (
+      <>
+        <article className="mobile-360-detail-card">
+          <header><div><span>Reusable customer record</span><h3>{dossier.identity.legalName}</h3></div><strong>{dossier.identity.verificationStatus}</strong></header>
+          <FactGrid rows={[
+            ['Legal name', dossier.identity.legalName],
+            ['Preferred name', dossier.identity.preferredName],
+            ['Date of birth', dossier.identity.dob],
+            ['Age', dossier.identity.age],
+            ['Language', dossier.identity.language],
+            ['Customer ID', dossier.identity.maskedMemberId],
+            ['Training ID', dossier.identity.trainingId],
+            ['Current address', dossier.identity.currentAddress],
+            ['Previous address', dossier.identity.previousAddress],
+            ['Mobile phone', dossier.identity.mobilePhone],
+            ['Home phone', dossier.identity.homePhone],
+            ['Email', dossier.identity.email],
+            ['Customer since', dossier.identity.customerSince],
+            ['Relationship length', dossier.identity.relationshipLength],
+            ['Segment', dossier.identity.segment],
+            ['Preferred contact', dossier.identity.preferredContact],
+            ['Account standing', dossier.identity.accountStanding],
+            ['Verification method', dossier.identity.verificationMethod],
+            ['Last verified', dossier.identity.lastVerified],
+          ]} />
+        </article>
+        <article className="mobile-360-detail-card">
+          <header><div><span>Training-data coverage</span><h3>Available relationship history</h3></div></header>
+          <FactGrid rows={[
+            ['As of', dossier.coverage.asOf],
+            ['Source mode', dossier.coverage.sourceMode],
+            ['Identity coverage', dossier.coverage.identity],
+            ['Profile-update coverage', dossier.coverage.profileUpdates],
+            ['Security coverage', dossier.coverage.security],
+            ['Service-contact coverage', dossier.coverage.serviceContacts],
+          ]} />
+        </article>
+      </>
+    );
+  }
+
   if (detail === 'updates') {
     return dossier.profileUpdates.length ? dossier.profileUpdates.map((update) => (
       <article className="mobile-360-detail-card" key={update.id} data-profile-event={update.id}>
@@ -496,14 +550,11 @@ function CustomerDrawerContent({
 
 export function MobileCustomer360Reference({
   activeCase,
-  pin = () => {},
   quickPin,
   saveNote = () => {},
-  markReviewed = () => {},
-  currentCompleted = [],
   openTool = () => {},
-  jumpDecision = () => {},
   notes = [],
+  detailRequest,
 }) {
   const dossier = useMemo(() => getCustomer360Dossier(activeCase), [activeCase]);
   const available = useMemo(() => new Set(activeCase.availableTools ?? []), [activeCase.availableTools]);
@@ -522,12 +573,20 @@ export function MobileCustomer360Reference({
     setSelectedAccountId('');
   }, [activeCase.id]);
 
+  useEffect(() => {
+    const requested = detailRequest?.detail;
+    if (!['profile', 'updates', 'security', 'accounts', 'relationship', 'notes'].includes(requested)) return;
+    setSelectedAccountId('');
+    setDetail(requested);
+  }, [detailRequest?.token]);
+
   function openAccount(account) {
     setSelectedAccountId(account.accountId);
     setDetail('accounts');
   }
 
   const drawerTitles = {
+    profile: ['Customer profile', 'Reusable identity, contact, and relationship facts'],
     updates: ['Profile updates', 'Permanent customer profile history'],
     security: ['Trusted devices & security', 'Stored access and security facts'],
     accounts: ['Accounts & products', 'Relationship-level product records'],
@@ -558,9 +617,6 @@ export function MobileCustomer360Reference({
             <QuickPinButton label="Training ID" value={dossier.identity.trainingId} sourceTool="Customer 360" quickPin={quickPin} />
           </div>
         </div>
-        <button type="button" className="mobile-360-pin-profile" onClick={() => pin(`${dossier.identity.trainingId} · ${dossier.identity.legalName}`)}>
-          ☆ Pin customer profile
-        </button>
         <FactGrid className="mobile-360-contact-grid" rows={[
           ['Date of birth', `${dossier.identity.dob} · age ${dossier.identity.age}`],
           ['Current address', dossier.identity.currentAddress],
@@ -625,8 +681,6 @@ export function MobileCustomer360Reference({
               <AccountCard
                 key={account.accountId}
                 account={account}
-                sourceTool="Customer 360"
-                quickPin={quickPin}
                 onOpen={() => openAccount(account)}
                 compact
               />
@@ -664,18 +718,7 @@ export function MobileCustomer360Reference({
           title: contact.type,
           detail: contact.notes ?? contact.outcome,
         }))} emptyText="No service contact notes are supplied." />
-        <button type="button" className="mobile-360-secondary" onClick={() => saveNote(`Customer 360 profile reviewed for ${dossier.identity.legalName}.`, 'Customer 360')}>
-          Add review note
-        </button>
       </Mobile360Section>
-
-      <footer className="mobile-360-review">
-        <div><span>Evidence First</span><strong>{currentCompleted.includes('Customer 360') ? 'Customer 360 reviewed' : 'Finish Customer 360 when ready'}</strong></div>
-        <button type="button" onClick={() => markReviewed('Customer 360')}>
-          {currentCompleted.includes('Customer 360') ? '✓ Reviewed' : 'Mark reviewed'}
-        </button>
-        <button type="button" onClick={jumpDecision}>Submit Decision</button>
-      </footer>
 
       <Mobile360Drawer
         open={Boolean(detail)}
@@ -712,12 +755,164 @@ export function MobileCustomer360Reference({
   );
 }
 
-function OwnerDetails({ owner, available, openTool }) {
+function OwnerRelationshipRecords({ owner, quickPin }) {
+  const accounts = owner.accounts ?? [];
+  const devices = owner.trustedDevices ?? [];
+  const contacts = owner.contactHistory ?? [];
+  return (
+    <>
+      <section className="mobile-360-owner-record-group" aria-label={`${owner.fullLegalName} personal accounts`}>
+        <header><span aria-hidden="true">▤</span><div><strong>Personal accounts</strong><small>Owner-level relationship records</small></div></header>
+        {accounts.length ? accounts.map((account) => (
+          <article className="mobile-360-owner-record" key={account.accountId}>
+            <header><div><span>{account.maskedDestinationId ?? account.maskedAccountId}</span><h4>{account.productLabel}</h4></div><strong>{display(account.status)}</strong></header>
+            <FactGrid rows={[
+              ['Destination ID', account.maskedDestinationId ?? account.maskedAccountId],
+              ['Bank Code', account.bankCode],
+              ['Opened', account.openDate],
+              ['Current balance', formatMoney(account.currentBalance)],
+              ['Available balance', formatMoney(account.availableBalance)],
+              ['Available credit', formatMoney(account.availableCredit)],
+              ['Credit limit', formatMoney(account.creditLimit)],
+              ['Original loan amount', formatMoney(account.originalLoanAmount)],
+              ['Scheduled / minimum payment', formatMoney(account.scheduledPayment)],
+              ['Next payment due', account.nextPaymentDueDate ?? 'Not applicable'],
+              ['Payment status', account.paymentStatus],
+              ['Past-due amount', formatMoney(account.pastDueAmount)],
+              ['Restrictions', account.restrictions],
+              ['Holds', account.holds],
+            ]} />
+            <QuickPinButton
+              label="Destination ID"
+              value={account.destinationId ?? account.accountId}
+              sourceTool="Business 360"
+              sourceRecordId={owner.id}
+              quickPin={quickPin}
+            />
+          </article>
+        )) : <p className="mobile-360-empty">No owner-level personal account is supplied.</p>}
+      </section>
+
+      <section className="mobile-360-owner-record-group" aria-label={`${owner.fullLegalName} trusted devices`}>
+        <header><span aria-hidden="true">▱</span><div><strong>Trusted devices</strong><small>Personal-profile access records</small></div></header>
+        {devices.length ? devices.map((device) => (
+          <article className="mobile-360-owner-record" key={device.deviceId}>
+            <header><div><span>{device.deviceId}</span><h4>{device.deviceName}</h4></div><strong>{device.trustStatus}</strong></header>
+            <FactGrid rows={[
+              ['Device type', device.deviceType],
+              ['Browser / operating system', device.browserOrOperatingSystem],
+              ['First seen', device.firstSeen],
+              ['Last seen', device.lastSeen],
+              ['Most recent successful login', device.mostRecentSuccessfulLogin],
+              ['MFA method', device.mfaMethod],
+              ['Linked session', device.linkedSession],
+            ]} />
+            <QuickPinButton
+              label="Device ID"
+              value={device.deviceId}
+              sourceTool="Business 360"
+              sourceRecordId={owner.id}
+              quickPin={quickPin}
+            />
+          </article>
+        )) : <p className="mobile-360-empty">No owner-level trusted device is supplied.</p>}
+      </section>
+
+      <section className="mobile-360-owner-record-group" aria-label={`${owner.fullLegalName} contact history`}>
+        <header><span aria-hidden="true">✎</span><div><strong>Contact history</strong><small>Personal-profile servicing records</small></div></header>
+        {contacts.length ? contacts.map((contact) => (
+          <article className="mobile-360-owner-record" key={contact.id}>
+            <header><div><span>{contact.contactDateTime}</span><h4>{contact.reasonForContact}</h4></div><strong>{contact.channel}</strong></header>
+            <FactGrid rows={[
+              ['Information reported', contact.reportedInformation],
+              ['Assistance provided', contact.assistanceProvided],
+              ['Documents requested', contact.documentsRequested],
+              ['Follow-up status', contact.followUpStatus],
+              ['Agent / department', contact.agentOrDepartment],
+              ['Related Destination ID', contact.relatedAccountId],
+            ]} />
+          </article>
+        )) : <p className="mobile-360-empty">No owner-level contact history is supplied.</p>}
+      </section>
+    </>
+  );
+}
+
+function BusinessAccessRecords({ access, quickPin }) {
+  return (
+    <>
+      <section className="mobile-360-owner-record-group" aria-label="Authorized business users">
+        <header><span aria-hidden="true">👥</span><div><strong>Authorized users</strong><small>Stored business-profile permissions</small></div></header>
+        {access.authorizedUsers.length ? access.authorizedUsers.map((user) => (
+          <article className="mobile-360-owner-record" key={user.id}>
+            <header><div><span>{user.id}</span><h4>{user.name}</h4></div><strong>{user.role}</strong></header>
+            <FactGrid rows={[
+              ['Permissions', user.permissions],
+              ['MFA method', user.mfaMethod],
+              ['Last successful login', user.lastSuccessfulLogin],
+            ]} />
+          </article>
+        )) : <p className="mobile-360-empty">No authorized-business-user record is supplied.</p>}
+      </section>
+
+      <section className="mobile-360-owner-record-group" aria-label="Trusted business devices">
+        <header><span aria-hidden="true">▱</span><div><strong>Trusted devices</strong><small>Stored business-profile access records</small></div></header>
+        {access.trustedDevices.length ? access.trustedDevices.map((device) => (
+          <article className="mobile-360-owner-record" key={device.deviceId}>
+            <header><div><span>{device.deviceId}</span><h4>{device.deviceName}</h4></div><strong>{device.trustStatus}</strong></header>
+            <FactGrid rows={[
+              ['Device type', device.deviceType],
+              ['Browser / operating system', device.browserOrOperatingSystem],
+              ['First seen', device.firstSeen],
+              ['Last seen', device.lastSeen],
+              ['Most recent successful login', device.mostRecentSuccessfulLogin],
+              ['MFA method', device.mfaMethod],
+              ['Linked session', device.linkedSession],
+            ]} />
+            <QuickPinButton
+              label="Device ID"
+              value={device.deviceId}
+              sourceTool="Business 360"
+              sourceRecordId={device.deviceId}
+              quickPin={quickPin}
+            />
+          </article>
+        )) : <p className="mobile-360-empty">No trusted-device record is supplied.</p>}
+      </section>
+
+      <section className="mobile-360-owner-record-group" aria-label="Business access maintenance">
+        <header><span aria-hidden="true">↻</span><div><strong>Access maintenance</strong><small>Password, administrator, and permission history</small></div></header>
+        {access.passwordOrAccessResets.length ? access.passwordOrAccessResets.map((update) => (
+          <article className="mobile-360-owner-record" key={update.id}>
+            <header><div><span>{update.dateTime}</span><h4>{update.updateType}</h4></div></header>
+            <FactGrid rows={[
+              ['Previous value', update.previousValue],
+              ['New value', update.newValue],
+              ['Channel', update.channel],
+              ['Source', update.source],
+              ['User', update.user],
+              ['Session', update.linkedSession],
+              ['Device', update.linkedDevice],
+            ]} />
+          </article>
+        )) : <p className="mobile-360-empty">No business access-maintenance record is supplied.</p>}
+      </section>
+    </>
+  );
+}
+
+function OwnerDetails({
+  owner,
+  available,
+  openTool,
+  quickPin,
+}) {
   if (!owner) return <p className="mobile-360-empty">No owner or controlling-party record is supplied.</p>;
   return (
     <article className="mobile-360-detail-card" data-business-owner={owner.id}>
       <header><div><span>{owner.trainingId}</span><h3>{owner.fullLegalName}</h3></div><strong>{owner.ownershipPercentage}</strong></header>
       <FactGrid rows={[
+        ['Training ID', owner.trainingId],
         ['Date of birth', owner.dateOfBirth],
         ['Business title', owner.businessTitle],
         ['Officer status', owner.officerStatus],
@@ -732,7 +927,9 @@ function OwnerDetails({ owner, available, openTool }) {
         ['Owner since', owner.ownerSince],
         ['Address comparison', owner.addressComparison],
       ]} />
+      <OwnerRelationshipRecords owner={owner} quickPin={quickPin} />
       <nav>
+        <QuickPinButton label="Training ID" value={owner.trainingId} sourceTool="Business 360" sourceRecordId={owner.id} quickPin={quickPin} />
         {available.has('Identity Intel / People Search') && <button type="button" onClick={() => openTool('Identity Intel / People Search', 'investigate', { query: owner.trainingId })}>Open Identity Information</button>}
         {available.has('Device Intelligence') && <button type="button" onClick={() => openTool('Device Intelligence', 'investigate', { query: owner.trainingId })}>Open Device History</button>}
         {available.has('Login History') && <button type="button" onClick={() => openTool('Login History', 'investigate', { query: owner.trainingId })}>Open Login History</button>}
@@ -778,21 +975,18 @@ function BusinessDrawerContent({
             ['Relationship length', dossier.profile.relationshipLength],
             ['Known operating locations', dossier.profile.operatingLocations],
             ['Estimated employee count', dossier.profile.estimatedEmployeeCount],
+            ['Source checked', dossier.profile.sourceChecked],
+            ['Date checked', dossier.profile.dateChecked],
+            ['Registration search', dossier.profile.registrationSearchCompleted ? 'Completed' : 'No completed search supplied'],
+            ['Owner search', dossier.profile.ownerSearchCompleted ? 'Completed' : 'No completed search supplied'],
+            ['Online-presence search', dossier.profile.onlineSearchCompleted ? 'Completed' : 'No completed search supplied'],
+            ['License applicability', dossier.profile.licenseApplicable === false ? 'Not applicable' : dossier.profile.licenseApplicable === true ? 'Applicable' : 'Not supplied'],
+            ['License search', dossier.profile.licenseSearchCompleted ? 'Completed' : 'No completed search supplied'],
           ]} />
         </article>
         <article className="mobile-360-detail-card">
           <header><div><span>Stored access summary</span><h3>Trusted business access & security</h3></div></header>
-          <CompactRows rows={dossier.access.authorizedUsers.map((user) => ({
-            id: user.id,
-            title: `${user.name} · ${user.role}`,
-            detail: `${user.permissions} · ${user.mfaMethod}`,
-          }))} emptyText="No authorized-business-user record is supplied." />
-          <CompactRows rows={dossier.access.trustedDevices.map((device) => ({
-            id: device.deviceId,
-            icon: '▱',
-            title: device.deviceName,
-            detail: `${device.browserOrOperatingSystem} · ${device.trustStatus}`,
-          }))} emptyText="No trusted-device record is supplied." />
+          <BusinessAccessRecords access={dossier.access} quickPin={quickPin} />
         </article>
       </>
     );
@@ -800,7 +994,7 @@ function BusinessDrawerContent({
 
   if (detail === 'owners') {
     return dossier.owners.length ? dossier.owners.map((owner) => (
-      <OwnerDetails key={owner.id} owner={owner} available={available} openTool={openTool} />
+      <OwnerDetails key={owner.id} owner={owner} available={available} openTool={openTool} quickPin={quickPin} />
     )) : <p className="mobile-360-empty">No owner or controlling-party record is supplied.</p>;
   }
 
@@ -902,16 +1096,12 @@ function BusinessDrawerContent({
 
 export function MobileBusiness360Reference({
   activeCase,
-  pin = () => {},
   quickPin,
   saveNote = () => {},
-  markReviewed = () => {},
-  reviewed = false,
-  currentCompleted = [],
   openTool = () => {},
-  jumpDecision = () => {},
   notes = [],
   query = '',
+  detailRequest,
 }) {
   const dossier = useMemo(
     () => getBusiness360Dossier(activeCase, { relationshipId: query }),
@@ -923,12 +1113,18 @@ export function MobileBusiness360Reference({
   const primaryOwner = dossier.owners[0];
   const operatingAccounts = dossier.accounts.filter((account) => !isCreditAccount(account));
   const creditAccounts = dossier.accounts.filter(isCreditAccount);
-  const isReviewed = reviewed || currentCompleted.includes('Business 360');
 
   useEffect(() => {
     setDetail('');
     setSelectedAccountId('');
   }, [activeCase.id]);
+
+  useEffect(() => {
+    const requested = detailRequest?.detail;
+    if (!['profile', 'owners', 'accounts', 'credit', 'payroll', 'updates', 'notes', 'research'].includes(requested)) return;
+    setSelectedAccountId('');
+    setDetail(requested);
+  }, [detailRequest?.token]);
 
   function openAccount(account, section) {
     setSelectedAccountId(account.accountId);
@@ -966,9 +1162,6 @@ export function MobileBusiness360Reference({
           </div>
           <div className="mobile-360-id-row"><span>Masked EIN · {dossier.profile.maskedEin}</span></div>
         </div>
-        <button type="button" className="mobile-360-pin-profile" onClick={() => pin(`${dossier.profile.registrationFileNumber} · ${dossier.profile.legalName}`)}>
-          ☆ Pin business profile
-        </button>
       </section>
 
       {dossier.coverageNotice && <p className="mobile-360-coverage">{dossier.coverageNotice}</p>}
@@ -985,26 +1178,8 @@ export function MobileBusiness360Reference({
           <span>Owner</span><strong>{display(primaryOwner?.fullLegalName)}</strong>
           <span>Ownership</span><strong>{display(primaryOwner?.ownershipPercentage)}</strong>
           <span>Owner address</span><strong>{display(primaryOwner?.currentResidentialAddress)}</strong>
-          <button type="button" onClick={() => setDetail('owners')}>View owner profile</button>
         </div>
       </section>
-
-      <Mobile360Section
-        icon="▥"
-        title="Business profile"
-        eyebrow="Factual company and registration details"
-        onViewAll={() => setDetail('profile')}
-        className="mobile-360-wide-section"
-      >
-        <FactGrid className="mobile-360-two-column-facts" rows={[
-          ['Legal name', dossier.profile.legalName],
-          ['Industry', dossier.profile.industry],
-          ['Formation state', dossier.profile.formationState],
-          ['Registration', dossier.profile.registrationFileNumber],
-          ['Registered agent', dossier.profile.registeredAgent.name],
-          ['Website', dossier.profile.website],
-        ]} />
-      </Mobile360Section>
 
       <div className="mobile-360-pair mobile-360-product-pair">
         <Mobile360Section
@@ -1018,8 +1193,6 @@ export function MobileBusiness360Reference({
               <AccountCard
                 key={account.accountId}
                 account={account}
-                sourceTool="Business 360"
-                quickPin={quickPin}
                 onOpen={() => openAccount(account, 'accounts')}
                 compact
               />
@@ -1040,8 +1213,6 @@ export function MobileBusiness360Reference({
               <AccountCard
                 key={account.accountId}
                 account={account}
-                sourceTool="Business 360"
-                quickPin={quickPin}
                 onOpen={() => openAccount(account, 'credit')}
                 compact
               />
@@ -1051,25 +1222,23 @@ export function MobileBusiness360Reference({
         </Mobile360Section>
       </div>
 
-      {dossier.payrollRelationship && (
-        <Mobile360Section
-          icon="↗"
-          title="Payroll overview"
-          eyebrow="Product relationship summary"
-          onViewAll={() => setDetail('payroll')}
-          className="mobile-360-wide-section"
-        >
-          <FactGrid className="mobile-360-payroll-metrics" rows={[
-            ['Payroll frequency', dossier.payrollRelationship.paySchedule],
-            ['Total payroll', dossier.payrollRelationship.lastPayrollAmount],
-            ['Employees paid', dossier.payrollRelationship.activeEmployeeCount],
-            ['Latest payroll', dossier.payrollRelationship.lastCompletedPayrollDate],
-          ]} />
-          {available.has('Payroll History') && <button type="button" className="mobile-360-secondary" onClick={() => openTool('Payroll History')}>Open Payroll History</button>}
-        </Mobile360Section>
-      )}
+      <div className={`mobile-360-pair mobile-360-business-activity-pair${dossier.payrollRelationship ? '' : ' single'}`}>
+        {dossier.payrollRelationship && (
+          <Mobile360Section
+            icon="↗"
+            title="Payroll overview"
+            eyebrow="Product relationship summary"
+            onViewAll={() => setDetail('payroll')}
+          >
+            <FactGrid className="mobile-360-payroll-metrics" rows={[
+              ['Payroll frequency', dossier.payrollRelationship.paySchedule],
+              ['Total payroll', dossier.payrollRelationship.lastPayrollAmount],
+              ['Employees paid', dossier.payrollRelationship.activeEmployeeCount],
+              ['Latest payroll', dossier.payrollRelationship.lastCompletedPayrollDate],
+            ]} />
+          </Mobile360Section>
+        )}
 
-      <div className="mobile-360-pair">
         <Mobile360Section
           icon="✦"
           title="Business updates"
@@ -1083,38 +1252,22 @@ export function MobileBusiness360Reference({
             detail: `${display(update.previousValue)} → ${display(update.newValue)}`,
           }))} emptyText="No business profile updates are supplied." />
         </Mobile360Section>
-
-        <Mobile360Section
-          icon="✎"
-          title="Recent notes"
-          eyebrow="Recorded business servicing context"
-          onViewAll={() => setDetail('notes')}
-        >
-          <CompactRows rows={dossier.contactNotes.slice(0, 3).map((contact) => ({
-            id: contact.id,
-            date: contact.contactDate,
-            title: `${contact.personContacted} · ${contact.businessRole}`,
-            detail: contact.reasonForContact,
-          }))} emptyText="No business contact notes are supplied." />
-          <button type="button" className="mobile-360-secondary" onClick={() => saveNote(`Business 360 profile reviewed for ${dossier.profile.legalName}.`, 'Business 360')}>
-            Add business note
-          </button>
-        </Mobile360Section>
       </div>
 
-      <button type="button" className="mobile-360-research-entry" onClick={() => setDetail('research')}>
-        <span aria-hidden="true">🐾</span>
-        <span><strong>Luna Business Research</strong><small>Open factual owner, registration, licensing, and web-presence checks</small></span>
-        <b>›</b>
-      </button>
-
-      <footer className="mobile-360-review">
-        <div><span>Evidence First</span><strong>{isReviewed ? 'Business 360 reviewed' : 'Finish Business 360 when ready'}</strong></div>
-        <button type="button" onClick={() => markReviewed('Business 360')}>
-          {isReviewed ? '✓ Reviewed' : 'Mark reviewed'}
-        </button>
-        <button type="button" onClick={jumpDecision}>Submit Decision</button>
-      </footer>
+      <Mobile360Section
+        icon="✎"
+        title="Recent notes"
+        eyebrow="Recorded business servicing context"
+        onViewAll={() => setDetail('notes')}
+        className="mobile-360-wide-section"
+      >
+        <CompactRows rows={dossier.contactNotes.slice(0, 3).map((contact) => ({
+          id: contact.id,
+          date: contact.contactDate,
+          title: `${contact.personContacted} · ${contact.businessRole}`,
+          detail: contact.reasonForContact,
+        }))} emptyText="No business contact notes are supplied." />
+      </Mobile360Section>
 
       <Mobile360Drawer
         open={Boolean(detail)}

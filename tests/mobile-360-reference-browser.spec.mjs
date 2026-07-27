@@ -86,6 +86,9 @@ test('mobile Customer 360 is the coded reference dashboard with working record d
   await expect(customer.getByRole('heading', { name: 'Recent contact notes', exact: true })).toBeVisible();
   await expect(customer).not.toContainText('FA-ATO-24018');
   await expect(customer).not.toContainText('$742.18');
+  await expect(page.locator('.mission-workspace-status')).toHaveCount(0);
+  await expect(customer.locator('.mobile-360-review')).toHaveCount(0);
+  await expect(customer.getByRole('button', { name: 'Open account' })).toHaveCount(0);
 
   const pairColumns = await customer.locator('.mobile-360-pair').first().evaluate(
     (pair) => getComputedStyle(pair).gridTemplateColumns.split(' ').length,
@@ -99,12 +102,31 @@ test('mobile Customer 360 is the coded reference dashboard with working record d
   await expect(updateDrawer).toContainText('New value');
   await updateDrawer.getByRole('button', { name: 'Close Profile updates' }).click();
 
-  await customer.locator('[data-360-account]').first().getByRole('button', { name: 'Open account' }).click();
+  await customer.locator('[data-360-account]').first().click();
   const accountDrawer = page.getByRole('dialog', { name: 'Accounts & products' });
   await expect(accountDrawer).toBeVisible();
+  await expect(accountDrawer).toContainText('Destination ID');
+  await expect(accountDrawer).toContainText('Bank Code');
+  await expect(accountDrawer).not.toContainText('Account ID');
   await expect(accountDrawer).toContainText('Current balance');
   await expect(accountDrawer).toContainText('Restrictions');
   await accountDrawer.getByRole('button', { name: 'Close Accounts & products' }).click();
+
+  await page.getByRole('button', { name: 'Open Customer 360 actions' }).click();
+  const customerActions = page.getByRole('dialog', { name: 'Customer 360 actions' });
+  await expect(customerActions).toBeVisible();
+  await expect(customerActions.getByRole('button', { name: /Customer profile/ })).toBeVisible();
+  await expect(customerActions.getByRole('button', { name: /Profile updates/ })).toBeVisible();
+  await expect(customerActions.getByRole('button', { name: /Trusted devices & security/ })).toBeVisible();
+  await expect(customerActions.getByRole('button', { name: /Accounts & products/ })).toBeVisible();
+  await expect(customerActions.getByRole('button', { name: /Relationship/ })).toBeVisible();
+  await expect(customerActions).not.toContainText('FA-ATO-24018');
+  await customerActions.getByRole('button', { name: /Customer profile/ }).click();
+  const customerProfileDrawer = page.getByRole('dialog', { name: 'Customer profile' });
+  await expect(customerProfileDrawer).toContainText('Verification method');
+  await expect(customerProfileDrawer).toContainText('Last verified');
+  await expect(customerProfileDrawer).toContainText('Training-data coverage');
+  await customerProfileDrawer.getByRole('button', { name: 'Close Customer profile' }).click();
 
   await assertMobileGeometry(page, customer);
   await capture(page, 'customer-360-reference');
@@ -129,24 +151,72 @@ test('mobile Business 360 uses the reusable business dossier without case conclu
   await expect(business.getByRole('heading', { name: payrollCase.profile.business, exact: true })).toBeVisible();
   await expect(business).toContainText('Masked EIN');
   await expect(business).toContainText('Owner address');
-  await expect(business.getByRole('heading', { name: 'Business profile', exact: true })).toBeVisible();
+  await expect(business.getByRole('heading', { name: 'Business profile', exact: true })).toHaveCount(0);
   await expect(business.getByRole('heading', { name: 'Business products & accounts', exact: true })).toBeVisible();
   await expect(business.getByRole('heading', { name: 'Credit & loans', exact: true })).toBeVisible();
   await expect(business.getByRole('heading', { name: 'Payroll overview', exact: true })).toBeVisible();
   await expect(business.getByRole('heading', { name: 'Business updates', exact: true })).toBeVisible();
+  await expect(business.getByRole('heading', { name: 'Recent notes', exact: true })).toBeVisible();
   await expect(business).not.toContainText(payrollCase.id);
   await expect(business).not.toContainText(payrollCase.alertReason);
   await expect(business).not.toContainText(payrollCase.amount);
   await expect(business).not.toContainText(payrollCase.scenarioTitle);
+  await expect(page.locator('.mission-workspace-status')).toHaveCount(0);
+  await expect(business.locator('.mobile-360-review')).toHaveCount(0);
+  await expect(business.locator('.mobile-360-research-entry')).toHaveCount(0);
 
-  await business.getByRole('button', { name: 'View owner profile' }).click();
+  const businessLayout = await business.evaluate((root) => {
+    const cards = [...root.querySelectorAll('.mobile-360-section')];
+    const findCard = (name) => cards.find((card) => card.querySelector('h3')?.textContent.trim() === name)?.getBoundingClientRect();
+    const payroll = findCard('Payroll overview');
+    const updates = findCard('Business updates');
+    const notes = findCard('Recent notes');
+    return {
+      payrollTop: payroll?.top,
+      updatesTop: updates?.top,
+      lowerRowBottom: Math.max(payroll?.bottom ?? 0, updates?.bottom ?? 0),
+      notesTop: notes?.top,
+      payrollWidth: payroll?.width,
+      notesWidth: notes?.width,
+    };
+  });
+  expect(Math.abs(businessLayout.payrollTop - businessLayout.updatesTop)).toBeLessThanOrEqual(2);
+  expect(businessLayout.notesTop).toBeGreaterThanOrEqual(businessLayout.lowerRowBottom + 8);
+  expect(businessLayout.notesWidth).toBeGreaterThan(businessLayout.payrollWidth * 1.8);
+
+  await page.getByRole('button', { name: 'Open Business 360 actions' }).click();
+  const businessActions = page.getByRole('dialog', { name: 'Business 360 actions' });
+  await expect(businessActions).toBeVisible();
+  await businessActions.getByRole('button', { name: /Business profile/ }).click();
+  const profileDrawer = page.getByRole('dialog', { name: 'Business profile' });
+  await expect(profileDrawer).toBeVisible();
+  await expect(profileDrawer).toContainText('Legal business name');
+  await expect(profileDrawer).toContainText('State registration / file number');
+  await expect(profileDrawer).toContainText('Website');
+  await expect(profileDrawer).toContainText('License applicability');
+  await expect(profileDrawer).toContainText('License search');
+  await expect(profileDrawer).toContainText('Trusted business access & security');
+  await expect(profileDrawer).toContainText('Authorized users');
+  await expect(profileDrawer).toContainText('Last successful login');
+  await profileDrawer.getByRole('button', { name: 'Close Business profile' }).click();
+
+  await page.getByRole('button', { name: 'Open Business 360 actions' }).click();
+  await page.getByRole('dialog', { name: 'Business 360 actions' })
+    .getByRole('button', { name: /Owners & control/ })
+    .click();
   const ownerDrawer = page.getByRole('dialog', { name: 'Owners & control' });
   await expect(ownerDrawer).toBeVisible();
+  await expect(ownerDrawer).toContainText('Training ID');
   await expect(ownerDrawer).toContainText('Current residential address');
   await expect(ownerDrawer).toContainText('Previous residential address');
+  await expect(ownerDrawer).toContainText('Personal accounts');
+  await expect(ownerDrawer).toContainText('Destination ID');
+  await expect(ownerDrawer).toContainText('Bank Code');
+  await expect(ownerDrawer).toContainText('Trusted devices');
+  await expect(ownerDrawer).toContainText('Contact history');
   await ownerDrawer.getByRole('button', { name: 'Close Owners & control' }).click();
 
-  await business.getByRole('button', { name: /Luna Business Research/ }).click();
+  await page.getByRole('button', { name: 'Open Luna Business Research' }).click();
   const researchDrawer = page.getByRole('dialog', { name: 'Luna Business Research' });
   await expect(researchDrawer).toBeVisible();
   await expect(researchDrawer).toContainText('not proof that the business does not exist');

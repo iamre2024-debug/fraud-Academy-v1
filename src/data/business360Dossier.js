@@ -344,7 +344,7 @@ function ownerFromRecord(activeCase, profile, rawOwner, index, parties) {
       documentsRequested: 'None',
       followUpStatus: 'Completed',
       agentOrDepartment: 'Relationship servicing',
-      relatedAccountId: personalAccount.maskedAccountId,
+      relatedAccountId: personalAccount.maskedDestinationId,
     }],
   };
 }
