@@ -12,9 +12,11 @@ const briefing = read('src/MobileMissionCaseBriefing.jsx');
 const documentViewer = read('src/DocumentViewerWorkspace.jsx');
 const referenceTools = read('src/MobileMerchantDocumentPages.jsx');
 const accessReferenceTools = read('src/MobileLoginSessionPages.jsx');
+const caseReviewPages = read('src/MobileCaseReviewPages.jsx');
 const styles = read('src/mobileMissionDeckV3.css');
 const referenceStyles = read('src/mobileMerchantDocumentReference.css');
 const accessReferenceStyles = read('src/mobileLoginSessionReference.css');
+const caseReviewStyles = read('src/mobileCaseReviewPages.css');
 const legacyStyles = read('src/mobileBlueMissionDeck.css');
 const playwrightConfig = read('playwright.config.mjs');
 const failures = [];
@@ -27,6 +29,7 @@ for (const anchor of [
   "import './mobileMissionDeckV3.css';",
   "import './mobileMerchantDocumentReference.css';",
   "import './mobileLoginSessionReference.css';",
+  "import './mobileCaseReviewPages.css';",
 ]) requireAnchor('main.jsx', entrypoint, anchor);
 
 if (entrypoint.includes("import './mobileBlueMissionDeck.css';")) failures.push('The legacy Blue Mission Deck override file must not load.');
@@ -71,7 +74,8 @@ for (const anchor of [
   'mission-session-history-page',
   'data-session-history-page',
   '<BottomInvestigationGrid',
-  '<SubmitDecisionPanel',
+  '<MobileCaseIndicatorsReview',
+  '<MobileDeterminationPage',
   'decision-luna-portal-anchor',
   'Source record unavailable',
   'data-merchant-reference-page',
@@ -184,6 +188,31 @@ for (const anchor of [
   '@media (max-width: 350px)',
 ]) requireAnchor('mobileLoginSessionReference.css', accessReferenceStyles, anchor);
 
+for (const anchor of [
+  'MobileCaseIndicatorsReview',
+  'MobileDeterminationPage',
+  'Indicator Checklist',
+  'Case Type Cues',
+  'Evidence Notes',
+  'Evidence Summary',
+  'Operational Decision',
+  'Investigation Finding',
+  'Next Steps',
+  'Debrief after submit',
+  'Evidence First',
+]) requireAnchor('MobileCaseReviewPages.jsx', caseReviewPages, anchor);
+
+for (const anchor of [
+  'Case Indicators Review + Determination mobile reference rebuild',
+  '.mobile-case-review-page',
+  '.mobile-indicator-list',
+  '.mobile-cue-grid',
+  '.mobile-evidence-summary',
+  '.mobile-choice-grid',
+  '.mobile-next-steps',
+  '@media (max-width: 350px)',
+]) requireAnchor('mobileCaseReviewPages.css', caseReviewStyles, anchor);
+
 if (/body\[data-layout-mode="desktop"\]/.test(referenceStyles)) failures.push('Merchant/Document reference styles must not alter the desktop layout.');
 if (/font-size:\s*(?:0\.[0-6]\d*)rem/.test(referenceStyles)) failures.push('Merchant/Document reference styles must preserve the 12px mobile type floor.');
 if (!/Under review/.test(referenceTools) || /High Risk/.test(referenceTools)) failures.push('Merchant mobile reference must use neutral review wording instead of the mockup risk conclusion.');
@@ -192,6 +221,11 @@ if (/body\[data-layout-mode="desktop"\]/.test(accessReferenceStyles)) failures.p
 if (/font-size:\s*(?:0\.[0-6]\d*)rem/.test(accessReferenceStyles)) failures.push('Login/Session reference styles must preserve the 12px mobile type floor.');
 if (/High Trust|Medium Trust|Low Trust|Suspicious|Impossible Travel|High Risk IP/i.test(accessReferenceTools)) failures.push('Login/Session mobile reference must display source facts instead of mockup risk or trust conclusions.');
 if (/KYB Review|caseTruth|correctDetermination|fraud score|accepted determination/i.test(accessReferenceTools)) failures.push('Login/Session mobile reference restores a retired or answer-bearing surface.');
+if (/High Risk|Low Risk|risk score|AI recommendation|caseTruth|correctDetermination|accepted determination/i.test(caseReviewPages)) failures.push('Case-review mobile pages restore answer-bearing mockup output.');
+if (/KYB Review|Customer Profile|Merchant Profile|System Access Lane/i.test(caseReviewPages)) failures.push('Case-review mobile pages restore a retired standalone surface.');
+if (/body\[data-layout-mode="desktop"\]/.test(caseReviewStyles)) failures.push('Case-review reference styles must not alter the desktop layout.');
+if (/font-size:\s*(?:0\.[0-6]\d*)rem/.test(caseReviewStyles)) failures.push('Case-review reference styles must preserve the 12px mobile type floor.');
+if (/!important/.test(caseReviewStyles)) failures.push('Case-review reference styles must stay structurally scoped without important overrides.');
 
 const importantCount = (styles.match(/!important/g) ?? []).length;
 if (importantCount > 12) failures.push(`Mission Deck v3 has ${importantCount} !important overrides; it must remain structurally scoped.`);
@@ -217,6 +251,7 @@ if (undersizedMobileRemValues.length) {
 
 for (const browserSpec of [
   'mobile-workspace-pages-browser',
+  'mobile-case-review-browser',
   'document-request-browser',
   'decision-luna-browser',
   'final-responsive-browser',

@@ -50,15 +50,24 @@ test('separate operational decision and final finding save and unlock Luna on de
 
   const decision = await openDecision(page);
   await expect(decision).toHaveAttribute('data-case-id', caseId);
-  await expect(decision.getByRole('heading', { name: 'Submit Decision', exact: true })).toBeVisible();
-  await expect(decision.getByText('Evidence First protection', { exact: true })).toBeVisible();
-  await expect(decision.getByRole('heading', { name: 'Account Takeover review checklist', exact: true })).toBeVisible();
-  await expect(decision.getByText('Red flags', { exact: true })).toBeVisible();
-  await expect(decision.getByText('Green flags', { exact: true })).toBeVisible();
-  await expect(decision.locator('.decision-status-grid article')).toHaveCount(4);
-  await expect(decision.getByText('0/9', { exact: true })).toBeVisible();
-  await expect(decision.getByText('You can submit a decision without reviewing every tool. Open only the records needed to prove your selected flags.', { exact: true })).toBeVisible();
-  await expect(decision.getByText('Matched to this case: Personal · Deposit account · Personal Account Takeover', { exact: true })).toBeVisible();
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(decision.getByRole('heading', { name: 'Determination', exact: true })).toBeVisible();
+    await expect(decision.getByText('Evidence First', { exact: true })).toBeVisible();
+    await expect(decision.getByRole('heading', { name: 'Evidence Summary', exact: true })).toBeVisible();
+    await expect(decision.getByRole('heading', { name: 'Operational Decision', exact: true })).toBeVisible();
+    await expect(decision.getByRole('heading', { name: 'Investigation Finding', exact: true })).toBeVisible();
+    await expect(decision.getByText('0 pins · 0 notes · 0 indicators', { exact: true })).toBeVisible();
+  } else {
+    await expect(decision.getByRole('heading', { name: 'Submit Decision', exact: true })).toBeVisible();
+    await expect(decision.getByText('Evidence First protection', { exact: true })).toBeVisible();
+    await expect(decision.getByRole('heading', { name: 'Account Takeover review checklist', exact: true })).toBeVisible();
+    await expect(decision.getByText('Red flags', { exact: true })).toBeVisible();
+    await expect(decision.getByText('Green flags', { exact: true })).toBeVisible();
+    await expect(decision.locator('.decision-status-grid article')).toHaveCount(4);
+    await expect(decision.getByText('0/9', { exact: true })).toBeVisible();
+    await expect(decision.getByText('You can submit a decision without reviewing every tool. Open only the records needed to prove your selected flags.', { exact: true })).toBeVisible();
+    await expect(decision.getByText('Matched to this case: Personal · Deposit account · Personal Account Takeover', { exact: true })).toBeVisible();
+  }
   await expect(decision.getByRole('heading', { name: 'Decision readiness', exact: true })).toHaveCount(0);
   await expect(decision.getByText(/Decision needs attention/i)).toHaveCount(0);
   const savePackage = decision.getByRole('button', { name: 'Submit Decision', exact: true });
@@ -99,8 +108,8 @@ test('separate operational decision and final finding save and unlock Luna on de
   expect(decisionLayout.position).toBe('static');
   if (testInfo.project.name === 'mobile-chromium') {
     expect(decisionLayout.workspaceColumns).toBe(1);
-    expect(decisionLayout.metricColumns).toBe(1);
-    expect(decisionLayout.flagColumns).toBe(1);
+    expect(decisionLayout.metricColumns).toBe(0);
+    expect(decisionLayout.flagColumns).toBe(0);
   } else {
     expect(decisionLayout.workspaceColumns).toBe(1);
     expect(decisionLayout.metricColumns).toBe(4);
