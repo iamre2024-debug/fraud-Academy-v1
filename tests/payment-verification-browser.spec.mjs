@@ -36,12 +36,13 @@ test('Payment Verification gates records, handles not-found, and reveals exact l
   const panel = await openPaymentVerification(page);
 
   await expect(panel.getByRole('heading', { name: 'Verify a specific payment destination' })).toBeVisible();
+  await expect(panel.getByRole('region', { name: 'Payment Verification result hidden' })).toBeVisible();
   await expect(panel.locator('.payment-verification-snapshot')).toHaveCount(0);
   await expect(panel.locator('.payment-detail-panel')).toHaveCount(0);
   await expect(panel.getByRole('button', { name: 'Mark Payment Verification reviewed' })).toBeDisabled();
 
   await panel.getByRole('button', { name: 'Run verification', exact: true }).click();
-  await expect(panel.getByRole('alert')).toContainText('Bank Code, Destination ID, and owner or business name are required.');
+  await expect(panel.getByRole('alert')).toContainText('Bank Code, Destination ID, and person, owner, or business name are required.');
 
   await panel.getByRole('textbox', { name: 'Bank Code', exact: true }).fill('BC-404');
   await panel.getByRole('textbox', { name: 'Destination ID', exact: true }).fill('DST-MISSING');
@@ -50,26 +51,31 @@ test('Payment Verification gates records, handles not-found, and reveals exact l
   await expect(panel.getByText('Destination Not Found', { exact: true }).first()).toBeVisible();
   await expect(panel.locator('.payment-detail-panel')).toHaveCount(0);
 
-  await panel.getByRole('button', { name: 'Reset lookup', exact: true }).click();
+  await panel.getByRole('button', { name: 'Edit search', exact: true }).click();
   await runPaymentVerification(panel, {
     bankCode: 'BC-441',
     destinationId: 'DST-CARD-4410',
     ownerName: 'Maya Sterling',
   });
 
-  await expect(panel.locator('.payment-verification-snapshot')).toContainText('Match');
-  await expect(panel.getByText('Ownership status', { exact: true }).first()).toBeVisible();
-  await expect(panel.getByText('Operational account status', { exact: true }).first()).toBeVisible();
-  await expect(panel.getByText('Standing', { exact: true }).first()).toBeVisible();
-  await expect(panel.getByText('Payment type', { exact: true }).first()).toBeVisible();
-  await expect(panel.getByRole('heading', { name: /recorded attempts?/ })).toBeVisible();
+  const result = panel.getByRole('status', { name: 'Payment verification result' });
+  const snapshot = panel.getByRole('region', { name: 'Account snapshot' });
+  await expect(result).toBeFocused();
+  await expect(snapshot).toContainText('Matches person name');
+  await expect(snapshot).toContainText('Open');
+  await expect(snapshot).toContainText('No NSF found');
+  await expect(snapshot).toContainText('7 years, 11 months');
+  for (const label of ['Name relationship', 'Account status', 'NSF result', 'Time open / on record']) {
+    await expect(snapshot.getByText(label, { exact: true })).toBeVisible();
+  }
+  await expect(result).not.toContainText(/Maya Sterling|account holder|ownership status|verification attempts|98%|confidence score|fraud score|ready for payments/i);
+  await expect(result).not.toContainText(/\b(?:approve|deny|hold|release)\b/i);
   await expect(panel.getByRole('button', { name: 'Mark Payment Verification reviewed' })).toBeEnabled();
-  await expect(panel.locator('.payment-action-panel')).not.toContainText(/\b(?:approve|deny|hold|release|pause)\b/i);
 
   await page.screenshot({ path: testInfo.outputPath(`payment-verification-result-${testInfo.project.name}.png`), fullPage: true });
 });
 
-test('Payment Verification keeps partial name, ownership, status, and history separate', async ({ page }, testInfo) => {
+test('Payment Verification selects the actual account from duplicate destination records and keeps the result narrow', async ({ page }, testInfo) => {
   await page.goto('/');
   const caseSelector = page.locator('.visual-case-switcher select');
   await caseSelector.selectOption('FA-CR-24003');
@@ -84,18 +90,22 @@ test('Payment Verification keeps partial name, ownership, status, and history se
 
   const snapshot = panel.locator('.payment-verification-snapshot');
   await expect(snapshot).toContainText('Partial Match');
-  await expect(snapshot).toContainText('Pending');
-  await expect(panel.locator('.payment-history-grid')).toContainText('Ownership history');
-  await expect(panel.locator('.payment-history-grid')).toContainText('Prior-use history');
-  await expect(panel.locator('.payment-history-grid')).toContainText('Return / NSF history');
-  await expect(panel.locator('.payment-detail-grid')).toContainText('Business');
-  await expect(panel.locator('.payment-verification-case-rail')).toContainText('Evidence-first summary');
-  await expect(panel.locator('.payment-detail-grid')).not.toContainText(/Operational account status\s*Fraud/i);
+  await expect(snapshot).toContainText('Partially matches person name');
+  await expect(snapshot).toContainText('Open');
+  await expect(snapshot).toContainText('No NSF found');
+  await expect(snapshot).toContainText('First seen on the status date; no earlier history supplied');
+  const confirmation = panel.locator('dl[aria-label="Searched payment identifiers"]');
+  await expect(confirmation).toContainText('Source record');
+  await expect(confirmation).toContainText('PAY-3302');
+
+  const result = panel.getByRole('status', { name: 'Payment verification result' });
+  await expect(result).not.toContainText(/A\. Brooks|account holder|ownership history|prior-use history|return \/ NSF history|verification attempts|evidence-first summary/i);
+  await expect(result).not.toContainText(/\b(?:approve|deny|hold|release|ready for payments)\b/i);
 
   const layout = await page.evaluate(() => {
     const panelElement = document.querySelector('[data-investigation-tools-screen="approved-theme-v1"]');
     const detail = document.querySelector('.payment-detail-panel');
-    const rail = document.querySelector('.payment-verification-case-rail');
+    const facts = document.querySelector('.payment-mission-facts');
     const viewportWidth = window.innerWidth;
     const fits = (element) => {
       const rect = element?.getBoundingClientRect();
@@ -104,12 +114,12 @@ test('Payment Verification keeps partial name, ownership, status, and history se
     return {
       panelFits: fits(panelElement),
       detailFits: fits(detail),
-      railFits: fits(rail),
-      columns: getComputedStyle(document.querySelector('.payment-verification-workspace-revealed')).gridTemplateColumns.split(' ').filter(Boolean).length,
+      factsFit: fits(facts),
+      columns: getComputedStyle(facts).gridTemplateColumns.split(' ').filter(Boolean).length,
     };
   });
-  expect(layout.panelFits && layout.detailFits && layout.railFits).toBe(true);
-  expect(layout.columns).toBe(testInfo.project.name === 'mobile-chromium' ? 1 : 2);
+  expect(layout.panelFits && layout.detailFits && layout.factsFit).toBe(true);
+  expect(layout.columns).toBe(testInfo.project.name === 'mobile-chromium' ? 1 : 4);
 
   await page.screenshot({ path: testInfo.outputPath(`payment-verification-credit-${testInfo.project.name}.png`), fullPage: true });
 });
@@ -156,9 +166,10 @@ test('Avery Customer 360 records the profile change without duplicating or prefi
   await expect(revealedDetail).toBeVisible();
   await expect(revealedDetail).toContainText('BC-204');
   await expect(revealedDetail).toContainText('DST-7740');
-  const comparison = panel.getByRole('region', { name: 'Old versus new account comparison', exact: true });
-  await expect(comparison).toContainText('No prior external destination on file');
-  await expect(comparison).toContainText('BC-204 / DST-7740');
+  await expect(revealedDetail).toContainText('Partially matches person name');
+  await expect(revealedDetail).toContainText('PAY-3302');
+  await expect(revealedDetail).not.toContainText('No prior external destination on file');
+  await expect(revealedDetail).not.toContainText(/A\. Brooks|account holder|verification attempts|evidence-first summary/i);
   await page.screenshot({ path: testInfo.outputPath(`payment-verification-avery-account-change-${testInfo.project.name}.png`), fullPage: true });
 });
 
@@ -215,7 +226,12 @@ test('generated payroll carries one exact account change from Payroll History in
   await expect(verificationPanel.locator('.payment-comparison-panel')).toHaveCount(0);
 
   await verificationPanel.getByRole('button', { name: 'Run verification', exact: true }).click();
-  await expect(verificationPanel.locator('.payment-detail-panel')).toContainText(sourceValues['Employee Bank Code']);
-  await expect(verificationPanel.locator('.payment-detail-panel')).toContainText(sourceValues['Destination ID']);
+  const result = verificationPanel.locator('.payment-detail-panel');
+  await expect(result).toContainText(sourceValues['Employee Bank Code']);
+  await expect(result).toContainText(sourceValues['Destination ID']);
+  for (const label of ['Name relationship', 'Account status', 'NSF result', 'Time open / on record']) {
+    await expect(result.getByText(label, { exact: true })).toBeVisible();
+  }
+  await expect(result).not.toContainText(/account holder|ownership status|verification attempts|confidence score|ready for payments/i);
   await page.screenshot({ path: testInfo.outputPath(`payment-verification-generated-payroll-${testInfo.project.name}.png`), fullPage: true });
 });

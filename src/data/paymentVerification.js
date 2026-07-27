@@ -1,3 +1,5 @@
+import { getRelationshipAccounts } from './relationshipAccounts.js';
+
 export const PAYMENT_NAME_RESULTS = Object.freeze([
   'Match',
   'Partial Match',
@@ -30,6 +32,31 @@ function nameTokens(value) {
   return normalizedName(value).split(' ').filter(Boolean);
 }
 
+const businessSuffixes = new Set([
+  'co',
+  'company',
+  'corp',
+  'corporation',
+  'inc',
+  'incorporated',
+  'llc',
+  'llp',
+  'lp',
+  'ltd',
+  'limited',
+  'plc',
+]);
+
+function meaningfulNameTokens(value) {
+  return nameTokens(value).filter((token) => !businessSuffixes.has(token));
+}
+
+function compatibleNameToken(left = '', right = '') {
+  return left === right
+    || (left.length === 1 && right.startsWith(left))
+    || (right.length === 1 && left.startsWith(right));
+}
+
 function canonicalStoredResult(value) {
   const normalized = String(value ?? '').toLowerCase();
   if (/(no info|unable|not returned|unknown|recorded)/.test(normalized)) return 'Unable to Verify';
@@ -45,17 +72,21 @@ export function comparePaymentOwner(inputName, recordedName) {
   if (!input.length || !recorded.length) return 'Unable to Verify';
   if (input.join(' ') === recorded.join(' ')) return 'Match';
 
-  const lastInput = input.at(-1);
-  const lastRecorded = recorded.at(-1);
-  const firstInput = input[0];
-  const firstRecorded = recorded[0];
-  const sameLast = lastInput === lastRecorded;
-  const compatibleFirst = firstInput === firstRecorded
-    || firstInput.startsWith(firstRecorded)
-    || firstRecorded.startsWith(firstInput)
-    || firstInput[0] === firstRecorded[0];
+  const meaningfulInput = meaningfulNameTokens(inputName);
+  const meaningfulRecorded = meaningfulNameTokens(recordedName);
+  if (!meaningfulInput.length || !meaningfulRecorded.length) return 'Unable to Verify';
 
-  if ((sameLast && compatibleFirst) || input.some((token) => recorded.includes(token))) {
+  const sameMeaningfulName = meaningfulInput.length === meaningfulRecorded.length
+    && meaningfulInput.every((token, index) => compatibleNameToken(token, meaningfulRecorded[index]));
+  if (sameMeaningfulName) return 'Partial Match';
+
+  const sameLast = meaningfulInput.at(-1) === meaningfulRecorded.at(-1);
+  const compatibleFirst = compatibleNameToken(meaningfulInput[0], meaningfulRecorded[0]);
+  const sharedMeaningfulTokens = meaningfulInput.filter((token) => meaningfulRecorded.includes(token));
+  const meaningfulOverlap = sharedMeaningfulTokens.length >= 2
+    && sharedMeaningfulTokens.length >= Math.ceil(Math.min(meaningfulInput.length, meaningfulRecorded.length) / 2);
+
+  if ((sameLast && compatibleFirst) || meaningfulOverlap) {
     return 'Partial Match';
   }
   return 'No Match';
@@ -64,7 +95,7 @@ export function comparePaymentOwner(inputName, recordedName) {
 function operationalStatus(value) {
   const normalized = String(value ?? '').toLowerCase();
   if (/closed/.test(normalized)) return 'Closed';
-  if (/frozen|restricted|blocked/.test(normalized)) return 'Restricted';
+  if (/frozen|restricted|blocked/.test(normalized)) return 'Frozen';
   if (/pending/.test(normalized)) return 'Pending';
   if (/open|active/.test(normalized)) return 'Open';
   return 'Status unavailable';
@@ -73,8 +104,98 @@ function operationalStatus(value) {
 function laneVariant(activeCase = {}, record = {}) {
   const context = `${activeCase.claimType} ${activeCase.type} ${activeCase.lane} ${record.type} ${record.accountType}`.toLowerCase();
   if (/payroll|employee|direct deposit/.test(context)) return 'Payroll';
-  if (/business|vendor|commercial|credit risk/.test(context)) return 'Business';
+  if (
+    activeCase.customerType === 'business'
+    || /business|vendor|commercial/.test(`${activeCase.productType} ${record.type} ${record.accountType}`.toLowerCase())
+  ) return 'Business';
   return 'Personal';
+}
+
+function accountState(value) {
+  const normalized = operationalStatus(value);
+  if (normalized === 'Pending' || normalized === 'Status unavailable') return 'Unable to Verify';
+  return normalized;
+}
+
+function nsfStatus(standing, notes, returnHistory) {
+  const normalized = `${standing ?? ''} ${notes ?? ''} ${returnHistory ?? ''}`.toLowerCase();
+  const noNsfPattern = /\b(?:no|zero|0)\b.{0,32}\b(?:nsf|returned|return)\b/;
+  const noNsfEvidence = noNsfPattern.test(normalized) || /good standing/.test(normalized);
+  const positiveText = normalized.replace(
+    /\b(?:no|zero|0)\b.{0,32}\b(?:nsf|returned|return)\b/g,
+    ' ',
+  );
+  const nsfEvidence = /\bnsf\b|returned[- ]payment|returned entry/.test(positiveText);
+  if (noNsfEvidence && nsfEvidence) return 'Unable to Verify';
+  if (noNsfEvidence) return 'No NSF found';
+  if (nsfEvidence) return 'NSF found';
+  return 'Unable to Verify';
+}
+
+function dateValue(value) {
+  const normalized = String(value ?? '')
+    .replace(/\s+[·-]\s+\d{1,2}:\d{2}.*$/i, '')
+    .trim();
+  if (!normalized || /^training date$/i.test(normalized)) return null;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function durationLabel(startValue, endValue) {
+  const start = dateValue(startValue);
+  const end = dateValue(endValue);
+  if (!start || !end || end < start) return null;
+
+  let months = (end.getUTCFullYear() - start.getUTCFullYear()) * 12
+    + (end.getUTCMonth() - start.getUTCMonth());
+  if (end.getUTCDate() < start.getUTCDate()) months -= 1;
+  if (months < 1) {
+    const days = Math.max(0, Math.floor((end - start) / 86_400_000));
+    if (days === 0) return 'First seen on the status date';
+    return `${days} day${days === 1 ? '' : 's'}`;
+  }
+  if (months < 12) return `${months} month${months === 1 ? '' : 's'}`;
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  return `${years} year${years === 1 ? '' : 's'}${remainingMonths ? `, ${remainingMonths} month${remainingMonths === 1 ? '' : 's'}` : ''}`;
+}
+
+function partyTypeForLookup(activeCase = {}, lookupName = '', record = {}) {
+  const normalizedLookup = normalizedName(lookupName);
+  const parties = activeCase.parties ?? [];
+  const party = parties.find((item) => normalizedName(item.name) === normalizedLookup);
+  if (party) {
+    if (/\bowner\b/i.test(party.role ?? '')) return 'Owner';
+    if (party.partyType === 'entity') return 'Business';
+    return 'Person';
+  }
+
+  const businessName = activeCase.profile?.business ?? activeCase.business;
+  if (businessName && normalizedName(businessName) === normalizedLookup) return 'Business';
+  if (record.laneVariant === 'Business') return 'Business';
+  return 'Person';
+}
+
+function accountRecordScore(record = {}) {
+  const text = `${record.type ?? ''} ${record.accountType ?? ''}`.toLowerCase();
+  let score = 0;
+  if (/destination|bank account|checking|savings|deposit account|linked external account|external payment account/.test(text)) score += 5;
+  if (/payment instrument|debit card|credit card/.test(text)) score += 3;
+  if (/packet|token|authorization|bank code/.test(text)) score -= 4;
+  return score;
+}
+
+function accountOpenedDateFor(activeCase = {}, record = {}) {
+  const explicitDate = String(record.accountOpenedDate ?? record.openDate ?? '').trim();
+  if (explicitDate) return explicitDate;
+
+  const ending = String(record.object ?? '').match(/\bending\s+(\d{4})\b/i)?.[1];
+  if (!ending) return '';
+  const relationship = getRelationshipAccounts(activeCase).find((account) => (
+    String(account.accountId ?? '').endsWith(ending)
+    || String(account.maskedAccountId ?? '').endsWith(ending)
+  ));
+  return String(relationship?.openDate ?? '').trim();
 }
 
 function neutralOutcome(value) {
@@ -120,6 +241,10 @@ export function normalizePaymentRecord(record = {}, activeCase = {}) {
   }));
   const callback = attempts.find((entry) => /callback|phone|contact/i.test(`${entry.method} ${entry.result} ${entry.note}`));
   const firstSeen = text(record.firstSeen, record.lastSeen ?? activeCase.opened);
+  const statusAsOf = text(record.statusAsOf, record.lastSeen ?? activeCase.reportedDate ?? activeCase.opened);
+  const accountOpenedDate = accountOpenedDateFor(activeCase, record);
+  const exactAge = durationLabel(accountOpenedDate, statusAsOf);
+  const suppliedHistoryAge = durationLabel(firstSeen, statusAsOf);
   const priorUseHistory = text(record.priorUse, 'Prior-use history unavailable');
   const standingStatus = text(record.standing, 'Standing unavailable');
   const bankCode = text(record.bankCode);
@@ -154,7 +279,9 @@ export function normalizePaymentRecord(record = {}, activeCase = {}) {
       'Unable to Verify': 'The available source does not confirm ownership',
     }[storedNameResult]),
     operationalStatus: operationalStatus(record.operationalStatus ?? record.accountStatus),
+    accountState: accountState(record.operationalStatus ?? record.accountStatus),
     standingStatus,
+    nsfStatus: nsfStatus(standingStatus, record.notes, record.returnHistory),
     paymentType: text(record.paymentType, record.accountType ?? record.type),
     paymentStatus: text(record.paymentStatus, record.status),
     laneVariant: lane,
@@ -183,6 +310,15 @@ export function normalizePaymentRecord(record = {}, activeCase = {}) {
     verificationOutcome: neutralOutcome(record.verificationOutcome),
     actions: (record.actions ?? []).map(neutralAction),
     firstSeen,
+    accountOpenedDate: accountOpenedDate || null,
+    statusAsOf,
+    accountAgeLabel: exactAge
+      ? (exactAge === 'First seen on the status date' ? 'Opened on the status date' : exactAge)
+      : suppliedHistoryAge === 'First seen on the status date'
+        ? 'First seen on the status date; no earlier history supplied'
+        : suppliedHistoryAge
+          ? `At least ${suppliedHistoryAge} in supplied history`
+          : 'Unable to verify from supplied history',
   };
 }
 
@@ -246,25 +382,51 @@ export function paymentChangeMetadata(event = {}, records = []) {
   ];
 }
 
-export function findPaymentDestination(records = [], bankCode, destinationId) {
+export function findPaymentDestinations(records = [], bankCode, destinationId) {
   const bank = String(bankCode ?? '').trim().toLowerCase();
   const destination = String(destinationId ?? '').trim().toLowerCase();
-  if (!bank || !destination) return null;
-  return records.find((record) => (
+  if (!bank || !destination) return [];
+  return records.filter((record) => (
     String(record.bankCode).trim().toLowerCase() === bank
     && String(record.destinationId).trim().toLowerCase() === destination
-  )) ?? null;
+  ));
 }
 
-export function resolvePaymentLookup(records, lookup) {
-  const record = findPaymentDestination(records, lookup.bankCode, lookup.destinationId);
+export function findPaymentDestination(records = [], bankCode, destinationId) {
+  return findPaymentDestinations(records, bankCode, destinationId)
+    .sort((left, right) => accountRecordScore(right) - accountRecordScore(left))[0] ?? null;
+}
+
+export function resolvePaymentLookup(records, lookup, activeCase = {}) {
+  const matchingRecords = findPaymentDestinations(records, lookup.bankCode, lookup.destinationId)
+    .sort((left, right) => accountRecordScore(right) - accountRecordScore(left));
+  const record = matchingRecords[0] ?? null;
   if (!record) {
     return { state: 'not-found', record: null, nameMatchResult: 'Destination Not Found' };
   }
+  const nameMatchResult = comparePaymentOwner(lookup.ownerName, record.accountHolder);
+  const suppliedNsfResults = [...new Set(
+    matchingRecords
+      .map((item) => item.nsfStatus)
+      .filter((value) => value && value !== 'Unable to Verify'),
+  )];
+  const reconciledNsfStatus = suppliedNsfResults.length === 1
+    ? suppliedNsfResults[0]
+    : 'Unable to Verify';
   return {
     state: 'found',
     record,
-    nameMatchResult: comparePaymentOwner(lookup.ownerName, record.accountHolder),
+    recordId: record.id,
+    matchingRecordIds: matchingRecords.map((item) => item.id),
+    nameMatchResult,
+    matchedPartyType: partyTypeForLookup(activeCase, lookup.ownerName, record),
+    accountState: record.accountState,
+    nsfStatus: reconciledNsfStatus,
+    accountOpenedDate: record.accountOpenedDate,
+    accountAgeLabel: record.accountAgeLabel,
+    statusAsOf: record.statusAsOf,
+    bankCode: record.bankCode,
+    destinationId: record.destinationId,
   };
 }
 

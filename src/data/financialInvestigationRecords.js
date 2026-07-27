@@ -1785,6 +1785,40 @@ function profileFromAccount(activeCase, primaryAccount, accounts, credit, loan) 
   };
 }
 
+function buildContextRecords(records = [], asOfValue) {
+  return records.map((item, index) => {
+    const id = safeEvidenceText(item.id, `FIN-CONTEXT-${index + 1}`);
+    const observed = safeEvidenceText(item.observed, asOfValue);
+    const title = safeEvidenceText(item.type, 'Recorded financial observation');
+    const value = safeEvidenceText(item.value);
+    const detail = safeEvidenceText(
+      item.context,
+      'The supplied financial packet contains this observation without assigning a case outcome.',
+    );
+    const observedRange = periodRange(observed, asOfValue, 'Recorded observation');
+    return {
+      id,
+      title,
+      category: 'Recorded observation',
+      value,
+      observed,
+      status: 'Recorded',
+      detail,
+      fields: [
+        ['Observation', title],
+        ['Recorded value', value],
+        ['Observed', observed],
+      ],
+      supportRecordIds: [id],
+      period: observed,
+      periodRange: {
+        ...observedRange,
+        label: `Recorded observation · ${observed}`,
+      },
+    };
+  });
+}
+
 export function getFinancialInvestigation(activeCase = {}) {
   const asOfValue = activeCase.reportedDate ?? activeCase.opened ?? 'Current training record';
   const source = getSuppliedFinancialRecords(activeCase);
@@ -1802,6 +1836,8 @@ export function getFinancialInvestigation(activeCase = {}) {
     [...transactionIds, ...paymentObjectIds],
   );
   if (creditRecord) accountRecords.push(creditRecord);
+  const contextRecords = buildContextRecords(source.financialIntel ?? [], asOfValue);
+  accountRecords.push(...contextRecords);
 
   const spending = buildSpending(activeCase, source, primaryAccount, asOfValue);
   const deposits = buildDepositRecords(activeCase, source, primaryAccount, asOfValue);
@@ -1851,6 +1887,9 @@ export function getFinancialInvestigation(activeCase = {}) {
     `${accounts.length} relationship account${accounts.length === 1 ? '' : 's'} are listed from the shared account record.`,
     `${primaryAccount.productLabel} ${primaryAccount.maskedAccountId} is recorded as ${primaryAccount.status}.`,
     `${source.transactions?.length ?? 0} transaction or activity record${source.transactions?.length === 1 ? '' : 's'} are available for dated comparison.`,
+    ...(contextRecords.length
+      ? [`${contextRecords.length} neutral financial observation${contextRecords.length === 1 ? '' : 's'} are supplied in the case packet.`]
+      : []),
     ...(payroll.records.length
       ? [`${payroll.records.length} Payroll History run${payroll.records.length === 1 ? '' : 's'} reconcile to the payroll section.`]
       : []),
@@ -1891,6 +1930,7 @@ export function getFinancialInvestigation(activeCase = {}) {
       loan,
     },
     payroll,
+    contextRecords,
     reviewedFacts,
     routes,
     relatedRecordIds: unique([

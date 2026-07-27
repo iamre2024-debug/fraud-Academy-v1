@@ -2,10 +2,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const rootDir = process.cwd();
+const investigationPanel = fs.readFileSync(path.join(rootDir, 'src/InvestigationToolPanel.jsx'), 'utf8');
+const businessWorkspace = fs.readFileSync(path.join(rootDir, 'src/Business360Workspace.jsx'), 'utf8');
+const financialWorkspace = fs.readFileSync(path.join(rootDir, 'src/FinancialInvestigationWorkspace.jsx'), 'utf8');
+const paymentWorkspace = fs.readFileSync(path.join(rootDir, 'src/PaymentVerificationWorkspace.jsx'), 'utf8');
 const panel = [
-  fs.readFileSync(path.join(rootDir, 'src/InvestigationToolPanel.jsx'), 'utf8'),
-  fs.readFileSync(path.join(rootDir, 'src/Business360Workspace.jsx'), 'utf8'),
-  fs.readFileSync(path.join(rootDir, 'src/FinancialInvestigationWorkspace.jsx'), 'utf8'),
+  investigationPanel,
+  businessWorkspace,
+  financialWorkspace,
+  paymentWorkspace,
 ].join('\n');
 const documentViewer = fs.readFileSync(path.join(rootDir, 'src/DocumentViewerWorkspace.jsx'), 'utf8');
 const documentRecords = fs.readFileSync(path.join(rootDir, 'src/data/documentRecords.js'), 'utf8');
@@ -22,6 +27,9 @@ const groups = fs.readFileSync(path.join(rootDir, 'src/investigationToolGroups.j
 const workspace = fs.readFileSync(path.join(rootDir, 'src/VisualWorkspace.jsx'), 'utf8');
 const rail = fs.readFileSync(path.join(rootDir, 'src/CategoryTileRail.jsx'), 'utf8');
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayInvestigationToolsThemeV1.css'), 'utf8');
+const referenceDeckStyles = fs.readFileSync(path.join(rootDir, 'src/referenceInvestigationDeck.css'), 'utf8');
+const financialStyles = fs.readFileSync(path.join(rootDir, 'src/financialInvestigationWorkspace.css'), 'utf8');
+const paymentStyles = fs.readFileSync(path.join(rootDir, 'src/paymentVerificationWorkspace.css'), 'utf8');
 const documentInboxStyles = fs.readFileSync(path.join(rootDir, 'src/documentInbox.css'), 'utf8');
 const workspaceState = fs.readFileSync(path.join(rootDir, 'src/useVisualWorkspaceCaseState.js'), 'utf8');
 const workspaceModel = fs.readFileSync(path.join(rootDir, 'src/visualWorkspaceModel.js'), 'utf8');
@@ -56,21 +64,6 @@ for (const anchor of [
   'Open Submit Decision',
   'It does not determine the case outcome.',
   'PaymentVerificationWorkspace',
-  'Search before reveal',
-  'Verify a specific payment destination',
-  'Owner or business name',
-  'Run verification',
-  'Destination Not Found',
-  'Account Snapshot',
-  'Name match result',
-  'Ownership status',
-  'Operational account status',
-  'Old / prior account',
-  'New destination',
-  'Payroll / vendor change comparison',
-  'Verification Call Drawer',
-  'Verification attempts',
-  'Evidence-first summary',
   'DeviceIntelligenceWorkspace',
   'Search a Device ID, fingerprint, browser, session, profile, wallet, or location to reveal device intelligence.',
   'Device Snapshot',
@@ -171,7 +164,65 @@ for (const anchor of [
   'Payroll History review',
   'FinancialInvestigationWorkspace',
 ]) {
-  mustContain('InvestigationToolPanel.jsx', panel, anchor);
+  mustContain('Investigation tool source files', panel, anchor);
+}
+
+for (const anchor of [
+  "import PaymentVerificationWorkspace from './PaymentVerificationWorkspace.jsx'",
+  "import './referenceInvestigationDeck.css'",
+  "tool === 'Financial Investigation' || tool === 'Payment Verification'",
+  'reference-investigation-shell',
+  'data-reference-investigation-layout',
+  'reference-investigation-header',
+  'reference-investigation-controls',
+  '<PaymentVerificationWorkspace',
+  'quickPin={quickPin}',
+]) {
+  mustContain('InvestigationToolPanel.jsx', investigationPanel, anchor);
+}
+
+for (const anchor of [
+  "import './paymentVerificationWorkspace.css'",
+  'data-payment-verification-layout="mission-v2"',
+  'Search before reveal',
+  'Verify a specific payment destination',
+  'Owner or business name',
+  'Run verification',
+  'Payment Verification result hidden',
+  'Destination Not Found',
+  'Name relationship',
+  'Account status',
+  'NSF result',
+  'Time open / on record',
+  'Searched payment identifiers',
+  'Quick Pad Bank Code',
+  'Quick Pad Destination ID',
+  'Payment Verification lookup history',
+  'Payment Verification review',
+  'disabled={!activeRecord}',
+]) {
+  mustContain('PaymentVerificationWorkspace.jsx', paymentWorkspace, anchor);
+}
+
+for (const anchor of [
+  "import './financialInvestigationWorkspace.css'",
+  'data-financial-investigation-layout="mission-v2"',
+  'Financial relationship overview',
+  'Financial Investigation dashboard',
+  'Activity summary',
+  'Linked relationship accounts',
+  'Recorded observations',
+  'Evidence explorer',
+  'Financial Investigation sections',
+  'Search Financial Investigation records',
+  'data-financial-investigation-record',
+  'Expanded financial record',
+  'Financial Investigation evidence summary',
+  'Save evidence note',
+  'Financial Investigation review',
+  "markReviewed('Financial Investigation')",
+]) {
+  mustContain('FinancialInvestigationWorkspace.jsx', financialWorkspace, anchor);
 }
 
 for (const anchor of [
@@ -226,12 +277,6 @@ for (const anchor of [
   '@media (max-width: 720px)',
   '@media (max-width: 430px)',
   '@media (max-width: 350px)',
-  '.payment-verification-gate',
-  '.payment-verification-snapshot',
-  '.payment-verification-workspace',
-  '.payment-call-drawer',
-  '.payment-action-panel',
-  '.payment-lookup-history',
   '.device-intel-findbar',
   '.device-intel-snapshot',
   '.device-intel-workspace',
@@ -297,11 +342,6 @@ for (const anchor of [
   '.employee-profile-workspace',
   '.payroll-history-findbar',
   '.payroll-history-workspace',
-  '.financial-investigation-kpis',
-  '.financial-investigation-tabs',
-  '.financial-investigation-workspace',
-  '.financial-record-detail',
-  '.financial-case-rail',
   '.kyb-lookup-panel',
   '.kyb-profile-header',
   '.kyb-review-tabs',
@@ -310,6 +350,65 @@ for (const anchor of [
   '.kyb-case-rail',
 ]) {
   mustContain('displayInvestigationToolsThemeV1.css', styles, anchor);
+}
+
+for (const anchor of [
+  'body[data-visual-tab="workspace"]',
+  '.investigation-tools-theme-v1.reference-investigation-shell',
+  '.reference-investigation-header',
+  '.reference-investigation-title',
+  '.reference-luna-mark',
+  '.reference-investigation-controls',
+  ':focus-visible',
+  '@media (max-width: 640px)',
+  '@media (max-width: 360px)',
+]) {
+  mustContain('referenceInvestigationDeck.css', referenceDeckStyles, anchor);
+}
+
+for (const anchor of [
+  'body[data-visual-tab="workspace"]',
+  '.payment-mission-deck',
+  '.payment-mission-search',
+  '.payment-mission-locked',
+  '.payment-mission-result',
+  '.payment-mission-facts',
+  '.payment-mission-search-confirmation',
+  '.payment-mission-actions',
+  '.payment-mission-history',
+  '.payment-mission-routes',
+  '.payment-mission-review',
+  ':focus-visible',
+  '@media (max-width: 980px)',
+  '@media (max-width: 640px)',
+  '@media (prefers-reduced-motion: reduce)',
+]) {
+  mustContain('paymentVerificationWorkspace.css', paymentStyles, anchor);
+}
+
+for (const anchor of [
+  'body[data-visual-tab="workspace"]',
+  '.financial-mission-deck',
+  '.financial-mission-overview',
+  '.financial-mission-kpis',
+  '.financial-mission-dashboard',
+  '.financial-mission-activity',
+  '.financial-mission-categories',
+  '.financial-mission-accounts',
+  '.financial-mission-observations',
+  '.financial-mission-explorer',
+  '.financial-investigation-findbar',
+  '.financial-investigation-workspace',
+  '.financial-record-detail',
+  '.financial-case-rail',
+  '.financial-mission-routes',
+  '.financial-mission-review',
+  ':focus-visible',
+  '@media (max-width: 1050px)',
+  '@media (max-width: 760px)',
+  '@media (max-width: 520px)',
+]) {
+  mustContain('financialInvestigationWorkspace.css', financialStyles, anchor);
 }
 
 for (const anchor of [
@@ -446,7 +545,10 @@ for (const forbidden of [
   'position: fixed',
 ]) {
   mustNotContain('displayInvestigationToolsThemeV1.css', styles, forbidden);
-  mustNotContain('InvestigationToolPanel.jsx', panel, forbidden);
+  mustNotContain('referenceInvestigationDeck.css', referenceDeckStyles, forbidden);
+  mustNotContain('financialInvestigationWorkspace.css', financialStyles, forbidden);
+  mustNotContain('paymentVerificationWorkspace.css', paymentStyles, forbidden);
+  mustNotContain('Investigation tool source files', panel, forbidden);
   mustNotContain('investigationToolGroups.js', groups, forbidden);
 }
 
@@ -459,7 +561,7 @@ for (const forbidden of [
   'Green flag',
   'fraud score',
 ]) {
-  mustNotContain('InvestigationToolPanel.jsx visible copy', panel, forbidden);
+  mustNotContain('Investigation tool visible copy', panel, forbidden);
   mustNotContain('CategoryTileRail.jsx visible copy', rail, forbidden);
 }
 
