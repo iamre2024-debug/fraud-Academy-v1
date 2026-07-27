@@ -514,7 +514,7 @@ export default function FinancialInvestigationWorkspace({
       )}
 
       <div className="financial-investigation-workspace">
-        <main className="financial-record-workspace">
+        <section className="financial-record-workspace">
           <section className="financial-record-list" aria-label={`${section?.label} records`}>
             <header>
               <div><p>Evidence records</p><h3>{section?.label}</h3></div>
@@ -582,7 +582,7 @@ export default function FinancialInvestigationWorkspace({
               Choose a financial record to open its details.
             </div>
           )}
-        </main>
+        </section>
 
         <aside className="financial-case-rail" aria-label="Financial Investigation case summary">
           <header>

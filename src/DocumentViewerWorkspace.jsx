@@ -502,7 +502,7 @@ export default function DocumentViewerWorkspace({
           </div>
         </section>
 
-        <main className="document-preview-workspace" aria-label="Document preview">
+        <section className="document-preview-workspace" aria-label="Document preview">
           {activeDocument ? (
             <>
               <header className="document-preview-toolbar">
@@ -546,7 +546,7 @@ export default function DocumentViewerWorkspace({
           ) : (
             <div className="document-viewer-empty" role="status">Choose a document to open its viewer.</div>
           )}
-        </main>
+        </section>
 
         {activeDocument && (
           <aside className="document-inspector" aria-label="Document details">

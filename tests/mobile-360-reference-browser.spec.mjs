@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { createGeneratedCase } from '../src/data/generatedCases.js';
-import { selectToolGroup } from './workspace-page-helpers.mjs';
+import { openWorkspacePages, selectToolGroup } from './workspace-page-helpers.mjs';
 
 const screenshotRoot = process.env.MOBILE_360_SCREENSHOT_DIR
   ? path.resolve(process.env.MOBILE_360_SCREENSHOT_DIR)
@@ -127,6 +127,21 @@ test('mobile Customer 360 is the coded reference dashboard with working record d
   await expect(customerProfileDrawer).toContainText('Last verified');
   await expect(customerProfileDrawer).toContainText('Training-data coverage');
   await customerProfileDrawer.getByRole('button', { name: 'Close Customer profile' }).click();
+
+  await page.getByRole('button', { name: 'Open Customer 360 actions' }).click();
+  await page.getByRole('dialog', { name: 'Customer 360 actions' })
+    .getByRole('button', { name: /Pin profile/ })
+    .click();
+  const workflow = await openWorkspacePages(page);
+  await workflow.getByRole('button', { name: /Indicators|Evidence/ }).click();
+  const profilePin = page.getByRole('button', {
+    name: 'Open pinned evidence TRN-8842-19 · Maya Sterling',
+  });
+  await expect(profilePin).toBeVisible();
+  await profilePin.click();
+  await expect(page.locator('[data-opened-pinned-evidence="true"]')).toContainText('TRN-8842-19 · Maya Sterling');
+  await expect(page.locator('[data-mobile-360-screen="customer"]')).toContainText('Maya Sterling');
+  await expect(page.locator('[data-mobile-360-screen="customer"]')).toContainText('TRN-8842-19');
 
   await assertMobileGeometry(page, customer);
   await capture(page, 'customer-360-reference');

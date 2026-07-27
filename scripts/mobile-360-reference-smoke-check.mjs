@@ -66,10 +66,17 @@ for (const anchor of [
   'mobile-360-actions-menu',
   'detailRequest={mobile360DetailRequest}',
   'activeToolProps.markReviewed?.(activeTool)',
+  "`${activeCase.trainingId ?? 'C360-REL'} · ${mobile360ProfileName}`",
   'Open ${activeTool} actions',
   'Business profile',
   'Owners &amp; control',
 ]) requireAnchor('MobileMissionWorkspace.jsx', workspace, anchor);
+
+for (const anchor of [
+  'const selectedAccount = useMemo(',
+  'detail === \'accounts\' && selectedAccount',
+  'account={selectedAccount}',
+]) requireAnchor('Mobile360ReferencePages.jsx', component, anchor);
 
 for (const anchor of [
   'Dedicated Customer 360 and Business 360 mobile pages',

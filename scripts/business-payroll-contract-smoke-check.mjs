@@ -30,6 +30,9 @@ const failures = [];
 const cases = enrichTrainingCases(trainingCases);
 const sourceFiles = [
   'src/InvestigationToolPanel.jsx',
+  'src/tools/EmployeeProfileWorkspace.jsx',
+  'src/tools/PaymentVerificationWorkspace.jsx',
+  'src/tools/PayrollHistoryWorkspace.jsx',
   'src/investigationToolGroups.js',
   'src/visualWorkspaceModel.js',
   'src/data/claimRegistry.js',
@@ -162,7 +165,7 @@ const payment = paymentRecords[0];
 if (resolvePaymentLookup(paymentRecords, { bankCode: '', destinationId: '', ownerName: generatedPayrollCase.person }).state !== 'not-found') fail('Payment Verification exposes a result without exact identifiers.');
 if (resolvePaymentLookup(paymentRecords, { bankCode: payment.bankCode, destinationId: payment.destinationId, ownerName: generatedPayrollCase.person }).state !== 'found') fail('Payment Verification exact search does not reveal the matching result.');
 
-const payrollPanel = fs.readFileSync('src/InvestigationToolPanel.jsx', 'utf8');
+const payrollPanel = fs.readFileSync('src/tools/PayrollHistoryWorkspace.jsx', 'utf8');
 for (const action of ['Copy Bank Code', 'Pin Bank Code to Quick Pad', 'Copy Destination ID', 'Pin Destination ID to Quick Pad', 'Open Payment Verification']) {
   if (!payrollPanel.includes(action)) fail(`Payroll paystub is missing ${action}.`);
 }

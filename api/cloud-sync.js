@@ -16,7 +16,7 @@ function configuredOrigins() {
 
 function requestOrigin(req) {
   const forwardedProtocol = String(req.headers?.['x-forwarded-proto'] || 'https').split(',')[0].trim();
-  const host = String(req.headers?.['x-forwarded-host'] || req.headers?.host || '').split(',')[0].trim();
+  const host = String(req.headers?.host || req.headers?.['x-forwarded-host'] || '').split(',')[0].trim();
   return host ? `${forwardedProtocol}://${host}` : '';
 }
 
@@ -42,13 +42,23 @@ function send(req, res, status, body) {
 }
 
 function requestIp(req) {
-  return String(req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown')
-    .split(',')[0]
-    .trim();
+  const hops = String(req.headers?.['x-forwarded-for'] || '')
+    .split(',')
+    .map((hop) => hop.trim())
+    .filter(Boolean);
+  if (hops.length) return hops[hops.length - 1];
+  return String(req.socket?.remoteAddress || '').trim() || 'unknown';
+}
+
+function sweepExpiredWindows(now) {
+  for (const [key, windowState] of requestWindows) {
+    if (now - windowState.startedAt >= RATE_LIMIT_WINDOW_MS) requestWindows.delete(key);
+  }
 }
 
 function exceedsRateLimit(req, res) {
   const now = Date.now();
+  sweepExpiredWindows(now);
   const ip = requestIp(req);
   const current = requestWindows.get(ip);
   const windowState = !current || now - current.startedAt >= RATE_LIMIT_WINDOW_MS
@@ -146,6 +156,9 @@ export default async function handler(req, res) {
       return send(req, res, 413, { error: 'Cloud recovery payload is too large' });
     }
     const body = req.body || {};
+    if (Buffer.byteLength(JSON.stringify(body), 'utf8') > MAX_BODY_BYTES) {
+      return send(req, res, 413, { error: 'Cloud recovery payload is too large' });
+    }
     const baseRevision = Number(body.baseRevision);
     const payload = body.payload;
     if (!Number.isInteger(baseRevision) || baseRevision < 0 || !payload || typeof payload !== 'object') {

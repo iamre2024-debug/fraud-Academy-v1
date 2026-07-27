@@ -105,6 +105,18 @@ function documentSummary(item) {
   return requested ? `${documents.length} documents · ${requested} requested` : `${documents.length} documents`;
 }
 
+function describeGeneratorFailure(error) {
+  const name = error?.name ?? '';
+  const message = String(error?.message ?? '');
+  if (name === 'QuotaExceededError' || /quota|storage is full/i.test(message)) {
+    return 'Browser storage is full, so the generated cases could not be saved. Remove some generated cases and try again.';
+  }
+  if (name === 'InvalidStateError' || /indexeddb|private|denied|security/i.test(message)) {
+    return 'This browser is blocking local case storage. Generated cases cannot be saved here.';
+  }
+  return message ? `Case generation failed: ${message}` : 'Case generation failed. Try again.';
+}
+
 export default function CasesThemeV1Panel({
   active = false,
   activeCaseId = '',
@@ -132,6 +144,7 @@ export default function CasesThemeV1Panel({
   const [generatorDepth, setGeneratorDepth] = useState('standard');
   const [generatorCount, setGeneratorCount] = useState('1');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState('');
 
   useEffect(() => {
     if (inline) return undefined;
@@ -234,6 +247,7 @@ export default function CasesThemeV1Panel({
   async function generateConfiguredCases() {
     if (!onGenerateCases || isGenerating || !generatorWorkflow || !generatorProduct || !generatorCustomer) return;
     setIsGenerating(true);
+    setGenerateError('');
     try {
       const selectedScenario = generatorScenarios.find((scenario) => scenario.id === generatorScenarioId);
       const createdCases = await onGenerateCases({
@@ -252,7 +266,11 @@ export default function CasesThemeV1Panel({
         setSelectedCaseId(firstCase.id);
         setScope('generated');
         setQuery('');
+      } else {
+        setGenerateError('No cases were created. Try a smaller batch or a different scenario.');
       }
+    } catch (error) {
+      setGenerateError(describeGeneratorFailure(error));
     } finally {
       setIsGenerating(false);
     }
@@ -339,9 +357,20 @@ export default function CasesThemeV1Panel({
               <option value="25">25 cases</option>
             </select>
           </label>
-          <button type="button" onClick={generateConfiguredCases} disabled={isGenerating || !generatorWorkflow}>
+          <button
+            type="button"
+            onClick={generateConfiguredCases}
+            disabled={isGenerating || !generatorWorkflow}
+            aria-describedby={generateError ? 'case-generator-error' : undefined}
+          >
             {isGenerating ? 'Generating cases...' : 'Generate cases'}
           </button>
+          {generateError && (
+            <p id="case-generator-error" className="case-generator-error" role="alert">
+              <strong>Cases were not generated</strong>
+              {generateError}
+            </p>
+          )}
         </div>
 
         {generatorWorkflow && (

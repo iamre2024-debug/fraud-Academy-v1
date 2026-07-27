@@ -11,7 +11,6 @@ const workspaceController = read('src/VisualWorkspace.jsx');
 const briefing = read('src/MobileMissionCaseBriefing.jsx');
 const documentViewer = read('src/DocumentViewerWorkspace.jsx');
 const styles = read('src/mobileMissionDeckV3.css');
-const legacyStyles = read('src/mobileBlueMissionDeck.css');
 const playwrightConfig = read('playwright.config.mjs');
 const failures = [];
 
@@ -133,7 +132,7 @@ if (!/\.investigation-tool-groups-theme-v1\s*>\s*\.visual-category-row\s*\{[^}]*
 if (!/\.mission-mobile-dock\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/s.test(styles)) {
   failures.push('Mission Deck v3 must keep primary navigation in a five-column bottom dock.');
 }
-if (styles.length >= legacyStyles.length * 1.4) failures.push('Mission Deck v3 has grown into another oversized legacy override layer.');
+if (styles.length >= 113000) failures.push('Mission Deck v3 has grown beyond its reviewed stylesheet-size ceiling.');
 const undersizedMobileRemValues = [...styles.matchAll(/font-size:\s*(0\.\d+)rem/g)]
   .map((match) => Number(match[1]))
   .filter((value) => value < 0.75);

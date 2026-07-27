@@ -14,14 +14,23 @@ function responseRecorder() {
   };
 }
 
-async function request({ method = 'POST', origin = 'https://academy.example', host = 'academy.example', ip = '192.0.2.10', accessToken = '', headers = {} } = {}) {
+async function request({
+  method = 'POST',
+  origin = 'https://academy.example',
+  host = 'academy.example',
+  forwardedHost = host,
+  ip = '192.0.2.10',
+  accessToken = '',
+  body = {},
+  headers = {},
+} = {}) {
   const req = {
     method,
-    body: {},
+    body,
     headers: {
       origin,
       host,
-      'x-forwarded-host': host,
+      'x-forwarded-host': forwardedHost,
       'x-forwarded-proto': 'https',
       'x-forwarded-for': ip,
       'x-luna-access-token': accessToken,
@@ -48,6 +57,21 @@ try {
   const oversized = await request({ headers: { 'content-length': '50001' }, ip: '192.0.2.21' });
   if (oversized.statusCode !== 413) throw new Error(`oversized request returned ${oversized.statusCode}, expected 413`);
 
+  const understated = await request({
+    body: { text: 'x'.repeat(50_100) },
+    headers: { 'content-length': '10' },
+    ip: '192.0.2.26',
+  });
+  if (understated.statusCode !== 413) throw new Error(`understated request returned ${understated.statusCode}, expected 413`);
+
+  const spoofedForwardedHost = await request({
+    origin: 'https://untrusted.example',
+    host: 'academy.example',
+    forwardedHost: 'untrusted.example',
+    ip: '192.0.2.27',
+  });
+  if (spoofedForwardedHost.statusCode !== 403) throw new Error('x-forwarded-host bypassed the same-origin check');
+
   const wrongMethod = await request({ method: 'GET', ip: '192.0.2.22' });
   if (wrongMethod.statusCode !== 405) throw new Error(`GET request returned ${wrongMethod.statusCode}, expected 405`);
 
@@ -57,9 +81,14 @@ try {
   const authenticated = await request({ ip: '192.0.2.25', accessToken: testAccessToken });
   if (authenticated.statusCode !== 503) throw new Error(`authenticated request without an API key returned ${authenticated.statusCode}, expected 503`);
 
+  process.env.LUNA_API_ACCESS_TOKEN = 'é'.repeat(24);
+  const unequalUtf8Token = await request({ ip: '192.0.2.28', accessToken: 'a'.repeat(24) });
+  if (unequalUtf8Token.statusCode !== 401) throw new Error(`unequal UTF-8 token returned ${unequalUtf8Token.statusCode}, expected 401`);
+  process.env.LUNA_API_ACCESS_TOKEN = testAccessToken;
+
   let limited;
   for (let index = 0; index < 11; index += 1) {
-    limited = await request({ ip: '192.0.2.23', accessToken: testAccessToken });
+    limited = await request({ ip: `198.51.100.${index}, 192.0.2.23`, accessToken: testAccessToken });
   }
   if (limited.statusCode !== 429) throw new Error(`eleventh request returned ${limited.statusCode}, expected 429`);
   if (limited.headers['retry-after'] !== '60') throw new Error('rate-limited response is missing Retry-After');

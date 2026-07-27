@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import SkipToMainContentLink from './SkipToMainContentLink.jsx';
 import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import ActiveCaseWorkflowRail from './ActiveCaseWorkflowRail.jsx';
@@ -581,7 +582,8 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
   return (
     <>
-    <main className="visual-os-shell">
+    <SkipToMainContentLink />
+    <main id="main" className="visual-os-shell" tabIndex={-1}>
       <section className="visual-os-frame mission-deck-frame" data-workspace-screen={workspaceScreen} data-active-tool={activeTool}>
         <div className="mission-deck-atmosphere" aria-hidden="true">
           <span /><span /><span /><span /><span />

@@ -560,6 +560,10 @@ export function MobileCustomer360Reference({
   const available = useMemo(() => new Set(activeCase.availableTools ?? []), [activeCase.availableTools]);
   const [detail, setDetail] = useState('');
   const [selectedAccountId, setSelectedAccountId] = useState('');
+  const selectedAccount = useMemo(
+    () => dossier.accounts.find((account) => account.accountId === selectedAccountId) ?? null,
+    [dossier.accounts, selectedAccountId],
+  );
   const customerId = dossier.identity.maskedMemberId;
   const relationshipRows = [
     ['Customer since', dossier.identity.customerSince],
@@ -729,10 +733,10 @@ export function MobileCustomer360Reference({
           setSelectedAccountId('');
         }}
       >
-        {detail === 'accounts' && selectedAccountId
+        {detail === 'accounts' && selectedAccount
           ? (
             <AccountDetails
-              account={dossier.accounts.find((account) => account.accountId === selectedAccountId)}
+              account={selectedAccount}
               available={available}
               openTool={openTool}
               quickPin={quickPin}

@@ -126,9 +126,50 @@ assert.deepEqual(
 
 const recoveryCode = 'fa-test-recovery-code-1234567890';
 const encrypted = await encryptCloudSnapshot(merged, recoveryCode);
+const secondEncrypted = await encryptCloudSnapshot(merged, recoveryCode);
 assert.equal(encrypted.algorithm, 'AES-GCM');
+assert.match(encrypted.salt, /^[A-Za-z0-9_-]+$/);
+assert.notEqual(encrypted.salt, secondEncrypted.salt, 'Every encrypted payload must use a unique PBKDF2 salt.');
 assert.ok(!JSON.stringify(encrypted).includes('Added while desktop was offline'));
 assert.deepEqual(await decryptCloudSnapshot(encrypted, recoveryCode), merged);
+
+const legacyIv = crypto.getRandomValues(new Uint8Array(12));
+const legacyMaterial = await crypto.subtle.importKey(
+  'raw',
+  new TextEncoder().encode(recoveryCode),
+  'PBKDF2',
+  false,
+  ['deriveKey'],
+);
+const legacyKey = await crypto.subtle.deriveKey(
+  {
+    name: 'PBKDF2',
+    hash: 'SHA-256',
+    salt: new TextEncoder().encode('fraud-academy-cloud-sync-v1'),
+    iterations: 150000,
+  },
+  legacyMaterial,
+  { name: 'AES-GCM', length: 256 },
+  false,
+  ['encrypt'],
+);
+const legacyCiphertext = await crypto.subtle.encrypt(
+  { name: 'AES-GCM', iv: legacyIv },
+  legacyKey,
+  new TextEncoder().encode(JSON.stringify(merged)),
+);
+const legacyPayload = {
+  version: 1,
+  algorithm: 'AES-GCM',
+  compression: 'none',
+  iv: Buffer.from(legacyIv).toString('base64url'),
+  ciphertext: Buffer.from(legacyCiphertext).toString('base64url'),
+};
+assert.deepEqual(
+  await decryptCloudSnapshot(legacyPayload, recoveryCode),
+  merged,
+  'Payloads created before per-payload salts must remain decryptable.',
+);
 
 const [
   apiSource,
@@ -161,6 +202,9 @@ assert.match(clientSource, /PBKDF2/);
 assert.match(clientSource, /X-Fraud-Academy-Sync-Id/);
 assert.doesNotMatch(clientSource, /X-Fraud-Academy-Sync-Key/);
 assert.match(clientSource, /response\.status === 409/);
+assert.match(clientSource, /mergeCloudSnapshots\(currentLocalSnapshot, mergedSnapshot\)/);
+assert.match(clientSource, /localClockNow !== localClockAtSnapshot/);
+assert.match(clientSource, /syncInFlight\.then\(\(\) => syncNow\(\), \(\) => syncNow\(\)\)/);
 assert.match(clientSource, /window\.addEventListener\('online'/);
 assert.match(
   clientSource,

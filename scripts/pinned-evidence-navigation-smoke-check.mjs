@@ -18,6 +18,17 @@ for (const [pin, expectedTool, expectedRecordId] of checks) {
   if (result.recordId !== expectedRecordId) throw new Error(`${pin} resolved to ${result.recordId}, expected ${expectedRecordId}.`);
 }
 
+const customerProfilePin = `${activeCase.trainingId} · ${activeCase.person}`;
+const reopenedCustomerProfile = resolvePinnedEvidence(customerProfilePin, activeCase, workspaceTools);
+if (
+  reopenedCustomerProfile?.tool !== 'Customer 360'
+  || reopenedCustomerProfile.query !== activeCase.trainingId
+  || reopenedCustomerProfile.recordId !== 'C360-REL'
+  || reopenedCustomerProfile.row?.pin !== activeCase.trainingId
+) {
+  throw new Error('Customer 360 profile pin did not restore the original customer Training ID and relationship record.');
+}
+
 const fallback = resolvePinnedEvidence('DOC-UNSAVED-01 | Affidavit', activeCase, workspaceTools);
 if (fallback?.tool !== 'Document Viewer' || fallback.recordId !== 'DOC-UNSAVED-01') {
   throw new Error('Document prefix fallback did not preserve the saved identifier.');

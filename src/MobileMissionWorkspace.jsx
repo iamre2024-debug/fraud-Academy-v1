@@ -119,7 +119,10 @@ export default function MobileMissionWorkspace({
   }
 
   function pinMobile360Profile() {
-    activeToolProps.pin?.(`${activeTool} profile · ${mobile360ProfileName}`);
+    const pinValue = activeTool === 'Customer 360'
+      ? `${activeCase.trainingId ?? 'C360-REL'} · ${mobile360ProfileName}`
+      : `${activeTool} profile · ${mobile360ProfileName}`;
+    activeToolProps.pin?.(pinValue);
     setMobile360MenuOpen(false);
   }
 
@@ -129,7 +132,7 @@ export default function MobileMissionWorkspace({
   }
 
   return (
-    <main className="mission-workspace-v3" data-workspace-screen={workspaceScreen} data-active-tool={activeTool}>
+    <section className="mission-workspace-v3" data-workspace-screen={workspaceScreen} data-active-tool={activeTool}>
       <header className="mission-workspace-bar" data-mobile-360-header={is360Tool ? 'true' : undefined}>
         <button type="button" className="mission-workspace-back" disabled={isRoot} onClick={goBackWorkspaceScreen} aria-label="Back to previous mission screen">‹</button>
         <div>
@@ -388,7 +391,7 @@ export default function MobileMissionWorkspace({
           <span>⭐ {tray.length} pinned</span><span>📝 {notes.length} notes</span><span>📡 {actionLog.length} actions</span>
         </footer>
       )}
-    </main>
+    </section>
   );
 }
 
