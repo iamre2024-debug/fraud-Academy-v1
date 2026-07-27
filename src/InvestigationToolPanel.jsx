@@ -2199,6 +2199,7 @@ export default function InvestigationToolPanel({
   data,
   rows,
   activeRow,
+  expandedId,
   setExpandedId,
   pin,
   saveNote,
@@ -2275,6 +2276,7 @@ export default function InvestigationToolPanel({
           jumpDecision={jumpDecision}
           recordAction={recordAction}
           openRelatedCase={openRelatedCase}
+          requestedAccountId={expandedId}
         />
       </section>
     );

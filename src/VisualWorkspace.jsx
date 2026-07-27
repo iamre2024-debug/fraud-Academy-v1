@@ -486,6 +486,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     data,
     rows,
     activeRow,
+    expandedId,
     setExpandedId,
     pin,
     saveNote,

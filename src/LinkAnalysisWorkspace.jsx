@@ -290,6 +290,7 @@ export default function LinkAnalysisWorkspace({
   jumpDecision,
   recordAction,
   openRelatedCase,
+  requestedAccountId = '',
 }) {
   const suggestions = useMemo(() => getLinkIdentifiersForCase(activeCase), [activeCase]);
   const defaultSuggestion = suggestions.find((item) => item.type === 'phone')
@@ -320,6 +321,13 @@ export default function LinkAnalysisWorkspace({
   );
 
   useEffect(() => {
+    if (!requestedAccountId) return;
+    const requestedAccount = result.matches.find((item) => item.accountId === requestedAccountId);
+    setExpandedAccountId(requestedAccount?.accountId ?? '');
+    if (requestedAccount) setShowAll(true);
+  }, [requestedAccountId, result.matches]);
+
+  useEffect(() => {
     const nextSuggestions = getLinkIdentifiersForCase(activeCase);
     const next = nextSuggestions.find((item) => item.type === 'phone')
       ?? nextSuggestions.find((item) => item.type === 'training-id')
@@ -336,9 +344,13 @@ export default function LinkAnalysisWorkspace({
   }, [activeCase.id, setQuery]);
 
   useEffect(() => {
-    if (!query || normalizeLinkIdentifier(query) === normalizeLinkIdentifier(submittedQuery)) return;
-    const suggestion = suggestions.find((item) => normalizeLinkIdentifier(item.value) === normalizeLinkIdentifier(query));
-    setIdentifierType(suggestion?.type ?? inferLinkIdentifierType('', query) ?? identifierType);
+    if (!query) return;
+    const suggestion = suggestions.find((item) => (
+      normalizeLinkIdentifier(item.value, item.type) === normalizeLinkIdentifier(query, item.type)
+    ));
+    const nextType = suggestion?.type ?? inferLinkIdentifierType('', query) ?? identifierType;
+    if (normalizeLinkIdentifier(query, nextType) === normalizeLinkIdentifier(submittedQuery, nextType)) return;
+    setIdentifierType(nextType);
     setDraft(query);
     setSubmittedQuery(query);
     setExpandedAccountId('');
@@ -475,7 +487,12 @@ export default function LinkAnalysisWorkspace({
             <button
               key={`${item.type}-${item.value}`}
               type="button"
-              data-selected={normalizeLinkIdentifier(item.value) === normalizeLinkIdentifier(submittedQuery) ? 'true' : 'false'}
+              data-selected={
+                item.type === identifierType
+                && normalizeLinkIdentifier(item.value, item.type) === normalizeLinkIdentifier(submittedQuery, item.type)
+                  ? 'true'
+                  : 'false'
+              }
               onClick={() => runSearch(item.value, item.type)}
             >
               <LinkGlyph type={item.type} size={17} />

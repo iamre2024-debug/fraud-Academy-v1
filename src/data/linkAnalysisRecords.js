@@ -24,10 +24,37 @@ function clean(value) {
   return String(value ?? '').trim();
 }
 
-export function normalizeLinkIdentifier(value) {
-  return clean(value)
-    .toLowerCase()
-    .replace(/[()\s\-_/.,#]+/g, '');
+function normalizeIpv4(value) {
+  const parts = value.split('.');
+  if (
+    parts.length !== 4
+    || !parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255)
+  ) {
+    return value.toLowerCase();
+  }
+  return parts.map((part) => String(Number(part))).join('.');
+}
+
+export function normalizeLinkIdentifier(value, identifierType = '') {
+  const exactValue = clean(value);
+  const resolvedType = identifierType || inferLinkIdentifierType('', exactValue);
+
+  if (resolvedType === 'phone') {
+    return exactValue.replace(/\D+/g, '');
+  }
+  if (resolvedType === 'email') {
+    return exactValue.toLowerCase();
+  }
+  if (resolvedType === 'ip') {
+    return normalizeIpv4(exactValue);
+  }
+  if (['training-id', 'device', 'bank-code', 'destination-id'].includes(resolvedType)) {
+    return exactValue.toLowerCase();
+  }
+  if (resolvedType === 'address') {
+    return exactValue.toLowerCase().replace(/\s+/g, ' ');
+  }
+  return exactValue.toLowerCase();
 }
 
 function typeMeta(typeId) {
@@ -62,8 +89,8 @@ function addIdentifier(target, {
 }) {
   const exactValue = clean(value);
   if (!type || !exactValue || /not supplied|not available|not applicable/i.test(exactValue)) return;
-  const key = `${type}:${normalizeLinkIdentifier(exactValue)}`;
-  if (target.some((item) => `${item.type}:${normalizeLinkIdentifier(item.value)}` === key)) return;
+  const key = `${type}:${normalizeLinkIdentifier(exactValue, type)}`;
+  if (target.some((item) => `${item.type}:${normalizeLinkIdentifier(item.value, item.type)}` === key)) return;
   target.push({
     type,
     typeLabel: typeMeta(type).label,
@@ -457,18 +484,24 @@ export function searchLinkRelationships({
     };
   }
 
-  const queryKey = normalizeLinkIdentifier(searchedIdentifier);
   const currentAccountId = activeCase.accountId ?? activeCase.id;
   const activeIdentifiers = getLinkIdentifiersForCase(activeCase);
-  const currentIdentifier = activeIdentifiers.find((item) => normalizeLinkIdentifier(item.value) === queryKey);
-  const resolvedType = identifierType || currentIdentifier?.type || inferLinkIdentifierType('', searchedIdentifier);
+  const hintedType = identifierType || inferLinkIdentifierType('', searchedIdentifier);
+  const currentIdentifier = activeIdentifiers.find((item) => (
+    (!hintedType || item.type === hintedType)
+    && normalizeLinkIdentifier(item.value, item.type) === normalizeLinkIdentifier(searchedIdentifier, item.type)
+  ));
+  const resolvedType = identifierType || currentIdentifier?.type || hintedType;
+  const queryKey = normalizeLinkIdentifier(searchedIdentifier, resolvedType);
   const found = [];
   const seenAccounts = new Set();
 
   for (const account of buildLinkAccountIndex(cases, activeCase)) {
     const identifier = account.identifiers.find((item) => (
       (!resolvedType || item.type === resolvedType)
-      && normalizeLinkIdentifier(item.value) === queryKey
+      && normalizeLinkIdentifier(item.value, item.type) === (
+        resolvedType ? queryKey : normalizeLinkIdentifier(searchedIdentifier, item.type)
+      )
     ));
     if (!identifier || seenAccounts.has(account.accountId)) continue;
     seenAccounts.add(account.accountId);

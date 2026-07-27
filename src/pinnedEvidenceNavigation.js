@@ -12,6 +12,31 @@ function firstIdentifier(value) {
   return text(value).split(/\s+(?:\||·)\s+/)[0].trim();
 }
 
+function parseLinkAnalysisPin(value, toolNames) {
+  if (!toolNames.includes('Link Analysis') || !/^LNK-/i.test(value)) return null;
+  const separatorIndex = value.indexOf(':');
+  if (separatorIndex <= 4) return null;
+
+  const identifierTypeLabel = value.slice(4, separatorIndex).trim();
+  let query = value.slice(separatorIndex + 1).trim();
+  let linkedAccountId = '';
+  const accountSuffix = query.match(/\s+·\s+((?:ACCT|FA)-[A-Z0-9-]+)$/i);
+  if (accountSuffix) {
+    linkedAccountId = accountSuffix[1];
+    query = query.slice(0, accountSuffix.index).trim();
+  }
+  if (!query) return null;
+
+  return {
+    value,
+    tool: 'Link Analysis',
+    row: null,
+    query,
+    recordId: linkedAccountId || query,
+    identifierTypeLabel,
+  };
+}
+
 const pinPrefixRoutes = [
   [/^LOG-/i, 'Login History'],
   [/^SES-/i, 'Session History'],
@@ -55,6 +80,9 @@ function scoreRow(pinValue, identifier, row) {
 export function resolvePinnedEvidence(pinValue, activeCase, toolNames) {
   const value = text(pinValue);
   if (!value || !activeCase) return null;
+
+  const linkAnalysisPin = parseLinkAnalysisPin(value, toolNames);
+  if (linkAnalysisPin) return linkAnalysisPin;
 
   const identifier = firstIdentifier(value);
   const preferredTool = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(value)

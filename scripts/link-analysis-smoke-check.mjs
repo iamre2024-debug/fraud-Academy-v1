@@ -23,6 +23,24 @@ for (const activeCase of cases) {
   if (!phone) fail(`${activeCase.id}: Link Analysis is missing the customer phone suggestion.`);
   if (!trainingId) fail(`${activeCase.id}: Link Analysis is missing the Training ID suggestion.`);
 
+  for (const identifier of identifiers) {
+    const exactResult = searchLinkRelationships({
+      query: identifier.value,
+      identifierType: identifier.type,
+      cases,
+      activeCase,
+    });
+    if (!exactResult.matches.some((item) => item.currentCase)) {
+      fail(`${activeCase.id}: exact ${identifier.type} input ${identifier.value} did not return the current account.`);
+    }
+    if (exactResult.matches.some((item) => (
+      normalizeLinkIdentifier(item.exactSharedIdentifier, identifier.type)
+      !== normalizeLinkIdentifier(identifier.value, identifier.type)
+    ))) {
+      fail(`${activeCase.id}: exact ${identifier.type} input ${identifier.value} returned a different identifier.`);
+    }
+  }
+
   const result = searchLinkRelationships({
     query: phone?.value,
     identifierType: 'phone',
@@ -31,7 +49,7 @@ for (const activeCase of cases) {
   });
   if (result.matches.length < 3) fail(`${activeCase.id}: expected at least three exact phone-linked training accounts.`);
   if (!result.matches.some((item) => item.currentCase)) fail(`${activeCase.id}: the current account is missing from its exact phone result.`);
-  if (result.matches.some((item) => normalizeLinkIdentifier(item.exactSharedIdentifier) !== normalizeLinkIdentifier(phone?.value))) {
+  if (result.matches.some((item) => normalizeLinkIdentifier(item.exactSharedIdentifier, 'phone') !== normalizeLinkIdentifier(phone?.value, 'phone'))) {
     fail(`${activeCase.id}: Link Analysis returned a non-exact phone match.`);
   }
   if (JSON.stringify(result).match(/\b(?:high risk|risk score|fraud score|confirmed current fraud)\b/i)) {
@@ -49,6 +67,49 @@ for (const activeCase of cases) {
   const map = getLinkMapContext(activeCase);
   if (!map.subject.name || !map.transaction.id || map.nodes.length !== 5) {
     fail(`${activeCase.id}: the relationship map is missing its subject, transaction, or five evidence nodes.`);
+  }
+}
+
+const firstCase = cases[0];
+const firstIdentifiers = getLinkIdentifiersForCase(firstCase);
+const firstPhone = firstIdentifiers.find((item) => item.type === 'phone');
+const digitsOnlyPhone = String(firstPhone?.value ?? '').replace(/\D/g, '');
+const formattedPhoneResult = searchLinkRelationships({
+  query: digitsOnlyPhone,
+  identifierType: 'phone',
+  cases,
+  activeCase: firstCase,
+});
+if (formattedPhoneResult.matches.length < 3) {
+  fail('Phone formatting differences should preserve the same exact phone relationship.');
+}
+
+for (const [type, left, right] of [
+  ['email', 'a.b@example.test', 'ab@example.test'],
+  ['email', 'a_b@example.test', 'ab@example.test'],
+  ['ip', '1.23.4.56', '12.3.4.56'],
+  ['device', 'DEV-A_B', 'DEV-AB'],
+  ['device', 'DEV-A B', 'DEV-AB'],
+  ['training-id', 'TRN-1 23', 'TRN-123'],
+]) {
+  if (normalizeLinkIdentifier(left, type) === normalizeLinkIdentifier(right, type)) {
+    fail(`${type}: distinct identifiers ${left} and ${right} must not collapse into the same exact-match key.`);
+  }
+}
+
+for (const [type, query] of [
+  ['email', 'mayatraining@example.test'],
+  ['ip', '19.85.110.042'],
+  ['device', 'DEV_MAYA_IP16_001'],
+]) {
+  const collisionResult = searchLinkRelationships({
+    query,
+    identifierType: type,
+    cases,
+    activeCase: firstCase,
+  });
+  if (collisionResult.matches.length) {
+    fail(`${type}: punctuation-colliding input ${query} must not return an exact account match.`);
   }
 }
 
@@ -83,6 +144,17 @@ const generatedResult = searchLinkRelationships({
   activeCase: generatedCase,
 });
 if (generatedResult.matches.length < 3) fail('Generated cases must receive the same complete Link Analysis relationship contract.');
+for (const identifier of getLinkIdentifiersForCase(generatedCase)) {
+  const exactResult = searchLinkRelationships({
+    query: identifier.value,
+    identifierType: identifier.type,
+    cases: [...cases, generatedCase],
+    activeCase: generatedCase,
+  });
+  if (!exactResult.matches.some((item) => item.currentCase)) {
+    fail(`Generated case exact ${identifier.type} input ${identifier.value} did not return its current account.`);
+  }
+}
 
 const component = fs.readFileSync('src/LinkAnalysisWorkspace.jsx', 'utf8');
 const panel = fs.readFileSync('src/InvestigationToolPanel.jsx', 'utf8');
@@ -96,6 +168,7 @@ for (const anchor of [
   'Open Account',
   'Open Related Case',
   'Luna · factual link summary',
+  'requestedAccountId',
 ]) {
   if (!component.includes(anchor)) fail(`Dedicated Link Analysis workspace is missing: ${anchor}.`);
 }

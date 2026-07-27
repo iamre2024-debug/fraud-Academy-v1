@@ -1,9 +1,11 @@
 import { trainingCases } from '../src/data/cases.js';
 import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
 import { workspaceTools } from '../src/investigationToolGroups.js';
+import { searchLinkRelationships } from '../src/data/linkAnalysisRecords.js';
 import { resolvePinnedEvidence } from '../src/pinnedEvidenceNavigation.js';
 
-const activeCase = enrichTrainingCases(trainingCases)[0];
+const cases = enrichTrainingCases(trainingCases);
+const activeCase = cases[0];
 const checks = [
   ['LOG-1005', 'Login History', 'LOG-1005'],
   [activeCase.loginHistory[0].session, 'Session History', activeCase.loginHistory[0].session],
@@ -21,6 +23,26 @@ for (const [pin, expectedTool, expectedRecordId] of checks) {
 const fallback = resolvePinnedEvidence('DOC-UNSAVED-01 | Affidavit', activeCase, workspaceTools);
 if (fallback?.tool !== 'Document Viewer' || fallback.recordId !== 'DOC-UNSAVED-01') {
   throw new Error('Document prefix fallback did not preserve the saved identifier.');
+}
+
+const phone = activeCase.customer.contact.phone;
+for (const pin of [
+  `LNK-Phone Number: ${phone}`,
+  `LNK-Phone Number: ${phone} · ACCT-02455-HIST`,
+]) {
+  const result = resolvePinnedEvidence(pin, activeCase, workspaceTools);
+  if (result?.tool !== 'Link Analysis' || result.query !== phone) {
+    throw new Error(`${pin} did not restore the exact Link Analysis search value.`);
+  }
+  const reopened = searchLinkRelationships({
+    query: result.query,
+    identifierType: 'phone',
+    cases,
+    activeCase,
+  });
+  if (reopened.matches.length < 3) {
+    throw new Error(`${pin} reopened Link Analysis without its matched accounts.`);
+  }
 }
 
 console.log('Pinned evidence navigation smoke check passed.');

@@ -104,7 +104,7 @@ body[data-visual-tab="workspace"] .link-analysis-tool-switcher label > span {
 
 body[data-visual-tab="workspace"] .link-analysis-tool-switcher select {
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   border: 1px solid rgba(80, 204, 255, 0.36);
   border-radius: 11px;
   background: rgba(5, 42, 86, 0.88);
@@ -181,7 +181,7 @@ body[data-visual-tab="workspace"] .link-analysis-page-actions {
 
 body[data-visual-tab="workspace"] .link-analysis-page-actions > span,
 body[data-visual-tab="workspace"] .link-analysis-page-actions > button {
-  min-height: 42px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -800,7 +800,7 @@ body[data-visual-tab="workspace"] .link-analysis-account-list > header h3 {
 }
 
 body[data-visual-tab="workspace"] .link-analysis-account-list > header button {
-  min-height: 36px;
+  min-height: 44px;
   padding: 6px 9px;
   font-size: 0.59rem;
   font-weight: 850;
@@ -1154,8 +1154,8 @@ body[data-visual-tab="workspace"] .link-analysis-account-dossier > header span {
 }
 
 body[data-visual-tab="workspace"] .link-analysis-account-dossier > header button {
-  width: 42px;
-  min-height: 42px;
+  width: 44px;
+  min-height: 44px;
   padding: 0;
   font-size: 1.2rem;
 }
@@ -1285,7 +1285,7 @@ body[data-visual-tab="workspace"] .link-analysis-review-bar button.primary {
 
 @media (max-width: 700px) {
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .mission-workspace-v3[data-active-tool="Link Analysis"] .mission-workspace-bar[data-link-analysis-header="true"] {
-    grid-template-columns: 38px minmax(0, 1fr) 38px;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
     gap: 7px;
     margin-bottom: 10px;
     border-color: rgba(86, 216, 255, 0.34);
@@ -1320,14 +1320,21 @@ body[data-visual-tab="workspace"] .link-analysis-review-bar button.primary {
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .mission-link-analysis-case-select select {
     width: 100%;
     min-width: 0;
-    min-height: 36px;
+    min-height: 44px;
     border: 1px solid rgba(80, 208, 255, 0.3);
     border-radius: 999px;
     background: rgba(5, 39, 83, 0.9);
     padding: 6px 24px 6px 8px;
     color: #8fe6ff;
-    font-size: 0.54rem;
+    font-size: clamp(0.6rem, 2.4vw, 0.68rem);
     font-weight: 850;
+  }
+
+  body[data-layout-mode="mobile"][data-visual-tab="workspace"] .mission-workspace-v3[data-active-tool="Link Analysis"] .mission-workspace-bar[data-link-analysis-header="true"] > button {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .mission-workspace-v3[data-active-tool="Link Analysis"] .mission-workspace-bar[data-link-analysis-header="true"] > button:last-child {
@@ -1419,7 +1426,7 @@ body[data-visual-tab="workspace"] .link-analysis-review-bar button.primary {
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-map > header span {
-    font-size: 0.5rem;
+    font-size: 0.54rem;
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-map > header strong {
@@ -1428,7 +1435,7 @@ body[data-visual-tab="workspace"] .link-analysis-review-bar button.primary {
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-map > header small {
     max-width: 105px;
-    font-size: 0.52rem;
+    font-size: 0.56rem;
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-map-canvas {
@@ -1448,15 +1455,15 @@ body[data-visual-tab="workspace"] .link-analysis-review-bar button.primary {
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-subject-node small {
-    font-size: 0.46rem;
+    font-size: 0.5rem;
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-subject-node strong {
-    font-size: 0.61rem;
+    font-size: 0.65rem;
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-subject-node em {
-    font-size: 0.49rem;
+    font-size: 0.52rem;
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-focus-node {
@@ -1473,12 +1480,12 @@ body[data-visual-tab="workspace"] .link-analysis-review-bar button.primary {
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-focus-node :is(small, em) {
-    font-size: 0.47rem;
+    font-size: 0.5rem;
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-orbit-node {
-    width: 112px;
-    min-height: 64px;
+    width: 118px;
+    min-height: 68px;
     grid-template-columns: 35px minmax(0, 1fr);
     column-gap: 5px;
     padding: 3px;
@@ -1490,15 +1497,22 @@ body[data-visual-tab="workspace"] .link-analysis-review-bar button.primary {
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-orbit-node strong {
-    font-size: 0.56rem;
+    font-size: 0.62rem;
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-orbit-node small {
-    font-size: 0.47rem;
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 0.52rem;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-orbit-node em {
-    font-size: 0.44rem;
+    font-size: 0.5rem;
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-phone { left: 17%; }
@@ -1528,7 +1542,7 @@ body[data-visual-tab="workspace"] .link-analysis-review-bar button.primary {
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-status-pill {
     max-width: 84px;
     padding: 4px 5px;
-    font-size: 0.45rem;
+    font-size: 0.5rem;
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-account-detail dl {
@@ -1544,7 +1558,7 @@ body[data-visual-tab="workspace"] .link-analysis-review-bar button.primary {
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-summary-metrics span {
-    font-size: 0.43rem;
+    font-size: 0.5rem;
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-account-dossier {
@@ -1584,7 +1598,7 @@ body[data-visual-tab="workspace"] .link-analysis-review-bar button.primary {
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-orbit-node {
-    width: 101px;
+    width: 106px;
   }
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-node-phone,
