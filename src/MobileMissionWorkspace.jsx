@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import BottomInvestigationGrid from './BottomInvestigationGrid.jsx';
 import CategoryTileRail from './CategoryTileRail.jsx';
 import InvestigationToolPanel from './InvestigationToolPanel.jsx';
@@ -10,6 +10,8 @@ import {
 import MobileMissionCaseBriefing from './MobileMissionCaseBriefing.jsx';
 import SubmitDecisionPanel from './SubmitDecisionPanel.jsx';
 import TimelinePanel from './TimelinePanel.jsx';
+import { getBusiness360Dossier } from './data/business360Dossier.js';
+import { getCustomer360Dossier } from './data/customer360Dossier.js';
 
 const screenCopy = {
   briefing: ['🗃️', 'Case Briefing'],
@@ -84,15 +86,42 @@ export default function MobileMissionWorkspace({
   const isTool = workspaceScreen === 'tool' || workspaceScreen === 'timeline';
   const is360Tool = isTool && ['Customer 360', 'Business 360'].includes(activeTool);
   const [mobile360MenuOpen, setMobile360MenuOpen] = useState(false);
-  const [mobile360DetailRequest, setMobile360DetailRequest] = useState({ detail: '', token: 0 });
+  const [mobile360DetailRequest, setMobile360DetailRequest] = useState({
+    detail: '',
+    token: 0,
+    caseId: '',
+    tool: '',
+  });
   const mobile360ActionButtonRef = useRef(null);
   const mobile360MenuCloseRef = useRef(null);
-  const mobile360ProfileName = activeTool === 'Customer 360'
-    ? activeCase.customer?.identity?.legalName ?? activeCase.person ?? 'Customer'
-    : activeCase.businessProfile?.legalName ?? activeCase.profile?.business ?? activeCase.businessName ?? 'Business';
+  const mobile360Profile = useMemo(() => {
+    if (activeTool === 'Customer 360') {
+      const dossier = getCustomer360Dossier(activeCase);
+      return {
+        id: dossier.identity.trainingId,
+        name: dossier.identity.legalName,
+      };
+    }
+    if (activeTool === 'Business 360') {
+      const dossier = getBusiness360Dossier(activeCase, {
+        relationshipId: activeToolProps.query,
+      });
+      return {
+        id: dossier.profile.businessId,
+        name: dossier.profile.legalName,
+      };
+    }
+    return { id: '', name: '' };
+  }, [activeCase, activeTool, activeToolProps.query]);
 
   useEffect(() => {
     setMobile360MenuOpen(false);
+    setMobile360DetailRequest((current) => ({
+      detail: '',
+      token: current.token + 1,
+      caseId: activeCase.id,
+      tool: activeTool,
+    }));
   }, [activeCase.id, activeTool, workspaceScreen]);
 
   useEffect(() => {
@@ -114,14 +143,17 @@ export default function MobileMissionWorkspace({
   }, [mobile360MenuOpen]);
 
   function requestMobile360Detail(detail) {
-    setMobile360DetailRequest((current) => ({ detail, token: current.token + 1 }));
+    setMobile360DetailRequest((current) => ({
+      detail,
+      token: current.token + 1,
+      caseId: activeCase.id,
+      tool: activeTool,
+    }));
     setMobile360MenuOpen(false);
   }
 
   function pinMobile360Profile() {
-    const pinValue = activeTool === 'Customer 360'
-      ? `${activeCase.trainingId ?? 'C360-REL'} · ${mobile360ProfileName}`
-      : `${activeTool} profile · ${mobile360ProfileName}`;
+    const pinValue = `${mobile360Profile.id} · ${mobile360Profile.name}`;
     activeToolProps.pin?.(pinValue);
     setMobile360MenuOpen(false);
   }
