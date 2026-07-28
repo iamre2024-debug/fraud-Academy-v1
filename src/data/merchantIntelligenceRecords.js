@@ -1,5 +1,6 @@
 // Scenario-aware merchant, network, and document packet builder.
 import { getEvidenceRecords, getFinancialRecords } from './caseToolData.js';
+import { WORKFLOW_TYPES } from './caseDomain.js';
 
 export const merchantIntelligenceTabs = [
   { id: 'claim-details', label: 'Claim Details' },
@@ -60,9 +61,12 @@ function merchantNameFor(activeCase, transactions = [], generated = {}) {
 function scenarioFor(activeCase = {}, merchantName = '') {
   const source = [activeCase.claimTypeId, activeCase.subtype, activeCase.scenarioTitle, activeCase.scenarioFamily, activeCase.statement?.value, activeCase.chargebackDecision?.reasonCode, merchantName].filter(Boolean).join(' ');
   const subtype = String(activeCase.subtype ?? '');
-  if (activeCase.claimTypeId === 'fraud-chargeback') return {
+  if (
+    (activeCase.workflowType ?? activeCase.claimTypeId) === WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM
+    || activeCase.claimTypeId === 'fraud-chargeback'
+  ) return {
     id: 'unauthorized-transaction', label: 'Unauthorized transaction dispute',
-    customerRequirements: ['Customer fraud statement', 'Card possession and recognition details', 'Recognized device or wallet information', 'Prior merchant relationship, if any', 'Relevant account-security documentation'],
+    customerRequirements: ['Customer unauthorized-activity statement', 'Card possession and recognition details', 'Recognized device or wallet information', 'Prior merchant relationship, if any', 'Relevant account-security documentation'],
     visaRequirements: ['Transaction authorization data is reviewed', 'Card-present, wallet, or card-not-present indicators are identified', 'Merchant order and fulfillment records are compared', 'Customer recognition and prior merchant history are documented', 'Filing and response deadlines remain open'],
   };
   if (/refund not|credit not|return credit|refund\/return abuse/i.test(source)) return {
@@ -343,7 +347,9 @@ export function getMerchantIntelligence(activeCase = {}) {
 
   return {
     profile, scenario, authorization, records, reasonCode, responseDeadline, merchantDocuments, customerDocuments,
-    claimLane: /fraud/i.test(activeCase.claimTypeId ?? activeCase.type ?? '') && !/non.?fraud/i.test(activeCase.claimTypeId ?? activeCase.type ?? '') ? 'Fraud chargeback' : 'Non-fraud dispute',
+    claimLane: (activeCase.workflowType ?? activeCase.claimTypeId) === WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM
+      ? 'Unauthorized Card Transaction Claim'
+      : 'Merchant / Non-Fraud Dispute',
     summaryFields: [['Disputed amount', currentAmount], [scenario.id === 'recurring-cancellation' ? 'Cancellation date' : 'Issue date', issueDate], ['Case ID', activeCase.id]],
     quickSummary: [['Prior merchant transactions', profile.priorTransactionCount], ['Prior merchant disputes', profile.priorDisputeCount], ['Refunds / reversals', profile.refundCount], ['Recurring billing', recurringDetected ? 'Detected' : 'Not detected'], ['Merchant response', responseStatus], ['Customer proof missing', openCustomerDocuments.length]],
     claimDetails: claimDetailFields,

@@ -12,12 +12,12 @@ test('responsive payment records stay inside the viewport', async ({ page }, tes
   await expect(panel).toHaveAttribute('data-tool-name', 'Payment Verification');
   await runPaymentVerification(panel, { bankCode: 'BC-441', destinationId: 'DST-CARD-4410', ownerName: 'Maya Sterling' });
 
-  const detail = panel.locator('.payment-detail-panel');
+  const detail = panel.getByRole('status', { name: 'Payment verification result' });
   await expect(detail).toBeVisible();
 
   const layout = await page.evaluate(() => {
     const panelElement = document.querySelector('[data-investigation-tools-screen="approved-theme-v1"]');
-    const detailElement = document.querySelector('.payment-detail-panel');
+    const detailElement = document.querySelector('.payment-mission-result');
     const viewportWidth = window.innerWidth;
     const withinViewport = (element) => {
       const rect = element?.getBoundingClientRect();

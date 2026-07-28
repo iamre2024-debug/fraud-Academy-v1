@@ -1,4 +1,12 @@
 import { rowsFor } from './visualWorkspaceModel.js';
+import {
+  financialRecordSearchText,
+  getFinancialInvestigation,
+} from './data/financialInvestigationRecords.js';
+import {
+  filterToolsForCaseDomain,
+  normalizeToolName,
+} from './data/caseDomain.js';
 
 function text(value) {
   return String(value ?? '').trim();
@@ -22,7 +30,7 @@ const pinPrefixRoutes = [
   [/^(?:PAY|PV|BNK|DST)-/i, 'Payment Verification'],
   [/^(?:MER|MRC|MCC|ORD|FUL|CBK)-/i, 'Merchant Intelligence'],
   [/^(?:BIZ|REL)-/i, 'Business 360'],
-  [/^(?:KYB|REG|SOS|EIN)-/i, 'KYB Review'],
+  [/^(?:KYB|REG|SOS|EIN)-/i, 'Business 360'],
   [/^EMP-/i, 'Employee Profile'],
   [/^(?:PAYR|PR)-/i, 'Payroll History'],
   [/^DOC-/i, 'Document Viewer'],
@@ -52,18 +60,73 @@ function scoreRow(pinValue, identifier, row) {
   return 0;
 }
 
+function rowsForPinnedEvidence(tool, activeCase) {
+  const legacyData = rowsFor(tool, activeCase);
+  if (tool !== 'Financial Investigation') return legacyData;
+
+  const richRecords = Object.values(
+    getFinancialInvestigation(activeCase).recordsBySection,
+  ).flat();
+  const richRows = richRecords.map((record) => ({
+    id: record.id,
+    pin: record.id,
+    label: record.title ?? record.category ?? 'Financial record',
+    detail: financialRecordSearchText(record),
+    values: [
+      record.id,
+      record.title ?? record.category ?? 'Financial record',
+      record.value ?? 'Not recorded',
+      record.observed ?? record.period ?? 'Not recorded',
+      record.status ?? 'Recorded',
+      record.detail ?? 'No additional detail supplied',
+    ],
+  }));
+  const richIds = new Set(richRows.map((row) => row.id));
+  return {
+    ...legacyData,
+    rows: [
+      ...richRows,
+      ...legacyData.rows.filter((row) => !richIds.has(row.id)),
+    ],
+  };
+}
+
 export function resolvePinnedEvidence(pinValue, activeCase, toolNames) {
   const value = text(pinValue);
   if (!value || !activeCase) return null;
 
+  const routedToolNames = filterToolsForCaseDomain(toolNames, activeCase);
   const identifier = firstIdentifier(value);
   const preferredTool = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(value)
     ? 'IP Intelligence'
-    : pinPrefixRoutes.find(([pattern, tool]) => pattern.test(identifier) && toolNames.includes(tool))?.[1];
+    : normalizeToolName(
+        pinPrefixRoutes.find(([pattern, tool]) => (
+          pattern.test(identifier) && routedToolNames.includes(tool)
+        ))?.[1],
+      );
   let bestMatch = null;
 
-  toolNames.forEach((tool) => {
-    const data = rowsFor(tool, activeCase);
+  if (routedToolNames.includes('Financial Investigation')) {
+    const financialRows = rowsForPinnedEvidence('Financial Investigation', activeCase).rows;
+    const exactFinancialRow = financialRows.find((row) => (
+      normalized(row.id) === normalized(value)
+      || normalized(row.id) === normalized(identifier)
+      || normalized(row.pin) === normalized(value)
+      || normalized(row.pin) === normalized(identifier)
+    ));
+    if (exactFinancialRow) {
+      return {
+        value,
+        tool: 'Financial Investigation',
+        row: exactFinancialRow,
+        query: exactFinancialRow.id,
+        recordId: exactFinancialRow.id,
+      };
+    }
+  }
+
+  routedToolNames.forEach((tool) => {
+    const data = rowsForPinnedEvidence(tool, activeCase);
     data.rows.forEach((row) => {
       const baseScore = scoreRow(value, identifier, row);
       if (!baseScore) return;

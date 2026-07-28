@@ -19,7 +19,8 @@ mustContain('CaseSummaryCard.jsx', summary, "import DirectCollapsibleText from '
 mustContain('CaseSummaryCard.jsx', summary, '<small>Transaction / payee info</small>');
 mustContain('CaseSummaryCard.jsx', summary, '<small>Short summary</small>');
 mustContain('CaseSummaryCard.jsx', summary, '{activeCase.transactionInfo ?? activeCase.type}');
-mustContain('CaseSummaryCard.jsx', summary, '{activeCase.shortSummary ?? activeCase.queueReason}');
+mustContain('CaseSummaryCard.jsx', summary, "publicCaseSummary,");
+mustContain('CaseSummaryCard.jsx', summary, '{publicCaseSummary(activeCase)}');
 mustContain('VisualApp.jsx', visualApp, '<VisualTextCollapse />');
 mustContain('VisualTextCollapse.jsx', visualTextCollapse, 'data-react-text-collapse="retired"');
 mustNotContain('VisualTextCollapse.jsx', visualTextCollapse, 'summary-copy');

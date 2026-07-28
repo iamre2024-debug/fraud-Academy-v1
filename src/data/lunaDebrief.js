@@ -1,3 +1,6 @@
+import { getGeneratedCaseTruth } from './generatedCases.js';
+import { normalizeReviewPackage } from './reviewPackage.js';
+
 const debriefGuides = {
   'FA-ATO-24018': {
     theme: 'Account access and purchase timeline',
@@ -81,21 +84,42 @@ const defaultGuide = {
 export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [], tray = [], notes = [] }) {
   if (!reviewPackage) return null;
 
+  const normalizedPackage = normalizeReviewPackage(reviewPackage, activeCase);
   const guide = debriefGuides[activeCase.id] ?? defaultGuide;
-  const packageTools = reviewPackage.completedTools?.length ? reviewPackage.completedTools : completedTools;
-  const pinnedEvidence = reviewPackage.pinnedEvidence?.length ? reviewPackage.pinnedEvidence : tray;
-  const noteSnapshot = reviewPackage.noteSnapshot?.length ? reviewPackage.noteSnapshot : notes;
-  const rationale = reviewPackage.reason ?? '';
-  const decisionIndicators = reviewPackage.decisionIndicators ?? [];
+  const packageTools = normalizedPackage.completedTools?.length ? normalizedPackage.completedTools : completedTools;
+  const pinnedEvidence = normalizedPackage.pinnedEvidence?.length ? normalizedPackage.pinnedEvidence : tray;
+  const noteSnapshot = normalizedPackage.noteSnapshot?.length ? normalizedPackage.noteSnapshot : notes;
+  const rationale = normalizedPackage.findingBasis ?? '';
+  const decisionIndicators = normalizedPackage.decisionIndicators ?? [];
   const provenDecisionIndicators = decisionIndicators.filter((item) => item.proof && item.explanation);
-  const caseTruth = activeCase.caseTruth ?? null;
-  const acceptedDeterminations = caseTruth?.acceptedDeterminations?.length
+  // Hidden truth is resolved only after the review-package guard above succeeds.
+  const caseTruth = resolvePostSubmissionTruth(activeCase);
+  const expectedOperationalDecision = caseTruth?.operationalDecision
+    ?? caseTruth?.correctDetermination
+    ?? null;
+  const acceptedOperationalDecisions = caseTruth?.acceptedDeterminations?.length
     ? caseTruth.acceptedDeterminations
-    : caseTruth?.correctDetermination ? [caseTruth.correctDetermination] : [];
-  const determinationMatched = caseTruth ? acceptedDeterminations.includes(reviewPackage.choice) : null;
+    : expectedOperationalDecision ? [expectedOperationalDecision] : [];
+  const expectedFinalFinding = caseTruth?.finalFinding ?? null;
+  const operationalDecisionMatched = caseTruth && expectedOperationalDecision
+    ? acceptedOperationalDecisions.includes(normalizedPackage.operationalDecision)
+    : null;
+  const finalFindingMatched = caseTruth && expectedFinalFinding && normalizedPackage.finalFinding
+    ? normalizedPackage.finalFinding === expectedFinalFinding
+    : null;
+  const determinationMatched = aggregateMatch({
+    caseTruth,
+    expectedOperationalDecision,
+    expectedFinalFinding,
+    operationalDecisionMatched,
+    finalFindingMatched,
+    submittedFinalFinding: normalizedPackage.finalFinding,
+  });
 
   const haystack = [
     activeCase.type,
+    activeCase.alertReason,
+    activeCase.reportedAllegation,
     activeCase.allegation,
     ...packageTools,
     ...pinnedEvidence,
@@ -116,12 +140,35 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
   const pinScore = Math.min(12, pinnedEvidence.length * 3);
   const noteScore = notesQuality.points;
   const focusScore = Math.round((focusCoverage.filter((area) => area.covered).length / focusCoverage.length) * 14);
-  const confidenceScore = reviewPackage.confidence === 'High' ? 4 : reviewPackage.confidence === 'Medium' ? 3 : 2;
+  const confidenceScore = normalizedPackage.confidence === 'High' ? 4 : normalizedPackage.confidence === 'Medium' ? 3 : 2;
   const indicatorScore = Math.min(10, provenDecisionIndicators.length * 3);
-  const determinationScore = caseTruth ? (determinationMatched ? 20 : 0) : 10;
-  const score = Math.min(100, toolScore + pinScore + noteScore + focusScore + confidenceScore + indicatorScore + determinationScore);
+  const operationalDecisionScore = caseTruth && expectedOperationalDecision
+    ? operationalDecisionMatched === true ? 10 : operationalDecisionMatched === false ? 0 : 5
+    : 5;
+  const finalFindingScore = caseTruth && expectedFinalFinding
+    ? finalFindingMatched === true ? 10 : finalFindingMatched === false ? 0 : 5
+    : 5;
+  const score = Math.min(
+    100,
+    toolScore
+      + pinScore
+      + noteScore
+      + focusScore
+      + confidenceScore
+      + indicatorScore
+      + operationalDecisionScore
+      + finalFindingScore,
+  );
   const followUps = focusCoverage.filter((area) => !area.covered).map((area) => area.label);
-  if (caseTruth && !determinationMatched) followUps.unshift(`Compare the submitted determination with the scenario truth: ${caseTruth.correctDetermination}.`);
+  if (operationalDecisionMatched === false) {
+    followUps.unshift(`Compare the submitted operational decision with the scenario outcome: ${expectedOperationalDecision}.`);
+  }
+  if (finalFindingMatched === false) {
+    followUps.unshift(`Compare the submitted final finding with what the investigation established: ${expectedFinalFinding}.`);
+  }
+  if (caseTruth && expectedFinalFinding && !normalizedPackage.finalFinding) {
+    followUps.unshift('This legacy package did not record a separate final finding, so Luna will not grade the scenario outcome.');
+  }
   if (notesQuality.points < 9) followUps.unshift(notesQuality.nextStep);
 
   return {
@@ -133,11 +180,22 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
     followUps: followUps.length ? followUps : ['No required focus gaps detected in this saved package.'],
     notesQuality,
     determinationMatched,
+    operationalDecisionMatched,
+    finalFindingMatched,
+    submittedOperationalDecision: normalizedPackage.operationalDecision,
+    submittedFinalFinding: normalizedPackage.finalFinding,
     truthReveal: caseTruth ? {
       classification: caseTruth.classification,
-      correctDetermination: caseTruth.correctDetermination,
-      acceptedDeterminations,
-      rationale: caseTruth.rationale,
+      suspectedPatterns: [...(caseTruth.suspectedPatterns ?? [])],
+      operationalDecision: expectedOperationalDecision,
+      acceptedOperationalDecisions,
+      finalFinding: expectedFinalFinding,
+      findingBasis: caseTruth.findingBasis ?? caseTruth.rationale ?? caseTruth.classification ?? '',
+      disclosure: caseTruth.disclosure ? { ...caseTruth.disclosure } : null,
+      // Compatibility aliases for saved debriefs created before decisions and findings were split.
+      correctDetermination: expectedOperationalDecision,
+      acceptedDeterminations: acceptedOperationalDecisions,
+      rationale: caseTruth.findingBasis ?? caseTruth.rationale ?? '',
     } : null,
     breakdown: [
       { label: 'Required tool coverage', value: `${coveredRequired}/${totalRequired}`, points: toolScore },
@@ -145,10 +203,43 @@ export function buildLunaDebrief({ activeCase, reviewPackage, completedTools = [
       { label: 'Quality of notes', value: notesQuality.summary, points: noteScore },
       { label: 'Case focus coverage', value: `${focusCoverage.filter((area) => area.covered).length}/${focusCoverage.length}`, points: focusScore },
       { label: 'Weighted flag documentation', value: `${provenDecisionIndicators.length} proven flag(s)`, points: indicatorScore },
-      { label: 'Scenario determination', value: caseTruth ? (determinationMatched ? 'Matched' : 'Did not match') : 'Base-case calibration', points: determinationScore },
-      { label: 'Confidence calibration', value: reviewPackage.confidence, points: confidenceScore },
+      { label: 'Operational decision', value: matchLabel(operationalDecisionMatched, caseTruth), points: operationalDecisionScore },
+      { label: 'Final finding', value: matchLabel(finalFindingMatched, caseTruth), points: finalFindingScore },
+      { label: 'Confidence calibration', value: normalizedPackage.confidence, points: confidenceScore },
     ],
   };
+}
+
+function resolvePostSubmissionTruth(activeCase = {}) {
+  const truth = getGeneratedCaseTruth(activeCase, { submitted: true });
+  if (truth) return truth;
+  return activeCase.caseTruth ?? null;
+}
+
+function aggregateMatch({
+  caseTruth,
+  expectedOperationalDecision,
+  expectedFinalFinding,
+  operationalDecisionMatched,
+  finalFindingMatched,
+  submittedFinalFinding,
+}) {
+  if (!caseTruth) return null;
+  if (expectedOperationalDecision && operationalDecisionMatched === null) return null;
+  if (expectedFinalFinding && !submittedFinalFinding) return null;
+  if (operationalDecisionMatched === false || finalFindingMatched === false) return false;
+  const gradedParts = [
+    expectedOperationalDecision ? operationalDecisionMatched : null,
+    expectedFinalFinding ? finalFindingMatched : null,
+  ].filter((value) => value !== null);
+  return gradedParts.length ? gradedParts.every(Boolean) : null;
+}
+
+function matchLabel(match, caseTruth) {
+  if (!caseTruth) return 'Base-case calibration';
+  if (match === true) return 'Matched';
+  if (match === false) return 'Did not match';
+  return 'Not graded';
 }
 
 export function scoreNotesQuality(notes = []) {
@@ -219,7 +310,7 @@ function buildStrengths({ coveredRequired, pinnedEvidence, notesQuality, rationa
   if (wordCount(rationale) >= 20) strengths.push('The rationale has enough substance for coaching review.');
   if (focusCoverage.some((area) => area.covered)) strengths.push('At least one case-specific focus area is visible in the saved package.');
   if (provenDecisionIndicators.length) strengths.push('The selected case flags include proof and an investigator explanation.');
-  if (determinationMatched) strengths.push('The submitted determination matches the hidden scenario truth.');
+  if (determinationMatched) strengths.push('The operational decision and final finding match the hidden scenario truth.');
 
   return strengths.length ? strengths : ['The package was saved, but Luna needs more documented support to coach from.'];
 }

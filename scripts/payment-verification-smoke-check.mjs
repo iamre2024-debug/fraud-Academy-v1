@@ -9,6 +9,8 @@ import {
   PAYMENT_NAME_RESULTS,
   buildPaymentLookupHint,
   comparePaymentOwner,
+  normalizePaymentRecord,
+  paymentLookupPrefillFromQuery,
   parsePaymentLookupHint,
   resolvePaymentLookup,
 } from '../src/data/paymentVerification.js';
@@ -17,20 +19,10 @@ const failures = [];
 const cases = enrichTrainingCases(trainingCases);
 const requiredFields = [
   'nameMatchResult',
-  'ownershipStatus',
-  'operationalStatus',
-  'standingStatus',
-  'paymentType',
-  'paymentStatus',
-  'priorUseHistory',
-  'ownershipHistory',
-  'returnHistory',
-  'verificationAttempts',
-  'reviewContext',
-  'customerLink',
-  'trustedContactSource',
-  'callbackStatus',
-  'evidenceSummary',
+  'accountState',
+  'nsfStatus',
+  'accountAgeLabel',
+  'statusAsOf',
 ];
 const canonicalChangeFields = [
   'bankCode',
@@ -66,6 +58,29 @@ function paymentChangeEvents(activeCase) {
   ].filter(Boolean).join(' ')));
 }
 
+function normalizedStatusFixture(overrides = {}) {
+  return normalizePaymentRecord({
+    id: 'PV-STATUS-FIXTURE',
+    type: 'External payment account',
+    object: 'Destination ID DST-STATUS',
+    accountType: 'Linked external account',
+    accountHolder: 'Training Owner',
+    ownerMatch: 'Match',
+    accountStatus: 'Open',
+    standing: 'Good standing',
+    firstSeen: 'Jan 8, 2026',
+    statusAsOf: 'Jul 8, 2026',
+    bankCode: 'BC-STATUS',
+    destinationId: 'DST-STATUS',
+    ...overrides,
+  }, {
+    id: 'FA-PV-STATUS',
+    customerType: 'personal',
+    person: 'Training Owner',
+    opened: 'Jul 8, 2026',
+  });
+}
+
 for (const activeCase of cases.filter((item) => item.availableTools?.includes('Payment Verification'))) {
   const records = getFinancialRecords(activeCase).paymentVerification;
   if (!records.length) fail(`${activeCase.id} has no Payment Verification records.`);
@@ -87,16 +102,153 @@ if (comparePaymentOwner('Maya Sterling', 'Maya Sterling') !== 'Match') fail('Exa
 if (comparePaymentOwner('Maya Sterling', 'Maya S.') !== 'Partial Match') fail('Abbreviated owner-name comparison failed.');
 if (comparePaymentOwner('Avery Brooks', 'Training Holder 1234') !== 'No Match') fail('Different owner-name comparison failed.');
 if (comparePaymentOwner('', 'Avery Brooks') !== 'Unable to Verify') fail('Missing owner-name comparison failed.');
+if (comparePaymentOwner('Acme Corp LLC', 'Global Corp LLC') !== 'No Match') {
+  fail('Business suffixes incorrectly created a partial owner-name match.');
+}
+
+const openStatus = normalizedStatusFixture();
+const closedStatus = normalizedStatusFixture({ accountStatus: 'Closed' });
+const frozenStatus = normalizedStatusFixture({ accountStatus: 'Restricted / frozen' });
+const nsfFound = normalizedStatusFixture({
+  standing: 'NSF returned-payment record found',
+  notes: 'One returned payment is present in the supplied source.',
+});
+const unavailableStatus = normalizedStatusFixture({
+  accountStatus: 'Pending provider response',
+  standing: 'Standing unavailable',
+  notes: 'The provider did not return standing detail.',
+});
+const exactAge = normalizedStatusFixture({
+  accountOpenedDate: 'Jan 8, 2024',
+  statusAsOf: 'Jul 8, 2026',
+});
+const limitedAge = normalizedStatusFixture({
+  firstSeen: 'Jan 8, 2026',
+  statusAsOf: 'Jul 8, 2026',
+});
+const unavailableAge = normalizedStatusFixture({
+  firstSeen: 'Training date',
+  statusAsOf: 'Training date',
+});
+const businessPartyCase = {
+  id: 'FA-PV-BUSINESS-PARTIES',
+  customerType: 'business',
+  person: 'Training Owner',
+  profile: { business: 'Acme Corp LLC' },
+  parties: [
+    { name: 'Training Owner', role: 'Owner', partyType: 'person' },
+    { name: 'Acme Corp LLC', role: 'Business', partyType: 'entity' },
+  ],
+  opened: 'Jul 8, 2026',
+};
+const ownerPartyRecord = normalizePaymentRecord({
+  id: 'PV-OWNER-PARTY',
+  type: 'Business checking account',
+  object: 'Business checking',
+  accountType: 'Business checking',
+  accountHolder: 'Training Owner',
+  accountStatus: 'Open',
+  standing: 'No NSF record found',
+  firstSeen: 'Jan 8, 2026',
+  statusAsOf: 'Jul 8, 2026',
+  bankCode: 'BC-OWNER',
+  destinationId: 'DST-OWNER',
+}, businessPartyCase);
+const businessPartyRecord = normalizePaymentRecord({
+  ...ownerPartyRecord,
+  id: 'PV-BUSINESS-PARTY',
+  accountHolder: 'Acme Corp LLC',
+  bankCode: 'BC-BUSINESS',
+  destinationId: 'DST-BUSINESS',
+}, businessPartyCase);
+const ownerPartyLookup = resolvePaymentLookup(
+  [ownerPartyRecord],
+  { bankCode: 'BC-OWNER', destinationId: 'DST-OWNER', ownerName: 'Training Owner' },
+  businessPartyCase,
+);
+const businessPartyLookup = resolvePaymentLookup(
+  [businessPartyRecord],
+  { bankCode: 'BC-BUSINESS', destinationId: 'DST-BUSINESS', ownerName: 'Acme Corp LLC' },
+  businessPartyCase,
+);
+
+if (openStatus.accountState !== 'Open') fail('Open account state did not normalize to Open.');
+if (closedStatus.accountState !== 'Closed') fail('Closed account state did not normalize to Closed.');
+if (frozenStatus.accountState !== 'Frozen') fail('Frozen account state did not normalize to Frozen.');
+if (nsfFound.nsfStatus !== 'NSF found') fail('Positive NSF evidence did not normalize to NSF found.');
+if (unavailableStatus.accountState !== 'Unable to Verify') fail('Pending account state did not remain unavailable.');
+if (unavailableStatus.nsfStatus !== 'Unable to Verify') fail('Missing NSF evidence did not remain unavailable.');
+if (exactAge.accountAgeLabel !== '2 years, 6 months') {
+  fail(`Exact account age was not deterministic: ${exactAge.accountAgeLabel}.`);
+}
+if (limitedAge.accountAgeLabel !== 'At least 6 months in supplied history') {
+  fail(`Limited-history account age was not preserved: ${limitedAge.accountAgeLabel}.`);
+}
+if (unavailableAge.accountAgeLabel !== 'Unable to verify from supplied history') {
+  fail(`Unavailable account age was not explicit: ${unavailableAge.accountAgeLabel}.`);
+}
+if (ownerPartyLookup.matchedPartyType !== 'Owner' || ownerPartyLookup.nameMatchResult !== 'Match') {
+  fail('Business-owner lookup did not return a matching Owner relationship.');
+}
+if (businessPartyLookup.matchedPartyType !== 'Business' || businessPartyLookup.nameMatchResult !== 'Match') {
+  fail('Business-name lookup did not return a matching Business relationship.');
+}
 
 const creditCase = cases.find((item) => item.id === 'FA-CR-24003');
 const creditRecords = getFinancialRecords(creditCase).paymentVerification;
-const exactLookup = resolvePaymentLookup(creditRecords, { bankCode: 'BC-204', destinationId: 'DST-7740', ownerName: 'Avery Brooks' });
+const exactLookup = resolvePaymentLookup(
+  creditRecords,
+  { bankCode: 'BC-204', destinationId: 'DST-7740', ownerName: 'Avery Brooks' },
+  creditCase,
+);
 if (exactLookup.state !== 'found' || exactLookup.nameMatchResult !== 'Partial Match') fail('Exact destination lookup did not return the expected partial name result.');
-const missingLookup = resolvePaymentLookup(creditRecords, { bankCode: 'BC-404', destinationId: 'DST-MISSING', ownerName: 'Avery Brooks' });
+if (exactLookup.recordId !== 'PAY-3302' || exactLookup.accountState !== 'Open') {
+  fail('Duplicate destination lookup did not select the actual linked account record.');
+}
+if (exactLookup.nsfStatus !== 'No NSF found') {
+  fail('Duplicate destination lookup did not reconcile the supplied no-NSF evidence.');
+}
+if (exactLookup.matchingRecordIds?.length !== 3) {
+  fail('Duplicate destination lookup did not retain all matching source-record identifiers.');
+}
+if (exactLookup.matchedPartyType !== 'Person') {
+  fail('Personal credit lookup did not identify the supplied name as a person.');
+}
+const missingLookup = resolvePaymentLookup(
+  creditRecords,
+  { bankCode: 'BC-404', destinationId: 'DST-MISSING', ownerName: 'Avery Brooks' },
+  creditCase,
+);
 if (missingLookup.nameMatchResult !== 'Destination Not Found' || missingLookup.record) fail('Missing destination lookup leaked a record.');
 
 const hint = buildPaymentLookupHint({ bankCode: 'BC-204', destinationId: 'DST-7740', ownerName: 'Avery Brooks' });
 if (JSON.stringify(parsePaymentLookupHint(hint)) !== JSON.stringify({ bankCode: 'BC-204', destinationId: 'DST-7740', ownerName: 'Avery Brooks' })) fail('Payment lookup prefill did not round-trip.');
+if (JSON.stringify(paymentLookupPrefillFromQuery(hint, creditRecords)) !== JSON.stringify({
+  bankCode: 'BC-204',
+  destinationId: 'DST-7740',
+  ownerName: 'Avery Brooks',
+  replace: true,
+})) fail('Structured Payment lookup did not replace all search fields.');
+if (JSON.stringify(paymentLookupPrefillFromQuery('BC-204', creditRecords)) !== JSON.stringify({
+  bankCode: 'BC-204',
+  replace: false,
+})) fail('Quick Pad Bank Code did not map to the Payment search.');
+if (JSON.stringify(paymentLookupPrefillFromQuery('DST-7740', creditRecords)) !== JSON.stringify({
+  destinationId: 'DST-7740',
+  replace: false,
+})) fail('Quick Pad Destination ID did not map to the Payment search.');
+const pinnedPaymentPrefill = paymentLookupPrefillFromQuery('PAY-3302', creditRecords);
+if (
+  pinnedPaymentPrefill?.bankCode !== 'BC-204'
+  || pinnedPaymentPrefill?.destinationId !== 'DST-7740'
+  || pinnedPaymentPrefill?.ownerName
+  || pinnedPaymentPrefill?.replace !== false
+) {
+  fail('Pinned Payment evidence did not restore only the non-secret destination identifiers.');
+}
+if (paymentLookupPrefillFromQuery('UNKNOWN-LOOKUP', creditRecords) !== null) {
+  fail('Unknown Payment query unexpectedly populated the search.');
+}
 
 const generatedLaneVariants = new Set();
 let generatedSequence = 1900000000000;
@@ -135,7 +287,7 @@ for (const claimType of coreClaimTypes) {
         bankCode: record.bankCode,
         destinationId: record.destinationId,
         ownerName: generated.person,
-      });
+      }, generated);
       if (resolved.state !== 'found' || !PAYMENT_NAME_RESULTS.includes(resolved.nameMatchResult)) {
         fail(`${scenario.id}/${record.id} cannot be retrieved through the canonical lookup.`);
       }
@@ -176,22 +328,19 @@ for (const claimType of coreClaimTypes) {
 
     if (generated.claimTypeId === 'payroll-direct-deposit') {
       const canonicalRecord = records[0];
-      const payrollRecords = getPayrollHistory(generated);
-      if (!payrollRecords.length) {
-        fail(`${scenario.id} has no generated Payroll History records.`);
+      const payrollWorkspace = getPayrollHistory(generated);
+      if (!payrollWorkspace.payrollRuns.length) {
+        fail(`${scenario.id} has no generated company Payroll History runs.`);
       }
-      for (const payrollRecord of payrollRecords) {
-        for (const field of canonicalChangeFields) {
-          if (payrollRecord[field] !== canonicalRecord[field]) {
-            fail(`${scenario.id}/${payrollRecord.id} ${field} does not match ${canonicalRecord.id}.`);
-          }
-        }
-        const payrollText = Object.values(payrollRecord).filter((value) => typeof value === 'string').join(' ');
-        if (!payrollText.includes(canonicalRecord.bankCode) || !payrollText.includes(canonicalRecord.destinationId)) {
-          fail(`${scenario.id}/${payrollRecord.id} omits the canonical Bank Code or Destination ID.`);
-        }
-        if (placeholderOrNoChangePattern.test(payrollText)) {
-          fail(`${scenario.id}/${payrollRecord.id} contains a masked, placeholder, or contradictory no-change destination.`);
+      for (const payrollRun of payrollWorkspace.payrollRuns) {
+        const destinations = payrollRun.employees[0]?.paystub?.paymentDestinations ?? [];
+        const hasCurrentDestination = destinations.some((destination) => destination.bankCode === canonicalRecord.bankCode && destination.destinationId === canonicalRecord.destinationId);
+        const currentDestinationEffective = new Date(payrollRun.payDate) >= new Date(canonicalRecord.firstSeen);
+        if (currentDestinationEffective && !hasCurrentDestination) fail(`${scenario.id}/${payrollRun.id} omits the destination effective for that payroll snapshot.`);
+        if (!currentDestinationEffective && hasCurrentDestination) fail(`${scenario.id}/${payrollRun.id} backfills a destination introduced after the payroll posted.`);
+        const payrollText = JSON.stringify(payrollRun);
+        for (const gatedField of ['accountHolder', 'ownerMatch', 'ownershipStatus', 'operationalStatus', 'priorUseHistory']) {
+          if (payrollText.includes(gatedField)) fail(`${scenario.id}/${payrollRun.id} exposes gated Payment Verification field ${gatedField}.`);
         }
       }
     }
@@ -217,36 +366,86 @@ if (!fallbackRecord || requiredFields.some((field) => fallbackRecord[field] === 
 }
 
 const panel = fs.readFileSync(new URL('../src/InvestigationToolPanel.jsx', import.meta.url), 'utf8');
-const customer = fs.readFileSync(new URL('../src/Customer360Panel.jsx', import.meta.url), 'utf8');
+const paymentWorkspace = fs.readFileSync(new URL('../src/PaymentVerificationWorkspace.jsx', import.meta.url), 'utf8');
 for (const anchor of [
   'Search before reveal',
   'Bank Code',
   'Destination ID',
-  'Owner or business name',
+  'Person, owner, or business name',
   'Run verification',
   'Destination Not Found',
-  'Name match result',
+  'Name relationship',
+  'Account status',
+  'NSF result',
+  'Time open / on record',
+  'Payment Verification result hidden',
+  'disabled={!activeRecord}',
+  'resolvePaymentLookup(records, submitted, activeCase)',
+  'paymentLookupPrefillFromQuery(query, records)',
+]) {
+  if (!paymentWorkspace.includes(anchor)) fail(`Payment Verification UI is missing: ${anchor}`);
+}
+for (const forbidden of [
+  'Account holder',
   'Ownership status',
   'Operational account status',
+  'Payment type',
   'Verification attempts',
   'Evidence-first summary',
-  'disabled={!lookupResult}',
+  'ready for payments',
 ]) {
-  if (!panel.includes(anchor)) fail(`Payment Verification UI is missing: ${anchor}`);
+  if (paymentWorkspace.toLowerCase().includes(forbidden.toLowerCase())) {
+    fail(`Payment Verification narrow result leaks forbidden detail: ${forbidden}.`);
+  }
+}
+if (/\baccountHolder\b/.test(paymentWorkspace)) {
+  fail('Payment Verification UI reads the hidden account-holder value.');
+}
+if (/\b(?:fraud score|name match score|confidence score|\d{1,3}% confidence)\b/i.test(paymentWorkspace)) {
+  fail('Payment Verification UI exposes a score.');
+}
+if (/\b(?:approve|deny|hold|release|ready for payments)\b/i.test(paymentWorkspace)) {
+  fail('Payment Verification UI exposes pre-decision approval or payment-routing language.');
+}
+for (const legacyClass of [
+  'payment-verification-gate',
+  'payment-detail-panel',
+  'payment-verification-snapshot',
+  'payment-action-panel',
+  'payment-lookup-history',
+  'investigation-tool-next-routes',
+  'investigation-tool-review-bar',
+]) {
+  if (paymentWorkspace.includes(legacyClass)) {
+    fail(`Payment Verification still couples the rebuilt layout to legacy class ${legacyClass}.`);
+  }
 }
 for (const anchor of [
-  'Payment Account Change',
-  'Payment Verification Inputs',
+  "import PaymentVerificationWorkspace from './PaymentVerificationWorkspace.jsx'",
+  "tool === 'Payment Verification'",
+  '<PaymentVerificationWorkspace',
+  'quickPin={quickPin}',
+]) {
+  if (!panel.includes(anchor)) fail(`Extracted Payment Verification route is missing: ${anchor}`);
+}
+for (const anchor of [
+  'function PaymentSourceHandoff',
+  "activeCase.availableTools?.includes('Payment Verification')",
+  'Source identifiers · Evidence First',
+  'Payment account change',
   'Bank Code',
   'Destination ID',
   'Previous account / destination',
   'New account / destination',
   'Change comparison',
-  'Payment account change details for',
+  'data-payment-source-record',
   'Prefill Payment Verification',
   'buildPaymentLookupHint',
 ]) {
-  if (!customer.includes(anchor)) fail(`Customer 360 handoff is missing: ${anchor}`);
+  if (!panel.includes(anchor)) fail(`Payment source handoff is missing: ${anchor}`);
+}
+if ((panel.match(/<PaymentSourceHandoff/g) ?? []).length < 2) {
+  fail('Payment source handoff is not connected to every supported source workspace.');
 }
 
 if (failures.length) {
@@ -254,4 +453,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log(`Payment Verification smoke check passed for all ${eligibleGeneratedCases} eligible generated scenarios plus every built-in and fallback case. Search-before-reveal, canonical Bank Code and Destination ID values, exact account-change history, canonical name results, ownership and prior-use history, split statuses, lane variants, attempts, source handoffs, and Evidence First wording are intact.`);
+console.log(`Payment Verification smoke check passed for all ${eligibleGeneratedCases} eligible generated scenarios plus every built-in and fallback case. Search-before-reveal, exact destination selection, person/owner/business name relationships, narrow account status and NSF results, deterministic or limited account age, source prefills, and Evidence First result boundaries are intact.`);
