@@ -768,22 +768,24 @@ function completeServiceContacts(records = [], activeCase) {
   }));
 }
 
-function normalizeOwnershipLink(raw, index) {
+function normalizeBusinessLink(raw, index) {
   const relationship = raw.relationshipType
     ?? raw.relationship
     ?? raw.role
     ?? raw.linkType
     ?? '';
-  if (!/owner|ownership|beneficial|control/i.test(relationship)) return null;
   const businessId = raw.businessId ?? raw.id ?? raw.entityId;
   const businessName = raw.businessName ?? raw.legalName ?? raw.name ?? raw.entity;
   if (!businessId || !businessName) return null;
+  const isOwnershipRelationship = /owner|ownership|beneficial|control/i.test(relationship);
   return {
     id: raw.id ?? `BUSINESS-LINK-${index + 1}`,
     businessId,
     businessName,
     relationship,
-    ownershipPercentage: raw.ownershipPercentage ?? raw.ownership ?? 'Not recorded',
+    ownershipPercentage: raw.ownershipPercentage
+      ?? raw.ownership
+      ?? (isOwnershipRelationship ? 'Not recorded' : 'Not applicable'),
     relationshipSince: raw.relationshipSince ?? raw.since ?? 'Not recorded',
     status: raw.status ?? 'Relationship record available',
   };
@@ -797,7 +799,7 @@ function linkedBusinesses(activeCase) {
     ...(activeCase.relationships ?? []),
   ];
   return candidates
-    .map(normalizeOwnershipLink)
+    .map(normalizeBusinessLink)
     .filter(Boolean)
     .filter((item, index, all) => all.findIndex((candidate) => candidate.businessId === item.businessId) === index);
 }
