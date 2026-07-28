@@ -185,26 +185,142 @@ test('generated payroll carries one exact account change from Payroll History in
   const toolSelector = payrollPanel.getByRole('combobox', { name: 'Choose investigation tool' });
   await toolSelector.selectOption('Payroll History');
   await expect(payrollPanel).toHaveAttribute('data-tool-name', 'Payroll History');
-  await payrollPanel.getByRole('region', { name: 'Company payroll runs' })
-    .getByRole('button', { name: 'Open Payroll', exact: true })
-    .first()
-    .click();
-  const employees = payrollPanel.getByRole('region', { name: 'Employees included in payroll run' });
-  await employees.locator('tbody tr').first().getByRole('button').click();
-  const employeeHistory = payrollPanel.getByRole('region', { name: /paycheck history$/i });
-  await employeeHistory.locator('[data-paycheck]').first().click();
+  const hierarchy = payrollPanel.getByRole('navigation', { name: 'Payroll History hierarchy' });
+  await expect(hierarchy).toContainText('Company Payroll History');
+  await expect(hierarchy).toContainText('Payroll Run Detail');
+  await expect(hierarchy).toContainText('Employee Payroll History');
+  await expect(hierarchy).toContainText('Individual Paystub');
 
-  const source = payrollPanel.getByRole('region', { name: 'Paystub payment destinations', exact: true });
-  await expect(source).toBeVisible();
-  const sourceValues = await source.locator('article').first().locator('dl > div').evaluateAll((rows) => Object.fromEntries(rows.map((row) => [
-    row.querySelector('dt')?.textContent?.trim(),
-    row.querySelector('dd')?.textContent?.trim(),
-  ])));
-  expect(sourceValues['Employee Bank Code']).toMatch(/^BC-[A-Z0-9-]+$/i);
-  expect(sourceValues['Destination ID']).toMatch(/^DST-[A-Z0-9-]+$/i);
-  await expect(source).not.toContainText(/Ownership status|Operational account status|Standing|Prior-use history/i);
+  const payrollRecords = payrollPanel.getByRole('region', { name: 'Payroll History records' });
+  const currentRun = payrollRecords.locator('[data-payroll-history-record]').last();
+  await expect(currentRun).toBeVisible();
+  await currentRun.click();
 
-  await source.getByRole('button', { name: 'Open Payment Verification', exact: true }).click();
+  const runDetail = payrollPanel.getByRole('region', { name: 'Payroll History detail' });
+  await expect(runDetail).toBeVisible();
+  const runFacts = runDetail.locator(':scope > dl').first();
+  for (const label of [
+    'Employee Bank Code',
+    'Destination ID',
+    'New account / destination',
+    'Previous account / destination',
+    'Change comparison',
+  ]) {
+    await expect(runFacts.getByText(label, { exact: true })).toBeVisible();
+  }
+
+  const paystubs = payrollPanel.getByRole('region', { name: 'Immutable employee paystubs' });
+  let paymentHandoff;
+  let paystubCard;
+  let sourceValues;
+  if (testInfo.project.name === 'mobile-chromium') {
+    paystubCard = paystubs.locator('[data-mobile-paystub-card]').first();
+    await expect(paystubCard).toBeVisible();
+    await expect(payrollPanel.locator('.payroll-table-scroll')).toHaveCount(0);
+    if (!(await paystubCard.evaluate((element) => element.open))) await paystubCard.locator('summary').click();
+    const destination = paystubCard.locator('[data-mobile-paystub-destination]').first();
+    await expect(destination).toBeVisible();
+    const destinationFacts = destination.locator('dl').first();
+    const bankCode = await destinationFacts.locator('div').filter({ hasText: /^Bank Code/ }).locator('dd').innerText();
+    const destinationId = await destinationFacts.locator('div').filter({ hasText: /^Destination ID/ }).locator('dd').innerText();
+    sourceValues = {
+      'Employee Bank Code': bankCode,
+      'Destination ID': destinationId,
+    };
+    paymentHandoff = destination.getByRole('button', { name: 'Open Payment Verification', exact: true });
+    await expect(paymentHandoff).toBeVisible();
+  } else {
+    const paystubRow = paystubs.locator('tbody tr').first();
+    await expect(paystubRow).toBeVisible();
+    const destinationText = await paystubRow.locator('td').last().locator('span').innerText();
+    const destinationMatch = destinationText.match(/\b(BC-[A-Z0-9-]+)\s*·\s*(DST-[A-Z0-9-]+)\b/i);
+    expect(destinationMatch).not.toBeNull();
+    sourceValues = {
+      'Employee Bank Code': destinationMatch[1],
+      'Destination ID': destinationMatch[2],
+    };
+    paymentHandoff = paystubRow.getByRole('button', { name: 'Open Payment Verification', exact: true });
+  }
+  await expect(paystubs).not.toContainText(/Ownership status|Operational account status|Standing|Prior-use history/i);
+
+  if (testInfo.project.name === 'mobile-chromium') {
+    for (const width of [320, 360, 375, 390, 412]) {
+      await page.setViewportSize({ width, height: 915 });
+      await page.evaluate(() => new Promise((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      }));
+      const layout = await page.evaluate(() => {
+        const pageRoot = document.querySelector('.mission-payroll-history-page');
+        const card = pageRoot?.querySelector('[data-mobile-paystub-card][open]');
+        const viewport = document.documentElement.clientWidth;
+        const visible = (element) => {
+          const style = getComputedStyle(element);
+          const rect = element.getBoundingClientRect();
+          return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+        };
+        const describe = (element) => ({
+          tag: element.tagName.toLowerCase(),
+          className: String(element.className || '').slice(0, 120),
+          text: String(element.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 120),
+          clientWidth: element.clientWidth,
+          scrollWidth: element.scrollWidth,
+          left: Math.round(element.getBoundingClientRect().left * 10) / 10,
+          right: Math.round(element.getBoundingClientRect().right * 10) / 10,
+        });
+        const outsideViewport = [...pageRoot.querySelectorAll(
+          'summary, header, dl, dt, dd, section, article, button',
+        )]
+          .filter(visible)
+          .filter((element) => {
+            const rect = element.getBoundingClientRect();
+            return rect.left < -1 || rect.right > viewport + 1;
+          })
+          .slice(0, 12)
+          .map(describe);
+        const internallyOverflowing = [...card.querySelectorAll(
+          'summary, header, dl, dt, dd, section, article, button',
+        )]
+          .filter(visible)
+          .filter((element) => (
+            element.scrollWidth > element.clientWidth + 1
+            && !/^(?:auto|scroll)$/.test(getComputedStyle(element).overflowX)
+          ))
+          .slice(0, 12)
+          .map(describe);
+        const actionButtons = [...card.querySelectorAll('.mobile-paystub-destination-actions button')]
+          .filter(visible);
+        const columnCount = (element) => (
+          getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean).length
+        );
+        return {
+          viewport,
+          documentWidth: document.documentElement.scrollWidth,
+          pageWidth: pageRoot.scrollWidth,
+          pageClientWidth: pageRoot.clientWidth,
+          cardWidth: card.scrollWidth,
+          cardClientWidth: card.clientWidth,
+          outsideViewport,
+          internallyOverflowing,
+          minimumActionHeight: Math.min(...actionButtons.map((button) => button.getBoundingClientRect().height)),
+          actionColumns: columnCount(card.querySelector('.mobile-paystub-destination-actions')),
+          coreFactColumns: columnCount(card.querySelector('.mobile-paystub-core-facts')),
+          destinationFactColumns: columnCount(card.querySelector('.mobile-paystub-destinations article > dl')),
+        };
+      });
+
+      expect(layout.documentWidth, JSON.stringify(layout, null, 2)).toBeLessThanOrEqual(layout.viewport + 1);
+      expect(layout.pageWidth, JSON.stringify(layout, null, 2)).toBeLessThanOrEqual(layout.pageClientWidth + 1);
+      expect(layout.cardWidth, JSON.stringify(layout, null, 2)).toBeLessThanOrEqual(layout.cardClientWidth + 1);
+      expect(layout.outsideViewport, JSON.stringify(layout, null, 2)).toEqual([]);
+      expect(layout.internallyOverflowing, JSON.stringify(layout, null, 2)).toEqual([]);
+      expect(layout.minimumActionHeight).toBeGreaterThanOrEqual(44);
+      expect(layout.actionColumns, JSON.stringify(layout, null, 2)).toBe(1);
+      expect(layout.coreFactColumns, JSON.stringify(layout, null, 2)).toBe(1);
+      expect(layout.destinationFactColumns, JSON.stringify(layout, null, 2)).toBe(1);
+    }
+  }
+
+  await paymentHandoff.click();
   const verificationPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(verificationPanel).toHaveAttribute('data-tool-name', 'Payment Verification');
   await expect(verificationPanel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue(sourceValues['Employee Bank Code']);

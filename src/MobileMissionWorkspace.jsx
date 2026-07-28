@@ -143,11 +143,17 @@ export default function MobileMissionWorkspace({
               activeTool === 'Merchant Intelligence' ? 'mission-merchant-reference-page' : '',
               activeTool === 'Login History' ? 'mission-login-history-page mission-login-reference-page' : '',
               activeTool === 'Session History' ? 'mission-session-history-page mission-session-reference-page' : '',
+              activeTool === 'Device Intelligence' ? 'mission-device-intelligence-page mission-device-ip-reference-page' : '',
+              activeTool === 'IP Intelligence' ? 'mission-ip-intelligence-page mission-device-ip-reference-page' : '',
+              activeTool === 'Payroll History' ? 'mission-payroll-history-page' : '',
             ].filter(Boolean).join(' ')}
             data-document-request-page={activeTool === 'Document Request' ? 'true' : undefined}
             data-merchant-reference-page={activeTool === 'Merchant Intelligence' ? 'true' : undefined}
             data-login-history-page={activeTool === 'Login History' ? 'true' : undefined}
             data-session-history-page={activeTool === 'Session History' ? 'true' : undefined}
+            data-device-intelligence-page={activeTool === 'Device Intelligence' ? 'true' : undefined}
+            data-ip-intelligence-page={activeTool === 'IP Intelligence' ? 'true' : undefined}
+            data-payroll-history-page={activeTool === 'Payroll History' ? 'true' : undefined}
             data-workflow-stage={workspaceScreen === 'timeline' ? 'timeline' : 'investigate'}
             data-workspace-page={workspaceScreen === 'timeline' ? 'timeline' : 'tool'}
           >
