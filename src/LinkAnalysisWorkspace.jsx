@@ -236,7 +236,10 @@ function AccountCard({
             <div><dt>Exact shared identifier</dt><dd>{match.identifierTypeLabel}: {match.exactSharedIdentifier}</dd></div>
             <div><dt>First use</dt><dd>{match.identifier.firstUse ?? match.firstUse}</dd></div>
             <div><dt>Last use</dt><dd>{match.identifier.lastUse ?? match.lastUse}</dd></div>
-            <div><dt>Link source and confidence</dt><dd>{match.identifier.source} · {match.identifier.confidence}</dd></div>
+            <div>
+              <dt>Link source and confidence</dt>
+              <dd><strong>Verified source</strong> · {match.identifier.source} · {match.identifier.confidence}</dd>
+            </div>
             <div><dt>Account status or restriction</dt><dd>{match.status} · {match.statusSource}</dd></div>
           </dl>
           <p>{match.statusExplanation}</p>
