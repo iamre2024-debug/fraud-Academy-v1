@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import AcademyProgressPanel from './AcademyProgressPanel.jsx';
 import AcademyThemeV1Panel from './AcademyThemeV1Panel.jsx';
-import CasesThemeV1Panel from './CasesThemeV1Panel.jsx';
 import LunaApiAccessSetting from './LunaApiAccessSetting.jsx';
 import CloudSyncControl from './CloudSyncControl.jsx';
+import { LunaMascot } from './DecisionReviewVisuals.jsx';
+import MobileCaseQueue from './MobileCaseQueue.jsx';
 import ProfileThemeV1Panel from './ProfileThemeV1Panel.jsx';
+import { publicCaseTaxonomy } from './data/publicCaseView.js';
 
 const reducedMotionKey = 'fraud-academy-reduced-motion-v1';
 
@@ -15,11 +17,11 @@ const storageKeys = {
 };
 
 const routes = [
-  { key: 'dashboard', icon: '🧭', label: 'Home' },
-  { key: 'cases', icon: '🗂️', label: 'Cases' },
-  { key: 'workspace', icon: '🛰️', label: 'Mission' },
-  { key: 'academy', icon: '🌙', label: 'Academy' },
-  { key: 'profile', icon: '🐈‍⬛', label: 'Agent' },
+  { key: 'dashboard', icon: '⌂', label: 'Home' },
+  { key: 'cases', icon: '▣', label: 'Cases' },
+  { key: 'workspace', icon: '⊞', label: 'Workspace' },
+  { key: 'academy', icon: '◇', label: 'Academy' },
+  { key: 'profile', icon: '☾', label: 'Agent' },
 ];
 
 function readJson(key, fallback) {
@@ -73,11 +75,14 @@ export default function MobileMissionDeckApp({
   onOpenWorkspace,
   quickGenerator,
   workspace,
+  workspaceScreen,
 }) {
   const [control, setControl] = useState('');
   const [reducedMotion, setReducedMotion] = useState(readReducedMotion);
   const [snapshotVersion, setSnapshotVersion] = useState(0);
   const snapshot = useMemo(readSnapshot, [activeTab, snapshotVersion]);
+  const focusedReviewScreen = activeTab === 'workspace'
+    && ['indicators', 'determination', 'submit', 'debrief'].includes(workspaceScreen);
 
   useEffect(() => {
     const refresh = () => setSnapshotVersion((current) => current + 1);
@@ -104,6 +109,10 @@ export default function MobileMissionDeckApp({
     }
   }, [reducedMotion]);
 
+  useEffect(() => {
+    if (focusedReviewScreen) setControl('');
+  }, [focusedReviewScreen]);
+
   function navigate(tab, nextWorkspaceScreen = 'briefing') {
     setControl('');
     if (tab === 'workspace' && onOpenWorkspace) {
@@ -115,21 +124,20 @@ export default function MobileMissionDeckApp({
   }
 
   return (
-    <div className="mission-mobile-root" data-mobile-mission-tab={activeTab}>
+    <div className="mission-mobile-root" data-mobile-mission-tab={activeTab} data-mobile-reference-shell="integrated">
       <MissionAtmosphere />
-      <header className="mission-mobile-header">
+      {activeTab !== 'workspace' && <header className="mission-mobile-header">
         <button type="button" className="mission-mobile-brand" aria-label="Open dashboard" onClick={() => navigate('dashboard')}>
-          <span aria-hidden="true">🛡️</span>
-          <span><strong>Fraud Academy</strong><small>Mission Deck</small></span>
+          <MobileShellShield />
+          <span><strong>Fraud Academy <i>v1</i></strong><small>Investigate. Learn. Prevent.</small></span>
         </button>
-        <button type="button" className="mission-mobile-case-chip" onClick={() => navigate('workspace', 'briefing')}>
-          <span>Active mission</span><strong>{activeCase?.id}</strong>
-        </button>
-        <div className="mission-mobile-header-actions">
-          <button type="button" aria-label="Open Help" aria-expanded={control === 'help'} onClick={() => setControl((current) => current === 'help' ? '' : 'help')}>❔</button>
+        <div className="mission-mobile-header-actions mobile-shell-header-actions">
+          <button type="button" className="mobile-shell-luna-button" aria-label="Open Agent profile" onClick={() => navigate('profile')}>
+            <LunaMascot title="Luna, Fraud Academy guide" />
+          </button>
           <button type="button" aria-label="Open Settings" aria-expanded={control === 'settings'} onClick={() => setControl((current) => current === 'settings' ? '' : 'settings')}>⚙️</button>
         </div>
-      </header>
+      </header>}
 
       {control && (
         <section className="mission-mobile-control-sheet" aria-live="polite" data-control={control}>
@@ -166,12 +174,13 @@ export default function MobileMissionDeckApp({
               </label>
               <CloudSyncControl variant="mobile" />
               <LunaApiAccessSetting variant="mobile" />
+              <button type="button" onClick={() => setControl('help')}>Open Evidence First guide</button>
             </>
           )}
         </section>
       )}
 
-      <div className="mission-mobile-viewport">
+      <div className="mission-mobile-viewport" data-focused-review={focusedReviewScreen ? 'true' : 'false'}>
         <section className="mission-mobile-page" hidden={activeTab !== 'dashboard'} data-mission-page="dashboard">
           {activeTab === 'dashboard' && (
             <MissionDashboard
@@ -186,15 +195,16 @@ export default function MobileMissionDeckApp({
         </section>
 
         <section className="mission-mobile-page" hidden={activeTab !== 'cases'} data-mission-page="cases">
-          <CasesThemeV1Panel
-            active={activeTab === 'cases'}
+          {activeTab === 'cases' && <MobileCaseQueue
             activeCaseId={activeCaseId}
             cases={cases}
             claimTypes={claimTypes}
-            inline
+            completedByCase={snapshot.completedByCase}
             onGenerateCases={onGenerateCases}
-            onOpenCase={onOpenCase}
-          />
+            onOpenCaseBriefing={(caseId) => onOpenCase(caseId, 'briefing')}
+            onOpenCaseWorkspace={(caseId) => onOpenCase(caseId, 'tool-menu')}
+            packagesByCase={snapshot.packagesByCase}
+          />}
         </section>
 
         <section className="mission-mobile-page mission-mobile-workspace-page" hidden={activeTab !== 'workspace'} data-mission-page="workspace">
@@ -261,6 +271,24 @@ function MissionAtmosphere() {
   );
 }
 
+function MobileShellShield() {
+  return (
+    <span className="mobile-shell-shield" aria-hidden="true">
+      <svg viewBox="0 0 48 56" focusable="false">
+        <defs>
+          <linearGradient id="mobile-shell-shield-gradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#75efff" />
+            <stop offset=".48" stopColor="#168cff" />
+            <stop offset="1" stopColor="#635cff" />
+          </linearGradient>
+        </defs>
+        <path d="M24 3c6.8 4 13.6 5.7 20 6.7v14.7c0 13.8-7.7 23-20 28.8C11.7 47.4 4 38.2 4 24.4V9.7C10.4 8.7 17.2 7 24 3Z" fill="#071a3b" stroke="url(#mobile-shell-shield-gradient)" strokeWidth="3" />
+        <path d="m24 14 2.8 8.1 8.2 2.8-8.2 2.9L24 36l-2.8-8.2-8.2-2.9 8.2-2.8Z" fill="#ff9edc" />
+      </svg>
+    </span>
+  );
+}
+
 function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGenerator, snapshot }) {
   const queuedCases = cases.filter((item) => item.id !== activeCase?.id).slice(0, 3);
   const reviewed = snapshot.completedByCase[activeCase?.id]?.length ?? 0;
@@ -278,7 +306,7 @@ function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGene
       <section className="mission-case-deck" aria-label="Layered active case deck">
         {queuedCases.map((item, index) => (
           <button key={item.id} type="button" className={`mission-case-layer layer-${index + 1}`} onClick={() => onOpenCase(item.id)}>
-            <span>{item.id}</span><small>{item.priority} · {item.type}</small>
+            <span>{item.id}</span><small>{item.priority} · {publicCaseTaxonomy(item).workflowType}</small>
           </button>
         ))}
         <article className="mission-active-file">
@@ -286,11 +314,11 @@ function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGene
           <div className="mission-active-file-copy">
             <span className="mission-live-chip">● ACTIVE CASE</span>
             <h2>{activeCase.id}</h2>
-            <p>{activeCase.type}</p>
+            <p>{publicCaseTaxonomy(activeCase).workflowType}</p>
             <dl>
               <div><dt>👤 Customer</dt><dd>{activeCase.person}</dd></div>
               <div><dt>💵 Exposure</dt><dd>{activeCase.amount}</dd></div>
-              <div><dt>📍 Lane</dt><dd>{activeCase.lane ?? 'Investigation'}</dd></div>
+              <div><dt>🏦 Product</dt><dd>{publicCaseTaxonomy(activeCase).productType}</dd></div>
             </dl>
             <div className="mission-progress-line"><span style={{ width: `${progress}%` }} /><strong>{progress}%</strong></div>
             <button type="button" onClick={() => onOpenCase(activeCase.id)}>Enter mission workspace <span>→</span></button>

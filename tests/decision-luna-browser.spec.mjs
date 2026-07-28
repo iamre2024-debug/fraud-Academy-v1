@@ -1,222 +1,219 @@
 import { test, expect } from '@playwright/test';
+import { createGeneratedCase } from '../src/data/generatedCases.js';
+import {
+  getDecisionCallGroups,
+  getFinalFindingChoices,
+} from '../src/data/reviewPackage.js';
 import { openWorkflowStage, openWorkspacePages } from './workspace-page-helpers.mjs';
 
-const caseId = 'FA-ATO-24018';
-const learnerChoice = 'Insufficient Evidence';
-const forbiddenLockedCopy = /(?:\/100|Strong package|Solid package|Developing package|Needs more support|Package strengths|Next coaching focus)/i;
+const personalCase = createGeneratedCase({
+  index: 97001,
+  customerType: 'personal',
+  productType: 'deposit-account',
+  workflowType: 'personal-account-takeover',
+  difficulty: 'standard',
+  evidenceDepth: 'standard',
+});
 
-async function seedIncompleteCase(page) {
-  await page.addInitScript(({ activeCaseId, completedTools }) => {
-    if (sessionStorage.getItem('fraud-academy-decision-luna-test-seeded') === 'yes') return;
-    localStorage.setItem('fraud-academy-completed-tools-v1', JSON.stringify({ [activeCaseId]: completedTools }));
-    localStorage.setItem('fraud-academy-visual-tray-v1', JSON.stringify({ [activeCaseId]: [] }));
-    localStorage.setItem('fraud-academy-notes-v1', JSON.stringify({ [activeCaseId]: [] }));
-    localStorage.setItem('fraud-academy-review-packages-v1', JSON.stringify({
-      [activeCaseId]: [{ id: 'legacy-empty-choice-package', caseId: activeCaseId, choice: '' }],
-    }));
-    localStorage.removeItem('fraud-academy-decision-drafts-v1');
-    localStorage.removeItem('fraud-academy-layout-mode-v1');
-    sessionStorage.setItem('fraud-academy-decision-luna-test-seeded', 'yes');
-  }, { activeCaseId: caseId, completedTools: [] });
+const businessCase = createGeneratedCase({
+  index: 97002,
+  customerType: 'business',
+  productType: 'payroll-product',
+  workflowType: 'payroll-change-alert',
+  difficulty: 'standard',
+  evidenceDepth: 'standard',
+});
+
+function validReviewChoices(caseRecord) {
+  return {
+    operationalDecision: getDecisionCallGroups(caseRecord)
+      .flatMap((group) => group.options)
+      .find((choice) => choice !== 'Deny'),
+    finalFinding: getFinalFindingChoices(caseRecord)
+      .find((finding) => finding === 'Inconclusive')
+      ?? getFinalFindingChoices(caseRecord)[0],
+  };
 }
 
-async function openDecision(page) {
+async function seedReviewCases(page) {
+  await page.addInitScript((records) => {
+    Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async () => undefined },
+    });
+    const byCase = Object.fromEntries(records.map((record) => [record.id, []]));
+    const notesByCase = Object.fromEntries(records.map((record) => [
+      record.id,
+      [`Jul 27, 9:41 AM · Investigation note · Reviewed record ${record.id} and documented the available evidence before choosing an action and finding.`],
+    ]));
+    const trayByCase = Object.fromEntries(records.map((record, index) => [
+      record.id,
+      [`${index ? 'DST' : 'DEV'}-${record.id}-001`],
+    ]));
+    localStorage.setItem('fraud-academy-generated-cases-v1', JSON.stringify(records));
+    localStorage.setItem('fraud-academy-completed-tools-v1', JSON.stringify(byCase));
+    localStorage.setItem('fraud-academy-visual-tray-v1', JSON.stringify(trayByCase));
+    localStorage.setItem('fraud-academy-notes-v1', JSON.stringify(notesByCase));
+    localStorage.setItem('fraud-academy-review-packages-v1', JSON.stringify(byCase));
+    localStorage.removeItem('fraud-academy-decision-drafts-v1');
+    localStorage.removeItem('fraud-academy-debriefs-v1');
+    localStorage.removeItem('fraud-academy-layout-mode-v1');
+  }, [personalCase, businessCase]);
+}
+
+async function chooseCase(page, caseRecord) {
+  const selector = page.locator('.visual-case-switcher select').first();
+  await expect(selector.locator(`option[value="${caseRecord.id}"]`)).toHaveCount(1);
+  await selector.selectOption(caseRecord.id);
+  await expect(selector).toHaveValue(caseRecord.id);
+}
+
+async function openDecision(page, mobile = false) {
   await openWorkflowStage(page, /Determination/);
+  if (mobile) {
+    const determination = page.locator('[data-mobile-review-screen="determination"]');
+    await expect(determination).toBeVisible();
+    return determination;
+  }
   const decision = page.locator('[data-decision-screen="approved-theme-v1"]');
+  await expect(decision).toBeVisible();
+  await expect(decision).toHaveAttribute('data-decision-layout', 'reference-final-review');
+  return decision;
+}
+
+async function continueToFinalReview(page) {
+  const determination = page.locator('[data-mobile-review-screen="determination"]');
+  const continueButton = determination.getByRole('button', { name: 'Continue to Submit Decision', exact: true });
+  await expect(continueButton).toBeEnabled();
+  await continueButton.click();
+  const decision = page.locator('[data-decision-layout="reference-final-review"]');
   await expect(decision).toBeVisible();
   return decision;
 }
 
-test('a choice-only decision saves and unlocks Luna on desktop and mobile', async ({ page }, testInfo) => {
-  await seedIncompleteCase(page);
+async function assertWithinViewport(page, selector) {
+  const layout = await page.locator(selector).evaluate((panel) => {
+    const rect = panel.getBoundingClientRect();
+    return {
+      documentWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth,
+      panelOverflow: Math.max(0, -rect.left, rect.right - window.innerWidth),
+    };
+  });
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.panelOverflow).toBeLessThanOrEqual(4);
+}
+
+test('personal and business decision reviews use the reference screens and unlock case-scoped Luna coaching', async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  await seedReviewCases(page);
   await page.goto('/');
 
   const detectedLayout = testInfo.project.name === 'mobile-chromium' ? 'mobile' : 'desktop';
+  const mobile = detectedLayout === 'mobile';
   await expect(page.locator('body')).toHaveAttribute('data-layout-detected', detectedLayout);
   await expect(page.locator('body')).toHaveAttribute('data-layout-mode', detectedLayout);
-  const settingsButton = page.getByRole('button', { name: 'Open Settings', exact: true });
-  await settingsButton.click();
-  const layoutControl = testInfo.project.name === 'mobile-chromium'
-    ? page.getByRole('combobox', { name: 'Layout mode', exact: true })
-    : page.getByRole('group', { name: 'Layout mode', exact: true });
-  if (testInfo.project.name === 'mobile-chromium') {
-    await expect(layoutControl).toHaveValue('auto');
-  } else {
-    await expect(layoutControl.getByRole('button')).toHaveCount(3);
-    await expect(layoutControl.getByRole('button', { name: 'Auto', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  }
-  await settingsButton.click();
 
-  const decision = await openDecision(page);
-  await expect(decision).toHaveAttribute('data-case-id', caseId);
-  await expect(decision.getByRole('heading', { name: 'Submit Decision', exact: true })).toBeVisible();
-  await expect(decision.getByText('Evidence First protection', { exact: true })).toBeVisible();
-  await expect(decision.getByRole('heading', { name: 'Account Takeover decision checklist', exact: true })).toBeVisible();
-  await expect(decision.getByText('Red flags', { exact: true })).toBeVisible();
-  await expect(decision.getByText('Green flags', { exact: true })).toBeVisible();
-  await expect(decision.locator('.decision-status-grid article')).toHaveCount(4);
-  await expect(decision.getByText('0/9', { exact: true })).toBeVisible();
-  await expect(decision.getByText('You can submit a decision without reviewing every tool. Open only the records needed to prove your selected flags.', { exact: true })).toBeVisible();
-  await expect(decision.getByText('Matched to this case: phishing', { exact: true })).toBeVisible();
-  await expect(decision.getByRole('heading', { name: 'Decision readiness', exact: true })).toHaveCount(0);
-  await expect(decision.getByText(/Decision needs attention/i)).toHaveCount(0);
-  const savePackage = decision.getByRole('button', { name: 'Submit Decision', exact: true });
-  await expect(savePackage).toBeVisible();
-  await expect(savePackage).toBeDisabled();
-  await expect(decision.getByText('Select one valid determination before submitting. Tools, flags, pins, notes, and rationale remain optional.', { exact: true })).toBeVisible();
+  for (const caseRecord of [personalCase, businessCase]) {
+    await chooseCase(page, caseRecord);
+    const customerType = caseRecord.customerType;
+    const choices = validReviewChoices(caseRecord);
+    let decision;
 
-  const decisionLayout = await page.evaluate(() => {
-    const panel = document.querySelector('[data-decision-screen="approved-theme-v1"]');
-    const workspace = document.querySelector('.decision-v1-workspace');
-    const metrics = document.querySelector('.decision-status-grid');
-    const flagColumns = document.querySelector('.decision-flag-columns');
-    const viewportWidth = window.innerWidth;
-    const rect = panel?.getBoundingClientRect();
-    return {
-      viewportWidth,
-      documentWidth: document.documentElement.scrollWidth,
-      panelOverflow: rect ? Math.max(0, -rect.left, rect.right - viewportWidth) : Number.POSITIVE_INFINITY,
-      workspaceColumns: workspace ? getComputedStyle(workspace).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      metricColumns: metrics ? getComputedStyle(metrics).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      flagColumns: flagColumns ? getComputedStyle(flagColumns).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      position: panel ? getComputedStyle(panel).position : '',
-    };
-  });
+    if (mobile) {
+      const determination = await openDecision(page, true);
+      await expect(determination).toHaveAttribute('data-case-id', caseRecord.id);
+      await determination.getByRole('radio', { name: choices.operationalDecision, exact: true }).check();
+      await determination.getByRole('radio', { name: choices.finalFinding, exact: true }).check();
+      await determination.getByRole('combobox', { name: 'Learner confidence' }).selectOption('High');
+      await determination.getByRole('textbox', { name: 'Finding basis' })
+        .fill(`Record ${caseRecord.id}-001 and the dated case evidence support this training decision.`);
+      decision = await continueToFinalReview(page);
+    } else {
+      decision = await openDecision(page);
+    }
 
-  const lockedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="locked"]');
-  await expect(lockedLuna).toBeAttached();
-  await expect(lockedLuna).toBeHidden();
-  const workflow = await openWorkspacePages(page);
-  const lockedDebriefStage = workflow.getByRole('button', { name: /Debrief/ });
-  await expect(lockedDebriefStage).toBeDisabled();
-  await expect(lockedDebriefStage).toHaveAttribute('aria-disabled', 'true');
-  await expect(lockedLuna).toBeHidden();
-  expect(await lockedLuna.innerText()).not.toMatch(forbiddenLockedCopy);
+    await expect(decision).toHaveAttribute('data-case-id', caseRecord.id);
+    await expect(decision).toHaveAttribute('data-customer-type', customerType);
+    await expect(decision.locator('.decision-case-art')).toBeVisible();
+    await expect(decision.getByRole('heading', { name: caseRecord.id, exact: true })).toBeVisible();
+    await expect(decision.getByRole('heading', { name: 'Selected Decision', exact: true })).toBeVisible();
+    await expect(decision.getByRole('heading', { name: 'Pinned Evidence (1)', exact: true })).toBeVisible();
+    await expect(decision.getByRole('heading', { name: 'Notes', exact: true })).toBeVisible();
+    if (!mobile) {
+      await expect(decision.getByText('Nothing is selected for you.', { exact: true })).toBeVisible();
+    }
 
-  expect(decisionLayout.documentWidth).toBeLessThanOrEqual(decisionLayout.viewportWidth + 1);
-  expect(decisionLayout.panelOverflow).toBeLessThanOrEqual(4);
-  expect(decisionLayout.position).toBe('static');
-  if (testInfo.project.name === 'mobile-chromium') {
-    expect(decisionLayout.workspaceColumns).toBe(1);
-    expect(decisionLayout.metricColumns).toBe(1);
-    expect(decisionLayout.flagColumns).toBe(1);
-  } else {
-    expect(decisionLayout.workspaceColumns).toBe(1);
-    expect(decisionLayout.metricColumns).toBe(4);
-    expect(decisionLayout.flagColumns).toBe(2);
-  }
+    const submit = decision.getByRole('button', { name: 'Confirm and Submit Decision', exact: true });
+    if (!mobile) {
+      await expect(submit).toBeDisabled();
+      await decision.getByRole('radio', { name: choices.operationalDecision, exact: true }).check();
+      await decision.getByRole('radio', { name: choices.finalFinding, exact: true }).check();
+      await decision.getByRole('combobox', { name: 'Learner confidence' }).selectOption('High');
+      await decision.getByRole('textbox', { name: 'Finding basis' })
+        .fill(`Record ${caseRecord.id}-001 and the dated case evidence support this training decision.`);
+    }
+    await expect(decision.locator('.decision-selected-summary')).toContainText(choices.operationalDecision);
+    await expect(decision.locator('.decision-selected-summary')).toContainText(choices.finalFinding);
+    await expect(submit).toBeEnabled();
 
-  await openDecision(page);
+    const lockedLuna = page.locator(`[data-luna-screen="approved-theme-v1"][data-case-id="${caseRecord.id}"][data-luna-state="locked"]`);
+    await expect(lockedLuna).toBeAttached();
+    await expect(lockedLuna).toBeHidden();
+    const workflow = await openWorkspacePages(page);
+    await expect(workflow.getByRole('button', { name: /Debrief/ })).toBeDisabled();
+    if (mobile) {
+      await openDecision(page, true);
+      await continueToFinalReview(page);
+    } else {
+      await openDecision(page);
+    }
 
-  await decision.getByRole('radio', { name: learnerChoice, exact: true }).check();
-  await decision.getByRole('combobox', { name: 'Learner confidence' }).selectOption('High');
-  await expect(savePackage).toBeEnabled();
-  await savePackage.click();
+    await assertWithinViewport(page, '[data-decision-layout="reference-final-review"]');
+    await submit.click();
+    await expect(page.locator('.visual-os-frame, .mission-workspace-v3'))
+      .toHaveAttribute('data-workspace-screen', 'debrief');
 
-  await expect(page.locator('.visual-os-frame, .mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'debrief');
-  const savedPackage = await page.evaluate((activeCaseId) => {
-    const packages = JSON.parse(localStorage.getItem('fraud-academy-review-packages-v1') || '{}');
-    return packages[activeCaseId]?.[0] ?? null;
-  }, caseId);
-  expect(savedPackage).not.toBeNull();
-  expect(savedPackage.completedTools).toEqual([]);
-  expect(savedPackage.decisionIndicators).toEqual([]);
-  expect(savedPackage.reason).toBe('');
-  expect(savedPackage.blockers).toEqual([]);
-  expect(savedPackage.coachingGaps.length).toBeGreaterThan(0);
-
-  const luna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');
-  await expect(luna).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'What you submitted', exact: true })).toBeVisible();
-  await expect(luna.getByText(learnerChoice, { exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'How well your decision was supported', exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'What you handled well', exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'What to improve next time', exact: true })).toBeVisible();
-  await expect(luna.locator('[aria-label="Decision-quality breakdown"]')).toBeVisible();
-  await expect(luna.getByText('Investigation package quality', { exact: true })).toBeVisible();
-
-  const debriefStepNumbers = (await luna.locator('.luna-v1-step-index').allTextContents()).map((value) => value.trim());
-  expect(new Set(debriefStepNumbers).size).toBe(debriefStepNumbers.length);
-  expect(debriefStepNumbers).toEqual(['01', '02', '03', '04', '05', '06']);
-
-  const debriefLayout = await page.evaluate(() => {
-    const grid = document.querySelector('.luna-v1-debrief-grid');
-    return {
-      documentWidth: document.documentElement.scrollWidth,
-      viewportWidth: window.innerWidth,
-      columns: grid ? getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-    };
-  });
-  expect(debriefLayout.documentWidth).toBeLessThanOrEqual(debriefLayout.viewportWidth + 1);
-  expect(debriefLayout.columns).toBe(testInfo.project.name === 'mobile-chromium' ? 1 : 2);
-
-  if (testInfo.project.name !== 'mobile-chromium') {
-    await settingsButton.click();
-    await layoutControl.getByRole('button', { name: 'Mobile', exact: true }).click();
-    await expect(page.locator('body')).toHaveAttribute('data-layout-preference', 'mobile');
-    await expect(page.locator('body')).toHaveAttribute('data-layout-mode', 'mobile');
-    await expect(page.locator('.mission-mobile-root')).toBeVisible();
-    await expect(page.locator('.mission-mobile-root .luna-v1-debrief-grid')).toBeVisible();
-    const mobilePreview = await page.evaluate(() => ({
-      viewportWidth: window.innerWidth,
-      frameWidth: document.querySelector('.mission-mobile-root')?.getBoundingClientRect().width ?? Number.POSITIVE_INFINITY,
-      stackedCards: (() => {
-        const visibleGrid = [...document.querySelectorAll('.luna-v1-debrief-grid')]
-          .find((grid) => {
-            const rect = grid.getBoundingClientRect();
-            return rect.width > 0 && rect.height > 0;
-          });
-        const cards = visibleGrid ? [...visibleGrid.querySelectorAll(':scope > .luna-v1-card')] : [];
-        if (cards.length < 2) return false;
-        const first = cards[0].getBoundingClientRect();
-        const second = cards[1].getBoundingClientRect();
-        return second.top >= first.bottom - 1;
-      })(),
-    }));
-    expect(mobilePreview.frameWidth).toBeGreaterThanOrEqual((mobilePreview.viewportWidth * 0.94) - 1);
-    expect(mobilePreview.frameWidth).toBeLessThanOrEqual((mobilePreview.viewportWidth * 0.94) + 1);
-    expect(mobilePreview.stackedCards).toBe(true);
-
-    await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
-    await page.getByRole('combobox', { name: 'Layout mode', exact: true }).selectOption('desktop');
-    await expect(page.locator('body')).toHaveAttribute('data-layout-preference', 'desktop');
-    await expect(page.locator('body')).toHaveAttribute('data-layout-mode', 'desktop');
-    await expect(page.locator('.mission-mobile-root')).toHaveCount(0);
-    await expect(page.locator('.visual-os-frame, .mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'debrief');
+    const luna = page.locator(`[data-luna-screen="approved-theme-v1"][data-case-id="${caseRecord.id}"][data-luna-state="unlocked"]`);
     await expect(luna).toBeVisible();
-    const desktopCardsShareRow = await page.evaluate(() => {
-      const visibleGrid = [...document.querySelectorAll('.luna-v1-debrief-grid')]
-        .find((grid) => {
-          const rect = grid.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0;
-        });
-      const cards = visibleGrid ? [...visibleGrid.querySelectorAll(':scope > .luna-v1-card')] : [];
-      if (cards.length < 2) return false;
-      const first = cards[0].getBoundingClientRect();
-      const second = cards[1].getBoundingClientRect();
-      return Math.abs(second.top - first.top) <= 2 && second.left > first.left;
-    });
-    expect(desktopCardsShareRow).toBe(true);
-    await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
-    await page.getByRole('group', { name: 'Layout mode', exact: true }).getByRole('button', { name: 'Auto', exact: true }).click();
-    await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
-  }
+    await expect(luna).toHaveAttribute('data-luna-layout', 'reference-debrief');
+    await expect(luna).toHaveAttribute('data-customer-type', customerType);
+    await expect(luna.locator('.luna-welcome-mascot')).toBeVisible();
+    await expect(luna.getByRole('heading', { name: 'What You Did Well', exact: true })).toBeVisible();
+    await expect(luna.getByRole('heading', { name: 'Evidence You Might Have Missed', exact: true })).toBeVisible();
+    await expect(luna.getByRole('heading', { name: 'Risk Tip from Luna', exact: true })).toBeVisible();
+    await expect(luna.getByRole('heading', { name: "Luna's Motivation", exact: true })).toBeVisible();
+    if (customerType === 'business') {
+      await expect(luna.locator('.luna-risk-tip, .luna-motivation')).toContainText(/business|payroll/i);
+    }
 
-  await luna.getByRole('button', { name: 'View Case Summary', exact: true }).click();
-  await expect(page.locator('.visual-os-frame, .mission-workspace-v3'))
-    .toHaveAttribute('data-workspace-screen', 'briefing');
-  const summary = testInfo.project.name === 'mobile-chromium'
-    ? page.locator('.mission-briefing-v3')
-    : page.locator('[data-case-briefing-screen="approved-theme-v1"]');
-  await expect(summary).toBeVisible();
+    await assertWithinViewport(page, '[data-luna-layout="reference-debrief"]');
+    const savedPackage = await page.evaluate((caseId) => {
+      const packages = JSON.parse(localStorage.getItem('fraud-academy-review-packages-v1') || '{}');
+      return packages[caseId]?.[0] ?? null;
+    }, caseRecord.id);
+    expect(savedPackage).toMatchObject({
+      caseId: caseRecord.id,
+      customerType,
+      operationalDecision: choices.operationalDecision,
+      finalFinding: choices.finalFinding,
+      confidence: 'High',
+    });
+
+    await luna.getByRole('button', { name: 'Share Luna debrief', exact: true }).click();
+    await expect(luna.locator('.luna-reference-actions [role="status"]')).toContainText('Copied');
+    await luna.getByRole('button', { name: 'Back to Workspace', exact: true }).click();
+    await expect(page.locator('.visual-os-frame, .mission-workspace-v3'))
+      .toHaveAttribute('data-workspace-screen', 'tool-menu');
+  }
 
   await page.reload();
-  const persistedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');
+  await chooseCase(page, businessCase);
   await openWorkflowStage(page, /Debrief/);
-  await expect(persistedLuna).toBeVisible();
-  await expect(persistedLuna).toContainText(learnerChoice);
-
-  await persistedLuna.getByRole('button', { name: 'Finish and Return to Queue', exact: true }).click();
-  await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'cases');
-  await expect(page.locator('[data-cases-theme-v1="approved"]')).toBeVisible();
+  const persistedBusinessLuna = page.locator(
+    `[data-luna-layout="reference-debrief"][data-case-id="${businessCase.id}"][data-luna-state="unlocked"]`,
+  );
+  await expect(persistedBusinessLuna).toBeVisible();
+  await expect(persistedBusinessLuna.locator('.luna-risk-tip, .luna-motivation')).toContainText(/business|payroll/i);
 });

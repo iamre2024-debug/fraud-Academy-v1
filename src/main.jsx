@@ -2,6 +2,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import VisualApp from './VisualApp.jsx';
+import { migrateLocalCaseStorage } from './data/cloudSyncClient.js';
 import './visualWorkspace.css';
 import './visualPolish.css';
 import './mobileViewportFix.css';
@@ -40,8 +41,19 @@ import './mobileAppPages.css';
 import './lunaManagerMobileFix.css';
 import './documentInbox.css';
 import './mobileMissionDeckV3.css';
+import './mobileMerchantDocumentReference.css';
+import './mobileLoginSessionReference.css';
+import './mobileDeviceIpReference.css';
+import './mobilePayrollHistoryCards.css';
+import './mobile360Reference.css';
+import './mobileCaseReviewPages.css';
+import './mobileIdentityBusinessIntelReference.css';
 import './caseQuickPad.css';
+import './mobileCaseQueueToolMap.css';
 import './cloudSync.css';
+import './linkAnalysisWorkspace.css';
+
+migrateLocalCaseStorage();
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

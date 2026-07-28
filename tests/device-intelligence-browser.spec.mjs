@@ -25,8 +25,11 @@ async function openCaseQueue(page) {
 test('generated Device ID lookup returns a complete profile and never leaks a stale result', async ({ page }, testInfo) => {
   await page.goto('/');
   const queue = await openCaseQueue(page);
-  await queue.getByLabel('Generate case claim type').selectOption('account-takeover');
-  await queue.getByLabel('Generate case scenario').selectOption('ato-credential-stuffing');
+  await queue.getByLabel('Generate case customer type').selectOption('personal');
+  await queue.getByLabel('Generate case product').selectOption('credit-card');
+  await queue.getByLabel('Generate case review workflow').selectOption('card-account-takeover');
+  await queue.getByLabel('Generate case alert reason').selectOption('New card-access or wallet activity observed');
+  await queue.getByLabel('Generate case scenario').selectOption('cat-scenario-01');
   await queue.getByLabel('Generate case difficulty').selectOption('deep');
   await queue.getByLabel('Generate case evidence depth').selectOption('deep');
   await queue.getByLabel('Generate case count').selectOption('1');
@@ -45,8 +48,11 @@ test('generated Device ID lookup returns a complete profile and never leaks a st
 
   const search = panel.getByRole('textbox', { name: 'Search Device Intelligence records' });
   const reviewButton = panel.getByRole('button', { name: 'Mark Device Intelligence reviewed' });
-  await expect(panel.getByText('Lookup required', { exact: true })).toBeVisible();
-  await expect(panel.getByText('Run a device lookup to reveal', { exact: true }).first()).toBeVisible();
+  const lookupStatus = testInfo.project.name === 'mobile-chromium'
+    ? panel.getByLabel('Device Intelligence lookup').getByText('Lookup required', { exact: true })
+    : panel.getByText('Lookup required', { exact: true }).first();
+  await expect(lookupStatus).toBeVisible();
+  await expect(panel.getByText('Run a device lookup to reveal', { exact: false }).first()).toBeVisible();
   await expect(reviewButton).toBeDisabled();
 
   const firstDevice = panel.locator('[data-device-intelligence-record]').first();
@@ -60,10 +66,15 @@ test('generated Device ID lookup returns a complete profile and never leaks a st
   await expect(detail).toContainText(deviceId);
   await expect(detail).toContainText('Training Mobile OS 18');
   await expect(detail).toContainText('Chrome Mobile training browser');
-  await expect(panel.locator('.device-intel-snapshot').getByText(/^FP-/)).toBeVisible();
+  const fingerprintDetails = testInfo.project.name === 'mobile-chromium'
+    ? panel.locator('.mobile-device-lookup-details')
+    : panel.locator('.device-intel-snapshot');
+  await expect(fingerprintDetails.getByText(/^FP-/)).toBeVisible();
   await expect(detail.getByText(/^BR-/)).toBeVisible();
   await expect(detail).not.toContainText(/Lookup needed|Run a device lookup to reveal/i);
-  await expect(panel.locator('.device-history-panel')).toContainText(/Successful|Failed|Account locked/);
+  const deviceHistory = panel.locator('.device-history-panel').first();
+  await expect(deviceHistory).toContainText(/SES-[A-Z0-9-]+/i);
+  await expect(deviceHistory).toContainText(/Face ID|Fingerprint|Biometric|Password|Code|MFA/i);
   await expect(reviewButton).toBeEnabled();
 
   await search.fill(`${deviceId}-MISSING`);

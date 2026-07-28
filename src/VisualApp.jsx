@@ -11,7 +11,7 @@ import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import { coreClaimTypes } from './data/claimRegistry.js';
 import { combineCaseCatalog, generateAndSaveCases, listGeneratedCases } from './data/generatedCaseRepository.js';
-import { initializeCloudSync } from './data/cloudSyncClient.js';
+import { initializeCloudSync, migrateLocalCaseStorage } from './data/cloudSyncClient.js';
 
 const enrichedBaseCases = enrichTrainingCases(baseCases);
 
@@ -30,6 +30,7 @@ export default function VisualApp() {
       listGeneratedCases()
         .then((generatedCases) => {
           if (cancelled) return;
+          migrateLocalCaseStorage(generatedCases);
           setCaseCatalog(enrichTrainingCases(combineCaseCatalog(baseCases, generatedCases)));
         })
         .catch(() => {
@@ -109,6 +110,7 @@ export default function VisualApp() {
           onOpenWorkspace={openMobileWorkspace}
           onOpenCase={openCase}
           quickGenerator={<GeneratedCaseControls inline onCaseGenerated={handleGeneratedCase} />}
+          workspaceScreen={workspaceScreen}
           workspace={(
             <VisualWorkspace
               activeCaseId={activeCaseId}

@@ -1,3 +1,5 @@
+import { publicCaseTaxonomy } from './publicCaseView.js';
+
 const responseStatuses = {
   received: 'Received',
   incomplete: 'Incomplete',
@@ -177,7 +179,7 @@ function receiptDocument({ activeCase, merchant, incomplete, reference, received
     brand: merchant,
     sections: [
       { title: 'Purchase', rows: [['Receipt', `RCP-${reference}`], ['Date', purchaseDate], ['Customer', activeCase.person ?? 'Training customer'], ['Payment', 'Training card on case']] },
-      { title: 'Charge detail', table: { columns: ['Description', 'Quantity', 'Amount'], rows: [[firstValue(activeCase.subtype, 'Disputed purchase'), '1', incomplete ? 'Amount cropped' : activeCase.amount ?? 'Amount shown on receipt']] } },
+      { title: 'Charge detail', table: { columns: ['Description', 'Quantity', 'Amount'], rows: [[publicCaseTaxonomy(activeCase).workflowType, '1', incomplete ? 'Amount cropped' : activeCase.amount ?? 'Amount shown on receipt']] } },
       { title: 'Comparison fields', rows: [['Merchant', merchant], ['Receipt total', incomplete ? 'Not visible' : activeCase.amount ?? 'Not supplied'], ['Authorization / order reference', incomplete ? 'Not visible' : `ORD-${reference}`], ['Received by issuer', receivedDate]] },
     ],
   };

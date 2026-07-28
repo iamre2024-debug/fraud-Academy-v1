@@ -23,6 +23,7 @@ export default function DecisionFlagChecklist({
           <h3 id="decision-flags-heading">{checklist.title}</h3>
           <span>{checklist.description}</span>
           <small>Matched to this case: {checklist.scopeLabel}</small>
+          <small>{checklist.scoringPurpose}</small>
         </div>
         <div className="decision-flag-progress" aria-label={`${indicatorSummary.selectedCount} flags selected`}>
           <strong>{indicatorSummary.selectedCount}</strong>
@@ -31,15 +32,15 @@ export default function DecisionFlagChecklist({
       </header>
 
       <div className="decision-flag-scoreboard" aria-label="Weighted flag summary">
-        <article data-summary-type="red"><span>Red flag weight</span><strong>{indicatorSummary.redPoints}</strong><small>{indicatorSummary.redCount} selected</small></article>
-        <article data-summary-type="green"><span>Green flag weight</span><strong>{indicatorSummary.greenPoints}</strong><small>{indicatorSummary.greenCount} selected</small></article>
-        <article data-summary-type="critical"><span>Critical red flags</span><strong>{indicatorSummary.criticalRedIndicators.length}</strong><small>Override weight</small></article>
+        <article data-summary-type="red"><span>Risk / exception weight</span><strong>{indicatorSummary.redPoints}</strong><small>{indicatorSummary.redCount} red selected</small></article>
+        <article data-summary-type="green"><span>Verified / consistent weight</span><strong>{indicatorSummary.greenPoints}</strong><small>{indicatorSummary.greenCount} green selected</small></article>
+        <article data-summary-type="critical"><span>Attention flags</span><strong>{indicatorSummary.criticalRedIndicators.length}</strong><small>Coaching only</small></article>
       </div>
 
       {indicatorSummary.overrideIndicators.length > 0 && (
         <div className="decision-critical-notice" role="status">
-          <strong>Critical red flag documented.</strong>
-          <span>This evidence carries override weight. Consider it in the determination and explain it in the optional rationale when useful.</span>
+          <strong>Unresolved adverse evidence documented.</strong>
+          <span>Address this evidence in the finding basis. Checklist weights support coaching and never determine fraud.</span>
         </div>
       )}
 
@@ -51,7 +52,9 @@ export default function DecisionFlagChecklist({
               <header>
                 <div>
                   <p>{type === 'red' ? 'Red flags' : 'Green flags'}</p>
-                  <h4>{type === 'red' ? 'Evidence against the claim or release' : 'Evidence supporting the claim or release'}</h4>
+                  <h4>{type === 'red'
+                    ? 'Risk, exception, mismatch, or unresolved adverse evidence'
+                    : 'Verified, consistent, established, or legitimate evidence'}</h4>
                 </div>
                 <span>{flags.length} checks</span>
               </header>

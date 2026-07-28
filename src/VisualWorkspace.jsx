@@ -15,12 +15,20 @@ import VisualShellHeader from './VisualShellHeader.jsx';
 import MobileMissionWorkspace from './MobileMissionWorkspace.jsx';
 import CaseQuickPad from './CaseQuickPad.jsx';
 import {
+  canonicalToolName,
+  canonicalToolNames,
   groupForTool,
   investigationToolGroups,
   workspaceTools,
 } from './investigationToolGroups.js';
 import { rowsFor } from './visualWorkspaceModel.js';
 import { resolvePinnedEvidence } from './pinnedEvidenceNavigation.js';
+import {
+  quickPadItemSupportsTool,
+  quickPadQueryForTool,
+  quickPadSearchCapableTools,
+  quickPadSourceRoute,
+} from './data/quickPadRouting.js';
 
 function stageForTool(toolName) {
   if (toolName === 'Timeline') return 'timeline';
@@ -32,8 +40,8 @@ function stageForWorkspaceScreen(screen, toolName) {
   if (screen === 'tool') return stageForTool(toolName);
   if (screen === 'tool-menu') return 'investigate';
   if (screen === 'timeline') return 'timeline';
-  if (screen === 'evidence' || screen === 'notes') return 'indicators';
-  if (screen === 'determination') return 'determination';
+  if (screen === 'indicators' || screen === 'evidence' || screen === 'notes') return 'indicators';
+  if (screen === 'determination' || screen === 'submit') return 'determination';
   if (screen === 'debrief') return 'debrief';
   return 'briefing';
 }
@@ -90,6 +98,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     actionLog,
     documentRequests,
     quickPad,
+    payrollInvestigation,
     setTrayByCase,
     setNotesByCase,
     setNoteDraft,
@@ -99,8 +108,16 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setActionsByCase,
     setDocumentRequestsByCase,
     setQuickPadByCase,
+    setPayrollInvestigationsByCase,
   } = useVisualWorkspaceCaseState(activeCase);
-  const availableToolNames = useMemo(() => new Set(activeCase.availableTools?.length ? activeCase.availableTools : workspaceTools), [activeCase]);
+  const availableToolNames = useMemo(() => {
+    const available = new Set(canonicalToolNames(activeCase.availableTools?.length ? activeCase.availableTools : workspaceTools));
+    if (layoutMode === 'mobile') {
+      available.delete('KYB Review');
+      available.delete('System Access Lane');
+    }
+    return available;
+  }, [activeCase, layoutMode]);
   const visibleCategories = useMemo(() => investigationToolGroups
     .map((group) => ({ ...group, tools: group.tools.filter((toolName) => availableToolNames.has(toolName)) }))
     .filter((group) => group.tools.length), [availableToolNames]);
@@ -144,7 +161,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   });
 
   const reviewedWorkspaceTools = visibleWorkspaceTools.filter((toolName) => currentCompleted.includes(toolName)).length;
-  const collectedIndicators = tray.length + notes.length;
+  const collectedIndicators = packageStatus.indicatorSummary.selectedCount;
   const hasReviewPackage = reviewPackages.length > 0;
   const stageStatus = {
     briefing: {
@@ -160,12 +177,12 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       state: currentCompleted.includes('Timeline') ? 'complete' : 'open',
     },
     indicators: {
-      label: collectedIndicators ? `${collectedIndicators} collected` : 'Open',
+      label: collectedIndicators ? `${collectedIndicators} selected` : 'Open',
       state: collectedIndicators ? 'in-progress' : 'open',
     },
     determination: {
-      label: hasReviewPackage ? 'Decision saved' : 'Ready to submit',
-      state: hasReviewPackage ? 'complete' : 'ready',
+      label: hasReviewPackage ? 'Decision saved' : packageStatus.ready ? 'Ready to submit' : 'Draft incomplete',
+      state: hasReviewPackage ? 'complete' : packageStatus.ready ? 'ready' : 'in-progress',
     },
     debrief: {
       label: hasReviewPackage ? 'Available' : 'Locked',
@@ -238,7 +255,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setWorkspaceScreen(previous.screen);
     setActiveStage(previous.activeStage ?? stageForWorkspaceScreen(previous.screen, previous.tool));
     setCategoryKey(previous.categoryKey ?? categoryKey);
-    setTool(previous.tool ?? activeTool);
+    setTool(canonicalToolName(previous.tool ?? activeTool));
     setQuery(previous.query ?? '');
     setExpandedId(previous.expandedId ?? '');
     setOpenedPinnedEvidence(previous.openedPinnedEvidence ?? null);
@@ -246,16 +263,17 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   }
 
   function openTool(nextTool, nextStage = stageForTool(nextTool), { scroll = true, query: nextQuery = '' } = {}) {
-    if (!availableToolNames.has(nextTool)) return;
-    const nextCategory = visibleCategories.find((item) => item.tools.includes(nextTool)) ?? groupForTool(nextTool) ?? visibleCategories[0];
+    const canonicalTool = canonicalToolName(nextTool);
+    if (!availableToolNames.has(canonicalTool)) return;
+    const nextCategory = visibleCategories.find((item) => item.tools.includes(canonicalTool)) ?? groupForTool(canonicalTool) ?? visibleCategories[0];
     onNavigate('workspace');
     setActiveStage(nextStage);
     setCategoryKey(nextCategory.key);
-    setTool(nextTool);
+    setTool(canonicalTool);
     setQuery(nextQuery);
     setExpandedId('');
     setOpenedPinnedEvidence(null);
-    const nextScreen = nextTool === 'Timeline' ? 'timeline' : 'tool';
+    const nextScreen = canonicalTool === 'Timeline' ? 'timeline' : 'tool';
     showWorkspaceScreen(nextScreen, {
       forceHistory: workspaceScreen === nextScreen && activeTool !== nextTool,
     });
@@ -300,7 +318,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
   function changeCase(nextCaseId) {
     const nextCase = cases.find((item) => item.id === nextCaseId);
-    const nextTools = new Set(nextCase?.availableTools?.length ? nextCase.availableTools : workspaceTools);
+    const nextTools = new Set(canonicalToolNames(nextCase?.availableTools?.length ? nextCase.availableTools : workspaceTools));
     const nextCategory = investigationToolGroups
       .map((group) => ({ ...group, tools: group.tools.filter((toolName) => nextTools.has(toolName)) }))
       .find((group) => group.tools.length);
@@ -325,10 +343,31 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     showWorkspaceScreen('tool');
   }
 
+  function openRelatedCase(nextCaseId) {
+    if (!cases.some((item) => item.id === nextCaseId)) return;
+    recordAction('Opened related case', `${nextCaseId} opened from Link Analysis.`, 'Link Analysis');
+    if (nextCaseId !== activeCase.id) onCaseChange(nextCaseId, 'briefing');
+    setActiveStage('briefing');
+    setQuery('');
+    setExpandedId('');
+    setOpenedPinnedEvidence(null);
+    workspaceScreenHistory.current = [];
+    showWorkspaceScreen('briefing', { replace: true });
+  }
+
+  function openRelatedAccount(nextCaseId, accountId) {
+    if (nextCaseId === activeCase.id) {
+      openTool('Customer 360', 'investigate', { query: accountId });
+      setExpandedId(accountId);
+      return;
+    }
+    openRelatedCase(nextCaseId);
+  }
+
   function jumpDecision() {
     onNavigate('workspace');
     setActiveStage('determination');
-    showWorkspaceScreen('determination');
+    showWorkspaceScreen(hasReviewPackage ? 'submit' : 'determination');
     window.setTimeout(() => {
       resetWorkspaceInlineScroll();
       submitRef.current?.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' });
@@ -370,16 +409,23 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
   function updateQuickPad(updater) {
     setQuickPadByCase((current) => {
-      const currentPad = current[activeCase.id] ?? { items: [], scratch: '' };
-      return { ...current, [activeCase.id]: updater(currentPad) };
+      const currentPad = current[activeCase.id] ?? { items: [], scratch: '', lastSavedAt: '' };
+      return {
+        ...current,
+        [activeCase.id]: {
+          ...updater(currentPad),
+          lastSavedAt: new Date().toISOString(),
+        },
+      };
     });
   }
 
   function quickPin({ label, value, sourceTool = activeTool, sourceRecordId = '' }) {
     if (!value) return;
     updateQuickPad((current) => {
-      const id = `${sourceTool}:${label}:${value}`;
-      const item = { id, label, value: String(value), sourceTool, sourceRecordId };
+      const canonicalSourceTool = canonicalToolName(sourceTool);
+      const id = `${canonicalSourceTool}:${label}:${value}`;
+      const item = { id, label, value: String(value), sourceTool: canonicalSourceTool, sourceRecordId };
       return {
         ...current,
         items: [item, ...(current.items ?? []).filter((saved) => saved.id !== id)],
@@ -406,14 +452,27 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   }
 
   function useQuickPadItem(item) {
-    setQuery(item.value);
+    if (!canUseQuickPadItem(item)) return;
+    setQuery(quickPadQueryForTool(item, activeTool));
     recordAction('Used Quick Pad value', `${item.label} entered in ${activeTool} search.`, 'Quick Pad');
   }
 
+  function canUseQuickPadItem(item) {
+    return ['tool', 'timeline'].includes(workspaceScreen)
+      && quickPadSearchCapableTools.has(activeTool)
+      && quickPadItemSupportsTool(item, activeTool, layoutMode)
+      && Boolean(quickPadQueryForTool(item, activeTool));
+  }
+
   function openQuickPadSource(item) {
-    openTool(item.sourceTool, stageForTool(item.sourceTool), { query: item.value });
-    setExpandedId(item.sourceRecordId ?? '');
-    recordAction('Opened Quick Pad source', `${item.label} reopened in ${item.sourceTool}.`, 'Quick Pad');
+    const route = quickPadSourceRoute(item, {
+      availableTools: availableToolNames,
+      layoutMode,
+    });
+    if (!route) return;
+    openTool(route.sourceTool, stageForTool(route.sourceTool), { query: route.query });
+    setExpandedId(route.expandedId);
+    recordAction('Opened Quick Pad source', `${item.label} reopened in ${route.sourceTool}.`, 'Quick Pad');
   }
 
   function selectWorkflowStage(nextStage) {
@@ -438,7 +497,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       return;
     }
     if (nextStage === 'indicators') {
-      showWorkspaceScreen('evidence');
+      showWorkspaceScreen(isMobileLayout() ? 'indicators' : 'evidence');
       if (isMobileLayout()) return;
       scrollToWorkspace('[data-workflow-stage="indicators"]');
       return;
@@ -459,9 +518,11 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
           briefing: 'Case Briefing',
           workflow: 'Case Pages',
           'tool-menu': 'Investigation Tools',
+          indicators: 'Case Indicators Review',
           evidence: 'Pinned Evidence',
           notes: 'Case Notes',
-          determination: 'Submit Decision',
+          determination: 'Determination',
+          submit: 'Submit Decision',
           debrief: 'Luna Debrief',
         }[workspaceScreen] ?? 'Workspace';
 
@@ -475,6 +536,8 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     data,
     rows,
     activeRow,
+    expandedId,
+    revealLinkAnalysisSearch: openedPinnedEvidence?.tool === 'Link Analysis',
     setExpandedId,
     pin,
     saveNote,
@@ -484,10 +547,15 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     notes,
     cases,
     openDocumentAccountCase,
+    openRelatedCase,
+    openRelatedAccount,
     documentRequests,
     setDocumentRequestsByCase,
     recordAction,
     quickPin,
+    payrollInvestigation,
+    setPayrollInvestigationsByCase,
+    openedPinnedEvidence,
   };
 
   const quickPadLayer = (
@@ -495,11 +563,19 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       activeCase={activeCase}
       items={quickPad.items ?? []}
       scratch={quickPad.scratch ?? ''}
+      lastSavedAt={quickPad.lastSavedAt ?? ''}
+      notes={notes}
       onScratchChange={setQuickPadScratch}
       onRemove={removeQuickPadItem}
       onUse={useQuickPadItem}
       onOpenSource={openQuickPadSource}
       onSaveToNotes={saveQuickPadScratch}
+      portalToBody={layoutMode === 'mobile'}
+      canUseItem={canUseQuickPadItem}
+      canOpenItem={(item) => Boolean(quickPadSourceRoute(item, {
+        availableTools: availableToolNames,
+        layoutMode,
+      }))}
     />
   );
 
@@ -551,6 +627,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
         updateDecision={updateDecision}
         updateDecisionIndicator={updateDecisionIndicator}
         visibleCategories={visibleCategories}
+        visibleWorkspaceTools={visibleWorkspaceTools}
         workspaceScreen={workspaceScreen}
         />
         {quickPadLayer}
@@ -685,9 +762,13 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
               decisionDraft={decisionDraft}
               activeCase={activeCase}
               updateDecision={updateDecision}
-              updateDecisionIndicator={updateDecisionIndicator}
               submitDecision={submitDecision}
               openDebrief={openDebrief}
+              openEvidence={() => {
+                setActiveStage('indicators');
+                showWorkspaceScreen('evidence');
+              }}
+              openNotes={openNotes}
             />
           </div>
         )}
@@ -695,7 +776,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
         <nav className="visual-bottom-nav" aria-hidden="true" />
       </section>
     </main>
-    {quickPadLayer}
+    {!['determination', 'submit', 'debrief'].includes(workspaceScreen) && quickPadLayer}
     </>
   );
 }

@@ -50,6 +50,21 @@ jobs:
       - name: All-scenario generated packet smoke check
         run: npm run generator-merchant-smoke-check
 
+      - name: Case domain routing smoke check
+        run: npm run case-domain-model-smoke-check
+
+      - name: Customer Business and Financial relationship tools smoke check
+        run: npm run relationship-tools-smoke-check
+
+      - name: Payroll workflow evidence-gating smoke check
+        run: npm run payroll-workflow-smoke-check
+
+      - name: Cross-account Link Analysis smoke check
+        run: npm run link-analysis-smoke-check
+
+      - name: Pre-submission hidden-answer smoke check
+        run: npm run public-case-leak-smoke-check
+
       - name: Document Request workflow smoke check
         run: npm run document-request-workflow-smoke-check
 
@@ -58,6 +73,18 @@ jobs:
 
       - name: Mobile Blue Mission Deck smoke check
         run: npm run mobile-blue-mission-deck-smoke-check
+
+      - name: Mobile Tool Map geometry smoke check
+        run: npm run mobile-tool-map-smoke-check
+
+      - name: Mobile Customer and Business 360 reference smoke check
+        run: npm run mobile-360-reference-smoke-check
+
+      - name: Mobile case review and separate submit-flow smoke check
+        run: npm run mobile-case-review-smoke-check
+
+      - name: Identity and Business Intelligence smoke check
+        run: npm run identity-business-intel-smoke-check
 
       - name: Luna single-module smoke check
         run: npm run luna-single-module-smoke-check
@@ -74,8 +101,17 @@ jobs:
       - name: Device Intelligence acceptance smoke check
         run: npm run device-intelligence-smoke-check
 
+      - name: Mobile Device and IP reference smoke check
+        run: npm run mobile-device-ip-reference-smoke-check
+
+      - name: Mobile Payroll History reference smoke check
+        run: npm run mobile-payroll-history-smoke-check
+
       - name: Payment Verification acceptance smoke check
         run: npm run payment-verification-smoke-check
+
+      - name: Business and Payroll active-record contract smoke check
+        run: npm run business-payroll-contract-smoke-check
 
       - name: Navigation direct-collapse smoke check
         run: npm run navigation-direct-collapse-smoke-check
@@ -100,6 +136,9 @@ jobs:
 
       - name: PWA install and offline smoke check
         run: npm run pwa-smoke-check
+
+      - name: Saved-case migration smoke check
+        run: npm run case-migration-smoke-check
 
       - name: Encrypted cloud persistence smoke check
         run: npm run cloud-persistence-smoke-check
