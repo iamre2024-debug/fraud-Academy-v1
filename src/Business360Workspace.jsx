@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { MobileBusinessIntelligencePage } from './MobileIdentityBusinessIntelPages.jsx';
 import { getBusiness360Dossier } from './data/business360Dossier.js';
+import {
+  businessIntelSearchLabel,
+  matchesBusinessIntelSearch,
+  prefillBusinessIntelSearch,
+} from './data/businessIntelSearch.js';
 import {
   business360ReportExportText,
   generateBusiness360Report,
@@ -134,6 +140,7 @@ export default function Business360Workspace({
   markReviewed,
   reviewed,
   openTool,
+  mobileMode = false,
 }) {
   const dossier = useMemo(
     () => getBusiness360Dossier(activeCase, { relationshipId: query }),
@@ -154,23 +161,105 @@ export default function Business360Workspace({
   const [accountId, setAccountId] = useState('');
   const [report, setReport] = useState(null);
   const [reportGenerated, setReportGenerated] = useState(() => hasGeneratedBusiness360Report(activeCase.id));
+  const [intelSearchMode, setIntelSearchMode] = useState('businessId');
+  const [businessNameDraft, setBusinessNameDraft] = useState('');
+  const [secondaryDraft, setSecondaryDraft] = useState('');
+  const [submittedSearch, setSubmittedSearch] = useState(null);
+  const [searchHistory, setSearchHistory] = useState([]);
+  const [intelReportOpen, setIntelReportOpen] = useState(false);
   const selectedOwner = dossier.owners.find((owner) => owner.id === ownerId);
   const selectedAccount = dossier.accounts.find((account) => account.accountId === accountId);
   const available = new Set(activeCase.availableTools ?? []);
+  const searchMatched = submittedSearch && matchesBusinessIntelSearch(dossier, submittedSearch);
+  const searchReady = Boolean(businessNameDraft.trim() && secondaryDraft.trim());
 
   useEffect(() => {
+    const prefill = prefillBusinessIntelSearch(dossier, query);
     setActiveTab('overview');
     setOwnerId('');
     setAccountId('');
     setReport(null);
     setReportGenerated(hasGeneratedBusiness360Report(activeCase.id));
-  }, [activeCase.id]);
+    setIntelSearchMode(prefill?.mode ?? 'businessId');
+    setBusinessNameDraft(prefill?.businessName ?? '');
+    setSecondaryDraft(prefill?.secondary ?? '');
+    setSubmittedSearch(prefill);
+    setSearchHistory(prefill ? [businessIntelSearchLabel(prefill)] : []);
+    setIntelReportOpen(false);
+  }, [activeCase.id, dossier, query]);
+
+  function runIntelSearch(event) {
+    event?.preventDefault();
+    if (!searchReady) return;
+    const criteria = {
+      mode: intelSearchMode,
+      businessName: businessNameDraft.trim(),
+      secondary: secondaryDraft.trim(),
+    };
+    const label = businessIntelSearchLabel(criteria);
+    setSubmittedSearch(criteria);
+    setSearchHistory((current) => [label, ...current.filter((item) => item !== label)].slice(0, 4));
+    setIntelReportOpen(false);
+    setActiveTab('overview');
+    setOwnerId('');
+    setAccountId('');
+  }
+
+  function clearIntelSearch() {
+    setBusinessNameDraft('');
+    setSecondaryDraft('');
+    setSubmittedSearch(null);
+    setSearchHistory([]);
+    setIntelReportOpen(false);
+    setActiveTab('overview');
+    setOwnerId('');
+    setAccountId('');
+  }
 
   function generateReport() {
     const nextReport = generateBusiness360Report(activeCase);
     setReport(nextReport);
     setReportGenerated(true);
     saveNote(`Business 360 Research Report generated for ${dossier.profile.legalName}.`, 'Business 360');
+  }
+
+  if (mobileMode) {
+    return (
+      <MobileBusinessIntelligencePage
+        accountId={accountId}
+        activeTab={activeTab}
+        available={available}
+        businessNameDraft={businessNameDraft}
+        clearSearch={clearIntelSearch}
+        dossier={dossier}
+        exportReport={() => report && downloadBusiness360Report(report)}
+        generateReport={generateReport}
+        jumpDecision={jumpDecision}
+        markReviewed={markReviewed}
+        openTool={openTool}
+        ownerId={ownerId}
+        pin={pin}
+        report={report}
+        reportGenerated={reportGenerated}
+        reportOpen={intelReportOpen}
+        reviewed={reviewed}
+        runSearch={runIntelSearch}
+        saveNote={saveNote}
+        searchHistory={searchHistory}
+        searchMatched={searchMatched}
+        searchMode={intelSearchMode}
+        searchReady={searchReady}
+        secondaryDraft={secondaryDraft}
+        setAccountId={setAccountId}
+        setActiveTab={setActiveTab}
+        setBusinessNameDraft={setBusinessNameDraft}
+        setOwnerId={setOwnerId}
+        setReportOpen={setIntelReportOpen}
+        setSearchMode={setIntelSearchMode}
+        setSecondaryDraft={setSecondaryDraft}
+        submittedSearch={submittedSearch}
+      />
+    );
   }
 
   return (
