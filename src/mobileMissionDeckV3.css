@@ -2015,6 +2015,47 @@ body[data-layout-mode="mobile"] .mission-evidence-page .investigation-tool-group
 .mission-evidence-notebook .card-title-row p { color: var(--md-muted); }
 .mission-evidence-notebook .tray-record-row,
 .mission-evidence-notebook .notebook-list > button { border: 1px solid rgba(79, 210, 250, 0.2); border-radius: 8px 16px 16px 8px; background: rgba(0, 17, 34, 0.62); color: #fff; }
+.mission-evidence-notebook .tray-record-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 5px 9px;
+  min-width: 0;
+  padding: 9px;
+}
+.mission-evidence-notebook .tray-record-badge {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+.mission-evidence-notebook .tray-open-record {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  text-align: left;
+}
+.mission-evidence-notebook .tray-open-record :is(strong, small) {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.mission-evidence-notebook .tray-remove-record {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: start;
+  min-height: 44px;
+  margin: 0;
+  border: 1px solid rgba(255, 126, 194, 0.34);
+  border-radius: 10px;
+  background: rgba(118, 32, 87, 0.34);
+  padding: 7px 11px;
+  color: #ffd2e9;
+}
 .mission-evidence-notebook .notebook-compose { display: grid; gap: 8px; }
 .mission-evidence-notebook textarea { min-height: 130px; border: 1px solid var(--md-line); border-radius: 15px; background: #02172d; color: #fff; padding: 10px; }
 .mission-evidence-notebook .notebook-compose button { min-height: 44px; border: 1px solid #62e5ff; border-radius: 13px; background: #0873d0; color: #fff; font-weight: 900; }

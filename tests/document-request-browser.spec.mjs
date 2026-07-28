@@ -1,15 +1,17 @@
 import { test, expect } from '@playwright/test';
-import { selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  activeCaseSelector,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 test('Document Request tracks case-scoped document workflow states', async ({ page }, testInfo) => {
   test.setTimeout(90_000);
   await page.goto('/');
 
-  await page.locator('.visual-case-switcher select').selectOption('FA-CB-24007');
-  await selectToolGroup(page, /Documents & Requests/);
+  await activeCaseSelector(page).selectOption('FA-CB-24007');
+  await selectToolGroup(page, /Documents & Requests/, 'Document Request');
 
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  await toolPanel.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Document Request');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Document Request');
   const genericQuestion = toolPanel.getByRole('heading', { name: 'What documents were requested, received, missing, or pending review for this case?', exact: true });
   if (testInfo.project.name === 'mobile-chromium') {
@@ -55,7 +57,7 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   }
 
   await toolPanel.locator('.document-request-compose-button').click();
-  const composer = toolPanel.getByRole('region', { name: 'Compose paperwork request' });
+  const composer = toolPanel.getByRole('main', { name: 'Compose paperwork request' });
   await expect(composer.getByRole('heading', { name: 'Request Paperwork', exact: true })).toBeVisible();
   await composer.getByRole('combobox', { name: 'Paperwork to request' }).selectOption({ label: 'Cancellation confirmation' });
   await composer.getByRole('combobox', { name: 'Paperwork request delivery method' }).selectOption('Email');
@@ -63,8 +65,8 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await composer.getByRole('button', { name: 'Send Request', exact: true }).click();
 
   await expect(toolPanel.locator('.document-request-confirmation')).toContainText('Cancellation confirmation request sent');
-  await expect(toolPanel.getByRole('region', { name: 'Expanded document request detail' })).toContainText('Email');
-  await expect(toolPanel.getByRole('region', { name: 'Expanded document request detail' })).toContainText('Requested');
+  await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('Email');
+  await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('Requested');
   await expect(toolPanel.locator('[data-document-request]')).toHaveCount(2);
   await expect(toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation request' })).toContainText('Requested');
   if (testInfo.project.name === 'mobile-chromium') {
@@ -75,7 +77,7 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   expect(savedRequest['FA-CB-24007']).toBeTruthy();
   expect(Object.values(savedRequest['FA-CB-24007']).some((request) => request.attempts?.some((attempt) => attempt.requestDeliveryChannel === 'Email'))).toBe(true);
 
-  const requestDetail = toolPanel.getByRole('region', { name: 'Expanded document request detail' });
+  const requestDetail = toolPanel.getByRole('main', { name: 'Expanded document request detail' });
   await requestDetail.getByRole('button', { name: 'Check for Customer Response', exact: true }).click();
   await expect(toolPanel.locator('.document-request-confirmation')).toContainText('received from the customer and added as a separate Document Viewer record');
   await expect(requestDetail).toContainText('Received');
@@ -136,12 +138,12 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   if (testInfo.project.name === 'mobile-chromium') {
     await expect(toolPanel.locator('.document-request-list .investigation-tool-empty')).toContainText('No document requests match this filter or search.');
   } else {
-    await expect(toolPanel.getByRole('region', { name: 'Expanded document request detail' })).toContainText('No document requests are available for this case.');
+    await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('No document requests are available for this case.');
   }
   await search.clear();
 
   await records.first().click();
-  const detail = toolPanel.getByRole('region', { name: 'Expanded document request detail' });
+  const detail = toolPanel.getByRole('main', { name: 'Expanded document request detail' });
   await expect(detail).toContainText(firstRequestId);
   await expect(detail).toContainText('Required / optional');
   await expect(detail).toContainText('Authenticity flag');
@@ -199,5 +201,23 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   const nextRoutes = toolPanel.getByRole('navigation', { name: 'Document request next routes' });
   await expect(nextRoutes.getByRole('button', { name: 'Open Document Viewer', exact: true })).toHaveCount(0);
   await nextRoutes.getByRole('button', { name: 'Open Submit Decision', exact: true }).click();
-  await expect(page.locator('.submit-decision-panel')).toBeVisible();
+  if (testInfo.project.name === 'mobile-chromium') {
+    const frame = page.locator('.mission-workspace-v3');
+    const determination = page.locator('[data-mobile-review-screen="determination"]');
+    await expect(frame).toHaveAttribute('data-workspace-screen', 'determination');
+    await expect(determination).toBeVisible();
+    await expect(page.locator('[data-decision-layout="reference-final-review"]')).toHaveCount(0);
+    const decisionGroups = determination.locator('fieldset');
+    await decisionGroups.nth(0).getByRole('radio').first().check();
+    await decisionGroups.nth(1).getByRole('radio').first().check();
+    await determination.getByRole('combobox', { name: 'Learner confidence', exact: true })
+      .selectOption('Medium');
+    await determination.getByRole('textbox', { name: 'Finding basis', exact: true })
+      .fill('The reviewed request and returned document records support this training decision.');
+    await determination.getByRole('button', { name: 'Continue to Submit Decision', exact: true }).click();
+    await expect(frame).toHaveAttribute('data-workspace-screen', 'submit');
+    await expect(page.locator('[data-decision-layout="reference-final-review"]')).toBeVisible();
+  } else {
+    await expect(page.locator('[data-decision-layout="reference-final-review"]')).toBeVisible();
+  }
 });

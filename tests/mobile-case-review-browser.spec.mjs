@@ -62,11 +62,11 @@ test('mobile indicators feed the saved determination package without exposing an
   const determination = page.locator('[data-mobile-review-screen="determination"]');
   await expect(determination.getByRole('heading', { name: 'Determination', exact: true })).toBeVisible();
   await expect(determination.getByText('0 pins · 1 notes · 1 indicators', { exact: true })).toBeVisible();
-  await expect(determination.getByRole('radio', { name: 'More Information Needed', exact: true })).toBeVisible();
+  await expect(determination.getByRole('radio', { name: /^More Information Needed\b/ })).toBeVisible();
   await expect(determination.getByRole('radio', { name: 'Approve', exact: true })).toHaveCount(0);
 
-  await determination.getByRole('radio', { name: 'More Information Needed', exact: true }).check();
-  await determination.getByRole('radio', { name: 'Inconclusive', exact: true }).check();
+  await determination.getByRole('radio', { name: /^More Information Needed\b/ }).check();
+  await determination.getByRole('radio', { name: /^Inconclusive\b/ }).check();
   await determination.getByRole('combobox', { name: 'Learner confidence', exact: true }).selectOption('High');
   await determination.getByRole('textbox', { name: 'Finding basis', exact: true })
     .fill('LOG-1005 and the saved note require another source comparison before a final case conclusion.');

@@ -3,7 +3,7 @@
     padding: 24px 24px 132px;
   }
 
-  .visual-os-frame {
+  body[data-visual-tab="workspace"] .visual-os-frame {
     width: min(100%, 1500px);
     grid-template-columns: minmax(0, 1.72fr) minmax(360px, 0.9fr);
     align-items: start;
@@ -166,7 +166,7 @@
 }
 
 @media (min-width: 1440px) {
-  .visual-os-frame {
+  body[data-visual-tab="workspace"] .visual-os-frame {
     grid-template-columns: minmax(0, 1.9fr) minmax(390px, 0.82fr);
   }
 

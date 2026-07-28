@@ -157,9 +157,9 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   const queue = page.locator('[data-mobile-case-queue="reference-v1"]');
   await expect(queue).toBeVisible();
   await queue.getByRole('button', { name: /Create a fictional training case/ }).click();
-  const generator = queue.getByRole('dialog', { name: 'Create a fictional training case', exact: true });
+  const generator = queue.locator('#mobile-case-generator-dialog');
   await expect(generator).toBeVisible();
-  await generator.getByLabel('Cases', { exact: true }).selectOption('1');
+  await generator.getByRole('combobox', { name: 'Cases', exact: true }).selectOption('1');
   await generator.getByRole('button', { name: 'Generate training case', exact: true }).click();
 
   await expect(page.locator('.mission-briefing-v3')).toBeVisible();

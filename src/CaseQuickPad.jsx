@@ -50,6 +50,19 @@ export default function CaseQuickPad({
   }, [activeCase.id]);
 
   useEffect(() => {
+    function suspendForCaseGenerator(event) {
+      if (!event.detail?.open) return;
+      setOpen(false);
+      setViewportInset(0);
+    }
+
+    window.addEventListener('fraud-academy:case-generator-visibility', suspendForCaseGenerator);
+    return () => {
+      window.removeEventListener('fraud-academy:case-generator-visibility', suspendForCaseGenerator);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!open) {
       setViewportInset(0);
       return undefined;

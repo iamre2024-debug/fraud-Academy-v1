@@ -11,6 +11,7 @@ const workspace = read('src/VisualWorkspace.jsx');
 const customer = read('src/Customer360Panel.jsx');
 const device = read('src/InvestigationToolPanel.jsx');
 const component = read('src/CaseQuickPad.jsx');
+const caseQueue = read('src/MobileCaseQueue.jsx');
 const styles = read('src/caseQuickPad.css');
 
 const available = new Set(['Business 360', 'Payment Verification', 'Payroll History']);
@@ -54,6 +55,9 @@ const checks = [
   ['The phone panel responds to the visual keyboard', component.includes('window.visualViewport') && component.includes("'--quick-pad-keyboard-inset'")],
   ['The phone dialog supports focus entry and Escape', component.includes("event.key === 'Escape'") && component.includes("querySelector('button, input, textarea, select')")],
   ['Quick Pad can escape the hidden Workspace page on the phone shell', workspace.includes("portalToBody={layoutMode === 'mobile'}") && component.includes('createPortal(content, document.body)') && styles.includes(':not([data-visual-tab="cases"])')],
+  ['Quick Pad yields to the modal case generator at every forced-mobile width', /^body\[data-layout-mode="mobile"\]:has\(\.mobile-case-generator-backdrop\) \.case-quick-pad\s*\{\s*display:\s*none;\s*\}/m.test(styles)],
+  ['The case generator suspends the open Quick Pad and its Escape listener', component.includes("'fraud-academy:case-generator-visibility'") && component.includes('setOpen(false)') && caseQueue.includes("'fraud-academy:case-generator-visibility'") && caseQueue.includes('detail: { open: generatorOpen }')],
+  ['The case generator traps focus, makes its background inert, and restores its launcher', caseQueue.includes("event.key !== 'Tab'") && caseQueue.includes("node.setAttribute('inert', '')") && caseQueue.includes('generatorToggleRef.current?.focus') && caseQueue.includes('generatorDialogRef')],
   ['Panel stays compact on phones', styles.includes('max-height: min(58dvh, calc(100dvh - var(--fa-dock-height, 76px) - var(--quick-pad-keyboard-inset, 0px) - 34px))')],
   ['Panel clears the fixed mobile dock and visual keyboard', styles.includes('bottom: calc(var(--fa-dock-height, 76px) + 12px + env(safe-area-inset-bottom) + var(--quick-pad-keyboard-inset, 0px))')],
   ['Phone actions retain full touch targets', /body\[data-layout-mode="mobile"\] \.case-quick-pad-actions button\s*\{[^}]*min-height:\s*44px/s.test(styles)],

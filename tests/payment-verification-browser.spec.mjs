@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { runPaymentVerification, selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  activeCaseSelector,
+  generateCaseFromQueue,
+  runPaymentVerification,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 test.beforeEach(async ({ page }, testInfo) => {
   if (testInfo.project.name !== 'mobile-chromium') return;
@@ -9,26 +14,12 @@ test.beforeEach(async ({ page }, testInfo) => {
 });
 
 async function openPaymentVerification(page) {
-  await selectToolGroup(page, /Business & Payment Verification/);
+  await selectToolGroup(page, /Business & Payment Verification/, 'Payment Verification');
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const selector = panel.getByRole('combobox', { name: 'Choose investigation tool' });
   if (await selector.inputValue() !== 'Payment Verification') await selector.selectOption('Payment Verification');
   await expect(panel).toHaveAttribute('data-tool-name', 'Payment Verification');
   return panel;
-}
-
-async function openCaseQueue(page) {
-  const mobileNavigation = page.getByRole('navigation', { name: 'Mission navigation' });
-  if (await mobileNavigation.isVisible()) {
-    await mobileNavigation.getByRole('button', { name: 'Cases', exact: true }).click();
-  } else {
-    await page.getByRole('navigation', { name: 'Main navigation' })
-      .getByRole('button', { name: 'Cases', exact: true })
-      .click();
-  }
-  const queue = page.locator('.cases-theme-v1-panel');
-  await expect(queue).toBeVisible();
-  return queue;
 }
 
 test('Payment Verification gates records, handles not-found, and reveals exact lookup evidence', async ({ page }, testInfo) => {
@@ -117,7 +108,7 @@ test('Payment Verification reuses Quick Pad identifiers without revealing a resu
 
 test('Payment Verification selects the actual account from duplicate destination records and keeps the result narrow', async ({ page }, testInfo) => {
   await page.goto('/');
-  const caseSelector = page.locator('.visual-case-switcher select');
+  const caseSelector = activeCaseSelector(page);
   await caseSelector.selectOption('FA-CR-24003');
   await expect(caseSelector).toHaveValue('FA-CR-24003');
   const panel = await openPaymentVerification(page);
@@ -166,16 +157,23 @@ test('Payment Verification selects the actual account from duplicate destination
 
 test('Avery Customer 360 records the profile change without duplicating or prefilling Payment Verification', async ({ page }, testInfo) => {
   await page.goto('/');
-  const caseSelector = page.locator('.visual-case-switcher select');
+  const caseSelector = activeCaseSelector(page);
   await caseSelector.selectOption('FA-CR-24003');
   await expect(caseSelector).toHaveValue('FA-CR-24003');
   await selectToolGroup(page, /Identity & Customer/);
 
   const customer = page.locator('[data-customer-360-screen="approved-theme-v1"]');
   await expect(customer).toBeVisible();
-  const tabs = customer.getByRole('tablist', { name: 'Customer 360 dossier tabs' });
-  await tabs.getByRole('tab', { name: 'Profile History', exact: true }).click();
-  const profileEvent = customer.locator('[data-profile-event]').filter({ hasText: 'Payment destination added' });
+  let profileHistory = customer;
+  if (testInfo.project.name === 'mobile-chromium') {
+    await customer.getByRole('button', { name: 'View all Profile updates', exact: true }).click();
+    profileHistory = page.getByRole('dialog', { name: 'Profile updates' });
+    await expect(profileHistory).toBeVisible();
+  } else {
+    const tabs = customer.getByRole('tablist', { name: 'Customer 360 dossier tabs' });
+    await tabs.getByRole('tab', { name: 'Profile History', exact: true }).click();
+  }
+  const profileEvent = profileHistory.locator('[data-profile-event]').filter({ hasText: 'Payment destination added' });
   await expect(profileEvent).toBeVisible();
   await expect(profileEvent).toContainText('External payment account add');
   await expect(profileEvent).toContainText('No prior external destination on file');
@@ -187,6 +185,9 @@ test('Avery Customer 360 records the profile change without duplicating or prefi
   await expect(customer.getByRole('region', { name: 'Payment Account Change', exact: true })).toHaveCount(0);
   await expect(customer.getByRole('region', { name: 'Payment Verification Inputs' })).toHaveCount(0);
   await expect(customer.getByRole('button', { name: 'Prefill Payment Verification' })).toHaveCount(0);
+  if (testInfo.project.name === 'mobile-chromium') {
+    await profileHistory.getByRole('button', { name: 'Close Profile updates', exact: true }).click();
+  }
 
   const panel = await openPaymentVerification(page);
   await expect(panel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue('');
@@ -215,26 +216,23 @@ test('Avery Customer 360 records the profile change without duplicating or prefi
 
 test('generated payroll carries one exact account change from Payroll History into gated verification', async ({ page }, testInfo) => {
   await page.goto('/');
-  const queue = await openCaseQueue(page);
-  await queue.getByLabel('Generate case customer type').selectOption('business');
-  await queue.getByLabel('Generate case product').selectOption('payroll-product');
-  await queue.getByLabel('Generate case review workflow').selectOption('payroll-change-alert');
-  await queue.getByLabel('Generate case alert reason').selectOption('Employee payment destination changed');
-  await queue.getByLabel('Generate case scenario').selectOption('pca-scenario-04');
-  await queue.getByLabel('Generate case difficulty').selectOption('deep');
-  await queue.getByLabel('Generate case evidence depth').selectOption('deep');
-  await queue.getByLabel('Generate case count').selectOption('1');
-  await queue.getByRole('button', { name: 'Generate cases', exact: true }).click();
+  await generateCaseFromQueue(page, {
+    customerType: 'business',
+    product: 'payroll-product',
+    workflow: 'payroll-change-alert',
+    alertReason: 'Employee payment destination changed',
+    scenario: 'pca-scenario-04',
+    difficulty: 'deep',
+    evidenceDepth: 'deep',
+    count: '1',
+  });
 
-  const briefing = page.locator('[data-workspace-page="briefing"]');
-  await expect(briefing).toBeVisible();
-  const generatedCaseId = await page.locator('.visual-case-switcher select').inputValue();
+  const generatedCaseId = await activeCaseSelector(page).inputValue();
   expect(generatedCaseId).toMatch(/^FA-PCA-G\d+$/);
 
-  await selectToolGroup(page, /Business & Payment Verification/);
+  await selectToolGroup(page, /Business & Payment Verification/, 'Payroll History');
   const payrollPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const toolSelector = payrollPanel.getByRole('combobox', { name: 'Choose investigation tool' });
-  await toolSelector.selectOption('Payroll History');
   await expect(payrollPanel).toHaveAttribute('data-tool-name', 'Payroll History');
   const hierarchy = payrollPanel.getByRole('navigation', { name: 'Payroll History hierarchy' });
   await expect(hierarchy).toContainText('Company Payroll History');

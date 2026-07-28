@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { claimGeneratorChoices } from './data/claimRegistry.js';
 import { isValidReviewPackage } from './data/reviewPackage.js';
 import { canonicalToolNames } from './investigationToolGroups.js';
@@ -110,6 +110,9 @@ export default function MobileCaseQueue({
   const [evidenceDepth, setEvidenceDepth] = useState('standard');
   const [count, setCount] = useState('1');
   const [isGenerating, setIsGenerating] = useState(false);
+  const queueRef = useRef(null);
+  const generatorToggleRef = useRef(null);
+  const generatorDialogRef = useRef(null);
 
   const productOptions = useMemo(
     () => [...new Set(cases.map((item) => publicCaseTaxonomy(item).productType).filter(Boolean))].sort(),
@@ -151,12 +154,89 @@ export default function MobileCaseQueue({
 
   useEffect(() => {
     if (!generatorOpen) return undefined;
-    const closeOnEscape = (event) => {
-      if (event.key === 'Escape' && !isGenerating) setGeneratorOpen(false);
+    const dialog = generatorDialogRef.current;
+    const backdrop = dialog?.parentElement;
+    const backgroundNodes = [...(queueRef.current?.children ?? [])]
+      .filter((node) => node !== backdrop);
+    const priorBackgroundState = backgroundNodes.map((node) => ({
+      node,
+      ariaHidden: node.getAttribute('aria-hidden'),
+      inert: node.hasAttribute('inert'),
+    }));
+    backgroundNodes.forEach((node) => {
+      node.setAttribute('aria-hidden', 'true');
+      node.setAttribute('inert', '');
+    });
+
+    const focusableElements = () => [...(dialog?.querySelectorAll(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), '
+      + 'textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+    ) ?? [])].filter((node) => node.getClientRects().length > 0);
+
+    const containGeneratorFocus = (event) => {
+      if (event.key === 'Escape' && !isGenerating) {
+        event.preventDefault();
+        closeGenerator();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = focusableElements();
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (!first || !last) {
+        event.preventDefault();
+        dialog?.focus({ preventScroll: true });
+        return;
+      }
+      const activeElement = document.activeElement;
+      if (!dialog?.contains(activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus({ preventScroll: true });
+      } else if (event.shiftKey && activeElement === first) {
+        event.preventDefault();
+        last.focus({ preventScroll: true });
+      } else if (!event.shiftKey && activeElement === last) {
+        event.preventDefault();
+        first.focus({ preventScroll: true });
+      }
     };
-    document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
+    const focusFrame = window.requestAnimationFrame(() => {
+      focusableElements()[0]?.focus({ preventScroll: true });
+    });
+    document.addEventListener('keydown', containGeneratorFocus);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener('keydown', containGeneratorFocus);
+      priorBackgroundState.forEach(({ node, ariaHidden, inert }) => {
+        if (ariaHidden === null) node.removeAttribute('aria-hidden');
+        else node.setAttribute('aria-hidden', ariaHidden);
+        if (!inert) node.removeAttribute('inert');
+      });
+    };
   }, [generatorOpen, isGenerating]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('fraud-academy:case-generator-visibility', {
+      detail: { open: generatorOpen },
+    }));
+  }, [generatorOpen]);
+
+  useEffect(() => (
+    () => {
+      window.dispatchEvent(new CustomEvent('fraud-academy:case-generator-visibility', {
+        detail: { open: false },
+      }));
+    }
+  ), []);
+
+  function closeGenerator({ restoreFocus = true } = {}) {
+    setGeneratorOpen(false);
+    if (restoreFocus) {
+      window.requestAnimationFrame(() => {
+        generatorToggleRef.current?.focus({ preventScroll: true });
+      });
+    }
+  }
 
   function changeCustomer(nextCustomerId) {
     const nextCustomer = generatorChoices.find((item) => item.id === nextCustomerId) ?? generatorChoices[0];
@@ -182,7 +262,7 @@ export default function MobileCaseQueue({
     if (!onGenerateCases || !selectedWorkflow || isGenerating) return;
     setIsGenerating(true);
     try {
-      await onGenerateCases({
+      const createdCases = await onGenerateCases({
         customerType: selectedCustomer.id,
         productType: selectedProduct.id,
         workflowType: selectedWorkflow.id,
@@ -193,14 +273,18 @@ export default function MobileCaseQueue({
         evidenceDepth,
         count,
       });
-      setGeneratorOpen(false);
+      if (Array.isArray(createdCases) && createdCases.length === 1) {
+        closeGenerator({ restoreFocus: false });
+      } else {
+        closeGenerator();
+      }
     } finally {
       setIsGenerating(false);
     }
   }
 
   return (
-    <section className="mobile-case-queue" data-mobile-case-queue="reference-v1" aria-label="Case Queue">
+    <section ref={queueRef} className="mobile-case-queue" data-mobile-case-queue="reference-v1" aria-label="Case Queue">
       <header className="mobile-case-queue-title">
         <div>
           <p>Training investigations</p>
@@ -255,9 +339,10 @@ export default function MobileCaseQueue({
       )}
 
       <button
+        ref={generatorToggleRef}
         type="button"
         className="mobile-case-generator-toggle"
-        onClick={() => setGeneratorOpen((open) => !open)}
+        onClick={() => (generatorOpen ? closeGenerator() : setGeneratorOpen(true))}
         aria-expanded={generatorOpen}
         aria-controls="mobile-case-generator-dialog"
       >
@@ -270,19 +355,21 @@ export default function MobileCaseQueue({
         <div
           className="mobile-case-generator-backdrop"
           onMouseDown={(event) => {
-            if (event.currentTarget === event.target && !isGenerating) setGeneratorOpen(false);
+            if (event.currentTarget === event.target && !isGenerating) closeGenerator();
           }}
         >
           <section
+            ref={generatorDialogRef}
             id="mobile-case-generator-dialog"
             className="mobile-case-generator-dialog"
             role="dialog"
             aria-modal="true"
             aria-labelledby="mobile-case-generator-title"
+            tabIndex="-1"
           >
             <header>
               <div><p>Evidence First setup</p><h2 id="mobile-case-generator-title">Create a fictional training case</h2></div>
-              <button type="button" autoFocus onClick={() => setGeneratorOpen(false)} disabled={isGenerating} aria-label="Close case generator">×</button>
+              <button type="button" autoFocus onClick={() => closeGenerator()} disabled={isGenerating} aria-label="Close case generator">×</button>
             </header>
             <form className="mobile-case-generator" onSubmit={generateCases}>
               <label><span>Customer type</span><select value={selectedCustomer?.id ?? ''} onChange={(event) => changeCustomer(event.target.value)}>{generatorChoices.map((customer) => <option key={customer.id} value={customer.id}>{customer.label}</option>)}</select></label>

@@ -237,6 +237,10 @@
   line-height: 1.4;
 }
 
+body[data-layout-mode="mobile"]:has(.mobile-case-generator-backdrop) .case-quick-pad {
+  display: none;
+}
+
 @media (max-width: 700px) {
   body[data-layout-mode="mobile"] .case-quick-pad {
     right: 10px;

@@ -225,6 +225,10 @@ body[data-layout-mode="mobile"][data-visual-tab="workspace"] .visual-os-frame {
   padding-bottom: calc(88px + env(safe-area-inset-bottom));
 }
 
+.mobile-workspace-page-header {
+  display: none;
+}
+
 body[data-visual-tab="workspace"] .mobile-workspace-page-header {
   position: sticky;
   top: 0;

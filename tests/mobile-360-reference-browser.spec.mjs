@@ -3,7 +3,12 @@ import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { getBusiness360Dossier } from '../src/data/business360Dossier.js';
 import { createGeneratedCase } from '../src/data/generatedCases.js';
-import { openToolGroups, selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  activeCaseSelector,
+  openCaseFromQueue,
+  openToolGroups,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 const screenshotRoot = process.env.MOBILE_360_SCREENSHOT_DIR
   ? path.resolve(process.env.MOBILE_360_SCREENSHOT_DIR)
@@ -50,7 +55,7 @@ async function openInitialCustomer360(page) {
 }
 
 async function openCustomer360FromTools(page) {
-  await selectToolGroup(page, /Identity & Customer/);
+  await selectToolGroup(page, /Identity & Customer/, 'Customer 360');
   const customer = page.locator('[data-mobile-360-screen="customer"]');
   if (!(await customer.isVisible())) {
     const toolSelector = page.locator('[data-investigation-tools-screen="approved-theme-v1"]')
@@ -67,12 +72,11 @@ async function openBusinessIntel(page) {
     window.localStorage.setItem('fraud-academy-generated-cases-v1', JSON.stringify([record]));
   }, payrollCase);
   await page.goto('/');
-  const caseSelector = page.getByRole('combobox', { name: 'Choose active mission case' }).first();
+  const caseSelector = activeCaseSelector(page);
   await expect(caseSelector.locator(`option[value="${payrollCase.id}"]`)).toHaveCount(1);
   await caseSelector.selectOption(payrollCase.id);
-  await selectToolGroup(page, /Business & Payment Verification/);
+  await selectToolGroup(page, /Business & Payment Verification/, 'Business 360');
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  await toolPanel.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Business 360');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Business 360');
   const businessPage = page.locator('[data-mobile-business-intel-reference="true"]');
   await expect(businessPage).toBeVisible();
@@ -243,10 +247,11 @@ test('mobile Business Intelligence stays search-first and opens the active busin
   await businessPage.getByRole('button', { name: 'Mark Business Intelligence reviewed', exact: true }).click();
   await expect(businessPage.getByRole('button', { name: '✓ Business Intelligence reviewed', exact: true })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Open mission pages', exact: true }).click();
-  await page.getByRole('button', { name: /Investigate/ }).click();
+  await businessPage.getByRole('button', { name: 'Back to Business Intelligence', exact: true }).click();
+  await businessPage.getByRole('button', { name: 'Back to Tool Map', exact: true }).click();
   const map = page.locator('[data-mobile-tool-map="reference-v1"]');
-  await map.getByRole('button', { name: /Pinned Evidence/ }).click();
+  await expect(map).toBeVisible();
+  await map.getByRole('button', { name: 'Open Pinned Evidence from Tool Map', exact: true }).click();
   const businessPin = page.getByRole('button', {
     name: new RegExp(`Open pinned evidence ${payrollDossier.profile.registrationFileNumber}`),
   });
@@ -266,7 +271,7 @@ test('mobile Business Intelligence stays search-first and opens the active busin
 
 test('personal credit review does not restore business or payroll-only tools', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('combobox', { name: 'Choose active mission case' }).selectOption('FA-CR-24003');
+  await activeCaseSelector(page).selectOption('FA-CR-24003');
   const launchpad = page.getByRole('navigation', { name: 'Case briefing files' })
     .getByRole('button', { name: 'Investigation launchpad' });
   if (await launchpad.isVisible()) await launchpad.click();
@@ -295,10 +300,10 @@ test('personal credit review does not restore business or payroll-only tools', a
     .filter({ hasText: 'Business & Payment Verification' })
     .click();
   const businessTray = toolMap.getByRole('region', { name: 'Business & Payment Verification tools' });
-  await expect(businessTray.getByRole('button', { name: /Payment Verification/ })).toBeVisible();
-  await expect(businessTray.getByRole('button', { name: /Business 360/ })).toHaveCount(0);
-  await expect(businessTray.getByRole('button', { name: /Employee Profile/ })).toHaveCount(0);
-  await expect(businessTray.getByRole('button', { name: /Payroll History/ })).toHaveCount(0);
+  await expect(businessTray.getByRole('button', { name: 'Open Payment Verification', exact: true })).toBeVisible();
+  await expect(businessTray.getByRole('button', { name: 'Open Business 360', exact: true })).toHaveCount(0);
+  await expect(businessTray.getByRole('button', { name: 'Open Employee Profile', exact: true })).toHaveCount(0);
+  await expect(businessTray.getByRole('button', { name: 'Open Payroll History', exact: true })).toHaveCount(0);
 });
 
 test('mobile case switching replaces Customer 360 identity, accounts, and security state', async ({ page }) => {
@@ -309,10 +314,7 @@ test('mobile case switching replaces Customer 360 identity, accounts, and securi
     .getByRole('button', { name: 'Close Accounts & products' })
     .click();
 
-  await page.getByRole('button', { name: 'Back to previous mission screen' }).click();
-  const caseSelector = page.getByRole('combobox', { name: 'Choose active mission case' });
-  await expect(caseSelector).toBeVisible();
-  await caseSelector.selectOption('FA-CB-24007');
+  await openCaseFromQueue(page, 'FA-CB-24007', 'Open Workspace');
 
   customer = await openCustomer360FromTools(page);
   await expect(customer).toContainText('Jordan Ellis');
@@ -321,8 +323,7 @@ test('mobile case switching replaces Customer 360 identity, accounts, and securi
   await expect(customer.locator('[data-360-account="CARD-24007-8841"]')).toBeVisible();
   await expect(page.getByRole('dialog', { name: 'Accounts & products' })).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Back to previous mission screen' }).click();
-  await page.getByRole('combobox', { name: 'Choose active mission case' }).selectOption('FA-CR-24003');
+  await openCaseFromQueue(page, 'FA-CR-24003', 'Open Workspace');
 
   customer = await openCustomer360FromTools(page);
   await expect(customer).toContainText('Avery Brooks');

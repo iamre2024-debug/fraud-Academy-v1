@@ -2219,6 +2219,7 @@ export default function InvestigationToolPanel({
   setExpandedId,
   pin,
   saveNote,
+  notes,
   markReviewed,
   currentCompleted,
   jumpDecision,
@@ -2228,6 +2229,7 @@ export default function InvestigationToolPanel({
   quickPin,
   payrollInvestigation,
   setPayrollInvestigationsByCase,
+  openedPinnedEvidence,
   mobileMode = false,
 }) {
   const [selectedRecordId, setSelectedRecordId] = useState('');
@@ -2486,6 +2488,7 @@ export default function InvestigationToolPanel({
           quickPin={quickPin}
           payrollInvestigation={payrollInvestigation}
           setPayrollInvestigationsByCase={setPayrollInvestigationsByCase}
+          openedPinnedEvidence={openedPinnedEvidence}
           mobileMode={mobileMode}
         />
       ) : tool === 'Login History' ? (

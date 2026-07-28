@@ -37,6 +37,18 @@ const checks = [
     ].every((anchor) => component.includes(anchor)),
   ],
   [
+    'Every map and workflow action has an unambiguous accessible name',
+    component.includes('aria-label={`Open ${tool}`}')
+      && component.includes('aria-label="Close selected tool group"')
+      && component.includes('aria-label={`Open ${cluster.label} tool group`}')
+      && component.includes('aria-label="Open Case Overview from Tool Map"')
+      && component.includes('aria-label="Open Pinned Evidence from Tool Map"')
+      && component.includes('aria-label="Open Case Notes from Tool Map"')
+      && component.includes('aria-label="Open Indicators from Tool Map"')
+      && component.includes('aria-label="Open Determination from Tool Map"')
+      && !component.includes('aria-label={`Close ${selectedCluster.label} tools`}'),
+  ],
+  [
     'Map nodes use non-overlapping grid areas instead of absolute coordinates',
     styles.includes('grid-template-areas:')
       && styles.includes('"identity access"')

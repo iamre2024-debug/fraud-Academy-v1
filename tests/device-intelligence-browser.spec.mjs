@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  generateCaseFromQueue,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 test.beforeEach(async ({ page }, testInfo) => {
   if (testInfo.project.name !== 'mobile-chromium') return;
@@ -8,42 +11,21 @@ test.beforeEach(async ({ page }, testInfo) => {
   });
 });
 
-async function openCaseQueue(page) {
-  const mobileNavigation = page.getByRole('navigation', { name: 'Mission navigation' });
-  if (await mobileNavigation.isVisible()) {
-    await mobileNavigation.getByRole('button', { name: 'Cases', exact: true }).click();
-  } else {
-    await page.getByRole('navigation', { name: 'Main navigation' })
-      .getByRole('button', { name: 'Cases', exact: true })
-      .click();
-  }
-  const queue = page.locator('.cases-theme-v1-panel');
-  await expect(queue).toBeVisible();
-  return queue;
-}
-
 test('generated Device ID lookup returns a complete profile and never leaks a stale result', async ({ page }, testInfo) => {
   await page.goto('/');
-  const queue = await openCaseQueue(page);
-  await queue.getByLabel('Generate case customer type').selectOption('personal');
-  await queue.getByLabel('Generate case product').selectOption('credit-card');
-  await queue.getByLabel('Generate case review workflow').selectOption('card-account-takeover');
-  await queue.getByLabel('Generate case alert reason').selectOption('New card-access or wallet activity observed');
-  await queue.getByLabel('Generate case scenario').selectOption('cat-scenario-01');
-  await queue.getByLabel('Generate case difficulty').selectOption('deep');
-  await queue.getByLabel('Generate case evidence depth').selectOption('deep');
-  await queue.getByLabel('Generate case count').selectOption('1');
-  await queue.getByRole('button', { name: 'Generate cases', exact: true }).click();
-
-  await expect(page.locator('[data-workspace-page="briefing"]')).toBeVisible();
-  await selectToolGroup(page, /Login, Session, Device & IP/);
+  await generateCaseFromQueue(page, {
+    customerType: 'personal',
+    product: 'credit-card',
+    workflow: 'card-account-takeover',
+    alertReason: 'New card-access or wallet activity observed',
+    scenario: 'cat-scenario-01',
+    difficulty: 'deep',
+    evidenceDepth: 'deep',
+    count: '1',
+  });
+  await selectToolGroup(page, /Login, Session, Device & IP/, 'Device Intelligence');
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  if (testInfo.project.name === 'mobile-chromium') {
-    await panel.getByRole('button', { name: 'Open Device Intelligence', exact: true }).click();
-  } else {
-    await panel.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Device Intelligence');
-  }
   await expect(panel).toHaveAttribute('data-tool-name', 'Device Intelligence');
 
   const search = panel.getByRole('textbox', { name: 'Search Device Intelligence records' });

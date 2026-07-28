@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  activeCaseSelector,
+  generateCaseFromQueue,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 const forbiddenPreSubmissionCopy = /\b(?:fraud score|red flags?|green flags?|correct answer|AI recommendations?|fraudulent|legitimate)\b/i;
 
@@ -11,7 +15,7 @@ test.beforeEach(async ({ page }, testInfo) => {
 });
 
 async function openFinancialInvestigation(page) {
-  await selectToolGroup(page, /Transactions & Financial/);
+  await selectToolGroup(page, /Transactions & Financial/, 'Financial Investigation');
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const toolSelector = panel.getByRole('combobox', { name: 'Choose investigation tool' });
   if (await toolSelector.inputValue() !== 'Financial Investigation') {
@@ -21,20 +25,6 @@ async function openFinancialInvestigation(page) {
   await expect(panel).toHaveAttribute('data-reference-investigation-layout', 'mission-v2');
   await expect(panel.getByRole('heading', { name: 'Financial Investigation', exact: true })).toBeVisible();
   return panel;
-}
-
-async function openCaseQueue(page) {
-  const mobileNavigation = page.getByRole('navigation', { name: 'Mission navigation' });
-  if (await mobileNavigation.isVisible()) {
-    await mobileNavigation.getByRole('button', { name: 'Cases', exact: true }).click();
-  } else {
-    await page.getByRole('navigation', { name: 'Main navigation' })
-      .getByRole('button', { name: 'Cases', exact: true })
-      .click();
-  }
-  const queue = page.locator('.cases-theme-v1-panel');
-  await expect(queue).toBeVisible();
-  return queue;
 }
 
 async function expectSavedCaseState(page, testInfo, { pin, pinCount, noteCount }) {
@@ -152,19 +142,18 @@ test('Financial Investigation renders actual dashboard evidence and keeps explor
 test('Financial Investigation exposes generated payroll totals, filters, and exact Payroll History routing', async ({ page }) => {
   test.setTimeout(90_000);
   await page.goto('/');
-  const queue = await openCaseQueue(page);
-  await queue.getByLabel('Generate case customer type').selectOption('business');
-  await queue.getByLabel('Generate case product').selectOption('payroll-product');
-  await queue.getByLabel('Generate case review workflow').selectOption('payroll-change-alert');
-  await queue.getByLabel('Generate case alert reason').selectOption('Employee payment destination changed');
-  await queue.getByLabel('Generate case scenario').selectOption('pca-scenario-04');
-  await queue.getByLabel('Generate case difficulty').selectOption('deep');
-  await queue.getByLabel('Generate case evidence depth').selectOption('deep');
-  await queue.getByLabel('Generate case count').selectOption('1');
-  await queue.getByRole('button', { name: 'Generate cases', exact: true }).click();
+  await generateCaseFromQueue(page, {
+    customerType: 'business',
+    product: 'payroll-product',
+    workflow: 'payroll-change-alert',
+    alertReason: 'Employee payment destination changed',
+    scenario: 'pca-scenario-04',
+    difficulty: 'deep',
+    evidenceDepth: 'deep',
+    count: '1',
+  });
 
-  await expect(page.locator('[data-workspace-page="briefing"]')).toBeVisible();
-  const caseSelector = page.locator('.visual-case-switcher select');
+  const caseSelector = activeCaseSelector(page);
   await expect(caseSelector).toHaveValue(/^FA-PCA-G\d+$/);
   const generatedCaseId = await caseSelector.inputValue();
   expect(generatedCaseId).toMatch(/^FA-PCA-G\d+$/);

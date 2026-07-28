@@ -3,7 +3,7 @@ import { openWorkspacePages, selectToolGroup } from './workspace-page-helpers.mj
 
 test('Link Analysis uses the dedicated graph, exact account matches, and evidence actions', async ({ page }, testInfo) => {
   await page.goto('/');
-  await selectToolGroup(page, 'Links & Related Cases');
+  await selectToolGroup(page, 'Links & Related Cases', 'Link Analysis');
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const workspace = panel.locator('[data-link-analysis-workspace]');

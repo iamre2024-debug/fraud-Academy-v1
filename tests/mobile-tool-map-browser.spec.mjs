@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openToolGroups } from './workspace-page-helpers.mjs';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -76,11 +77,7 @@ async function expectNonIntersectingMapNodes(page, width) {
 test('Tool Map nodes remain separate and contained at supported narrow widths', async ({ page }) => {
   await page.goto('/');
 
-  await page.locator('.mission-command-drawers')
-    .getByRole('button', { name: /Evidence Map/ })
-    .click();
-
-  const toolMap = page.locator('[data-mobile-tool-map="reference-v1"]');
+  const toolMap = await openToolGroups(page);
   await expect(toolMap).toBeVisible();
   await expect(toolMap.locator('.mobile-tool-map-cluster')).toHaveCount(5);
   await expect(toolMap.locator('.mobile-tool-map-overview')).toHaveCount(1);
@@ -94,11 +91,7 @@ test('Tool Map nodes remain separate and contained at supported narrow widths', 
 test('Tool Map opens map-first and reveals real tool actions only after a cluster tap', async ({ page }) => {
   await page.goto('/');
 
-  await page.locator('.mission-command-drawers')
-    .getByRole('button', { name: /Evidence Map/ })
-    .click();
-
-  let toolMap = page.locator('[data-mobile-tool-map="reference-v1"]');
+  let toolMap = await openToolGroups(page);
   await expect(toolMap).toBeVisible();
   await expect(toolMap.locator('#mobile-tool-map-tray')).toHaveCount(0);
   await expect(toolMap.locator('.mobile-tool-map-cluster[aria-pressed="true"]')).toHaveCount(0);
@@ -108,13 +101,13 @@ test('Tool Map opens map-first and reveals real tool actions only after a cluste
   await expect(evidenceCluster).toHaveAttribute('aria-pressed', 'true');
 
   let tray = toolMap.getByRole('region', { name: 'Evidence & Workflow tools' });
-  await tray.getByRole('button', { name: 'Close Evidence & Workflow tools' }).click();
+  await tray.getByRole('button', { name: 'Close selected tool group', exact: true }).click();
   await expect(toolMap.locator('#mobile-tool-map-tray')).toHaveCount(0);
   await expect(evidenceCluster).toHaveAttribute('aria-pressed', 'false');
 
   await evidenceCluster.click();
   tray = toolMap.getByRole('region', { name: 'Evidence & Workflow tools' });
-  await tray.getByRole('button', { name: /Document Viewer/ }).click();
+  await tray.getByRole('button', { name: 'Open Document Viewer', exact: true }).click();
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]'))
     .toHaveAttribute('data-tool-name', 'Document Viewer');
 
@@ -129,7 +122,7 @@ test('Tool Map opens map-first and reveals real tool actions only after a cluste
 
   await cluster(toolMap, 'Evidence & Workflow').click();
   tray = toolMap.getByRole('region', { name: 'Evidence & Workflow tools' });
-  await expect(tray.getByRole('button', { name: /Document Viewer/ })).toHaveClass(/active/);
+  await expect(tray.getByRole('button', { name: 'Open Document Viewer', exact: true })).toHaveClass(/active/);
 
   const financialCluster = cluster(toolMap, 'Transactions & Financial');
   await financialCluster.click();
@@ -141,7 +134,7 @@ test('Tool Map opens map-first and reveals real tool actions only after a cluste
   await expect(financialCluster).toHaveAttribute('aria-pressed', 'true');
 
   await toolMap.getByRole('region', { name: 'Transactions & Financial tools' })
-    .getByRole('button', { name: /Transaction History/ })
+    .getByRole('button', { name: 'Open Transaction History', exact: true })
     .click();
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]'))
     .toHaveAttribute('data-tool-name', 'Transaction History');

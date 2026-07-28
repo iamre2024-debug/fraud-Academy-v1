@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  activeCaseSelector,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 const requiredDocuments = [
   'Card-network submission record',
@@ -29,7 +32,7 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
     await expect(page.locator('.tray-card').getByRole('button', { name: /Document Viewer/ })).toHaveCount(0);
   }
 
-  await selectToolGroup(page, /Documents & Requests/);
+  await selectToolGroup(page, /Documents & Requests/, 'Document Viewer');
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const viewer = panel.locator('[data-document-viewer-screen="approved-theme-v1"]');
@@ -68,7 +71,7 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
   if (testInfo.project.name === 'mobile-chromium') {
     await expect(viewer.locator('.document-mobile-review-shell')).toHaveCount(0);
   } else {
-    await expect(viewer.getByRole('region', { name: 'Document preview' })).toContainText('Choose a document to open its viewer.');
+    await expect(viewer.getByRole('main', { name: 'Document preview' })).toContainText('Choose a document to open its viewer.');
   }
   await search.clear();
 
@@ -242,7 +245,7 @@ test('Document Viewer keeps prefilled access locked and restores isolated per-do
       const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
       await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
     }
-    await selectToolGroup(page, /Documents & Requests/);
+    await selectToolGroup(page, /Documents & Requests/, 'Document Viewer');
     const viewer = page.locator('[data-document-viewer-screen="approved-theme-v1"]');
     const accountSearch = viewer.getByRole('textbox', { name: 'Search by Account ID' });
     await viewer.getByRole('button', { name: 'Use active case Account ID', exact: true }).click();
@@ -267,7 +270,7 @@ test('Document Viewer keeps prefilled access locked and restores isolated per-do
 
   await page.goto('/');
   let viewer = await openActiveCaseViewer();
-  const activeCaseId = await page.locator('.visual-case-switcher select').inputValue();
+  const activeCaseId = await activeCaseSelector(page).inputValue();
   const firstRecord = viewer.locator('[data-document-record]').first();
   const firstDocumentId = await firstRecord.getAttribute('data-document-record');
   const draft = `Unsaved document draft for ${firstDocumentId}`;

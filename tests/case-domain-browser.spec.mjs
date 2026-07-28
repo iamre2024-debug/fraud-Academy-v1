@@ -86,7 +86,7 @@ test('case taxonomy routes desktop and mobile generators and protects payroll/li
   await expect(briefing.locator('.case-briefing-intake-answer-list')).toContainText('Request method: Unknown at intake');
   expect(await briefing.innerText()).not.toMatch(forbiddenInitialLabels);
 
-  await selectToolGroup(page, /Business & Payment Verification/);
+  await selectToolGroup(page, /Business & Payment Verification/, 'Payroll History');
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const toolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
   await toolSelect.selectOption('Payroll History');
@@ -144,7 +144,7 @@ test('case taxonomy routes desktop and mobile generators and protects payroll/li
   await expect(reloadedCase).toBeVisible();
   await reloadedCase.locator('.nav-case-card').click();
   await expect(briefing).toBeVisible();
-  await selectToolGroup(page, /Business & Payment Verification/);
+  await selectToolGroup(page, /Business & Payment Verification/, 'Payroll History');
   await toolSelect.selectOption('Payroll History');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Payroll History');
   await expect(trustedContactFlow.getByRole('combobox', { name: 'Business-reported request method' })).toHaveValue('Email');
@@ -153,7 +153,7 @@ test('case taxonomy routes desktop and mobile generators and protects payroll/li
   await expect(emailEvidence).toBeVisible();
   await expect(trustedContactFlow.getByRole('button', { name: 'Business response saved', exact: true })).toBeVisible();
 
-  await selectToolGroup(page, /Links & Related Cases/);
+  await selectToolGroup(page, /Links & Related Cases/, 'Link Analysis');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Link Analysis');
   await expect(toolPanel.getByRole('status')).toContainText('Search before viewing account links.');
   await expect(toolPanel.locator('[data-link-account]')).toHaveCount(0);
@@ -215,12 +215,33 @@ test('case taxonomy routes desktop and mobile generators and protects payroll/li
     .getByRole('button', { name: /Cases/ })
     .click();
 
-  const mobileQueue = mobileRoot.locator('[data-cases-theme-v1="approved"]');
-  const mobileGenerator = mobileQueue.getByRole('region', { name: 'Generate fictional training cases' });
-  const mobileCustomer = mobileGenerator.getByLabel('Generate case customer type');
-  const mobileProduct = mobileGenerator.getByLabel('Generate case product');
-  const mobileWorkflow = mobileGenerator.getByLabel('Generate case review workflow');
+  const mobileQueue = mobileRoot.locator('[data-mobile-case-queue="reference-v1"]');
+  const quickPad = page.locator('.case-quick-pad');
+  await quickPad.getByRole('button', { name: /Open Quick Pad/ }).click();
+  await expect(quickPad).toHaveClass(/is-open/);
+  await mobileQueue.getByRole('button', { name: /Create a fictional training case/ }).click();
+  const mobileGenerator = mobileQueue.locator('#mobile-case-generator-dialog');
+  const mobileCustomer = mobileGenerator.getByRole('combobox', { name: 'Customer type', exact: true });
+  const mobileProduct = mobileGenerator.getByRole('combobox', { name: 'Product', exact: true });
+  const mobileWorkflow = mobileGenerator.getByRole('combobox', { name: 'Review workflow', exact: true });
   await expect(mobileGenerator).toBeVisible();
+  await expect(quickPad).toBeHidden();
+  await expect(quickPad).not.toHaveClass(/is-open/);
+  const closeGenerator = mobileGenerator.getByRole('button', { name: 'Close case generator', exact: true });
+  const generateTrainingCase = mobileGenerator.getByRole('button', { name: 'Generate training case', exact: true });
+  await expect(closeGenerator).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(generateTrainingCase).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(closeGenerator).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(mobileGenerator).toHaveCount(0);
+  const generatorToggle = mobileQueue.getByRole('button', { name: /Create a fictional training case/ });
+  await expect(generatorToggle).toBeFocused();
+  await expect(quickPad).not.toHaveClass(/is-open/);
+  await generatorToggle.click();
+  await expect(mobileGenerator).toBeVisible();
+  await expect(closeGenerator).toBeFocused();
 
   await mobileCustomer.selectOption('business');
   await expect(mobileProduct).toHaveValue('business-account');

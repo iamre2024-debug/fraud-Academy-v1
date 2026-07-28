@@ -183,6 +183,7 @@ const panel = fs.readFileSync('src/InvestigationToolPanel.jsx', 'utf8');
 const visualWorkspace = fs.readFileSync('src/VisualWorkspace.jsx', 'utf8');
 const mobileWorkspace = fs.readFileSync('src/MobileMissionWorkspace.jsx', 'utf8');
 const styles = fs.readFileSync('src/linkAnalysisWorkspace.css', 'utf8');
+const panelProps = panel.match(/export default function InvestigationToolPanel\(\{([\s\S]*?)\}\)\s*\{/)?.[1] ?? '';
 for (const anchor of [
   'data-link-analysis-workspace',
   'Interactive relationship map',
@@ -204,6 +205,12 @@ if (panel.includes('\uFFFD')) {
 }
 if (!panel.includes('openedPinnedEvidence={openedPinnedEvidence}')) {
   fail('InvestigationToolPanel is not forwarding typed pinned-evidence context to Link Analysis.');
+}
+if (!/\bopenedPinnedEvidence\b/.test(panelProps) || !/\bnotes\b/.test(panelProps)) {
+  fail('InvestigationToolPanel must declare the pinned-evidence and case-note props used by Link Analysis and Business 360.');
+}
+if (!panel.includes('notes={notes}')) {
+  fail('InvestigationToolPanel is not forwarding active-case notes to Business 360.');
 }
 if (!visualWorkspace.includes("revealLinkAnalysisSearch: openedPinnedEvidence?.tool === 'Link Analysis'")) {
   fail('Pinned Link Analysis evidence does not explicitly reveal its restored search input.');

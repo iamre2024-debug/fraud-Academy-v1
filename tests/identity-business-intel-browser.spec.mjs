@@ -1,7 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { createGeneratedCase } from '../src/data/generatedCases.js';
 import { getBusiness360Dossier } from '../src/data/business360Dossier.js';
-import { selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  activeCaseSelector,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 const businessCase = createGeneratedCase({
   index: 97241,
@@ -27,14 +30,13 @@ async function useMobileLayout(page, generatedCases = []) {
 
 async function openIdentityIntel(page) {
   await page.goto('/');
-  const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
+  const briefing = page.locator('[data-workspace-page="briefing"]');
   await expect(briefing).toBeVisible();
-  await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
-  const customer360 = page.locator('[data-customer-360-screen="approved-theme-v1"]');
-  await expect(customer360).toBeVisible();
-  await customer360.getByRole('navigation', { name: 'Customer 360 related tools' })
-    .getByRole('button', { name: 'Identity Intel', exact: true })
+  await briefing.getByRole('navigation', { name: 'Case briefing files' })
+    .getByRole('button', { name: 'Investigation launchpad', exact: true })
     .click();
+  await briefing.getByRole('button', { name: /Begin investigation/i }).click();
+  await selectToolGroup(page, /Identity & Customer/, 'Identity Intel / People Search');
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Identity Intel / People Search');
   return toolPanel;
@@ -59,12 +61,10 @@ async function assertContained(page, selector) {
 async function openGeneratedBusinessSearch(page) {
   await useMobileLayout(page, [businessCase]);
   await page.goto('/');
-  const caseSelector = page.locator('.visual-case-switcher select').first();
+  const caseSelector = activeCaseSelector(page);
   await expect(caseSelector.locator(`option[value="${businessCase.id}"]`)).toHaveCount(1);
   await caseSelector.selectOption(businessCase.id);
-  await selectToolGroup(page, /Business & Payment Verification/);
-  const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  await toolPanel.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Business 360');
+  await selectToolGroup(page, /Business & Payment Verification/, 'Business 360');
   const businessPage = page.locator('[data-mobile-business-intel-reference="true"]');
   await expect(businessPage).toHaveAttribute('data-business-intelligence-stage', 'search');
   return businessPage;
@@ -84,10 +84,10 @@ async function runBusinessIdSearch(businessPage) {
 async function reopenThroughRoutedBusinessPin(page, businessPage) {
   const summary = await runBusinessIdSearch(businessPage);
   await summary.getByRole('button', { name: 'Pin business', exact: true }).click();
-  await page.getByRole('button', { name: 'Open mission pages', exact: true }).click();
-  await page.getByRole('button', { name: /Investigate/ }).click();
+  await businessPage.getByRole('button', { name: 'Back to Tool Map', exact: true }).click();
   const map = page.locator('[data-mobile-tool-map="reference-v1"]');
-  await map.getByRole('button', { name: /Pinned Evidence/ }).click();
+  await expect(map).toBeVisible();
+  await map.getByRole('button', { name: 'Open Pinned Evidence from Tool Map', exact: true }).click();
   await page.getByRole('button', {
     name: new RegExp(`Open pinned evidence ${businessDossier.profile.registrationFileNumber}`),
   }).click();
@@ -98,9 +98,9 @@ async function reopenThroughRoutedBusinessPin(page, businessPage) {
 }
 
 async function leaveAndReopenBusinessPage(page, businessPage) {
-  await page.getByRole('button', { name: 'Open mission pages', exact: true }).click();
+  await businessPage.getByRole('button', { name: 'Back to Tool Map', exact: true }).click();
   await expect(businessPage).toHaveCount(0);
-  await page.getByRole('button', { name: 'Back to previous mission screen', exact: true }).click();
+  await selectToolGroup(page, /Business & Payment Verification/, 'Business 360');
   await expect(businessPage).toHaveAttribute('data-business-intelligence-stage', 'search');
 }
 
@@ -158,14 +158,12 @@ test('Business Intelligence searches the canonical Business 360 record before re
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Dedicated reference page is mobile-only.');
   await useMobileLayout(page, [businessCase]);
   await page.goto('/');
-  const caseSelector = page.locator('.visual-case-switcher select').first();
+  const caseSelector = activeCaseSelector(page);
   await expect(caseSelector.locator(`option[value="${businessCase.id}"]`)).toHaveCount(1);
   await caseSelector.selectOption(businessCase.id);
-  await selectToolGroup(page, /Business & Payment Verification/);
+  await selectToolGroup(page, /Business & Payment Verification/, 'Business 360');
 
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  const toolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
-  await toolSelect.selectOption('Business 360');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Business 360');
 
   const missionPage = page.locator('[data-business-intel-reference-page="true"]');
@@ -224,10 +222,11 @@ test('Business Intelligence searches the canonical Business 360 record before re
     },
     intelReportOpen: true,
   });
-  await page.getByRole('button', { name: 'Open mission pages', exact: true }).click();
-  await expect(businessPage).toHaveCount(0);
-  await page.getByRole('button', { name: 'Back to previous mission screen', exact: true }).click();
-  await expect(businessPage).toBeVisible();
+  await businessPage.getByRole('button', { name: 'Back to Business Intelligence', exact: true }).click();
+  await expect(businessPage).toHaveAttribute('data-business-intelligence-stage', 'search');
+  await expect(nameSearch).toHaveValue(businessDossier.profile.legalName);
+  await expect(idSearch).toHaveValue(businessDossier.profile.registrationFileNumber);
+  await businessPage.getByRole('button', { name: 'Open Business 360', exact: true }).click();
   await expect(businessPage).toHaveAttribute('data-business-intelligence-stage', 'business-360');
   await expect(businessPage.locator('[data-mobile-360-screen="business"]')).toBeVisible();
   await businessBoard.locator('[data-360-account]').first().click();

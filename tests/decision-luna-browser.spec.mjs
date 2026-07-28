@@ -4,7 +4,11 @@ import {
   getDecisionCallGroups,
   getFinalFindingChoices,
 } from '../src/data/reviewPackage.js';
-import { openWorkflowStage, openWorkspacePages } from './workspace-page-helpers.mjs';
+import {
+  openCaseFromQueue,
+  openWorkflowStage,
+  openWorkspacePages,
+} from './workspace-page-helpers.mjs';
 
 const personalCase = createGeneratedCase({
   index: 97001,
@@ -62,7 +66,15 @@ async function seedReviewCases(page) {
   }, [personalCase, businessCase]);
 }
 
-async function chooseCase(page, caseRecord) {
+function leadingChoiceName(choice) {
+  return new RegExp(`^${choice.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+}
+
+async function chooseCase(page, caseRecord, mobile = false) {
+  if (mobile) {
+    await openCaseFromQueue(page, caseRecord.id, 'Case Briefing');
+    return;
+  }
   const selector = page.locator('.visual-case-switcher select').first();
   await expect(selector.locator(`option[value="${caseRecord.id}"]`)).toHaveCount(1);
   await selector.selectOption(caseRecord.id);
@@ -116,7 +128,7 @@ test('personal and business decision reviews use the reference screens and unloc
   await expect(page.locator('body')).toHaveAttribute('data-layout-mode', detectedLayout);
 
   for (const caseRecord of [personalCase, businessCase]) {
-    await chooseCase(page, caseRecord);
+    await chooseCase(page, caseRecord, mobile);
     const customerType = caseRecord.customerType;
     const choices = validReviewChoices(caseRecord);
     let decision;
@@ -124,8 +136,8 @@ test('personal and business decision reviews use the reference screens and unloc
     if (mobile) {
       const determination = await openDecision(page, true);
       await expect(determination).toHaveAttribute('data-case-id', caseRecord.id);
-      await determination.getByRole('radio', { name: choices.operationalDecision, exact: true }).check();
-      await determination.getByRole('radio', { name: choices.finalFinding, exact: true }).check();
+      await determination.getByRole('radio', { name: leadingChoiceName(choices.operationalDecision) }).check();
+      await determination.getByRole('radio', { name: leadingChoiceName(choices.finalFinding) }).check();
       await determination.getByRole('combobox', { name: 'Learner confidence' }).selectOption('High');
       await determination.getByRole('textbox', { name: 'Finding basis' })
         .fill(`Record ${caseRecord.id}-001 and the dated case evidence support this training decision.`);
@@ -185,7 +197,9 @@ test('personal and business decision reviews use the reference screens and unloc
     await expect(luna.getByRole('heading', { name: 'Risk Tip from Luna', exact: true })).toBeVisible();
     await expect(luna.getByRole('heading', { name: "Luna's Motivation", exact: true })).toBeVisible();
     if (customerType === 'business') {
-      await expect(luna.locator('.luna-risk-tip, .luna-motivation')).toContainText(/business|payroll/i);
+      await expect(
+        luna.locator('.luna-risk-tip, .luna-motivation').filter({ hasText: /business|payroll/i }).first(),
+      ).toBeVisible();
     }
 
     await assertWithinViewport(page, '[data-luna-layout="reference-debrief"]');
@@ -209,11 +223,13 @@ test('personal and business decision reviews use the reference screens and unloc
   }
 
   await page.reload();
-  await chooseCase(page, businessCase);
+  await chooseCase(page, businessCase, mobile);
   await openWorkflowStage(page, /Debrief/);
   const persistedBusinessLuna = page.locator(
     `[data-luna-layout="reference-debrief"][data-case-id="${businessCase.id}"][data-luna-state="unlocked"]`,
   );
   await expect(persistedBusinessLuna).toBeVisible();
-  await expect(persistedBusinessLuna.locator('.luna-risk-tip, .luna-motivation')).toContainText(/business|payroll/i);
+  await expect(
+    persistedBusinessLuna.locator('.luna-risk-tip, .luna-motivation').filter({ hasText: /business|payroll/i }).first(),
+  ).toBeVisible();
 });

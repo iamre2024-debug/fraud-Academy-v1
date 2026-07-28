@@ -18,6 +18,7 @@ const styles = read('src/mobileMissionDeckV3.css');
 const referenceStyles = read('src/mobileMerchantDocumentReference.css');
 const accessReferenceStyles = read('src/mobileLoginSessionReference.css');
 const caseReviewStyles = read('src/mobileCaseReviewPages.css');
+const baseStyles = read('src/visualWorkspace.css');
 const legacyStyles = read('src/mobileBlueMissionDeck.css');
 const playwrightConfig = read('playwright.config.mjs');
 const failures = [];
@@ -184,7 +185,19 @@ for (const anchor of [
   '.mission-workspace-bar',
   'body:has(iframe[title="Netlify Drawer"]) .mission-mobile-dock',
   '@media (max-width: 370px)',
+  '.mission-evidence-notebook .tray-record-row',
+  '.mission-evidence-notebook .tray-open-record',
+  '.mission-evidence-notebook .tray-remove-record',
 ]) requireAnchor('mobileMissionDeckV3.css', styles, anchor);
+
+for (const anchor of ['.sr-only', 'clip-path: inset(50%)', 'white-space: nowrap']) {
+  requireAnchor('visualWorkspace.css', baseStyles, anchor);
+}
+
+if (!/\.mission-evidence-notebook \.tray-open-record\s*\{[^}]*grid-column:\s*2;[^}]*grid-row:\s*1;/s.test(styles)
+  || !/\.mission-evidence-notebook \.tray-remove-record\s*\{[^}]*grid-column:\s*2;[^}]*grid-row:\s*2;[^}]*min-height:\s*44px;/s.test(styles)) {
+  failures.push('Pinned Evidence open and remove controls must occupy distinct mobile grid rows with a full touch target.');
+}
 
 for (const anchor of [
   'Merchant Intelligence + Document Request mobile reference rebuild',

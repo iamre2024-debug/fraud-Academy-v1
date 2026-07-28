@@ -18,7 +18,7 @@ async function assertEvidenceFirstLock(page, expectedCaseId) {
   const lunaPanel = page.locator('.luna-visual-panel.locked');
   await expect(lunaPanel).toBeAttached();
   await expect(lunaPanel).toHaveAttribute('data-case-id', expectedCaseId);
-  await expect(page.getByText('Evidence First lock is active.')).toBeAttached();
+  await expect(lunaPanel.getByText('Evidence First lock is active', { exact: true })).toBeAttached();
   expect(await page.locator('body').innerText()).not.toMatch(forbiddenPreSubmissionCopy);
 }
 
@@ -35,7 +35,11 @@ async function openCoreTool(page, category, tool) {
     return;
   }
 
-  await selectToolGroup(page, new RegExp(category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  await selectToolGroup(
+    page,
+    new RegExp(category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    tool,
+  );
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const selector = panel.getByRole('combobox', { name: 'Choose investigation tool' });

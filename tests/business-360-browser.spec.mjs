@@ -73,11 +73,11 @@ async function openBusiness360(page, caseRecord) {
   const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
   await expect(briefing).toBeVisible();
   await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
-  await selectToolGroup(page, /Business & Payment Verification/);
+  await selectToolGroup(page, /Business & Payment Verification/, 'Business 360');
 
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const toolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
-  await toolSelect.selectOption('Business 360');
+  if (await toolSelect.inputValue() !== 'Business 360') await toolSelect.selectOption('Business 360');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Business 360');
 
   const searchStage = toolPanel.locator('[data-business-intelligence-stage="search"]');

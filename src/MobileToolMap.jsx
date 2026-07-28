@@ -165,6 +165,7 @@ export default function MobileToolMap({
             type="button"
             className={`mobile-tool-map-cluster mobile-tool-map-cluster-${cluster.key}${selectedCluster?.key === cluster.key ? ' active' : ''}`}
             onClick={() => selectCluster(cluster.key)}
+            aria-label={`Open ${cluster.label} tool group`}
             aria-pressed={selectedCluster?.key === cluster.key}
             aria-expanded={selectedCluster?.key === cluster.key}
             aria-controls="mobile-tool-map-tray"
@@ -176,7 +177,7 @@ export default function MobileToolMap({
           </button>
         ))}
 
-        <button type="button" className="mobile-tool-map-overview" onClick={onOpenOverview}>
+        <button type="button" className="mobile-tool-map-overview" onClick={onOpenOverview} aria-label="Open Case Overview from Tool Map">
           <span><MapGlyph type="overview" /></span>
           <strong>Case Overview</strong>
           <small>{reviewedTotal}/{availableTools.length} tools reviewed</small>
@@ -201,7 +202,7 @@ export default function MobileToolMap({
               <button
                 type="button"
                 onClick={() => setSelectedClusterKey('')}
-                aria-label={`Close ${selectedCluster.label} tools`}
+                aria-label="Close selected tool group"
               >
                 ×
               </button>
@@ -214,6 +215,7 @@ export default function MobileToolMap({
                 type="button"
                 className={activeTool === tool ? 'active' : ''}
                 onClick={() => onOpenTool(tool)}
+                aria-label={`Open ${tool}`}
               >
                 <span>{completedTools.includes(tool) ? '✓' : '→'}</span>
                 <strong>{tool}</strong>
@@ -225,10 +227,10 @@ export default function MobileToolMap({
       )}
 
       <nav className="mobile-tool-map-workflow" aria-label="Evidence and workflow pages">
-        <button type="button" onClick={onOpenPinnedEvidence}><span>☆</span><strong>Pinned Evidence</strong></button>
-        <button type="button" onClick={onOpenNotes}><span>▤</span><strong>Case Notes</strong></button>
-        <button type="button" onClick={onOpenIndicators}><span>◈</span><strong>Indicators</strong></button>
-        <button type="button" onClick={onOpenDecision}><span>✓</span><strong>Determination</strong></button>
+        <button type="button" onClick={onOpenPinnedEvidence} aria-label="Open Pinned Evidence from Tool Map"><span>☆</span><strong>Pinned Evidence</strong></button>
+        <button type="button" onClick={onOpenNotes} aria-label="Open Case Notes from Tool Map"><span>▤</span><strong>Case Notes</strong></button>
+        <button type="button" onClick={onOpenIndicators} aria-label="Open Indicators from Tool Map"><span>◈</span><strong>Indicators</strong></button>
+        <button type="button" onClick={onOpenDecision} aria-label="Open Determination from Tool Map"><span>✓</span><strong>Determination</strong></button>
       </nav>
     </section>
   );

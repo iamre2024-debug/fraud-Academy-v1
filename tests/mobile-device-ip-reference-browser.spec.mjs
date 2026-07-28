@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  activeCaseSelector,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 test.beforeEach(async ({ page }, testInfo) => {
   if (testInfo.project.name !== 'mobile-chromium') return;
@@ -10,15 +13,10 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 test('Device and IP Intelligence use dedicated mobile evidence pages without changing desktop', async ({ page }, testInfo) => {
   await page.goto('/');
-  const activeCaseId = await page.locator('.visual-case-switcher select').inputValue();
-  await selectToolGroup(page, /Login, Session, Device & IP/);
+  const activeCaseId = await activeCaseSelector(page).inputValue();
+  await selectToolGroup(page, /Login, Session, Device & IP/, 'Device Intelligence');
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  if (testInfo.project.name === 'mobile-chromium') {
-    await panel.getByRole('button', { name: 'Open Device Intelligence', exact: true }).click();
-  } else {
-    await panel.getByRole('combobox', { name: 'Choose investigation tool' }).selectOption('Device Intelligence');
-  }
   await expect(panel).toHaveAttribute('data-tool-name', 'Device Intelligence');
 
   if (testInfo.project.name !== 'mobile-chromium') {

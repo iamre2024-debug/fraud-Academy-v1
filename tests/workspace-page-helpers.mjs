@@ -60,6 +60,100 @@ function matchesStageRequest(stageName, candidate) {
   return String(stageName).trim().toLowerCase() === candidate;
 }
 
+function visibleLocator(locator) {
+  return locator.filter({ visible: true });
+}
+
+export async function openCaseQueue(page) {
+  const mobileNavigation = page.getByRole('navigation', { name: 'Mission navigation' });
+  if (await mobileNavigation.isVisible()) {
+    await mobileNavigation.getByRole('button', { name: 'Cases', exact: true }).click();
+    const mobileQueue = page.locator('[data-mobile-case-queue="reference-v1"]');
+    await expect(mobileQueue).toBeVisible();
+    return mobileQueue;
+  }
+
+  await page.getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('button', { name: 'Cases', exact: true })
+    .click();
+  const desktopQueue = page.locator('[data-cases-theme-v1="approved"]');
+  await expect(desktopQueue).toBeVisible();
+  return desktopQueue;
+}
+
+export async function generateCaseFromQueue(page, {
+  alertReason,
+  count,
+  customerType,
+  difficulty,
+  evidenceDepth,
+  product,
+  scenario,
+  workflow,
+} = {}) {
+  const queue = await openCaseQueue(page);
+  const isMobileQueue = await queue.getAttribute('data-mobile-case-queue');
+  let generator = queue;
+
+  if (isMobileQueue) {
+    await queue.getByRole('button', { name: /Create a fictional training case/ }).click();
+    generator = queue.locator('#mobile-case-generator-dialog');
+    await expect(generator).toBeVisible();
+  }
+
+  const label = (mobile, desktop) => (isMobileQueue ? mobile : desktop);
+  const values = [
+    [customerType, label('Customer type', 'Generate case customer type')],
+    [product, label('Product', 'Generate case product')],
+    [workflow, label('Review workflow', 'Generate case review workflow')],
+    [alertReason, label('Alert reason', 'Generate case alert reason')],
+    [scenario, label('Scenario', 'Generate case scenario')],
+    [difficulty, label('Difficulty', 'Generate case difficulty')],
+    [evidenceDepth, label('Evidence depth', 'Generate case evidence depth')],
+    [count, label('Cases', 'Generate case count')],
+  ];
+
+  for (const [value, accessibleName] of values) {
+    if (value !== undefined) {
+      await generator.getByRole('combobox', { name: accessibleName, exact: true }).selectOption(String(value));
+    }
+  }
+
+  await generator.getByRole('button', {
+    name: isMobileQueue ? 'Generate training case' : 'Generate cases',
+    exact: true,
+  }).click();
+  await expect(page.locator('[data-workspace-page="briefing"]')).toBeVisible();
+  return queue;
+}
+
+export function activeCaseSelector(page) {
+  return visibleLocator(page.locator(
+    '.mission-workspace-case-selector select, '
+    + '.visual-case-switcher select',
+  )).first();
+}
+
+export async function openCaseFromQueue(page, caseId, action = 'Open Workspace') {
+  const queue = await openCaseQueue(page);
+  const isMobileQueue = Boolean(await queue.getAttribute('data-mobile-case-queue'));
+  if (isMobileQueue) {
+    const card = queue.locator('article').filter({ hasText: caseId });
+    await expect(card).toBeVisible();
+    await card.getByRole('button', { name: action, exact: true }).click();
+  } else {
+    await queue.getByRole('searchbox', { name: 'Search cases' }).fill(caseId);
+    const card = queue.locator('.case-queue-item').filter({ hasText: caseId });
+    await expect(card).toBeVisible();
+    await card.locator('.nav-case-card').click();
+  }
+  await expect(page.locator(
+    isMobileQueue && action === 'Open Workspace'
+      ? '[data-workspace-page="tool-menu"]'
+      : '[data-workspace-page="briefing"]',
+  )).toBeVisible();
+}
+
 export async function openWorkspacePages(page) {
   const desktopWorkflow = page.locator('.active-case-workflow');
   if (await desktopWorkflow.isVisible()) return desktopWorkflow;
@@ -81,6 +175,29 @@ export async function openWorkspacePages(page) {
       if (await page.getByRole('button', { name: 'Open mission pages', exact: true }).isVisible()) break;
     }
   }
+
+  const customerActionsButton = page.getByRole('button', {
+    name: 'Open Customer 360 actions',
+    exact: true,
+  });
+  if (await customerActionsButton.isVisible()) {
+    await customerActionsButton.click();
+    await page.getByRole('dialog', { name: 'Customer 360 actions' })
+      .getByRole('button', { name: /All tools/ })
+      .click();
+  }
+
+  const backToBusinessSearch = page.getByRole('button', {
+    name: 'Back to Business Intelligence',
+    exact: true,
+  });
+  if (await backToBusinessSearch.isVisible()) await backToBusinessSearch.click();
+
+  const backToToolMap = page.getByRole('button', {
+    name: 'Back to Tool Map',
+    exact: true,
+  });
+  if (await backToToolMap.isVisible()) await backToToolMap.click();
 
   const desktopPagesButton = page.getByRole('button', { name: 'Pages', exact: true });
   const usesDesktopPages = await desktopPagesButton.isVisible();
@@ -132,13 +249,36 @@ export async function openToolGroups(page) {
     return mobileMap;
   }
 
+  const businessBackButton = page.getByRole('button', {
+    name: 'Back to Business Intelligence',
+    exact: true,
+  });
+  if (await businessBackButton.isVisible()) await businessBackButton.click();
+
+  const intelBackButton = page.getByRole('button', {
+    name: 'Back to Tool Map',
+    exact: true,
+  });
+  if (await intelBackButton.isVisible()) {
+    await intelBackButton.click();
+    await expect(mobileMap).toBeVisible();
+    return mobileMap;
+  }
+
+  const mobileToolActions = page.getByRole('navigation', { name: 'Tool page actions' });
+  if (await mobileToolActions.isVisible()) {
+    await mobileToolActions.getByRole('button', { name: /All tools/ }).click();
+    await expect(mobileMap).toBeVisible();
+    return mobileMap;
+  }
+
   await openWorkflowStage(page, /Investigate/);
   if (await mobileMap.isVisible()) return mobileMap;
   await expect(desktopGroups).toBeVisible();
   return desktopGroups;
 }
 
-export async function selectToolGroup(page, groupName) {
+export async function selectToolGroup(page, groupName, toolName) {
   const groups = await openToolGroups(page);
   if (await groups.getAttribute('data-mobile-tool-map')) {
     const mobileGroup = mobileToolGroups.find(({ names }) => (
@@ -152,8 +292,9 @@ export async function selectToolGroup(page, groupName) {
 
     const tray = groups.locator('#mobile-tool-map-tray');
     await expect(tray).toBeVisible();
-    const toolButton = mobileGroup?.defaultTool
-      ? tray.getByRole('button', { name: new RegExp(mobileGroup.defaultTool.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') })
+    const targetTool = toolName ?? mobileGroup?.defaultTool;
+    const toolButton = targetTool
+      ? tray.getByRole('button', { name: `Open ${targetTool}`, exact: true })
       : tray.getByRole('button').first();
     await expect(toolButton).toBeVisible();
     await toolButton.click();
@@ -165,6 +306,14 @@ export async function selectToolGroup(page, groupName) {
   const groupButton = await evidenceMapButton.isVisible() ? evidenceMapButton : legacyRowButton;
   await expect(groupButton).toBeVisible();
   await groupButton.click();
+
+  if (toolName) {
+    const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
+    const selector = panel.getByRole('combobox', { name: 'Choose investigation tool' });
+    await expect(selector).toBeVisible();
+    if (await selector.inputValue() !== toolName) await selector.selectOption(toolName);
+    await expect(panel).toHaveAttribute('data-tool-name', toolName);
+  }
   return groups;
 }
 
