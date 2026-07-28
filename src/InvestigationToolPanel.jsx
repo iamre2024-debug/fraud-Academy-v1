@@ -5,6 +5,7 @@ import DocumentViewerWorkspace from './DocumentViewerWorkspace.jsx';
 import FinancialInvestigationDossierWorkspace from './FinancialInvestigationWorkspace.jsx';
 import LinkAnalysisWorkspace from './LinkAnalysisWorkspace.jsx';
 import MerchantIntelligenceWorkspace from './MerchantIntelligenceWorkspace.jsx';
+import { MobileIdentityIntelligencePage } from './MobileIdentityBusinessIntelPages.jsx';
 import { MobileDocumentRequestPage } from './MobileMerchantDocumentPages.jsx';
 import { MobileLoginHistoryPage, MobileSessionHistoryPage } from './MobileLoginSessionPages.jsx';
 import { accessReportExportText, generateAccessHistoryReport, generatedAccessReportTypes } from './data/accessHistoryReports.js';
@@ -1451,6 +1452,7 @@ function IdentityIntelWorkspace({
   reviewed,
   openTool,
   jumpDecision,
+  mobileMode = false,
 }) {
   const report = useMemo(
     () => getIdentityIntelReport(activeCase, { trainingId: query }),
@@ -1492,6 +1494,16 @@ function IdentityIntelWorkspace({
     setActiveSectionId('identity-summary');
   }
 
+  function clearSearch() {
+    setIdDraft('');
+    setNameDraft('');
+    setDobDraft('');
+    setSubmittedSearch(null);
+    setSearchHistory([]);
+    setReportOpen(false);
+    setActiveSectionId('identity-summary');
+  }
+
   function saveIdentityNote(message) {
     saveNote(`Identity Intel: ${message}`, 'Identity Intel');
   }
@@ -1514,6 +1526,40 @@ function IdentityIntelWorkspace({
     link.download = `${report.subject.sourceCaseId}-identity-search-report.txt`;
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  if (mobileMode) {
+    return (
+      <MobileIdentityIntelligencePage
+        activeSection={activeSection}
+        activeSectionId={activeSectionId}
+        clearSearch={clearSearch}
+        dobDraft={dobDraft}
+        exportIdentityReport={exportIdentityReport}
+        idDraft={idDraft}
+        jumpDecision={jumpDecision}
+        markReviewed={markReviewed}
+        nameDraft={nameDraft}
+        openTool={openTool}
+        pin={pin}
+        report={report}
+        reportOpen={reportOpen}
+        reviewed={reviewed}
+        runSearch={runSearch}
+        saveIdentityNote={saveIdentityNote}
+        searchHistory={searchHistory}
+        searchMatched={searchMatched}
+        searchMode={searchMode}
+        searchReady={searchReady}
+        setActiveSectionId={setActiveSectionId}
+        setDobDraft={setDobDraft}
+        setIdDraft={setIdDraft}
+        setNameDraft={setNameDraft}
+        setReportOpen={setReportOpen}
+        setSearchMode={setSearchMode}
+        submittedSearch={submittedSearch}
+      />
+    );
   }
 
   return (
@@ -2553,6 +2599,7 @@ export default function InvestigationToolPanel({
           jumpDecision={jumpDecision}
           recordAction={recordAction}
           quickPin={quickPin}
+          mobileMode={mobileMode}
         />
       ) : tool === 'Transaction History' ? (
         <TransactionHistoryWorkspace
@@ -2598,6 +2645,7 @@ export default function InvestigationToolPanel({
           reviewed={reviewed}
           openTool={openTool}
           jumpDecision={jumpDecision}
+          mobileMode={mobileMode}
         />
       ) : tool === 'Employee Profile' ? (
         <EmployeeProfileWorkspace
