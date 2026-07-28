@@ -50,13 +50,14 @@ function activityBreakdown(workspace) {
   }
 
   if (workspace.payroll.months.length) {
-    const total = workspace.payroll.months.reduce((sum, item) => sum + (item.companyDebit ?? 0), 0);
+    const visibleMonths = workspace.payroll.months.slice(-2);
+    const total = visibleMonths.reduce((sum, item) => sum + (item.companyDebit ?? 0), 0);
     return {
       title: 'Payroll movement',
-      subtitle: 'Exact company debits from Payroll History',
+      subtitle: `Exact company debits from Payroll History · latest ${visibleMonths.length} recorded month${visibleMonths.length === 1 ? '' : 's'}`,
       totalDisplay: displayMoney(total),
       sectionId: 'payroll',
-      items: workspace.payroll.months.slice(0, 5).map((item) => ({
+      items: visibleMonths.map((item) => ({
         label: item.label,
         value: item.companyDebit ?? 0,
         display: item.companyDebitDisplay,
