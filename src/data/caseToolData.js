@@ -48,12 +48,19 @@ function fallbackPayment(activeCase) {
 }
 
 function fallbackBusiness(activeCase) {
-  const entity = activeCase.profile?.business ?? activeCase.customer?.relationship?.[0]?.value ?? `${activeCase.type ?? 'Case'} entity`;
+  const entity = activeCase.profile?.business ?? activeCase.profile?.employer ?? 'Harbor Business Services LLC';
   return {
-    business360: [{ id: `${activeCase.id}-BIZ-1`, entity, relationship: `${activeCase.lane ?? 'Case'} relationship record`, status: 'Record available', observed: activeCase.reportedDate ?? activeCase.opened ?? 'Training date', context: 'Fictional entity context is available for review.' }],
-    businessIntel: [{ id: `${activeCase.id}-BIN-1`, type: 'Case relationship', value: entity, observed: activeCase.reportedDate ?? activeCase.opened ?? 'Training date', context: 'Training record available for comparison with case evidence.' }],
-    employeeProfile: [{ id: `${activeCase.id}-EMP-1`, name: activeCase.person, role: activeCase.profile?.entityRole ?? 'Training case record', employer: activeCase.profile?.employer ?? 'Training entity', status: 'Record available', lastSeen: activeCase.reportedDate ?? activeCase.opened ?? 'Training date', context: 'Fictional relationship record.' }],
-    payrollHistory: [{ id: `${activeCase.id}-PAYR-1`, period: 'Training period', employer: activeCase.profile?.employer ?? 'Training entity', amount: activeCase.amount ?? '$0.00', channel: 'Training relationship record', status: 'Recorded', context: 'Available for cross-tool comparison.' }],
+    business360: [{
+      id: `BIZ-${String(entity).replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 10) || 'TRAINING'}`,
+      entity,
+      relationship: 'Institution business relationship',
+      status: 'Record available',
+      observed: activeCase.opened ?? 'Training date',
+      context: 'Reusable institution relationship record',
+    }],
+    employeeProfile: [],
+    companyPayrollProfile: null,
+    payrollRuns: [],
   };
 }
 
@@ -112,9 +119,9 @@ export function getBusinessRecords(activeCase = {}) {
   const fallback = fallbackBusiness(activeCase);
   return {
     business360: generated.business360?.length ? generated.business360 : fallback.business360,
-    businessIntel: generated.businessIntel?.length ? generated.businessIntel : fallback.businessIntel,
     employeeProfile: generated.employeeProfile?.length ? generated.employeeProfile : fallback.employeeProfile,
-    payrollHistory: generated.payrollHistory?.length ? generated.payrollHistory : fallback.payrollHistory,
+    companyPayrollProfile: generated.companyPayrollProfile ?? fallback.companyPayrollProfile,
+    payrollRuns: generated.payrollRuns?.length ? generated.payrollRuns : fallback.payrollRuns,
   };
 }
 

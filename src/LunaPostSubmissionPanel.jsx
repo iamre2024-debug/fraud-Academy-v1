@@ -5,7 +5,7 @@ import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import { buildLunaDebrief } from './data/lunaDebrief.js';
 import { requestLunaApiCoaching } from './data/lunaApi.js';
-import { isValidReviewPackage } from './data/reviewPackage.js';
+import { isValidReviewPackage, normalizeReviewPackage } from './data/reviewPackage.js';
 import { readStorage, storageKeys, writeStorage } from './visualWorkspaceModel.js';
 
 const cases = enrichTrainingCases(baseCases);
@@ -24,7 +24,38 @@ function explainDecisionMeaning(choice) {
   if (normalized.includes('escalate')) {
     return 'Your decision means the case required additional authority, evidence, or specialist review before a final outcome.';
   }
-  return `Your submitted determination was ${choice || 'not selected'}.`;
+  if (normalized === 'deny') {
+    return 'Your operational decision means the application should be denied for the documented factual reason. A denial does not itself establish fraud.';
+  }
+  if (normalized === 'approve') {
+    return 'Your operational decision means the application may proceed under the fictional product policy. It does not by itself establish that every fraud concern was disproved.';
+  }
+  if (normalized.includes('restrict') || normalized === 'hold') {
+    return 'Your operational decision places a restriction or hold on the exposure or activity while the documented risk is addressed. It is not automatically a fraud finding.';
+  }
+  if (normalized === 'release' || normalized === 'maintain') {
+    return 'Your operational decision allows the activity or relationship to proceed based on the available evidence. It remains separate from the final finding.';
+  }
+  return `Your submitted operational decision was ${choice || 'not selected'}.`;
+}
+
+function explainFinalFinding(finalFinding) {
+  if (!finalFinding) {
+    return 'This legacy package did not record a separate final finding, so Luna will not infer one from the operational decision.';
+  }
+  if (finalFinding === 'Fraud Confirmed') {
+    return 'Your final finding says the investigation established fraud through the documented evidence and rationale.';
+  }
+  if (finalFinding === 'Fraud Not Found') {
+    return 'Your final finding says the investigation did not establish fraud. It does not necessarily resolve every operational or credit issue.';
+  }
+  if (finalFinding === 'Verification Incomplete') {
+    return 'Your final finding says verification remains incomplete. Missing information is not itself proof of fraud.';
+  }
+  if (finalFinding === 'Credit Risk Concern') {
+    return 'Your final finding records a credit or repayment concern without automatically labeling the activity as fraud.';
+  }
+  return `Your final finding was ${finalFinding}.`;
 }
 
 function getReviewStatus(debrief) {
@@ -38,11 +69,18 @@ function buildManagerFallback(debrief, reviewPackage) {
   const truth = debrief?.truthReveal;
 
   if (status === 'ungraded') {
+    const legacyOutcomeUnavailable = Boolean(truth && !reviewPackage?.finalFinding);
     return {
-      managerVerdict: 'This case does not include a hidden outcome, so your determination cannot be marked right or wrong. Luna can still review the quality of your investigation and documentation.',
-      decisionMeaning: explainDecisionMeaning(reviewPackage?.choice),
-      actualCaseOutcome: 'No hidden downstream outcome is attached to this case. The case remains an investigation-quality exercise rather than a graded truth-match scenario.',
-      managerExplanation: 'Your decision is not being corrected. Review whether your notes, pinned evidence, and rationale clearly support the determination you selected.',
+      managerVerdict: legacyOutcomeUnavailable
+        ? 'This legacy package did not record a separate final finding, so Luna will not mark the combined outcome right or wrong.'
+        : 'This case does not include a hidden outcome, so your determination cannot be marked right or wrong. Luna can still review the quality of your investigation and documentation.',
+      decisionMeaning: `${explainDecisionMeaning(reviewPackage?.operationalDecision || reviewPackage?.choice)} ${explainFinalFinding(reviewPackage?.finalFinding)}`,
+      actualCaseOutcome: legacyOutcomeUnavailable
+        ? `${truth.finalFinding || truth.classification || 'Outcome recorded'}.${truth.findingBasis ? ` ${truth.findingBasis}` : ''}`
+        : 'No hidden downstream outcome is attached to this case. The case remains an investigation-quality exercise rather than a graded truth-match scenario.',
+      managerExplanation: legacyOutcomeUnavailable
+        ? 'The saved operational decision remains available, but Luna will not infer the missing final finding from it. Future submissions record and grade both fields separately.'
+        : 'Your submission is not being corrected. Review whether your notes, pinned evidence, and finding basis clearly support both the operational decision and the final finding.',
       strengths: debrief?.strengths || [],
       coachingActions: debrief?.followUps || [],
     };
@@ -51,15 +89,15 @@ function buildManagerFallback(debrief, reviewPackage) {
   const matched = status === 'matched';
   return {
     managerVerdict: matched
-      ? 'Your determination was correct based on the case evidence.'
-      : `Your determination did not match the expected case outcome${truth?.correctDetermination ? ` of ${truth.correctDetermination}` : ''}.`,
-    decisionMeaning: explainDecisionMeaning(reviewPackage?.choice),
+      ? 'Your operational decision and final finding were correct based on the case evidence.'
+      : 'One or both submitted fields did not match the expected case outcome.',
+    decisionMeaning: `${explainDecisionMeaning(reviewPackage?.operationalDecision || reviewPackage?.choice)} ${explainFinalFinding(reviewPackage?.finalFinding)}`,
     actualCaseOutcome: truth
-      ? `${truth.classification}${truth.rationale ? ` ${truth.rationale}` : ''}`
+      ? `${truth.finalFinding || truth.classification || 'Outcome recorded'}.${truth.findingBasis ? ` ${truth.findingBasis}` : ''}`
       : 'No downstream outcome was supplied.',
     managerExplanation: matched
-      ? 'You reached the right decision. The next question is whether your notes and pinned evidence clearly show how you got there.'
-      : 'The result needs correction. Compare your reasoning with the hidden case outcome and identify which evidence changed the decision.',
+      ? 'You reached the right operational action and finding. The next question is whether your notes and pinned evidence clearly show how you got there.'
+      : 'The result needs correction. Compare each submitted field with the hidden case outcome and identify which evidence changes the operational action, the final finding, or both.',
     strengths: debrief?.strengths || [],
     coachingActions: debrief?.followUps || [],
   };
@@ -133,11 +171,16 @@ export default function LunaPostSubmissionPanel({
     const trayByCase = readStorage(storageKeys.tray, {});
     const notesByCase = readStorage(storageKeys.notes, {});
     const debriefsByCase = readStorage(storageKeys.debriefs, {});
-    const storedPackage = (packagesByCase[activeCase.id] ?? [])
+    const storedPackageRecord = (packagesByCase[activeCase.id] ?? [])
       .find((reviewPackage) => isValidReviewPackage(activeCase, reviewPackage)) ?? null;
+    const storedPackage = storedPackageRecord
+      ? normalizeReviewPackage(storedPackageRecord, activeCase)
+      : null;
     const submittedPackageIsValid = submittedPackage?.caseId === activeCase.id
       && isValidReviewPackage(activeCase, submittedPackage);
-    const reviewPackage = submittedPackageIsValid ? submittedPackage : storedPackage;
+    const reviewPackage = submittedPackageIsValid
+      ? normalizeReviewPackage(submittedPackage, activeCase)
+      : storedPackage;
     const savedDebrief = (debriefsByCase[activeCase.id] ?? [])
       .find((debriefRecord) => debriefRecord.packageId === reviewPackage?.id) ?? null;
     const debrief = buildLunaDebrief({
@@ -296,7 +339,7 @@ export default function LunaPostSubmissionPanel({
           <div className="luna-v1-unlock-grid" aria-label="Luna submission steps">
             <article><span>1</span><div><strong>Review the case</strong><p>Open the records you need.</p></div></article>
             <article><span>2</span><div><strong>Document evidence</strong><p>Pin proof and add useful notes.</p></div></article>
-            <article><span>3</span><div><strong>Make your call</strong><p>Select the determination that fits the evidence.</p></div></article>
+            <article><span>3</span><div><strong>Make your call</strong><p>Select the operational decision and final finding that fit the evidence.</p></div></article>
             <article><span>4</span><div><strong>Submit</strong><p>Luna reviews the decision after it is saved.</p></div></article>
           </div>
         </div>
@@ -319,10 +362,11 @@ export default function LunaPostSubmissionPanel({
             <section className="luna-v1-card luna-v1-user-reasoning">
               <header><span className="luna-v1-step-index" aria-hidden="true">01</span><div><p>Your decision</p><h3>What you submitted</h3></div></header>
               <dl>
-                <div><dt>Decision</dt><dd>{state.reviewPackage.choice || 'No determination selected'}</dd></div>
+                <div><dt>Operational decision</dt><dd>{state.reviewPackage.operationalDecision || state.reviewPackage.choice || 'Not recorded'}</dd></div>
+                <div><dt>Final finding</dt><dd>{state.reviewPackage.finalFinding || 'Not recorded in this legacy package'}</dd></div>
                 <div><dt>Confidence</dt><dd>{state.reviewPackage.confidence}</dd></div>
               </dl>
-              <DirectCollapsibleText as="p" lines={5} mobileLines={6}>{state.reviewPackage.reason || 'No rationale was submitted.'}</DirectCollapsibleText>
+              <DirectCollapsibleText as="p" lines={5} mobileLines={6}>{state.reviewPackage.findingBasis || state.reviewPackage.reason || 'No finding basis was submitted.'}</DirectCollapsibleText>
             </section>
 
             <section className="luna-v1-card luna-v1-senior-review">
@@ -333,7 +377,8 @@ export default function LunaPostSubmissionPanel({
             <section className="luna-v1-card luna-v1-truth-review">
               <header><span className="luna-v1-step-index" aria-hidden="true">03</span><div><p>Case outcome</p><h3>{reviewStatus === 'ungraded' ? 'Outcome availability' : 'What was actually happening'}</h3></div></header>
               <dl>
-                <div><dt>Expected determination</dt><dd>{state.debrief.truthReveal?.correctDetermination || 'Not available'}</dd></div>
+                <div><dt>Expected operational decision</dt><dd>{state.debrief.truthReveal?.operationalDecision || 'Not available'}</dd></div>
+                <div><dt>Expected final finding</dt><dd>{state.debrief.truthReveal?.finalFinding || 'Not available'}</dd></div>
                 <div><dt>Your result</dt><dd>{resultLabel}</dd></div>
               </dl>
               <DirectCollapsibleText as="p" lines={6} mobileLines={7}>{managerReview.actualCaseOutcome}</DirectCollapsibleText>

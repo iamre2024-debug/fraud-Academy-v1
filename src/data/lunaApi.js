@@ -31,7 +31,7 @@ export async function requestLunaApiCoaching({ activeCase, reviewPackage, determ
   const accessToken = readLunaApiAccessToken();
   if (!accessToken) return null;
 
-  const response = await fetch(import.meta.env.VITE_LUNA_API_URL || DEFAULT_ENDPOINT, {
+  const response = await fetch(import.meta.env?.VITE_LUNA_API_URL || DEFAULT_ENDPOINT, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -40,13 +40,31 @@ export async function requestLunaApiCoaching({ activeCase, reviewPackage, determ
     signal,
     body: JSON.stringify({
       caseId: activeCase.id,
+      customerType: reviewPackage.customerType || activeCase.customerType,
+      productType: reviewPackage.productType || activeCase.productType,
+      workflowType: reviewPackage.workflowType || activeCase.workflowType,
+      alertReason: reviewPackage.alertReason || activeCase.alertReason || activeCase.queueReason,
+      reportedAllegation: reviewPackage.reportedAllegation || activeCase.reportedAllegation || activeCase.allegation,
+      operationalDecision: reviewPackage.operationalDecision || reviewPackage.choice,
+      finalFinding: reviewPackage.finalFinding || '',
+      findingBasis: reviewPackage.findingBasis || reviewPackage.reason || '',
+      // Compatibility aliases for older private Luna endpoints.
       caseType: activeCase.type,
       allegation: activeCase.allegation,
-      submittedDecision: reviewPackage.choice,
+      submittedDecision: reviewPackage.operationalDecision || reviewPackage.choice,
       confidence: reviewPackage.confidence,
-      rationale: reviewPackage.reason || '',
+      rationale: reviewPackage.findingBasis || reviewPackage.reason || '',
       deterministicResult: {
         determinationMatched: deterministicDebrief.determinationMatched,
+        operationalDecisionMatched: deterministicDebrief.operationalDecisionMatched,
+        finalFindingMatched: deterministicDebrief.finalFindingMatched,
+        expectedOperationalDecision: deterministicDebrief.truthReveal?.operationalDecision || null,
+        acceptedOperationalDecisions: deterministicDebrief.truthReveal?.acceptedOperationalDecisions || [],
+        expectedFinalFinding: deterministicDebrief.truthReveal?.finalFinding || null,
+        suspectedPatterns: deterministicDebrief.truthReveal?.suspectedPatterns || [],
+        truthFindingBasis: deterministicDebrief.truthReveal?.findingBasis || null,
+        disclosure: deterministicDebrief.truthReveal?.disclosure || null,
+        // Compatibility aliases for saved deterministic debriefs.
         expectedDetermination: deterministicDebrief.truthReveal?.correctDetermination || null,
         acceptedDeterminations: deterministicDebrief.truthReveal?.acceptedDeterminations || [],
         classification: deterministicDebrief.truthReveal?.classification || null,

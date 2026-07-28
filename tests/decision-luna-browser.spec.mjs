@@ -2,7 +2,8 @@ import { test, expect } from '@playwright/test';
 import { openWorkflowStage, openWorkspacePages } from './workspace-page-helpers.mjs';
 
 const caseId = 'FA-ATO-24018';
-const learnerChoice = 'Insufficient Evidence';
+const operationalDecision = 'More Information Needed';
+const finalFinding = 'Inconclusive';
 const forbiddenLockedCopy = /(?:\/100|Strong package|Solid package|Developing package|Needs more support|Package strengths|Next coaching focus)/i;
 
 async function seedIncompleteCase(page) {
@@ -27,7 +28,7 @@ async function openDecision(page) {
   return decision;
 }
 
-test('a choice-only decision saves and unlocks Luna on desktop and mobile', async ({ page }, testInfo) => {
+test('separate operational decision and final finding save and unlock Luna on desktop and mobile', async ({ page }, testInfo) => {
   await seedIncompleteCase(page);
   await page.goto('/');
 
@@ -51,19 +52,19 @@ test('a choice-only decision saves and unlocks Luna on desktop and mobile', asyn
   await expect(decision).toHaveAttribute('data-case-id', caseId);
   await expect(decision.getByRole('heading', { name: 'Submit Decision', exact: true })).toBeVisible();
   await expect(decision.getByText('Evidence First protection', { exact: true })).toBeVisible();
-  await expect(decision.getByRole('heading', { name: 'Account Takeover decision checklist', exact: true })).toBeVisible();
+  await expect(decision.getByRole('heading', { name: 'Account Takeover review checklist', exact: true })).toBeVisible();
   await expect(decision.getByText('Red flags', { exact: true })).toBeVisible();
   await expect(decision.getByText('Green flags', { exact: true })).toBeVisible();
   await expect(decision.locator('.decision-status-grid article')).toHaveCount(4);
   await expect(decision.getByText('0/9', { exact: true })).toBeVisible();
   await expect(decision.getByText('You can submit a decision without reviewing every tool. Open only the records needed to prove your selected flags.', { exact: true })).toBeVisible();
-  await expect(decision.getByText('Matched to this case: phishing', { exact: true })).toBeVisible();
+  await expect(decision.getByText('Matched to this case: Personal · Deposit account · Personal Account Takeover', { exact: true })).toBeVisible();
   await expect(decision.getByRole('heading', { name: 'Decision readiness', exact: true })).toHaveCount(0);
   await expect(decision.getByText(/Decision needs attention/i)).toHaveCount(0);
   const savePackage = decision.getByRole('button', { name: 'Submit Decision', exact: true });
   await expect(savePackage).toBeVisible();
   await expect(savePackage).toBeDisabled();
-  await expect(decision.getByText('Select one valid determination before submitting. Tools, flags, pins, notes, and rationale remain optional.', { exact: true })).toBeVisible();
+  await expect(decision.getByText(/Before submitting: select an operational decision; select a final finding\./i)).toBeVisible();
 
   const decisionLayout = await page.evaluate(() => {
     const panel = document.querySelector('[data-decision-screen="approved-theme-v1"]');
@@ -108,7 +109,9 @@ test('a choice-only decision saves and unlocks Luna on desktop and mobile', asyn
 
   await openDecision(page);
 
-  await decision.getByRole('radio', { name: learnerChoice, exact: true }).check();
+  await decision.getByRole('radio', { name: operationalDecision, exact: true }).check();
+  await expect(savePackage).toBeDisabled();
+  await decision.getByRole('radio', { name: finalFinding, exact: true }).check();
   await decision.getByRole('combobox', { name: 'Learner confidence' }).selectOption('High');
   await expect(savePackage).toBeEnabled();
   await savePackage.click();
@@ -121,6 +124,9 @@ test('a choice-only decision saves and unlocks Luna on desktop and mobile', asyn
   expect(savedPackage).not.toBeNull();
   expect(savedPackage.completedTools).toEqual([]);
   expect(savedPackage.decisionIndicators).toEqual([]);
+  expect(savedPackage.operationalDecision).toBe(operationalDecision);
+  expect(savedPackage.finalFinding).toBe(finalFinding);
+  expect(savedPackage.findingBasis).toBe('');
   expect(savedPackage.reason).toBe('');
   expect(savedPackage.blockers).toEqual([]);
   expect(savedPackage.coachingGaps.length).toBeGreaterThan(0);
@@ -128,8 +134,9 @@ test('a choice-only decision saves and unlocks Luna on desktop and mobile', asyn
   const luna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');
   await expect(luna).toBeVisible();
   await expect(luna.getByRole('heading', { name: 'What you submitted', exact: true })).toBeVisible();
-  await expect(luna.getByText(learnerChoice, { exact: true })).toBeVisible();
-  await expect(luna.getByRole('heading', { name: 'How well your decision was supported', exact: true })).toBeVisible();
+  await expect(luna.locator('.luna-v1-user-reasoning')).toContainText(operationalDecision);
+  await expect(luna.locator('.luna-v1-user-reasoning')).toContainText(finalFinding);
+  await expect(luna.getByRole('heading', { name: /How well your decision was supported|Why the decision was right or wrong/ })).toBeVisible();
   await expect(luna.getByRole('heading', { name: 'What you handled well', exact: true })).toBeVisible();
   await expect(luna.getByRole('heading', { name: 'What to improve next time', exact: true })).toBeVisible();
   await expect(luna.locator('[aria-label="Decision-quality breakdown"]')).toBeVisible();
@@ -214,7 +221,8 @@ test('a choice-only decision saves and unlocks Luna on desktop and mobile', asyn
   const persistedLuna = page.locator('[data-luna-screen="approved-theme-v1"][data-luna-state="unlocked"]');
   await openWorkflowStage(page, /Debrief/);
   await expect(persistedLuna).toBeVisible();
-  await expect(persistedLuna).toContainText(learnerChoice);
+  await expect(persistedLuna).toContainText(operationalDecision);
+  await expect(persistedLuna).toContainText(finalFinding);
 
   await persistedLuna.getByRole('button', { name: 'Finish and Return to Queue', exact: true }).click();
   await expect(page.locator('body')).toHaveAttribute('data-visual-tab', 'cases');

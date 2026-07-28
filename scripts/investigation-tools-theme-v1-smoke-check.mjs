@@ -2,7 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const rootDir = process.cwd();
-const panel = fs.readFileSync(path.join(rootDir, 'src/InvestigationToolPanel.jsx'), 'utf8');
+const panel = [
+  fs.readFileSync(path.join(rootDir, 'src/InvestigationToolPanel.jsx'), 'utf8'),
+  fs.readFileSync(path.join(rootDir, 'src/Business360Workspace.jsx'), 'utf8'),
+  fs.readFileSync(path.join(rootDir, 'src/FinancialInvestigationWorkspace.jsx'), 'utf8'),
+].join('\n');
 const documentViewer = fs.readFileSync(path.join(rootDir, 'src/DocumentViewerWorkspace.jsx'), 'utf8');
 const documentRecords = fs.readFileSync(path.join(rootDir, 'src/data/documentRecords.js'), 'utf8');
 const businessPayrollWorkspace = fs.readFileSync(path.join(rootDir, 'src/data/businessPayrollWorkspace.js'), 'utf8');
@@ -12,8 +16,8 @@ const sessionRecords = fs.readFileSync(path.join(rootDir, 'src/data/sessionRecor
 const ipRecords = fs.readFileSync(path.join(rootDir, 'src/data/ipRecords.js'), 'utf8');
 const accessReports = fs.readFileSync(path.join(rootDir, 'src/data/accessHistoryReports.js'), 'utf8');
 const financialInvestigation = fs.readFileSync(path.join(rootDir, 'src/data/financialInvestigationRecords.js'), 'utf8');
-const kybReview = fs.readFileSync(path.join(rootDir, 'src/data/kybReviewRecords.js'), 'utf8');
-const kybReport = fs.readFileSync(path.join(rootDir, 'src/data/kybReviewReport.js'), 'utf8');
+const businessResearch = fs.readFileSync(path.join(rootDir, 'src/data/businessResearchRecords.js'), 'utf8');
+const businessReport = fs.readFileSync(path.join(rootDir, 'src/data/kybReviewReport.js'), 'utf8');
 const groups = fs.readFileSync(path.join(rootDir, 'src/investigationToolGroups.js'), 'utf8');
 const workspace = fs.readFileSync(path.join(rootDir, 'src/VisualWorkspace.jsx'), 'utf8');
 const rail = fs.readFileSync(path.join(rootDir, 'src/CategoryTileRail.jsx'), 'utf8');
@@ -24,7 +28,7 @@ const workspaceModel = fs.readFileSync(path.join(rootDir, 'src/visualWorkspaceMo
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/investigation-tools-browser.spec.mjs'), 'utf8');
 const documentBrowser = fs.readFileSync(path.join(rootDir, 'tests/document-viewer-browser.spec.mjs'), 'utf8');
-const financialKybBrowser = fs.readFileSync(path.join(rootDir, 'tests/financial-kyb-browser.spec.mjs'), 'utf8');
+const businessBrowser = fs.readFileSync(path.join(rootDir, 'tests/business-360-browser.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_INVESTIGATION_TOOLS_THEME_V1.md'), 'utf8');
 const sourceOfTruth = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'), 'utf8');
 const readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8');
@@ -151,21 +155,21 @@ for (const anchor of [
   'Transaction account and card rail',
   'Save transaction note',
   'Business360Workspace',
-  'Business and KYB profile',
+  'Luna Business Research',
+  'Business 360 Research Report',
   'Business 360 review',
   'EmployeeProfileWorkspace',
   'Official contact / callback',
   'Employee Profile review',
   'PayrollHistoryWorkspace',
-  'Payroll and direct deposit',
-  'Trusted callback',
+  'Company Payroll History',
+  'Payroll Run Detail',
+  'Employee Payroll History',
+  'Individual Paystub',
+  'Company funding Bank Code',
+  'Employee Bank Code',
   'Payroll History review',
   'FinancialInvestigationWorkspace',
-  'Does the money make sense?',
-  'KYBReviewWorkspace',
-  'Search business',
-  'Generate report',
-  'stored with the matching account documents',
 ]) {
   mustContain('InvestigationToolPanel.jsx', panel, anchor);
 }
@@ -344,12 +348,12 @@ for (const anchor of [
   'getBusiness360Workspace',
   'getEmployeeProfiles',
   'getPayrollHistory',
+  'employeePayrollHistory',
+  'findPayrollRecord',
   'Card not present',
-  'ownerToCompare',
-  'oldDestination',
-  'newDestination',
-  'changeComparison',
-  'Training payroll callback channel',
+  'companyPayrollProfile',
+  'payrollRuns',
+  'paymentDestinations',
 ]) {
   mustContain('businessPayrollWorkspace.js', businessPayrollWorkspace, anchor);
 }
@@ -400,20 +404,20 @@ for (const anchor of ['Login Timeline Report', 'Session History Report', 'IP Int
 }
 
 mustContain('documentRecords.js', documentRecords, 'getGeneratedAccessReportDocuments');
-mustContain('documentRecords.js', documentRecords, 'getGeneratedKybReportDocuments');
+mustContain('documentRecords.js', documentRecords, 'getGeneratedBusiness360ReportDocuments');
 mustContain('displayInvestigationToolsThemeV1.css', styles, '.access-history-filters');
 mustContain('displayInvestigationToolsThemeV1.css', styles, '.ip-lookup-action');
 
-for (const anchor of ['financialInvestigationTabs', 'Account Overview', 'Deposit Analysis', 'Spending Analysis', 'Cash Activity', 'Digital Payments', 'Linked Accounts', 'Merchant Billing History', 'Behavior Trends', 'Funds Flow', 'Mule / Cash-Out Pattern', 'getFinancialInvestigation', 'financialRecordSearchText']) {
+for (const anchor of ['financialInvestigationTabs', 'Account Review', 'Current vs Historical', 'Spending Analysis', 'Personal Deposit Analysis', 'Credit & Loan Payments', 'Business Payroll Analysis', 'getFinancialInvestigation', 'financialRecordSearchText']) {
   mustContain('financialInvestigationRecords.js', financialInvestigation, anchor);
 }
 
-for (const anchor of ['kybReviewTabs', 'Owners & UBO', 'Bank Ownership', 'Revenue & Cash Flow', 'getKybReview', 'matchesKybReviewLookup']) {
-  mustContain('kybReviewRecords.js', kybReview, anchor);
+for (const anchor of ['businessResearchSections', 'Ownership & Control', 'Institution Relationship', 'Luna Business Research', 'getBusinessResearch', 'matchesBusinessResearchLookup', 'lunaBusinessResearchStatuses']) {
+  mustContain('kybReviewRecords.js', businessResearch, anchor);
 }
 
-for (const anchor of ['KYB Business Report', 'generateKybReviewReport', 'getGeneratedKybReportDocuments', 'does not determine the case outcome']) {
-  mustContain('kybReviewReport.js', kybReport, anchor);
+for (const anchor of ['Business 360 Research Report', 'generateBusiness360Report', 'getGeneratedBusiness360ReportDocuments', 'does not assign an investigation outcome']) {
+  mustContain('kybReviewReport.js', businessReport, anchor);
 }
 
 mustContain('main.jsx', entrypoint, "import './displayInvestigationToolsThemeV1.css';");
@@ -428,8 +432,8 @@ mustContain('investigation-tools-browser.spec.mjs', browser, 'approved Investiga
 mustContain('investigation-tools-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('document-viewer-browser.spec.mjs', documentBrowser, 'requires an Account ID');
 mustContain('document-viewer-browser.spec.mjs', documentBrowser, 'Document comparison');
-mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'Financial Investigation and KYB Review provide complete responsive workspaces');
-mustContain('financial-kyb-browser.spec.mjs', financialKybBrowser, 'Open in Document Viewer');
+mustContain('business-360-browser.spec.mjs', businessBrowser, 'Business 360 keeps company, owner, account, and factual research records outside the active case');
+mustContain('business-360-browser.spec.mjs', businessBrowser, 'Business 360 exposes a payroll relationship summary and only supported payroll routes');
 mustContain('Investigation tools handoff', handoff, 'agent/investigation-tools-approved-theme-v1');
 mustContain('Investigation tools handoff', handoff, 'Timeline only');
 mustContain('Source of Truth', sourceOfTruth, 'The next isolated safe item is **final responsive/mobile polish only**');

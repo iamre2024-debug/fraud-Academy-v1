@@ -36,7 +36,6 @@ export default function MobileMissionWorkspace({
   changeCase,
   currentCompleted,
   decisionDraft,
-  documentRequests,
   goBackWorkspaceScreen,
   jumpDecision,
   noteDraft,
@@ -141,10 +140,20 @@ export default function MobileMissionWorkspace({
             className={[
               'mission-tool-page',
               activeTool === 'Document Request' ? 'mission-document-request-page' : '',
-              activeTool === 'Login History' ? 'mission-login-history-page' : '',
+              activeTool === 'Merchant Intelligence' ? 'mission-merchant-reference-page' : '',
+              activeTool === 'Login History' ? 'mission-login-history-page mission-login-reference-page' : '',
+              activeTool === 'Session History' ? 'mission-session-history-page mission-session-reference-page' : '',
+              activeTool === 'Device Intelligence' ? 'mission-device-intelligence-page mission-device-ip-reference-page' : '',
+              activeTool === 'IP Intelligence' ? 'mission-ip-intelligence-page mission-device-ip-reference-page' : '',
+              activeTool === 'Payroll History' ? 'mission-payroll-history-page' : '',
             ].filter(Boolean).join(' ')}
             data-document-request-page={activeTool === 'Document Request' ? 'true' : undefined}
+            data-merchant-reference-page={activeTool === 'Merchant Intelligence' ? 'true' : undefined}
             data-login-history-page={activeTool === 'Login History' ? 'true' : undefined}
+            data-session-history-page={activeTool === 'Session History' ? 'true' : undefined}
+            data-device-intelligence-page={activeTool === 'Device Intelligence' ? 'true' : undefined}
+            data-ip-intelligence-page={activeTool === 'IP Intelligence' ? 'true' : undefined}
+            data-payroll-history-page={activeTool === 'Payroll History' ? 'true' : undefined}
             data-workflow-stage={workspaceScreen === 'timeline' ? 'timeline' : 'investigate'}
             data-workspace-page={workspaceScreen === 'timeline' ? 'timeline' : 'tool'}
           >
@@ -159,15 +168,13 @@ export default function MobileMissionWorkspace({
                 <button type="button" onClick={returnToPinnedEvidence}>Back to pins</button>
               </section>
             )}
-            {activeTool === 'Document Request' && <MissionDocumentRequestHeading activeCase={activeCase} documentRequests={documentRequests} />}
-            {activeTool === 'Login History' && <MissionLoginHistoryHeading activeCase={activeCase} />}
             <div className="mission-tool-content">
               {activeTool === 'Customer 360' ? (
                 <Customer360Panel {...activeToolProps} />
               ) : activeTool === 'Timeline' ? (
                 <TimelinePanel {...activeToolProps} />
               ) : (
-                <InvestigationToolPanel {...activeToolProps} />
+                <InvestigationToolPanel {...activeToolProps} mobileMode />
               )}
             </div>
           </section>
@@ -235,59 +242,6 @@ export default function MobileMissionWorkspace({
         <span>⭐ {tray.length} pinned</span><span>📝 {notes.length} notes</span><span>📡 {actionLog.length} actions</span>
       </footer>
     </main>
-  );
-}
-
-function documentRequestProgress(documentRequests = {}) {
-  const attempts = Object.values(documentRequests).flatMap((request) => request?.attempts ?? []);
-  if (!attempts.length) return 0;
-  if (attempts.some((attempt) => attempt.customerSubmission?.pages?.length)) return 2;
-  return 1;
-}
-
-function MissionDocumentRequestHeading({ activeCase, documentRequests }) {
-  const activeStep = documentRequestProgress(documentRequests);
-  const steps = ['Request', 'Receive', 'Review'];
-  return (
-    <header className="mission-document-request-heading">
-      <span className="mission-document-request-icon" aria-hidden="true">📨</span>
-      <div>
-        <p>Paperwork mission · {activeCase.id}</p>
-        <h2>Document Request</h2>
-        <small>Send a request, track the customer response, then review the returned source document.</small>
-      </div>
-      <ol aria-label="Document request workflow">
-        {steps.map((step, index) => (
-          <li
-            key={step}
-            className={index < activeStep ? 'complete' : index === activeStep ? 'active' : ''}
-            aria-current={index === activeStep ? 'step' : undefined}
-            data-document-request-step={step.toLowerCase()}
-          >
-            <i />{step}
-          </li>
-        ))}
-      </ol>
-    </header>
-  );
-}
-
-function MissionLoginHistoryHeading({ activeCase }) {
-  return (
-    <header className="mission-login-history-heading">
-      <span className="mission-login-history-icon" aria-hidden="true">🛡️</span>
-      <div>
-        <p>Authentication mission · {activeCase.id}</p>
-        <h2>Login History</h2>
-        <small>Trace the access attempt, compare authentication signals, and connect the session without deciding the claim early.</small>
-      </div>
-      <ol aria-label="Login history evidence workflow">
-        <li className="active"><i />Locate</li>
-        <li><i />Compare</li>
-        <li><i />Connect</li>
-        <li><i />Document</li>
-      </ol>
-    </header>
   );
 }
 

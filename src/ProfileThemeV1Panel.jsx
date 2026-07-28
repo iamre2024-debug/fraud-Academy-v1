@@ -1,3 +1,5 @@
+import { publicCaseTaxonomy } from './data/publicCaseView.js';
+
 const skillDefinitions = [
   {
     key: 'identity',
@@ -88,7 +90,7 @@ export default function ProfileThemeV1Panel({ activeCaseId, cases, snapshot, onN
         <aside className="profile-active-assignment" aria-label="Current assignment">
           <span className="profile-kicker">Current assignment</span>
           <strong>{activeCase?.id ?? 'No active case'}</strong>
-          <p>{activeCase ? `${activeCase.type} · ${activeCase.person}` : 'Choose a training case to begin.'}</p>
+          <p>{activeCase ? `${publicCaseTaxonomy(activeCase).workflowType} · ${activeCase.person}` : 'Choose a training case to begin.'}</p>
           <small>{activeCase ? `${activeCase.priority} priority · ${activeCase.status}` : 'Case Queue available'}</small>
         </aside>
       </header>

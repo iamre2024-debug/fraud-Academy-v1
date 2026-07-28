@@ -171,7 +171,7 @@ export function normalizePaymentRecord(record = {}, activeCase = {}) {
     trustedContactSource: text(
       record.trustedContactSource,
       lane === 'Payroll' ? 'Employee Profile and employer contact record'
-        : lane === 'Business' ? 'Business 360 and KYB contact record'
+        : lane === 'Business' ? 'Business 360 contact and source record'
           : 'Customer 360 contact record',
     ),
     customerLink: text(record.customerLink, `${activeCase.id ?? 'Case'} · ${activeCase.person ?? accountHolder}`),

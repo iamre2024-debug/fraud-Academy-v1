@@ -38,12 +38,16 @@ for (const anchor of [
   'Evidence First protection',
   'You can submit a decision without reviewing every tool.',
   'Luna debrief stays locked until this case has a saved learner package.',
-  'Unfinished checklist details are saved for coaching',
+  'valid operational decision and final finding',
   'getDecisionCallGroups(activeCase)',
+  'getFinalFindingChoices(activeCase)',
   'selectionGroups.map',
-  'Determination choice',
+  'Operational decision',
+  'Final finding',
+  'one does not automatically determine the other',
   'Learner confidence',
-  'Learner rationale',
+  'Finding basis',
+  'Required for Fraud Confirmed',
   'Submit Decision',
   'Submission confirmation',
   'Open Luna Debrief',
@@ -60,9 +64,11 @@ for (const anchor of [
   'Matched to this case:',
   'Red flags',
   'Green flags',
+  'Risk, exception, mismatch, or unresolved adverse evidence',
+  'Verified, consistent, established, or legitimate evidence',
   'Proof or record reference',
   'Why this evidence proves the flag',
-  'Critical red flag documented.',
+  'Checklist weights support coaching and never determine fraud.',
   'updateDecisionIndicator',
 ]) {
   mustContain('DecisionFlagChecklist.jsx', decisionFlags, anchor);
@@ -70,11 +76,12 @@ for (const anchor of [
 
 for (const anchor of [
   'export const flagWeightPoints',
-  'wallet-chip-during-fraud-window',
-  'scenarioFlagsByClaimType',
-  'physical chip card',
-  'Business Payroll ATO decision checklist',
-  'Email Fraud / BEC decision checklist',
+  'export const flagColorMeanings',
+  'checklistByWorkflow',
+  'Business Account Takeover checklist',
+  'Payroll Account Takeover checklist',
+  'Business Credit Application Review checklist',
+  'Credit Risk Review checklist',
   'export function getDecisionChecklist',
   'export function summarizeDecisionIndicators',
 ]) {
@@ -90,6 +97,8 @@ for (const anchor of [
   'No outcome, manager feedback, or scenario truth appears before submission.',
   'What you submitted',
   'What your answer actually says',
+  'Expected operational decision',
+  'Expected final finding',
   'What you handled well',
   'What to improve next time',
   'Decision-quality breakdown',
@@ -136,10 +145,14 @@ for (const anchor of [
   'export const minimumRationaleWords',
   'export function getRequiredReviewTools',
   'export function getDecisionCallGroups',
+  'export function getFinalFindingChoices',
   'export function getReviewChoices',
+  'export function normalizeDecisionDraft',
+  'export function normalizeReviewPackage',
   'export function getReviewPackageStatus',
   'export function buildReviewPackage',
-  'You may submit without reviewing every tool.',
+  'valid operational decision and separate final finding',
+  'Checklist weights support coaching only and never determine',
 ]) {
   mustContain('reviewPackage.js', reviewPackage, anchor);
 }
@@ -147,6 +160,9 @@ for (const anchor of [
 for (const anchor of [
   'export function buildLunaDebrief',
   'if (!reviewPackage) return null',
+  'getGeneratedCaseTruth(activeCase, { submitted: true })',
+  'operationalDecisionMatched',
+  'finalFindingMatched',
   'scoreLabel:',
   'strengths:',
   'followUps:',
@@ -185,7 +201,7 @@ for (const anchor of [
 
 mustContain('main.jsx', entrypoint, "import './displayDecisionLunaThemeV1.css';");
 mustContain('main.jsx', entrypoint, "import './displayDecisionLunaLayoutSafetyV1.css';");
-mustContain('decision-luna-browser.spec.mjs', browser, 'a choice-only decision saves and unlocks Luna on desktop and mobile');
+mustContain('decision-luna-browser.spec.mjs', browser, 'separate operational decision and final finding save and unlock Luna on desktop and mobile');
 mustContain('decision-luna-browser.spec.mjs', browser, 'mobile-chromium');
 mustContain('decision-luna-browser.spec.mjs', browser, 'data-decision-screen="approved-theme-v1"');
 mustContain('decision-luna-browser.spec.mjs', browser, 'data-luna-state="locked"');
