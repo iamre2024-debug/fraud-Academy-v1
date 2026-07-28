@@ -307,19 +307,20 @@ export default function LinkAnalysisWorkspace({
     (!routedIdentifierType || item.type === routedIdentifierType)
     && normalizeLinkIdentifier(item.value, item.type) === normalizeLinkIdentifier(query, item.type)
   ));
-  const initialQuery = String(query ?? '').trim() || defaultSuggestion?.value || '';
+  const explicitInitialQuery = String(query ?? '').trim();
+  const initialDraft = explicitInitialQuery || defaultSuggestion?.value || '';
   const initialType = routedIdentifierType
     || requestedSuggestion?.type
-    || inferLinkIdentifierType('', initialQuery)
+    || inferLinkIdentifierType('', initialDraft)
     || defaultSuggestion?.type
     || 'phone';
   const [identifierType, setIdentifierType] = useState(initialType);
-  const [draft, setDraft] = useState(initialQuery);
-  const [submittedQuery, setSubmittedQuery] = useState(initialQuery);
+  const [draft, setDraft] = useState(initialDraft);
+  const [submittedQuery, setSubmittedQuery] = useState(explicitInitialQuery);
   const [expandedAccountId, setExpandedAccountId] = useState('');
   const [openedAccountId, setOpenedAccountId] = useState('');
   const [showAll, setShowAll] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(() => !explicitInitialQuery || revealSearch);
   const accountListRef = useRef(null);
   const dossierRef = useRef(null);
   const activeCaseIdRef = useRef(activeCase.id);
@@ -346,10 +347,7 @@ export default function LinkAnalysisWorkspace({
   }, [requestedAccountId, result.matches]);
 
   useEffect(() => {
-    if (activeCaseIdRef.current === activeCase.id) {
-      if (!query && initialQuery) setQuery(initialQuery);
-      return;
-    }
+    if (activeCaseIdRef.current === activeCase.id) return;
     activeCaseIdRef.current = activeCase.id;
     const nextSuggestions = getLinkIdentifiersForCase(activeCase);
     const next = nextSuggestions.find((item) => item.type === 'phone')
@@ -358,17 +356,27 @@ export default function LinkAnalysisWorkspace({
     const nextValue = next?.value ?? '';
     setIdentifierType(next?.type ?? 'phone');
     setDraft(nextValue);
-    setSubmittedQuery(nextValue);
+    setSubmittedQuery('');
     setExpandedAccountId('');
     setOpenedAccountId('');
     setShowAll(false);
-    setSearchOpen(false);
-    setQuery(nextValue);
-  }, [activeCase.id, initialQuery, query, setQuery]);
+    setSearchOpen(true);
+    setQuery('');
+  }, [activeCase.id, activeCase, setQuery]);
 
   useEffect(() => {
     const nextQuery = String(query ?? '').trim();
-    if (!nextQuery) return;
+    if (!nextQuery) {
+      if (!submittedQuery) return;
+      setIdentifierType(defaultSuggestion?.type ?? 'phone');
+      setDraft(defaultSuggestion?.value ?? '');
+      setSubmittedQuery('');
+      setExpandedAccountId('');
+      setOpenedAccountId('');
+      setShowAll(false);
+      setSearchOpen(true);
+      return;
+    }
     const suggestion = suggestions.find((item) => (
       (!routedIdentifierType || item.type === routedIdentifierType)
       && normalizeLinkIdentifier(item.value, item.type) === normalizeLinkIdentifier(nextQuery, item.type)
@@ -386,7 +394,7 @@ export default function LinkAnalysisWorkspace({
     setSubmittedQuery(nextQuery);
     setExpandedAccountId('');
     setOpenedAccountId('');
-  }, [identifierType, query, routedIdentifierType, submittedQuery, suggestions]);
+  }, [defaultSuggestion, identifierType, query, routedIdentifierType, submittedQuery, suggestions]);
 
   useEffect(() => {
     if (revealSearch && query) setSearchOpen(true);
@@ -483,6 +491,8 @@ export default function LinkAnalysisWorkspace({
 
       <details
         className="link-analysis-search-shell"
+        role="region"
+        aria-label="Cross-account Link Analysis search"
         open={searchOpen}
         onToggle={(event) => setSearchOpen(event.currentTarget.open)}
       >
@@ -519,7 +529,7 @@ export default function LinkAnalysisWorkspace({
               aria-label="Search Link Analysis identifier"
             />
           </label>
-          <button type="submit" disabled={!draft.trim()}>Search Links</button>
+          <button type="submit" disabled={!draft.trim()}>Search accounts</button>
         </form>
         <div className="link-analysis-suggestions" aria-label="Current case identifiers">
           {suggestions.slice(0, 10).map((item) => (
@@ -553,10 +563,10 @@ export default function LinkAnalysisWorkspace({
             />
 
             <div className="link-analysis-results-column">
-              <section className="link-analysis-result-banner" aria-live="polite">
+              <section className="link-analysis-result-banner link-analysis-result-summary" aria-live="polite">
                 <span><LinkGlyph type={identifierType} size={23} /></span>
                 <div>
-                  <small>Searched {result.identifierTypeLabel}</small>
+                  <small>Searched identifier · {result.identifierTypeLabel}</small>
                   <strong>{result.searchedIdentifier}</strong>
                   <p><b>{result.summary.total}</b> matched account{result.summary.total === 1 ? '' : 's'}</p>
                 </div>

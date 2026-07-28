@@ -72,7 +72,7 @@ function IntelHeader({
         <span className="mobile-intel-header-icon"><IntelGlyph type={icon} size={26} /></span>
       )}
       <div>
-        <h2 aria-label={routeLabel}>{title}</h2>
+        <h2>{title}</h2>
         <p>{subtitle}</p>
       </div>
       <IntelLunaLock />

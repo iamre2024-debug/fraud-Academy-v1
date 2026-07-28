@@ -552,6 +552,7 @@ body[data-visual-tab="dashboard"] .dashboard-luna-launcher small {
 
 body[data-visual-tab="dashboard"] .dashboard-mission-orbit {
   position: absolute;
+  pointer-events: none;
   right: -63px;
   bottom: -53px;
   width: 310px;

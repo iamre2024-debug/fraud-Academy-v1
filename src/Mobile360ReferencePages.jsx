@@ -611,6 +611,7 @@ export function MobileCustomer360Reference({
       className="mobile-360-reference mobile-customer-360-reference"
       data-mobile-360-screen="customer"
       data-customer-360-screen="approved-theme-v1"
+      data-case-id={activeCase.id}
       data-customer-id={dossier.identity.trainingId}
     >
       <section className="mobile-360-hero mobile-360-customer-hero">
@@ -1166,6 +1167,7 @@ export function MobileBusiness360Reference({
       className="mobile-360-reference mobile-business-360-reference"
       data-mobile-360-screen="business"
       data-business-360-screen="mobile-reference-v3"
+      data-case-id={activeCase.id}
       data-business-id={dossier.profile.businessId}
       data-business-registration={dossier.profile.registrationFileNumber}
     >

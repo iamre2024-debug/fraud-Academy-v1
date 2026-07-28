@@ -9,15 +9,23 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
   const workspace = panel.locator('[data-link-analysis-workspace]');
   await expect(panel).toHaveAttribute('data-tool-name', 'Link Analysis');
   await expect(workspace).toBeVisible();
+  await expect(workspace).toHaveAttribute('data-link-analysis-state', 'empty');
+  await expect(workspace.getByText('Search before viewing account links.', { exact: true })).toBeVisible();
+  await expect(workspace.locator('[data-link-account]')).toHaveCount(0);
+
+  const searchShell = workspace.locator('.link-analysis-search-shell');
+  expect(await searchShell.evaluate((element) => element.open)).toBe(true);
+  const search = workspace.getByRole('textbox', { name: 'Search Link Analysis identifier' });
+  await expect(search).toHaveValue('(214) 555-0184');
+  await workspace.getByRole('button', { name: 'Search accounts', exact: true }).click();
+
+  await expect(workspace).toHaveAttribute('data-link-analysis-state', 'searched');
   await expect(workspace.locator('[data-link-analysis-map]')).toBeVisible();
   await expect(workspace.getByRole('heading', { name: 'Exact cross-account matches', exact: true })).toBeVisible();
   await expect(workspace.getByText('Verified Links Summary', { exact: true })).toBeVisible();
   await expect(workspace.getByText('Luna · factual link summary', { exact: true })).toBeVisible();
-
-  const searchShell = workspace.locator('.link-analysis-search-shell');
   expect(await searchShell.evaluate((element) => element.open)).toBe(false);
   await searchShell.locator('summary').click();
-  const search = workspace.getByRole('textbox', { name: 'Search Link Analysis identifier' });
   await expect(search).toHaveValue('(214) 555-0184');
   await expect(workspace.locator('[data-link-account]')).toHaveCount(3);
   await expect(searchShell.locator('summary small')).toHaveText('3 matched accounts');
@@ -43,13 +51,13 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
   await searchShell.locator('summary').click();
   await expect(search).toHaveValue('DST-CARD-4410');
   await search.fill('NO-EXACT-MATCH');
-  await workspace.getByRole('button', { name: 'Search Links', exact: true }).click();
+  await workspace.getByRole('button', { name: 'Search accounts', exact: true }).click();
   await expect(workspace.locator('.link-analysis-account-list .link-analysis-empty strong')).toHaveText('0 matched accounts');
 
   await searchShell.locator('summary').click();
   await workspace.getByRole('combobox', { name: 'Choose Link Analysis identifier type' }).selectOption('email');
   await search.fill('mayatraining@example.test');
-  await workspace.getByRole('button', { name: 'Search Links', exact: true }).click();
+  await workspace.getByRole('button', { name: 'Search accounts', exact: true }).click();
   await expect(workspace.locator('.link-analysis-account-list .link-analysis-empty strong')).toHaveText('0 matched accounts');
 
   await searchShell.locator('summary').click();

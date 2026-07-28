@@ -46,6 +46,8 @@ async function seedReviewCases(page) {
       configurable: true,
       value: { writeText: async () => undefined },
     });
+    const seedKey = 'fraud-academy-decision-luna-seeded-v1';
+    if (sessionStorage.getItem(seedKey) === 'true') return;
     const byCase = Object.fromEntries(records.map((record) => [record.id, []]));
     const notesByCase = Object.fromEntries(records.map((record) => [
       record.id,
@@ -63,6 +65,7 @@ async function seedReviewCases(page) {
     localStorage.removeItem('fraud-academy-decision-drafts-v1');
     localStorage.removeItem('fraud-academy-debriefs-v1');
     localStorage.removeItem('fraud-academy-layout-mode-v1');
+    sessionStorage.setItem(seedKey, 'true');
   }, [personalCase, businessCase]);
 }
 

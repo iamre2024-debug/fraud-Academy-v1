@@ -479,6 +479,7 @@ export function MobileDeterminationPage({
               disabled={isLocked}
               onChange={(event) => updateDecision('findingBasis', event.target.value)}
               placeholder={`Explain what the evidence establishes for ${activeCase.id}. Cite exact records when available.`}
+              aria-label="Finding basis"
               aria-describedby="mobile-finding-basis-help"
             />
             <small id="mobile-finding-basis-help">
