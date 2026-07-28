@@ -18,7 +18,6 @@ import './browserInteractionStability.css';
 import './displayPhaseOne.css';
 import './displayPhaseTwo.css';
 import './displayPhaseThree.css';
-import './displayPhaseFour.css';
 import './displayDashboardThemeV1.css';
 import './displayCasesThemeV1.css';
 import './displayWorkspaceShellThemeV1.css';

@@ -170,12 +170,12 @@ Completed in the focused responsive-record change:
 
 - Added semantic table, row, column-header, and cell roles to the existing investigation record surface.
 - Added stable `data-field` labels and record IDs without changing the row data or investigation actions.
-- Added `src/displayPhaseFour.css` after the verified Phase 1 through Phase 3 layers.
 - Kept the desktop table presentation intact while converting records into labeled cards at 760 pixels and below.
 - Stacked labels and values on compact phones, preserved 44-pixel action targets, and avoided required horizontal scrolling.
 - Added a neutral empty-search state without changing search behavior.
 - Extended Playwright coverage across Desktop Chrome and Pixel 7 for desktop headers, mobile labels, card layout, no page overflow, and the Evidence First lock.
-- `scripts/display-phase-four-smoke-check.mjs` guards semantic anchors, style wiring, browser coverage, no-horizontal-scroller rules, and persistence/behavior boundaries.
+- The original `src/displayPhaseFour.css` compatibility layer is retired because its table and row classes left the runtime when approved record cards and dedicated mobile pages replaced that renderer.
+- `scripts/display-phase-four-smoke-check.mjs` now guards the active record-card renderer, responsive shell, dedicated mobile presentation, browser coverage, and persistence/behavior boundaries.
 
 ### Phase 5 - Final Bible and release-readiness audit
 
