@@ -1,4 +1,10 @@
 import { canonicalToolName } from '../investigationToolGroups.js';
+import {
+  inferLinkIdentifierType,
+  linkIdentifierTypes,
+} from './linkAnalysisRecords.js';
+
+const linkIdentifierTypeIds = new Set(linkIdentifierTypes.map((item) => item.id));
 
 export const quickPadSearchCapableTools = new Set([
   'Customer 360',
@@ -18,6 +24,22 @@ export const quickPadSearchCapableTools = new Set([
 export function quickPadQueryForTool(item = {}, toolName = '') {
   if (toolName === 'Payroll History') return item.sourceRecordId || '';
   return item.value || '';
+}
+
+export function quickPadLinkIdentifierType(item = {}) {
+  const explicitType = String(item.identifierType ?? '').trim().toLowerCase();
+  if (linkIdentifierTypeIds.has(explicitType)) return explicitType;
+  const inferredType = inferLinkIdentifierType(item.label, item.value);
+  return linkIdentifierTypeIds.has(inferredType) ? inferredType : '';
+}
+
+export function quickPadSearchRoute(item = {}, toolName = '') {
+  const query = quickPadQueryForTool(item, toolName);
+  if (!query) return null;
+  return {
+    query,
+    identifierType: toolName === 'Link Analysis' ? quickPadLinkIdentifierType(item) : '',
+  };
 }
 
 export function quickPadItemSupportsTool(item = {}, toolName = '', layoutMode = 'desktop') {
@@ -50,7 +72,7 @@ export function quickPadItemSupportsTool(item = {}, toolName = '', layoutMode = 
     return ['account id', 'document id', 'business id', 'business registration'].includes(label);
   }
   if (toolName === 'Link Analysis') {
-    return /(?:account|device|destination|email|phone|training|business|session|login|ip) id|email|phone number/.test(label);
+    return Boolean(quickPadLinkIdentifierType(item));
   }
   if (['Login History', 'Session History', 'Financial Investigation'].includes(toolName)) {
     return Boolean(label && value);
@@ -72,15 +94,16 @@ export function quickPadSourceRoute(
     return null;
   }
 
-  const query = ['Payment Verification', 'Payroll History'].includes(sourceTool)
+  const sourceQuery = ['Payment Verification', 'Payroll History'].includes(sourceTool)
     && item.sourceRecordId
     ? item.sourceRecordId
-    : quickPadQueryForTool(item, sourceTool);
-  if (!query) return null;
+    : quickPadSearchRoute(item, sourceTool)?.query;
+  if (!sourceQuery) return null;
 
   return {
     sourceTool,
-    query,
+    query: sourceQuery,
+    identifierType: sourceTool === 'Link Analysis' ? quickPadLinkIdentifierType(item) : '',
     expandedId: item.sourceRecordId ?? '',
   };
 }

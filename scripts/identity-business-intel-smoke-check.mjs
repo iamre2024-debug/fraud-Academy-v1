@@ -46,6 +46,7 @@ for (const marker of [
   'Generate Identity Search Report',
   'Run Business Search',
   'Open Business 360',
+  '<h2>{title}</h2>',
   'Business Source Coverage',
   'Luna debrief is available after submission',
   "markReviewed('Identity Intel / People Search')",

@@ -155,13 +155,18 @@ test('case taxonomy routes desktop and mobile generators and protects payroll/li
 
   await selectToolGroup(page, /Links & Related Cases/, 'Link Analysis');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Link Analysis');
+  const linkWorkspace = toolPanel.locator('[data-link-analysis-workspace]');
+  await expect(linkWorkspace).toHaveAttribute('data-link-analysis-state', 'empty');
   await expect(toolPanel.getByRole('status')).toContainText('Search before viewing account links.');
   await expect(toolPanel.locator('[data-link-account]')).toHaveCount(0);
 
+  const linkSearch = linkWorkspace.getByRole('region', { name: 'Cross-account Link Analysis search' });
+  await linkSearch.locator('summary').click();
+  await toolPanel.getByRole('combobox', { name: 'Choose Link Analysis identifier type' }).selectOption('destination-id');
   await toolPanel.getByRole('textbox', { name: 'Search Link Analysis identifier' }).fill('DST-7740');
-  await toolPanel.getByRole('button', { name: 'Search accounts', exact: true }).click();
-  const linkSummary = toolPanel.locator('.link-analysis-result-summary');
-  await expect(linkSummary).toContainText('Searched identifier');
+  await toolPanel.getByRole('button', { name: 'Search Links', exact: true }).click();
+  const linkSummary = toolPanel.locator('.link-analysis-result-banner');
+  await expect(linkSummary).toContainText('Searched Destination ID');
   await expect(linkSummary).toContainText('DST-7740');
   await expect(linkSummary).toContainText(/\d+ matched accounts?/);
 
@@ -202,7 +207,7 @@ test('case taxonomy routes desktop and mobile generators and protects payroll/li
     .toContainText('does not determine the current case finding');
   await expect(accountDossier.getByRole('button', { name: 'Close dossier', exact: true })).toBeVisible();
   await expect(matchDetail.locator('.link-analysis-evidence-warning')).toContainText('does not determine the current case finding');
-  await expect(toolPanel.locator('.investigation-tool-review-bar')).toContainText('A link is evidence, not an automatic conclusion');
+  await expect(toolPanel.locator('.link-analysis-review-bar')).toContainText('An exact link is evidence—not an automatic conclusion');
 
   await page.getByRole('button', { name: 'Open Settings', exact: true }).click();
   await page.getByRole('group', { name: 'Layout mode' })

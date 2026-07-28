@@ -73,13 +73,19 @@ async function openCoreTool(page, category, tool) {
   if (tool === 'Link Analysis') {
     const activeCaseId = await page.locator('.visual-case-switcher select').inputValue();
     const activeCase = builtInCases.find((item) => item.id === activeCaseId);
+    const workspace = panel.locator('[data-link-analysis-workspace]');
+    const searchShell = workspace.getByRole('region', { name: 'Cross-account Link Analysis search' });
     const search = panel.getByRole('textbox', { name: 'Search Link Analysis identifier' });
-    await expect(panel.getByRole('region', { name: 'Cross-account Link Analysis search' })).toBeVisible();
+    await expect(workspace).toHaveAttribute('data-link-analysis-state', 'empty');
     await expect(panel.getByText('Search before viewing account links.', { exact: true })).toBeVisible();
+    await expect(panel.locator('[data-link-account]')).toHaveCount(0);
+    await searchShell.locator('summary').click();
+    await panel.getByRole('combobox', { name: 'Choose Link Analysis identifier type' }).selectOption('destination-id');
     await search.fill(activeCase.destinationId);
-    await panel.getByRole('button', { name: 'Search accounts', exact: true }).click();
-    await expect(panel.locator('.link-analysis-result-summary')).toContainText(activeCase.destinationId);
-    await expect(panel.locator('.link-analysis-result-summary')).toContainText(/\d+ matched accounts?/);
+    await panel.getByRole('button', { name: 'Search Links', exact: true }).click();
+    await expect(workspace).toHaveAttribute('data-link-analysis-state', 'searched');
+    await expect(panel.locator('.link-analysis-result-banner')).toContainText(activeCase.destinationId);
+    await expect(panel.locator('.link-analysis-result-banner')).toContainText(/\d+ matched accounts?/);
     const firstMatch = panel.locator('[data-link-account]').first();
     await expect(firstMatch).toBeVisible();
     await firstMatch.locator('.link-analysis-account-heading').click();

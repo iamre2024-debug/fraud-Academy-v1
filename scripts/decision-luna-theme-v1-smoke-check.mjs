@@ -151,6 +151,7 @@ mustContain('decision-luna-browser.spec.mjs', browser, 'personal and business de
 mustContain('decision-luna-browser.spec.mjs', browser, 'data-decision-layout="reference-final-review"');
 mustContain('decision-luna-browser.spec.mjs', browser, 'data-luna-layout="reference-debrief"');
 mustContain('decision-luna-browser.spec.mjs', browser, 'panelOverflow');
+mustContain('decision-luna-browser.spec.mjs', browser, 'fraud-academy-decision-luna-seeded');
 
 for (const config of [
   {

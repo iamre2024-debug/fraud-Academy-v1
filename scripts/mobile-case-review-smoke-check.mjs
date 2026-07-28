@@ -39,6 +39,7 @@ for (const anchor of [
   "updateDecision('finalFinding'",
   "updateDecision('confidence'",
   "updateDecision('findingBasis'",
+  'aria-label="Finding basis"',
   'openSubmit',
   'Continue to Submit Decision',
   'disabled={!isLocked && !packageStatus.ready}',

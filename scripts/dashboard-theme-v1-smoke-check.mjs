@@ -37,6 +37,7 @@ mustContain('displayDashboardThemeV1.css', styles, '.dashboard-active-case');
 mustContain('displayDashboardThemeV1.css', styles, '.dashboard-quick-grid');
 mustContain('displayDashboardThemeV1.css', styles, '.dashboard-mission-header');
 mustContain('displayDashboardThemeV1.css', styles, '.dashboard-mission-stack');
+mustContain('displayDashboardThemeV1.css', styles, '.dashboard-mission-orbit');
 mustContain('displayDashboardThemeV1.css', styles, '.dashboard-stack-case');
 mustContain('displayDashboardThemeV1.css', styles, '.dashboard-lighthouse-art');
 mustContain('displayDashboardThemeV1.css', styles, '.dashboard-investigation-ribbon');
@@ -45,6 +46,10 @@ mustContain('mobileAppPages.css', mobilePages, '.mobile-workspace-page-header {\
 mustContain('displayDashboardThemeV1.css', styles, '@media (max-width: 560px)');
 mustContain('displayDashboardThemeV1.css', styles, '@media (max-width: 380px)');
 mustContain('main.jsx', entrypoint, "import './displayDashboardThemeV1.css';");
+
+if (!/\.dashboard-mission-orbit\s*\{[^}]*pointer-events:\s*none;/s.test(styles)) {
+  failures.push('displayDashboardThemeV1.css allows the decorative mission orbit to intercept profile controls.');
+}
 
 mustContain('browser-smoke.spec.mjs', browser, 'approved Dashboard resumes the active case without answer leaks');
 mustContain('browser-smoke.spec.mjs', browser, "toHaveAttribute('data-visual-tab', 'dashboard')");

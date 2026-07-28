@@ -194,6 +194,14 @@ for (const anchor of [
   'Luna · factual link summary',
   'requestedAccountId',
   'revealSearch',
+  'Cross-account Link Analysis search',
+  'linkSearchRequest',
+  'consumedLinkSearchIdRef',
+  'resetContextRef',
+  'onManualSearch?.()',
+  'onSearchCommitted?.({',
+  "data-link-analysis-state={submittedQuery ? 'searched' : 'empty'}",
+  'identifierType: result.identifierType',
 ]) {
   if (!component.includes(anchor)) fail(`Dedicated Link Analysis workspace is missing: ${anchor}.`);
 }
@@ -214,6 +222,35 @@ if (!panel.includes('notes={notes}')) {
 }
 if (!visualWorkspace.includes("revealLinkAnalysisSearch: openedPinnedEvidence?.tool === 'Link Analysis'")) {
   fail('Pinned Link Analysis evidence does not explicitly reveal its restored search input.');
+}
+for (const anchor of [
+  'const [linkSearchRequest, setLinkSearchRequest]',
+  'const queueLinkSearch = useCallback',
+  'const consumeLinkSearch = useCallback',
+  'caseId: activeCase.id',
+  'linkSearchResetKey',
+  'queueLinkSearch(route)',
+  'previousPinnedLink',
+  'linkSearchSnapshot',
+  'previousLinkSearch',
+  'onManualLinkSearch: clearOpenedPinnedEvidence',
+  'onLinkSearchCommitted: rememberLinkSearch',
+]) {
+  if (!visualWorkspace.includes(anchor)) {
+    fail(`VisualWorkspace is missing the transient Link Analysis route boundary: ${anchor}.`);
+  }
+}
+if (/function runSearch\([\s\S]*?setQuery\(/.test(component)) {
+  fail('A manual Link Analysis search must not write into the reusable workspace query channel.');
+}
+if (!panel.includes('linkSearchRequest={linkSearchRequest}') || !panel.includes('consumeLinkSearch={consumeLinkSearch}')) {
+  fail('InvestigationToolPanel is not forwarding the one-shot Link Analysis request contract.');
+}
+if (!panel.includes('key={activeCase.id}')) {
+  fail('Link Analysis must remount synchronously when the active case changes.');
+}
+if (!component.includes('request.caseId !== activeCase.id')) {
+  fail('Link Analysis must reject a routed search that belongs to another case.');
 }
 if (!mobileWorkspace.includes('data-link-analysis-header') || !mobileWorkspace.includes('mission-link-analysis-case-select')) {
   fail('The mobile Link Analysis route is not using its dedicated compact header.');

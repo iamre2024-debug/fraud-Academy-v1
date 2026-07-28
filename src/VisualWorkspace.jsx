@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import ActiveCaseWorkflowRail from './ActiveCaseWorkflowRail.jsx';
@@ -27,6 +27,7 @@ import {
   quickPadItemSupportsTool,
   quickPadQueryForTool,
   quickPadSearchCapableTools,
+  quickPadSearchRoute,
   quickPadSourceRoute,
 } from './data/quickPadRouting.js';
 
@@ -55,11 +56,66 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   const [query, setQuery] = useState('');
   const [expandedId, setExpandedId] = useState('');
   const [openedPinnedEvidence, setOpenedPinnedEvidence] = useState(null);
+  const [linkSearchRequest, setLinkSearchRequest] = useState(null);
+  const [linkSearchSnapshot, setLinkSearchSnapshot] = useState(null);
+  const [linkSearchResetKey, setLinkSearchResetKey] = useState(0);
   const submitRef = useRef(null);
   const workspaceScreenHistory = useRef([]);
   const requestedWorkspaceScreenRef = useRef(requestedWorkspaceScreen);
+  const linkSearchSequenceRef = useRef(0);
 
   const activeCase = cases.find((item) => item.id === activeCaseId) ?? cases[0];
+
+  const queueLinkSearch = useCallback(({
+    query: nextQuery,
+    identifierType = '',
+    accountId = '',
+    revealSearch = true,
+  } = {}) => {
+    const cleanQuery = String(nextQuery ?? '').trim();
+    if (!cleanQuery) {
+      setLinkSearchRequest(null);
+      setLinkSearchSnapshot(null);
+      return;
+    }
+    linkSearchSequenceRef.current += 1;
+    const nextSearch = {
+      caseId: activeCase.id,
+      query: cleanQuery,
+      identifierType,
+      accountId,
+      revealSearch,
+    };
+    setLinkSearchRequest({
+      id: linkSearchSequenceRef.current,
+      tool: 'Link Analysis',
+      ...nextSearch,
+    });
+    setLinkSearchSnapshot(nextSearch);
+  }, [activeCase.id]);
+
+  const consumeLinkSearch = useCallback((requestId) => {
+    setLinkSearchRequest((current) => current?.id === requestId ? null : current);
+  }, []);
+
+  const clearOpenedPinnedEvidence = useCallback(() => {
+    setOpenedPinnedEvidence(null);
+    setExpandedId('');
+  }, []);
+
+  const rememberLinkSearch = useCallback((nextSearch) => {
+    setLinkSearchSnapshot(nextSearch?.query
+      ? { ...nextSearch, caseId: activeCase.id }
+      : null);
+  }, [activeCase.id]);
+
+  const clearWorkspaceSearchContext = useCallback(() => {
+    setQuery('');
+    setLinkSearchRequest(null);
+    setLinkSearchSnapshot(null);
+    setLinkSearchResetKey((current) => current + 1);
+    setOpenedPinnedEvidence(null);
+  }, []);
 
   useEffect(() => {
     const nextScreen = requestedWorkspaceScreen || 'briefing';
@@ -67,7 +123,8 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     requestedWorkspaceScreenRef.current = nextScreen;
     setActiveStage(stageForWorkspaceScreen(nextScreen, tool));
     setWorkspaceScreen(nextScreen);
-    setOpenedPinnedEvidence(null);
+    clearWorkspaceSearchContext();
+    setExpandedId('');
   }, [activeCase.id]);
 
   useEffect(() => {
@@ -226,6 +283,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       query,
       expandedId,
       openedPinnedEvidence,
+      linkSearchSnapshot: activeTool === 'Link Analysis' ? linkSearchSnapshot : null,
     };
   }
 
@@ -252,17 +310,49 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       openedPinnedEvidence: null,
     };
     workspaceScreenHistory.current = history;
+    const previousTool = canonicalToolName(previous.tool ?? activeTool);
+    const previousPinnedLink = previousTool === 'Link Analysis'
+      && previous.openedPinnedEvidence?.tool === 'Link Analysis'
+      ? previous.openedPinnedEvidence
+      : null;
+    const previousLinkSearch = previousPinnedLink?.query
+      ? {
+          query: previousPinnedLink.query,
+          identifierType: previousPinnedLink.identifierType,
+          accountId: previousPinnedLink.accountId,
+          revealSearch: true,
+        }
+      : previousTool === 'Link Analysis'
+        ? previous.linkSearchSnapshot
+        : null;
     setWorkspaceScreen(previous.screen);
     setActiveStage(previous.activeStage ?? stageForWorkspaceScreen(previous.screen, previous.tool));
     setCategoryKey(previous.categoryKey ?? categoryKey);
-    setTool(canonicalToolName(previous.tool ?? activeTool));
-    setQuery(previous.query ?? '');
+    setTool(previousTool);
+    if (previousLinkSearch?.query) {
+      setQuery('');
+      queueLinkSearch(previousLinkSearch);
+    } else {
+      setQuery(previous.query ?? '');
+      setLinkSearchRequest(null);
+      setLinkSearchSnapshot(null);
+    }
     setExpandedId(previous.expandedId ?? '');
     setOpenedPinnedEvidence(previous.openedPinnedEvidence ?? null);
     resetWorkspacePageScroll();
   }
 
-  function openTool(nextTool, nextStage = stageForTool(nextTool), { scroll = true, query: nextQuery = '' } = {}) {
+  function openTool(
+    nextTool,
+    nextStage = stageForTool(nextTool),
+    {
+      scroll = true,
+      query: nextQuery = '',
+      identifierType = '',
+      accountId = '',
+      revealSearch = true,
+    } = {},
+  ) {
     const canonicalTool = canonicalToolName(nextTool);
     if (!availableToolNames.has(canonicalTool)) return;
     const nextCategory = visibleCategories.find((item) => item.tools.includes(canonicalTool)) ?? groupForTool(canonicalTool) ?? visibleCategories[0];
@@ -270,7 +360,25 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setActiveStage(nextStage);
     setCategoryKey(nextCategory.key);
     setTool(canonicalTool);
-    setQuery(nextQuery);
+    if (canonicalTool === 'Link Analysis') {
+      setQuery('');
+      if (nextQuery) {
+        queueLinkSearch({
+          query: nextQuery,
+          identifierType,
+          accountId,
+          revealSearch,
+        });
+      } else {
+        setLinkSearchRequest(null);
+        setLinkSearchSnapshot(null);
+        setLinkSearchResetKey((current) => current + 1);
+      }
+    } else {
+      setQuery(nextQuery);
+      setLinkSearchRequest(null);
+      setLinkSearchSnapshot(null);
+    }
     setExpandedId('');
     setOpenedPinnedEvidence(null);
     const nextScreen = canonicalTool === 'Timeline' ? 'timeline' : 'tool';
@@ -284,15 +392,23 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   function openPinnedEvidence(item) {
     const resolved = resolvePinnedEvidence(item, activeCase, visibleWorkspaceTools);
     if (!resolved) {
+      setQuery('');
+      setLinkSearchRequest(null);
+      setLinkSearchSnapshot(null);
       setOpenedPinnedEvidence({ value: item, tool: '', row: null, unresolved: true });
       showWorkspaceScreen('evidence');
       recordAction('Pinned evidence source unavailable', `${item} could not be matched to an available source record.`, 'Pinned Evidence');
       return;
     }
 
-    openTool(resolved.tool, stageForTool(resolved.tool), { scroll: false });
-    setQuery(resolved.query);
-    setExpandedId(resolved.recordId);
+    openTool(resolved.tool, stageForTool(resolved.tool), {
+      scroll: false,
+      query: resolved.query,
+      identifierType: resolved.identifierType,
+      accountId: resolved.accountId,
+      revealSearch: resolved.tool === 'Link Analysis',
+    });
+    setExpandedId(resolved.tool === 'Link Analysis' ? (resolved.accountId ?? '') : resolved.recordId);
     setOpenedPinnedEvidence(resolved);
     recordAction('Opened pinned evidence', `${item} reopened in ${resolved.tool}.`, 'Pinned Evidence');
     window.setTimeout(() => {
@@ -306,6 +422,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
   }
 
   function returnToPinnedEvidence() {
+    setLinkSearchRequest(null);
     setOpenedPinnedEvidence(null);
     setActiveStage('indicators');
     showWorkspaceScreen('evidence');
@@ -313,6 +430,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
   function removeUnavailablePinnedEvidence(item) {
     removePin(item);
+    setLinkSearchRequest(null);
     setOpenedPinnedEvidence(null);
   }
 
@@ -326,7 +444,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setActiveStage('briefing');
     setCategoryKey(nextCategory?.key ?? 'identity');
     setTool(nextCategory?.tools[0] ?? 'Customer 360');
-    setQuery('');
+    clearWorkspaceSearchContext();
     setExpandedId('');
     workspaceScreenHistory.current = [];
     showWorkspaceScreen('briefing', { replace: true });
@@ -338,7 +456,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     setActiveStage('indicators');
     setCategoryKey('evidence');
     setTool('Document Viewer');
-    setQuery('');
+    clearWorkspaceSearchContext();
     setExpandedId('');
     showWorkspaceScreen('tool');
   }
@@ -348,9 +466,8 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     recordAction('Opened related case', `${nextCaseId} opened from Link Analysis.`, 'Link Analysis');
     if (nextCaseId !== activeCase.id) onCaseChange(nextCaseId, 'briefing');
     setActiveStage('briefing');
-    setQuery('');
+    clearWorkspaceSearchContext();
     setExpandedId('');
-    setOpenedPinnedEvidence(null);
     workspaceScreenHistory.current = [];
     showWorkspaceScreen('briefing', { replace: true });
   }
@@ -420,12 +537,25 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     });
   }
 
-  function quickPin({ label, value, sourceTool = activeTool, sourceRecordId = '' }) {
+  function quickPin({
+    label,
+    value,
+    sourceTool = activeTool,
+    sourceRecordId = '',
+    identifierType = '',
+  }) {
     if (!value) return;
     updateQuickPad((current) => {
       const canonicalSourceTool = canonicalToolName(sourceTool);
       const id = `${canonicalSourceTool}:${label}:${value}`;
-      const item = { id, label, value: String(value), sourceTool: canonicalSourceTool, sourceRecordId };
+      const item = {
+        id,
+        label,
+        value: String(value),
+        sourceTool: canonicalSourceTool,
+        sourceRecordId,
+        identifierType,
+      };
       return {
         ...current,
         items: [item, ...(current.items ?? []).filter((saved) => saved.id !== id)],
@@ -453,7 +583,13 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
   function useQuickPadItem(item) {
     if (!canUseQuickPadItem(item)) return;
-    setQuery(quickPadQueryForTool(item, activeTool));
+    const route = quickPadSearchRoute(item, activeTool);
+    if (activeTool === 'Link Analysis') {
+      clearOpenedPinnedEvidence();
+      queueLinkSearch(route);
+    } else {
+      setQuery(route?.query ?? '');
+    }
     recordAction('Used Quick Pad value', `${item.label} entered in ${activeTool} search.`, 'Quick Pad');
   }
 
@@ -470,8 +606,11 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
       layoutMode,
     });
     if (!route) return;
-    openTool(route.sourceTool, stageForTool(route.sourceTool), { query: route.query });
-    setExpandedId(route.expandedId);
+    openTool(route.sourceTool, stageForTool(route.sourceTool), {
+      query: route.query,
+      identifierType: route.identifierType,
+    });
+    setExpandedId(route.sourceTool === 'Link Analysis' ? '' : route.expandedId);
     recordAction('Opened Quick Pad source', `${item.label} reopened in ${route.sourceTool}.`, 'Quick Pad');
   }
 
@@ -556,6 +695,11 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
     payrollInvestigation,
     setPayrollInvestigationsByCase,
     openedPinnedEvidence,
+    linkSearchRequest,
+    linkSearchResetKey,
+    consumeLinkSearch,
+    onManualLinkSearch: clearOpenedPinnedEvidence,
+    onLinkSearchCommitted: rememberLinkSearch,
   };
 
   const quickPadLayer = (
@@ -696,6 +840,7 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
             setCategoryKey={setCategoryKey}
             setTool={setTool}
             setExpandedId={setExpandedId}
+            clearSearchContext={clearWorkspaceSearchContext}
           />
         </section>
 

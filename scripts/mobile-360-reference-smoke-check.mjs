@@ -30,6 +30,7 @@ for (const anchor of [
   'MobileCustomer360Reference',
   'getCustomer360Dossier',
   'data-mobile-360-screen="customer"',
+  'data-case-id={activeCase.id}',
   'Customer ID',
   'Training ID',
   'Customer profile',
@@ -122,6 +123,8 @@ for (const anchor of [
   '.mobile-360-owner-record-group',
   '.mobile-360-actions-menu',
   '.mobile-360-drawer',
+  '@media (max-width: 430px)',
+  '.mobile-360-pair .mobile-360-compact-rows',
   '@media (max-width: 360px)',
 ]) requireAnchor('mobile360Reference.css', styles, anchor);
 

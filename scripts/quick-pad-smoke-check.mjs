@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import {
   quickPadItemSupportsTool,
+  quickPadLinkIdentifierType,
+  quickPadSearchRoute,
   quickPadSourceRoute,
 } from '../src/data/quickPadRouting.js';
 
@@ -14,7 +16,7 @@ const component = read('src/CaseQuickPad.jsx');
 const caseQueue = read('src/MobileCaseQueue.jsx');
 const styles = read('src/caseQuickPad.css');
 
-const available = new Set(['Business 360', 'Payment Verification', 'Payroll History']);
+const available = new Set(['Business 360', 'Payment Verification', 'Payroll History', 'Link Analysis']);
 const restorableBusinessId = {
   label: 'Business ID',
   value: 'BIZ-TRAINING-42',
@@ -31,6 +33,28 @@ const nestedBusinessEmail = {
   value: 'owner@example.test',
   sourceTool: 'Business 360',
 };
+const supportedLinkItems = [
+  ['Phone Number', '(214) 555-0184', 'phone'],
+  ['Email', 'learner@example.test', 'email'],
+  ['Training ID', 'TRN-1001', 'training-id'],
+  ['Address', '12-34 Main St.', 'address'],
+  ['Device ID', 'DEV-1001', 'device'],
+  ['IP Address', '192.0.2.42', 'ip'],
+  ['Bank Code', 'BC-1001', 'bank-code'],
+  ['Destination ID', 'DST-1001', 'destination-id'],
+].map(([label, value, identifierType]) => ({
+  label,
+  value,
+  identifierType,
+  sourceTool: 'Link Analysis',
+}));
+const rejectedLinkItems = [
+  ['Account ID', 'ACC-1001'],
+  ['Business ID', 'BIZ-1001'],
+  ['Business Registration', 'REG-1001'],
+  ['Session ID', 'SES-1001'],
+  ['Login ID', 'LOG-1001'],
+].map(([label, value]) => ({ label, value, sourceTool: 'Link Analysis' }));
 
 const checks = [
   ['Quick Pad has its own persisted storage key', model.includes("quickPad: 'fraud-academy-quick-pad-v1'")],
@@ -41,10 +65,32 @@ const checks = [
     (workspace.match(/quickPadLayer/g) ?? []).length >= 3
       && styles.includes('.mission-workspace-v3[data-workspace-screen="determination"]'),
   ],
-  ['Saved values can populate only a compatible current search', workspace.includes('quickPadItemSupportsTool') && workspace.includes('setQuery(quickPadQueryForTool(item, activeTool))')],
+  ['Saved values can populate only a compatible current search', workspace.includes('quickPadItemSupportsTool') && workspace.includes('quickPadSearchRoute(item, activeTool)')],
   ['Saved values can reopen only an exact canonical source route', workspace.includes('quickPadSourceRoute(item') && workspace.includes('openTool(route.sourceTool')],
   ['Business identifiers can restore the search-first company route', quickPadItemSupportsTool(restorableBusinessId, 'Business 360', 'mobile') && quickPadSourceRoute(restorableBusinessId, { availableTools: available, layoutMode: 'mobile' })?.query === restorableBusinessId.value],
   ['Nested Business values do not claim an exact source route', quickPadSourceRoute(nestedBusinessDevice, { availableTools: available, layoutMode: 'mobile' }) === null && quickPadSourceRoute(nestedBusinessEmail, { availableTools: available, layoutMode: 'mobile' }) === null],
+  [
+    'Every supported Link value keeps its exact machine identifier type',
+    supportedLinkItems.every((item) => (
+      quickPadItemSupportsTool(item, 'Link Analysis', 'mobile')
+      && quickPadLinkIdentifierType(item) === item.identifierType
+      && quickPadSearchRoute(item, 'Link Analysis')?.identifierType === item.identifierType
+      && quickPadSourceRoute(item, { availableTools: available, layoutMode: 'mobile' })?.identifierType === item.identifierType
+    )),
+  ],
+  [
+    'Unsupported account, business, session, and login IDs never claim a Link route',
+    rejectedLinkItems.every((item) => (
+      !quickPadItemSupportsTool(item, 'Link Analysis', 'mobile')
+      && quickPadSourceRoute(item, { availableTools: available, layoutMode: 'mobile' }) === null
+    )),
+  ],
+  [
+    'Link requests use a one-shot typed route instead of the shared query channel',
+    workspace.includes('queueLinkSearch(route)')
+      && workspace.includes('linkSearchRequest')
+      && workspace.includes('consumeLinkSearch'),
+  ],
   ['Actions render only when their real destination is available', component.includes('canUseItem(item)') && component.includes('canOpenItem(item)') && component.includes('{usableHere &&') && component.includes('{sourceAvailable &&')],
   ['Source actions use accurate wording', component.includes('Open source') && !component.includes('Open record')],
   ['Account IDs can be added from Customer 360', customer.includes("label: 'Account ID'")],

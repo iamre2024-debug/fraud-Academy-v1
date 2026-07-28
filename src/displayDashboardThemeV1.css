@@ -557,6 +557,7 @@ body[data-visual-tab="dashboard"] .dashboard-mission-orbit {
   bottom: -53px;
   width: 310px;
   height: 116px;
+  pointer-events: none;
   border-top: 2px solid rgba(81, 224, 255, 0.62);
   border-radius: 50%;
   transform: rotate(-8deg);

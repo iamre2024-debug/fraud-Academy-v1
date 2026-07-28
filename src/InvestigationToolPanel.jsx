@@ -2230,6 +2230,11 @@ export default function InvestigationToolPanel({
   payrollInvestigation,
   setPayrollInvestigationsByCase,
   openedPinnedEvidence,
+  linkSearchRequest,
+  linkSearchResetKey,
+  consumeLinkSearch,
+  onManualLinkSearch,
+  onLinkSearchCommitted,
   mobileMode = false,
 }) {
   const [selectedRecordId, setSelectedRecordId] = useState('');
@@ -2294,6 +2299,7 @@ export default function InvestigationToolPanel({
           <p>Switch tools without leaving the current case.</p>
         </section>
         <LinkAnalysisWorkspace
+          key={activeCase.id}
           activeCase={activeCase}
           cases={cases}
           query={query}
@@ -2308,6 +2314,11 @@ export default function InvestigationToolPanel({
           openRelatedCase={openRelatedCase}
           requestedAccountId={expandedId}
           openedPinnedEvidence={openedPinnedEvidence}
+          linkSearchRequest={linkSearchRequest}
+          linkSearchResetKey={linkSearchResetKey}
+          consumeLinkSearch={consumeLinkSearch}
+          onManualSearch={onManualLinkSearch}
+          onSearchCommitted={onLinkSearchCommitted}
           revealSearch={revealLinkAnalysisSearch}
         />
       </section>

@@ -11,22 +11,20 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
   await expect(workspace).toBeVisible();
   await expect(workspace).toHaveAttribute('data-link-analysis-state', 'empty');
   await expect(workspace.getByText('Search before viewing account links.', { exact: true })).toBeVisible();
+  await expect(workspace.locator('[data-link-analysis-map]')).toHaveCount(0);
   await expect(workspace.locator('[data-link-account]')).toHaveCount(0);
 
-  const searchShell = workspace.locator('.link-analysis-search-shell');
-  expect(await searchShell.evaluate((element) => element.open)).toBe(true);
+  const searchShell = workspace.getByRole('region', { name: 'Cross-account Link Analysis search' });
+  expect(await searchShell.evaluate((element) => element.open)).toBe(false);
+  await searchShell.locator('summary').click();
   const search = workspace.getByRole('textbox', { name: 'Search Link Analysis identifier' });
   await expect(search).toHaveValue('(214) 555-0184');
-  await workspace.getByRole('button', { name: 'Search accounts', exact: true }).click();
-
+  await workspace.getByRole('button', { name: 'Search Links', exact: true }).click();
   await expect(workspace).toHaveAttribute('data-link-analysis-state', 'searched');
   await expect(workspace.locator('[data-link-analysis-map]')).toBeVisible();
   await expect(workspace.getByRole('heading', { name: 'Exact cross-account matches', exact: true })).toBeVisible();
   await expect(workspace.getByText('Verified Links Summary', { exact: true })).toBeVisible();
   await expect(workspace.getByText('Luna · factual link summary', { exact: true })).toBeVisible();
-  expect(await searchShell.evaluate((element) => element.open)).toBe(false);
-  await searchShell.locator('summary').click();
-  await expect(search).toHaveValue('(214) 555-0184');
   await expect(workspace.locator('[data-link-account]')).toHaveCount(3);
   await expect(searchShell.locator('summary small')).toHaveText('3 matched accounts');
 
@@ -35,6 +33,7 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
   await firstAccount.locator('.link-analysis-account-heading').click();
   await expect(firstAccount.locator('.link-analysis-account-detail')).toBeVisible();
   await expect(firstAccount).toContainText('Exact shared identifier');
+  await expect(firstAccount).toContainText('Link source and confidence');
   await expect(firstAccount).toContainText('Verified source');
   await firstAccount.getByRole('button', { name: 'Pin Link', exact: true }).click();
   await firstAccount.getByRole('button', { name: 'Open Account', exact: true }).click();
@@ -51,18 +50,41 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
   await searchShell.locator('summary').click();
   await expect(search).toHaveValue('DST-CARD-4410');
   await search.fill('NO-EXACT-MATCH');
-  await workspace.getByRole('button', { name: 'Search accounts', exact: true }).click();
+  await workspace.getByRole('button', { name: 'Search Links', exact: true }).click();
   await expect(workspace.locator('.link-analysis-account-list .link-analysis-empty strong')).toHaveText('0 matched accounts');
 
   await searchShell.locator('summary').click();
   await workspace.getByRole('combobox', { name: 'Choose Link Analysis identifier type' }).selectOption('email');
+  await expect(workspace.locator('.link-analysis-result-banner')).toContainText('Searched Destination ID');
   await search.fill('mayatraining@example.test');
-  await workspace.getByRole('button', { name: 'Search accounts', exact: true }).click();
+  await workspace.getByRole('button', { name: 'Search Links', exact: true }).click();
   await expect(workspace.locator('.link-analysis-account-list .link-analysis-empty strong')).toHaveText('0 matched accounts');
 
   await searchShell.locator('summary').click();
   await workspace.locator('.link-analysis-suggestions button').filter({ hasText: '(214) 555-0184' }).click();
   await expect(workspace.locator('[data-link-account]')).toHaveCount(3);
+  await workspace.locator('.link-analysis-result-banner')
+    .getByRole('button', { name: 'Quick Pad', exact: true })
+    .click();
+  await expect.poll(() => page.evaluate(() => {
+    const saved = JSON.parse(localStorage.getItem('fraud-academy-quick-pad-v1') || '{}');
+    return saved['FA-ATO-24018']?.items
+      ?.find((item) => item.sourceTool === 'Link Analysis')
+      ?.identifierType;
+  })).toBe('phone');
+
+  await searchShell.locator('summary').click();
+  await workspace.getByRole('combobox', { name: 'Choose Link Analysis identifier type' }).selectOption('destination-id');
+  await search.fill('NO-EXACT-MATCH');
+  await workspace.getByRole('button', { name: 'Search Links', exact: true }).click();
+  await expect(workspace.locator('.link-analysis-account-list .link-analysis-empty strong')).toHaveText('0 matched accounts');
+  await page.getByRole('button', { name: 'Open Quick Pad, 1 saved item' }).click();
+  await page.getByRole('dialog', { name: 'Keep lookup details close' })
+    .getByRole('button', { name: 'Open source', exact: true })
+    .click();
+  await expect(search).toHaveValue('(214) 555-0184');
+  await expect(workspace.locator('[data-link-account]')).toHaveCount(3);
+
   await workspace.getByRole('button', { name: 'Pin Search', exact: true }).click();
   await workspace.getByRole('button', { name: 'Save Factual Summary', exact: true }).click();
   await workspace.getByRole('button', { name: 'Mark Reviewed', exact: true }).click();
@@ -78,6 +100,16 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
   await expect(workspace.locator('[data-link-account]')).toHaveCount(3);
   await expect(workspace.locator(`[data-link-account="${firstAccountId}"]`)).toHaveAttribute('data-expanded', 'true');
   await page.getByRole('button', { name: /Back to (?:Pinned Evidence|pins)/i }).click();
+  await page.getByRole('button', { name: `Open pinned evidence ${accountPin}` }).click();
+  await expect(search).toHaveValue('(214) 555-0184');
+  await expect(workspace.locator(`[data-link-account="${firstAccountId}"]`)).toHaveAttribute('data-expanded', 'true');
+  if (!(await search.isVisible())) await searchShell.locator('summary').click();
+  await search.fill('NO-EXACT-MATCH');
+  await workspace.getByRole('button', { name: 'Search Links', exact: true }).click();
+  await expect(page.locator('[data-opened-pinned-evidence="true"]')).toHaveCount(0);
+
+  const reopenedWorkflow = await openWorkspacePages(page);
+  await reopenedWorkflow.getByRole('button', { name: /Indicators|Evidence/ }).click();
   await page.getByRole('button', {
     name: 'Open pinned evidence LNK-Phone Number: (214) 555-0184',
     exact: true,

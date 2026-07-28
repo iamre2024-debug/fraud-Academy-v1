@@ -8,6 +8,7 @@ export default function CategoryTileRail({
   setCategoryKey,
   setTool,
   setExpandedId,
+  clearSearchContext,
 }) {
   const categoryByKey = Object.fromEntries(categories.map((item) => [item.key, item]));
   const identityCategory = categoryByKey.identity ?? categories[0];
@@ -18,6 +19,7 @@ export default function CategoryTileRail({
   function openCategory(category, preferredTool) {
     if (!category) return;
     onInvestigate?.();
+    clearSearchContext?.();
     setCategoryKey(category.key);
     setTool(category.tools.includes(preferredTool) ? preferredTool : category.tools[0]);
     setExpandedId('');
@@ -86,6 +88,7 @@ export default function CategoryTileRail({
                 aria-pressed={active}
                 onClick={() => {
                   onInvestigate?.();
+                  clearSearchContext?.();
                   setCategoryKey(item.key);
                   setTool(item.tools[0]);
                   setExpandedId('');
