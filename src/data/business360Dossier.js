@@ -1,4 +1,9 @@
-import { getRelationshipAccounts, formatMoney, relationshipLengthFrom } from './relationshipAccounts.js';
+import {
+  getRelationshipAccounts,
+  formatMoney,
+  moneyNumber,
+  relationshipLengthFrom,
+} from './relationshipAccounts.js';
 import { buildCaseParties } from './caseParties.js';
 import { getKybReview } from './kybReviewRecords.js';
 import { getPayrollHistory } from './businessPayrollWorkspace.js';
@@ -48,6 +53,26 @@ function businessAddress(base, suffix) {
   const text = String(base ?? '').replace(/\s+\(training\)$/i, '');
   if (!text || /not available/i.test(text)) return `${400 + (suffix % 5000)} Commerce Training Drive, Dallas, TX 75201`;
   return text;
+}
+
+function websiteHost(value) {
+  const host = String(value ?? '')
+    .trim()
+    .replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
+    .replace(/^www\./i, '')
+    .split(/[/?#]/)[0]
+    .replace(/[^a-z0-9.-]/gi, '');
+  return host.includes('.') ? host : 'training-business.example.test';
+}
+
+function businessNameKey(value) {
+  return String(value ?? '')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/\b(?:limited liability company|llc|incorporated|inc|corporation|corp|company|co)\b/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
 }
 
 function dateYear(value) {
@@ -209,13 +234,33 @@ function normalizeContactNote(activeCase, item, index) {
 }
 
 function normalizeProfile(activeCase, sourceProfile) {
-  const seed = stableNumber(`${activeCase.id}-${sourceProfile.legalName}`);
   const legalName = sourceProfile.legalName ?? activeCase.profile?.business ?? 'Cedar Ridge Services LLC';
+  const seed = stableNumber(`${activeCase.id}-${legalName}`);
   const operatingAddress = businessAddress(sourceProfile.address, seed);
-  const mailingAddress = `${620 + (seed % 3200)} Market Training Plaza, Suite ${100 + (seed % 700)}, Dallas, TX 75201`;
+  const mailingAddress = sourceProfile.mailingAddress
+    ?? `${620 + (seed % 3200)} Market Training Plaza, Suite ${100 + (seed % 700)}, Dallas, TX 75201`;
   const formationState = sourceProfile.jurisdiction ?? 'Texas';
   const formationDate = sourceProfile.formationDate ?? `Apr ${1 + (seed % 24)}, ${2017 + (seed % 7)}`;
+  const customerSince = sourceProfile.relationshipStartDate
+    ?? activeCase.customer?.relationshipSince
+    ?? dateYear(formationDate);
+  const registeredAgent = sourceProfile.registeredAgent;
+  const registeredAgentName = typeof registeredAgent === 'string'
+    ? registeredAgent
+    : registeredAgent?.name;
+  const registeredAgentAddress = typeof registeredAgent === 'object'
+    ? registeredAgent?.address
+    : null;
+  const operatingLocations = Array.isArray(sourceProfile.operatingLocations)
+    && sourceProfile.operatingLocations.length
+    ? sourceProfile.operatingLocations
+    : [
+        operatingAddress,
+        `${780 + (seed % 4000)} Fulfillment Training Road, ${seed % 2 ? 'Arlington, TX 76010' : 'Irving, TX 75039'}`,
+      ];
   return {
+    businessId: sourceProfile.businessId
+      ?? publicRelationshipIdentifier(activeCase, null, 'BIZ', legalName),
     legalName,
     dba: sourceProfile.dba ?? legalName.replace(/\s+(LLC|Inc\.?|Corp\.?)$/i, ''),
     entityType: /training business entity/i.test(sourceProfile.entityType ?? '')
@@ -231,20 +276,21 @@ function normalizeProfile(activeCase, sourceProfile) {
     operatingAddress,
     mailingAddress,
     registeredAgent: {
-      name: `${['Meridian', 'Bluebonnet', 'Lone Star', 'Crescent'][seed % 4]} Registered Agent Services`,
-      address: `${900 + (seed % 7000)} Capitol Training Avenue, Austin, TX 78701`,
+      name: registeredAgentName
+        ?? `${['Meridian', 'Bluebonnet', 'Lone Star', 'Crescent'][seed % 4]} Registered Agent Services`,
+      address: registeredAgentAddress
+        ?? `${900 + (seed % 7000)} Capitol Training Avenue, Austin, TX 78701`,
     },
     phone: sourceProfile.phone ?? phoneFor(seed),
-    email: `service+${String(seed).slice(-4)}@${String(sourceProfile.website ?? 'training-business.example.test').replace(/^www\./, '')}`,
+    email: sourceProfile.email
+      ?? `service+${String(seed).slice(-4)}@${websiteHost(sourceProfile.website)}`,
     website: sourceProfile.website ?? `business-${String(seed).slice(-5)}.training.example.test`,
     businessAge: relationshipLengthFrom(formationDate),
-    customerSince: activeCase.customer?.relationshipSince ?? dateYear(formationDate),
-    relationshipLength: relationshipLengthFrom(activeCase.customer?.relationshipSince ?? formationDate),
-    operatingLocations: [
-      operatingAddress,
-      `${780 + (seed % 4000)} Fulfillment Training Road, ${seed % 2 ? 'Arlington, TX 76010' : 'Irving, TX 75039'}`,
-    ],
-    estimatedEmployeeCount: Math.max(4, 8 + (seed % 42)),
+    customerSince,
+    relationshipLength: relationshipLengthFrom(customerSince),
+    operatingLocations,
+    estimatedEmployeeCount: sourceProfile.estimatedEmployeeCount
+      ?? Math.max(4, 8 + (seed % 42)),
     sourceChecked: sourceProfile.source ?? 'Fictional entity-registration and relationship records',
     dateChecked: sourceProfile.observed ?? activeCase.reportedDate ?? activeCase.opened ?? 'Jul 2026',
     registrationSearchCompleted: sourceProfile.registrationSearchCompleted ?? Boolean(sourceProfile.source),
@@ -289,68 +335,167 @@ function ownerAccount(owner, seed) {
 }
 
 function ownerFromRecord(activeCase, profile, rawOwner, index, parties) {
-  const [id, rawName, rawRole, rawOwnership, rawIdentityStatus, ownerSince, rawTrainingId] = rawOwner;
-  const name = rawName ?? ['Morgan Reed', 'Cameron Patel', 'Riley Navarro'][index % 3];
+  const [
+    id,
+    rawName,
+    rawRole,
+    rawOwnership,
+    rawIdentityStatus,
+    ownerSince,
+    rawTrainingId,
+    suppliedOwner = {},
+  ] = rawOwner;
+  const name = suppliedOwner.legalName
+    ?? suppliedOwner.name
+    ?? rawName
+    ?? ['Morgan Reed', 'Cameron Patel', 'Riley Navarro'][index % 3];
   const party = parties.find((item) => item.name === name || item.id === id);
   const seed = stableNumber(`${activeCase.id}-${id}-${name}`);
   const names = nameParts(name);
   const currentAddress = addressFor(seed, 'Residence');
   const previousAddress = seed % 3 === 0 ? addressFor(seed + 17, 'Former Residence') : unavailable;
   const matchesMailing = seed % 5 === 0;
-  const residentialAddress = matchesMailing ? profile.mailingAddress : currentAddress;
-  const role = party?.role ?? rawRole ?? 'Beneficial owner';
-  const ownership = party?.ownership ?? rawOwnership ?? `${25 + (seed % 51)}%`;
-  const personalAccount = ownerAccount(name, seed);
+  const residentialAddress = suppliedOwner.currentResidentialAddress
+    ?? (matchesMailing ? profile.mailingAddress : currentAddress);
+  const priorResidentialAddress = suppliedOwner.previousResidentialAddress ?? previousAddress;
+  const role = suppliedOwner.title ?? party?.role ?? rawRole ?? 'Beneficial owner';
+  const ownership = suppliedOwner.ownershipPercentage !== undefined
+    ? `${suppliedOwner.ownershipPercentage}%`
+    : party?.ownership ?? rawOwnership ?? `${25 + (seed % 51)}%`;
+  const suppliedAccounts = Array.isArray(suppliedOwner.personalAccounts)
+    ? suppliedOwner.personalAccounts
+    : [];
+  const personalAccounts = suppliedAccounts.length
+    ? getRelationshipAccounts({
+        customerType: CUSTOMER_TYPES.PERSONAL,
+        productType: /credit|loan|line/i.test(suppliedAccounts[0]?.product ?? '')
+          ? PRODUCT_TYPES.CREDIT_CARD
+          : PRODUCT_TYPES.DEPOSIT_ACCOUNT,
+        toolResults: {
+          relationshipAccounts: suppliedAccounts.map((account, accountIndex) => {
+            const isCredit = /credit|loan|line/i.test(account.product ?? '');
+            return {
+              accountId: account.id ?? account.accountId,
+              destinationId: account.destinationId ?? account.id ?? account.accountId,
+              bankCode: account.bankCode,
+              productType: isCredit ? PRODUCT_TYPES.CREDIT_CARD : PRODUCT_TYPES.DEPOSIT_ACCOUNT,
+              productKind: isCredit ? 'credit-card' : 'checking',
+              productLabel: account.product ?? 'Owner personal relationship',
+              openDate: account.openDate,
+              status: account.status,
+              currentBalance: account.currentBalance ?? null,
+              availableBalance: account.availableBalance ?? null,
+              creditLimit: account.creditLimit ?? null,
+              paymentStatus: account.paymentStatus,
+              restrictions: account.restrictions,
+              holds: account.holds,
+              isPrimary: accountIndex === 0,
+              legacyCoverage: true,
+              evidenceCoverage: 'Only owner-account fields supplied by the reusable owner record are shown.',
+            };
+          }),
+        },
+      })
+    : [ownerAccount(name, seed)];
+  const suppliedDevices = Array.isArray(suppliedOwner.trustedDevices)
+    ? suppliedOwner.trustedDevices
+    : [];
+  const trustedDevices = suppliedDevices.length
+    ? suppliedDevices.map((device, deviceIndex) => ({
+        deviceName: device.deviceName ?? device.device ?? device.name ?? 'Owner trusted device',
+        deviceId: device.deviceId ?? device.id ?? `DEV-OWNER-PRESERVED-${deviceIndex + 1}`,
+        deviceType: device.deviceType ?? (/mobile|phone|iphone|android/i.test(device.device ?? '') ? 'Mobile phone' : unavailable),
+        browserOrOperatingSystem: device.browserOrOperatingSystem ?? device.platform ?? unavailable,
+        firstSeen: device.firstSeen ?? unavailable,
+        lastSeen: device.lastSeen ?? unavailable,
+        trustStatus: device.trustStatus ?? device.status ?? unavailable,
+        mfaMethod: device.mfaMethod ?? unavailable,
+      }))
+    : [{
+        deviceName: `${names.first}'s trusted phone`,
+        deviceId: `DEV-OWN-${String(seed).padStart(6, '0').slice(-6)}`,
+        deviceType: 'Mobile phone',
+        browserOrOperatingSystem: seed % 2 ? 'iOS · Mobile Safari' : 'Android · Chrome Mobile',
+        firstSeen: `Mar ${1 + (seed % 20)}, 2024`,
+        lastSeen: profile.dateChecked,
+        trustStatus: 'Trusted on personal profile',
+        mfaMethod: seed % 2 ? 'Biometric + OTP' : 'Password + OTP',
+      }];
+  const suppliedContacts = Array.isArray(suppliedOwner.contactHistory)
+    ? suppliedOwner.contactHistory
+    : [];
+  const contactHistory = suppliedContacts.length
+    ? suppliedContacts.map((contact, contactIndex) => ({
+        id: contact.id ?? `OWNER-CONTACT-PRESERVED-${contactIndex + 1}`,
+        contactDateTime: contact.contactDateTime ?? contact.date ?? unavailable,
+        channel: contact.channel ?? unavailable,
+        reasonForContact: contact.reasonForContact ?? contact.reason ?? 'Personal profile service',
+        reportedInformation: contact.reportedInformation ?? contact.note ?? unavailable,
+        assistanceProvided: contact.assistanceProvided ?? unavailable,
+        documentsRequested: contact.documentsRequested ?? unavailable,
+        followUpStatus: contact.followUpStatus ?? unavailable,
+        agentOrDepartment: contact.agentOrDepartment ?? unavailable,
+        relatedAccountId: contact.relatedAccountId ?? personalAccounts[0]?.maskedDestinationId ?? unavailable,
+      }))
+    : [{
+        id: publicRelationshipIdentifier(activeCase, `${id}-CONTACT-1`, 'OWNER-CONTACT', index),
+        contactDateTime: `Jun ${10 + (seed % 12)}, 2026 · 2:${String(seed % 60).padStart(2, '0')} PM`,
+        channel: 'Secure message',
+        reasonForContact: 'Personal profile service',
+        reportedInformation: 'Owner confirmed the recorded personal contact information.',
+        assistanceProvided: 'Profile values were reviewed; no business record was changed.',
+        documentsRequested: 'None',
+        followUpStatus: 'Completed',
+        agentOrDepartment: 'Relationship servicing',
+        relatedAccountId: personalAccounts[0]?.maskedDestinationId ?? unavailable,
+      }];
   return {
     id: publicRelationshipIdentifier(activeCase, id, 'OWNER', index),
     fullLegalName: name,
-    dateOfBirth: `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'][seed % 8]} ${1 + (seed % 27)}, ${1968 + (seed % 27)}`,
-    trainingId: party?.trainingId ?? rawTrainingId ?? `TRN-OWN-${String(seed).padStart(6, '0').slice(-6)}`,
+    dateOfBirth: suppliedOwner.dateOfBirth
+      ?? `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'][seed % 8]} ${1 + (seed % 27)}, ${1968 + (seed % 27)}`,
+    trainingId: party?.trainingId
+      ?? suppliedOwner.trainingId
+      ?? rawTrainingId
+      ?? `TRN-OWN-${String(seed).padStart(6, '0').slice(-6)}`,
     ownershipPercentage: ownership,
     businessTitle: role,
-    officerStatus: /officer|president|treasurer|secretary|chief/i.test(role) ? 'Officer on file' : 'Not listed as an officer',
-    controllingPartyStatus: /control|managing|president|chief|51|owner/i.test(`${role} ${ownership}`) ? 'Controlling party on file' : 'Not listed as the control person',
-    guarantorStatus: /guarantor/i.test(role) ? 'Personal guarantor on file' : 'No guarantor role recorded',
+    officerStatus: suppliedOwner.officerStatus
+      ?? (/officer|president|treasurer|secretary|chief/i.test(role) ? 'Officer on file' : 'Not listed as an officer'),
+    controllingPartyStatus: suppliedOwner.controlStatus
+      ?? (/control|managing|president|chief|51|owner/i.test(`${role} ${ownership}`) ? 'Controlling party on file' : 'Not listed as the control person'),
+    guarantorStatus: suppliedOwner.guarantorStatus
+      ?? (/guarantor/i.test(role) ? 'Personal guarantor on file' : 'No guarantor role recorded'),
     currentResidentialAddress: residentialAddress,
-    previousResidentialAddress: previousAddress,
-    personalPhone: phoneFor(seed),
-    personalEmail: `${names.first}.${names.last}.${String(seed).slice(-3)}@owner.training.example.test`.toLowerCase(),
-    identityVerificationStatus: party?.verificationStatus ?? rawIdentityStatus ?? 'Training identity verification completed',
+    previousResidentialAddress: priorResidentialAddress,
+    personalPhone: suppliedOwner.phone ?? phoneFor(seed),
+    personalEmail: suppliedOwner.email
+      ?? `${names.first}.${names.last}.${String(seed).slice(-3)}@owner.training.example.test`.toLowerCase(),
+    identityVerificationStatus: party?.verificationStatus
+      ?? suppliedOwner.verificationStatus
+      ?? rawIdentityStatus
+      ?? 'Training identity verification completed',
     addressVerificationStatus: residentialAddress === profile.mailingAddress ? 'Address appears in both owner and business-mailing records' : 'Residential address recorded separately',
-    ownerSince: timestamp(ownerSince) === null ? profile.formationDate : ownerSince,
+    ownerSince: timestamp(suppliedOwner.firstRecorded ?? ownerSince) === null
+      ? profile.formationDate
+      : suppliedOwner.firstRecorded ?? ownerSince,
     addressComparison: residentialAddress === profile.mailingAddress
       ? 'Owner residential address matches the business mailing address.'
       : residentialAddress === profile.operatingAddress
         ? 'Owner residential address matches the business operating address.'
         : 'Owner residential address differs from the business operating and mailing addresses.',
-    accounts: [personalAccount],
-    trustedDevices: [{
-      deviceName: `${names.first}'s trusted phone`,
-      deviceId: `DEV-OWN-${String(seed).padStart(6, '0').slice(-6)}`,
-      deviceType: 'Mobile phone',
-      browserOrOperatingSystem: seed % 2 ? 'iOS · Mobile Safari' : 'Android · Chrome Mobile',
-      firstSeen: `Mar ${1 + (seed % 20)}, 2024`,
-      lastSeen: profile.dateChecked,
-      trustStatus: 'Trusted on personal profile',
-      mfaMethod: seed % 2 ? 'Biometric + OTP' : 'Password + OTP',
-    }],
-    contactHistory: [{
-      id: publicRelationshipIdentifier(activeCase, `${id}-CONTACT-1`, 'OWNER-CONTACT', index),
-      contactDateTime: `Jun ${10 + (seed % 12)}, 2026 · 2:${String(seed % 60).padStart(2, '0')} PM`,
-      channel: 'Secure message',
-      reasonForContact: 'Personal profile service',
-      reportedInformation: 'Owner confirmed the recorded personal contact information.',
-      assistanceProvided: 'Profile values were reviewed; no business record was changed.',
-      documentsRequested: 'None',
-      followUpStatus: 'Completed',
-      agentOrDepartment: 'Relationship servicing',
-      relatedAccountId: personalAccount.maskedDestinationId,
-    }],
+    accounts: personalAccounts,
+    trustedDevices,
+    contactHistory,
   };
 }
 
 function profileUpdates(activeCase) {
-  const provided = activeCase.businessProfile?.profileUpdates ?? activeCase.customer?.profileChanges ?? [];
+  const provided = activeCase.businessProfile?.profileUpdates
+    ?? (activeCase.customerType === CUSTOMER_TYPES.BUSINESS
+      ? activeCase.customer?.profileChanges
+      : [])
+    ?? [];
   const neutral = provided
     .filter((item) => isOnOrBeforeCase(activeCase, `${item.date ?? ''} ${item.time ?? ''}`))
     .map((item, index) => ({
@@ -383,24 +528,13 @@ function profileUpdates(activeCase) {
         : 'Device not recorded',
   }));
   if (neutral.length) return neutral;
-  if (provided.length || activeCase.legacyDerivedEvidence === true) return [];
-  return [{
-    id: publicRelationshipIdentifier(activeCase, null, 'PROFILE', 1),
-    updateType: 'Authorized-user review',
-    previousValue: 'Existing authorized-user roster',
-    newValue: 'Roster confirmed without a change',
-    dateTime: dateBeforeCase(activeCase, 20, '11:20 AM'),
-    channel: 'Business servicing',
-    source: 'Business profile',
-    user: 'Authorized business administrator',
-    linkedSession: 'Session not recorded',
-    linkedDevice: 'Device not recorded',
-  }];
+  return [];
 }
 
 function accessRecords(activeCase, parties, owners) {
+  const isBusinessCase = activeCase.customerType === CUSTOMER_TYPES.BUSINESS;
   const suppliedAuthorizedUsers = activeCase.businessProfile?.authorizedUsers
-    ?? activeCase.customer?.authorizedUsers
+    ?? (isBusinessCase ? activeCase.customer?.authorizedUsers : [])
     ?? [];
   const authorizedUsers = parties
     .filter((party) => /owner|control|administrator|approver|initiator|authorized/i.test(party.role ?? ''))
@@ -436,9 +570,9 @@ function accessRecords(activeCase, parties, owners) {
   }
   const suppliedDevices = [
     ...(activeCase.businessProfile?.trustedDevices ?? []),
-    ...(activeCase.customer?.trustedDevices ?? []),
-    ...(activeCase.customer?.security?.trustedDevices ?? []),
-    ...(activeCase.toolResults?.trustedDevices ?? []),
+    ...(isBusinessCase ? activeCase.customer?.trustedDevices ?? [] : []),
+    ...(isBusinessCase ? activeCase.customer?.security?.trustedDevices ?? [] : []),
+    ...(isBusinessCase ? activeCase.toolResults?.trustedDevices ?? [] : []),
   ].filter((item) => isOnOrBeforeCase(activeCase, item.lastSeen ?? item.mostRecentSuccessfulLogin ?? item.firstSeen));
   const devicesById = new Map();
   suppliedDevices.forEach((item, index) => {
@@ -788,6 +922,10 @@ function explicitProfile(activeCase, source = {}) {
     : operatingAddress === unavailable ? [] : [operatingAddress];
   const operatingLocations = safeRelationshipList(rawOperatingLocations);
   return {
+    businessId: safeRelationshipNote(
+      source.businessId ?? source.entityId ?? source.id,
+      unavailable,
+    ),
     legalName,
     dba: safeRelationshipNote(source.dba, unavailable),
     entityType: safeRelationshipNote(source.entityType, unavailable),
@@ -1367,9 +1505,105 @@ function linkedBusiness(activeCase, relationshipId) {
   )) ?? null;
 }
 
+function businessRelationshipMatchesProfile(relationship, sourceProfile) {
+  if (!relationship) return false;
+  const relationshipId = String(
+    relationship.businessId ?? relationship.entityId ?? relationship.id ?? '',
+  ).trim();
+  const profileId = String(sourceProfile.businessId ?? '').trim();
+  if (relationshipId && profileId && relationshipId === profileId) return true;
+  const relationshipName = relationship.businessName
+    ?? relationship.legalName
+    ?? relationship.name;
+  return Boolean(
+    businessNameKey(relationshipName)
+    && businessNameKey(relationshipName) === businessNameKey(sourceProfile.legalName),
+  );
+}
+
+function relationshipAccountProduct(account = {}) {
+  const product = String(account.product ?? account.productLabel ?? '').toLowerCase();
+  if (/payroll/.test(product)) {
+    return {
+      productType: PRODUCT_TYPES.PAYROLL_PRODUCT,
+      productKind: 'payroll-account',
+    };
+  }
+  if (/credit card/.test(product)) {
+    return {
+      productType: PRODUCT_TYPES.BUSINESS_CREDIT_CARD,
+      productKind: 'business-credit-card',
+    };
+  }
+  if (/loan|line|revolving credit/.test(product)) {
+    return {
+      productType: PRODUCT_TYPES.BUSINESS_LOAN,
+      productKind: /line|revolving/.test(product)
+        ? 'revolving-credit-line'
+        : 'business-installment-loan',
+    };
+  }
+  return {
+    productType: PRODUCT_TYPES.BUSINESS_ACCOUNT,
+    productKind: /saving|reserve/.test(product)
+      ? 'business-savings'
+      : 'business-checking',
+  };
+}
+
+function suppliedMoney(value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (/not (?:available|applicable|supplied|recorded)/i.test(String(value))) return null;
+  return /-?\d/.test(String(value)) ? moneyNumber(value) : null;
+}
+
+function canonicalBusinessAccounts(sourceProfile = {}) {
+  const relationshipAccounts = Array.isArray(sourceProfile.relationshipAccounts)
+    ? sourceProfile.relationshipAccounts
+    : [];
+  if (!relationshipAccounts.length) return [];
+  return getRelationshipAccounts({
+    customerType: CUSTOMER_TYPES.BUSINESS,
+    productType: PRODUCT_TYPES.BUSINESS_ACCOUNT,
+    toolResults: {
+      relationshipAccounts: relationshipAccounts.map((account, index) => {
+        const product = relationshipAccountProduct(account);
+        const currentBalance = suppliedMoney(account.balance ?? account.currentBalance);
+        return {
+          accountId: account.id ?? account.accountId,
+          destinationId: account.destinationId ?? account.id ?? account.accountId,
+          bankCode: account.bankCode,
+          productType: product.productType,
+          productKind: product.productKind,
+          productLabel: account.product ?? account.productLabel ?? 'Business relationship account',
+          openDate: account.openDate ?? sourceProfile.relationshipStartDate,
+          status: account.status,
+          currentBalance,
+          availableBalance: product.productType === PRODUCT_TYPES.BUSINESS_ACCOUNT
+            ? currentBalance
+            : null,
+          availableCredit: account.availableCredit ?? null,
+          creditLimit: account.creditLimit ?? null,
+          originalLoanAmount: account.originalLoanAmount ?? null,
+          scheduledPayment: account.scheduledPayment ?? null,
+          nextPaymentDueDate: account.nextPaymentDueDate ?? null,
+          paymentStatus: account.paymentStatus ?? 'Not applicable',
+          pastDueAmount: account.pastDueAmount ?? null,
+          restrictions: account.restrictions,
+          holds: account.holds,
+          relationshipLimit: account.limit,
+          nsfContext: account.nsfContext,
+          repaymentSource: account.repaymentSource,
+          isPrimary: index === 0,
+        };
+      }),
+    },
+  });
+}
+
 export function getBusiness360Dossier(activeCase = {}, { relationshipId } = {}) {
   const relationship = linkedBusiness(activeCase, relationshipId);
-  if (relationship) {
+  if (activeCase.legacyDerivedEvidence === true && relationship) {
     return explicitBusinessDossier(activeCase, {
       ...relationship,
       legalName: relationship.businessName ?? relationship.legalName ?? relationship.name,
@@ -1379,11 +1613,30 @@ export function getBusiness360Dossier(activeCase = {}, { relationshipId } = {}) 
     return explicitBusinessDossier(activeCase, activeCase.businessProfile ?? {});
   }
   const kyb = getKybReview(activeCase);
+  if (relationship && !businessRelationshipMatchesProfile(relationship, kyb.profile)) {
+    return explicitBusinessDossier(activeCase, {
+      ...relationship,
+      legalName: relationship.businessName ?? relationship.legalName ?? relationship.name,
+    }, { relationship });
+  }
   let profile = normalizeProfile(activeCase, kyb.profile);
   const parties = buildCaseParties(activeCase);
   const owners = (kyb.profile.owners ?? []).map((owner, index) => ownerFromRecord(activeCase, profile, owner, index, parties));
-  const access = accessRecords(activeCase, parties, owners);
-  const accounts = getRelationshipAccounts(activeCase);
+  const ownerNames = new Set(owners.map((owner) => owner.fullLegalName.toLowerCase()));
+  const scopedParties = activeCase.customerType === CUSTOMER_TYPES.BUSINESS
+    ? parties
+    : parties.filter((party) => ownerNames.has(String(party.name ?? '').toLowerCase()));
+  const businessParties = scopedParties.length
+    ? scopedParties
+    : owners.map((owner) => ({
+        id: owner.id,
+        name: owner.fullLegalName,
+        role: owner.businessTitle,
+      }));
+  const access = accessRecords(activeCase, businessParties, owners);
+  const accounts = activeCase.customerType === CUSTOMER_TYPES.BUSINESS
+    ? getRelationshipAccounts(activeCase)
+    : canonicalBusinessAccounts(kyb.profile);
   const payroll = payrollRelationship(activeCase, profile, access, accounts);
   if (payroll && Number.isFinite(Number(payroll.activeEmployeeCount))) {
     profile = { ...profile, estimatedEmployeeCount: Number(payroll.activeEmployeeCount) };
@@ -1394,7 +1647,7 @@ export function getBusiness360Dossier(activeCase = {}, { relationshipId } = {}) 
     accounts,
     profileUpdates: profileUpdates(activeCase),
     access,
-    contactNotes: contactNotes(activeCase, profile, parties),
+    contactNotes: contactNotes(activeCase, profile, businessParties),
     payrollRelationship: payroll,
     researchChecks: researchChecks(profile, owners),
   };
