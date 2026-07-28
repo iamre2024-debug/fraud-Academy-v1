@@ -360,7 +360,7 @@ for (const anchor of [
   '.reference-luna-mark',
   '.reference-investigation-controls',
   ':focus-visible',
-  '@media (max-width: 640px)',
+  '@media (max-width: 720px)',
   '@media (max-width: 360px)',
 ]) {
   mustContain('referenceInvestigationDeck.css', referenceDeckStyles, anchor);
@@ -380,7 +380,7 @@ for (const anchor of [
   '.payment-mission-review',
   ':focus-visible',
   '@media (max-width: 980px)',
-  '@media (max-width: 640px)',
+  '@media (max-width: 720px)',
   '@media (prefers-reduced-motion: reduce)',
 ]) {
   mustContain('paymentVerificationWorkspace.css', paymentStyles, anchor);

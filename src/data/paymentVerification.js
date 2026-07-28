@@ -442,3 +442,26 @@ export function parsePaymentLookupHint(value = '') {
     .map((item) => decodeURIComponent(item));
   return { bankCode, destinationId, ownerName };
 }
+
+export function paymentLookupPrefillFromQuery(value = '', records = []) {
+  const structuredHint = parsePaymentLookupHint(value);
+  if (structuredHint) return { ...structuredHint, replace: true };
+
+  const requested = String(value ?? '').trim();
+  if (!requested) return null;
+
+  const record = records.find((item) => (
+    String(item.id ?? '').toLowerCase() === requested.toLowerCase()
+  ));
+  if (record) {
+    return {
+      bankCode: record.bankCode ?? '',
+      destinationId: record.destinationId ?? '',
+      replace: false,
+    };
+  }
+
+  if (/^BC-/i.test(requested)) return { bankCode: requested, replace: false };
+  if (/^DST-/i.test(requested)) return { destinationId: requested, replace: false };
+  return null;
+}

@@ -1,5 +1,9 @@
 import { rowsFor } from './visualWorkspaceModel.js';
 import {
+  financialRecordSearchText,
+  getFinancialInvestigation,
+} from './data/financialInvestigationRecords.js';
+import {
   filterToolsForCaseDomain,
   normalizeToolName,
 } from './data/caseDomain.js';
@@ -56,6 +60,37 @@ function scoreRow(pinValue, identifier, row) {
   return 0;
 }
 
+function rowsForPinnedEvidence(tool, activeCase) {
+  const legacyData = rowsFor(tool, activeCase);
+  if (tool !== 'Financial Investigation') return legacyData;
+
+  const richRecords = Object.values(
+    getFinancialInvestigation(activeCase).recordsBySection,
+  ).flat();
+  const richRows = richRecords.map((record) => ({
+    id: record.id,
+    pin: record.id,
+    label: record.title ?? record.category ?? 'Financial record',
+    detail: financialRecordSearchText(record),
+    values: [
+      record.id,
+      record.title ?? record.category ?? 'Financial record',
+      record.value ?? 'Not recorded',
+      record.observed ?? record.period ?? 'Not recorded',
+      record.status ?? 'Recorded',
+      record.detail ?? 'No additional detail supplied',
+    ],
+  }));
+  const richIds = new Set(richRows.map((row) => row.id));
+  return {
+    ...legacyData,
+    rows: [
+      ...richRows,
+      ...legacyData.rows.filter((row) => !richIds.has(row.id)),
+    ],
+  };
+}
+
 export function resolvePinnedEvidence(pinValue, activeCase, toolNames) {
   const value = text(pinValue);
   if (!value || !activeCase) return null;
@@ -71,8 +106,27 @@ export function resolvePinnedEvidence(pinValue, activeCase, toolNames) {
       );
   let bestMatch = null;
 
+  if (routedToolNames.includes('Financial Investigation')) {
+    const financialRows = rowsForPinnedEvidence('Financial Investigation', activeCase).rows;
+    const exactFinancialRow = financialRows.find((row) => (
+      normalized(row.id) === normalized(value)
+      || normalized(row.id) === normalized(identifier)
+      || normalized(row.pin) === normalized(value)
+      || normalized(row.pin) === normalized(identifier)
+    ));
+    if (exactFinancialRow) {
+      return {
+        value,
+        tool: 'Financial Investigation',
+        row: exactFinancialRow,
+        query: exactFinancialRow.id,
+        recordId: exactFinancialRow.id,
+      };
+    }
+  }
+
   routedToolNames.forEach((tool) => {
-    const data = rowsFor(tool, activeCase);
+    const data = rowsForPinnedEvidence(tool, activeCase);
     data.rows.forEach((row) => {
       const baseScore = scoreRow(value, identifier, row);
       if (!baseScore) return;

@@ -44,6 +44,7 @@ function activityBreakdown(workspace) {
         display: item.totalDisplay,
         meta: `${item.count} record${item.count === 1 ? '' : 's'}`,
         recordId: item.supportRecordIds[0],
+        searchValue: item.label,
       })),
     };
   }
@@ -61,6 +62,7 @@ function activityBreakdown(workspace) {
         display: item.companyDebitDisplay,
         meta: `${item.runCount} pay period${item.runCount === 1 ? '' : 's'}`,
         recordId: item.supportRecordIds[0],
+        searchValue: item.label,
       })),
     };
   }
@@ -77,6 +79,7 @@ function activityBreakdown(workspace) {
         display: item.actualPaidDisplay,
         meta: item.statuses.join(' · ') || 'Status not supplied',
         recordId: item.supportRecordIds[0],
+        searchValue: item.label,
       })),
     };
   }
@@ -93,6 +96,7 @@ function activityBreakdown(workspace) {
         display: item.totalDisplay,
         meta: `${item.count} record${item.count === 1 ? '' : 's'}`,
         recordId: item.supportRecordIds[0],
+        searchValue: item.label,
       })),
     };
   }
@@ -108,6 +112,7 @@ function activityBreakdown(workspace) {
       display: item.currentBalance === null ? item.status : displayMoney(item.currentBalance),
       meta: item.status,
       recordId: item.accountId,
+      searchValue: item.accountId,
     })),
   };
 }
@@ -292,7 +297,7 @@ export default function FinancialInvestigationWorkspace({
                 <button
                   key={`${item.label}-${item.recordId}`}
                   type="button"
-                  onClick={() => selectSection(activity.sectionId, item.recordId)}
+                  onClick={() => selectSection(activity.sectionId, item.searchValue)}
                 >
                   <span><strong>{item.label}</strong><small>{item.meta}</small></span>
                   <i><b style={{ width: barWidth(item.value, activityMaximum) }} /></i>
@@ -316,7 +321,7 @@ export default function FinancialInvestigationWorkspace({
               <button
                 key={item.id ?? item.label}
                 type="button"
-                onClick={() => selectSection(item.id ? item.id : 'spending')}
+                onClick={() => selectSection(item.id ?? 'spending', item.id ? '' : item.label)}
               >
                 <span aria-hidden="true">{item.id ? '◇' : '○'}</span>
                 <strong>{item.label}</strong>
@@ -724,16 +729,16 @@ export default function FinancialInvestigationWorkspace({
         </div>
       </details>
 
-      <nav className="investigation-tool-next-routes financial-mission-routes" aria-label="Financial Investigation next routes">
+      <nav className="financial-mission-routes" aria-label="Financial Investigation next routes">
         {workspace.routes.map((route) => <button key={route.tool} type="button" onClick={() => openRelatedTool(route)}>{route.label}</button>)}
         <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
       </nav>
-      <footer className="investigation-tool-review-bar financial-mission-review">
+      <footer className="financial-mission-review">
         <div>
           <strong>Financial Investigation review</strong>
           <span>Mark reviewed after comparing the applicable account, dated activity, payment, deposit, and payroll records.</span>
         </div>
-        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Financial Investigation')}>
+        <button type="button" className={reviewed ? '' : 'financial-mission-primary'} onClick={() => markReviewed('Financial Investigation')}>
           {reviewed ? '✓ Financial Investigation reviewed' : 'Mark Financial Investigation reviewed'}
         </button>
       </footer>

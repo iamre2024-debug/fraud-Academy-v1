@@ -1,5 +1,6 @@
 import { trainingCases } from '../src/data/cases.js';
 import { enrichTrainingCases } from '../src/data/caseEnrichment.js';
+import { getFinancialInvestigation } from '../src/data/financialInvestigationRecords.js';
 import { workspaceTools } from '../src/investigationToolGroups.js';
 import { resolvePinnedEvidence } from '../src/pinnedEvidenceNavigation.js';
 
@@ -16,6 +17,20 @@ for (const [pin, expectedTool, expectedRecordId] of checks) {
   if (!result) throw new Error(`${pin} did not resolve.`);
   if (result.tool !== expectedTool) throw new Error(`${pin} resolved to ${result.tool}, expected ${expectedTool}.`);
   if (result.recordId !== expectedRecordId) throw new Error(`${pin} resolved to ${result.recordId}, expected ${expectedRecordId}.`);
+}
+
+const richFinancialRecords = Object.values(
+  getFinancialInvestigation(activeCase).recordsBySection,
+).flat();
+for (const record of richFinancialRecords) {
+  const result = resolvePinnedEvidence(record.id, activeCase, workspaceTools);
+  if (
+    result?.tool !== 'Financial Investigation'
+    || result.recordId !== record.id
+    || result.query !== record.id
+  ) {
+    throw new Error(`${record.id} did not reopen its exact Financial Investigation record.`);
+  }
 }
 
 const fallback = resolvePinnedEvidence('DOC-UNSAVED-01 | Affidavit', activeCase, workspaceTools);

@@ -10,6 +10,7 @@ import {
   buildPaymentLookupHint,
   comparePaymentOwner,
   normalizePaymentRecord,
+  paymentLookupPrefillFromQuery,
   parsePaymentLookupHint,
   resolvePaymentLookup,
 } from '../src/data/paymentVerification.js';
@@ -222,6 +223,32 @@ if (missingLookup.nameMatchResult !== 'Destination Not Found' || missingLookup.r
 
 const hint = buildPaymentLookupHint({ bankCode: 'BC-204', destinationId: 'DST-7740', ownerName: 'Avery Brooks' });
 if (JSON.stringify(parsePaymentLookupHint(hint)) !== JSON.stringify({ bankCode: 'BC-204', destinationId: 'DST-7740', ownerName: 'Avery Brooks' })) fail('Payment lookup prefill did not round-trip.');
+if (JSON.stringify(paymentLookupPrefillFromQuery(hint, creditRecords)) !== JSON.stringify({
+  bankCode: 'BC-204',
+  destinationId: 'DST-7740',
+  ownerName: 'Avery Brooks',
+  replace: true,
+})) fail('Structured Payment lookup did not replace all search fields.');
+if (JSON.stringify(paymentLookupPrefillFromQuery('BC-204', creditRecords)) !== JSON.stringify({
+  bankCode: 'BC-204',
+  replace: false,
+})) fail('Quick Pad Bank Code did not map to the Payment search.');
+if (JSON.stringify(paymentLookupPrefillFromQuery('DST-7740', creditRecords)) !== JSON.stringify({
+  destinationId: 'DST-7740',
+  replace: false,
+})) fail('Quick Pad Destination ID did not map to the Payment search.');
+const pinnedPaymentPrefill = paymentLookupPrefillFromQuery('PAY-3302', creditRecords);
+if (
+  pinnedPaymentPrefill?.bankCode !== 'BC-204'
+  || pinnedPaymentPrefill?.destinationId !== 'DST-7740'
+  || pinnedPaymentPrefill?.ownerName
+  || pinnedPaymentPrefill?.replace !== false
+) {
+  fail('Pinned Payment evidence did not restore only the non-secret destination identifiers.');
+}
+if (paymentLookupPrefillFromQuery('UNKNOWN-LOOKUP', creditRecords) !== null) {
+  fail('Unknown Payment query unexpectedly populated the search.');
+}
 
 const generatedLaneVariants = new Set();
 let generatedSequence = 1900000000000;
@@ -354,7 +381,7 @@ for (const anchor of [
   'Payment Verification result hidden',
   'disabled={!activeRecord}',
   'resolvePaymentLookup(records, submitted, activeCase)',
-  'parsePaymentLookupHint(query)',
+  'paymentLookupPrefillFromQuery(query, records)',
 ]) {
   if (!paymentWorkspace.includes(anchor)) fail(`Payment Verification UI is missing: ${anchor}`);
 }

@@ -62,7 +62,9 @@ test('Payment Verification gates records, handles not-found, and reveals exact l
   const snapshot = panel.getByRole('region', { name: 'Account snapshot' });
   await expect(result).toBeFocused();
   await expect(snapshot).toContainText('Matches person name');
-  await expect(snapshot).toContainText('Open');
+  await expect(
+    snapshot.locator('article').filter({ hasText: 'Account status' }).getByText('Open', { exact: true }),
+  ).toBeVisible();
   await expect(snapshot).toContainText('No NSF found');
   await expect(snapshot).toContainText('7 years, 11 months');
   for (const label of ['Name relationship', 'Account status', 'NSF result', 'Time open / on record']) {
@@ -73,6 +75,44 @@ test('Payment Verification gates records, handles not-found, and reveals exact l
   await expect(panel.getByRole('button', { name: 'Mark Payment Verification reviewed' })).toBeEnabled();
 
   await page.screenshot({ path: testInfo.outputPath(`payment-verification-result-${testInfo.project.name}.png`), fullPage: true });
+});
+
+test('Payment Verification reuses Quick Pad identifiers without revealing a result early', async ({ page }) => {
+  await page.goto('/');
+  const panel = await openPaymentVerification(page);
+  await runPaymentVerification(panel, {
+    bankCode: 'BC-441',
+    destinationId: 'DST-CARD-4410',
+    ownerName: 'Maya Sterling',
+  });
+
+  await panel.getByRole('button', { name: 'Quick Pad Bank Code', exact: true }).click();
+  await panel.getByRole('button', { name: 'Quick Pad Destination ID', exact: true }).click();
+  await panel.getByRole('button', { name: 'Edit search', exact: true }).click();
+  await expect(panel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue('');
+  await expect(panel.getByRole('textbox', { name: 'Destination ID', exact: true })).toHaveValue('');
+
+  await page.getByRole('button', { name: 'Open Quick Pad, 2 saved items' }).click();
+  let pad = page.getByRole('dialog', { name: 'Keep lookup details close' });
+  await pad.locator('article').filter({ hasText: 'Bank Code' })
+    .getByRole('button', { name: 'Use here', exact: true })
+    .click();
+  await expect(panel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue('BC-441');
+  await expect(panel.getByRole('region', { name: 'Account snapshot' })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Open Quick Pad, 2 saved items' }).click();
+  pad = page.getByRole('dialog', { name: 'Keep lookup details close' });
+  await pad.locator('article').filter({ hasText: 'Destination ID' })
+    .getByRole('button', { name: 'Use here', exact: true })
+    .click();
+  await expect(panel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue('BC-441');
+  await expect(panel.getByRole('textbox', { name: 'Destination ID', exact: true })).toHaveValue('DST-CARD-4410');
+  await expect(panel.getByRole('textbox', { name: 'Owner or business name', exact: true })).toHaveValue('');
+  await expect(panel.getByRole('status', { name: 'Payment verification result' })).toHaveCount(0);
+
+  await panel.getByRole('textbox', { name: 'Owner or business name', exact: true }).fill('Maya Sterling');
+  await panel.getByRole('button', { name: 'Run verification', exact: true }).click();
+  await expect(panel.getByRole('status', { name: 'Payment verification result' })).toBeVisible();
 });
 
 test('Payment Verification selects the actual account from duplicate destination records and keeps the result narrow', async ({ page }, testInfo) => {
@@ -196,39 +236,35 @@ test('generated payroll carries one exact account change from Payroll History in
   const toolSelector = payrollPanel.getByRole('combobox', { name: 'Choose investigation tool' });
   await toolSelector.selectOption('Payroll History');
   await expect(payrollPanel).toHaveAttribute('data-tool-name', 'Payroll History');
-  await payrollPanel.getByRole('region', { name: 'Company payroll runs' })
-    .getByRole('button', { name: 'Open Payroll', exact: true })
-    .first()
-    .click();
-  const employees = payrollPanel.getByRole('region', { name: 'Employees included in payroll run' });
-  await employees.locator('tbody tr').first().getByRole('button').click();
-  const employeeHistory = payrollPanel.getByRole('region', { name: /paycheck history$/i });
-  await employeeHistory.locator('[data-paycheck]').first().click();
+  const payrollRecords = payrollPanel.getByRole('region', { name: 'Payroll History records' });
+  const firstPayrollRecord = payrollRecords.locator('[data-payroll-history-record]').first();
+  await expect(firstPayrollRecord).toBeVisible();
+  await firstPayrollRecord.click();
 
-  const source = payrollPanel.getByRole('region', { name: 'Paystub payment destinations', exact: true });
-  await expect(source).toBeVisible();
-  const sourceValues = await source.locator('article').first().locator('dl > div').evaluateAll((rows) => Object.fromEntries(rows.map((row) => [
-    row.querySelector('dt')?.textContent?.trim(),
-    row.querySelector('dd')?.textContent?.trim(),
-  ])));
-  expect(sourceValues['Employee Bank Code']).toMatch(/^BC-[A-Z0-9-]+$/i);
-  expect(sourceValues['Destination ID']).toMatch(/^DST-[A-Z0-9-]+$/i);
-  await expect(source).not.toContainText(/Ownership status|Operational account status|Standing|Prior-use history/i);
+  const paystubs = payrollPanel.getByRole('region', { name: 'Immutable employee paystubs' });
+  const firstPaystub = paystubs.locator('tbody tr').first();
+  await expect(firstPaystub).toBeVisible();
+  const ownerName = (await firstPaystub.locator('td').first().innerText()).trim();
+  const [bankCode, destinationId] = (await firstPaystub.locator('td').last().locator('span').innerText())
+    .split('·')
+    .map((value) => value.trim());
+  expect(bankCode).toMatch(/^BC-[A-Z0-9-]+$/i);
+  expect(destinationId).toMatch(/^DST-[A-Z0-9-]+$/i);
 
-  await source.getByRole('button', { name: 'Open Payment Verification', exact: true }).click();
+  await firstPaystub.getByRole('button', { name: 'Open Payment Verification', exact: true }).click();
   const verificationPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(verificationPanel).toHaveAttribute('data-tool-name', 'Payment Verification');
-  await expect(verificationPanel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue(sourceValues['Employee Bank Code']);
-  await expect(verificationPanel.getByRole('textbox', { name: 'Destination ID', exact: true })).toHaveValue(sourceValues['Destination ID']);
-  await expect(verificationPanel.getByRole('textbox', { name: 'Owner or business name', exact: true })).not.toHaveValue('');
+  await expect(verificationPanel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue(bankCode);
+  await expect(verificationPanel.getByRole('textbox', { name: 'Destination ID', exact: true })).toHaveValue(destinationId);
+  await expect(verificationPanel.getByRole('textbox', { name: 'Owner or business name', exact: true })).toHaveValue(ownerName);
   await expect(verificationPanel.getByRole('region', { name: 'Account snapshot' })).toHaveCount(0);
   await expect(verificationPanel.getByRole('status', { name: 'Payment verification result' })).toHaveCount(0);
   await expect(verificationPanel.locator('.payment-comparison-panel')).toHaveCount(0);
 
   await verificationPanel.getByRole('button', { name: 'Run verification', exact: true }).click();
   const result = verificationPanel.getByRole('status', { name: 'Payment verification result' });
-  await expect(result).toContainText(sourceValues['Employee Bank Code']);
-  await expect(result).toContainText(sourceValues['Destination ID']);
+  await expect(result).toContainText(bankCode);
+  await expect(result).toContainText(destinationId);
   for (const label of ['Name relationship', 'Account status', 'NSF result', 'Time open / on record']) {
     await expect(result.getByText(label, { exact: true })).toBeVisible();
   }

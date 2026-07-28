@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getFinancialRecords } from './data/caseToolData.js';
 import {
-  parsePaymentLookupHint,
+  paymentLookupPrefillFromQuery,
   resolvePaymentLookup,
 } from './data/paymentVerification.js';
 import './paymentVerificationWorkspace.css';
@@ -59,12 +59,17 @@ export default function PaymentVerificationWorkspace({
   }, [activeCase.id]);
 
   useEffect(() => {
-    const hint = parsePaymentLookupHint(query);
-    if (!hint) return;
-    setLookup(hint);
+    const prefill = paymentLookupPrefillFromQuery(query, records);
+    if (!prefill) return;
+    const { replace, ...lookupPatch } = prefill;
+    setLookup((current) => (
+      replace
+        ? { bankCode: '', destinationId: '', ownerName: '', ...lookupPatch }
+        : { ...current, ...lookupPatch }
+    ));
     setLookupResult(null);
     setLookupError('');
-  }, [query]);
+  }, [query, records]);
 
   useEffect(() => {
     if (!lookupResult) return;
@@ -72,7 +77,7 @@ export default function PaymentVerificationWorkspace({
   }, [lookupResult]);
 
   function updateLookup(field, value) {
-    if (parsePaymentLookupHint(query)) setQuery('');
+    if (query) setQuery('');
     setLookup((current) => ({ ...current, [field]: value }));
     setLookupResult(null);
     setLookupError('');
@@ -220,7 +225,7 @@ export default function PaymentVerificationWorkspace({
           aria-label="Payment verification result"
         >
           <header className="payment-mission-result-header">
-            <div className="payment-mission-account-mark" aria-hidden="true">✓</div>
+            <div className="payment-mission-account-mark" aria-hidden="true">⌕</div>
             <div>
               <p>Account verification details</p>
               <h3>{activeRecord.type}</h3>
@@ -287,7 +292,7 @@ export default function PaymentVerificationWorkspace({
 
       {lookupHistory.length > 0 && (
         <section className="payment-mission-history" aria-label="Payment Verification lookup history">
-          <header><p>Lookup history</p><h3>Recent searches for this case</h3></header>
+          <header><p>Lookup history</p><h3>Recent searches in this session</h3></header>
           <div>
             {lookupHistory.map((item) => (
               <article key={item.id}>

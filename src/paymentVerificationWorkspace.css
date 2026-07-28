@@ -373,7 +373,7 @@ body[data-visual-tab="workspace"] .payment-mission-history {
 
 body[data-visual-tab="workspace"] .payment-mission-history > div {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 8px;
 }
 
@@ -444,7 +444,7 @@ body[data-visual-tab="workspace"] .payment-mission-review span {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   body[data-visual-tab="workspace"] .payment-mission-search {
     padding: 13px;
   }

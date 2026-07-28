@@ -1985,7 +1985,7 @@ export default function InvestigationToolPanel({
   const reviewed = currentCompleted.includes(tool);
   const reportRow = displayActiveRow ?? activeRow;
   const referenceDeckTool = tool === 'Financial Investigation' || tool === 'Payment Verification';
-  const referenceToolIcon = tool === 'Financial Investigation' ? '⌁' : '✓';
+  const referenceToolIcon = tool === 'Financial Investigation' ? '⌁' : '⌕';
 
   useEffect(() => {
     setSelectedRecordId('');

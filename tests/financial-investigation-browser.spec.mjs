@@ -71,6 +71,12 @@ test('Financial Investigation renders actual dashboard evidence and keeps explor
   await expect(explorer).toHaveAttribute('open', '');
   await expect(explorer).toContainText('Search, filter, expand, pin, and document');
 
+  const categoryButton = dashboard.locator('.financial-mission-categories button').first();
+  const categoryLabel = (await categoryButton.locator('strong').innerText()).trim();
+  await categoryButton.click();
+  await expect(explorer.getByRole('textbox', { name: 'Search Financial Investigation records' })).toHaveValue(categoryLabel);
+  await expect(explorer.locator('[data-financial-investigation-record]').first()).toBeVisible();
+
   const sectionNavigation = explorer.getByRole('navigation', { name: 'Financial Investigation sections' });
   await sectionNavigation.getByRole('button', { name: /^Spending Analysis\b/ }).click();
   await expect(sectionNavigation.getByRole('button', { name: /^Spending Analysis\b/ })).toHaveAttribute('aria-pressed', 'true');
@@ -130,11 +136,17 @@ test('Financial Investigation renders actual dashboard evidence and keeps explor
       explorerFits: fits('.financial-mission-explorer'),
       recordListFits: fits('.financial-record-list'),
       detailFits: fits('.financial-record-detail'),
+      routeClasses: document.querySelector('.financial-mission-routes')?.className,
+      reviewClasses: document.querySelector('.financial-mission-review')?.className,
+      reviewBackground: getComputedStyle(document.querySelector('.financial-mission-review')).backgroundImage,
     };
   });
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
   expect(layout.panelFits && layout.deckFits && layout.dashboardFits && layout.explorerFits).toBe(true);
   expect(layout.recordListFits && layout.detailFits).toBe(true);
+  expect(layout.routeClasses).toBe('financial-mission-routes');
+  expect(layout.reviewClasses).toBe('financial-mission-review');
+  expect(layout.reviewBackground).not.toContain('rgb(250, 247, 255)');
 });
 
 test('Financial Investigation exposes generated payroll totals, filters, and exact Payroll History routing', async ({ page }) => {
@@ -172,6 +184,7 @@ test('Financial Investigation exposes generated payroll totals, filters, and exa
   await expect(explorer.getByRole('region', { name: 'Business payroll monthly totals' })).toBeVisible();
 
   const search = explorer.getByRole('textbox', { name: 'Search Financial Investigation records' });
+  await expect(search).not.toHaveValue('');
   await search.clear();
   const runType = explorer.getByRole('combobox', { name: 'Financial Investigation payroll run-type filter' });
   const runStatus = explorer.getByRole('combobox', { name: 'Financial Investigation payroll run-status filter' });

@@ -451,7 +451,10 @@ export default function VisualWorkspace({ activeCaseId, cases = enrichTrainingCa
 
   function openQuickPadSource(item) {
     const sourceTool = canonicalToolName(item.sourceTool);
-    openTool(sourceTool, stageForTool(sourceTool), { query: item.value });
+    const sourceQuery = sourceTool === 'Payment Verification' && item.sourceRecordId
+      ? item.sourceRecordId
+      : item.value;
+    openTool(sourceTool, stageForTool(sourceTool), { query: sourceQuery });
     setExpandedId(item.sourceRecordId ?? '');
     recordAction('Opened Quick Pad source', `${item.label} reopened in ${sourceTool}.`, 'Quick Pad');
   }
