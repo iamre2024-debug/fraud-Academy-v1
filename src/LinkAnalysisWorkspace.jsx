@@ -228,17 +228,21 @@ function AccountCard({
       {expanded && (
         <div className="link-analysis-account-detail">
           <dl>
+            <div><dt>Customer or business</dt><dd>{match.customerName}</dd></div>
             <div><dt>Account ID</dt><dd>{match.accountId}</dd></div>
             <div><dt>Customer type</dt><dd>{match.customerType}</dd></div>
+            <div><dt>Product</dt><dd>{match.productType}</dd></div>
+            <div><dt>Relationship to current case</dt><dd>{match.relationshipToCurrentCase}</dd></div>
             <div><dt>Exact shared identifier</dt><dd>{match.identifierTypeLabel}: {match.exactSharedIdentifier}</dd></div>
-            <div><dt>Relationship</dt><dd>{match.relationshipToCurrentCase}</dd></div>
             <div><dt>First use</dt><dd>{match.identifier.firstUse ?? match.firstUse}</dd></div>
             <div><dt>Last use</dt><dd>{match.identifier.lastUse ?? match.lastUse}</dd></div>
-            <div><dt>Verified source</dt><dd>{match.identifier.source} · {match.identifier.confidence}</dd></div>
-            <div><dt>Status source</dt><dd>{match.statusSource}</dd></div>
+            <div><dt>Link source and confidence</dt><dd>{match.identifier.source} · {match.identifier.confidence}</dd></div>
+            <div><dt>Account status or restriction</dt><dd>{match.status} · {match.statusSource}</dd></div>
           </dl>
           <p>{match.statusExplanation}</p>
-          <aside>{match.investigativeNote}</aside>
+          <aside className="link-analysis-evidence-warning">
+            {match.investigativeNote} This exact relationship does not determine the current case finding.
+          </aside>
           <nav aria-label={`Actions for ${match.accountId}`}>
             <button type="button" onClick={onOpenAccount}>Open Account</button>
             {relatedCaseAvailable && <button type="button" onClick={onOpenRelatedCase}>Open Related Case</button>}
@@ -253,22 +257,30 @@ function AccountCard({
 
 function AccountDossier({ match, onClose, onPin, onSaveNote, onOpenRelatedCase, relatedCaseAvailable }) {
   return (
-    <section className="link-analysis-account-dossier" role="region" aria-label={`Open account ${match.accountId}`}>
+    <section
+      className="link-analysis-account-dossier"
+      role="region"
+      aria-label={`Open account ${match.accountId}`}
+      data-link-account-dossier={match.accountId}
+    >
       <header>
         <div>
           <p>Linked account dossier</p>
           <h3>{match.customerName}</h3>
           <span>{match.accountId} · {match.customerType} · {match.productType}</span>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close linked account dossier">×</button>
+        <button type="button" onClick={onClose} aria-label="Close dossier">×</button>
       </header>
       <div>
-        <article><span>Account standing</span><strong>{match.status}</strong><p>{match.statusExplanation}</p></article>
-        <article><span>Exact relationship</span><strong>{match.identifierTypeLabel}</strong><p>{match.exactSharedIdentifier}</p></article>
-        <article><span>Observed use</span><strong>{match.identifier.firstUse ?? match.firstUse}</strong><p>Last use {match.identifier.lastUse ?? match.lastUse}</p></article>
-        <article><span>Verified source</span><strong>{match.identifier.source}</strong><p>{match.identifier.confidence} · {match.statusSource}</p></article>
+        <article><span>Account context</span><strong>{match.accountId}</strong><p>{match.customerType} · {match.productType}</p></article>
+        <article><span>Relationship evidence</span><strong>{match.identifierTypeLabel}</strong><p>{match.exactSharedIdentifier} · {match.relationshipToCurrentCase}</p></article>
+        <article><span>Link provenance</span><strong>{match.identifier.source}</strong><p>{match.identifier.confidence} · first use {match.identifier.firstUse ?? match.firstUse} · last use {match.identifier.lastUse ?? match.lastUse}</p></article>
+        <article><span>Status meaning</span><strong>{match.status}</strong><p>{match.statusExplanation} · {match.statusSource}</p></article>
       </div>
-      <aside><strong>Current-case boundary</strong><p>{match.investigativeNote}</p></aside>
+      <aside role="region" aria-label="Current case evidence boundary">
+        <strong>Current-case boundary</strong>
+        <p>{match.investigativeNote} This exact relationship does not determine the current case finding.</p>
+      </aside>
       <nav>
         {relatedCaseAvailable && <button type="button" onClick={onOpenRelatedCase}>Open Related Case</button>}
         <button type="button" onClick={onPin}>Pin Account Link</button>
@@ -666,10 +678,10 @@ export default function LinkAnalysisWorkspace({
         </section>
       )}
 
-      <footer className="link-analysis-review-bar">
+      <footer className="link-analysis-review-bar investigation-tool-review-bar">
         <div>
           <strong>Link Analysis review</strong>
-          <span>An exact link is evidence—not an automatic conclusion about the current case.</span>
+          <span>A link is evidence, not an automatic conclusion about the current case.</span>
         </div>
         <nav>
           <button type="button" onClick={saveSummaryNote} disabled={!submittedQuery}>Save Factual Summary</button>

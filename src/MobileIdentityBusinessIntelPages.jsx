@@ -53,7 +53,6 @@ function IntelHeader({
   icon,
   onBack,
   backLabel = 'Back to Tool Map',
-  routeLabel,
   subtitle,
   title,
 }) {
@@ -159,8 +158,7 @@ export function MobileIdentityIntelligencePage({
       <IntelHeader
         onBack={backToToolMap}
         icon="identity"
-        routeLabel="Identity Intel / People Search"
-        title="Identity Intelligence"
+        title="Identity Intel / People Search"
         subtitle="Search first, then inspect the matched training profile."
       />
 
@@ -602,7 +600,6 @@ export function MobileBusinessIntelligencePage({
           backLabel="Back to Business Intelligence"
           icon="business"
           onBack={() => setReportOpen(false)}
-          routeLabel="Business 360"
           title="Business 360"
           subtitle="Matched company relationship, products, owners, payroll, and factual source records."
         />
@@ -633,7 +630,6 @@ export function MobileBusinessIntelligencePage({
       <IntelHeader
         onBack={backToToolMap}
         icon="business"
-        routeLabel="Business 360"
         title="Business Intelligence"
         subtitle="Search the company record before opening business Intel."
       />

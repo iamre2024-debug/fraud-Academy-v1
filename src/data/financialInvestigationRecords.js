@@ -1255,7 +1255,7 @@ function normalizePayrollRun(activeCase, run, index, asOfValue) {
     ?? companyDebit;
   const employeeCount = countOrNull(run.employeeCount ?? run.activeEmployeeCount);
   const range = payPeriodRange(run, asOfValue);
-  const month = monthRange(range.startDate, asOfValue);
+  const month = monthRange(range.endDate ?? range.startDate, asOfValue);
   const id = run.id ?? `${activeCase.id}-PAYR-${index + 1}`;
   const supportRecordIds = unique([id, ...(run.relatedRecords ?? [])]);
   const fundingStatus = safeEvidenceText(run.fundingStatus ?? run.runStatus ?? run.status, 'Funding status recorded');
@@ -1343,7 +1343,10 @@ function buildPayroll(activeCase, asOfValue) {
   const monthIds = unique(records.map((record) => record.monthId));
   const months = monthIds.map((monthId) => {
     const runs = records.filter((record) => record.monthId === monthId);
-    const month = monthRange(runs[0]?.periodRange?.startDate, asOfValue);
+    const month = monthRange(
+      runs[0]?.periodRange?.endDate ?? runs[0]?.periodRange?.startDate,
+      asOfValue,
+    );
     const companyDebit = sumOptional(runs, 'companyDebit');
     const fundingAmount = sumOptional(runs, 'fundingAmount');
     const employeeCounts = runs.map((run) => run.employeeCount).filter((value) => value !== null);

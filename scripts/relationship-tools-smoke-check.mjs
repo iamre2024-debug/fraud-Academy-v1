@@ -1089,6 +1089,13 @@ assert.ok(sectionIds(businessPayroll).includes('payroll'), 'business payroll sho
 assert.ok(!sectionIds(businessPayroll).includes('deposits'), 'business payroll never shows Personal Deposit Analysis');
 assert.ok(!sectionIds(businessPayroll).includes('spending'), 'payroll funding product hides unrelated purchase spending');
 assert.ok(businessPayroll.payroll.months.some((month) => month.runCount >= 2), 'monthly payroll combines individual pay periods');
+for (const record of businessPayroll.payroll.records) {
+  assert.equal(
+    record.monthId,
+    record.periodRange.endDate.slice(0, 7),
+    `${record.payrollRunId} groups into the month when its pay period ends`,
+  );
+}
 for (const month of businessPayroll.payroll.months) {
   const expected = payrollRuns
     .filter((run) => businessPayroll.payroll.records.find((record) => (
