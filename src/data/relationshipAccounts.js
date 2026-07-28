@@ -256,6 +256,9 @@ function normalizedAccount(record, position = 0) {
     holds: evidenceStatus(record.holds, record.legacyCoverage
       ? 'Hold information not supplied in the preserved relationship record'
       : 'None recorded'),
+    relationshipLimit: record.relationshipLimit ?? null,
+    nsfContext: record.nsfContext ?? null,
+    repaymentSource: record.repaymentSource ?? null,
     isPrimary,
     legacyCoverage: Boolean(record.legacyCoverage),
     evidenceCoverage: record.evidenceCoverage,
