@@ -198,6 +198,7 @@ test('generated payroll carries one exact account change from Payroll History in
 
   const runDetail = payrollPanel.getByRole('region', { name: 'Payroll History detail' });
   await expect(runDetail).toBeVisible();
+  const runFacts = runDetail.locator(':scope > dl').first();
   for (const label of [
     'Employee Bank Code',
     'Destination ID',
@@ -205,7 +206,7 @@ test('generated payroll carries one exact account change from Payroll History in
     'Previous account / destination',
     'Change comparison',
   ]) {
-    await expect(runDetail.getByText(label, { exact: true })).toBeVisible();
+    await expect(runFacts.getByText(label, { exact: true })).toBeVisible();
   }
 
   const paystubs = payrollPanel.getByRole('region', { name: 'Immutable employee paystubs' });
