@@ -8,6 +8,7 @@ import MerchantIntelligenceWorkspace from './MerchantIntelligenceWorkspace.jsx';
 import { MobileDeviceIntelligencePage, MobileIPIntelligencePage } from './MobileDeviceIpPages.jsx';
 import { MobileDocumentRequestPage } from './MobileMerchantDocumentPages.jsx';
 import { MobileLoginHistoryPage, MobileSessionHistoryPage } from './MobileLoginSessionPages.jsx';
+import MobilePayrollPaystubCards from './MobilePayrollPaystubCards.jsx';
 import { accessReportExportText, generateAccessHistoryReport, generatedAccessReportTypes } from './data/accessHistoryReports.js';
 import { buildCoreToolRecords } from './data/coreToolRecords.js';
 import { getBusiness360Workspace, getEmployeeProfiles, getPayrollAccessContext, getPayrollHistory, getTransactionHistory } from './data/businessPayrollWorkspace.js';
@@ -1918,6 +1919,7 @@ function PayrollHistoryWorkspace({
   quickPin,
   payrollInvestigation,
   setPayrollInvestigationsByCase,
+  mobileMode = false,
 }) {
   const workspace = useMemo(() => getPayrollHistory(activeCase), [activeCase]);
   const records = workspace.payrollRuns;
@@ -2115,20 +2117,29 @@ function PayrollHistoryWorkspace({
           ['Payment record', activeRecord.paymentRecordId],
           ['Related records', activeRecord.relatedRecords.join(' | ')],
         ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ?? 'Not supplied'}</dd></div>)}</dl>
-          <section className="payroll-employee-table" aria-label="Immutable employee paystubs">
-            <header><p>Employee paystubs</p><h3>{activeRecord.employees.length} immutable snapshots</h3></header>
-            <div className="payroll-table-scroll"><table><thead><tr>{['Employee', 'Employee ID', 'Paystub ID', 'Gross pay', 'Taxes', 'Deductions', 'Net pay', 'Payment method', 'Destination'].map((label) => <th key={label}>{label}</th>)}</tr></thead><tbody>
-              {activeRecord.employees.map((employee) => {
-                const destination = employee.paystub.paymentDestinations[0];
-                const paymentHint = buildPaymentLookupHint({
-                  bankCode: destination?.bankCode,
-                  destinationId: destination?.destinationId,
-                  ownerName: employee.paystub.employee.legalName,
-                });
-                return <tr key={employee.paystub.id}><td>{employee.name}</td><td>{employee.employeeId}</td><td><button type="button" onClick={() => pin(employee.paystub.id)}>{employee.paystub.id}</button></td><td>{formatMoney(employee.grossPay)}</td><td>{formatMoney(employee.taxes)}</td><td>{formatMoney(employee.deductions)}</td><td>{formatMoney(employee.netPay)}</td><td>{employee.paymentMethod}</td><td><span>{destination?.bankCode} · {destination?.destinationId}</span><div className="paystub-payment-actions"><button type="button" onClick={() => window.navigator.clipboard?.writeText(destination?.bankCode ?? '')}>Copy Bank Code</button><button type="button" onClick={() => quickPin({ label: 'Bank Code', value: destination?.bankCode, sourceTool: 'Payroll History', sourceRecordId: employee.paystub.id })}>Pin Bank Code to Quick Pad</button><button type="button" onClick={() => window.navigator.clipboard?.writeText(destination?.destinationId ?? '')}>Copy Destination ID</button><button type="button" onClick={() => quickPin({ label: 'Destination ID', value: destination?.destinationId, sourceTool: 'Payroll History', sourceRecordId: employee.paystub.id })}>Pin Destination ID to Quick Pad</button><button type="button" onClick={() => openTool('Payment Verification', 'investigate', { query: paymentHint })}>Open Payment Verification</button></div></td></tr>;
-              })}
-            </tbody></table></div>
-          </section>
+          {mobileMode ? (
+            <MobilePayrollPaystubCards
+              employees={activeRecord.employees}
+              openTool={openTool}
+              pin={pin}
+              quickPin={quickPin}
+            />
+          ) : (
+            <section className="payroll-employee-table" aria-label="Immutable employee paystubs">
+              <header><p>Employee paystubs</p><h3>{activeRecord.employees.length} immutable snapshots</h3></header>
+              <div className="payroll-table-scroll"><table><thead><tr>{['Employee', 'Employee ID', 'Paystub ID', 'Gross pay', 'Taxes', 'Deductions', 'Net pay', 'Payment method', 'Destination'].map((label) => <th key={label}>{label}</th>)}</tr></thead><tbody>
+                {activeRecord.employees.map((employee) => {
+                  const destination = employee.paystub.paymentDestinations[0];
+                  const paymentHint = buildPaymentLookupHint({
+                    bankCode: destination?.bankCode,
+                    destinationId: destination?.destinationId,
+                    ownerName: employee.paystub.employee.legalName,
+                  });
+                  return <tr key={employee.paystub.id}><td>{employee.name}</td><td>{employee.employeeId}</td><td><button type="button" onClick={() => pin(employee.paystub.id)}>{employee.paystub.id}</button></td><td>{formatMoney(employee.grossPay)}</td><td>{formatMoney(employee.taxes)}</td><td>{formatMoney(employee.deductions)}</td><td>{formatMoney(employee.netPay)}</td><td>{employee.paymentMethod}</td><td><span>{destination?.bankCode} · {destination?.destinationId}</span><div className="paystub-payment-actions"><button type="button" onClick={() => window.navigator.clipboard?.writeText(destination?.bankCode ?? '')}>Copy Bank Code</button><button type="button" onClick={() => quickPin({ label: 'Bank Code', value: destination?.bankCode, sourceTool: 'Payroll History', sourceRecordId: employee.paystub.id })}>Pin Bank Code to Quick Pad</button><button type="button" onClick={() => window.navigator.clipboard?.writeText(destination?.destinationId ?? '')}>Copy Destination ID</button><button type="button" onClick={() => quickPin({ label: 'Destination ID', value: destination?.destinationId, sourceTool: 'Payroll History', sourceRecordId: employee.paystub.id })}>Pin Destination ID to Quick Pad</button><button type="button" onClick={() => openTool('Payment Verification', 'investigate', { query: paymentHint })}>Open Payment Verification</button></div></td></tr>;
+                })}
+              </tbody></table></div>
+            </section>
+          )}
           <button type="button" onClick={() => saveNote(`Payroll History: ${activeRecord.id} and its immutable paystubs reviewed for ${activeCase.id}.`, 'Payroll history')}>Save payroll note</button></section>
         <aside className="payroll-history-controls" aria-label="Payroll related controls"><header><p>Related review</p><h3>Compare payroll evidence</h3></header><p>{activeRecord.context}</p>{activeCase.availableTools?.includes('Employee Profile') && <button type="button" onClick={() => openTool('Employee Profile')}>Open Employee Profile</button>}{activeCase.availableTools?.includes('Payment Verification') && <button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button>}<button type="button" onClick={() => openTool('Document Request')}>Open Document Request</button>{activeCase.availableTools?.includes('Financial Investigation') && <button type="button" onClick={() => openTool('Financial Investigation')}>Open Financial Investigation</button>}</aside>
       </div> : <div className="investigation-tool-empty" role="status">No payroll records match this filter.</div>}
@@ -2681,6 +2692,7 @@ export default function InvestigationToolPanel({
           quickPin={quickPin}
           payrollInvestigation={payrollInvestigation}
           setPayrollInvestigationsByCase={setPayrollInvestigationsByCase}
+          mobileMode={mobileMode}
         />
       ) : tool === 'Login History' ? (
         <LoginHistoryWorkspace

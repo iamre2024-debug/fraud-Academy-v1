@@ -44,6 +44,7 @@ import './mobileMissionDeckV3.css';
 import './mobileMerchantDocumentReference.css';
 import './mobileLoginSessionReference.css';
 import './mobileDeviceIpReference.css';
+import './mobilePayrollHistoryCards.css';
 import './caseQuickPad.css';
 import './cloudSync.css';
 

@@ -209,23 +209,39 @@ test('generated payroll carries one exact account change from Payroll History in
   }
 
   const paystubs = payrollPanel.getByRole('region', { name: 'Immutable employee paystubs' });
-  const paystubRow = paystubs.locator('tbody tr').first();
-  await expect(paystubRow).toBeVisible();
-  const destinationText = await paystubRow.locator('td').last().locator('span').innerText();
-  const destinationMatch = destinationText.match(/\b(BC-[A-Z0-9-]+)\s*·\s*(DST-[A-Z0-9-]+)\b/i);
-  expect(destinationMatch).not.toBeNull();
-  const sourceValues = {
-    'Employee Bank Code': destinationMatch[1],
-    'Destination ID': destinationMatch[2],
-  };
+  let paymentHandoff;
+  let sourceValues;
+  if (testInfo.project.name === 'mobile-chromium') {
+    const paystubCard = paystubs.locator('[data-mobile-paystub-card]').first();
+    await expect(paystubCard).toBeVisible();
+    await expect(payrollPanel.locator('.payroll-table-scroll')).toHaveCount(0);
+    if (!(await paystubCard.evaluate((element) => element.open))) await paystubCard.locator('summary').click();
+    const destination = paystubCard.locator('[data-mobile-paystub-destination]').first();
+    await expect(destination).toBeVisible();
+    const destinationFacts = destination.locator('dl').first();
+    const bankCode = await destinationFacts.locator('div').filter({ hasText: /^Bank Code/ }).locator('dd').innerText();
+    const destinationId = await destinationFacts.locator('div').filter({ hasText: /^Destination ID/ }).locator('dd').innerText();
+    sourceValues = {
+      'Employee Bank Code': bankCode,
+      'Destination ID': destinationId,
+    };
+    paymentHandoff = destination.getByRole('button', { name: 'Open Payment Verification', exact: true });
+    await expect(paymentHandoff).toBeVisible();
+  } else {
+    const paystubRow = paystubs.locator('tbody tr').first();
+    await expect(paystubRow).toBeVisible();
+    const destinationText = await paystubRow.locator('td').last().locator('span').innerText();
+    const destinationMatch = destinationText.match(/\b(BC-[A-Z0-9-]+)\s*·\s*(DST-[A-Z0-9-]+)\b/i);
+    expect(destinationMatch).not.toBeNull();
+    sourceValues = {
+      'Employee Bank Code': destinationMatch[1],
+      'Destination ID': destinationMatch[2],
+    };
+    paymentHandoff = paystubRow.getByRole('button', { name: 'Open Payment Verification', exact: true });
+  }
   await expect(paystubs).not.toContainText(/Ownership status|Operational account status|Standing|Prior-use history/i);
 
-  const paymentHandoff = paystubRow.getByRole('button', { name: 'Open Payment Verification', exact: true });
-  if (testInfo.project.name === 'mobile-chromium') {
-    await paymentHandoff.dispatchEvent('click');
-  } else {
-    await paymentHandoff.click();
-  }
+  await paymentHandoff.click();
   const verificationPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(verificationPanel).toHaveAttribute('data-tool-name', 'Payment Verification');
   await expect(verificationPanel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue(sourceValues['Employee Bank Code']);
