@@ -339,6 +339,15 @@ function AccountDetails({ account, available, openTool, quickPin, sourceTool }) 
         ['Past-due amount', formatMoney(account.pastDueAmount)],
         ['Restrictions', account.restrictions],
         ['Holds', account.holds],
+        ...(isAvailable(account.relationshipLimit)
+          ? [['Relationship limit', account.relationshipLimit]]
+          : []),
+        ...(isAvailable(account.nsfContext)
+          ? [['NSF / returned-payment context', account.nsfContext]]
+          : []),
+        ...(isAvailable(account.repaymentSource)
+          ? [['Recorded repayment source', account.repaymentSource]]
+          : []),
       ]} />
       <nav>
         <QuickPinButton
@@ -579,6 +588,8 @@ export function MobileCustomer360Reference({
 
   useEffect(() => {
     const requested = detailRequest?.detail;
+    if (detailRequest?.caseId && detailRequest.caseId !== activeCase.id) return;
+    if (detailRequest?.tool && detailRequest.tool !== 'Customer 360') return;
     if (!['profile', 'updates', 'security', 'accounts', 'relationship', 'notes'].includes(requested)) return;
     setSelectedAccountId('');
     setDetail(requested);
@@ -957,6 +968,7 @@ function BusinessDrawerContent({
         <article className="mobile-360-detail-card">
           <header><div><span>Reusable company record</span><h3>{dossier.profile.legalName}</h3></div><strong>{dossier.profile.standing}</strong></header>
           <FactGrid rows={[
+            ['Business ID', dossier.profile.businessId],
             ['Legal business name', dossier.profile.legalName],
             ['DBA', dossier.profile.dba],
             ['Entity type', dossier.profile.entityType],
@@ -1114,6 +1126,10 @@ export function MobileBusiness360Reference({
   const available = useMemo(() => new Set(activeCase.availableTools ?? []), [activeCase.availableTools]);
   const [detail, setDetail] = useState('');
   const [selectedAccountId, setSelectedAccountId] = useState('');
+  const selectedAccount = useMemo(
+    () => dossier.accounts.find((account) => account.accountId === selectedAccountId) ?? null,
+    [dossier.accounts, selectedAccountId],
+  );
   const primaryOwner = dossier.owners[0];
   const operatingAccounts = dossier.accounts.filter((account) => !isCreditAccount(account));
   const creditAccounts = dossier.accounts.filter(isCreditAccount);
@@ -1121,10 +1137,12 @@ export function MobileBusiness360Reference({
   useEffect(() => {
     setDetail('');
     setSelectedAccountId('');
-  }, [activeCase.id]);
+  }, [activeCase.id, query]);
 
   useEffect(() => {
     const requested = detailRequest?.detail;
+    if (detailRequest?.caseId && detailRequest.caseId !== activeCase.id) return;
+    if (detailRequest?.tool && detailRequest.tool !== 'Business 360') return;
     if (!['profile', 'owners', 'accounts', 'credit', 'payroll', 'updates', 'notes', 'research'].includes(requested)) return;
     setSelectedAccountId('');
     setDetail(requested);
@@ -1152,6 +1170,7 @@ export function MobileBusiness360Reference({
       className="mobile-360-reference mobile-business-360-reference"
       data-mobile-360-screen="business"
       data-business-360-screen="mobile-reference-v3"
+      data-business-id={dossier.profile.businessId}
       data-business-registration={dossier.profile.registrationFileNumber}
     >
       <section className="mobile-360-hero mobile-360-business-hero">
@@ -1160,6 +1179,10 @@ export function MobileBusiness360Reference({
           <div><h2>{dossier.profile.legalName}</h2><span>{dossier.profile.standing}</span></div>
           <p>{dossier.profile.dba} · {dossier.profile.entityType}</p>
           <small>Business since {dossier.profile.formationDate} · Client since {dossier.profile.customerSince}</small>
+          <div className="mobile-360-id-row">
+            <span>Business ID · {dossier.profile.businessId}</span>
+            <QuickPinButton label="Business ID" value={dossier.profile.businessId} sourceTool="Business 360" quickPin={quickPin} />
+          </div>
           <div className="mobile-360-id-row">
             <span>Registration · {dossier.profile.registrationFileNumber}</span>
             <QuickPinButton label="Business registration" value={dossier.profile.registrationFileNumber} sourceTool="Business 360" quickPin={quickPin} />
@@ -1282,10 +1305,10 @@ export function MobileBusiness360Reference({
           setSelectedAccountId('');
         }}
       >
-        {(detail === 'accounts' || detail === 'credit') && selectedAccountId
+        {(detail === 'accounts' || detail === 'credit') && selectedAccount
           ? (
             <AccountDetails
-              account={dossier.accounts.find((account) => account.accountId === selectedAccountId)}
+              account={selectedAccount}
               available={available}
               openTool={openTool}
               quickPin={quickPin}
