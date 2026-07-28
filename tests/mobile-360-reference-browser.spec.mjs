@@ -47,6 +47,19 @@ async function openInitialCustomer360(page) {
   return customer;
 }
 
+async function openCustomer360FromTools(page) {
+  await selectToolGroup(page, /Identity & Customer/);
+  const customer = page.locator('[data-mobile-360-screen="customer"]');
+  if (!(await customer.isVisible())) {
+    const toolSelector = page.locator('[data-investigation-tools-screen="approved-theme-v1"]')
+      .getByRole('combobox', { name: 'Choose investigation tool' });
+    await expect(toolSelector).toBeVisible();
+    await toolSelector.selectOption('Customer 360');
+  }
+  await expect(customer).toBeVisible();
+  return customer;
+}
+
 async function assertMobileGeometry(page, locator) {
   const geometry = await locator.evaluate((panel) => {
     const rect = panel.getBoundingClientRect();
@@ -153,11 +166,7 @@ test('mobile Customer 360 is the coded reference dashboard with working record d
   await page.getByRole('dialog', { name: 'Customer profile' })
     .getByRole('button', { name: 'Close Customer profile' })
     .click();
-  await selectToolGroup(page, /Identity & Customer/);
-  await page.locator('[data-investigation-tools-screen="approved-theme-v1"]')
-    .getByRole('combobox', { name: 'Choose investigation tool' })
-    .selectOption('Customer 360');
-  await expect(page.locator('[data-mobile-360-screen="customer"]')).toBeVisible();
+  await openCustomer360FromTools(page);
   await expect(page.getByRole('dialog', { name: 'Customer profile' })).toHaveCount(0);
 
   await assertMobileGeometry(page, customer);
@@ -351,9 +360,8 @@ test('mobile case switching replaces Customer 360 identity, accounts, and securi
   const caseSelector = page.getByRole('combobox', { name: 'Choose active mission case' });
   await expect(caseSelector).toBeVisible();
   await caseSelector.selectOption('FA-CB-24007');
-  await page.getByRole('button', { name: /Begin investigation/i }).click();
 
-  customer = page.locator('[data-mobile-360-screen="customer"]');
+  customer = await openCustomer360FromTools(page);
   await expect(customer).toContainText('Jordan Ellis');
   await expect(customer).toContainText('TRN-5510-06');
   await expect(customer).not.toContainText('Maya Sterling');
@@ -362,9 +370,8 @@ test('mobile case switching replaces Customer 360 identity, accounts, and securi
 
   await page.getByRole('button', { name: 'Back to previous mission screen' }).click();
   await page.getByRole('combobox', { name: 'Choose active mission case' }).selectOption('FA-CR-24003');
-  await page.getByRole('button', { name: /Begin investigation/i }).click();
 
-  customer = page.locator('[data-mobile-360-screen="customer"]');
+  customer = await openCustomer360FromTools(page);
   await expect(customer).toContainText('Avery Brooks');
   await expect(customer).toContainText('TRN-2044-77');
   await expect(customer).not.toContainText('Jordan Ellis');
