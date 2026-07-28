@@ -561,6 +561,7 @@ export function getKybReview(activeCase = {}) {
   const { profile } = workspace;
   return {
     profile: {
+      businessId: profile.businessId,
       legalName: profile.legalName,
       dba: profile.dba,
       entityType: profile.entityType,
@@ -570,10 +571,17 @@ export function getKybReview(activeCase = {}) {
       standing: profile.standing,
       ein: profile.ein,
       address: profile.footprint.physicalAddress,
+      mailingAddress: profile.footprint.mailingAddress,
+      registeredAgent: profile.footprint.registeredAgent,
       phone: profile.footprint.phone,
+      email: profile.footprint.email,
       website: profile.footprint.website,
+      operatingLocations: profile.footprint.operatingLocations,
+      estimatedEmployeeCount: profile.footprint.estimatedEmployeeCount,
       industry: profile.industry,
       naics: profile.naics,
+      relationshipStartDate: profile.relationship.relationshipStartDate,
+      relationshipAccounts: profile.relationship.accounts,
       source: 'Business 360 reusable profile and fictional source records',
       observed: activeCase.reportedDate ?? activeCase.opened ?? 'Jul 24, 2026',
       owners: profile.ownership.beneficialOwners.map((owner) => [
@@ -584,6 +592,7 @@ export function getKybReview(activeCase = {}) {
         owner.verificationDetails,
         owner.firstRecorded,
         owner.trainingId,
+        owner,
       ]),
     },
     recordsByTab: workspace.recordsBySection,

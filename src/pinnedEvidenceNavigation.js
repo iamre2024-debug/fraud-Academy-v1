@@ -85,7 +85,9 @@ export function resolvePinnedEvidence(pinValue, activeCase, toolNames) {
   if (bestMatch) {
     const query = bestMatch.tool === 'IP Intelligence' && /^(?:\d{1,3}\.){3}\d{1,3}$/.test(value)
       ? value
-      : bestMatch.row.id;
+      : bestMatch.tool === 'Customer 360' && bestMatch.row.id === 'C360-REL'
+        ? bestMatch.row.pin
+        : bestMatch.row.id;
     return {
       value,
       tool: bestMatch.tool,

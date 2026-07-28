@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { trainingCases } from '../src/data/cases.js';
 import { createGeneratedCase } from '../src/data/generatedCases.js';
 import { getCustomer360Dossier } from '../src/data/customer360Dossier.js';
+import { openWorkspacePages } from './workspace-page-helpers.mjs';
 
 const defaultCase = {
   id: 'FA-ATO-24018',
@@ -215,4 +216,24 @@ test('Customer 360 stays within the desktop viewport at a narrower responsive wi
     await tabs.getByRole('tab', { name: tabName, exact: true }).click();
     await assertWithinViewport(page, '[data-customer-360-screen="approved-theme-v1"]');
   }
+});
+
+test('Customer 360 profile pins restore the original Training ID and matching profile', async ({ page }) => {
+  const customer360 = await openCustomer360(page);
+  await customer360.getByRole('button', { name: 'Pin customer', exact: true }).click();
+
+  const workflow = await openWorkspacePages(page);
+  await workflow.getByRole('button', { name: /Indicators|Evidence/ }).click();
+  await page.getByRole('button', {
+    name: 'Open pinned evidence TRN-8842-19 · Maya Sterling',
+  }).click();
+
+  const reopened = page.locator('[data-customer-360-screen="approved-theme-v1"]');
+  await expect(reopened).toBeVisible();
+  await expect(page.locator('[data-opened-pinned-evidence="true"]')).toContainText('TRN-8842-19 · Maya Sterling');
+  await expect(reopened.getByRole('textbox', { name: 'Search Customer 360 dossier' }))
+    .toHaveValue('TRN-8842-19');
+  await expect(reopened.getByRole('heading', { name: 'Customer Identity Profile', exact: true })).toBeVisible();
+  await expect(reopened).toContainText('Maya Sterling');
+  await expect(reopened.getByText('No customer-profile fields match this search.')).toHaveCount(0);
 });

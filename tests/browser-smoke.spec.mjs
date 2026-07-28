@@ -324,7 +324,8 @@ test('generated cases persist through reload and remain Evidence First', async (
   const generatedBriefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
   await expect(generatedBriefing).toBeVisible();
   await expect(generatedBriefing).not.toContainText('The fictional packet contains both routine and exception evidence');
-  await expect(generatedBriefing.locator('.case-briefing-overview-card')).toContainText('The amount in scope is');
+  await expect(generatedBriefing.locator('.case-briefing-overview-card'))
+    .toContainText(/The amount (?:in scope|associated with the alert) is/);
   await expect(generatedBriefing.locator('.case-briefing-overview-card')).toContainText('activity begins');
 
   await expect(page.getByText('3 generated training cases saved locally')).toBeVisible();

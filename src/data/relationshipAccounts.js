@@ -202,13 +202,27 @@ function evidenceStatus(value, fallback, { allowVerifiedPriorFraud = false } = {
 
 function normalizedAccount(record, position = 0) {
   const isPrimary = Boolean(record.isPrimary ?? position === 0);
+  const accountId = record.accountId ?? unavailable;
+  const destinationId = record.destinationId
+    ?? record.destinationAccountId
+    ?? accountId;
+  const bankCode = record.bankCode
+    ?? record.institutionCode
+    ?? record.routingCode
+    ?? record.routingNumber
+    ?? (record.legacyCoverage
+      ? unavailable
+      : `BANK-${String(stableNumber(accountId)).padStart(5, '0').slice(-5)}`);
   const allowVerifiedPriorFraud = !isPrimary
     && record.statusVerified === true
     && /prior|linked|historical/i.test(record.relationshipRole ?? record.statusSource ?? '');
   return {
     relationshipDataVersion: RELATIONSHIP_DATA_VERSION,
-    accountId: record.accountId ?? unavailable,
-    maskedAccountId: maskedAccountId(record.accountId),
+    accountId,
+    destinationId,
+    maskedAccountId: maskedAccountId(accountId),
+    maskedDestinationId: maskedAccountId(destinationId),
+    bankCode,
     productType: record.productType,
     productTypeLabel: getProductType(record.productType)?.label ?? record.productType,
     productKind: record.productKind,
@@ -242,6 +256,9 @@ function normalizedAccount(record, position = 0) {
     holds: evidenceStatus(record.holds, record.legacyCoverage
       ? 'Hold information not supplied in the preserved relationship record'
       : 'None recorded'),
+    relationshipLimit: record.relationshipLimit ?? null,
+    nsfContext: record.nsfContext ?? null,
+    repaymentSource: record.repaymentSource ?? null,
     isPrimary,
     legacyCoverage: Boolean(record.legacyCoverage),
     evidenceCoverage: record.evidenceCoverage,
@@ -267,6 +284,17 @@ function legacyCoverageAccount(activeCase) {
     : {};
   return normalizedAccount({
     accountId: activeCase.accountId ?? supplied.accountId ?? supplied.id,
+    destinationId: supplied.destinationId
+      ?? supplied.destinationAccountId
+      ?? activeCase.destinationId
+      ?? activeCase.destinationAccountId,
+    bankCode: supplied.bankCode
+      ?? supplied.institutionCode
+      ?? supplied.routingCode
+      ?? supplied.routingNumber
+      ?? activeCase.bankCode
+      ?? activeCase.institutionCode
+      ?? activeCase.routingNumber,
     productType: activeCase.productType,
     productKind: supplied.productKind ?? legacyProductKind(activeCase.productType),
     productLabel: supplied.productLabel

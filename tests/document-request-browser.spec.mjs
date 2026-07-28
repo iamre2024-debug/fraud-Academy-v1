@@ -41,7 +41,7 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await expect(toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation' })).toHaveCount(0);
 
   await toolPanel.locator('.document-request-compose-button').click();
-  const composer = toolPanel.getByRole('main', { name: 'Compose paperwork request' });
+  const composer = toolPanel.getByRole('region', { name: 'Compose paperwork request' });
   await expect(composer.getByRole('heading', { name: 'Request Paperwork', exact: true })).toBeVisible();
   await composer.getByRole('combobox', { name: 'Paperwork to request' }).selectOption({ label: 'Cancellation confirmation' });
   await composer.getByRole('combobox', { name: 'Paperwork request delivery method' }).selectOption('Email');
@@ -49,8 +49,8 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   await composer.getByRole('button', { name: 'Send Request', exact: true }).click();
 
   await expect(toolPanel.locator('.document-request-confirmation')).toContainText('Cancellation confirmation request sent');
-  await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('Email');
-  await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('Requested');
+  await expect(toolPanel.getByRole('region', { name: 'Expanded document request detail' })).toContainText('Email');
+  await expect(toolPanel.getByRole('region', { name: 'Expanded document request detail' })).toContainText('Requested');
   await expect(toolPanel.locator('[data-document-request]')).toHaveCount(2);
   await expect(toolPanel.locator('[data-document-request]').filter({ hasText: 'Cancellation confirmation request' })).toContainText('Requested');
   if (testInfo.project.name === 'mobile-chromium') {
@@ -61,7 +61,7 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   expect(savedRequest['FA-CB-24007']).toBeTruthy();
   expect(Object.values(savedRequest['FA-CB-24007']).some((request) => request.attempts?.some((attempt) => attempt.requestDeliveryChannel === 'Email'))).toBe(true);
 
-  const requestDetail = toolPanel.getByRole('main', { name: 'Expanded document request detail' });
+  const requestDetail = toolPanel.getByRole('region', { name: 'Expanded document request detail' });
   await requestDetail.getByRole('button', { name: 'Check for Customer Response', exact: true }).click();
   await expect(toolPanel.locator('.document-request-confirmation')).toContainText('received from the customer and added as a separate Document Viewer record');
   await expect(requestDetail).toContainText('Received');
@@ -122,12 +122,12 @@ test('Document Request tracks case-scoped document workflow states', async ({ pa
   if (testInfo.project.name === 'mobile-chromium') {
     await expect(toolPanel.locator('.document-request-list .investigation-tool-empty')).toContainText('No document requests match this filter or search.');
   } else {
-    await expect(toolPanel.getByRole('main', { name: 'Expanded document request detail' })).toContainText('No document requests are available for this case.');
+    await expect(toolPanel.getByRole('region', { name: 'Expanded document request detail' })).toContainText('No document requests are available for this case.');
   }
   await search.clear();
 
   await records.first().click();
-  const detail = toolPanel.getByRole('main', { name: 'Expanded document request detail' });
+  const detail = toolPanel.getByRole('region', { name: 'Expanded document request detail' });
   await expect(detail).toContainText(firstRequestId);
   await expect(detail).toContainText('Required / optional');
   await expect(detail).toContainText('Authenticity flag');
