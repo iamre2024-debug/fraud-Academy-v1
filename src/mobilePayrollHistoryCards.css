@@ -62,6 +62,8 @@ body[data-layout-mode="mobile"] .mobile-paystub-card-list {
 }
 
 body[data-layout-mode="mobile"] .mobile-paystub-card {
+  container-name: payroll-paystub;
+  container-type: inline-size;
   min-width: 0;
   border: 1px solid rgba(117, 81, 200, 0.22);
   border-radius: 18px;
@@ -309,6 +311,43 @@ body[data-layout-mode="mobile"] .mobile-paystub-destination-unavailable {
   font-size: 0.75rem;
   font-weight: 750;
   line-height: 1.4;
+}
+
+/*
+ * The mission shell can leave a card narrower than the viewport breakpoint
+ * suggests (269px inside a 375px phone). Reflow from the card's real width so
+ * long immutable IDs and destination actions never share undersized tracks.
+ */
+@container payroll-paystub (max-width: 330px) {
+  body[data-layout-mode="mobile"] .mobile-paystub-card > summary {
+    grid-template-columns: 22px minmax(0, 1fr);
+  }
+
+  body[data-layout-mode="mobile"] .mobile-paystub-card > summary > span:last-child {
+    grid-column: 2;
+    justify-items: start;
+    text-align: left;
+  }
+
+  body[data-layout-mode="mobile"] .mobile-paystub-card-body > header,
+  body[data-layout-mode="mobile"] :is(
+    .mobile-paystub-core-facts,
+    .mobile-paystub-totals > dl,
+    .mobile-paystub-breakdown dl,
+    .mobile-paystub-destinations article > dl,
+    .mobile-paystub-destination-actions
+  ) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-layout-mode="mobile"] .mobile-paystub-destinations article > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  body[data-layout-mode="mobile"] .mobile-paystub-destination-actions .mobile-paystub-verification-action {
+    grid-column: auto;
+  }
 }
 
 @media (max-width: 370px) {

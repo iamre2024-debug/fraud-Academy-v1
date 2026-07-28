@@ -55,6 +55,8 @@ for (const anchor of [
   '.mobile-paystub-totals',
   '.mobile-paystub-destinations',
   '.mobile-paystub-destination-actions',
+  'container-name: payroll-paystub',
+  '@container payroll-paystub (max-width: 330px)',
   '@media (max-width: 370px)',
 ]) requireAnchor('mobilePayrollHistoryCards.css', styles, anchor);
 
@@ -65,6 +67,10 @@ for (const anchor of [
   "await expect(payrollPanel.locator('.payroll-table-scroll')).toHaveCount(0)",
   'await expect(paymentHandoff).toBeVisible()',
   'await paymentHandoff.click()',
+  'for (const width of [320, 360, 375, 390, 412])',
+  'document.documentElement.scrollWidth',
+  'actionColumns',
+  'destinationFactColumns',
 ]) requireAnchor('payment-verification-browser.spec.mjs', browserTest, anchor);
 
 if (/body\[data-layout-mode="desktop"\]/.test(styles)) {
