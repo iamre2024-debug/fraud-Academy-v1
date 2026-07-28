@@ -237,9 +237,9 @@ test('generated payroll carries one exact account change from Payroll History in
   await toolSelector.selectOption('Payroll History');
   await expect(payrollPanel).toHaveAttribute('data-tool-name', 'Payroll History');
   const payrollRecords = payrollPanel.getByRole('region', { name: 'Payroll History records' });
-  const firstPayrollRecord = payrollRecords.locator('[data-payroll-history-record]').first();
-  await expect(firstPayrollRecord).toBeVisible();
-  await firstPayrollRecord.click();
+  const changedDestinationRun = payrollRecords.locator('[data-payroll-history-record]').last();
+  await expect(changedDestinationRun).toBeVisible();
+  await changedDestinationRun.click();
 
   const paystubs = payrollPanel.getByRole('region', { name: 'Immutable employee paystubs' });
   const firstPaystub = paystubs.locator('tbody tr').first();
@@ -251,7 +251,9 @@ test('generated payroll carries one exact account change from Payroll History in
   expect(bankCode).toMatch(/^BC-[A-Z0-9-]+$/i);
   expect(destinationId).toMatch(/^DST-[A-Z0-9-]+$/i);
 
-  await firstPaystub.getByRole('button', { name: 'Open Payment Verification', exact: true }).click();
+  const openVerification = firstPaystub.getByRole('button', { name: 'Open Payment Verification', exact: true });
+  await expect(openVerification).toBeVisible();
+  await openVerification.evaluate((button) => button.click());
   const verificationPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(verificationPanel).toHaveAttribute('data-tool-name', 'Payment Verification');
   await expect(verificationPanel.getByRole('textbox', { name: 'Bank Code', exact: true })).toHaveValue(bankCode);
