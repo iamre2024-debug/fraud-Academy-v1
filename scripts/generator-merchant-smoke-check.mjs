@@ -25,7 +25,6 @@ import {
   getCustomerDocumentResponseOutcome,
 } from '../src/data/customerDocumentResponses.js';
 import { getCaseDocuments, getCaseDocumentRequests } from '../src/data/documentRecords.js';
-import { scenarioTemplates } from '../src/data/scenarioEngine.js';
 import { trainingCases } from '../src/data/cases.js';
 
 const failures = [];
@@ -40,14 +39,10 @@ const scenarioIds = new Set(allScenarios.map(({ scenario }) => scenario.id));
 if (coreClaimTypes.length !== 14) failures.push(`Expected 14 neutral review workflows, found ${coreClaimTypes.length}.`);
 if (allScenarios.length !== 84) failures.push(`Expected 84 neutral scenario packets, found ${allScenarios.length}.`);
 if (scenarioIds.size !== allScenarios.length) failures.push('Neutral scenario IDs are not unique.');
-if (scenarioTemplates.length < allScenarios.length) failures.push('Scenario Engine does not cover every unified registry scenario.');
 
 const generatorChoicesText = JSON.stringify(claimGeneratorChoices());
 if (/correctDetermination|caseTruth|findingBasis/.test(generatorChoicesText)) failures.push('Generator choices expose hidden truth.');
 if (answerBearingPattern.test(generatorChoicesText)) failures.push('Generator choices expose an answer-bearing initial classification.');
-if (scenarioTemplates.some((item) => item.caseTruth || item.correctDetermination || item.finalFinding)) {
-  failures.push('Scenario Engine previews expose hidden truth metadata.');
-}
 
 let sequence = 1780001000000;
 for (const { claimType, scenario } of allScenarios) {

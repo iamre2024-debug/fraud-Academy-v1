@@ -347,10 +347,18 @@ const checks = [
 ];
 
 const retiredFiles = [
+  'src/ActiveToolPanel.jsx',
+  'src/DecisionFlagChecklist.jsx',
+  'src/ScenarioEnginePanel.jsx',
   'src/visualNavPatch.js',
   'src/visualTextCollapse.js',
   'src/visualInvestigationRepair.js',
   'src/SystemAccessLane.jsx',
+  'src/lunaManagerMobileFix.css',
+  'src/mobileBlueMissionDeck.css',
+  'src/data/kybReviewRecords.js',
+  'src/data/linkAnalysis.js',
+  'src/data/scenarioEngine.js',
 ];
 
 const failures = [];

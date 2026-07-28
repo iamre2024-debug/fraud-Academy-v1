@@ -2670,7 +2670,7 @@ export default function InvestigationToolPanel({
                   </dl>
                   <div className="investigation-tool-record-actions">
                     <button type="button" onClick={() => openRecord(row.id)}>{selected ? 'Record open' : 'Open record'}</button>
-                    <button type="button" onClick={() => pin(row.pin)}>Pin</button>
+                    <button type="button" aria-label={`Pin ${row.pin}`} onClick={() => pin(row.pin)}>Pin</button>
                   </div>
                 </article>
               );

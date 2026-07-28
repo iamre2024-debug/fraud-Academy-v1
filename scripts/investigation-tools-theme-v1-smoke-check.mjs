@@ -512,7 +512,7 @@ for (const anchor of ['financialInvestigationTabs', 'Account Review', 'Current v
 }
 
 for (const anchor of ['businessResearchSections', 'Ownership & Control', 'Institution Relationship', 'Luna Business Research', 'getBusinessResearch', 'matchesBusinessResearchLookup', 'lunaBusinessResearchStatuses']) {
-  mustContain('kybReviewRecords.js', businessResearch, anchor);
+  mustContain('businessResearchRecords.js', businessResearch, anchor);
 }
 
 for (const anchor of ['Business 360 Research Report', 'generateBusiness360Report', 'getGeneratedBusiness360ReportDocuments', 'does not assign an investigation outcome']) {

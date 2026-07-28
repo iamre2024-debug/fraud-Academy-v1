@@ -38,7 +38,6 @@ import './displayProfileThemeV1Safety.css';
 import './displayFinalResponsivePolishV1.css';
 import './responsiveLayoutMode.css';
 import './mobileAppPages.css';
-import './lunaManagerMobileFix.css';
 import './documentInbox.css';
 import './mobileMissionDeckV3.css';
 import './mobileMerchantDocumentReference.css';

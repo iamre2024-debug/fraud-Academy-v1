@@ -198,7 +198,6 @@ const visualApp = read('src/VisualApp.jsx');
 const visualWorkspace = read('src/VisualWorkspace.jsx');
 const visualWorkspaceActions = read('src/useVisualWorkspaceActions.js');
 const visualWorkspaceModel = read('src/visualWorkspaceModel.js');
-const activeToolPanel = read('src/ActiveToolPanel.jsx');
 const bottomInvestigationGrid = read('src/BottomInvestigationGrid.jsx');
 const caseSummaryCard = read('src/CaseSummaryCard.jsx');
 const categoryTileRail = read('src/CategoryTileRail.jsx');

@@ -152,19 +152,18 @@ if (!lunaUnlocked || typeof lunaUnlocked.score !== 'number') {
   fail('Luna must produce post-submission scoring from a saved learner package.');
 }
 
-const activePanel = fs.readFileSync('src/ActiveToolPanel.jsx', 'utf8');
 const caseSummary = fs.readFileSync('src/CaseSummaryCard.jsx', 'utf8');
 const investigationToolPanel = fs.readFileSync('src/InvestigationToolPanel.jsx', 'utf8');
 const scenarioCatalog = fs.readFileSync('src/data/claimScenarioCatalog.js', 'utf8');
 const repositoryAdapter = fs.readFileSync('src/data/generatedCaseRepository.js', 'utf8');
 
-if (!activePanel.includes('buildCoreToolRecords')) fail('ActiveToolPanel is not using the remaining-module record overlay.');
-if (activePanel.includes("item !== 'System Access Lane'")) fail('The single System Access Lane must not be hidden by the module overlay.');
+if (!investigationToolPanel.includes('buildCoreToolRecords')) fail('InvestigationToolPanel is not using the remaining-module record overlay.');
+if (investigationToolPanel.includes("item !== 'System Access Lane'")) fail('The single System Access Lane must not be hidden by the module overlay.');
 if (caseSummary.includes('Open First Tool')) fail('Case Summary still contains visible first-tool coaching.');
 if (/\bSSN\b/.test(investigationToolPanel) || /\bSSN\b/.test(scenarioCatalog)) fail('Identity review must use Training ID instead of SSN wording.');
 if (!investigationToolPanel.includes('<option value="id">Training ID</option>')) fail('People Search must expose the training-safe Training ID lookup label.');
 for (const forbidden of ['Suggested First Tool', 'Investigation Objective', 'Why am I here?', 'Who am I investigating?', 'Need to decide?']) {
-  if (activePanel.includes(forbidden) || caseSummary.includes(forbidden)) fail(`Visible investigator coaching remains: ${forbidden}`);
+  if (investigationToolPanel.includes(forbidden) || caseSummary.includes(forbidden)) fail(`Visible investigator coaching remains: ${forbidden}`);
 }
 for (const anchor of ['createIndexedDbRepository', 'migrateLegacyCases', 'generateAndSaveCase', "kind: 'indexedDB'"]) {
   if (!repositoryAdapter.includes(anchor)) fail(`Generated-case repository adapter is missing ${anchor}.`);

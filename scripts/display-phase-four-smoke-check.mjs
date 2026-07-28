@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const rootDir = process.cwd();
-const panel = fs.readFileSync(path.join(rootDir, 'src/ActiveToolPanel.jsx'), 'utf8');
+const panel = fs.readFileSync(path.join(rootDir, 'src/InvestigationToolPanel.jsx'), 'utf8');
+const panelStyles = fs.readFileSync(path.join(rootDir, 'src/displayInvestigationToolsThemeV1.css'), 'utf8');
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayPhaseFour.css'), 'utf8');
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/browser-smoke.spec.mjs'), 'utf8');
@@ -18,13 +19,15 @@ function mustNotContain(fileLabel, content, text) {
   if (content.includes(text)) failures.push(`${fileLabel} contains forbidden Phase 4 coupling: ${text}`);
 }
 
-mustContain('ActiveToolPanel.jsx', panel, 'role="table"');
-mustContain('ActiveToolPanel.jsx', panel, 'role="columnheader"');
-mustContain('ActiveToolPanel.jsx', panel, 'role="cell"');
-mustContain('ActiveToolPanel.jsx', panel, 'data-field={displayData.columns[index]');
-mustContain('ActiveToolPanel.jsx', panel, 'data-record-id={row.id}');
-mustContain('ActiveToolPanel.jsx', panel, 'aria-label={`Pin ${row.id}`}');
-mustContain('ActiveToolPanel.jsx', panel, 'activity-empty-state');
+mustContain('InvestigationToolPanel.jsx', panel, 'data-investigation-tools-screen="approved-theme-v1"');
+mustContain('InvestigationToolPanel.jsx', panel, 'buildCoreToolRecords');
+mustContain('InvestigationToolPanel.jsx', panel, 'investigation-tool-record-card');
+mustContain('InvestigationToolPanel.jsx', panel, 'investigation-tool-field-grid');
+mustContain('InvestigationToolPanel.jsx', panel, 'aria-label={`Pin ${row.pin}`}');
+mustContain('InvestigationToolPanel.jsx', panel, 'investigation-tool-empty');
+mustContain('displayInvestigationToolsThemeV1.css', panelStyles, '@media (max-width: 720px)');
+mustContain('displayInvestigationToolsThemeV1.css', panelStyles, '.investigation-tool-workspace');
+mustContain('displayInvestigationToolsThemeV1.css', panelStyles, 'grid-template-columns: minmax(0, 1fr);');
 
 mustContain('displayPhaseFour.css', styles, '@media (max-width: 760px)');
 mustContain('displayPhaseFour.css', styles, '.activity-row.table-head');
@@ -58,7 +61,7 @@ for (const forbidden of [
 }
 
 for (const forbidden of ['Fraudulent', 'Legitimate', 'Correct answer', 'AI recommendation', 'Red flag', 'Green flag']) {
-  mustNotContain('ActiveToolPanel.jsx', panel, forbidden);
+  mustNotContain('InvestigationToolPanel.jsx', panel, forbidden);
 }
 
 if (failures.length) {

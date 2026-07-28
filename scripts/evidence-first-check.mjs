@@ -23,7 +23,6 @@ const allowedPostSubmissionFiles = new Set([
   path.join('src', 'data', 'lunaDebrief.js'),
 ]);
 const allowedDecisionStageFiles = new Set([
-  path.join('src', 'DecisionFlagChecklist.jsx'),
   path.join('src', 'data', 'decisionChecklist.js'),
   path.join('src', 'data', 'reviewPackage.js'),
 ]);

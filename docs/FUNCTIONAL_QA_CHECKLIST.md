@@ -20,7 +20,7 @@ This checklist is the working audit for the screenshot-driven visual shell. The 
 | App shell | VisualApp coordinator | Own active case, live case catalog, and active tab in React | Working | Keep direct state wiring |
 | Header module | VisualShellHeader module | Own ornate app header, active case strip, and Case Queue dropdown | Split from VisualWorkspace | Keep screenshot classes |
 | Workspace model | visualWorkspaceModel module | Own category definitions, storage keys, row builders, and report packet construction | Split from VisualWorkspace | Keep module boundary |
-| Active tool module | ActiveToolPanel module | Own sub-tool dropdown, search, table, expanded record lanes, pin/review/report actions | Split from VisualWorkspace | Keep screenshot classes |
+| Active tool module | InvestigationToolPanel module | Own sub-tool dropdown, search, focused record lanes, pin/review/report actions, and Case Report routing | Split from VisualWorkspace | Keep active component boundary |
 | Bottom grid module | BottomInvestigationGrid module | Own Investigation Tray, Notebook, note compose, and case-scoped notes | Split from VisualWorkspace | Keep case-scoped props |
 | Case summary module | CaseSummaryCard module | Own neutral intake facts, Pin Case, quick tool routes, and Submit Decision jump | Split from VisualWorkspace | Keep no-answer summary |
 | Category rail module | CategoryTileRail module | Own ornate category buttons, reviewed counters, progress bars, and Tool Map route | Split from VisualWorkspace | Keep neutral progress only |
