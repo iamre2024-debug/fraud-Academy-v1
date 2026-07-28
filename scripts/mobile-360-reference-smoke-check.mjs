@@ -179,6 +179,13 @@ if (linkedBusinessCase) {
     'Customer 360 must resolve the active FA-CR-24003 customer identity.',
   );
   requireContract(
+    customer.relationship.businessRelationships.some((item) => (
+      item.businessId === 'BIZ-LAKESIDE-4821'
+      && item.businessName === 'Lakeside Office Supply LLC'
+    )),
+    'Customer 360 must retain the active customer’s linked employer/payroll business route.',
+  );
+  requireContract(
     business.profile.businessId === 'BIZ-LS-4821'
       && business.profile.legalName === 'Lakeside Office Supply LLC',
     'Business 360 must resolve the canonical Lakeside business identity.',
