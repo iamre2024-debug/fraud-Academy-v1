@@ -146,6 +146,20 @@ test('mobile Customer 360 is the coded reference dashboard with working record d
   await expect(page.locator('[data-mobile-360-screen="customer"]')).toContainText('Maya Sterling');
   await expect(page.locator('[data-mobile-360-screen="customer"]')).toContainText('TRN-8842-19');
 
+  await page.getByRole('button', { name: 'Open Customer 360 actions' }).click();
+  await page.getByRole('dialog', { name: 'Customer 360 actions' })
+    .getByRole('button', { name: /Customer profile/ })
+    .click();
+  await page.getByRole('dialog', { name: 'Customer profile' })
+    .getByRole('button', { name: 'Close Customer profile' })
+    .click();
+  await selectToolGroup(page, /Identity & Customer/);
+  await page.locator('[data-investigation-tools-screen="approved-theme-v1"]')
+    .getByRole('combobox', { name: 'Choose investigation tool' })
+    .selectOption('Customer 360');
+  await expect(page.locator('[data-mobile-360-screen="customer"]')).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Customer profile' })).toHaveCount(0);
+
   await assertMobileGeometry(page, customer);
   await capture(page, 'customer-360-reference');
 });
@@ -169,6 +183,7 @@ test('mobile Business 360 uses the reusable business dossier without case conclu
   const business = page.locator('[data-mobile-360-screen="business"]');
   await expect(business).toBeVisible();
   await expect(business.getByRole('heading', { name: payrollCase.profile.business, exact: true })).toBeVisible();
+  await expect(business).toContainText('Business ID');
   await expect(business).toContainText('Masked EIN');
   await expect(business).toContainText('Owner address');
   await expect(business.getByRole('heading', { name: 'Business profile', exact: true })).toHaveCount(0);
@@ -210,6 +225,7 @@ test('mobile Business 360 uses the reusable business dossier without case conclu
   await businessActions.getByRole('button', { name: /Business profile/ }).click();
   const profileDrawer = page.getByRole('dialog', { name: 'Business profile' });
   await expect(profileDrawer).toBeVisible();
+  await expect(profileDrawer).toContainText('Business ID');
   await expect(profileDrawer).toContainText('Legal business name');
   await expect(profileDrawer).toContainText('State registration / file number');
   await expect(profileDrawer).toContainText('Website');
@@ -245,4 +261,121 @@ test('mobile Business 360 uses the reusable business dossier without case conclu
 
   await assertMobileGeometry(page, business);
   await capture(page, 'business-360-reference');
+});
+
+test('linked Business 360 search, pins, accounts, and decision route stay on the active record', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('combobox', { name: 'Choose active mission case' }).selectOption('FA-CR-24003');
+  const launchpad = page.getByRole('navigation', { name: 'Case briefing files' })
+    .getByRole('button', { name: 'Investigation launchpad' });
+  if (await launchpad.isVisible()) await launchpad.click();
+  await page.getByRole('button', { name: /Begin investigation/i }).click();
+
+  const customer = page.locator('[data-mobile-360-screen="customer"]');
+  await expect(customer).toBeVisible();
+  await expect(customer).toContainText('Avery Brooks');
+  await expect(customer).toContainText('TRN-2044-77');
+
+  await page.getByRole('button', { name: 'Open Customer 360 actions' }).click();
+  await page.getByRole('dialog', { name: 'Customer 360 actions' })
+    .getByRole('button', { name: /Relationship/ })
+    .click();
+  const relationshipDrawer = page.getByRole('dialog', { name: 'Relationship details' });
+  await expect(relationshipDrawer).toContainText('Lakeside Office Supply LLC');
+  await expect(relationshipDrawer).toContainText('BIZ-LAKESIDE-4821');
+  await relationshipDrawer.getByRole('button', { name: 'Open Business 360' }).click();
+
+  const business = page.locator('[data-mobile-360-screen="business"]');
+  await expect(business).toBeVisible();
+  await expect(business).toHaveAttribute('data-business-id', 'BIZ-LS-4821');
+  await expect(business.getByRole('heading', { name: 'Lakeside Office Supply LLC', exact: true })).toBeVisible();
+  await expect(business).toContainText('Business ID · BIZ-LS-4821');
+  await expect(business).toContainText('payroll@lakeside-office.training.example');
+  await expect(business).toContainText('Renee Wallace');
+  await expect(business).not.toContainText('@https://');
+  await expect(business).not.toContainText('Avery Brooks');
+  await expect(business.locator('[data-360-account="REL-LS-4821"]')).toBeVisible();
+  await expect(business.locator('[data-360-account="REL-LS-8840"]')).toBeVisible();
+  await expect(business.locator('[data-360-account="LINE-24003-3011"]')).toHaveCount(0);
+  await expect(business.locator('[data-360-account="ACCT-24003-2044"]')).toHaveCount(0);
+
+  await business.locator('[data-360-account="REL-LS-4821"]').click();
+  const accountDrawer = page.getByRole('dialog', { name: 'Business products & accounts' });
+  await expect(accountDrawer).toContainText('Destination ID');
+  await expect(accountDrawer).toContainText('Bank Code');
+  await expect(accountDrawer).toContainText('NSF / returned-payment context');
+  await expect(accountDrawer).toContainText('One returned vendor debit in Mar 2026');
+  await expect(accountDrawer).toContainText('Recorded repayment source');
+  await expect(accountDrawer).toContainText('Operating deposits and customer receivables');
+  await accountDrawer.getByRole('button', { name: 'Close Business products & accounts' }).click();
+
+  await page.getByRole('button', { name: 'Open Business 360 actions' }).click();
+  await page.getByRole('dialog', { name: 'Business 360 actions' })
+    .getByRole('button', { name: /Pin profile/ })
+    .click();
+  await page.getByRole('button', { name: 'Open Business 360 actions' }).click();
+  await page.getByRole('dialog', { name: 'Business 360 actions' })
+    .getByRole('button', { name: /Pinned Evidence/ })
+    .click();
+  const businessPin = page.getByRole('button', {
+    name: 'Open pinned evidence BIZ-LS-4821 · Lakeside Office Supply LLC',
+  });
+  await expect(businessPin).toBeVisible();
+  await businessPin.click();
+  await expect(page.locator('[data-opened-pinned-evidence="true"]'))
+    .toContainText('BIZ-LS-4821 · Lakeside Office Supply LLC');
+  await expect(page.locator('[data-mobile-360-screen="business"]'))
+    .toHaveAttribute('data-business-id', 'BIZ-LS-4821');
+
+  await page.getByRole('button', { name: 'Open Business 360 actions' }).click();
+  await page.getByRole('dialog', { name: 'Business 360 actions' })
+    .getByRole('button', { name: /Submit Decision/ })
+    .click();
+  const decision = page.locator('[data-decision-screen="approved-theme-v1"]');
+  await expect(decision).toBeVisible();
+  await expect(decision).toHaveAttribute('data-case-id', 'FA-CR-24003');
+  await expect(decision.getByRole('radio', { name: 'Restrict / Reduce', exact: true })).toBeVisible();
+  await expect(decision.getByRole('radio', { name: 'Request More Information', exact: true })).toBeVisible();
+  await expect(decision.getByRole('radio', { name: 'Release', exact: true })).toHaveCount(0);
+});
+
+test('mobile case switching replaces Customer 360 identity, accounts, and security state', async ({ page }) => {
+  let customer = await openInitialCustomer360(page);
+  await expect(customer).toContainText('Maya Sterling');
+  await customer.locator('[data-360-account]').first().click();
+  await page.getByRole('dialog', { name: 'Accounts & products' })
+    .getByRole('button', { name: 'Close Accounts & products' })
+    .click();
+
+  await page.getByRole('button', { name: 'Back to previous mission screen' }).click();
+  const caseSelector = page.getByRole('combobox', { name: 'Choose active mission case' });
+  await expect(caseSelector).toBeVisible();
+  await caseSelector.selectOption('FA-CB-24007');
+  await page.getByRole('button', { name: /Begin investigation/i }).click();
+
+  customer = page.locator('[data-mobile-360-screen="customer"]');
+  await expect(customer).toContainText('Jordan Ellis');
+  await expect(customer).toContainText('TRN-5510-06');
+  await expect(customer).not.toContainText('Maya Sterling');
+  await expect(customer.locator('[data-360-account="CARD-24007-8841"]')).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Accounts & products' })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Back to previous mission screen' }).click();
+  await page.getByRole('combobox', { name: 'Choose active mission case' }).selectOption('FA-CR-24003');
+  await page.getByRole('button', { name: /Begin investigation/i }).click();
+
+  customer = page.locator('[data-mobile-360-screen="customer"]');
+  await expect(customer).toContainText('Avery Brooks');
+  await expect(customer).toContainText('TRN-2044-77');
+  await expect(customer).not.toContainText('Jordan Ellis');
+  await expect(customer).not.toContainText('Maya Sterling');
+  await expect(customer.locator('[data-360-account="LINE-24003-3011"]')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Open Customer 360 actions' }).click();
+  await page.getByRole('dialog', { name: 'Customer 360 actions' })
+    .getByRole('button', { name: /Trusted devices & security/ })
+    .click();
+  const securityDrawer = page.getByRole('dialog', { name: 'Trusted devices & security' });
+  await expect(securityDrawer).toContainText('DEV-AVERY-SAF-001');
+  await expect(securityDrawer).not.toContainText('DEV-MAYA-IP16-001');
 });
