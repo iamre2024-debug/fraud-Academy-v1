@@ -273,17 +273,6 @@ export function MobileDeviceIntelligencePage({
             </div>
           </details>
 
-          <footer className="investigation-tool-review-bar mobile-intel-review">
-            <div><strong>Device Intelligence review</strong><span>Review the lookup, full event log, and linked evidence before marking complete.</span></div>
-            <button
-              type="button"
-              className={reviewed ? '' : 'investigation-tool-primary'}
-              disabled={!reviewed && !lookupMatched}
-              onClick={() => markReviewed('Device Intelligence')}
-            >
-              {reviewed ? '✓ Device Intelligence reviewed' : 'Mark Device Intelligence reviewed'}
-            </button>
-          </footer>
         </>
       ) : (
         <div className="investigation-tool-empty mobile-intel-no-match" role="status">
@@ -292,6 +281,18 @@ export function MobileDeviceIntelligencePage({
           <span>Check the Device ID, fingerprint, browser, session, profile, wallet, or location and try again.</span>
         </div>
       )}
+
+      <footer className="investigation-tool-review-bar mobile-intel-review">
+        <div><strong>Device Intelligence review</strong><span>Review the lookup, full event log, and linked evidence before marking complete.</span></div>
+        <button
+          type="button"
+          className={reviewed ? '' : 'investigation-tool-primary'}
+          disabled={!reviewed && !lookupMatched}
+          onClick={() => markReviewed('Device Intelligence')}
+        >
+          {reviewed ? '✓ Device Intelligence reviewed' : 'Mark Device Intelligence reviewed'}
+        </button>
+      </footer>
 
     </section>
   );

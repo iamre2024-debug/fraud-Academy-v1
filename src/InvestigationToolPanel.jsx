@@ -227,6 +227,7 @@ function LoginHistoryWorkspace({
   activeCase,
   backToToolMap,
   openMissionPages,
+  openedPinnedEvidence,
   query,
   setQuery,
   pin,
@@ -290,6 +291,7 @@ function LoginHistoryWorkspace({
         activeRecord={activeRecord}
         backToToolMap={backToToolMap}
         openMissionPages={openMissionPages}
+        openedFromPinnedEvidence={openedPinnedEvidence?.tool === 'Login History'}
         dateFilter={dateFilter}
         dateOptions={dateOptions}
         deviceFilter={deviceFilter}
@@ -2520,6 +2522,7 @@ export default function InvestigationToolPanel({
           activeCase={identityContextCase}
           backToToolMap={backToToolMap}
           openMissionPages={openMissionPages}
+          openedPinnedEvidence={openedPinnedEvidence}
           query={query}
           setQuery={setQuery}
           pin={pin}

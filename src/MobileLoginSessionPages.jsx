@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 function AccessGlyph({ type, size = 22 }) {
   const common = {
@@ -149,6 +149,7 @@ export function MobileLoginHistoryPage({
   methodFilter,
   methodOptions,
   openMissionPages,
+  openedFromPinnedEvidence = false,
   openTool,
   pin,
   query,
@@ -166,12 +167,17 @@ export function MobileLoginHistoryPage({
   setSelectedLoginId,
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedEvidenceOpen, setSelectedEvidenceOpen] = useState(openedFromPinnedEvidence);
   const successfulCount = records.filter((record) => /successful/i.test(record.result)).length;
   const deniedCount = records.filter((record) => /(failed|denied)/i.test(record.result)).length;
   const lockoutCount = records.filter((record) => /locked/i.test(record.result)).length;
   const uniqueDevices = new Set(records.map((record) => record.deviceId ?? record.device)).size;
   const mfaCount = records.filter((record) => /completed|delivered|approved/i.test(record.mfaStatus)).length;
   const quickResults = resultOptions.slice(0, 4);
+
+  useEffect(() => {
+    if (openedFromPinnedEvidence) setSelectedEvidenceOpen(true);
+  }, [openedFromPinnedEvidence]);
 
   function clearFilters() {
     setQuery('');
@@ -271,7 +277,11 @@ export function MobileLoginHistoryPage({
           </section>
 
           {activeRecord && (
-            <details className="mobile-access-more-panel">
+            <details
+              className="mobile-access-more-panel"
+              open={selectedEvidenceOpen}
+              onToggle={(event) => setSelectedEvidenceOpen(event.currentTarget.open)}
+            >
               <summary>
                 <span><strong>Selected login evidence</strong><small>{activeRecord.id} · {activeRecord.result}</small></span>
                 <AccessGlyph type="chevron" size={18} />

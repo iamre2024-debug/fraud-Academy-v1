@@ -24,7 +24,7 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
     : page.locator('[data-case-briefing-screen="approved-theme-v1"]');
   await expect(briefing.getByRole('button', { name: 'Open Document Viewer', exact: true })).toHaveCount(0);
   if (testInfo.project.name === 'mobile-chromium') {
-    await expect(briefing.getByRole('button', { name: 'Open mission pages', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open mission pages', exact: true })).toBeVisible();
   } else {
     await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
     await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')

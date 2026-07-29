@@ -1569,7 +1569,7 @@ body[data-visual-tab="workspace"] .link-analysis-review-bar button.primary {
 
   body[data-layout-mode="mobile"][data-visual-tab="workspace"] .link-analysis-mobile-summary-action {
     width: calc(100% - 18px);
-    min-height: 42px;
+    min-height: 44px;
     margin: 0 9px 9px;
     border: 1px solid rgba(84, 207, 255, 0.5);
     border-radius: 11px;
