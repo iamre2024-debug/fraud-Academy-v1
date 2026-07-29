@@ -39,7 +39,10 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
   const search = viewer.getByRole('textbox', { name: 'Search Document Viewer records' });
 
   await expect(panel).toHaveAttribute('data-tool-name', 'Document Viewer');
-  await expect(panel.getByRole('heading', { name: 'Document Viewer', exact: true })).toBeVisible();
+  const viewerHeading = testInfo.project.name === 'mobile-chromium'
+    ? page.locator('.mission-workspace-bar').getByRole('heading', { name: 'Document Viewer', exact: true })
+    : panel.getByRole('heading', { name: 'Document Viewer', exact: true });
+  await expect(viewerHeading).toBeVisible();
   await expect(viewer).toBeVisible();
   await expect(viewer.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toBeVisible();
   await expect(viewer.locator('[data-document-record]')).toHaveCount(0);
