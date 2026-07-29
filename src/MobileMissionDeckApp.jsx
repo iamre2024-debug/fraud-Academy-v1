@@ -296,24 +296,27 @@ function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGene
   const progress = Math.min(100, 12 + reviewed * 4 + notes * 4 + packages * 20);
 
   return (
-    <div className="mission-dashboard-v3">
+    <div className="mission-dashboard-v3 sky-dashboard" data-dashboard-theme="sky">
       <section className="mission-dashboard-intro">
-        <div><span>Evidence First workspace</span><h1>Welcome back, Agent</h1><p>Continue the active case or open another fictional training file.</p></div>
-        <button type="button" onClick={() => onNavigate('profile')}>
-          <LunaMascot title="Luna, Fraud Academy guide" />
-          <small>Luna</small>
+        <span className="sky-dashboard-charm sky-dashboard-bow" aria-hidden="true">🎀</span>
+        <span className="sky-dashboard-shimmer sky-dashboard-shimmer-one" aria-hidden="true">✦</span>
+        <span className="sky-dashboard-shimmer sky-dashboard-shimmer-two" aria-hidden="true">✧</span>
+        <div><span>Evidence First workspace</span><h1>Welcome back, Ree ✨</h1><p><b aria-hidden="true">♥</b> Every case you solve makes a safer world.</p></div>
+        <button type="button" className="sky-luna-launcher" onClick={() => onNavigate('profile')}>
+          <span className="sky-luna-orb"><img src="/assets/luna-sky-plush-v1.webp" alt="Luna, Fraud Academy guide" /></span>
+          <small>Luna <i aria-hidden="true">✦</i></small>
         </button>
       </section>
 
       <section className="mission-dashboard-metrics" aria-label="Fraud Academy workspace metrics">
         <button type="button" onClick={() => onNavigate('cases')}>
-          <span aria-hidden="true">▣</span><strong>{cases.length}</strong><small>Active cases</small><em>Open queue</em>
+          <span aria-hidden="true">▣</span><strong>{cases.length}</strong><small>Active cases</small><em>Open queue</em><i aria-hidden="true">✦</i>
         </button>
         <button type="button" onClick={() => onNavigate('workspace', 'tool-menu')}>
-          <span aria-hidden="true">✓</span><strong>{reviewed}</strong><small>Tools reviewed</small><em>Current case</em>
+          <span aria-hidden="true">✓</span><strong>{reviewed}</strong><small>Tools reviewed</small><em>Current case</em><i aria-hidden="true">♥</i>
         </button>
         <button type="button" onClick={() => onNavigate('progress')}>
-          <span aria-hidden="true">◇</span><strong>{snapshot.packages}</strong><small>Saved packages</small><em>View progress</em>
+          <span aria-hidden="true">◇</span><strong>{snapshot.packages}</strong><small>Saved packages</small><em>View progress</em><i aria-hidden="true">✧</i>
         </button>
       </section>
 
@@ -338,7 +341,7 @@ function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGene
           <div><dt>Amount / exposure</dt><dd>{activeCase.amount}</dd></div>
           <div><dt>Product</dt><dd>{publicCaseTaxonomy(activeCase).productType}</dd></div>
         </dl>
-        <button type="button" onClick={() => onOpenCase(activeCase.id)}>Open workspace <span>→</span></button>
+        <button type="button" className="sky-primary-button" onClick={() => onOpenCase(activeCase.id)}>Open workspace <span>→</span></button>
       </article>
 
       <section className="mission-command-drawers" aria-label="Mission shortcuts">
@@ -347,7 +350,7 @@ function MissionDashboard({ activeCase, cases, onNavigate, onOpenCase, quickGene
       </section>
 
       <aside className="mission-luna-signal">
-        <LunaMascot title="Luna, Fraud Academy guide" />
+        <span className="sky-luna-signal-art"><img src="/assets/luna-sky-plush-v1.webp" alt="" /></span>
         <div><strong>Luna debrief is protected</strong><p>Coaching and case conclusions appear only after the decision package is submitted.</p></div>
       </aside>
 

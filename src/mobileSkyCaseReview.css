@@ -1,0 +1,226 @@
+/*
+ * Sky Case Indicators + Determination.
+ * Choices remain learner-controlled and no outcome is preselected.
+ */
+body[data-layout-mode="mobile"] .mobile-case-review-page {
+  --review-bg: #010515;
+  --review-panel: rgba(3, 10, 31, 0.98);
+  --review-panel-bright: rgba(8, 20, 59, 0.98);
+  --review-line: rgba(70, 126, 255, 0.43);
+  --review-line-bright: rgba(99, 225, 255, 0.78);
+  --review-blue: #3c8fff;
+  --review-cyan: #63e6ff;
+  --review-pink: #ff63c7;
+  --review-violet: #956fff;
+  position: relative;
+  gap: 12px;
+}
+
+body[data-layout-mode="mobile"] .mobile-case-review-page::before,
+body[data-layout-mode="mobile"] .mobile-case-review-page::after {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  font-size: 0.75rem;
+  text-shadow: 0 0 10px currentColor;
+}
+
+body[data-layout-mode="mobile"] .mobile-case-review-page::before {
+  content: "✦";
+  top: 76px;
+  right: 16px;
+  color: var(--review-pink);
+}
+
+body[data-layout-mode="mobile"] .mobile-case-review-page::after {
+  content: "✧";
+  top: 300px;
+  left: 5px;
+  color: var(--review-cyan);
+}
+
+body[data-layout-mode="mobile"] .mobile-review-heading {
+  min-height: 76px;
+  border: 1px solid rgba(64, 123, 255, 0.34);
+  border-radius: 22px 22px 8px 22px;
+  background:
+    radial-gradient(circle at 94% 0%, rgba(255, 78, 191, 0.12), transparent 35%),
+    linear-gradient(148deg, rgba(7, 19, 58, 0.98), rgba(2, 7, 25, 0.99));
+  padding: 10px;
+  box-shadow: 0 13px 29px rgba(0, 2, 17, 0.38);
+}
+
+body[data-layout-mode="mobile"] .mobile-review-heading-icon {
+  border-radius: 13px 13px 5px 13px;
+  border-color: rgba(96, 225, 255, 0.72);
+  background: linear-gradient(145deg, #1479e1, #132763 76%);
+  box-shadow: 0 0 15px rgba(48, 157, 255, 0.25);
+}
+
+body[data-layout-mode="mobile"] .mobile-review-luna-orb {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(96, 226, 255, 0.82);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(29, 127, 255, 0.28), rgba(2, 8, 28, 0.94));
+  box-shadow: 0 0 12px rgba(72, 203, 255, 0.35);
+}
+
+body[data-layout-mode="mobile"] .mobile-review-luna-orb img {
+  width: 39px;
+  height: 50px;
+  object-fit: contain;
+  transform: translateY(5px);
+}
+
+body[data-layout-mode="mobile"] .mobile-review-card {
+  border-color: rgba(70, 126, 255, 0.45);
+  border-radius: 21px 21px 8px 21px;
+  background:
+    radial-gradient(circle at 96% 0%, rgba(255, 78, 191, 0.1), transparent 35%),
+    radial-gradient(circle at 0 100%, rgba(31, 105, 255, 0.09), transparent 38%),
+    linear-gradient(148deg, rgba(7, 18, 54, 0.98), rgba(2, 7, 25, 0.99));
+  box-shadow:
+    0 14px 32px rgba(0, 2, 17, 0.4),
+    inset 0 1px rgba(255, 255, 255, 0.04);
+}
+
+body[data-layout-mode="mobile"] .mobile-indicator-row {
+  border-color: rgba(68, 126, 235, 0.28);
+  border-radius: 14px 14px 5px 14px;
+  background: rgba(1, 7, 27, 0.62);
+}
+
+body[data-layout-mode="mobile"] .mobile-indicator-row[data-assessment="yes"],
+body[data-layout-mode="mobile"] .mobile-indicator-row[data-assessment="no"],
+body[data-layout-mode="mobile"] .mobile-indicator-row[data-assessment="unknown"] {
+  border-color: rgba(93, 172, 255, 0.52);
+  box-shadow: inset 0 0 16px rgba(45, 125, 255, 0.07);
+}
+
+body[data-layout-mode="mobile"] .mobile-indicator-question {
+  min-width: 0;
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 27px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 9px 9px 6px;
+}
+
+body[data-layout-mode="mobile"] .mobile-indicator-mark,
+body[data-layout-mode="mobile"] .mobile-indicator-row[data-cue="learner-choice"] .mobile-indicator-mark {
+  border-color: rgba(139, 111, 255, 0.52);
+  background: rgba(74, 50, 161, 0.22);
+  color: #b19cff;
+}
+
+body[data-layout-mode="mobile"] .mobile-indicator-copy small {
+  background: transparent;
+  padding: 0;
+  color: #94aac6;
+}
+
+body[data-layout-mode="mobile"] .mobile-indicator-assessment {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 0.72fr 0.72fr 1.56fr;
+  gap: 5px;
+  border: 0;
+  padding: 0 9px 9px;
+}
+
+body[data-layout-mode="mobile"] .mobile-indicator-assessment > label {
+  position: relative;
+  min-width: 0;
+  min-height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(71, 131, 238, 0.32);
+  border-radius: 11px 11px 4px 11px;
+  background: rgba(5, 20, 53, 0.72);
+  padding: 6px;
+  color: #a9bcda;
+  cursor: pointer;
+  text-align: center;
+}
+
+body[data-layout-mode="mobile"] .mobile-indicator-assessment input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+body[data-layout-mode="mobile"] .mobile-indicator-assessment span {
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+body[data-layout-mode="mobile"] .mobile-indicator-assessment > label[data-selected="true"] {
+  border-color: var(--review-cyan);
+  background: linear-gradient(145deg, rgba(18, 102, 224, 0.7), rgba(24, 39, 116, 0.82));
+  color: #fff;
+  box-shadow: 0 0 13px rgba(52, 157, 255, 0.24);
+}
+
+body[data-layout-mode="mobile"] .mobile-indicator-fields {
+  border-top-color: rgba(72, 133, 242, 0.22);
+  background: rgba(3, 13, 39, 0.8);
+}
+
+body[data-layout-mode="mobile"] .mobile-cue-grid article,
+body[data-layout-mode="mobile"] .mobile-evidence-summary dl,
+body[data-layout-mode="mobile"] .mobile-next-steps > div {
+  border-color: rgba(69, 127, 239, 0.27);
+  border-radius: 14px 14px 5px 14px;
+  background: rgba(1, 7, 27, 0.58);
+}
+
+body[data-layout-mode="mobile"] .mobile-choice-grid {
+  gap: 8px;
+}
+
+body[data-layout-mode="mobile"] .mobile-choice-grid > label {
+  min-height: 112px;
+  border-radius: 17px 17px 6px 17px;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(48, 128, 242, 0.13), transparent 40%),
+    linear-gradient(148deg, rgba(6, 20, 57, 0.95), rgba(2, 7, 25, 0.99));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.03);
+}
+
+body[data-layout-mode="mobile"] .mobile-choice-grid > label[data-selected="true"] {
+  box-shadow:
+    0 0 18px color-mix(in srgb, currentColor 28%, transparent),
+    inset 0 0 18px color-mix(in srgb, currentColor 12%, transparent);
+}
+
+body[data-layout-mode="mobile"] .mobile-review-primary-action {
+  border-radius: 25px 25px 8px 25px;
+  background:
+    linear-gradient(105deg, transparent 24%, rgba(255, 255, 255, 0.18) 46%, transparent 62%) -140px 0 / 90px 100% no-repeat,
+    linear-gradient(180deg, #126fff, #073fc9);
+  box-shadow:
+    0 0 16px rgba(34, 122, 255, 0.4),
+    inset 0 1px rgba(255, 255, 255, 0.35);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body[data-layout-mode="mobile"] .mobile-case-review-page::before {
+    animation: sky-review-twinkle 2.8s ease-in-out infinite;
+  }
+
+  body[data-layout-mode="mobile"] .mobile-case-review-page::after {
+    animation: sky-review-twinkle 3.5s 0.7s ease-in-out infinite;
+  }
+}
+
+@keyframes sky-review-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.78) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.14) rotate(13deg); }
+}

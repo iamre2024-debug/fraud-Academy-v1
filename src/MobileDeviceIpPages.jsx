@@ -35,19 +35,9 @@ function IntelligenceGlyph({ type, size = 20 }) {
 function LunaBadge() {
   return (
     <aside className="mobile-intel-luna" aria-label="Luna debrief is available after submission">
-      <svg viewBox="0 0 72 72" aria-hidden="true">
-        <circle cx="36" cy="36" r="33" fill="#061d4d" stroke="#42d5ff" strokeWidth="2" />
-        <path d="m18 25 5-14 11 10h4l11-10 5 15c5 8 4 20-2 27-8 9-26 9-34-1-6-7-6-19 0-27Z" fill="#f5fbff" />
-        <path d="m23 13 7 10-10 4m29-14-7 10 10 4" fill="#f3a6cf" opacity=".72" />
-        <ellipse cx="29" cy="35" rx="3.2" ry="4.3" fill="#173b70" />
-        <ellipse cx="43" cy="35" rx="3.2" ry="4.3" fill="#173b70" />
-        <circle cx="28" cy="33.5" r=".9" fill="#fff" />
-        <circle cx="42" cy="33.5" r=".9" fill="#fff" />
-        <path d="m36 40-3.2 2.1L36 44l3.2-1.9Z" fill="#d56d9f" />
-        <path d="M27 47c3.7 4.1 14.3 4.1 18 0" fill="none" stroke="#31517a" strokeWidth="2" strokeLinecap="round" />
-        <path d="M25 55c6-4 16-4 22 0l-2 10H27Z" fill="#07377c" />
-        <path d="m36 54 2.6 3.8L36 60l-2.6-2.2Z" fill="#55dfff" />
-      </svg>
+      <span className="mobile-intel-luna-orb" aria-hidden="true">
+        <img src="/assets/luna-sky-plush-v1.webp" alt="" />
+      </span>
       <span><strong>Luna ☾</strong><small>Debrief after submit</small></span>
     </aside>
   );

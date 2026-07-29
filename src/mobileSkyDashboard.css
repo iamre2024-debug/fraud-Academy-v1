@@ -1,0 +1,291 @@
+/* Sky dashboard
+ * Presentation is deliberately scoped to the dashboard component. Workspace,
+ * Case Briefing, evidence data, and investigation controls keep their own UI.
+ */
+.sky-dashboard {
+  --sky-night: #020616;
+  --sky-panel: rgba(5, 15, 45, 0.94);
+  --sky-blue: #1678ff;
+  --sky-cyan: #55dfff;
+  --sky-pink: #ff62c7;
+  --sky-violet: #8f67ff;
+  gap: 13px;
+}
+
+.sky-dashboard .mission-dashboard-intro,
+.sky-dashboard .mission-dashboard-fieldwork,
+.sky-dashboard .mission-dashboard-active-case,
+.sky-dashboard .mission-luna-signal,
+.sky-dashboard .mission-dashboard-generator {
+  background:
+    radial-gradient(circle at 88% 12%, rgba(22, 120, 255, 0.19), transparent 30%),
+    radial-gradient(circle at 9% 4%, rgba(255, 98, 199, 0.11), transparent 28%),
+    linear-gradient(148deg, rgba(7, 17, 54, 0.98), rgba(2, 7, 25, 0.99));
+  border-color: rgba(71, 130, 255, 0.48);
+  box-shadow:
+    0 14px 32px rgba(0, 2, 15, 0.44),
+    0 0 18px rgba(36, 104, 255, 0.08),
+    inset 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.sky-dashboard .mission-dashboard-intro {
+  position: relative;
+  min-height: 154px;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  border-radius: 24px 24px 10px 24px;
+  padding: 22px 14px 18px 20px;
+}
+
+.sky-dashboard .mission-dashboard-intro::after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  pointer-events: none;
+  border: 1px solid rgba(255, 102, 203, 0.12);
+  border-radius: 18px 18px 7px 18px;
+}
+
+.sky-dashboard .mission-dashboard-intro > div > span {
+  color: #6ce9ff;
+  font-size: 0.75rem;
+  letter-spacing: 0.13em;
+}
+
+.sky-dashboard .mission-dashboard-intro h1 {
+  max-width: 15ch;
+  margin: 7px 0 8px;
+  font-size: clamp(1.18rem, 5.4vw, 1.48rem);
+  line-height: 1.13;
+}
+
+.sky-dashboard .mission-dashboard-intro p {
+  max-width: 25ch;
+  color: #b9c9e7;
+  font-size: 0.72rem;
+}
+
+.sky-dashboard .mission-dashboard-intro p b {
+  color: var(--sky-pink);
+  margin-right: 3px;
+  text-shadow: 0 0 10px rgba(255, 98, 199, 0.8);
+}
+
+.sky-dashboard-charm,
+.sky-dashboard-shimmer {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.sky-dashboard-bow {
+  top: 7px;
+  left: 9px;
+  transform: rotate(-12deg);
+  font-size: 1.12rem;
+  filter: drop-shadow(0 0 7px rgba(255, 90, 198, 0.78));
+}
+
+.sky-dashboard-shimmer {
+  color: #ff8cda;
+  text-shadow: 0 0 9px currentColor;
+}
+
+.sky-dashboard-shimmer-one { top: 26px; right: 118px; }
+.sky-dashboard-shimmer-two { bottom: 19px; left: 48%; color: #63e6ff; }
+
+.sky-dashboard .sky-luna-launcher {
+  position: relative;
+  z-index: 3;
+  width: 108px;
+  min-height: 126px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.sky-luna-orb {
+  width: 104px;
+  height: 104px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(94, 222, 255, 0.92);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(37, 143, 255, 0.34), rgba(3, 11, 39, 0.9) 68%),
+    #03091d;
+  box-shadow:
+    0 0 8px rgba(77, 219, 255, 0.74),
+    0 0 25px rgba(31, 112, 255, 0.36),
+    inset 0 0 20px rgba(31, 122, 255, 0.26);
+}
+
+.sky-luna-orb img {
+  width: 92px;
+  height: 112px;
+  object-fit: contain;
+  object-position: center 54%;
+  transform: translateY(9px);
+  filter: drop-shadow(0 0 8px rgba(61, 172, 255, 0.4));
+}
+
+.sky-dashboard .sky-luna-launcher small {
+  margin-top: -2px;
+  font-size: 0.78rem;
+  text-shadow: 0 0 10px rgba(79, 195, 255, 0.52);
+}
+
+.sky-dashboard .sky-luna-launcher small i {
+  color: #ffc35a;
+  font-style: normal;
+}
+
+.sky-dashboard .mission-dashboard-metrics {
+  gap: 9px;
+}
+
+.sky-dashboard .mission-dashboard-metrics button {
+  position: relative;
+  min-height: 110px;
+  border-color: rgba(38, 118, 255, 0.53);
+  border-radius: 18px 18px 7px 18px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(23, 117, 255, 0.16), transparent 45%),
+    linear-gradient(150deg, rgba(5, 24, 65, 0.97), rgba(2, 9, 30, 0.99));
+  padding: 11px 10px;
+  box-shadow: 0 10px 22px rgba(0, 3, 20, 0.36), inset 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.sky-dashboard .mission-dashboard-metrics button:nth-child(2) {
+  border-color: rgba(255, 83, 191, 0.56);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 78, 188, 0.18), transparent 45%),
+    linear-gradient(150deg, rgba(46, 8, 59, 0.98), rgba(6, 11, 38, 0.99));
+}
+
+.sky-dashboard .mission-dashboard-metrics button:nth-child(3) {
+  border-color: rgba(130, 99, 255, 0.58);
+}
+
+.sky-dashboard .mission-dashboard-metrics button i {
+  position: absolute;
+  top: 8px;
+  right: 9px;
+  color: #6ee9ff;
+  font-size: 0.75rem;
+  font-style: normal;
+  text-shadow: 0 0 9px currentColor;
+}
+
+.sky-dashboard .mission-dashboard-metrics button:nth-child(2) i { color: var(--sky-pink); }
+.sky-dashboard .mission-dashboard-metrics button:nth-child(3) i { color: #b596ff; }
+
+.sky-dashboard .mission-dashboard-fieldwork,
+.sky-dashboard .mission-dashboard-active-case {
+  border-radius: 22px 22px 8px 22px;
+}
+
+.sky-dashboard .mission-dashboard-fieldwork dl div {
+  border-color: rgba(65, 121, 255, 0.24);
+  border-radius: 12px 12px 5px 12px;
+  background: rgba(2, 8, 29, 0.64);
+}
+
+.sky-dashboard .mission-dashboard-fieldwork > header > span,
+.sky-dashboard .mission-dashboard-active-case > header > span {
+  border-radius: 14px 14px 5px 14px;
+  border-color: rgba(90, 218, 255, 0.65);
+  background: linear-gradient(145deg, rgba(17, 102, 213, 0.5), rgba(5, 21, 60, 0.76));
+  box-shadow: 0 0 14px rgba(62, 181, 255, 0.16);
+}
+
+.sky-dashboard .mission-dashboard-progress-track {
+  border: 1px solid rgba(63, 119, 255, 0.17);
+  background: rgba(0, 4, 18, 0.92);
+}
+
+.sky-dashboard .mission-dashboard-progress-track span {
+  background: linear-gradient(90deg, #067cff, #7c65ff 58%, #ff63c7);
+  box-shadow: 0 0 13px rgba(78, 146, 255, 0.62);
+}
+
+.sky-dashboard .sky-primary-button {
+  position: relative;
+  min-height: 50px;
+  overflow: hidden;
+  border: 1px solid #6de8ff;
+  border-radius: 24px 24px 8px 24px;
+  background:
+    linear-gradient(105deg, transparent 24%, rgba(255, 255, 255, 0.18) 46%, transparent 62%) -140px 0 / 90px 100% no-repeat,
+    linear-gradient(180deg, #126eff, #073fd0);
+  box-shadow:
+    0 0 15px rgba(32, 121, 255, 0.44),
+    inset 0 1px rgba(255, 255, 255, 0.38);
+}
+
+.sky-dashboard .sky-primary-button:hover,
+.sky-dashboard .sky-primary-button:focus-visible {
+  background-position: 130% 0, 0 0;
+  transition: background-position 520ms ease;
+}
+
+.sky-dashboard .mission-command-drawers button {
+  border-radius: 18px 18px 7px 18px;
+  border-color: rgba(73, 137, 255, 0.45);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(64, 106, 255, 0.16), transparent 48%),
+    linear-gradient(150deg, rgba(7, 24, 67, 0.97), rgba(2, 9, 28, 0.99));
+}
+
+.sky-dashboard .mission-luna-signal {
+  grid-template-columns: 68px minmax(0, 1fr);
+  border-color: rgba(255, 92, 196, 0.38);
+  border-radius: 22px 9px 22px 22px;
+}
+
+.sky-luna-signal-art {
+  width: 66px;
+  height: 66px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(88, 217, 255, 0.65);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(29, 121, 255, 0.28), rgba(2, 8, 27, 0.9));
+  box-shadow: 0 0 16px rgba(52, 166, 255, 0.22);
+}
+
+.sky-luna-signal-art img {
+  width: 58px;
+  height: 72px;
+  object-fit: contain;
+  transform: translateY(6px);
+}
+
+.sky-dashboard .mission-dashboard-generator {
+  border-radius: 22px 9px 22px 22px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sky-dashboard-shimmer-one { animation: sky-twinkle 2.8s ease-in-out infinite; }
+  .sky-dashboard-shimmer-two { animation: sky-twinkle 3.6s 0.8s ease-in-out infinite; }
+}
+
+@keyframes sky-twinkle {
+  0%, 100% { opacity: 0.35; transform: scale(0.78) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.15) rotate(12deg); }
+}
+
+@media (max-width: 370px) {
+  .sky-dashboard .mission-dashboard-intro {
+    grid-template-columns: minmax(0, 1fr) 90px;
+    padding-left: 15px;
+  }
+
+  .sky-luna-orb { width: 86px; height: 86px; }
+  .sky-luna-orb img { width: 76px; height: 94px; }
+  .sky-dashboard .sky-luna-launcher { width: 90px; min-height: 108px; }
+}
+
