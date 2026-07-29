@@ -111,11 +111,7 @@ test('Tool Map opens map-first and reveals real tool actions only after a cluste
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]'))
     .toHaveAttribute('data-tool-name', 'Document Viewer');
 
-  await page.getByRole('navigation', { name: 'Tool page actions' })
-    .getByRole('button', { name: /All tools/ })
-    .click();
-
-  toolMap = page.locator('[data-mobile-tool-map="reference-v1"]');
+  toolMap = await openToolGroups(page);
   await expect(toolMap).toBeVisible();
   await expect(toolMap.locator('#mobile-tool-map-tray')).toHaveCount(0);
   await expect(cluster(toolMap, 'Evidence & Workflow')).toHaveAttribute('aria-pressed', 'false');
@@ -139,11 +135,7 @@ test('Tool Map opens map-first and reveals real tool actions only after a cluste
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]'))
     .toHaveAttribute('data-tool-name', 'Transaction History');
 
-  await page.getByRole('navigation', { name: 'Tool page actions' })
-    .getByRole('button', { name: /All tools/ })
-    .click();
-
-  toolMap = page.locator('[data-mobile-tool-map="reference-v1"]');
+  toolMap = await openToolGroups(page);
   await expect(toolMap.locator('#mobile-tool-map-tray')).toHaveCount(0);
   await expect(cluster(toolMap, 'Transactions & Financial')).toHaveAttribute('aria-pressed', 'false');
 

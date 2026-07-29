@@ -226,6 +226,7 @@ function loginRecordSearchText(record) {
 function LoginHistoryWorkspace({
   activeCase,
   backToToolMap,
+  openMissionPages,
   query,
   setQuery,
   pin,
@@ -288,6 +289,7 @@ function LoginHistoryWorkspace({
       <MobileLoginHistoryPage
         activeRecord={activeRecord}
         backToToolMap={backToToolMap}
+        openMissionPages={openMissionPages}
         dateFilter={dateFilter}
         dateOptions={dateOptions}
         deviceFilter={deviceFilter}
@@ -677,6 +679,7 @@ function IPIntelligenceWorkspace({
 function SessionHistoryWorkspace({
   activeCase,
   backToToolMap,
+  openMissionPages,
   query,
   setQuery,
   pin,
@@ -741,6 +744,7 @@ function SessionHistoryWorkspace({
         activeCase={activeCase}
         activeRecord={activeRecord}
         backToToolMap={backToToolMap}
+        openMissionPages={openMissionPages}
         activityFilter={activityFilter}
         activityOptions={activityOptions}
         dateFilter={dateFilter}
@@ -2208,6 +2212,7 @@ export default function InvestigationToolPanel({
   activeCategory,
   activeCase,
   backToToolMap,
+  openMissionPages,
   cases,
   openDocumentAccountCase,
   openRelatedCase,
@@ -2514,6 +2519,7 @@ export default function InvestigationToolPanel({
         <LoginHistoryWorkspace
           activeCase={identityContextCase}
           backToToolMap={backToToolMap}
+          openMissionPages={openMissionPages}
           query={query}
           setQuery={setQuery}
           pin={pin}
@@ -2528,6 +2534,7 @@ export default function InvestigationToolPanel({
         <SessionHistoryWorkspace
           activeCase={identityContextCase}
           backToToolMap={backToToolMap}
+          openMissionPages={openMissionPages}
           query={query}
           setQuery={setQuery}
           pin={pin}

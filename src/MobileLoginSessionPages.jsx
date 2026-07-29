@@ -45,7 +45,7 @@ function MobileAccessLuna() {
   );
 }
 
-function MobileAccessHeader({ title, subtitle, onBack }) {
+function MobileAccessHeader({ title, subtitle, onBack, onOpenMissionPages }) {
   return (
     <header className="mobile-access-header">
       <button type="button" className="mobile-access-header-back" onClick={onBack} aria-label="Back to Tool Map">‹</button>
@@ -55,6 +55,14 @@ function MobileAccessHeader({ title, subtitle, onBack }) {
       </div>
       <MobileAccessLuna />
       <span className="mobile-access-evidence-boundary">Evidence First</span>
+      <button
+        type="button"
+        className="mobile-access-pages"
+        onClick={onOpenMissionPages}
+        aria-label="Open mission pages"
+      >
+        Mission pages
+      </button>
     </header>
   );
 }
@@ -140,6 +148,7 @@ export function MobileLoginHistoryPage({
   markReviewed,
   methodFilter,
   methodOptions,
+  openMissionPages,
   openTool,
   pin,
   query,
@@ -178,6 +187,7 @@ export function MobileLoginHistoryPage({
         title="Login History"
         subtitle="Track and analyze recorded authentication events."
         onBack={backToToolMap}
+        onOpenMissionPages={openMissionPages}
       />
 
       <MobileAccessSearch
@@ -358,6 +368,7 @@ export function MobileSessionHistoryPage({
   logoutFilter,
   logoutOptions,
   markReviewed,
+  openMissionPages,
   openTool,
   pin,
   query,
@@ -395,6 +406,7 @@ export function MobileSessionHistoryPage({
         title="Session History"
         subtitle="Review recorded user sessions and actions."
         onBack={backToToolMap}
+        onOpenMissionPages={openMissionPages}
       />
 
       <MobileAccessSearch

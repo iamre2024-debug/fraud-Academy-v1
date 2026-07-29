@@ -479,6 +479,7 @@ export default function MobileMissionWorkspace({
                 <InvestigationToolPanel
                   {...activeToolProps}
                   backToToolMap={() => showWorkspaceScreen('tool-menu')}
+                  openMissionPages={() => showWorkspaceScreen('workflow')}
                   mobileMode
                 />
               )}

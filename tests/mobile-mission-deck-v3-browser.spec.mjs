@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openWorkspacePages } from './workspace-page-helpers.mjs';
 
 async function capture(page, testInfo, name) {
   if (process.env.CAPTURE_MISSION_VISUALS !== '1') return;
@@ -150,8 +151,8 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   await expect(page.locator('.document-folder-nav')).toBeVisible();
   await capture(page, testInfo, '04-document-folders');
 
-  await page.getByRole('button', { name: 'Open mission pages' }).click();
-  await page.locator('.mission-path-list').getByRole('button', { name: /Decision/ }).click();
+  const missionPages = await openWorkspacePages(page);
+  await missionPages.getByRole('button', { name: /Decision/ }).click();
   const determination = page.locator('[data-mobile-review-screen="determination"]');
   await expect(determination).toBeVisible();
   await expect(determination.getByRole('button', { name: 'Continue to Submit Decision', exact: true })).toBeDisabled();

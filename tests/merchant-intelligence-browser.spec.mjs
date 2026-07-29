@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 import {
   activeCaseSelector,
   openToolGroups,
+  selectActiveCase,
   selectToolGroup,
 } from './workspace-page-helpers.mjs';
 
@@ -94,8 +95,7 @@ test('Merchant Intelligence presents a chargeback lifecycle with inspectable sce
   expect(layout.visibleLifecycleSections).toBe(1);
   expect(await page.locator('body').innerText()).not.toMatch(forbiddenPreSubmissionCopy);
 
-  await caseSelector.selectOption(nonMerchantCaseId);
-  await expect(caseSelector).toHaveValue(nonMerchantCaseId);
+  await selectActiveCase(page, nonMerchantCaseId);
   const toolGroups = await openToolGroups(page);
   if (testInfo.project.name === 'mobile-chromium') {
     await toolGroups.locator('.mobile-tool-map-cluster')

@@ -74,7 +74,7 @@ export default function PaymentVerificationWorkspace({
 
   useEffect(() => {
     if (!lookupResult) return;
-    resultRef.current?.focus();
+    resultRef.current?.focus({ preventScroll: true });
   }, [lookupResult]);
 
   function updateLookup(field, value) {
@@ -354,9 +354,6 @@ export default function PaymentVerificationWorkspace({
                   sourceRecordId: lookupResult.recordId,
                 })}>Quick Pad Destination ID</button>
                 <button type="button" onClick={saveResultNote}>Save evidence note</button>
-                <button type="button" onClick={() => markReviewed('Payment Verification')}>
-                  {reviewed ? '✓ Payment Verification reviewed' : 'Mark Payment Verification reviewed'}
-                </button>
                 <button type="button" onClick={resetLookup}>Edit search</button>
               </div>
             </details>
@@ -377,6 +374,22 @@ export default function PaymentVerificationWorkspace({
             <button type="button" onClick={saveResultNote}>Save evidence note</button>
             <button type="button" onClick={resetLookup}>Edit search</button>
           </div>}
+
+          {mobileMode && (
+            <footer className="payment-mission-review">
+              <div>
+                <strong>Payment Verification review</strong>
+                <span>Review the exact lookup, ownership, standing, prior use, returns, and verification attempts before marking this tool reviewed.</span>
+              </div>
+              <button
+                type="button"
+                className={reviewed ? '' : 'payment-mission-primary'}
+                onClick={() => markReviewed('Payment Verification')}
+              >
+                {reviewed ? '✓ Payment Verification reviewed' : 'Mark Payment Verification reviewed'}
+              </button>
+            </footer>
+          )}
         </section>
       )}
 

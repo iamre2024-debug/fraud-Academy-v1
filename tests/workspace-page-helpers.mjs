@@ -134,6 +134,27 @@ export function activeCaseSelector(page) {
   )).first();
 }
 
+export async function selectActiveCase(page, caseId) {
+  const selector = activeCaseSelector(page);
+  if (await selector.isVisible()) {
+    await selector.selectOption(caseId);
+    await expect(selector).toHaveValue(caseId);
+    return;
+  }
+
+  const toolActionsButton = visibleLocator(page.locator(
+    '.mission-workspace-bar button[aria-controls="mobile-tool-actions-menu"]',
+  )).first();
+  await expect(toolActionsButton).toBeVisible();
+  await toolActionsButton.click();
+
+  const actions = page.locator('#mobile-tool-actions-menu');
+  await expect(actions).toBeVisible();
+  const menuSelector = actions.getByRole('combobox', { name: /Choose active .* case/ });
+  await menuSelector.selectOption(caseId);
+  await expect(actions).toHaveCount(0);
+}
+
 export async function openCaseFromQueue(page, caseId, action = 'Open Workspace') {
   const queue = await openCaseQueue(page);
   const isMobileQueue = Boolean(await queue.getAttribute('data-mobile-case-queue'));
@@ -176,6 +197,16 @@ export async function openWorkspacePages(page) {
     }
   }
 
+  const directMobilePagesButton = page.getByRole('button', {
+    name: 'Open mission pages',
+    exact: true,
+  });
+  if (await directMobilePagesButton.isVisible()) {
+    await directMobilePagesButton.click();
+    await expect(mobileWorkflow).toBeVisible();
+    return mobileWorkflow;
+  }
+
   const customerActionsButton = page.getByRole('button', {
     name: 'Open Customer 360 actions',
     exact: true,
@@ -183,6 +214,16 @@ export async function openWorkspacePages(page) {
   if (await customerActionsButton.isVisible()) {
     await customerActionsButton.click();
     await page.getByRole('dialog', { name: 'Customer 360 actions' })
+      .getByRole('button', { name: /All tools/ })
+      .click();
+  }
+
+  const toolActionsButton = visibleLocator(page.locator(
+    '.mission-workspace-bar button[aria-controls="mobile-tool-actions-menu"]',
+  )).first();
+  if (await toolActionsButton.isVisible()) {
+    await toolActionsButton.click();
+    await page.locator('#mobile-tool-actions-menu')
       .getByRole('button', { name: /All tools/ })
       .click();
   }
@@ -243,6 +284,18 @@ export async function openToolGroups(page) {
   if (await mobileCustomerActionsButton.isVisible()) {
     await mobileCustomerActionsButton.click();
     await page.getByRole('dialog', { name: 'Customer 360 actions' })
+      .getByRole('button', { name: /All tools/ })
+      .click();
+    await expect(mobileMap).toBeVisible();
+    return mobileMap;
+  }
+
+  const toolActionsButton = visibleLocator(page.locator(
+    '.mission-workspace-bar button[aria-controls="mobile-tool-actions-menu"]',
+  )).first();
+  if (await toolActionsButton.isVisible()) {
+    await toolActionsButton.click();
+    await page.locator('#mobile-tool-actions-menu')
       .getByRole('button', { name: /All tools/ })
       .click();
     await expect(mobileMap).toBeVisible();

@@ -252,7 +252,7 @@ function AccountCard({
             <div><dt>Last use</dt><dd>{match.identifier.lastUse ?? match.lastUse}</dd></div>
             <div>
               <dt>Link source</dt>
-              <dd><strong>Exact source record</strong> · {match.identifier.source}</dd>
+              <dd><strong>Verified source</strong> · {match.identifier.source}</dd>
             </div>
             <div><dt>Account status or restriction</dt><dd>{match.status} · {match.statusSource}</dd></div>
           </dl>
