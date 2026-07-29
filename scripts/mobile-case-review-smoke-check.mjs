@@ -22,7 +22,7 @@ for (const anchor of [
   'export function MobileDeterminationPage',
   'Case Indicators Review',
   'Indicator Checklist',
-  'Case Type Cues',
+  'Claim Type Cues',
   'Evidence Notes',
   'Record or proof',
   'Your explanation',

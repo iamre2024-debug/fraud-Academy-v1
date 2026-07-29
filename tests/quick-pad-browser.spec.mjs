@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openToolGroups } from './workspace-page-helpers.mjs';
+import { openToolGroups, selectToolGroup } from './workspace-page-helpers.mjs';
 
 test.beforeEach(async ({ page }, testInfo) => {
   await page.addInitScript(({ mobile }) => {
@@ -15,14 +15,10 @@ test('Quick Pad keeps an account ID available across tools and reloads', async (
   await page.goto('/');
   const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
   if (test.info().project.name === 'mobile-chromium') {
-    await page.getByRole('navigation', { name: 'Case briefing files' })
-      .getByRole('button', { name: 'Investigation launchpad' })
-      .click();
+    await selectToolGroup(page, /Identity & Customer/, 'Customer 360');
+  } else {
+    await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
   }
-  const beginInvestigation = test.info().project.name === 'mobile-chromium'
-    ? page.getByRole('button', { name: /Begin investigation/i })
-    : briefing.getByRole('button', { name: /Begin Investigation/ });
-  await beginInvestigation.click();
 
   const customer = page.locator('[data-customer-360-screen="approved-theme-v1"]');
   const mobile = test.info().project.name === 'mobile-chromium';

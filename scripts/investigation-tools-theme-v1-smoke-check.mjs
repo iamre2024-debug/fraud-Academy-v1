@@ -148,7 +148,7 @@ for (const anchor of [
   'Transaction account and card rail',
   'Save transaction note',
   'Business360Workspace',
-  'Luna Business Research',
+  'Business Source Research',
   'Business 360 Research Report',
   'Business 360 review',
   'EmployeeProfileWorkspace',
@@ -511,7 +511,7 @@ for (const anchor of ['financialInvestigationTabs', 'Account Review', 'Current v
   mustContain('financialInvestigationRecords.js', financialInvestigation, anchor);
 }
 
-for (const anchor of ['businessResearchSections', 'Ownership & Control', 'Institution Relationship', 'Luna Business Research', 'getBusinessResearch', 'matchesBusinessResearchLookup', 'lunaBusinessResearchStatuses']) {
+for (const anchor of ['businessResearchSections', 'Ownership & Control', 'Institution Relationship', 'Business Source Research', 'getBusinessResearch', 'matchesBusinessResearchLookup', 'lunaBusinessResearchStatuses']) {
   mustContain('businessResearchRecords.js', businessResearch, anchor);
 }
 

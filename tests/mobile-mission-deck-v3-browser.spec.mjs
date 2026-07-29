@@ -91,9 +91,9 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   await page.setViewportSize({ width: 393, height: 1536 });
 
   await dock.getByRole('button', { name: /Home/ }).click();
-  await expect(page.locator('.mission-case-deck')).toBeVisible();
-  await expect(page.locator('.mission-lighthouse')).toBeVisible();
-  await expect(page.locator('.mission-case-layer')).toHaveCount(2);
+  await expect(page.locator('.mission-dashboard-metrics')).toBeVisible();
+  await expect(page.locator('.mission-dashboard-fieldwork')).toBeVisible();
+  await expect(page.locator('.mission-dashboard-active-case')).toBeVisible();
   await expect(page.locator('.mission-command-drawers')).toBeVisible();
   await assertPhoneGeometry(page);
   await capture(page, testInfo, '01-dashboard');
@@ -114,8 +114,13 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'briefing');
   await expect(page.locator('.mission-briefing-v3')).toBeVisible();
   await expect(page.locator('.case-summary-visual')).toHaveCount(0);
+  await expect(page.locator('.mission-briefing-case-banner')).toBeVisible();
+  await expect(page.locator('.mission-briefing-allegation-card')).toBeVisible();
+  await page.locator('.mission-briefing-more-files > summary').click();
+  await page.getByRole('navigation', { name: 'Additional Case Briefing pages' })
+    .getByRole('button', { name: /Paperwork deck/ })
+    .click();
   await expect(page.locator('.mission-briefing-tabs button')).toHaveCount(6);
-  await page.locator('.mission-briefing-tabs button').nth(4).click();
   await expect(page.locator('.mission-briefing-file')).toContainText('Open viewer');
   await capture(page, testInfo, '02-briefing-paperwork');
 
@@ -165,7 +170,7 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   await expect(page.locator('.mission-briefing-v3')).toBeVisible();
   const generatedCaseId = await page.locator('.mission-workspace-case-selector select').inputValue();
   expect(generatedCaseId).toMatch(/-G\d+$/);
-  await expect(page.locator('.mission-briefing-identity')).toContainText(generatedCaseId);
+  await expect(page.locator('.mission-briefing-case-banner')).toContainText(generatedCaseId);
   await page.getByRole('button', { name: 'Open mission pages' }).click();
   await page.locator('.mission-path-list').getByRole('button', { name: /Investigate/ }).click();
   const generatedToolMap = page.locator('[data-mobile-tool-map="reference-v1"]');

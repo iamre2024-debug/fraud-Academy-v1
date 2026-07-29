@@ -225,6 +225,7 @@ function loginRecordSearchText(record) {
 
 function LoginHistoryWorkspace({
   activeCase,
+  backToToolMap,
   query,
   setQuery,
   pin,
@@ -286,6 +287,7 @@ function LoginHistoryWorkspace({
     return (
       <MobileLoginHistoryPage
         activeRecord={activeRecord}
+        backToToolMap={backToToolMap}
         dateFilter={dateFilter}
         dateOptions={dateOptions}
         deviceFilter={deviceFilter}
@@ -674,6 +676,7 @@ function IPIntelligenceWorkspace({
 
 function SessionHistoryWorkspace({
   activeCase,
+  backToToolMap,
   query,
   setQuery,
   pin,
@@ -737,6 +740,7 @@ function SessionHistoryWorkspace({
       <MobileSessionHistoryPage
         activeCase={activeCase}
         activeRecord={activeRecord}
+        backToToolMap={backToToolMap}
         activityFilter={activityFilter}
         activityOptions={activityOptions}
         dateFilter={dateFilter}
@@ -2284,20 +2288,22 @@ export default function InvestigationToolPanel({
         data-investigation-tools-screen="approved-theme-v1"
         data-tool-name="Link Analysis"
       >
-        <section className="investigation-tool-controls link-analysis-tool-switcher" aria-label="Investigation tool controls">
-          <label>
-            <span>Current tool group</span>
-            <select
-              className="tool-select"
-              value={tool}
-              onChange={(event) => openTool(event.target.value)}
-              aria-label="Choose investigation tool"
-            >
-              {activeCategory.tools.map((item) => <option key={item}>{item}</option>)}
-            </select>
-          </label>
-          <p>Switch tools without leaving the current case.</p>
-        </section>
+        {!mobileMode && (
+          <section className="investigation-tool-controls link-analysis-tool-switcher" aria-label="Investigation tool controls">
+            <label>
+              <span>Current tool group</span>
+              <select
+                className="tool-select"
+                value={tool}
+                onChange={(event) => openTool(event.target.value)}
+                aria-label="Choose investigation tool"
+              >
+                {activeCategory.tools.map((item) => <option key={item}>{item}</option>)}
+              </select>
+            </label>
+            <p>Switch tools without leaving the current case.</p>
+          </section>
+        )}
         <LinkAnalysisWorkspace
           key={activeCase.id}
           activeCase={activeCase}
@@ -2320,6 +2326,7 @@ export default function InvestigationToolPanel({
           onManualSearch={onManualLinkSearch}
           onSearchCommitted={onLinkSearchCommitted}
           revealSearch={revealLinkAnalysisSearch}
+          mobileMode={mobileMode}
         />
       </section>
     );
@@ -2332,7 +2339,7 @@ export default function InvestigationToolPanel({
       data-tool-name={tool}
       data-reference-investigation-layout={referenceDeckTool ? 'mission-v2' : undefined}
     >
-      {referenceDeckTool ? (
+      {!mobileMode && (referenceDeckTool ? (
         <>
           <header className="reference-investigation-header">
             <div className="reference-investigation-title">
@@ -2408,7 +2415,7 @@ export default function InvestigationToolPanel({
             </div>
           </section>
         </>
-      )}
+      ))}
 
       {tool === 'Identity Intel / People Search' ? (
         <IdentityIntelWorkspace
@@ -2458,6 +2465,7 @@ export default function InvestigationToolPanel({
           reviewed={reviewed}
           openTool={openTool}
           jumpDecision={jumpDecision}
+          mobileMode={mobileMode}
         />
       ) : tool === 'Business 360' ? (
         <Business360DossierWorkspace
@@ -2505,6 +2513,7 @@ export default function InvestigationToolPanel({
       ) : tool === 'Login History' ? (
         <LoginHistoryWorkspace
           activeCase={identityContextCase}
+          backToToolMap={backToToolMap}
           query={query}
           setQuery={setQuery}
           pin={pin}
@@ -2518,6 +2527,7 @@ export default function InvestigationToolPanel({
       ) : tool === 'Session History' ? (
         <SessionHistoryWorkspace
           activeCase={identityContextCase}
+          backToToolMap={backToToolMap}
           query={query}
           setQuery={setQuery}
           pin={pin}
@@ -2554,6 +2564,7 @@ export default function InvestigationToolPanel({
           jumpDecision={jumpDecision}
           recordAction={recordAction}
           quickPin={quickPin}
+          mobileMode={mobileMode}
         />
       ) : tool === 'Document Viewer' ? (
         <DocumentViewerWorkspace
@@ -2731,21 +2742,25 @@ export default function InvestigationToolPanel({
         </aside>
       </div>
 
-      <nav className="investigation-tool-next-routes" aria-label="Investigation record next routes">
-        {(tool === 'Document Viewer' || tool === 'Financial Investigation') && activeCase.availableTools?.includes('Transaction History') && <button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button>}
-        <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
-        <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
-      </nav>
+      {!mobileMode && (
+        <>
+          <nav className="investigation-tool-next-routes" aria-label="Investigation record next routes">
+            {(tool === 'Document Viewer' || tool === 'Financial Investigation') && activeCase.availableTools?.includes('Transaction History') && <button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button>}
+            <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
+            <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
+          </nav>
 
-      <footer className="investigation-tool-review-bar">
-        <div>
-          <strong>{tool} review</strong>
-          <span>Review completion records process progress only. It does not determine the case outcome.</span>
-        </div>
-        <button type="button" className="investigation-tool-primary" onClick={() => markReviewed(tool)}>
-          {reviewed ? `✓ ${tool} reviewed` : `Mark ${tool} reviewed`}
-        </button>
-      </footer>
+          <footer className="investigation-tool-review-bar">
+            <div>
+              <strong>{tool} review</strong>
+              <span>Review completion records process progress only. It does not determine the case outcome.</span>
+            </div>
+            <button type="button" className="investigation-tool-primary" onClick={() => markReviewed(tool)}>
+              {reviewed ? `✓ ${tool} reviewed` : `Mark ${tool} reviewed`}
+            </button>
+          </footer>
+        </>
+      )}
         </>
       )}
     </section>

@@ -45,10 +45,10 @@ function MobileAccessLuna() {
   );
 }
 
-function MobileAccessHeader({ title, subtitle, icon }) {
+function MobileAccessHeader({ title, subtitle, onBack }) {
   return (
     <header className="mobile-access-header">
-      <span className="mobile-access-header-icon"><AccessGlyph type={icon} size={25} /></span>
+      <button type="button" className="mobile-access-header-back" onClick={onBack} aria-label="Back to Tool Map">‹</button>
       <div>
         <h2>{title}</h2>
         <p>{subtitle}</p>
@@ -129,6 +129,7 @@ function MobileAccessSummary({ className, items, label }) {
 
 export function MobileLoginHistoryPage({
   activeRecord,
+  backToToolMap,
   dateFilter,
   dateOptions,
   deviceFilter,
@@ -155,7 +156,7 @@ export function MobileLoginHistoryPage({
   setResultFilter,
   setSelectedLoginId,
 }) {
-  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const successfulCount = records.filter((record) => /successful/i.test(record.result)).length;
   const deniedCount = records.filter((record) => /(failed|denied)/i.test(record.result)).length;
   const lockoutCount = records.filter((record) => /locked/i.test(record.result)).length;
@@ -176,7 +177,7 @@ export function MobileLoginHistoryPage({
       <MobileAccessHeader
         title="Login History"
         subtitle="Track and analyze recorded authentication events."
-        icon="login"
+        onBack={backToToolMap}
       />
 
       <MobileAccessSearch
@@ -260,7 +261,12 @@ export function MobileLoginHistoryPage({
           </section>
 
           {activeRecord && (
-            <>
+            <details className="mobile-access-more-panel">
+              <summary>
+                <span><strong>Selected login evidence</strong><small>{activeRecord.id} · {activeRecord.result}</small></span>
+                <AccessGlyph type="chevron" size={18} />
+              </summary>
+              <div>
               <section className="login-detail-panel mobile-access-detail-panel" aria-label="Expanded login history detail">
                 <header>
                   <div>
@@ -312,25 +318,26 @@ export function MobileLoginHistoryPage({
                   </div>
                 </article>
               </section>
-            </>
+
+              <nav className="investigation-tool-next-routes mobile-access-routes" aria-label="Login history next routes">
+                <button type="button" onClick={() => openTool('Session History')}>Open Session History</button>
+                <button type="button" onClick={() => openTool('Device Intelligence')}>Open Device Intelligence</button>
+                <button type="button" onClick={() => openTool('IP Intelligence')}>Open IP Intelligence</button>
+                <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
+                <button type="button" className="primary" onClick={jumpDecision}>Continue to decision</button>
+              </nav>
+
+              <footer className="investigation-tool-review-bar mobile-access-review-bar">
+                <div><strong>Login History review</strong><span>Completion records that authentication evidence was checked. It does not determine the case.</span></div>
+                <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Login History')}>
+                  {reviewed ? '✓ Login History reviewed' : 'Mark Login History reviewed'}
+                </button>
+              </footer>
+              </div>
+            </details>
           )}
         </>
       ) : <div className="investigation-tool-empty" role="status">No login history records are available for this case.</div>}
-
-      <nav className="investigation-tool-next-routes mobile-access-routes" aria-label="Login history next routes">
-        <button type="button" onClick={() => openTool('Session History')}>Open Session History</button>
-        <button type="button" onClick={() => openTool('Device Intelligence')}>Open Device Intelligence</button>
-        <button type="button" onClick={() => openTool('IP Intelligence')}>Open IP Intelligence</button>
-        <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
-        <button type="button" className="primary" onClick={jumpDecision}>Continue to decision</button>
-      </nav>
-
-      <footer className="investigation-tool-review-bar mobile-access-review-bar">
-        <div><strong>Login History review</strong><span>Completion records that authentication evidence was checked. It does not determine the case.</span></div>
-        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Login History')}>
-          {reviewed ? '✓ Login History reviewed' : 'Mark Login History reviewed'}
-        </button>
-      </footer>
     </section>
   );
 }
@@ -338,6 +345,7 @@ export function MobileLoginHistoryPage({
 export function MobileSessionHistoryPage({
   activeCase,
   activeRecord,
+  backToToolMap,
   activityFilter,
   activityOptions,
   dateFilter,
@@ -364,7 +372,7 @@ export function MobileSessionHistoryPage({
   setQuery,
   setSelectedSessionId,
 }) {
-  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const loggedOutCount = records.filter((record) => /normal logout/i.test(record.logoutStatus)).length;
   const timeoutCount = records.filter((record) => /timeout/i.test(record.logoutStatus)).length;
   const profileActivityCount = records.filter((record) => record.hasProfileActivity).length;
@@ -386,7 +394,7 @@ export function MobileSessionHistoryPage({
       <MobileAccessHeader
         title="Session History"
         subtitle="Review recorded user sessions and actions."
-        icon="session"
+        onBack={backToToolMap}
       />
 
       <MobileAccessSearch
@@ -470,7 +478,12 @@ export function MobileSessionHistoryPage({
           </section>
 
           {activeRecord && (
-            <>
+            <details className="mobile-access-more-panel">
+              <summary>
+                <span><strong>Selected session evidence</strong><small>{activeRecord.session} · {activeRecord.logoutStatus}</small></span>
+                <AccessGlyph type="chevron" size={18} />
+              </summary>
+              <div>
               <section className="session-detail-panel mobile-access-detail-panel" aria-label="Expanded session history detail">
                 <header>
                   <div><p>Session detail</p><h3>{activeRecord.session}</h3><span>{activeRecord.start} to {activeRecord.end} · {activeRecord.logoutStatus}</span></div>
@@ -517,26 +530,27 @@ export function MobileSessionHistoryPage({
                   </div>
                 </article>
               </section>
-            </>
+
+              <nav className="investigation-tool-next-routes mobile-access-routes" aria-label="Session history next routes">
+                <button type="button" onClick={() => openTool('Login History')}>Open Login History</button>
+                <button type="button" onClick={() => openTool('Customer 360')}>Open Customer 360</button>
+                {activeCase.availableTools?.includes('Transaction History') && <button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button>}
+                {activeCase.availableTools?.includes('Payment Verification') && <button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button>}
+                <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
+                <button type="button" className="primary" onClick={jumpDecision}>Continue to decision</button>
+              </nav>
+
+              <footer className="investigation-tool-review-bar mobile-access-review-bar">
+                <div><strong>Session History review</strong><span>Completion records that the session path and linked evidence were checked. It does not determine the case.</span></div>
+                <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Session History')}>
+                  {reviewed ? '✓ Session History reviewed' : 'Mark Session History reviewed'}
+                </button>
+              </footer>
+              </div>
+            </details>
           )}
         </>
       ) : <div className="investigation-tool-empty" role="status">No session history records are available for this case.</div>}
-
-      <nav className="investigation-tool-next-routes mobile-access-routes" aria-label="Session history next routes">
-        <button type="button" onClick={() => openTool('Login History')}>Open Login History</button>
-        <button type="button" onClick={() => openTool('Customer 360')}>Open Customer 360</button>
-        {activeCase.availableTools?.includes('Transaction History') && <button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button>}
-        {activeCase.availableTools?.includes('Payment Verification') && <button type="button" onClick={() => openTool('Payment Verification')}>Open Payment Verification</button>}
-        <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
-        <button type="button" className="primary" onClick={jumpDecision}>Continue to decision</button>
-      </nav>
-
-      <footer className="investigation-tool-review-bar mobile-access-review-bar">
-        <div><strong>Session History review</strong><span>Completion records that the session path and linked evidence were checked. It does not determine the case.</span></div>
-        <button type="button" className={reviewed ? '' : 'investigation-tool-primary'} onClick={() => markReviewed('Session History')}>
-          {reviewed ? '✓ Session History reviewed' : 'Mark Session History reviewed'}
-        </button>
-      </footer>
     </section>
   );
 }

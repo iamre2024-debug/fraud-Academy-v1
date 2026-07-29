@@ -71,6 +71,63 @@ body[data-layout-mode="mobile"] .mobile-access-reference-page button {
   cursor: pointer;
 }
 
+body[data-layout-mode="mobile"] .mobile-access-more-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--access-line);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(7, 31, 70, 0.97), rgba(2, 17, 43, 0.99));
+}
+
+body[data-layout-mode="mobile"] .mobile-access-more-panel > summary {
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  color: var(--access-white);
+  cursor: pointer;
+  list-style: none;
+}
+
+body[data-layout-mode="mobile"] .mobile-access-more-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+body[data-layout-mode="mobile"] .mobile-access-more-panel > summary > span {
+  display: grid;
+  gap: 3px;
+}
+
+body[data-layout-mode="mobile"] .mobile-access-more-panel > summary strong {
+  font-size: 0.78rem;
+}
+
+body[data-layout-mode="mobile"] .mobile-access-more-panel > summary small {
+  color: var(--access-muted);
+  font-size: 0.75rem;
+}
+
+body[data-layout-mode="mobile"] .mobile-access-more-panel > summary > svg {
+  color: var(--access-cyan);
+  transition: transform 160ms ease;
+}
+
+body[data-layout-mode="mobile"] .mobile-access-more-panel[open] > summary {
+  border-bottom: 1px solid var(--access-line);
+}
+
+body[data-layout-mode="mobile"] .mobile-access-more-panel[open] > summary > svg {
+  transform: rotate(90deg);
+}
+
+body[data-layout-mode="mobile"] .mobile-access-more-panel > div {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
 body[data-layout-mode="mobile"] .mobile-access-header {
   position: relative;
   min-width: 0;
@@ -103,7 +160,8 @@ body[data-layout-mode="mobile"] .mobile-access-header::after {
   pointer-events: none;
 }
 
-body[data-layout-mode="mobile"] .mobile-access-header-icon {
+body[data-layout-mode="mobile"] .mobile-access-header-icon,
+body[data-layout-mode="mobile"] .mobile-access-header-back {
   position: relative;
   z-index: 1;
   width: 43px;
@@ -115,6 +173,15 @@ body[data-layout-mode="mobile"] .mobile-access-header-icon {
   background: radial-gradient(circle at 35% 25%, #176bc4, #06183c 72%);
   color: #bcefff;
   box-shadow: 0 0 22px rgba(45, 145, 255, 0.25);
+}
+
+body[data-layout-mode="mobile"] .mobile-access-header-back {
+  padding: 0;
+  border-radius: 50%;
+  color: #dff7ff;
+  font-size: 1.75rem;
+  font-weight: 400;
+  line-height: 1;
 }
 
 body[data-layout-mode="mobile"] .mobile-access-header > div {

@@ -129,12 +129,6 @@ export function MobileDeviceIntelligencePage({
 
   return (
     <section className="mobile-device-ip-reference mobile-device-reference" data-mobile-device-reference="true">
-      <IntelligenceHeader
-        title="Device Intelligence"
-        subtitle="Review device identity, history, and connected activity."
-        icon="shield"
-      />
-
       <section className="mobile-intel-search-shell" aria-label="Device Intelligence lookup">
         <IntelligenceSearch
           ariaLabel="Search Device Intelligence records"
@@ -211,58 +205,84 @@ export function MobileDeviceIntelligencePage({
             )}
           </section>
 
-          <section className="device-record-list mobile-device-records" aria-label="Device intelligence records">
-            <header><div><p>Available device records</p><h3>Choose a device to compare</h3></div><span>{visibleRecords.length}</span></header>
-            {visibleRecords.map((record) => (
-              <button
-                key={record.id}
-                type="button"
-                className={record.id === activeRecord.id ? 'active' : ''}
-                aria-pressed={record.id === activeRecord.id}
-                onClick={() => setSelectedDeviceId(record.id)}
-                data-device-intelligence-record={record.id}
-              >
-                <DeviceArtwork desktop={/desktop/i.test(record.deviceType)} />
-                <span><strong>{record.deviceName}</strong><small>{record.id}</small><small>{record.deviceType}</small></span>
-                <em>{lookupHasRun ? record.lookupResult : 'Lookup needed'}</em>
-                <IntelligenceGlyph type="chevron" size={17} />
-              </button>
-            ))}
-            {lookupHasRun && !filteredRecords.length && (
-              <div className="investigation-tool-empty" role="status">No device intelligence records match this lookup.</div>
-            )}
-          </section>
+          <details className="mobile-intel-more-panel">
+            <summary>
+              <span><strong>Device history and evidence actions</strong><small>{visibleRecords.length} device record{visibleRecords.length === 1 ? '' : 's'} · {activeRecord.history?.length ?? 0} recorded events</small></span>
+              <IntelligenceGlyph type="chevron" size={18} />
+            </summary>
+            <div>
+              <section className="device-record-list mobile-device-records" aria-label="Device intelligence records">
+                <header><div><p>Available device records</p><h3>Choose a device to compare</h3></div><span>{visibleRecords.length}</span></header>
+                {visibleRecords.map((record) => (
+                  <button
+                    key={record.id}
+                    type="button"
+                    className={record.id === activeRecord.id ? 'active' : ''}
+                    aria-pressed={record.id === activeRecord.id}
+                    onClick={() => setSelectedDeviceId(record.id)}
+                    data-device-intelligence-record={record.id}
+                  >
+                    <DeviceArtwork desktop={/desktop/i.test(record.deviceType)} />
+                    <span><strong>{record.deviceName}</strong><small>{record.id}</small><small>{record.deviceType}</small></span>
+                    <em>{lookupHasRun ? record.lookupResult : 'Lookup needed'}</em>
+                    <IntelligenceGlyph type="chevron" size={17} />
+                  </button>
+                ))}
+                {lookupHasRun && !filteredRecords.length && (
+                  <div className="investigation-tool-empty" role="status">No device intelligence records match this lookup.</div>
+                )}
+              </section>
 
-          <section className="device-history-panel mobile-device-history" aria-label="Device change and usage history">
-            <header><div><p>Device history</p><h3>Complete recorded event log</h3></div><span>{activeRecord.history?.length ?? 0}</span></header>
-            <div className="device-history-list">
-              {(activeRecord.history ?? []).map((item, index) => (
-                <article key={`${activeRecord.id}-${item}`}>
-                  <DeviceArtwork desktop={/desktop/i.test(activeRecord.deviceType)} />
-                  <span><strong>{index === 0 ? 'Most recent device event' : 'Prior device event'}</strong><small>{item}</small></span>
-                </article>
-              ))}
+              <section className="device-history-panel mobile-device-history" aria-label="Device change and usage history">
+                <header><div><p>Device history</p><h3>Complete recorded event log</h3></div><span>{activeRecord.history?.length ?? 0}</span></header>
+                <div className="device-history-list">
+                  {(activeRecord.history ?? []).map((item, index) => (
+                    <article key={`${activeRecord.id}-${item}`}>
+                      <DeviceArtwork desktop={/desktop/i.test(activeRecord.deviceType)} />
+                      <span><strong>{index === 0 ? 'Most recent device event' : 'Prior device event'}</strong><small>{item}</small></span>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
+              {revealed && (
+                <section className="device-behavior-panel mobile-device-comparison" aria-label="Normal behavior comparison">
+                  <header><p>Recorded comparison</p><h3>Use with related evidence</h3></header>
+                  <article><span>Normal behavior comparison</span><strong>{activeRecord.normalBehavior}</strong></article>
+                  <article><span>Investigator use</span><strong>{activeRecord.investigatorUse}</strong></article>
+                </section>
+              )}
+
+              <section className="device-related-panel mobile-intel-related" aria-label="Device related records">
+                <header><p>Related records</p><h3>Cross-reference points</h3></header>
+                <div>{(activeRecord.relatedRecords ?? []).map((item) => <span key={item}>{item}</span>)}</div>
+              </section>
+
+              <section className="device-notes-panel mobile-intel-notes">
+                <header><p>Investigator notes</p><h3>Save factual observations</h3></header>
+                <p>Compare the device with Login History, Session History, IP Intelligence, and the customer story before deciding.</p>
+                <button type="button" onClick={() => saveDeviceNote(`${activeRecord.id} reviewed: ${activeRecord.normalBehavior}`)}><IntelligenceGlyph type="note" size={18} /> Save device note</button>
+              </section>
+
+              <nav className="investigation-tool-next-routes mobile-intel-routes" aria-label="Device intelligence next routes">
+                <button type="button" onClick={() => openTool('Login History')}>Open Login History</button>
+                <button type="button" onClick={() => openTool('IP Intelligence')}>Open IP Intelligence</button>
+                <button type="button" className="primary" onClick={jumpDecision}>Open Submit Decision</button>
+              </nav>
+
+              <footer className="investigation-tool-review-bar mobile-intel-review">
+                <div><strong>Device Intelligence review</strong><span>Review the lookup, full event log, and linked evidence before marking complete.</span></div>
+                <button
+                  type="button"
+                  className={reviewed ? '' : 'investigation-tool-primary'}
+                  disabled={!reviewed && !lookupMatched}
+                  onClick={() => markReviewed('Device Intelligence')}
+                >
+                  {reviewed ? '✓ Device Intelligence reviewed' : 'Mark Device Intelligence reviewed'}
+                </button>
+              </footer>
             </div>
-          </section>
-
-          {revealed && (
-            <section className="device-behavior-panel mobile-device-comparison" aria-label="Normal behavior comparison">
-              <header><p>Recorded comparison</p><h3>Use with related evidence</h3></header>
-              <article><span>Normal behavior comparison</span><strong>{activeRecord.normalBehavior}</strong></article>
-              <article><span>Investigator use</span><strong>{activeRecord.investigatorUse}</strong></article>
-            </section>
-          )}
-
-          <section className="device-related-panel mobile-intel-related" aria-label="Device related records">
-            <header><p>Related records</p><h3>Cross-reference points</h3></header>
-            <div>{(activeRecord.relatedRecords ?? []).map((item) => <span key={item}>{item}</span>)}</div>
-          </section>
-
-          <section className="device-notes-panel mobile-intel-notes">
-            <header><p>Investigator notes</p><h3>Save factual observations</h3></header>
-            <p>Compare the device with Login History, Session History, IP Intelligence, and the customer story before deciding.</p>
-            <button type="button" onClick={() => saveDeviceNote(`${activeRecord.id} reviewed: ${activeRecord.normalBehavior}`)}><IntelligenceGlyph type="note" size={18} /> Save device note</button>
-          </section>
+          </details>
         </>
       ) : (
         <div className="investigation-tool-empty mobile-intel-no-match" role="status">
@@ -272,23 +292,6 @@ export function MobileDeviceIntelligencePage({
         </div>
       )}
 
-      <nav className="investigation-tool-next-routes mobile-intel-routes" aria-label="Device intelligence next routes">
-        <button type="button" onClick={() => openTool('Login History')}>Open Login History</button>
-        <button type="button" onClick={() => openTool('IP Intelligence')}>Open IP Intelligence</button>
-        <button type="button" className="primary" onClick={jumpDecision}>Open Submit Decision</button>
-      </nav>
-
-      <footer className="investigation-tool-review-bar mobile-intel-review">
-        <div><strong>Device Intelligence review</strong><span>Review the lookup, full event log, and linked evidence before marking complete.</span></div>
-        <button
-          type="button"
-          className={reviewed ? '' : 'investigation-tool-primary'}
-          disabled={!reviewed && !lookupMatched}
-          onClick={() => markReviewed('Device Intelligence')}
-        >
-          {reviewed ? '✓ Device Intelligence reviewed' : 'Mark Device Intelligence reviewed'}
-        </button>
-      </footer>
     </section>
   );
 }
@@ -328,12 +331,6 @@ export function MobileIPIntelligencePage({
 
   return (
     <section className="mobile-device-ip-reference mobile-ip-reference" data-mobile-ip-reference="true">
-      <IntelligenceHeader
-        title="IP Intelligence"
-        subtitle="Review network, location, and recorded usage facts."
-        icon="network"
-      />
-
       <section className="mobile-intel-search-shell mobile-ip-search-shell" aria-label="Find IP intelligence information">
         <IntelligenceSearch
           ariaLabel="Search IP Intelligence records"
@@ -355,25 +352,6 @@ export function MobileIPIntelligencePage({
           ['Related logins', relatedLoginCount],
           ['Active case', activeCase.id],
         ].map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}
-      </section>
-
-      <section className="ip-record-list mobile-ip-records" aria-label="IP intelligence records">
-        <header><div><p>Raw IP records</p><h3>Choose a supplied IP, then run lookup</h3></div><span>{records.length}</span></header>
-        {records.map((record) => (
-          <button
-            key={record.id}
-            type="button"
-            className={record.id === activeRecord?.id ? 'active' : ''}
-            aria-pressed={record.id === activeRecord?.id}
-            onClick={() => selectIpRecord(record)}
-            data-ip-intelligence-record={record.id}
-          >
-            <span><IntelligenceGlyph type="network" size={20} /></span>
-            <span><strong>{record.ip}</strong><small>{record.id}</small></span>
-            <small>{record.observedLogins.length} login{record.observedLogins.length === 1 ? '' : 's'} · {record.observedSessions.length} session{record.observedSessions.length === 1 ? '' : 's'}</small>
-            <IntelligenceGlyph type="chevron" size={17} />
-          </button>
-        ))}
       </section>
 
       <section className="ip-detail-panel mobile-ip-detail" aria-label="Expanded IP intelligence detail">
@@ -417,61 +395,67 @@ export function MobileIPIntelligencePage({
       </section>
 
       {activeRecord && (
-        <>
-          <section className="ip-location-panel mobile-ip-usage" aria-label="IP usage history">
-            <header><div><p>Usage history</p><h3>Complete recorded authentication log</h3></div><span>{activeRecord.observedLoginEvents.length}</span></header>
-            <div>
-              {activeRecord.observedLoginEvents.map((login) => (
-                <article key={login.id} data-ip-usage-event={login.id}>
-                  <span><IntelligenceGlyph type="clock" size={18} /></span>
-                  <div><strong>{login.time}</strong><small>{login.id} · {login.result}</small><small>{login.session} · {login.device}</small><small>{login.location}</small></div>
-                </article>
-              ))}
-            </div>
-          </section>
+        <details className="mobile-intel-more-panel">
+          <summary>
+            <span><strong>Usage history and evidence actions</strong><small>{activeRecord.observedLoginEvents.length} authentication event{activeRecord.observedLoginEvents.length === 1 ? '' : 's'} · {activeRecord.observedDevices.length} device{activeRecord.observedDevices.length === 1 ? '' : 's'}</small></span>
+            <IntelligenceGlyph type="chevron" size={18} />
+          </summary>
+          <div>
+            <section className="ip-location-panel mobile-ip-usage" aria-label="IP usage history">
+              <header><div><p>Usage history</p><h3>Complete recorded authentication log</h3></div><span>{activeRecord.observedLoginEvents.length}</span></header>
+              <div>
+                {activeRecord.observedLoginEvents.map((login) => (
+                  <article key={login.id} data-ip-usage-event={login.id}>
+                    <span><IntelligenceGlyph type="clock" size={18} /></span>
+                    <div><strong>{login.time}</strong><small>{login.id} · {login.result}</small><small>{login.session} · {login.device}</small><small>{login.location}</small></div>
+                  </article>
+                ))}
+              </div>
+            </section>
 
-          <section className="mobile-ip-observations" aria-label="Recorded network observations">
-            <header><p>Network observations</p><h3>Facts to compare</h3></header>
-            <article><span>Residential status</span><strong>{activeRecord.residentialStatus}</strong></article>
-            <article><span>Historical locations</span><strong>{activeRecord.historicalLocations.join(' · ')}</strong></article>
-            <article><span>Observed devices</span><strong>{activeRecord.observedDevices.join(' · ') || 'No device returned'}</strong></article>
-          </section>
+            <section className="mobile-ip-observations" aria-label="Recorded network observations">
+              <header><p>Network observations</p><h3>Facts to compare</h3></header>
+              <article><span>Residential status</span><strong>{activeRecord.residentialStatus}</strong></article>
+              <article><span>Historical locations</span><strong>{activeRecord.historicalLocations.join(' · ')}</strong></article>
+              <article><span>Observed devices</span><strong>{activeRecord.observedDevices.join(' · ') || 'No device returned'}</strong></article>
+            </section>
 
-          <section className="ip-related-panel mobile-intel-related" aria-label="IP related records">
-            <header><p>Related records</p><h3>Cross-reference points</h3></header>
-            <div>{activeRecord.relatedRecords.map((item) => <span key={item}>{item}</span>)}</div>
-          </section>
+            <section className="ip-related-panel mobile-intel-related" aria-label="IP related records">
+              <header><p>Related records</p><h3>Cross-reference points</h3></header>
+              <div>{activeRecord.relatedRecords.map((item) => <span key={item}>{item}</span>)}</div>
+            </section>
 
-          <section className="ip-notes-panel mobile-intel-notes">
-            <header><p>Investigator notes</p><h3>Save factual observations</h3></header>
-            <p>{activeRecord.investigatorUse}</p>
-            <div>
-              <button type="button" onClick={() => saveIpNote(`${activeRecord.ip} reviewed: ${activeRecord.lookupResult}`)}><IntelligenceGlyph type="note" size={18} /> Save IP note</button>
-              <button type="button" onClick={generateIpReport}><IntelligenceGlyph type="report" size={18} /> {reportGenerated ? 'Regenerate IP Intelligence Report' : 'Generate IP Intelligence Report'}</button>
-            </div>
-          </section>
-        </>
+            <section className="ip-notes-panel mobile-intel-notes">
+              <header><p>Investigator notes</p><h3>Save factual observations</h3></header>
+              <p>{activeRecord.investigatorUse}</p>
+              <div>
+                <button type="button" onClick={() => saveIpNote(`${activeRecord.ip} reviewed: ${activeRecord.lookupResult}`)}><IntelligenceGlyph type="note" size={18} /> Save IP note</button>
+                <button type="button" onClick={generateIpReport}><IntelligenceGlyph type="report" size={18} /> {reportGenerated ? 'Regenerate IP Intelligence Report' : 'Generate IP Intelligence Report'}</button>
+              </div>
+            </section>
+
+            <nav className="investigation-tool-next-routes mobile-intel-routes" aria-label="IP intelligence next routes">
+              <button type="button" onClick={() => openTool('Login History')}>Open Login History</button>
+              <button type="button" onClick={() => openTool('Session History')}>Open Session History</button>
+              <button type="button" onClick={() => openTool('Device Intelligence')}>Open Device Intelligence</button>
+              <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
+              <button type="button" className="primary" onClick={jumpDecision}>Open Submit Decision</button>
+            </nav>
+
+            <footer className="investigation-tool-review-bar mobile-intel-review">
+              <div><strong>IP Intelligence review</strong><span>Run the exact lookup and compare its complete usage history with the linked device and session records.</span></div>
+              <button
+                type="button"
+                className={reviewed ? '' : 'investigation-tool-primary'}
+                disabled={!lookupMatched}
+                onClick={() => markReviewed('IP Intelligence')}
+              >
+                {reviewed ? '✓ IP Intelligence reviewed' : 'Mark IP Intelligence reviewed'}
+              </button>
+            </footer>
+          </div>
+        </details>
       )}
-
-      <nav className="investigation-tool-next-routes mobile-intel-routes" aria-label="IP intelligence next routes">
-        <button type="button" onClick={() => openTool('Login History')}>Open Login History</button>
-        <button type="button" onClick={() => openTool('Session History')}>Open Session History</button>
-        <button type="button" onClick={() => openTool('Device Intelligence')}>Open Device Intelligence</button>
-        <button type="button" onClick={() => openTool('Timeline')}>Open Timeline</button>
-        <button type="button" className="primary" onClick={jumpDecision}>Open Submit Decision</button>
-      </nav>
-
-      <footer className="investigation-tool-review-bar mobile-intel-review">
-        <div><strong>IP Intelligence review</strong><span>Run the exact lookup and compare its complete usage history with the linked device and session records.</span></div>
-        <button
-          type="button"
-          className={reviewed ? '' : 'investigation-tool-primary'}
-          disabled={!lookupMatched}
-          onClick={() => markReviewed('IP Intelligence')}
-        >
-          {reviewed ? '✓ IP Intelligence reviewed' : 'Mark IP Intelligence reviewed'}
-        </button>
-      </footer>
     </section>
   );
 }

@@ -1158,7 +1158,7 @@ export function MobileBusiness360Reference({
     payroll: ['Payroll overview', 'Business payroll relationship'],
     updates: ['Business updates', 'Recorded profile-maintenance history'],
     notes: ['Recent notes', 'Business servicing and learner-authored notes'],
-    research: ['Luna Business Research', 'Factual fictional source comparison'],
+    research: ['Business Source Research', 'Factual fictional source comparison'],
   };
   const [drawerTitle, drawerEyebrow] = drawerTitles[detail] ?? ['', ''];
 

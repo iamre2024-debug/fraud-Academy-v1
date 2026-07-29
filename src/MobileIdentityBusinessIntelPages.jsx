@@ -522,7 +522,7 @@ function BusinessDetailSection({
   }
   return (
     <section className="business-360-section mobile-intel-card" aria-labelledby="luna-business-research-heading">
-      <IntelCardHeader icon="search" eyebrow="Factual source comparison · separate from Luna Debrief" title="Luna Business Research" />
+      <IntelCardHeader icon="search" eyebrow="Factual source comparison · separate from Luna Debrief" title="Business Source Research" />
       <p id="luna-business-research-heading" className="business-360-research-note">A missing or conflicting record is a source result, not proof that the business does not exist and not a conclusion about the active review.</p>
       <div className="business-360-research-list mobile-business-research-list">{dossier.researchChecks.map((check) => <article key={check.id} data-research-status={check.status}><span>{check.status}</span><h4>{check.subject}</h4><p>{check.detail}</p><small>{check.sourceChecked} · Checked {check.dateChecked}</small></article>)}</div>
       <div className="business-360-report-actions mobile-intel-inline-actions">
@@ -579,7 +579,7 @@ export function MobileBusinessIntelligencePage({
     ['access', 'Access & Security'],
     ['contact', 'Contact History'],
     ...(dossier.payrollRelationship ? [['payroll', 'Payroll Relationship']] : []),
-    ['research', 'Luna Business Research'],
+    ['research', 'Business Source Research'],
   ];
   const statusCounts = dossier.researchChecks.reduce((counts, check) => {
     counts[check.status] = (counts[check.status] ?? 0) + 1;

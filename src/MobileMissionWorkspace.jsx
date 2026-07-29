@@ -92,9 +92,17 @@ export default function MobileMissionWorkspace({
   const ownsIntelHeader = isTool && [
     'Identity Intel / People Search',
     'Business 360',
+    'Login History',
+    'Session History',
   ].includes(activeTool);
   const has360Header = is360Tool;
   const isLinkAnalysis = workspaceScreen === 'tool' && activeTool === 'Link Analysis';
+  const reviewIsSearchGated = [
+    'Device Intelligence',
+    'IP Intelligence',
+    'Link Analysis',
+    'Payment Verification',
+  ].includes(activeTool);
   const isReviewScreen = ['indicators', 'determination', 'submit', 'debrief'].includes(workspaceScreen);
   const hasInnerReviewHeading = ['indicators', 'determination'].includes(workspaceScreen);
   const reviewSubtitle = workspaceScreen === 'debrief'
@@ -103,6 +111,7 @@ export default function MobileMissionWorkspace({
       ? 'Final Review'
       : 'Evidence Review';
   const [mobile360MenuOpen, setMobile360MenuOpen] = useState(false);
+  const [mobileToolMenuOpen, setMobileToolMenuOpen] = useState(false);
   const [mobile360DetailRequest, setMobile360DetailRequest] = useState({
     detail: '',
     token: 0,
@@ -111,6 +120,8 @@ export default function MobileMissionWorkspace({
   });
   const mobile360ActionButtonRef = useRef(null);
   const mobile360MenuCloseRef = useRef(null);
+  const mobileToolActionButtonRef = useRef(null);
+  const mobileToolMenuCloseRef = useRef(null);
   const mobile360Profile = useMemo(() => {
     if (activeTool === 'Customer 360') {
       const dossier = getCustomer360Dossier(activeCase);
@@ -124,6 +135,7 @@ export default function MobileMissionWorkspace({
 
   useEffect(() => {
     setMobile360MenuOpen(false);
+    setMobileToolMenuOpen(false);
     setMobile360DetailRequest((current) => ({
       detail: '',
       token: current.token + 1,
@@ -150,6 +162,24 @@ export default function MobileMissionWorkspace({
     };
   }, [mobile360MenuOpen]);
 
+  useEffect(() => {
+    if (!mobileToolMenuOpen) return undefined;
+
+    function closeOnEscape(event) {
+      if (event.key === 'Escape') setMobileToolMenuOpen(false);
+    }
+
+    document.body.setAttribute('data-mobile-tool-actions', 'open');
+    document.addEventListener('keydown', closeOnEscape);
+    window.setTimeout(() => mobileToolMenuCloseRef.current?.focus(), 0);
+
+    return () => {
+      document.body.removeAttribute('data-mobile-tool-actions');
+      document.removeEventListener('keydown', closeOnEscape);
+      mobileToolActionButtonRef.current?.focus();
+    };
+  }, [mobileToolMenuOpen]);
+
   function requestMobile360Detail(detail) {
     setMobile360DetailRequest((current) => ({
       detail,
@@ -169,6 +199,15 @@ export default function MobileMissionWorkspace({
   function markMobile360Reviewed() {
     activeToolProps.markReviewed?.(activeTool);
     setMobile360MenuOpen(false);
+  }
+
+  function closeMobileToolMenu() {
+    setMobileToolMenuOpen(false);
+  }
+
+  function markMobileToolReviewed() {
+    activeToolProps.markReviewed?.(activeTool);
+    closeMobileToolMenu();
   }
 
   return (
@@ -222,23 +261,25 @@ export default function MobileMissionWorkspace({
           <span className="mission-review-header-spacer" aria-hidden="true" />
         ) : (
           <button
-            ref={is360Tool ? mobile360ActionButtonRef : undefined}
+            ref={is360Tool ? mobile360ActionButtonRef : isTool ? mobileToolActionButtonRef : undefined}
             type="button"
             className={workspaceScreen === 'workflow' ? 'active' : ''}
             onClick={() => {
               if (is360Tool) {
                 setMobile360MenuOpen((open) => !open);
+              } else if (isTool) {
+                setMobileToolMenuOpen((open) => !open);
               } else if (workspaceScreen === 'workflow') {
                 goBackWorkspaceScreen();
               } else {
                 showWorkspaceScreen('workflow');
               }
             }}
-            aria-controls={is360Tool ? 'mobile-360-actions-menu' : undefined}
-            aria-expanded={is360Tool ? mobile360MenuOpen : undefined}
-            aria-label={is360Tool ? `Open ${activeTool} actions` : 'Open mission pages'}
+            aria-controls={is360Tool ? 'mobile-360-actions-menu' : isTool ? 'mobile-tool-actions-menu' : undefined}
+            aria-expanded={is360Tool ? mobile360MenuOpen : isTool ? mobileToolMenuOpen : undefined}
+            aria-label={isTool ? `Open ${activeTool} actions` : 'Open mission pages'}
           >
-            {has360Header || isLinkAnalysis ? '•••' : '☷'}
+            {isTool ? '•••' : '☷'}
           </button>
         )}
       </header>
@@ -287,7 +328,56 @@ export default function MobileMissionWorkspace({
         </div>
       )}
 
-      {!is360Tool && !ownsIntelHeader && !isLinkAnalysis && !isReviewScreen && workspaceScreen !== 'tool-menu' && (
+      {isTool && !is360Tool && !ownsIntelHeader && mobileToolMenuOpen && (
+        <div
+          className="mobile-360-actions-backdrop"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) closeMobileToolMenu();
+          }}
+        >
+          <section
+            id="mobile-tool-actions-menu"
+            className="mobile-360-actions-menu mobile-tool-actions-menu"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${activeTool} actions`}
+          >
+            <header>
+              <div>
+                <p>{activeCase.id}</p>
+                <h2>{activeTool}</h2>
+              </div>
+              <button ref={mobileToolMenuCloseRef} type="button" onClick={closeMobileToolMenu} aria-label={`Close ${activeTool} actions`}>×</button>
+            </header>
+            <label className="mobile-tool-action-case-select">
+              <span>Active case</span>
+              <select
+                value={activeCase.id}
+                onChange={(event) => {
+                  changeCase(event.target.value);
+                  closeMobileToolMenu();
+                }}
+                aria-label={`Choose active ${activeTool} case`}
+              >
+                {cases.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.person}</option>)}
+              </select>
+            </label>
+            <nav className="mobile-360-workflow-actions" aria-label={`${activeTool} workflow actions`}>
+              <button type="button" onClick={() => { showWorkspaceScreen('tool-menu'); closeMobileToolMenu(); }}>🧰 All tools</button>
+              <button type="button" onClick={() => { openNotes(); closeMobileToolMenu(); }}>📝 Case notes ({notes.length})</button>
+              <button type="button" onClick={() => { selectWorkflowStage('indicators'); showWorkspaceScreen('evidence'); closeMobileToolMenu(); }}>⭐ Pinned evidence ({tray.length})</button>
+              {!reviewIsSearchGated && (
+                <button type="button" onClick={markMobileToolReviewed}>
+                  {currentCompleted.includes(activeTool) ? '✓ Reviewed' : '✓ Mark reviewed'}
+                </button>
+              )}
+              <button type="button" onClick={() => { jumpDecision(); closeMobileToolMenu(); }}>✅ Determination</button>
+            </nav>
+          </section>
+        </div>
+      )}
+
+      {!isTool && !isReviewScreen && workspaceScreen !== 'tool-menu' && (
         <section className="mission-workspace-case-selector" aria-label="Active mission file">
           <span>ACTIVE FILE</span>
           <label className="visual-case-switcher">
@@ -371,13 +461,6 @@ export default function MobileMissionWorkspace({
             data-workflow-stage={workspaceScreen === 'timeline' ? 'timeline' : 'investigate'}
             data-workspace-page={workspaceScreen === 'timeline' ? 'timeline' : 'tool'}
           >
-            {!has360Header && !ownsIntelHeader && !isLinkAnalysis && (
-              <nav className="mission-tool-actions" aria-label="Tool page actions">
-                <button type="button" onClick={() => showWorkspaceScreen('tool-menu')}>🧰 All tools</button>
-                <button type="button" onClick={openNotes}>📝 Notes <span>{notes.length}</span></button>
-                <button type="button" onClick={jumpDecision}>✅ Decide</button>
-              </nav>
-            )}
             {openedPinnedEvidence && !openedPinnedEvidence.unresolved && (
               <section className="mission-opened-pin" data-opened-pinned-evidence="true">
                 <div><p>Opened from pinned evidence</p><h2>{openedPinnedEvidence.value}</h2><small>Source: {openedPinnedEvidence.tool}</small></div>
@@ -391,7 +474,7 @@ export default function MobileMissionWorkspace({
                   detailRequest={mobile360DetailRequest}
                 />
               ) : activeTool === 'Timeline' ? (
-                <TimelinePanel {...activeToolProps} />
+                <TimelinePanel {...activeToolProps} mobileMode />
               ) : (
                 <InvestigationToolPanel
                   {...activeToolProps}
@@ -496,7 +579,7 @@ export default function MobileMissionWorkspace({
         {workspaceScreen !== 'debrief' && <div className="decision-luna-portal-anchor" hidden />}
       </div>
 
-      {!has360Header && !ownsIntelHeader && !isReviewScreen && (
+      {!isTool && !has360Header && !ownsIntelHeader && !isReviewScreen && (
         <footer className="mission-workspace-status">
           <span>⭐ {tray.length} pinned</span><span>📝 {notes.length} notes</span><span>📡 {actionLog.length} actions</span>
         </footer>

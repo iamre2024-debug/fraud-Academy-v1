@@ -17,6 +17,16 @@ function uniqueSources(rows) {
   return [...new Set(rows.map((row) => String(row.values[3] ?? 'Other')))].sort((a, b) => a.localeCompare(b));
 }
 
+function mobileEventIcon(source = '') {
+  const normalized = String(source).toLowerCase();
+  if (/login|session|device|ip/.test(normalized)) return '⌁';
+  if (/transaction|payment|financial/.test(normalized)) return '＄';
+  if (/document/.test(normalized)) return '▤';
+  if (/link/.test(normalized)) return '⌘';
+  if (/note/.test(normalized)) return '✎';
+  return '✦';
+}
+
 export default function TimelinePanel({
   activeCase,
   query,
@@ -30,6 +40,7 @@ export default function TimelinePanel({
   currentCompleted,
   openTool,
   jumpDecision,
+  mobileMode = false,
 }) {
   const [selectedEventId, setSelectedEventId] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
@@ -46,6 +57,9 @@ export default function TimelinePanel({
   );
   const selectedId = selectedEventId || activeRow?.id;
   const selectedEvent = filteredEvents.find((row) => row.id === selectedId) ?? filteredEvents[0];
+  const mobileSelectedEvent = selectedId
+    ? filteredEvents.find((row) => row.id === selectedId) ?? null
+    : null;
   const selectedFields = useMemo(
     () => selectedEvent ? fieldPairs(timelineData.columns, selectedEvent.values) : [],
     [selectedEvent, timelineData.columns],
@@ -66,6 +80,118 @@ export default function TimelinePanel({
   function saveTimelineNote() {
     if (!selectedEvent) return;
     saveNote(`Timeline event ${selectedEvent.id}: ${selectedEvent.detail}`, 'Timeline event');
+  }
+
+  if (mobileMode) {
+    let previousDay = '';
+    return (
+      <section
+        className="timeline-theme-v1 mobile-timeline-reference"
+        data-timeline-screen="approved-theme-v1"
+        data-mobile-timeline-reference="true"
+        data-case-id={activeCase.id}
+      >
+        <header className="mobile-timeline-filterbar">
+          <label>
+            <span className="sr-only">Filter Timeline by source</span>
+            <select
+              value={sourceFilter}
+              onChange={(event) => setSourceFilter(event.target.value)}
+              aria-label="Filter Timeline by source"
+            >
+              <option value="all">All Events</option>
+              {sources.map((source) => <option key={source} value={source}>{source}</option>)}
+            </select>
+          </label>
+          <details>
+            <summary>⌕ Search</summary>
+            <label>
+              <span className="sr-only">Search Timeline records</span>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search events and sources"
+                aria-label="Search Timeline records"
+              />
+            </label>
+          </details>
+          <aside aria-label="Luna debrief is available after submission">
+            <span>☾</span>
+            <div><strong>Luna</strong><small>After submit</small></div>
+          </aside>
+        </header>
+
+        <p className="mobile-timeline-boundary">
+          Recorded facts in chronological order. The sequence does not determine the case outcome.
+        </p>
+
+        <section className="mobile-timeline-stream" aria-labelledby="timeline-stream-heading">
+          <h3 id="timeline-stream-heading" className="sr-only">Available timeline events</h3>
+          {filteredEvents.map((row) => {
+            const eventDay = String(row.values[0] ?? 'Date not recorded');
+            const showDay = eventDay !== previousDay;
+            previousDay = eventDay;
+            const selected = mobileSelectedEvent?.id === row.id;
+            const source = String(row.values[3] ?? 'Recorded source');
+            return (
+              <div className="mobile-timeline-entry" key={row.id}>
+                {showDay && <div className="mobile-timeline-day"><span>{eventDay}</span></div>}
+                <article
+                  className={selected ? 'selected' : ''}
+                  data-timeline-event={row.id}
+                >
+                  <time>{String(row.values[1] ?? 'Time not recorded')}</time>
+                  <i aria-hidden="true" />
+                  <button
+                    type="button"
+                    className="mobile-timeline-event-card"
+                    onClick={() => openEvent(row.id)}
+                    aria-expanded={selected}
+                  >
+                    <span className="mobile-timeline-event-copy">
+                      <strong>{String(row.values[2] ?? row.label)}</strong>
+                      <small>{String(row.values[6] ?? row.detail)}</small>
+                      <em>{source}</em>
+                    </span>
+                    <span className="mobile-timeline-event-icon" aria-hidden="true">{mobileEventIcon(source)}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="mobile-timeline-pin"
+                    onClick={() => pin(row.pin)}
+                    aria-label={`Pin timeline event ${row.id}`}
+                  >
+                    ☆
+                  </button>
+                  {selected && (
+                    <section className="mobile-timeline-event-detail" aria-label={`Expanded event ${row.id}`}>
+                      <dl>
+                        <div><dt>Event ID</dt><dd>{row.id}</dd></div>
+                        <div><dt>Source</dt><dd>{source}</dd></div>
+                        <div><dt>Linked object</dt><dd>{String(row.values[4] ?? 'Not recorded')}</dd></div>
+                      </dl>
+                      <nav aria-label={`Actions for timeline event ${row.id}`}>
+                        <button type="button" onClick={saveTimelineNote}>Save timeline note</button>
+                        <button type="button" onClick={() => openTool('Transaction History')}>Open Transaction History</button>
+                      </nav>
+                    </section>
+                  )}
+                </article>
+              </div>
+            );
+          })}
+          {!filteredEvents.length && (
+            <div className="timeline-empty" role="status">
+              No timeline events match the current search and source filter.
+            </div>
+          )}
+        </section>
+
+        <p className="mobile-timeline-result-count" aria-live="polite">
+          {filteredEvents.length} of {timelineData.rows.length} events shown · {reviewed ? 'Timeline reviewed' : 'Review open'}
+        </p>
+      </section>
+    );
   }
 
   return (

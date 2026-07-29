@@ -50,7 +50,7 @@ for (const anchor of [
   'Payroll overview',
   'Business updates',
   'Recent notes',
-  'Luna Business Research',
+  'Business Source Research',
   'Mobile360Drawer',
   'AccountDetails',
   'OwnerRelationshipRecords',
@@ -158,8 +158,8 @@ if (mainSectionOrder.some((index) => index < 0)
   failures.push('Business 360 main cards must keep products/credit, payroll/updates, then full-width recent notes in reference order.');
 }
 
-if (!/\{!has360Header\s*&&\s*!ownsIntelHeader\s*&&\s*!isReviewScreen\s*&&\s*\(\s*<footer className="mission-workspace-status"/s.test(workspace)) {
-  failures.push('MobileMissionWorkspace.jsx must hide workspace status chips on direct Customer 360, Intel-owned pages, and focused review screens.');
+if (!/\{!isTool\s*&&\s*!has360Header\s*&&\s*!ownsIntelHeader\s*&&\s*!isReviewScreen\s*&&\s*\(\s*<footer className="mission-workspace-status"/s.test(workspace)) {
+  failures.push('MobileMissionWorkspace.jsx must hide workspace status chips on every focused tool, Intel-owned page, and review screen.');
 }
 
 if (!/grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/.test(styles)) {

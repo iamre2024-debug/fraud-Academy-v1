@@ -124,7 +124,7 @@ export function buildBusiness360Report(activeCase = {}) {
           },
         }),
       ]),
-      page('Luna Business Research', 'SIMULATED SOURCE RESEARCH · NO LIVE SEARCH OCCURRED', [
+      page('Business Source Research', 'SIMULATED SOURCE RESEARCH · NO LIVE SEARCH OCCURRED', [
         section('Research results', [], {
           table: {
             columns: ['Topic', 'Status', 'Finding', 'Fictional source', 'Checked date'],

@@ -58,7 +58,9 @@ body[data-visual-tab="workspace"] .payment-mission-locked,
 body[data-visual-tab="workspace"] .payment-mission-not-found,
 body[data-visual-tab="workspace"] .payment-mission-result,
 body[data-visual-tab="workspace"] .payment-mission-history,
-body[data-visual-tab="workspace"] .payment-mission-review {
+body[data-visual-tab="workspace"] .payment-mission-review,
+body[data-visual-tab="workspace"] .payment-mission-evidence-grid > article,
+body[data-visual-tab="workspace"] .payment-mission-mobile-actions {
   min-width: 0;
   border: 1px solid var(--payment-line);
   border-radius: 18px;
@@ -359,6 +361,139 @@ body[data-visual-tab="workspace"] .payment-mission-search-confirmation dd {
   overflow-wrap: anywhere;
 }
 
+body[data-visual-tab="workspace"] .payment-mission-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+body[data-visual-tab="workspace"] .payment-mission-evidence-grid > article {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 74, 174, 0.08), transparent 46%),
+    var(--payment-card-soft);
+}
+
+body[data-visual-tab="workspace"] .payment-mission-evidence-grid article > header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+}
+
+body[data-visual-tab="workspace"] .payment-mission-evidence-grid article > header > span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(91, 202, 255, 0.5);
+  border-radius: 11px;
+  background: rgba(5, 83, 145, 0.42);
+  color: #74dfff;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+body[data-visual-tab="workspace"] .payment-mission-evidence-grid article > header p {
+  color: var(--payment-blue);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .payment-mission-evidence-grid h4 {
+  margin: 3px 0 0;
+  color: #fff;
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+
+body[data-visual-tab="workspace"] .payment-mission-evidence-grid dl {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+body[data-visual-tab="workspace"] .payment-mission-evidence-grid dl > div {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.38fr) minmax(0, 0.62fr);
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(83, 174, 255, 0.13);
+}
+
+body[data-visual-tab="workspace"] .payment-mission-evidence-grid dt {
+  color: #8fb7cf;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+body[data-visual-tab="workspace"] .payment-mission-evidence-grid dd {
+  color: #ecf9ff;
+  font-size: 0.75rem;
+  font-weight: 750;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .payment-mission-attempts {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+body[data-visual-tab="workspace"] .payment-mission-attempts li {
+  display: grid;
+  gap: 3px;
+  border-left: 2px solid rgba(86, 212, 255, 0.58);
+  background: rgba(1, 18, 39, 0.5);
+  padding: 8px 9px;
+}
+
+body[data-visual-tab="workspace"] .payment-mission-attempts strong {
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+body[data-visual-tab="workspace"] .payment-mission-attempts span,
+body[data-visual-tab="workspace"] .payment-mission-attempts small,
+body[data-visual-tab="workspace"] .payment-mission-empty-evidence {
+  color: var(--payment-muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+body[data-visual-tab="workspace"] .payment-mission-mobile-actions {
+  padding: 0;
+  overflow: hidden;
+}
+
+body[data-visual-tab="workspace"] .payment-mission-mobile-actions > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  color: #bfeeff;
+  font-size: 0.75rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+body[data-visual-tab="workspace"] .payment-mission-mobile-actions[open] > summary {
+  border-bottom: 1px solid rgba(83, 174, 255, 0.18);
+}
+
+body[data-visual-tab="workspace"] .payment-mission-mobile-actions .payment-mission-actions {
+  padding: 10px;
+}
+
 body[data-visual-tab="workspace"] .payment-mission-actions {
   display: flex;
   flex-wrap: wrap;
@@ -435,7 +570,8 @@ body[data-visual-tab="workspace"] .payment-mission-review span {
 @media (max-width: 980px) {
   body[data-visual-tab="workspace"] .payment-mission-search form,
   body[data-visual-tab="workspace"] .payment-mission-facts,
-  body[data-visual-tab="workspace"] .payment-mission-search-confirmation {
+  body[data-visual-tab="workspace"] .payment-mission-search-confirmation,
+  body[data-visual-tab="workspace"] .payment-mission-evidence-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -457,6 +593,7 @@ body[data-visual-tab="workspace"] .payment-mission-review span {
   body[data-visual-tab="workspace"] .payment-mission-search form,
   body[data-visual-tab="workspace"] .payment-mission-facts,
   body[data-visual-tab="workspace"] .payment-mission-search-confirmation,
+  body[data-visual-tab="workspace"] .payment-mission-evidence-grid,
   body[data-visual-tab="workspace"] .payment-mission-history > div,
   body[data-visual-tab="workspace"] .payment-mission-routes {
     grid-template-columns: minmax(0, 1fr);
@@ -478,6 +615,11 @@ body[data-visual-tab="workspace"] .payment-mission-review span {
   body[data-visual-tab="workspace"] .payment-mission-actions {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .payment-mission-evidence-grid dl > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
   }
 
   body[data-visual-tab="workspace"] .payment-mission-review > button {

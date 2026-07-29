@@ -215,8 +215,8 @@ test('Business 360 keeps company, owner, account, and factual research records o
     await assertWithinViewport(page, business360);
   }
 
-  await tabs.getByRole('tab', { name: 'Luna Business Research', exact: true }).click();
-  await expect(business360.getByRole('heading', { name: 'Luna Business Research', exact: true })).toBeVisible();
+  await tabs.getByRole('tab', { name: 'Business Source Research', exact: true }).click();
+  await expect(business360.getByRole('heading', { name: 'Business Source Research', exact: true })).toBeVisible();
   await expect(business360).toContainText('A missing or conflicting record is a source result, not proof');
   await expect(business360).toContainText('not a conclusion about the active review');
   const researchStatuses = await business360.locator('[data-research-status]').evaluateAll(

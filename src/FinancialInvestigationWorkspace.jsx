@@ -127,6 +127,7 @@ export default function FinancialInvestigationWorkspace({
   reviewed = false,
   openTool = noop,
   jumpDecision = noop,
+  mobileMode = false,
 }) {
   const workspace = useMemo(() => getFinancialInvestigation(activeCase), [activeCase]);
   const firstSectionId = workspace.sections[0]?.id ?? 'account-review';
@@ -369,7 +370,7 @@ export default function FinancialInvestigationWorkspace({
         </article>
       </section>
 
-      <details className="financial-mission-explorer" open>
+      <details className="financial-mission-explorer" open={mobileMode ? undefined : true}>
         <summary>
           <span><strong>Evidence explorer</strong><small>Search, filter, expand, pin, and document the records behind the dashboard.</small></span>
           <em>{sectionRecords.length} {section?.label} record{sectionRecords.length === 1 ? '' : 's'}</em>
@@ -730,19 +731,23 @@ export default function FinancialInvestigationWorkspace({
         </div>
       </details>
 
-      <nav className="financial-mission-routes" aria-label="Financial Investigation next routes">
-        {workspace.routes.map((route) => <button key={route.tool} type="button" onClick={() => openRelatedTool(route)}>{route.label}</button>)}
-        <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
-      </nav>
-      <footer className="financial-mission-review">
-        <div>
-          <strong>Financial Investigation review</strong>
-          <span>Mark reviewed after comparing the applicable account, dated activity, payment, deposit, and payroll records.</span>
-        </div>
-        <button type="button" className={reviewed ? '' : 'financial-mission-primary'} onClick={() => markReviewed('Financial Investigation')}>
-          {reviewed ? '✓ Financial Investigation reviewed' : 'Mark Financial Investigation reviewed'}
-        </button>
-      </footer>
+      {!mobileMode && (
+        <>
+          <nav className="financial-mission-routes" aria-label="Financial Investigation next routes">
+            {workspace.routes.map((route) => <button key={route.tool} type="button" onClick={() => openRelatedTool(route)}>{route.label}</button>)}
+            <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
+          </nav>
+          <footer className="financial-mission-review">
+            <div>
+              <strong>Financial Investigation review</strong>
+              <span>Mark reviewed after comparing the applicable account, dated activity, payment, deposit, and payroll records.</span>
+            </div>
+            <button type="button" className={reviewed ? '' : 'financial-mission-primary'} onClick={() => markReviewed('Financial Investigation')}>
+              {reviewed ? '✓ Financial Investigation reviewed' : 'Mark Financial Investigation reviewed'}
+            </button>
+          </footer>
+        </>
+      )}
     </div>
   );
 }

@@ -24,7 +24,7 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
   await expect(workspace.locator('[data-link-analysis-map]')).toBeVisible();
   await expect(workspace.getByRole('heading', { name: 'Exact cross-account matches', exact: true })).toBeVisible();
   await expect(workspace.getByText('Verified Links Summary', { exact: true })).toBeVisible();
-  await expect(workspace.getByText('Luna · factual link summary', { exact: true })).toBeVisible();
+  await expect(workspace.getByText('Evidence boundary', { exact: true })).toBeVisible();
   await expect(workspace.locator('[data-link-account]')).toHaveCount(3);
   await expect(searchShell.locator('summary small')).toHaveText('3 matched accounts');
 
@@ -33,7 +33,7 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
   await firstAccount.locator('.link-analysis-account-heading').click();
   await expect(firstAccount.locator('.link-analysis-account-detail')).toBeVisible();
   await expect(firstAccount).toContainText('Exact shared identifier');
-  await expect(firstAccount).toContainText('Link source and confidence');
+  await expect(firstAccount).toContainText('Link source');
   await expect(firstAccount).toContainText('Verified source');
   await firstAccount.getByRole('button', { name: 'Pin Link', exact: true }).click();
   await firstAccount.getByRole('button', { name: 'Open Account', exact: true }).click();
@@ -87,7 +87,7 @@ test('Link Analysis uses the dedicated graph, exact account matches, and evidenc
 
   await workspace.getByRole('button', { name: 'Pin Search', exact: true }).click();
   await workspace.getByRole('button', { name: 'Save Factual Summary', exact: true }).click();
-  await workspace.getByRole('button', { name: 'Mark Reviewed', exact: true }).click();
+  await workspace.getByRole('button', { name: /Mark (?:Link Analysis )?Reviewed/, exact: true }).click();
   await expect(workspace.getByRole('button', { name: '✓ Link Analysis Reviewed', exact: true })).toBeVisible();
 
   const workflow = await openWorkspacePages(page);

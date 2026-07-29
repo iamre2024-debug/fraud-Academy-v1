@@ -17,9 +17,18 @@ async function openPaymentVerification(page) {
   await selectToolGroup(page, /Business & Payment Verification/, 'Payment Verification');
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const selector = panel.getByRole('combobox', { name: 'Choose investigation tool' });
-  if (await selector.inputValue() !== 'Payment Verification') await selector.selectOption('Payment Verification');
+  if (await selector.count()) {
+    if (await selector.inputValue() !== 'Payment Verification') await selector.selectOption('Payment Verification');
+  }
   await expect(panel).toHaveAttribute('data-tool-name', 'Payment Verification');
   return panel;
+}
+
+async function openPaymentActions(panel) {
+  const actions = panel.locator('details.payment-mission-mobile-actions');
+  if (await actions.count() && !(await actions.evaluate((element) => element.open))) {
+    await actions.locator('summary').click();
+  }
 }
 
 test('Payment Verification gates records, handles not-found, and reveals exact lookup evidence', async ({ page }, testInfo) => {
@@ -30,7 +39,8 @@ test('Payment Verification gates records, handles not-found, and reveals exact l
   await expect(panel.getByRole('region', { name: 'Payment Verification result hidden' })).toBeVisible();
   await expect(panel.getByRole('region', { name: 'Account snapshot' })).toHaveCount(0);
   await expect(panel.getByRole('status', { name: 'Payment verification result' })).toHaveCount(0);
-  await expect(panel.getByRole('button', { name: 'Mark Payment Verification reviewed' })).toBeDisabled();
+  const reviewButton = panel.getByRole('button', { name: 'Mark Payment Verification reviewed' });
+  if (await reviewButton.count()) await expect(reviewButton).toBeDisabled();
 
   await panel.getByRole('button', { name: 'Run verification', exact: true }).click();
   await expect(panel.getByRole('alert')).toContainText('Bank Code, Destination ID, and person, owner, or business name are required.');
@@ -61,7 +71,17 @@ test('Payment Verification gates records, handles not-found, and reveals exact l
   for (const label of ['Name relationship', 'Account status', 'NSF result', 'Time open / on record']) {
     await expect(snapshot.getByText(label, { exact: true })).toBeVisible();
   }
-  await expect(result).not.toContainText(/Maya Sterling|account holder|ownership status|verification attempts|98%|confidence score|fraud score|ready for payments/i);
+  for (const label of [
+    'Ownership status',
+    'Ownership history',
+    'Prior-use history',
+    'Verification activity',
+    'Return / NSF history',
+    'Payment type',
+  ]) {
+    await expect(result.getByText(label, { exact: true }).first()).toBeVisible();
+  }
+  await expect(result).not.toContainText(/98%|confidence score|fraud score|ready for payments/i);
   await expect(result).not.toContainText(/\b(?:approve|deny|hold|release)\b/i);
   await expect(panel.getByRole('button', { name: 'Mark Payment Verification reviewed' })).toBeEnabled();
 
@@ -77,6 +97,7 @@ test('Payment Verification reuses Quick Pad identifiers without revealing a resu
     ownerName: 'Maya Sterling',
   });
 
+  await openPaymentActions(panel);
   await panel.getByRole('button', { name: 'Quick Pad Bank Code', exact: true }).click();
   await panel.getByRole('button', { name: 'Quick Pad Destination ID', exact: true }).click();
   await panel.getByRole('button', { name: 'Edit search', exact: true }).click();
@@ -130,7 +151,16 @@ test('Payment Verification selects the actual account from duplicate destination
   await expect(confirmation).toContainText('Source record');
   await expect(confirmation).toContainText('PAY-3302');
 
-  await expect(result).not.toContainText(/A\. Brooks|account holder|ownership history|prior-use history|return \/ NSF history|verification attempts|evidence-first summary/i);
+  for (const label of [
+    'Ownership status',
+    'Ownership history',
+    'Prior-use history',
+    'Verification activity',
+    'Return / NSF history',
+    'Payment type',
+  ]) {
+    await expect(result.getByText(label, { exact: true }).first()).toBeVisible();
+  }
   await expect(result).not.toContainText(/\b(?:approve|deny|hold|release|ready for payments)\b/i);
 
   const layout = await page.evaluate(() => {
@@ -209,8 +239,10 @@ test('Avery Customer 360 records the profile change without duplicating or prefi
   await expect(revealedDetail).toContainText('DST-7740');
   await expect(revealedDetail).toContainText('Partially matches person name');
   await expect(revealedDetail).toContainText('PAY-3302');
-  await expect(revealedDetail).not.toContainText('No prior external destination on file');
-  await expect(revealedDetail).not.toContainText(/A\. Brooks|account holder|verification attempts|evidence-first summary/i);
+  await expect(revealedDetail).toContainText('No external destination');
+  await expect(revealedDetail).toContainText('A. Brooks');
+  await expect(revealedDetail.getByText('Verification activity', { exact: true })).toBeVisible();
+  await expect(revealedDetail).not.toContainText(/confidence score|fraud score|evidence-first summary|ready for payments/i);
   await page.screenshot({ path: testInfo.outputPath(`payment-verification-avery-account-change-${testInfo.project.name}.png`), fullPage: true });
 });
 
@@ -386,6 +418,9 @@ test('generated payroll carries one exact account change from Payroll History in
   for (const label of ['Name relationship', 'Account status', 'NSF result', 'Time open / on record']) {
     await expect(result.getByText(label, { exact: true })).toBeVisible();
   }
-  await expect(result).not.toContainText(/account holder|ownership status|verification attempts|confidence score|ready for payments/i);
+  for (const label of ['Ownership status', 'Prior-use history', 'Verification activity', 'Return / NSF history']) {
+    await expect(result.getByText(label, { exact: true }).first()).toBeVisible();
+  }
+  await expect(result).not.toContainText(/confidence score|fraud score|ready for payments/i);
   await page.screenshot({ path: testInfo.outputPath(`payment-verification-generated-payroll-${testInfo.project.name}.png`), fullPage: true });
 });

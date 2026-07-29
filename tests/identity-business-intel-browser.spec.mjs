@@ -32,10 +32,6 @@ async function openIdentityIntel(page) {
   await page.goto('/');
   const briefing = page.locator('[data-workspace-page="briefing"]');
   await expect(briefing).toBeVisible();
-  await briefing.getByRole('navigation', { name: 'Case briefing files' })
-    .getByRole('button', { name: 'Investigation launchpad', exact: true })
-    .click();
-  await briefing.getByRole('button', { name: /Begin investigation/i }).click();
   await selectToolGroup(page, /Identity & Customer/, 'Identity Intel / People Search');
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Identity Intel / People Search');

@@ -251,8 +251,8 @@ function AccountCard({
             <div><dt>First use</dt><dd>{match.identifier.firstUse ?? match.firstUse}</dd></div>
             <div><dt>Last use</dt><dd>{match.identifier.lastUse ?? match.lastUse}</dd></div>
             <div>
-              <dt>Link source and confidence</dt>
-              <dd><strong>Verified source</strong> · {match.identifier.source} · {match.identifier.confidence}</dd>
+              <dt>Link source</dt>
+              <dd><strong>Exact source record</strong> · {match.identifier.source}</dd>
             </div>
             <div><dt>Account status or restriction</dt><dd>{match.status} · {match.statusSource}</dd></div>
           </dl>
@@ -291,7 +291,7 @@ function AccountDossier({ match, onClose, onPin, onSaveNote, onOpenRelatedCase, 
       <div>
         <article><span>Account context</span><strong>{match.accountId}</strong><p>{match.customerType} · {match.productType}</p></article>
         <article><span>Relationship evidence</span><strong>{match.identifierTypeLabel}</strong><p>{match.exactSharedIdentifier} · {match.relationshipToCurrentCase}</p></article>
-        <article><span>Link provenance</span><strong>{match.identifier.source}</strong><p>{match.identifier.confidence} · first use {match.identifier.firstUse ?? match.firstUse} · last use {match.identifier.lastUse ?? match.lastUse}</p></article>
+        <article><span>Link provenance</span><strong>{match.identifier.source}</strong><p>First use {match.identifier.firstUse ?? match.firstUse} · last use {match.identifier.lastUse ?? match.lastUse}</p></article>
         <article><span>Status meaning</span><strong>{match.status}</strong><p>{match.statusExplanation} · {match.statusSource}</p></article>
       </div>
       <aside role="region" aria-label="Current case evidence boundary">
@@ -326,6 +326,7 @@ export default function LinkAnalysisWorkspace({
   onManualSearch,
   onSearchCommitted,
   revealSearch = false,
+  mobileMode = false,
 }) {
   const suggestions = useMemo(() => getLinkIdentifiersForCase(activeCase), [activeCase]);
   const defaultSuggestion = suggestions.find((item) => item.type === 'phone')
@@ -529,18 +530,20 @@ export default function LinkAnalysisWorkspace({
       data-link-analysis-state={submittedQuery ? 'searched' : 'empty'}
       data-opened-from-pin={openedPinnedEvidence?.tool === 'Link Analysis' ? 'true' : undefined}
     >
-      <header className="link-analysis-page-header">
-        <div className="link-analysis-title-icon"><LinkGlyph type="shield" size={28} /></div>
-        <div>
-          <p>Connections · Evidence First</p>
-          <h2>Link Analysis</h2>
-          <span>Search exact identifiers, inspect linked accounts, and document only verified relationships.</span>
-        </div>
-        <div className="link-analysis-page-actions">
-          <span>{activeCase.id}</span>
-          <button type="button" onClick={jumpDecision}>Submit Decision</button>
-        </div>
-      </header>
+      {!mobileMode && (
+        <header className="link-analysis-page-header">
+          <div className="link-analysis-title-icon"><LinkGlyph type="shield" size={28} /></div>
+          <div>
+            <p>Connections · Evidence First</p>
+            <h2>Link Analysis</h2>
+            <span>Search exact identifiers, inspect linked accounts, and document only verified relationships.</span>
+          </div>
+          <div className="link-analysis-page-actions">
+            <span>{activeCase.id}</span>
+            <button type="button" onClick={jumpDecision}>Submit Decision</button>
+          </div>
+        </header>
+      )}
 
       <details
         className="link-analysis-search-shell"
@@ -686,14 +689,24 @@ export default function LinkAnalysisWorkspace({
                   <article><strong>{result.summary.relatedCases}</strong><span>Related Cases</span></article>
                 </div>
                 <aside>
-                  <span aria-hidden="true">🐱</span>
+                  <span aria-hidden="true"><LinkGlyph type="shield" size={21} /></span>
                   <div>
-                    <strong>Luna · factual link summary</strong>
+                    <strong>Evidence boundary</strong>
                     <p>{result.summary.total
                       ? `${result.summary.total} exact account match${result.summary.total === 1 ? '' : 'es'} returned. ${result.summary.restricted} linked account${result.summary.restricted === 1 ? ' has' : 's have'} a recorded restriction or closure.`
                       : 'No exact linked-account record returned for this value.'} This does not decide the active case.</p>
                   </div>
                 </aside>
+                {mobileMode && (
+                  <div className="link-analysis-mobile-summary-actions">
+                    <button type="button" className="link-analysis-mobile-summary-action" onClick={saveSummaryNote}>
+                      Save Factual Summary
+                    </button>
+                    <button type="button" className="link-analysis-mobile-summary-action" onClick={() => markReviewed('Link Analysis')}>
+                      {reviewed ? '✓ Link Analysis Reviewed' : 'Mark Link Analysis Reviewed'}
+                    </button>
+                  </div>
+                )}
               </section>
             </div>
           </div>
@@ -719,19 +732,21 @@ export default function LinkAnalysisWorkspace({
         </section>
       )}
 
-      <footer className="link-analysis-review-bar investigation-tool-review-bar">
-        <div>
-          <strong>Link Analysis review</strong>
-          <span>An exact link is evidence—not an automatic conclusion about the current case.</span>
-        </div>
-        <nav>
-          <button type="button" onClick={saveSummaryNote} disabled={!submittedQuery}>Save Factual Summary</button>
-          <button type="button" onClick={() => markReviewed('Link Analysis')} disabled={!submittedQuery}>
-            {reviewed ? '✓ Link Analysis Reviewed' : 'Mark Reviewed'}
-          </button>
-          <button type="button" className="primary" onClick={jumpDecision}>Submit Decision</button>
-        </nav>
-      </footer>
+      {!mobileMode && (
+        <footer className="link-analysis-review-bar investigation-tool-review-bar">
+          <div>
+            <strong>Link Analysis review</strong>
+            <span>An exact link is evidence—not an automatic conclusion about the current case.</span>
+          </div>
+          <nav>
+            <button type="button" onClick={saveSummaryNote} disabled={!submittedQuery}>Save Factual Summary</button>
+            <button type="button" onClick={() => markReviewed('Link Analysis')} disabled={!submittedQuery}>
+              {reviewed ? '✓ Link Analysis Reviewed' : 'Mark Reviewed'}
+            </button>
+            <button type="button" className="primary" onClick={jumpDecision}>Submit Decision</button>
+          </nav>
+        </footer>
+      )}
     </div>
   );
 }

@@ -46,13 +46,19 @@ test('Merchant Intelligence presents a chargeback lifecycle with inspectable sce
   await expect(toolPanel.locator('.merchant-document-sheet')).toContainText('StreamBox Premium');
   await toolPanel.getByRole('button', { name: 'Pin document' }).click();
   if (testInfo.project.name === 'mobile-chromium') {
-    await expect(page.locator('.mission-workspace-status')).toContainText(/⭐\s+2 pinned/);
+    await page.getByRole('button', { name: 'Open Merchant Intelligence actions', exact: true }).click();
+    const actions = page.getByRole('dialog', { name: 'Merchant Intelligence actions' });
+    await expect(actions.getByRole('button', { name: /Pinned evidence \(2\)/ })).toBeVisible();
+    await actions.getByRole('button', { name: 'Close Merchant Intelligence actions', exact: true }).click();
   } else {
     await expect(page.locator('.tray-card')).toContainText('Pinned');
   }
   await toolPanel.getByRole('button', { name: 'Save review note' }).click();
   if (testInfo.project.name === 'mobile-chromium') {
-    await expect(page.locator('.mission-workspace-status')).toContainText(/📝\s+1 notes/);
+    await page.getByRole('button', { name: 'Open Merchant Intelligence actions', exact: true }).click();
+    const actions = page.getByRole('dialog', { name: 'Merchant Intelligence actions' });
+    await expect(actions.getByRole('button', { name: /Case notes \(1\)/ })).toBeVisible();
+    await actions.getByRole('button', { name: 'Close Merchant Intelligence actions', exact: true }).click();
   } else {
     await expect(page.locator('.notebook-card')).toContainText('Merchant Intelligence');
   }

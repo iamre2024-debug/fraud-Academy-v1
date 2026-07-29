@@ -258,7 +258,7 @@ export function MobileCaseIndicatorsReview({
       <section className="mobile-review-card mobile-claim-cues">
         <SectionHeading
           number="2"
-          title="Case Type Cues"
+          title="Claim Type Cues"
           help="These are factual routing fields from the case, not conclusions."
         />
         <div className="mobile-cue-grid">

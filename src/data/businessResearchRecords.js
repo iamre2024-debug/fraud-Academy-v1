@@ -5,7 +5,7 @@ export const businessResearchSections = [
   { id: 'ownership', label: 'Ownership & Control', question: 'Which owners, controlling parties, and officers are recorded?' },
   { id: 'footprint', label: 'Operating Footprint', question: 'Where and how does the business operate?' },
   { id: 'relationship', label: 'Institution Relationship', question: 'Which business accounts, products, balances, restrictions, and repayment sources are recorded?' },
-  { id: 'research', label: 'Luna Business Research', question: 'What did Luna locate across the fictional training sources?' },
+  { id: 'research', label: 'Business Source Research', question: 'What did the supplied fictional sources return?' },
   { id: 'sources', label: 'Source Records', question: 'Which fictional source records support the profile?' },
 ];
 
@@ -67,7 +67,7 @@ function researchRows(profile) {
   return profile.research.map((item) => sourceRecord({
     id: item.id,
     title: item.topic,
-    category: 'Luna Business Research',
+    category: 'Business Source Research',
     value: item.status,
     observed: item.checkedDate,
     detail: item.finding,

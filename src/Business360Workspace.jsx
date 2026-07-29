@@ -211,7 +211,7 @@ export default function Business360Workspace({
     ['access', 'Access & Security'],
     ['contact', 'Contact History'],
     ...(dossier.payrollRelationship ? [['payroll', 'Payroll Relationship']] : []),
-    ['research', 'Luna Business Research'],
+    ['research', 'Business Source Research'],
   ];
   const [activeTab, setActiveTab] = useState('overview');
   const [ownerId, setOwnerId] = useState('');
@@ -646,7 +646,7 @@ export default function Business360Workspace({
 
       {activeTab === 'research' && (
         <section className="business-360-section" aria-labelledby="luna-business-research-heading">
-          <header><p>Factual source comparison · separate from Luna Debrief</p><h3 id="luna-business-research-heading">Luna Business Research</h3></header>
+          <header><p>Factual source comparison · separate from Luna Debrief</p><h3 id="luna-business-research-heading">Business Source Research</h3></header>
           <p className="business-360-research-note">A missing or conflicting record is a source result, not proof that the business does not exist and not a conclusion about the active review.</p>
           <div className="business-360-research-list">
             {dossier.researchChecks.map((check) => (

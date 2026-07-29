@@ -18,20 +18,24 @@ async function openFinancialInvestigation(page) {
   await selectToolGroup(page, /Transactions & Financial/, 'Financial Investigation');
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const toolSelector = panel.getByRole('combobox', { name: 'Choose investigation tool' });
-  if (await toolSelector.inputValue() !== 'Financial Investigation') {
-    await toolSelector.selectOption('Financial Investigation');
+  if (await toolSelector.count()) {
+    if (await toolSelector.inputValue() !== 'Financial Investigation') {
+      await toolSelector.selectOption('Financial Investigation');
+    }
   }
   await expect(panel).toHaveAttribute('data-tool-name', 'Financial Investigation');
   await expect(panel).toHaveAttribute('data-reference-investigation-layout', 'mission-v2');
-  await expect(panel.getByRole('heading', { name: 'Financial Investigation', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Financial Investigation', exact: true }).first()).toBeVisible();
   return panel;
 }
 
 async function expectSavedCaseState(page, testInfo, { pin, pinCount, noteCount }) {
   if (testInfo.project.name === 'mobile-chromium') {
-    const status = page.locator('.mission-workspace-status');
-    await expect(status).toContainText(`⭐ ${pinCount} pinned`);
-    await expect(status).toContainText(`📝 ${noteCount} notes`);
+    await page.getByRole('button', { name: 'Open Financial Investigation actions', exact: true }).click();
+    const actions = page.getByRole('dialog', { name: 'Financial Investigation actions' });
+    await expect(actions.getByRole('button', { name: new RegExp(`Pinned evidence \\(${pinCount}\\)`) })).toBeVisible();
+    await expect(actions.getByRole('button', { name: new RegExp(`Case notes \\(${noteCount}\\)`) })).toBeVisible();
+    await actions.getByRole('button', { name: 'Close Financial Investigation actions', exact: true }).click();
     return;
   }
   await expect(page.locator('.tray-card')).toContainText(pin);
@@ -58,7 +62,12 @@ test('Financial Investigation renders actual dashboard evidence and keeps explor
   await expect(panel).not.toContainText(forbiddenPreSubmissionCopy);
 
   const explorer = deck.locator('.financial-mission-explorer');
-  await expect(explorer).toHaveAttribute('open', '');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(explorer).not.toHaveAttribute('open', '');
+    await explorer.locator('summary').click();
+  } else {
+    await expect(explorer).toHaveAttribute('open', '');
+  }
   await expect(explorer).toContainText('Search, filter, expand, pin, and document');
 
   const categoryButton = dashboard.locator('.financial-mission-categories button').first();
@@ -94,10 +103,15 @@ test('Financial Investigation renders actual dashboard evidence and keeps explor
   await expect(detail).toContainText(firstRecordId);
   let pinCountBefore = 0;
   if (testInfo.project.name === 'mobile-chromium') {
-    const pinCountMatch = (await page.locator('.mission-workspace-status').innerText())
+    await page.getByRole('button', { name: 'Open Financial Investigation actions', exact: true }).click();
+    const actions = page.getByRole('dialog', { name: 'Financial Investigation actions' });
+    const pinCountMatch = (await actions.getByRole('button', { name: /Pinned evidence/ }).innerText())
       .match(/⭐\s+(\d+)\s+pinned/);
-    expect(pinCountMatch).not.toBeNull();
-    pinCountBefore = Number(pinCountMatch[1]);
+    const fallbackCountMatch = (await actions.getByRole('button', { name: /Pinned evidence/ }).innerText())
+      .match(/\((\d+)\)/);
+    expect(pinCountMatch ?? fallbackCountMatch).not.toBeNull();
+    pinCountBefore = Number((pinCountMatch ?? fallbackCountMatch)[1]);
+    await actions.getByRole('button', { name: 'Close Financial Investigation actions', exact: true }).click();
   }
   await detail.getByRole('button', { name: 'Pin record', exact: true }).click();
   await detail.getByRole('button', { name: 'Save evidence note', exact: true }).click();
@@ -107,8 +121,18 @@ test('Financial Investigation renders actual dashboard evidence and keeps explor
     noteCount: 1,
   });
 
-  await deck.getByRole('button', { name: 'Mark Financial Investigation reviewed', exact: true }).click();
-  await expect(deck.getByRole('button', { name: '✓ Financial Investigation reviewed', exact: true })).toBeVisible();
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.getByRole('button', { name: 'Open Financial Investigation actions', exact: true }).click();
+    let actions = page.getByRole('dialog', { name: 'Financial Investigation actions' });
+    await actions.getByRole('button', { name: '✓ Mark reviewed', exact: true }).click();
+    await page.getByRole('button', { name: 'Open Financial Investigation actions', exact: true }).click();
+    actions = page.getByRole('dialog', { name: 'Financial Investigation actions' });
+    await expect(actions.getByRole('button', { name: '✓ Reviewed', exact: true })).toBeVisible();
+    await actions.getByRole('button', { name: 'Close Financial Investigation actions', exact: true }).click();
+  } else {
+    await deck.getByRole('button', { name: 'Mark Financial Investigation reviewed', exact: true }).click();
+    await expect(deck.getByRole('button', { name: '✓ Financial Investigation reviewed', exact: true })).toBeVisible();
+  }
 
   const layout = await page.evaluate(() => {
     const viewportWidth = window.innerWidth;
@@ -126,20 +150,28 @@ test('Financial Investigation renders actual dashboard evidence and keeps explor
       explorerFits: fits('.financial-mission-explorer'),
       recordListFits: fits('.financial-record-list'),
       detailFits: fits('.financial-record-detail'),
-      routeClasses: document.querySelector('.financial-mission-routes')?.className,
-      reviewClasses: document.querySelector('.financial-mission-review')?.className,
-      reviewBackground: getComputedStyle(document.querySelector('.financial-mission-review')).backgroundImage,
+      routeClasses: document.querySelector('.financial-mission-routes')?.className ?? null,
+      reviewClasses: document.querySelector('.financial-mission-review')?.className ?? null,
+      reviewBackground: document.querySelector('.financial-mission-review')
+        ? getComputedStyle(document.querySelector('.financial-mission-review')).backgroundImage
+        : null,
     };
   });
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
   expect(layout.panelFits && layout.deckFits && layout.dashboardFits && layout.explorerFits).toBe(true);
   expect(layout.recordListFits && layout.detailFits).toBe(true);
-  expect(layout.routeClasses).toBe('financial-mission-routes');
-  expect(layout.reviewClasses).toBe('financial-mission-review');
-  expect(layout.reviewBackground).not.toContain('rgb(250, 247, 255)');
+  if (testInfo.project.name === 'mobile-chromium') {
+    expect(layout.routeClasses).toBeNull();
+    expect(layout.reviewClasses).toBeNull();
+    expect(layout.reviewBackground).toBeNull();
+  } else {
+    expect(layout.routeClasses).toBe('financial-mission-routes');
+    expect(layout.reviewClasses).toBe('financial-mission-review');
+    expect(layout.reviewBackground).not.toContain('rgb(250, 247, 255)');
+  }
 });
 
-test('Financial Investigation exposes generated payroll totals, filters, and exact Payroll History routing', async ({ page }) => {
+test('Financial Investigation exposes generated payroll totals, filters, and exact Payroll History routing', async ({ page }, testInfo) => {
   test.setTimeout(90_000);
   await page.goto('/');
   await generateCaseFromQueue(page, {
@@ -168,6 +200,7 @@ test('Financial Investigation exposes generated payroll totals, filters, and exa
 
   await dashboard.locator('.financial-mission-bars > button').first().click();
   const explorer = deck.locator('.financial-mission-explorer');
+  if (testInfo.project.name === 'mobile-chromium') await explorer.locator('summary').click();
   const sectionNavigation = explorer.getByRole('navigation', { name: 'Financial Investigation sections' });
   await expect(sectionNavigation.getByRole('button', { name: /^Business Payroll Analysis\b/ })).toHaveAttribute('aria-pressed', 'true');
   await expect(explorer.getByRole('region', { name: 'Business payroll monthly totals' })).toBeVisible();

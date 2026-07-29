@@ -184,7 +184,7 @@ test('case taxonomy routes desktop and mobile generators and protects payroll/li
     'Exact shared identifier',
     'First use',
     'Last use',
-    'Link source and confidence',
+    'Link source',
     'Account status or restriction',
   ]) {
     await expect(matchDetail.getByText(requiredField, { exact: true })).toBeVisible();

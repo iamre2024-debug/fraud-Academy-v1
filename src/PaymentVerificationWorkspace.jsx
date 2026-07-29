@@ -39,6 +39,7 @@ export default function PaymentVerificationWorkspace({
   jumpDecision = noop,
   recordAction = noop,
   quickPin = noop,
+  mobileMode = false,
 }) {
   const records = useMemo(
     () => getFinancialRecords(activeCase).paymentVerification ?? [],
@@ -126,9 +127,12 @@ export default function PaymentVerificationWorkspace({
     if (!activeRecord) return;
     const message = [
       `${lookupResult.nameMatchResult} for the supplied ${lookupResult.matchedPartyType?.toLowerCase() ?? 'name'}`,
+      activeRecord.ownershipStatus,
       `account ${lookupResult.accountState}`,
       lookupResult.nsfStatus,
       lookupResult.accountAgeLabel,
+      activeRecord.priorUseHistory,
+      `${activeRecord.verificationAttempts.length} verification attempt${activeRecord.verificationAttempts.length === 1 ? '' : 's'} recorded`,
       `status as of ${lookupResult.statusAsOf}`,
     ].join(' · ');
     saveNote(`Payment Verification: ${activeRecord.id} — ${message}.`, 'Payment verification');
@@ -150,7 +154,7 @@ export default function PaymentVerificationWorkspace({
           <div>
             <p>Search before reveal</p>
             <h3>Verify a specific payment destination</h3>
-            <span>Run an exact Bank Code and Destination ID search. The result returns only the supplied name relationship, account state, NSF result, and supported account age.</span>
+            <span>Run an exact Bank Code and Destination ID search. The result reveals the supplied name relationship, ownership source, standing, prior use, verification attempts, return history, and supported account age.</span>
           </div>
           {lookupResult && <button type="button" onClick={resetLookup}>Clear result</button>}
         </header>
@@ -196,7 +200,7 @@ export default function PaymentVerificationWorkspace({
           <span aria-hidden="true">⌕</span>
           <div>
             <strong>Verification result is hidden</strong>
-            <p>Enter all three search values and run the lookup. No name, account status, NSF information, or account age appears before the search.</p>
+            <p>Enter all three search values and run the lookup. No ownership, status, prior-use, return, or verification detail appears before the search.</p>
           </div>
         </section>
       )}
@@ -270,7 +274,93 @@ export default function PaymentVerificationWorkspace({
             <div><dt>Status date</dt><dd>{lookupResult.statusAsOf}</dd></div>
           </dl>
 
-          <div className="payment-mission-actions" aria-label="Payment Verification evidence actions">
+          <section className="payment-mission-evidence-grid" aria-label="Payment ownership and verification evidence">
+            <article>
+              <header>
+                <span aria-hidden="true">◎</span>
+                <div><p>Ownership</p><h4>Recorded name and source</h4></div>
+              </header>
+              <dl>
+                <div><dt>Ownership status</dt><dd>{activeRecord.ownershipStatus}</dd></div>
+                <div><dt>Ownership history</dt><dd>{activeRecord.ownershipHistory}</dd></div>
+                <div><dt>Prior-use history</dt><dd>{activeRecord.priorUseHistory}</dd></div>
+                <div><dt>Customer link</dt><dd>{activeRecord.customerLink}</dd></div>
+              </dl>
+            </article>
+
+            <article>
+              <header>
+                <span aria-hidden="true">↻</span>
+                <div><p>Verification activity</p><h4>{activeRecord.verificationAttempts.length} recorded attempt{activeRecord.verificationAttempts.length === 1 ? '' : 's'}</h4></div>
+              </header>
+              {activeRecord.verificationAttempts.length ? (
+                <ol className="payment-mission-attempts">
+                  {activeRecord.verificationAttempts.map((attempt) => (
+                    <li key={attempt.id}>
+                      <strong>{attempt.method}</strong>
+                      <span>{attempt.result} · {attempt.time}</span>
+                      <small>{attempt.note}</small>
+                    </li>
+                  ))}
+                </ol>
+              ) : <p className="payment-mission-empty-evidence">No verification attempts are recorded in the supplied packet.</p>}
+              <dl>
+                <div><dt>Callback status</dt><dd>{activeRecord.callbackStatus}</dd></div>
+                <div><dt>Trusted source</dt><dd>{activeRecord.trustedContactSource}</dd></div>
+              </dl>
+            </article>
+
+            <article>
+              <header>
+                <span aria-hidden="true">⇄</span>
+                <div><p>Destination history</p><h4>{activeRecord.laneVariant} payment record</h4></div>
+              </header>
+              <dl>
+                <div><dt>Previous destination</dt><dd>{activeRecord.oldDestination}</dd></div>
+                <div><dt>Current destination</dt><dd>{activeRecord.newDestination}</dd></div>
+                <div><dt>Change comparison</dt><dd>{activeRecord.changeComparison}</dd></div>
+              </dl>
+            </article>
+
+            <article>
+              <header>
+                <span aria-hidden="true">▤</span>
+                <div><p>Standing and returns</p><h4>Source-record detail</h4></div>
+              </header>
+              <dl>
+                <div><dt>Operational standing</dt><dd>{activeRecord.standingStatus}</dd></div>
+                <div><dt>Return / NSF history</dt><dd>{activeRecord.returnHistory}</dd></div>
+                <div><dt>Payment type</dt><dd>{activeRecord.paymentType}</dd></div>
+                <div><dt>Matching source IDs</dt><dd>{lookupResult.matchingRecordIds.join(' · ')}</dd></div>
+              </dl>
+            </article>
+          </section>
+
+          {mobileMode ? (
+            <details className="payment-mission-mobile-actions">
+              <summary>Evidence actions</summary>
+              <div className="payment-mission-actions" aria-label="Payment Verification evidence actions">
+                <button type="button" onClick={() => pin(lookupResult.recordId)}>Pin result</button>
+                <button type="button" onClick={() => quickPin({
+                  label: 'Bank Code',
+                  value: lookupResult.bankCode,
+                  sourceTool: 'Payment Verification',
+                  sourceRecordId: lookupResult.recordId,
+                })}>Quick Pad Bank Code</button>
+                <button type="button" onClick={() => quickPin({
+                  label: 'Destination ID',
+                  value: lookupResult.destinationId,
+                  sourceTool: 'Payment Verification',
+                  sourceRecordId: lookupResult.recordId,
+                })}>Quick Pad Destination ID</button>
+                <button type="button" onClick={saveResultNote}>Save evidence note</button>
+                <button type="button" onClick={() => markReviewed('Payment Verification')}>
+                  {reviewed ? '✓ Payment Verification reviewed' : 'Mark Payment Verification reviewed'}
+                </button>
+                <button type="button" onClick={resetLookup}>Edit search</button>
+              </div>
+            </details>
+          ) : <div className="payment-mission-actions" aria-label="Payment Verification evidence actions">
             <button type="button" onClick={() => pin(lookupResult.recordId)}>Pin result</button>
             <button type="button" onClick={() => quickPin({
               label: 'Bank Code',
@@ -286,7 +376,7 @@ export default function PaymentVerificationWorkspace({
             })}>Quick Pad Destination ID</button>
             <button type="button" onClick={saveResultNote}>Save evidence note</button>
             <button type="button" onClick={resetLookup}>Edit search</button>
-          </div>
+          </div>}
         </section>
       )}
 
@@ -305,25 +395,29 @@ export default function PaymentVerificationWorkspace({
         </section>
       )}
 
-      <nav className="payment-mission-routes" aria-label="Payment verification next routes">
-        {relatedRoutes.map((route) => <button key={route} type="button" onClick={() => openTool(route)}>{`Open ${route}`}</button>)}
-        <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
-      </nav>
+      {!mobileMode && (
+        <>
+          <nav className="payment-mission-routes" aria-label="Payment verification next routes">
+            {relatedRoutes.map((route) => <button key={route} type="button" onClick={() => openTool(route)}>{`Open ${route}`}</button>)}
+            <button type="button" onClick={jumpDecision}>Open Submit Decision</button>
+          </nav>
 
-      <footer className="payment-mission-review">
-        <div>
-          <strong>Payment Verification review</strong>
-          <span>Run an exact lookup and review the name relationship, account state, NSF result, and supported account age before marking this tool reviewed.</span>
-        </div>
-        <button
-          type="button"
-          disabled={!activeRecord}
-          className={reviewed ? '' : 'payment-mission-primary'}
-          onClick={() => markReviewed('Payment Verification')}
-        >
-          {reviewed ? '✓ Payment Verification reviewed' : 'Mark Payment Verification reviewed'}
-        </button>
-      </footer>
+          <footer className="payment-mission-review">
+            <div>
+              <strong>Payment Verification review</strong>
+              <span>Run an exact lookup and review the ownership, account standing, prior use, return history, and verification attempts before marking this tool reviewed.</span>
+            </div>
+            <button
+              type="button"
+              disabled={!activeRecord}
+              className={reviewed ? '' : 'payment-mission-primary'}
+              onClick={() => markReviewed('Payment Verification')}
+            >
+              {reviewed ? '✓ Payment Verification reviewed' : 'Mark Payment Verification reviewed'}
+            </button>
+          </footer>
+        </>
+      )}
     </div>
   );
 }

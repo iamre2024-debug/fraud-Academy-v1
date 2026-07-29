@@ -17,6 +17,9 @@ test('Login History keeps its evidence flow and uses the dedicated mobile authen
   await expect(toolPanel.locator('.login-detail-panel')).toContainText(firstLoginId);
   await search.clear();
 
+  if (testInfo.project.name === 'mobile-chromium') {
+    await toolPanel.getByRole('button', { name: 'Show access history filters', exact: true }).click();
+  }
   await toolPanel.getByRole('combobox', { name: 'Filter Login History by result' }).selectOption({ index: 1 });
   await expect(toolPanel.locator('[data-login-history-record]').first()).toBeVisible();
   await toolPanel.getByRole('button', { name: 'Clear filters', exact: true }).click();
@@ -34,6 +37,8 @@ test('Login History keeps its evidence flow and uses the dedicated mobile authen
     await expect(toolPanel.locator(':scope > .investigation-tool-header')).toBeHidden();
     await expect(toolPanel.locator(':scope > .investigation-tool-question')).toBeHidden();
     await expect(toolPanel.locator(':scope > .investigation-tool-controls')).toBeHidden();
+    const selectedEvidence = loginMission.locator('details.mobile-access-more-panel');
+    await selectedEvidence.locator('summary').click();
 
     const layout = await page.evaluate(() => {
       const list = document.querySelector('.mission-login-reference-page .mobile-login-record-list');

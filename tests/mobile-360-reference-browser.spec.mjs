@@ -45,10 +45,7 @@ async function capture(page, name) {
 
 async function openInitialCustomer360(page) {
   await page.goto('/');
-  const launchpad = page.getByRole('navigation', { name: 'Case briefing files' })
-    .getByRole('button', { name: 'Investigation launchpad' });
-  if (await launchpad.isVisible()) await launchpad.click();
-  await page.getByRole('button', { name: /Begin investigation/i }).click();
+  await selectToolGroup(page, /Identity & Customer/, 'Customer 360');
   const customer = page.locator('[data-mobile-360-screen="customer"]');
   await expect(customer).toBeVisible();
   return customer;
@@ -60,8 +57,7 @@ async function openCustomer360FromTools(page) {
   if (!(await customer.isVisible())) {
     const toolSelector = page.locator('[data-investigation-tools-screen="approved-theme-v1"]')
       .getByRole('combobox', { name: 'Choose investigation tool' });
-    await expect(toolSelector).toBeVisible();
-    await toolSelector.selectOption('Customer 360');
+    if (await toolSelector.count()) await toolSelector.selectOption('Customer 360');
   }
   await expect(customer).toBeVisible();
   return customer;
@@ -272,10 +268,7 @@ test('mobile Business Intelligence stays search-first and opens the active busin
 test('personal credit review does not restore business or payroll-only tools', async ({ page }) => {
   await page.goto('/');
   await activeCaseSelector(page).selectOption('FA-CR-24003');
-  const launchpad = page.getByRole('navigation', { name: 'Case briefing files' })
-    .getByRole('button', { name: 'Investigation launchpad' });
-  if (await launchpad.isVisible()) await launchpad.click();
-  await page.getByRole('button', { name: /Begin investigation/i }).click();
+  await selectToolGroup(page, /Identity & Customer/, 'Customer 360');
 
   const customer = page.locator('[data-mobile-360-screen="customer"]');
   await expect(customer).toBeVisible();

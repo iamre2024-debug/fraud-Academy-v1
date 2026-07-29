@@ -800,7 +800,8 @@ body[data-layout-mode="mobile"] .mobile-360-owner-record > .mobile-360-quick-pin
 }
 
 body[data-layout-mode="mobile"][data-mobile-360-drawer="open"],
-body[data-layout-mode="mobile"][data-mobile-360-actions="open"] {
+body[data-layout-mode="mobile"][data-mobile-360-actions="open"],
+body[data-layout-mode="mobile"][data-mobile-tool-actions="open"] {
   overflow: hidden;
 }
 
@@ -866,6 +867,26 @@ body[data-layout-mode="mobile"] .mobile-360-actions-menu > header > button {
   background: rgba(16, 77, 139, .55);
   color: #fff;
   font-size: 1.5rem;
+}
+
+body[data-layout-mode="mobile"] .mobile-tool-action-case-select {
+  display: grid;
+  gap: 5px;
+  color: #8ee7fb;
+  font-size: .75rem;
+  font-weight: 850;
+}
+
+body[data-layout-mode="mobile"] .mobile-tool-action-case-select select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(88, 206, 255, .34);
+  border-radius: 12px;
+  background: rgba(2, 18, 42, .82);
+  padding: 8px 10px;
+  color: #f4fbff;
+  font: inherit;
+  font-size: .75rem;
 }
 
 body[data-layout-mode="mobile"] .mobile-360-actions-menu > nav {
