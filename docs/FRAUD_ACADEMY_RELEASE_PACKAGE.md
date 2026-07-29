@@ -38,7 +38,7 @@ React entrypoint
       │   ├─ CaseSummaryCard
       │   ├─ ActiveCaseWorkflowRail
       │   ├─ CategoryTileRail
-      │   ├─ ActiveToolPanel
+      │   ├─ InvestigationToolPanel
       │   ├─ BottomInvestigationGrid
       │   └─ SubmitDecisionPanel
       ├─ GeneratedCaseControls
@@ -55,7 +55,7 @@ React entrypoint
 | `src/visualWorkspaceModel.js` | Owns categories, tool workflow constants, case-scoped storage keys, row builders, and neutral report-packet construction. |
 | `src/useVisualWorkspaceCaseState.js` | Owns case-scoped tray, notes, reviewed tools, decision drafts, learner packages, and Case Report packets. |
 | `src/useVisualWorkspaceActions.js` | Owns pinning, notes, reviewed-tool updates, neutral report creation, checklist behavior, and learner-package submission. |
-| `src/ActiveToolPanel.jsx` | Renders searchable records, expanded details, pin/review actions, desktop tables, and mobile record cards. |
+| `src/InvestigationToolPanel.jsx` | Renders the active searchable tool records and Case Report path, expanded details, pin/review actions, and responsive record layouts. |
 | `src/LunaPostSubmissionPanel.jsx` | Keeps scoring, strengths, missed evidence, answer guidance, and decision-quality feedback locked until a saved learner package exists. |
 | `src/data/generatedCaseRepository.js` | Is the only generated-case persistence boundary and provides the backend-ready async repository contract. |
 

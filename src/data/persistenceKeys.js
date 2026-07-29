@@ -8,6 +8,7 @@ export const storageKeys = {
   actions: 'fraud-academy-action-log-v1',
   documentRequests: 'fraud-academy-document-requests-v2',
   quickPad: 'fraud-academy-quick-pad-v1',
+  payrollInvestigations: 'fraud-academy-payroll-investigations-v1',
   debriefs: 'fraud-academy-completed-debriefs-v1',
 };
 
@@ -21,6 +22,7 @@ export const cloudResourceModes = {
   [storageKeys.actions]: 'array',
   [storageKeys.documentRequests]: 'value',
   [storageKeys.quickPad]: 'value',
+  [storageKeys.payrollInvestigations]: 'value',
   [storageKeys.debriefs]: 'array',
 };
 

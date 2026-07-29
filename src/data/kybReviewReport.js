@@ -1,6 +1,7 @@
-import { getKybReview } from './kybReviewRecords.js';
+import { getBusinessResearch } from './businessResearchRecords.js';
 
-const storageKey = 'fraud-academy-generated-kyb-reports-v1';
+const storageKey = 'fraud-academy-business-360-reports-v1';
+const legacyStorageKey = 'fraud-academy-generated-kyb-reports-v1';
 
 function page(title, subtitle, sections) {
   return { title, subtitle, kind: 'case', sections };
@@ -14,97 +15,169 @@ function generatedAt() {
   return new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-export function buildKybReviewReport(activeCase = {}) {
-  const workspace = getKybReview(activeCase);
-  const { profile, recordsByTab } = workspace;
+export function buildBusiness360Report(activeCase = {}) {
+  const workspace = getBusinessResearch(activeCase);
+  const { profile } = workspace;
   const generated = generatedAt();
-  const caseId = activeCase.id ?? 'FA-TRAIN-00000';
-  const customer = activeCase.person ?? 'Training Customer';
-  const claimType = activeCase.claimType ?? activeCase.type ?? 'Training Review';
   return {
-    id: `${caseId}-RPT-KYB`,
-    title: 'KYB Business Report',
-    type: 'Business verification report',
+    id: `${profile.businessId}-RPT-B360`,
+    title: 'Business 360 Research Report',
+    type: 'Business profile and source research report',
     folder: 'System Reports',
-    reference: `RPT-KYB-${caseId}`,
+    reference: `RPT-B360-${profile.businessId}`,
     status: 'Generated',
     reviewStatus: 'Ready for Review',
     extractionConfidence: 'System generated',
-    source: 'Fraud Academy KYB Review',
+    source: 'Fraud Academy Business 360',
     received: generated,
     updated: generated,
     customer: profile.legalName,
-    caseId,
-    claimType,
+    caseId: activeCase.id ?? 'FA-TRAIN-00000',
+    accountId: activeCase.accountId ?? 'ACCT-TRAIN-0000',
+    claimType: activeCase.claimType ?? activeCase.type ?? 'Training review',
     requestStatus: 'Generated',
-    authenticity: 'System-generated from fictional training records. Investigator source comparison remains required.',
-    summary: `Business registration, ownership, online-presence, bank-ownership, revenue, payroll, document, and linked-record evidence organized for ${profile.legalName}.`,
-    investigatorNote: 'Compare the report with Business 360, Identity Intel / People Search, Payment Verification, Financial Investigation, payroll records, and source documents.',
-    trainingTip: 'This report organizes business evidence. It does not determine the case outcome or replace the decision checklist.',
-    relatedTools: ['KYB Review', 'Business 360', 'Identity Intel / People Search', 'Payment Verification', 'Financial Investigation', 'Payroll History'],
-    relatedEvidence: [caseId, profile.registrationId, profile.ein, ...profile.owners.map(([id]) => id)],
+    authenticity: 'System-generated from fictional training sources. No live government, licensing, domain, directory, or internet search occurred.',
+    summary: `Reusable business identity, ownership, operating-footprint, institution-relationship, and Luna research records for ${profile.legalName}.`,
+    investigatorNote: 'Compare the dated fictional sources with Identity Intel, Payment Verification, Financial Investigation, Payroll History, and source documents when those tools are relevant.',
+    trainingTip: 'This report organizes factual business records. It does not assign an investigation outcome.',
+    relatedTools: ['Business 360', 'Identity Intel / People Search', 'Payment Verification', 'Financial Investigation', 'Payroll History'],
+    relatedEvidence: [
+      profile.businessId,
+      profile.registrationId,
+      profile.ein,
+      ...profile.ownership.beneficialOwners.map((owner) => owner.id),
+      ...profile.sourceRecords.map((record) => record.id),
+    ],
     fields: [
       ['Generated', generated],
-      ['Training label', 'Fictional data - not valid for real-world use'],
+      ['Training label', 'Fictional data · not valid for real-world use'],
       ['Legal business name', profile.legalName],
       ['DBA', profile.dba],
       ['Masked EIN', profile.ein],
-      ['Registration ID', profile.registrationId],
-      ['Jurisdiction', profile.jurisdiction],
+      ['Registration / file number', profile.registrationId],
+      ['Formation state', profile.formationState],
       ['Registration standing', profile.standing],
-      ['Business address', profile.address],
-      ['Business phone', profile.phone],
-      ['Website', profile.website],
-      ['Owner / UBO records', String(profile.owners.length)],
+      ['Physical address', profile.footprint.physicalAddress],
+      ['Business phone', profile.footprint.phone],
+      ['Website', profile.footprint.website],
+      ['Beneficial-owner records', String(profile.ownership.beneficialOwners.length)],
     ],
     pages: [
-      page('KYB Business Report', 'ENTITY AND REGISTRATION - FICTIONAL TRAINING REPORT', [
-        section('Report context', [['Case', caseId], ['Customer', customer], ['Claim type', claimType], ['Generated', generated]]),
-        section('Business identity', [['Legal name', profile.legalName], ['DBA', profile.dba], ['Entity type', profile.entityType], ['Industry', profile.industry], ['NAICS', profile.naics], ['Website', profile.website], ['Phone', profile.phone]]),
-        section('Registration record', [['Registration ID', profile.registrationId], ['Jurisdiction', profile.jurisdiction], ['Formation date', profile.formationDate], ['Standing', profile.standing], ['Masked EIN', profile.ein], ['Address', profile.address], ['Source', profile.source]]),
+      page('Business 360 Research Report', 'ENTITY AND REGISTRATION · FICTIONAL TRAINING SOURCES', [
+        section('Business identity', [
+          ['Legal name', profile.legalName],
+          ['DBA', profile.dba],
+          ['Entity type', profile.entityType],
+          ['Industry', profile.industry],
+          ['NAICS', profile.naics],
+          ['Masked EIN', profile.ein],
+        ]),
+        section('Registration record', [
+          ['Registration / file number', profile.registrationId],
+          ['Formation state', profile.formationState],
+          ['Formation date', profile.formationDate],
+          ['Standing', profile.standing],
+        ]),
+        section('Operating footprint', [
+          ['Physical address', profile.footprint.physicalAddress],
+          ['Mailing address', profile.footprint.mailingAddress],
+          ['Registered agent', profile.footprint.registeredAgent],
+          ['Phone', profile.footprint.phone],
+          ['Email', profile.footprint.email],
+          ['Website', profile.footprint.website],
+          ['Business age', profile.footprint.businessAge],
+          ['Estimated employees', String(profile.footprint.estimatedEmployeeCount)],
+        ]),
       ]),
-      page('Ownership and Business Operations', 'OWNERS, BANKING, REVENUE, AND PAYROLL - FICTIONAL TRAINING REPORT', [
-        section('Owners and controlling parties', [], { table: { columns: ['Record', 'Name', 'Role', 'Ownership', 'Identity record', 'First recorded'], rows: profile.owners } }),
-        section('Bank ownership', [], { table: { columns: ['Record', 'Account', 'Recorded owner', 'Bank', 'Name comparison', 'Opened', 'Linked object'], rows: profile.bank } }),
-        section('Revenue and cash flow', [], { table: { columns: ['Record', 'Activity', 'Amount', 'Source', 'Observed'], rows: profile.revenue.map(([id, title, amount, source, observed]) => [id, title, `$${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, source, observed]) } }),
-        section('Payroll records', [], { table: { columns: ['Record', 'Field', 'Value', 'Source', 'Observed'], rows: profile.payroll } }),
+      page('Ownership and Institution Relationship', 'OWNERS, OFFICERS, ACCOUNTS, AND PRODUCTS · FICTIONAL TRAINING SOURCES', [
+        section('Beneficial owners', [], {
+          table: {
+            columns: ['Record', 'Name', 'Role', 'Ownership', 'Owner verification', 'Identity reference'],
+            rows: profile.ownership.beneficialOwners.map((owner) => [
+              owner.id,
+              owner.name,
+              owner.role,
+              `${owner.ownershipPercentage}%`,
+              owner.verificationStatus,
+              owner.identityReference,
+            ]),
+          },
+        }),
+        section('Officers', [], {
+          table: {
+            columns: ['Record', 'Name', 'Title', 'First recorded'],
+            rows: profile.ownership.officers.map((officer) => [officer.id, officer.name, officer.title, officer.firstRecorded]),
+          },
+        }),
+        section('Institution relationship', [], {
+          table: {
+            columns: ['Account / product', 'Status', 'Limit', 'Balance', 'Restrictions', 'NSF / returns', 'Repayment source'],
+            rows: profile.relationship.accounts.map((account) => [
+              account.product,
+              account.status,
+              account.limit,
+              account.balance,
+              account.restrictions,
+              account.nsfContext,
+              account.repaymentSource,
+            ]),
+          },
+        }),
       ]),
-      page('Source Links', 'DOCUMENT AND RECORD INVENTORY - FICTIONAL TRAINING REPORT', [
-        section('Online presence', [], { table: { columns: ['Record', 'Type', 'Value', 'Observed', 'Comparison note'], rows: profile.online } }),
-        section('Documents and linked records', [], { table: { columns: ['Record', 'Type', 'Value', 'Observed'], rows: recordsByTab.documents.map((record) => [record.id, record.category, record.value, record.observed]) } }),
-        section('Review boundary', [['Case outcome', 'Not assigned in KYB Review'], ['Next step', 'Compare source records, save relevant evidence, and complete the decision checklist separately']]),
+      page('Business Source Research', 'SIMULATED SOURCE RESEARCH · NO LIVE SEARCH OCCURRED', [
+        section('Research results', [], {
+          table: {
+            columns: ['Topic', 'Status', 'Finding', 'Fictional source', 'Checked date'],
+            rows: profile.research.map((item) => [item.topic, item.status, item.finding, item.source, item.checkedDate]),
+          },
+        }),
+        section('Source inventory', [], {
+          table: {
+            columns: ['Record', 'Category', 'Value', 'Fictional source', 'Checked date'],
+            rows: profile.sourceRecords.map((record) => [record.id, record.category, record.value, record.source, record.checkedDate]),
+          },
+        }),
+        section('Research boundary', [
+          ['Live search', 'Not performed'],
+          ['No record located', 'A source result only; it is not proof that a business does not exist'],
+          ['Investigation outcome', 'Not assigned in Business 360'],
+        ]),
       ]),
     ],
   };
 }
 
-function readRegistry() {
+function readRegistryKey(key) {
   if (typeof window === 'undefined') return [];
   try {
-    return JSON.parse(window.localStorage.getItem(storageKey) ?? '[]');
+    return JSON.parse(window.localStorage.getItem(key) ?? '[]');
   } catch {
     return [];
   }
 }
 
-export function hasGeneratedKybReport(caseId) {
+function readRegistry() {
+  return [...new Set([...readRegistryKey(storageKey), ...readRegistryKey(legacyStorageKey)])];
+}
+
+export function hasGeneratedBusiness360Report(caseId) {
   return readRegistry().includes(caseId);
 }
 
-export function generateKybReviewReport(activeCase) {
+export function generateBusiness360Report(activeCase) {
   if (typeof window !== 'undefined') {
     const registry = [...new Set([...readRegistry(), activeCase.id])];
     window.localStorage.setItem(storageKey, JSON.stringify(registry));
   }
-  return buildKybReviewReport(activeCase);
+  return buildBusiness360Report(activeCase);
 }
 
-export function getGeneratedKybReportDocuments(activeCase) {
-  return hasGeneratedKybReport(activeCase.id) ? [buildKybReviewReport(activeCase)] : [];
+export function getGeneratedBusiness360ReportDocuments(activeCase) {
+  return hasGeneratedBusiness360Report(activeCase.id) ? [buildBusiness360Report(activeCase)] : [];
 }
 
-export function kybReportExportText(report) {
-  const lines = [report.title, `Reference: ${report.reference}`, `Case: ${report.caseId}`, `Business: ${report.customer}`, `Claim type: ${report.claimType}`, '', report.summary];
+export function business360ReportExportText(report) {
+  const lines = [report.title, `Reference: ${report.reference}`, `Business: ${report.customer}`, '', report.summary];
   for (const [label, value] of report.fields) lines.push(`${label}: ${value}`);
   for (const reportPage of report.pages) {
     lines.push('', reportPage.title, reportPage.subtitle);

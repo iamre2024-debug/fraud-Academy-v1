@@ -5,15 +5,19 @@ import { buildCoreToolRecords } from '../src/data/coreToolRecords.js';
 import { financialRecordsByCase } from '../src/data/financialRecords.js';
 import { getFinancialInvestigation, financialInvestigationTabs } from '../src/data/financialInvestigationRecords.js';
 import { createGeneratedCase } from '../src/data/generatedCases.js';
-import { getKybReview, kybReviewTabs, matchesKybReviewLookup } from '../src/data/kybReviewRecords.js';
-import { buildKybReviewReport } from '../src/data/kybReviewReport.js';
+import {
+  businessResearchSections,
+  getBusinessResearch,
+  lunaBusinessResearchStatuses,
+  matchesBusinessResearchLookup,
+} from '../src/data/businessResearchRecords.js';
+import { buildBusiness360Report } from '../src/data/kybReviewReport.js';
 import { buildLunaDebrief } from '../src/data/lunaDebrief.js';
 
 const failures = [];
 const cases = enrichTrainingCases(baseCases);
 const remainingModules = [
   'Payment Verification',
-  'KYB Review',
   'Document Viewer',
   'Link Analysis',
   'Timeline',
@@ -52,36 +56,39 @@ for (const activeCase of cases) {
   }
 
   const financialWorkspace = getFinancialInvestigation(activeCase);
-  if (financialInvestigationTabs.length !== 10) fail(`${activeCase.id} Financial Investigation: expected ten Bible v2 sections.`);
-  for (const tab of applicableFinancialTabs(activeCase)) {
-    if (!financialWorkspace.recordsByTab[tab.id]?.length) fail(`${activeCase.id} Financial Investigation: ${tab.label} has no case-specific records.`);
+  if (financialInvestigationTabs.length < 6) fail(`${activeCase.id} Financial Investigation: expected the product-aware section catalog.`);
+  for (const section of financialWorkspace.sections) {
+    if (!financialWorkspace.recordsBySection[section.id]?.length) fail(`${activeCase.id} Financial Investigation: ${section.label} has no case-specific records.`);
   }
   if (!hasMerchantLane(activeCase) && financialWorkspace.recordsByTab.merchant?.length) {
     fail(`${activeCase.id} Financial Investigation: merchant records must remain empty outside merchant lanes.`);
   }
 
-  const kybWorkspace = getKybReview(activeCase);
-  if (kybReviewTabs.length !== 8) fail(`${activeCase.id} KYB Review: expected eight review sections.`);
-  for (const tab of kybReviewTabs) {
-    if (!kybWorkspace.recordsByTab[tab.id]?.length) fail(`${activeCase.id} KYB Review: ${tab.label} has no case-specific records.`);
+  const businessWorkspace = getBusinessResearch(activeCase);
+  if (businessResearchSections.length !== 6) fail(`${activeCase.id} Business 360: expected six profile sections.`);
+  for (const section of businessResearchSections) {
+    if (!businessWorkspace.recordsBySection[section.id]?.length) fail(`${activeCase.id} Business 360: ${section.label} has no reusable profile records.`);
   }
-  for (const lookupValue of kybWorkspace.lookupValues) {
-    if (!matchesKybReviewLookup(kybWorkspace, lookupValue)) fail(`${activeCase.id} KYB Review: exact lookup failed for ${lookupValue}.`);
+  for (const lookupValue of businessWorkspace.lookupValues) {
+    if (!matchesBusinessResearchLookup(businessWorkspace, lookupValue)) fail(`${activeCase.id} Business 360: exact lookup failed for ${lookupValue}.`);
   }
-  if (matchesKybReviewLookup(kybWorkspace, kybWorkspace.profile.legalName.slice(0, 5))) fail(`${activeCase.id} KYB Review: partial lookup must not reveal the profile.`);
-  const kybReport = buildKybReviewReport(activeCase);
-  if (kybReport.title !== 'KYB Business Report' || kybReport.pages.length !== 3 || kybReport.relatedTools.includes('Business Intelligence')) {
-    fail(`${activeCase.id} KYB Review: report contract is incomplete or uses a retired tool name.`);
+  if (matchesBusinessResearchLookup(businessWorkspace, businessWorkspace.profile.legalName.slice(0, 5))) fail(`${activeCase.id} Business 360: partial lookup must not be treated as an exact match.`);
+  if (!businessWorkspace.profile.research.every((item) => lunaBusinessResearchStatuses.includes(item.status) && item.source && item.checkedDate)) {
+    fail(`${activeCase.id} Business 360: Luna research uses an invalid status or lacks source metadata.`);
+  }
+  const businessReport = buildBusiness360Report(activeCase);
+  if (businessReport.title !== 'Business 360 Research Report' || businessReport.pages.length !== 3 || businessReport.relatedTools.some((tool) => /KYB|Business Intelligence/i.test(tool))) {
+    fail(`${activeCase.id} Business 360: report contract is incomplete or uses a retired tool name.`);
   }
 }
 
 const generatedCase = createGeneratedCase({ index: 8081, claimTypeId: 'business-loan-bust-out', evidenceDepth: 'deep', difficulty: 'deep' });
 const generatedFinancial = getFinancialInvestigation(generatedCase);
-const generatedKyb = getKybReview(generatedCase);
-if (!applicableFinancialTabs(generatedCase).every((tab) => generatedFinancial.recordsByTab[tab.id]?.length)) fail('Generated Financial Investigation must populate every applicable section.');
+const generatedBusiness = getBusinessResearch(generatedCase);
+if (!generatedFinancial.sections.every((section) => generatedFinancial.recordsBySection[section.id]?.length)) fail('Generated Financial Investigation must populate every applicable section.');
 if (generatedFinancial.recordsByTab.merchant?.length) fail('Generated non-merchant Financial Investigation must not receive merchant records.');
-if (!kybReviewTabs.every((tab) => generatedKyb.recordsByTab[tab.id]?.length)) fail('Generated KYB Review must populate all eight sections.');
-if (!generatedKyb.profile.legalName.includes(generatedCase.profile.business)) fail('Generated KYB Review must use the generated case business instead of a built-in profile.');
+if (!businessResearchSections.every((section) => generatedBusiness.recordsBySection[section.id]?.length)) fail('Generated Business 360 must populate every reusable profile section.');
+if (!generatedBusiness.profile.legalName.includes(generatedCase.profile.business)) fail('Generated Business 360 must use the generated case business instead of a built-in profile.');
 
 const creditReview = cases.find((item) => item.id === 'FA-CR-24003');
 const paymentData = buildCoreToolRecords('Payment Verification', creditReview, { rows: [] });
@@ -145,19 +152,18 @@ if (!lunaUnlocked || typeof lunaUnlocked.score !== 'number') {
   fail('Luna must produce post-submission scoring from a saved learner package.');
 }
 
-const activePanel = fs.readFileSync('src/ActiveToolPanel.jsx', 'utf8');
 const caseSummary = fs.readFileSync('src/CaseSummaryCard.jsx', 'utf8');
 const investigationToolPanel = fs.readFileSync('src/InvestigationToolPanel.jsx', 'utf8');
 const scenarioCatalog = fs.readFileSync('src/data/claimScenarioCatalog.js', 'utf8');
 const repositoryAdapter = fs.readFileSync('src/data/generatedCaseRepository.js', 'utf8');
 
-if (!activePanel.includes('buildCoreToolRecords')) fail('ActiveToolPanel is not using the remaining-module record overlay.');
-if (activePanel.includes("item !== 'System Access Lane'")) fail('The single System Access Lane must not be hidden by the module overlay.');
+if (!investigationToolPanel.includes('buildCoreToolRecords')) fail('InvestigationToolPanel is not using the remaining-module record overlay.');
+if (investigationToolPanel.includes("item !== 'System Access Lane'")) fail('The single System Access Lane must not be hidden by the module overlay.');
 if (caseSummary.includes('Open First Tool')) fail('Case Summary still contains visible first-tool coaching.');
 if (/\bSSN\b/.test(investigationToolPanel) || /\bSSN\b/.test(scenarioCatalog)) fail('Identity review must use Training ID instead of SSN wording.');
 if (!investigationToolPanel.includes('<option value="id">Training ID</option>')) fail('People Search must expose the training-safe Training ID lookup label.');
 for (const forbidden of ['Suggested First Tool', 'Investigation Objective', 'Why am I here?', 'Who am I investigating?', 'Need to decide?']) {
-  if (activePanel.includes(forbidden) || caseSummary.includes(forbidden)) fail(`Visible investigator coaching remains: ${forbidden}`);
+  if (investigationToolPanel.includes(forbidden) || caseSummary.includes(forbidden)) fail(`Visible investigator coaching remains: ${forbidden}`);
 }
 for (const anchor of ['createIndexedDbRepository', 'migrateLegacyCases', 'generateAndSaveCase', "kind: 'indexedDB'"]) {
   if (!repositoryAdapter.includes(anchor)) fail(`Generated-case repository adapter is missing ${anchor}.`);
@@ -169,4 +175,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Remaining module depth smoke check passed for all built-in cases, training-safe payment wording, neutral links and timeline records, pin-and-note evidence support, Luna submission locks, neutral tool wording, and the IndexedDB repository boundary.');
+console.log('Remaining module depth smoke check passed for Business 360 research, all built-in cases, training-safe payment wording, neutral links and timeline records, pin-and-note evidence support, Luna submission locks, neutral tool wording, and the IndexedDB repository boundary.');

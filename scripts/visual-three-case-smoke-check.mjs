@@ -35,7 +35,7 @@ function requireCount(label, actual, minimum) {
   if (actual < minimum) failures.push(`${label} expected at least ${minimum}, found ${actual}.`);
 }
 
-if (cases.length < 3) failures.push(`Expected at least 3 built-in cases, found ${cases.length}.`);
+if (cases.length !== 3) failures.push(`Expected exactly 3 built-in cases, found ${cases.length}.`);
 
 for (const item of cases) {
   const prefix = `${item.id} visual case coverage`;
@@ -89,8 +89,13 @@ for (const item of cases) {
   requireCount(`${prefix} enriched session records`, sessionRecords.length, 4);
   if (!loginRecords.some((record) => /failed|locked/i.test(record.result))) failures.push(`${prefix} has no failed or locked authentication event for comparison.`);
   requireCount(`${prefix} business relationship records`, business.business360?.length ?? 0, 1);
-  requireCount(`${prefix} business intelligence records`, business.businessIntel?.length ?? 0, 1);
-  const chargeback = ['fraud-chargeback', 'non-fraud-chargeback', 'first-party-fraud'].includes(item.claimTypeId);
+  const chargeback = [
+    'unauthorized-card-transaction-claim',
+    'merchant-non-fraud-dispute',
+    'fraud-chargeback',
+    'non-fraud-chargeback',
+    'first-party-fraud',
+  ].includes(item.workflowType ?? item.claimTypeId);
   requireCount(`${prefix} document viewer records`, documents.length, chargeback ? 6 : 5);
   requireCount(`${prefix} document request records`, documentRequests.length, chargeback ? 2 : 3);
   requireCount(`${prefix} Customer 360 products`, customerDossier.products.length, 1);
@@ -193,7 +198,6 @@ const visualApp = read('src/VisualApp.jsx');
 const visualWorkspace = read('src/VisualWorkspace.jsx');
 const visualWorkspaceActions = read('src/useVisualWorkspaceActions.js');
 const visualWorkspaceModel = read('src/visualWorkspaceModel.js');
-const activeToolPanel = read('src/ActiveToolPanel.jsx');
 const bottomInvestigationGrid = read('src/BottomInvestigationGrid.jsx');
 const caseSummaryCard = read('src/CaseSummaryCard.jsx');
 const categoryTileRail = read('src/CategoryTileRail.jsx');
@@ -241,7 +245,7 @@ for (const required of [
   'className="case-info-bar visual-case-strip"',
   'className="visual-case-switcher"',
   '<strong>Case</strong>',
-  '<strong>Claim Type:</strong>',
+  '<strong>Workflow:</strong>',
   '<strong>Status:</strong>',
   'cases.map',
   'changeCase(event.target.value)',
@@ -252,7 +256,9 @@ for (const required of [
 for (const required of [
   'className="ornate-card case-summary-visual"',
   'className="case-summary-meta-grid"',
-  '<small>Claim ID</small>',
+  '<small>Case ID</small>',
+  '<small>Customer type</small>',
+  '<small>Product</small>',
   '<small>Transaction / payee info</small>',
   '<small>Short summary</small>',
   "pin(activeCase.id)",
@@ -289,7 +295,7 @@ for (const required of [
 for (const required of [
   'getDecisionCallGroups(activeCase)',
   'selectionGroups.map',
-  'className="ornate-card submit-decision-panel decision-theme-v1"',
+  'className="submit-decision-panel decision-theme-v1 decision-final-review"',
   'activeCase.id',
   'Submit Decision',
 ]) {
@@ -325,27 +331,30 @@ for (const forbidden of [
   requireAbsent('src/main.jsx', main, forbidden, 'DOM patch import');
 }
 
-requireCount('Submit Decision learner choices', reviewChoices.length, 12);
-requireCount('Submit Decision call groups', decisionCallGroups.length, 4);
+requireCount('Submit Decision learner choices', reviewChoices.length, 10);
+requireCount('Submit Decision call groups', decisionCallGroups.length, 1);
 
 for (const choice of [
-  'Route for chargeback representment review',
-  'Route for credit risk underwriting review',
-  'Escalate for insider / vendor / API / open banking review',
-  'No action yet / continue investigation',
+  'Support Customer Claim',
+  'Do Not Support Customer Claim',
+  'Approve',
+  'Deny',
+  'Hold',
+  'Release',
+  'Escalate',
 ]) {
   if (!reviewChoices.includes(choice)) failures.push(`Submit Decision is missing learner choice: ${choice}`);
 }
 
-const builtInChargeback = cases.find((item) => item.claimTypeId === 'non-fraud-chargeback');
-const builtInCredit = cases.find((item) => item.claimTypeId === 'credit-risk');
-if (!builtInChargeback?.chargebackDecision?.reasonCode) failures.push('Built-in non-fraud chargeback case is missing Design Bible reason-code details.');
-if (!builtInCredit?.creditDecision?.deadline) failures.push('Built-in credit case is missing its credit decision rail.');
-if (!getDecisionCallGroups(builtInChargeback).some((group) => group.label === 'Chargeback determination calls')) {
-  failures.push('Chargeback cases should receive lane-specific decision calls.');
+const builtInChargeback = cases.find((item) => item.workflowType === 'merchant-non-fraud-dispute');
+const builtInCredit = cases.find((item) => item.workflowType === 'credit-risk-review');
+if (!builtInChargeback?.customerType || !builtInChargeback?.productType) failures.push('Built-in merchant dispute is missing the explicit customer/product domain.');
+if (!builtInCredit?.customerType || !builtInCredit?.productType) failures.push('Built-in credit risk case is missing the explicit customer/product domain.');
+if (!getDecisionCallGroups(builtInChargeback).some((group) => group.label === 'Dispute operational decision')) {
+  failures.push('Merchant disputes should receive workflow-specific operational decisions.');
 }
-if (!getDecisionCallGroups(builtInCredit).some((group) => group.label === 'Credit decision calls')) {
-  failures.push('Credit cases should receive lane-specific decision calls.');
+if (!getDecisionCallGroups(builtInCredit).some((group) => group.label === 'Credit risk operational decision')) {
+  failures.push('Credit risk cases should receive workflow-specific operational decisions.');
 }
 
 if (failures.length) {

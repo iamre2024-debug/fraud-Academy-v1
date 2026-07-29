@@ -14,6 +14,9 @@ if (!entrypoint.includes("import './mobileMissionDeckV3.css';")) {
 if (entrypoint.includes("import './mobileBlueMissionDeck.css';")) {
   failures.push('The legacy Blue Mission Deck override layer is still loaded.');
 }
+if (fs.existsSync(path.join(root, 'src/mobileBlueMissionDeck.css'))) {
+  failures.push('The retired Blue Mission Deck override file was restored.');
+}
 
 if (failures.length) {
   console.error('Retired mobile theme isolation check failed:');

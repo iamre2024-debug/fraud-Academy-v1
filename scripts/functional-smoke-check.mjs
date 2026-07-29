@@ -93,14 +93,16 @@ const checks = [
       'readStorage(storageKeys.packages',
       'writeStorage(storageKeys.tray',
       "currentCompleted: completedByCase[caseId] ?? ['Case Summary']",
-      'decisionDraft: decisionByCase[caseId] ?? defaultDecisionDraft',
+      'normalizeDecisionDraft(decisionByCase[caseId] ?? defaultDecisionDraft, activeCase)',
     ],
   },
   {
     file: 'src/useVisualWorkspaceActions.js',
     label: 'case action and review package controller hook',
     mustContain: [
-      "import { buildReviewPackage, getReviewPackageStatus } from './data/reviewPackage.js'",
+      'buildReviewPackage,',
+      'getReviewPackageStatus,',
+      'normalizeDecisionDraft,',
       "from './visualWorkspaceModel.js'",
       'const packageStatus = getReviewPackageStatus({',
       'function pin(value)',
@@ -122,7 +124,7 @@ const checks = [
       'className="case-info-bar visual-case-strip"',
       'className="visual-case-switcher"',
       '<strong>Case</strong>',
-      '<strong>Claim Type:</strong>',
+      '<strong>Workflow:</strong>',
       '<strong>Status:</strong>',
       'cases.map',
       'changeCase(event.target.value)',
@@ -135,7 +137,9 @@ const checks = [
       'data-case-briefing-container="approved-theme-v1"',
       'data-case-briefing-screen="approved-theme-v1"',
       'className="case-summary-meta-grid"',
-      '<small>Claim ID</small>',
+      '<small>Case ID</small>',
+      '<small>Customer type</small>',
+      '<small>Product</small>',
       '<small>Transaction / payee info</small>',
       '<small>Short summary</small>',
       'pin(activeCase.id)',
@@ -184,15 +188,21 @@ const checks = [
     file: 'src/SubmitDecisionPanel.jsx',
     label: 'direct Submit Decision visual module',
     mustContain: [
-      "import DecisionFlagChecklist from './DecisionFlagChecklist.jsx'",
-      "import { getDecisionCallGroups, reviewChoices } from './data/reviewPackage.js'",
-      'className="ornate-card submit-decision-panel decision-theme-v1"',
-      'Unfinished checklist details are saved for coaching',
-      'data-decision-submission-state',
+      'getDecisionCallGroups,',
+      'getFinalFindingChoices,',
+      'reviewChoices,',
+      "from './DecisionReviewVisuals.jsx'",
+      'className="submit-decision-panel decision-theme-v1 decision-final-review"',
+      'data-decision-layout="reference-final-review"',
+      'data-decision-state={submissionState}',
       'const decisionGroups = getDecisionCallGroups(activeCase);',
       'selectionGroups.map',
-      'Submit Decision',
-      'placeholder={`Write the evidence-based rationale for ${activeCase.id}.`}',
+      'Selected Decision',
+      'Operational decision',
+      'Final finding',
+      'Pinned Evidence',
+      'Confirm &amp; Submit Decision',
+      'placeholder={`Explain what the evidence establishes for ${activeCase.id}',
     ],
     mustNotContain: [
       'document.querySelector',
@@ -276,8 +286,12 @@ const checks = [
     label: 'post submission Luna module',
     mustContain: [
       'buildLunaDebrief',
-      'Post-submission coaching stays locked',
-      'Decision-quality breakdown',
+      'data-luna-layout="reference-debrief"',
+      'Evidence First lock is active',
+      'What You Did Well',
+      'Evidence You Might Have Missed',
+      'Risk Tip from Luna',
+      "Luna&apos;s Motivation",
       'fraud-academy:package-saved',
     ],
   },
@@ -289,9 +303,11 @@ const checks = [
       'buildPackageInputSummary',
       'getRequiredReviewTools',
       'getDecisionCallGroups',
+      'getFinalFindingChoices',
       'getReviewChoices',
-      'Escalate for insider / vendor / API / open banking review',
-      'Route for credit risk underwriting review',
+      'operationalDecision',
+      'finalFinding',
+      'findingBasis',
       'ready:',
     ],
   },
@@ -331,10 +347,18 @@ const checks = [
 ];
 
 const retiredFiles = [
+  'src/ActiveToolPanel.jsx',
+  'src/DecisionFlagChecklist.jsx',
+  'src/ScenarioEnginePanel.jsx',
   'src/visualNavPatch.js',
   'src/visualTextCollapse.js',
   'src/visualInvestigationRepair.js',
   'src/SystemAccessLane.jsx',
+  'src/lunaManagerMobileFix.css',
+  'src/mobileBlueMissionDeck.css',
+  'src/data/kybReviewRecords.js',
+  'src/data/linkAnalysis.js',
+  'src/data/scenarioEngine.js',
 ];
 
 const failures = [];
@@ -365,4 +389,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Functional smoke check passed. Workspace state and action boundaries, repository-backed generated cases, IndexedDB fallback, approved Case Briefing quick routes, direct Submit Decision compact text, Evidence First locks, React navigation, and the full verify wiring are present.');
+console.log('Functional smoke check passed. Workspace state and action boundaries, repository-backed generated cases, IndexedDB fallback, approved Case Briefing routes, component-owned Submit Decision and Luna reference screens, Evidence First locks, React navigation, and the full verify wiring are present.');

@@ -6,6 +6,7 @@ const header = fs.readFileSync(path.join(rootDir, 'src/VisualShellHeader.jsx'), 
 const workflow = fs.readFileSync(path.join(rootDir, 'src/ActiveCaseWorkflowRail.jsx'), 'utf8');
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayWorkspaceShellThemeV1.css'), 'utf8');
 const layoutStyles = fs.readFileSync(path.join(rootDir, 'src/displayWorkspaceShellLayoutV1.css'), 'utf8');
+const desktopStyles = fs.readFileSync(path.join(rootDir, 'src/visualDesktopCommand.css'), 'utf8');
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/workspace-shell-browser.spec.mjs'), 'utf8');
 const handoff = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_WORKSPACE_SHELL_THEME_V1.md'), 'utf8');
@@ -75,6 +76,10 @@ for (const anchor of [
 
 mustContain('main.jsx', entrypoint, "import './displayWorkspaceShellThemeV1.css';");
 mustContain('main.jsx', entrypoint, "import './displayWorkspaceShellLayoutV1.css';");
+mustContain('visualDesktopCommand.css', desktopStyles, 'body[data-visual-tab="workspace"] .visual-os-frame');
+if (/(?:^|\n)\s*\.visual-os-frame\s*\{[^}]*grid-template-columns:/s.test(desktopStyles)) {
+  failures.push('visualDesktopCommand.css applies the desktop workspace grid outside the Workspace tab.');
+}
 mustContain('workspace-shell-browser.spec.mjs', browser, 'approved Workspace shell is compact, functional, and responsive');
 mustContain('workspace-shell-browser.spec.mjs', browser, '.workspace-shell-heading');
 mustContain('Workspace shell handoff', handoff, 'agent/workspace-shell-approved-theme-v1');

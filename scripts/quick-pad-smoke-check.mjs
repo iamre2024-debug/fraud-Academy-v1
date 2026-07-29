@@ -1,4 +1,10 @@
 import fs from 'node:fs';
+import {
+  quickPadItemSupportsTool,
+  quickPadLinkIdentifierType,
+  quickPadSearchRoute,
+  quickPadSourceRoute,
+} from '../src/data/quickPadRouting.js';
 
 const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 const model = read('src/visualWorkspaceModel.js');
@@ -7,21 +13,100 @@ const workspace = read('src/VisualWorkspace.jsx');
 const customer = read('src/Customer360Panel.jsx');
 const device = read('src/InvestigationToolPanel.jsx');
 const component = read('src/CaseQuickPad.jsx');
+const caseQueue = read('src/MobileCaseQueue.jsx');
 const styles = read('src/caseQuickPad.css');
+
+const available = new Set(['Business 360', 'Payment Verification', 'Payroll History', 'Link Analysis']);
+const restorableBusinessId = {
+  label: 'Business ID',
+  value: 'BIZ-TRAINING-42',
+  sourceTool: 'Business 360',
+};
+const nestedBusinessDevice = {
+  label: 'Device ID',
+  value: 'DEV-TRAINING-42',
+  sourceTool: 'Business 360',
+  sourceRecordId: 'OWNER-42',
+};
+const nestedBusinessEmail = {
+  label: 'Email',
+  value: 'owner@example.test',
+  sourceTool: 'Business 360',
+};
+const supportedLinkItems = [
+  ['Phone Number', '(214) 555-0184', 'phone'],
+  ['Email', 'learner@example.test', 'email'],
+  ['Training ID', 'TRN-1001', 'training-id'],
+  ['Address', '12-34 Main St.', 'address'],
+  ['Device ID', 'DEV-1001', 'device'],
+  ['IP Address', '192.0.2.42', 'ip'],
+  ['Bank Code', 'BC-1001', 'bank-code'],
+  ['Destination ID', 'DST-1001', 'destination-id'],
+].map(([label, value, identifierType]) => ({
+  label,
+  value,
+  identifierType,
+  sourceTool: 'Link Analysis',
+}));
+const rejectedLinkItems = [
+  ['Account ID', 'ACC-1001'],
+  ['Business ID', 'BIZ-1001'],
+  ['Business Registration', 'REG-1001'],
+  ['Session ID', 'SES-1001'],
+  ['Login ID', 'LOG-1001'],
+].map(([label, value]) => ({ label, value, sourceTool: 'Link Analysis' }));
 
 const checks = [
   ['Quick Pad has its own persisted storage key', model.includes("quickPad: 'fraud-academy-quick-pad-v1'")],
   ['Quick Pad state is scoped by active case', state.includes('quickPadByCase[caseId]')],
   ['Quick IDs remain separate from pinned evidence', workspace.includes("recordAction('Saved to Quick Pad'") && !component.includes('Pinned Evidence')],
-  ['Quick Pad renders for both workspace layouts', (workspace.match(/\{quickPadLayer\}/g) ?? []).length === 2],
-  ['Saved values can populate the current search', workspace.includes('setQuery(item.value)')],
-  ['Saved values can reopen their source tool', workspace.includes('openTool(item.sourceTool')],
+  [
+    'Quick Pad renders for both layouts and the mobile shell controls focused-screen visibility',
+    (workspace.match(/quickPadLayer/g) ?? []).length >= 3
+      && styles.includes('.mission-workspace-v3[data-workspace-screen="determination"]'),
+  ],
+  ['Saved values can populate only a compatible current search', workspace.includes('quickPadItemSupportsTool') && workspace.includes('quickPadSearchRoute(item, activeTool)')],
+  ['Saved values can reopen only an exact canonical source route', workspace.includes('quickPadSourceRoute(item') && workspace.includes('openTool(route.sourceTool')],
+  ['Business identifiers can restore the search-first company route', quickPadItemSupportsTool(restorableBusinessId, 'Business 360', 'mobile') && quickPadSourceRoute(restorableBusinessId, { availableTools: available, layoutMode: 'mobile' })?.query === restorableBusinessId.value],
+  ['Nested Business values do not claim an exact source route', quickPadSourceRoute(nestedBusinessDevice, { availableTools: available, layoutMode: 'mobile' }) === null && quickPadSourceRoute(nestedBusinessEmail, { availableTools: available, layoutMode: 'mobile' }) === null],
+  [
+    'Every supported Link value keeps its exact machine identifier type',
+    supportedLinkItems.every((item) => (
+      quickPadItemSupportsTool(item, 'Link Analysis', 'mobile')
+      && quickPadLinkIdentifierType(item) === item.identifierType
+      && quickPadSearchRoute(item, 'Link Analysis')?.identifierType === item.identifierType
+      && quickPadSourceRoute(item, { availableTools: available, layoutMode: 'mobile' })?.identifierType === item.identifierType
+    )),
+  ],
+  [
+    'Unsupported account, business, session, and login IDs never claim a Link route',
+    rejectedLinkItems.every((item) => (
+      !quickPadItemSupportsTool(item, 'Link Analysis', 'mobile')
+      && quickPadSourceRoute(item, { availableTools: available, layoutMode: 'mobile' }) === null
+    )),
+  ],
+  [
+    'Link requests use a one-shot typed route instead of the shared query channel',
+    workspace.includes('queueLinkSearch(route)')
+      && workspace.includes('linkSearchRequest')
+      && workspace.includes('consumeLinkSearch'),
+  ],
+  ['Actions render only when their real destination is available', component.includes('canUseItem(item)') && component.includes('canOpenItem(item)') && component.includes('{usableHere &&') && component.includes('{sourceAvailable &&')],
+  ['Source actions use accurate wording', component.includes('Open source') && !component.includes('Open record')],
   ['Account IDs can be added from Customer 360', customer.includes("label: 'Account ID'")],
-  ['Bank and destination IDs can be added', customer.includes("label: 'Bank Code'") && customer.includes("label: 'Destination ID'")],
+  ['Bank and destination IDs can be added', device.includes("label: 'Bank Code'") && device.includes("label: 'Destination ID'")],
   ['Device IDs can be added', device.includes("label: 'Device ID'")],
   ['Scratch text can become a formal case note', workspace.includes("saveNote(quickPad.scratch, 'Quick Pad note')")],
-  ['Panel stays compact on phones', styles.includes('max-height: min(300px, 36dvh)')],
-  ['Panel clears the fixed mobile dock', styles.includes('bottom: calc(88px + env(safe-area-inset-bottom))')],
+  ['The notebook displays only notes passed from the active case', component.includes('aria-label="Current case notebook"') && component.includes('notes.map(') && !component.includes('localStorage')],
+  ['The phone panel responds to the visual keyboard', component.includes('window.visualViewport') && component.includes("'--quick-pad-keyboard-inset'")],
+  ['The phone dialog supports focus entry and Escape', component.includes("event.key === 'Escape'") && component.includes("querySelector('button, input, textarea, select')")],
+  ['Quick Pad can escape the hidden Workspace page on the phone shell', workspace.includes("portalToBody={layoutMode === 'mobile'}") && component.includes('createPortal(content, document.body)') && styles.includes(':not([data-visual-tab="cases"])')],
+  ['Quick Pad yields to the modal case generator at every forced-mobile width', /^body\[data-layout-mode="mobile"\]:has\(\.mobile-case-generator-backdrop\) \.case-quick-pad\s*\{\s*display:\s*none;\s*\}/m.test(styles)],
+  ['The case generator suspends the open Quick Pad and its Escape listener', component.includes("'fraud-academy:case-generator-visibility'") && component.includes('setOpen(false)') && caseQueue.includes("'fraud-academy:case-generator-visibility'") && caseQueue.includes('detail: { open: generatorOpen }')],
+  ['The case generator traps focus, makes its background inert, and restores its launcher', caseQueue.includes("event.key !== 'Tab'") && caseQueue.includes("node.setAttribute('inert', '')") && caseQueue.includes('generatorToggleRef.current?.focus') && caseQueue.includes('generatorDialogRef')],
+  ['Panel stays compact on phones', styles.includes('max-height: min(58dvh, calc(100dvh - var(--fa-dock-height, 76px) - var(--quick-pad-keyboard-inset, 0px) - 34px))')],
+  ['Panel clears the fixed mobile dock and visual keyboard', styles.includes('bottom: calc(var(--fa-dock-height, 76px) + 12px + env(safe-area-inset-bottom) + var(--quick-pad-keyboard-inset, 0px))')],
+  ['Phone actions retain full touch targets', /body\[data-layout-mode="mobile"\] \.case-quick-pad-actions button\s*\{[^}]*min-height:\s*44px/s.test(styles)],
 ];
 
 const failed = checks.filter(([, passed]) => !passed);

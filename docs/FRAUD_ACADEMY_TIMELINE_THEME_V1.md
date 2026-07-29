@@ -29,7 +29,7 @@ This step redesigns Timeline only. It does not redesign Case Report, Decision an
 
 `src/TimelinePanel.jsx` owns the approved Timeline presentation. `src/displayTimelineThemeV1.css` owns the responsive light-lavender and white Timeline layout. `src/data/coreToolRecords.js` continues to supply the established case-scoped timeline rows and remains unchanged by this presentation step.
 
-Case Report stays on `src/ActiveToolPanel.jsx` until its approved place in the later workflow work. The completed Customer 360 and Investigation-tool panels stay unchanged.
+Case Report stays on the active `src/InvestigationToolPanel.jsx` route. The retired duplicate tool panel is not part of the runtime, and the completed Customer 360 and Investigation-tool panels stay unchanged.
 
 ## Approved interaction model
 

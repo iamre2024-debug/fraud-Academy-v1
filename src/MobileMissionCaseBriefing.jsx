@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import DirectCollapsibleText from './DirectCollapsibleText.jsx';
+import {
+  publicCaseFacts,
+  publicCaseSummary,
+  publicCaseTaxonomy,
+  publicReportedAllegation,
+} from './data/publicCaseView.js';
 
 function fallbackFacts(activeCase) {
-  return [
-    ['Lane', activeCase.lane ?? 'Not supplied'],
-    ['Subtype', activeCase.subtype ?? 'Not supplied'],
-    ['Reported', activeCase.reportedDate ?? activeCase.opened],
-    ['Issue start', activeCase.issueStartDate ?? 'Not supplied'],
-    ['Amount / exposure', activeCase.amountExposure ?? activeCase.amount],
-  ];
+  return publicCaseFacts(activeCase);
 }
 
 export default function MobileMissionCaseBriefing({
@@ -24,11 +24,12 @@ export default function MobileMissionCaseBriefing({
   const [page, setPage] = useState(0);
   const [intakePage, setIntakePage] = useState(0);
   const intake = activeCase.intake ?? {};
+  const taxonomy = publicCaseTaxonomy(activeCase);
   const documents = activeCase.documents ?? [];
-  const statement = activeCase.statement ?? {
-    label: 'Customer statement',
-    value: activeCase.allegation ?? activeCase.queueReason,
-    source: intake.channel ?? 'Case queue',
+  const statement = {
+    label: activeCase.statement?.label ?? (intake.channel === 'System alert' ? 'Reported alert' : 'Reported allegation'),
+    value: publicReportedAllegation(activeCase),
+    source: activeCase.statement?.source ?? intake.channel ?? 'Case queue',
   };
   const intakeAnswers = activeCase.intakeAnswers ?? [];
   const facts = activeCase.keyFacts?.length ? activeCase.keyFacts.slice(0, 8) : fallbackFacts(activeCase);
@@ -71,19 +72,50 @@ export default function MobileMissionCaseBriefing({
       title: 'Case overview',
       content: (
         <>
-          <section className="mission-briefing-identity">
-            <span aria-hidden="true">{String(activeCase.person ?? 'FA').split(' ').map((part) => part[0]).join('').slice(0, 2)}</span>
-            <div><p>{activeCase.type}</p><h2>{activeCase.person}</h2><small>{activeCase.id} · {activeCase.status}</small></div>
+          <section className="mission-briefing-case-banner">
+            <span aria-hidden="true">✧</span>
+            <div><p>Active case</p><h2>{activeCase.id}</h2><small>{taxonomy.workflowType}</small></div>
+            <em>{activeCase.status}</em>
           </section>
-          <dl className="mission-briefing-facts">
-            <div><dt>Claim ID</dt><dd>{activeCase.claimId ?? activeCase.id}</dd></div>
-            <div><dt>Account ID</dt><dd>{activeCase.accountId}</dd></div>
-            <div><dt>Total claim</dt><dd>{activeCase.amount}</dd></div>
-            <div><dt>Priority</dt><dd>{activeCase.priority}</dd></div>
-            <div><dt>Lane</dt><dd>{activeCase.lane ?? 'Not supplied'}</dd></div>
-            <div><dt>Subtype</dt><dd>{activeCase.subtype ?? 'Not supplied'}</dd></div>
-          </dl>
-          <section className="mission-briefing-note"><span>Why this case exists</span><DirectCollapsibleText as="p" mobileLines={7}>{activeCase.caseBriefing?.summary ?? activeCase.shortSummary ?? activeCase.queueReason}</DirectCollapsibleText></section>
+
+          <section className="mission-briefing-allegation-card">
+            <header><span aria-hidden="true">▤</span><div><p>{statement.label}</p><h3>Allegation summary</h3></div></header>
+            <DirectCollapsibleText as="p" mobileLines={6}>{statement.value}</DirectCollapsibleText>
+            <dl>
+              <div><dt>Customer</dt><dd>{activeCase.person}</dd></div>
+              <div><dt>Amount / exposure</dt><dd>{activeCase.amount}</dd></div>
+              <div><dt>Reported / opened</dt><dd>{activeCase.reportedDate ?? intake.contactTime ?? activeCase.opened}</dd></div>
+              <div><dt>Channel</dt><dd>{intake.channel ?? 'Case queue'}</dd></div>
+            </dl>
+            <small>Source: {statement.source}</small>
+          </section>
+
+          <div className="mission-briefing-overview-grid">
+            <section>
+              <header><p>Quick facts</p><h3>Case record</h3></header>
+              <dl>
+                <div><dt>Account ID</dt><dd>{activeCase.accountId}</dd></div>
+                <div><dt>Customer type</dt><dd>{taxonomy.customerType}</dd></div>
+                <div><dt>Product</dt><dd>{taxonomy.productType}</dd></div>
+                {facts.slice(0, 4).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+              </dl>
+            </section>
+            <section className="mission-briefing-checklist">
+              <header><p>Evidence checklist</p><h3>{documents.length} supplied document{documents.length === 1 ? '' : 's'}</h3></header>
+              <ul>
+                {documents.slice(0, 6).map((document, index) => (
+                  <li key={document.id ?? `${document.title}-${index}`} data-status={document.status}>
+                    <span aria-hidden="true">{/received|available|approved/i.test(document.status ?? '') ? '✓' : '○'}</span>
+                    <div><strong>{document.title ?? document.type ?? `Document ${index + 1}`}</strong><small>{document.status ?? 'Available'}</small></div>
+                  </li>
+                ))}
+                {!documents.length && <li><span aria-hidden="true">○</span><div><strong>No document supplied</strong><small>Open Document Request if paperwork is needed.</small></div></li>}
+              </ul>
+            </section>
+          </div>
+
+          <section className="mission-briefing-note"><span>Why this case exists</span><DirectCollapsibleText as="p" mobileLines={5}>{publicCaseSummary(activeCase)}</DirectCollapsibleText></section>
+          <button type="button" className="mission-briefing-open-workspace" onClick={() => { record('Opened tool deck', 'Opened the investigation tool deck from the mobile Mission Briefing.'); openMoreTools(); }}>Open workspace <span>→</span></button>
         </>
       ),
     },
@@ -91,7 +123,7 @@ export default function MobileMissionCaseBriefing({
       id: 'intake',
       icon: '📨',
       eyebrow: 'Mission file 02',
-      title: 'Claim intake',
+      title: 'Case intake',
       content: (
         <>
           <dl className="mission-briefing-facts">
@@ -180,30 +212,37 @@ export default function MobileMissionCaseBriefing({
 
   return (
     <section className="mission-briefing-v3" data-mission-briefing-page={current.id} data-workspace-page="briefing">
-      <header className="mission-briefing-header-v3">
+      {current.id !== 'overview' && <header className="mission-briefing-header-v3">
         <div><span>{current.icon}</span><p>{current.eyebrow}</p><h1>{current.title}</h1></div>
         <button type="button" aria-label="Pin active case" onClick={() => pin(activeCase.id)}>⭐</button>
-      </header>
+      </header>}
 
-      <nav className="mission-briefing-tabs" aria-label="Case briefing files">
+      {current.id !== 'overview' && <nav className="mission-briefing-tabs" aria-label="Case briefing files">
         {pages.map((item, index) => <button key={item.id} type="button" className={page === index ? 'active' : ''} aria-label={item.title} aria-current={page === index ? 'page' : undefined} onClick={() => setPage(index)}>{item.icon}<small>{index + 1}</small></button>)}
-      </nav>
+      </nav>}
 
       <article className="mission-briefing-file">{current.content}</article>
 
-      <nav className="mission-briefing-pager" aria-label="Briefing page controls">
+      {current.id === 'overview' ? (
+        <details className="mission-briefing-more-files">
+          <summary>More case details <span>＋</span></summary>
+          <nav aria-label="Additional Case Briefing pages">
+            {pages.slice(1).map((item, index) => <button key={item.id} type="button" onClick={() => setPage(index + 1)}>{item.icon}<span><strong>{item.title}</strong><small>{item.eyebrow}</small></span></button>)}
+          </nav>
+        </details>
+      ) : <nav className="mission-briefing-pager" aria-label="Briefing page controls">
         <button type="button" disabled={page === 0} onClick={() => setPage((currentPage) => Math.max(0, currentPage - 1))}>‹ Previous</button>
         <span><strong>{String(page + 1).padStart(2, '0')}</strong><small>of {String(pages.length).padStart(2, '0')}</small></span>
         <button type="button" disabled={page === pages.length - 1} onClick={() => setPage((currentPage) => Math.min(pages.length - 1, currentPage + 1))}>Next ›</button>
-      </nav>
+      </nav>}
 
-      <footer className="mission-briefing-actions">
+      {current.id !== 'overview' && <footer className="mission-briefing-actions">
         <button type="button" onClick={() => { record('Opened notes', 'Opened notes from the mobile Mission Briefing.'); openNotes(); }}>📝<small>Notes</small></button>
         <button type="button" onClick={() => openEvidenceTool('Timeline', 'timeline')}>⏱️<small>Timeline</small></button>
         <button type="button" onClick={() => { record('Opened tool deck', 'Opened the investigation tool deck from the mobile Mission Briefing.'); openMoreTools(); }}>🧰<small>Tools</small></button>
         <button type="button" onClick={() => { record('Opened determination', 'Opened Submit Decision from the mobile Mission Briefing.'); jumpDecision(); }}>✅<small>Decide</small></button>
         <button type="button" onClick={openQueue}>🗂️<small>Queue</small></button>
-      </footer>
+      </footer>}
     </section>
   );
 }

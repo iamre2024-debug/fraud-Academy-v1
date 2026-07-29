@@ -208,7 +208,7 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Payment Verification');
   await expect(toolPanel.getByRole('heading', { name: 'Payment Verification', exact: true })).toBeVisible();
 
-  await expect(toolPanel.locator('.payment-detail-panel')).toHaveCount(0);
+  await expect(toolPanel.getByRole('status', { name: 'Payment verification result' })).toHaveCount(0);
   await runPaymentVerification(toolPanel, { bankCode: 'BC-441', destinationId: 'DST-CARD-4410', ownerName: 'Maya Sterling' });
   await toolPanel.getByRole('button', { name: 'Mark Payment Verification reviewed', exact: true }).click();
   await expect(toolPanel.getByRole('button', { name: '✓ Payment Verification reviewed', exact: true })).toBeVisible();
@@ -218,24 +218,13 @@ test('approved Investigation tools are contextual, functional, and responsive', 
   await expect(caseSelector).toHaveValue('FA-CR-24003');
   await selectToolGroup(page, /Business & Payment Verification/);
   const creditToolSelect = toolPanel.getByRole('combobox', { name: 'Choose investigation tool' });
-
-  await creditToolSelect.selectOption('Business 360');
-  await expect(toolPanel.locator('.business-360-profile')).toBeVisible();
-  await expect(toolPanel.locator('[data-business-360-record]').first()).toBeVisible();
-  await toolPanel.getByRole('button', { name: 'Mark Business 360 reviewed', exact: true }).click();
-
-  await creditToolSelect.selectOption('Employee Profile');
-  await expect(toolPanel.locator('.employee-profile-summary article')).toHaveCount(4);
-  await toolPanel.getByRole('button', { name: 'Pin employee', exact: true }).click();
-  await toolPanel.getByRole('button', { name: 'Save employee note', exact: true }).click();
-  await toolPanel.getByRole('button', { name: 'Mark Employee Profile reviewed', exact: true }).click();
-
-  await creditToolSelect.selectOption('Payroll History');
-  await expect(toolPanel.locator('.payroll-history-summary article')).toHaveCount(4);
-  await toolPanel.locator('[data-payroll-history-record]').first().click();
-  await toolPanel.getByRole('button', { name: 'Pin payroll record', exact: true }).click();
-  await toolPanel.getByRole('button', { name: 'Save payroll note', exact: true }).click();
-  await toolPanel.getByRole('button', { name: 'Mark Payroll History reviewed', exact: true }).click();
+  const personalLoanToolOptions = await creditToolSelect.locator('option')
+    .evaluateAll((options) => options.map((option) => option.value));
+  expect(personalLoanToolOptions).not.toContain('Business 360');
+  expect(personalLoanToolOptions).not.toContain('KYB Review');
+  expect(personalLoanToolOptions).not.toContain('Employee Profile');
+  expect(personalLoanToolOptions).not.toContain('Payroll History');
+  expect(personalLoanToolOptions).toContain('Payment Verification');
 
   await creditToolSelect.selectOption('Payment Verification');
   await runPaymentVerification(toolPanel, { bankCode: 'BC-204', destinationId: 'DST-7740', ownerName: 'Avery Brooks' });

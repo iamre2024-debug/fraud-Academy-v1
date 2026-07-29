@@ -14,6 +14,7 @@ body[data-visual-tab="dashboard"] .visual-os-shell {
 body[data-visual-tab="dashboard"] .visual-os-frame {
   width: min(1180px, calc(100% - 32px));
   margin: 20px auto 96px;
+  grid-template-columns: minmax(0, 1fr);
   padding: 0;
   border: 1px solid rgba(91, 62, 154, 0.16);
   border-radius: 30px;
@@ -24,6 +25,7 @@ body[data-visual-tab="dashboard"] .visual-os-frame {
 
 body[data-visual-tab="dashboard"] .visual-hero,
 body[data-visual-tab="dashboard"] .visual-case-strip,
+body[data-visual-tab="dashboard"] .mobile-workspace-page-header,
 body[data-visual-tab="dashboard"] .active-case-workflow,
 body[data-visual-tab="dashboard"] [data-workflow-stage="briefing"],
 body[data-visual-tab="dashboard"] .workflow-investigate-stage,
@@ -438,5 +440,380 @@ body[data-visual-tab="dashboard"] .visual-react-bottom-nav button.active {
 
   .dashboard-quick-grid button {
     min-height: 82px;
+  }
+}
+
+/*
+ * The Dashboard mission header and case stack are owned by DashboardPanel.
+ * Keep these rules with the active Dashboard stylesheet instead of reviving
+ * the retired mobile theme as a global skin.
+ */
+body[data-visual-tab="dashboard"] .dashboard-mission-header {
+  position: relative;
+  display: block;
+  min-height: 170px;
+  overflow: hidden;
+  border-color: rgba(77, 215, 255, 0.34);
+  border-radius: 24px 24px 38px;
+  background:
+    radial-gradient(circle at 86% 18%, rgba(22, 130, 255, 0.55), transparent 36%),
+    linear-gradient(145deg, #0753a1, #05264d 57%, #03162d);
+  padding: 17px;
+  box-shadow: 0 18px 42px rgba(0, 14, 38, 0.3), inset 0 1px rgba(213, 250, 255, 0.12);
+}
+
+body[data-visual-tab="dashboard"] .dashboard-mission-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-mission-brand > span {
+  display: grid;
+  place-items: center;
+  width: 37px;
+  height: 42px;
+  border: 1px solid rgba(95, 229, 255, 0.66);
+  border-radius: 10px 10px 15px 15px;
+  background: rgba(0, 42, 86, 0.72);
+  font-size: 1.05rem;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-mission-brand div {
+  display: grid;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-mission-brand strong {
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-mission-brand small {
+  color: #8eeaff;
+  font-size: 0.61rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-daily-goal {
+  position: absolute;
+  right: 103px;
+  bottom: 19px;
+  left: 17px;
+  display: grid;
+  gap: 5px;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-daily-goal > span,
+body[data-visual-tab="dashboard"] .dashboard-daily-goal strong {
+  color: #fff;
+  font-size: 0.76rem;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-daily-goal > div {
+  height: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(107, 230, 255, 0.36);
+  border-radius: 999px;
+  background: rgba(0, 8, 22, 0.65);
+}
+
+body[data-visual-tab="dashboard"] .dashboard-daily-goal > div span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #20dfff, #067cff);
+}
+
+body[data-visual-tab="dashboard"] .dashboard-luna-launcher {
+  position: absolute;
+  right: 22px;
+  bottom: 18px;
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  width: 70px;
+  height: 91px;
+  border-color: rgba(99, 229, 255, 0.6);
+  border-radius: 35px 35px 24px 24px;
+  background: radial-gradient(circle at 50% 28%, #42dbff, #0b63d9 54%, #06254e 55%);
+  color: #fff;
+  box-shadow: 0 0 22px rgba(44, 199, 255, 0.28);
+}
+
+body[data-visual-tab="dashboard"] .dashboard-luna-launcher > span {
+  font-size: 2rem;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-luna-launcher small {
+  color: #fff;
+  font-size: 0.62rem;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-mission-orbit {
+  position: absolute;
+  pointer-events: none;
+  right: -63px;
+  bottom: -53px;
+  width: 310px;
+  height: 116px;
+  pointer-events: none;
+  border-top: 2px solid rgba(81, 224, 255, 0.62);
+  border-radius: 50%;
+  transform: rotate(-8deg);
+  box-shadow: 0 -4px 18px rgba(25, 165, 255, 0.26);
+}
+
+body[data-visual-tab="dashboard"] .dashboard-mission-orbit i {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1px solid #54ddff;
+  border-radius: 50%;
+  background: #0b4480;
+  box-shadow: 0 0 8px #40dcff;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-mission-orbit i:nth-child(1) {
+  top: -4px;
+  right: 24%;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-mission-orbit i:nth-child(2) {
+  top: -20px;
+  right: 49%;
+  width: 12px;
+  height: 12px;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-mission-orbit i:nth-child(3) {
+  top: 16px;
+  left: 19%;
+  width: 4px;
+  height: 4px;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-mission-stack {
+  position: relative;
+  min-height: 585px;
+  padding-top: 78px;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-stack-case {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: calc(100% - 24px);
+  height: 76px;
+  border: 1px solid rgba(80, 212, 255, 0.38);
+  border-radius: 23px 23px 9px 9px;
+  background: linear-gradient(180deg, #0b4f91, #052c55);
+  padding: 15px 18px;
+  color: #d9f7ff;
+  box-shadow: 0 -7px 24px rgba(0, 4, 17, 0.32);
+  text-align: left;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-stack-case-1 {
+  top: 0;
+  transform: scale(0.94);
+  opacity: 0.74;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-stack-case-2 {
+  top: 39px;
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-stack-case span {
+  font-weight: 800;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-stack-case small {
+  color: #9cd9ec;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-active-case {
+  position: relative;
+  z-index: 3;
+  min-height: 500px;
+  overflow: hidden;
+  border-color: rgba(88, 223, 255, 0.65);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(12, 66, 117, 0.96), rgba(2, 15, 31, 0.99) 72%);
+  box-shadow: 0 28px 54px rgba(0, 3, 11, 0.46), inset 0 0 34px rgba(47, 181, 255, 0.08);
+}
+
+body[data-visual-tab="dashboard"] .dashboard-lighthouse-art {
+  position: absolute;
+  inset: 0 0 auto;
+  width: 100%;
+  height: 310px;
+  opacity: 0.94;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-active-case-copy {
+  position: absolute;
+  z-index: 3;
+  right: 18px;
+  bottom: 82px;
+  left: 18px;
+  display: grid;
+  gap: 11px;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-active-case .dashboard-kicker {
+  width: max-content;
+  border: 1px solid rgba(77, 226, 255, 0.46);
+  border-radius: 999px;
+  background: rgba(2, 35, 67, 0.88);
+  padding: 5px 9px;
+  color: #6ff1d2;
+  font-size: 0.61rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-active-case .dashboard-case-title-row {
+  display: block;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-active-case .dashboard-case-title-row h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.7rem;
+  letter-spacing: -0.03em;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-active-case .dashboard-case-title-row p {
+  margin: 2px 0 0;
+  color: #d3edfb;
+  font-size: 0.85rem;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-active-case .dashboard-priority {
+  display: none;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-case-mission-facts {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-case-mission-facts > div {
+  display: grid;
+  grid-template-columns: 95px minmax(0, 1fr);
+  gap: 8px;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-case-mission-facts :is(dt, dd) {
+  margin: 0;
+  font-size: 0.72rem;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-case-mission-facts dt {
+  color: #9dc9df;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-case-mission-facts dd {
+  color: #fff;
+  font-weight: 800;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-active-case .dashboard-progress-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  margin-top: 0;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-active-case .dashboard-progress-row > span,
+body[data-visual-tab="dashboard"] .dashboard-active-case .dashboard-progress-row strong {
+  color: #c3e8f8;
+  font-size: 0.64rem;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-active-case .dashboard-progress-track {
+  grid-column: 1 / -1;
+  height: 6px;
+  background: #001021;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-active-case .dashboard-progress-track span {
+  background: linear-gradient(90deg, #24e2ff, #0c79ff);
+}
+
+body[data-visual-tab="dashboard"] .dashboard-investigation-ribbon {
+  position: absolute;
+  z-index: 4;
+  right: -41px;
+  bottom: 76px;
+  width: 184px;
+  transform: rotate(-43deg);
+  border-block: 1px solid #55e9ff;
+  background: linear-gradient(90deg, #77efff, #26bfff);
+  padding: 6px;
+  color: #023355;
+  font-size: 0.58rem;
+  font-weight: 950;
+  text-align: center;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-active-case .dashboard-primary-action {
+  position: absolute;
+  z-index: 5;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  width: auto;
+  min-height: 55px;
+  margin: 0;
+  border: 1px solid #64e5ff;
+  background: linear-gradient(180deg, #0d8dff, #0758d8);
+  box-shadow: inset 0 0 15px rgba(172, 244, 255, 0.18), 0 0 20px rgba(9, 118, 255, 0.3);
+}
+
+body[data-visual-tab="dashboard"] .dashboard-mission-drawers > button {
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  border-color: rgba(64, 206, 255, 0.29);
+  border-radius: 9px 23px 23px 9px;
+  background: linear-gradient(90deg, #07396c, #052443);
+  padding: 11px 13px;
+  color: #fff;
+  box-shadow: 0 11px 26px rgba(0, 4, 13, 0.26);
+}
+
+body[data-visual-tab="dashboard"] .dashboard-mission-drawers .dashboard-quick-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: #087bff;
+  color: #fff;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-mission-drawers button > span:last-child {
+  display: grid;
+}
+
+body[data-visual-tab="dashboard"] .dashboard-mission-drawers small {
+  color: #9ec5d9;
+}
+
+@media (max-width: 760px) {
+  body[data-visual-tab="dashboard"] .dashboard-mission-stack {
+    min-height: 575px;
+  }
+
+  body[data-visual-tab="dashboard"] .dashboard-mission-drawers {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

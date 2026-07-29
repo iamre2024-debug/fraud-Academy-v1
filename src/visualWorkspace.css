@@ -12,6 +12,19 @@
   --visual-glow: 0 0 18px rgba(255, 92, 218, 0.55), 0 0 42px rgba(173, 76, 255, 0.25);
 }
 
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  clip-path: inset(50%) !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
 body {
   background:
     radial-gradient(circle at 12% 8%, rgba(255, 92, 218, 0.2), transparent 22rem),

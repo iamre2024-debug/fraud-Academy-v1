@@ -67,6 +67,6 @@ test('approved Workspace shell is compact, functional, and responsive', async ({
   const lunaPanel = page.locator('.luna-visual-panel.locked');
   await expect(lunaPanel).toBeAttached();
   await expect(lunaPanel).toHaveAttribute('data-case-id', secondCase.id);
-  await expect(page.getByText('Evidence First lock is active.')).toBeAttached();
+  await expect(lunaPanel.getByText('Evidence First lock is active', { exact: true })).toBeAttached();
   expect(await page.locator('body').innerText()).not.toMatch(forbiddenPreSubmissionCopy);
 });

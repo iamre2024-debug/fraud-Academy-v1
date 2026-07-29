@@ -1,0 +1,1051 @@
+body[data-visual-tab="workspace"] .financial-mission-deck,
+body[data-visual-tab="workspace"] .financial-mission-deck * {
+  box-sizing: border-box;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-deck {
+  --financial-card: linear-gradient(145deg, rgba(6, 43, 80, 0.98), rgba(2, 20, 43, 0.99));
+  --financial-card-soft: linear-gradient(145deg, rgba(8, 53, 94, 0.94), rgba(3, 27, 55, 0.98));
+  --financial-line: rgba(78, 172, 255, 0.28);
+  --financial-line-strong: rgba(96, 207, 255, 0.62);
+  --financial-text: #f5fbff;
+  --financial-muted: #9cbed2;
+  --financial-blue: #55cbff;
+  --financial-pink: #ff65b7;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  color: var(--financial-text);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-deck :is(h3, p, dl, dt, dd) {
+  margin: 0;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-deck button,
+body[data-visual-tab="workspace"] .financial-mission-deck input,
+body[data-visual-tab="workspace"] .financial-mission-deck select {
+  font: inherit;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-deck button {
+  min-height: 44px;
+  border: 1px solid var(--financial-line);
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(12, 83, 146, 0.94), rgba(5, 49, 96, 0.98));
+  padding: 8px 11px;
+  color: #f5fbff;
+  font-size: 0.7rem;
+  font-weight: 850;
+  line-height: 1.2;
+  box-shadow: none;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-deck button:hover,
+body[data-visual-tab="workspace"] .financial-mission-deck button:focus-visible {
+  border-color: #70dcff;
+  background: linear-gradient(180deg, #0b79ce, #0752a8);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(77, 201, 255, 0.15);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-review .financial-mission-primary {
+  border-color: rgba(105, 215, 255, 0.75);
+  background: linear-gradient(180deg, #0c86df, #0757b2);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-overview,
+body[data-visual-tab="workspace"] .financial-mission-dashboard,
+body[data-visual-tab="workspace"] .financial-mission-explorer,
+body[data-visual-tab="workspace"] .financial-mission-review {
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-overview {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.75fr) minmax(0, 1.25fr);
+  gap: 10px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-account,
+body[data-visual-tab="workspace"] .financial-mission-activity,
+body[data-visual-tab="workspace"] .financial-mission-categories,
+body[data-visual-tab="workspace"] .financial-mission-accounts,
+body[data-visual-tab="workspace"] .financial-mission-observations,
+body[data-visual-tab="workspace"] .financial-mission-explorer,
+body[data-visual-tab="workspace"] .financial-mission-review {
+  border: 1px solid var(--financial-line);
+  border-radius: 17px;
+  background: var(--financial-card);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.025), 0 12px 28px rgba(0, 9, 24, 0.2);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-account {
+  display: grid;
+  align-content: start;
+  gap: 13px;
+  min-width: 0;
+  padding: 15px;
+  background:
+    radial-gradient(circle at 95% 0%, rgba(255, 77, 172, 0.12), transparent 34%),
+    radial-gradient(circle at 5% -15%, rgba(32, 132, 229, 0.28), transparent 42%),
+    var(--financial-card);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-account > div {
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-account p,
+body[data-visual-tab="workspace"] .financial-mission-dashboard header p,
+body[data-visual-tab="workspace"] .financial-mission-explorer-body :is(.financial-investigation-findbar, .financial-record-list, .financial-record-detail, .financial-case-rail, .financial-deposit-trend) p {
+  color: var(--financial-blue);
+  font-size: 0.63rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-account h3 {
+  margin-top: 4px;
+  color: #fff;
+  font-size: clamp(1.08rem, 2.4vw, 1.38rem);
+  line-height: 1.15;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-account > div > span {
+  display: block;
+  margin-top: 5px;
+  color: var(--financial-muted);
+  font-size: 0.73rem;
+  line-height: 1.4;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-account dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-account dl > div {
+  min-width: 0;
+  border: 1px solid rgba(82, 174, 255, 0.16);
+  border-radius: 10px;
+  background: rgba(1, 20, 42, 0.58);
+  padding: 9px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-account dt {
+  color: #89aec6;
+  font-size: 0.59rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-account dd {
+  margin-top: 4px;
+  color: #f3fbff;
+  font-size: 0.69rem;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-kpis article,
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-kpis article {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--financial-line);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 77, 172, 0.1), transparent 44%),
+    var(--financial-card-soft);
+  padding: 12px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-kpis article:nth-child(odd) {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(55, 169, 255, 0.2), transparent 44%),
+    var(--financial-card-soft);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-kpis span,
+body[data-visual-tab="workspace"] .financial-mission-kpis small,
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-kpis :is(span, small) {
+  color: var(--financial-muted);
+  font-size: 0.62rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-kpis strong,
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-kpis strong {
+  color: #fff;
+  font-size: clamp(0.9rem, 2vw, 1.08rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-kpis i {
+  width: 72%;
+  height: 3px;
+  display: block;
+  align-self: end;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--financial-blue), transparent);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-kpis article:nth-child(even) i {
+  background: linear-gradient(90deg, var(--financial-pink), transparent);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-dashboard {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-activity {
+  grid-column: 1 / -1;
+  padding: 14px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-dashboard article > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-dashboard header > div {
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-dashboard header h3 {
+  margin-top: 3px;
+  color: #fff;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-dashboard header span {
+  display: block;
+  margin-top: 4px;
+  color: var(--financial-muted);
+  font-size: 0.66rem;
+  line-height: 1.35;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-activity-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  gap: 14px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-bars {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-bars > button {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.7fr) minmax(110px, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  padding: 6px;
+  text-align: left;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-bars > button:hover,
+body[data-visual-tab="workspace"] .financial-mission-bars > button:focus-visible {
+  background: rgba(23, 105, 172, 0.28);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-bars button > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-bars strong {
+  color: #effaff;
+  font-size: 0.69rem;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-bars small {
+  color: var(--financial-muted);
+  font-size: 0.59rem;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-bars i {
+  height: 7px;
+  display: block;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(112, 165, 202, 0.17);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-bars b {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #178ff0, #7aa4ff);
+  box-shadow: 0 0 10px rgba(55, 165, 255, 0.34);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-bars button:nth-child(even) b {
+  background: linear-gradient(90deg, #b750db, #ff70bb);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-bars em {
+  color: #d9f4ff;
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-bars > p {
+  color: var(--financial-muted);
+  font-size: 0.72rem;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-total {
+  width: 142px;
+  height: 142px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 4px;
+  border: 12px solid rgba(44, 146, 235, 0.82);
+  border-right-color: rgba(255, 91, 179, 0.85);
+  border-bottom-color: rgba(125, 102, 255, 0.78);
+  border-radius: 50%;
+  background: rgba(1, 17, 37, 0.88);
+  text-align: center;
+  box-shadow: 0 0 24px rgba(44, 151, 235, 0.18);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-total span,
+body[data-visual-tab="workspace"] .financial-mission-total small {
+  color: var(--financial-muted);
+  font-size: 0.58rem;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-total strong {
+  max-width: 110px;
+  color: #fff;
+  font-size: 0.92rem;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-categories,
+body[data-visual-tab="workspace"] .financial-mission-accounts,
+body[data-visual-tab="workspace"] .financial-mission-observations {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  padding: 13px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-categories {
+  grid-column: 1 / -1;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-categories > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 7px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-categories button {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  min-width: 0;
+  min-height: 92px;
+  align-content: center;
+  border-color: rgba(80, 172, 255, 0.18);
+  background: rgba(2, 27, 55, 0.68);
+  text-align: center;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-categories button > span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(23, 111, 186, 0.52);
+  color: var(--financial-blue);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-categories strong {
+  color: #fff;
+  font-size: 0.66rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-categories small {
+  color: var(--financial-muted);
+  font-size: 0.61rem;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-accounts > div,
+body[data-visual-tab="workspace"] .financial-mission-observations > div {
+  display: grid;
+  gap: 6px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-accounts button,
+body[data-visual-tab="workspace"] .financial-mission-observations button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 8px;
+  min-width: 0;
+  min-height: 50px;
+  border-color: rgba(80, 172, 255, 0.16);
+  background: rgba(2, 27, 55, 0.66);
+  text-align: left;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-accounts button > span,
+body[data-visual-tab="workspace"] .financial-mission-observations button > span {
+  color: #e8f8ff;
+  font-size: 0.66rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-accounts button strong,
+body[data-visual-tab="workspace"] .financial-mission-observations button strong {
+  color: #63d5ff;
+  font-size: 0.66rem;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-accounts button small,
+body[data-visual-tab="workspace"] .financial-mission-observations button small {
+  grid-column: 1 / -1;
+  color: var(--financial-muted);
+  font-size: 0.59rem;
+  line-height: 1.3;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-observations > div > p {
+  border-left: 3px solid var(--financial-blue);
+  border-radius: 8px;
+  background: rgba(2, 27, 55, 0.66);
+  padding: 9px;
+  color: #c5e0ee;
+  font-size: 0.66rem;
+  line-height: 1.4;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer {
+  overflow: hidden;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 62px;
+  cursor: pointer;
+  list-style: none;
+  padding: 13px 15px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer > summary::-webkit-details-marker {
+  display: none;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer > summary span {
+  display: grid;
+  gap: 3px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer > summary strong {
+  color: #fff;
+  font-size: 0.84rem;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer > summary small {
+  color: var(--financial-muted);
+  font-size: 0.66rem;
+  line-height: 1.35;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer > summary em {
+  border: 1px solid var(--financial-line);
+  border-radius: 999px;
+  background: rgba(7, 69, 121, 0.58);
+  padding: 7px 10px;
+  color: #bfe9ff;
+  font-size: 0.64rem;
+  font-style: normal;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body {
+  display: grid;
+  gap: 11px;
+  min-width: 0;
+  border-top: 1px solid rgba(79, 171, 255, 0.2);
+  padding: 13px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-tabs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-tabs button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  min-height: 44px;
+  border-color: rgba(80, 172, 255, 0.18);
+  background: rgba(2, 27, 55, 0.66);
+  color: #a9cada;
+  font-size: 0.64rem;
+  text-align: left;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-tabs button.active {
+  border-color: #5ed2ff;
+  background: linear-gradient(180deg, rgba(15, 113, 190, 0.9), rgba(5, 61, 118, 0.96));
+  color: #fff;
+  box-shadow: 0 0 16px rgba(56, 179, 255, 0.15);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-tabs button span {
+  min-width: 22px;
+  border-radius: 999px;
+  background: rgba(1, 18, 38, 0.58);
+  padding: 4px 6px;
+  color: #d8f3ff;
+  font-size: 0.58rem;
+  text-align: center;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-findbar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  align-items: end;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid rgba(78, 172, 255, 0.18);
+  border-radius: 13px;
+  background: rgba(2, 25, 51, 0.72);
+  padding: 11px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-findbar > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-findbar h3 {
+  color: #fff;
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-findbar label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--financial-muted);
+  font-size: 0.61rem;
+  font-weight: 800;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-findbar :is(input, select) {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid rgba(89, 184, 255, 0.34);
+  border-radius: 10px;
+  background: #031b36;
+  padding: 8px 10px;
+  color: #effaff;
+  font-size: 0.69rem;
+  font-weight: 750;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-findbar :is(input, select):focus {
+  border-color: #70dcff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(77, 201, 255, 0.14);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-findbar > span {
+  align-self: end;
+  padding: 9px 0;
+  color: var(--financial-muted);
+  font-size: 0.62rem;
+  font-weight: 750;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-comparison-grid article,
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-deposit-trend,
+body[data-visual-tab="workspace"] .financial-mission-explorer-body :is(.financial-record-list, .financial-record-detail, .financial-case-rail) {
+  min-width: 0;
+  border: 1px solid rgba(78, 172, 255, 0.18);
+  border-radius: 13px;
+  background: rgba(3, 29, 58, 0.76);
+  padding: 11px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-comparison-grid article {
+  display: grid;
+  gap: 7px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-comparison-grid header {
+  display: grid;
+  gap: 3px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-comparison-grid strong {
+  color: #fff;
+  font-size: 0.7rem;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-comparison-grid :is(header span, p) {
+  color: var(--financial-muted);
+  font-size: 0.61rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-comparison-grid article > div {
+  display: grid;
+  gap: 3px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-comparison-grid :is(i, b) {
+  height: 5px;
+  display: block;
+  border-radius: 999px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-comparison-grid i {
+  background: #4e6f89;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-comparison-grid b {
+  background: linear-gradient(90deg, #158ef0, #d65dc4);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-deposit-trend {
+  display: grid;
+  gap: 9px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-deposit-trend > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-deposit-trend article {
+  display: grid;
+  grid-template-rows: auto 70px auto auto;
+  gap: 4px;
+  min-width: 0;
+  text-align: center;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-deposit-trend article > div {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(1, 17, 36, 0.6);
+  padding: 4px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-deposit-trend i {
+  width: min(44px, 56%);
+  display: block;
+  border-radius: 5px 5px 2px 2px;
+  background: linear-gradient(#59d2ff, #197dd0);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-deposit-trend :is(span, small) {
+  color: var(--financial-muted);
+  font-size: 0.59rem;
+  line-height: 1.3;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-deposit-trend strong {
+  color: #fff;
+  font-size: 0.7rem;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.3fr);
+  gap: 9px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-record-workspace {
+  display: grid;
+  grid-template-columns: minmax(200px, 0.7fr) minmax(0, 1.3fr);
+  gap: 9px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body :is(.financial-record-list, .financial-record-detail, .financial-case-rail) {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body :is(.financial-record-list, .financial-record-detail) > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body :is(.financial-record-list, .financial-record-detail) > header > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body :is(.financial-record-list, .financial-record-detail, .financial-case-rail) h3 {
+  color: #fff;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-record-list > header > span,
+body[data-visual-tab="workspace"] .financial-mission-explorer-body :is(.financial-record-detail, .financial-case-rail) header span {
+  color: var(--financial-muted);
+  font-size: 0.6rem;
+  line-height: 1.35;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-record-list > button {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  border-color: rgba(78, 172, 255, 0.14);
+  background: rgba(2, 23, 48, 0.7);
+  text-align: left;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-record-list > button.active {
+  border-color: #5fd2ff;
+  background: rgba(12, 88, 149, 0.62);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-record-list > button span {
+  color: var(--financial-blue);
+  font-size: 0.58rem;
+  font-weight: 850;
+  line-height: 1.3;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-record-list > button strong {
+  color: #fff;
+  font-size: 0.7rem;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-record-list > button small {
+  color: var(--financial-muted);
+  font-size: 0.6rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-record-detail dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-record-detail dl > div {
+  min-width: 0;
+  border-radius: 9px;
+  background: rgba(2, 22, 46, 0.68);
+  padding: 8px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-record-detail dt,
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-record-detail > article span,
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-related-records > span {
+  color: #8db2c9;
+  font-size: 0.59rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-record-detail dd,
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-record-detail > article p {
+  margin-top: 4px;
+  color: #e9f7ff;
+  font-size: 0.67rem;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-record-detail > article {
+  border-left: 3px solid var(--financial-blue);
+  border-radius: 9px;
+  background: rgba(2, 22, 46, 0.68);
+  padding: 9px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-related-records {
+  display: grid;
+  gap: 6px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-related-records > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-related-records button {
+  min-height: 44px;
+  padding: 6px 8px;
+  font-size: 0.59rem;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-case-rail {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 80, 175, 0.09), transparent 34%),
+    rgba(3, 29, 58, 0.8);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-case-rail > header {
+  display: grid;
+  gap: 3px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(78, 172, 255, 0.18);
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-case-rail > :is(section, nav) {
+  display: grid;
+  gap: 6px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-case-rail > section > article {
+  border-radius: 8px;
+  background: rgba(2, 22, 46, 0.64);
+  padding: 8px;
+  color: #bad5e4;
+  font-size: 0.62rem;
+  line-height: 1.4;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-case-rail > section > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-case-rail > section > div button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  min-width: 0;
+  text-align: left;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-explorer-body .investigation-tool-empty {
+  border: 1px dashed rgba(93, 192, 255, 0.35);
+  border-radius: 11px;
+  background: rgba(3, 28, 56, 0.7);
+  padding: 14px;
+  color: var(--financial-muted);
+  font-size: 0.7rem;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-routes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 7px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-review {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-review strong {
+  display: block;
+  color: #fff;
+  font-size: 0.78rem;
+}
+
+body[data-visual-tab="workspace"] .financial-mission-review span {
+  display: block;
+  margin-top: 3px;
+  color: var(--financial-muted);
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 1050px) {
+  body[data-visual-tab="workspace"] .financial-mission-overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-case-rail {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-case-rail > header {
+    border-bottom: 0;
+    border-right: 1px solid rgba(78, 172, 255, 0.18);
+    padding: 0 8px 0 0;
+  }
+}
+
+@media (max-width: 760px) {
+  body[data-visual-tab="workspace"] .financial-mission-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-dashboard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-activity,
+  body[data-visual-tab="workspace"] .financial-mission-categories {
+    grid-column: auto;
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-categories > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-activity-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-total {
+    width: 130px;
+    height: 130px;
+    justify-self: center;
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-tabs {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    padding-bottom: 3px;
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-investigation-tabs button {
+    min-width: 150px;
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-record-workspace,
+  body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-case-rail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-case-rail > header {
+    border-right: 0;
+    border-bottom: 1px solid rgba(78, 172, 255, 0.18);
+    padding: 0 0 8px;
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-routes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  body[data-visual-tab="workspace"] .financial-mission-account dl,
+  body[data-visual-tab="workspace"] .financial-mission-kpis,
+  body[data-visual-tab="workspace"] .financial-mission-explorer-body .financial-record-detail dl,
+  body[data-visual-tab="workspace"] .financial-mission-routes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-bars > button {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-bars button > i {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-explorer > summary,
+  body[data-visual-tab="workspace"] .financial-mission-review,
+  body[data-visual-tab="workspace"] .financial-mission-dashboard article > header {
+    display: grid;
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-explorer > summary em {
+    justify-self: start;
+    white-space: normal;
+  }
+
+  body[data-visual-tab="workspace"] .financial-mission-review > button {
+    width: 100%;
+  }
+}

@@ -7,46 +7,48 @@ body[data-visual-tab="workspace"] .luna-visual-panel[data-workspace-screen-visib
   display: none !important;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid .ornate-card {
+/* This light legacy presentation belongs to the desktop workspace. Keeping it
+   out of the mobile mission shell lets each mobile page own its theme. */
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .ornate-card {
   border-color: rgba(91, 62, 154, 0.14) !important;
   background: #fff !important;
   color: #2b2350 !important;
   box-shadow: 0 10px 26px rgba(67, 43, 126, 0.08) !important;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid .ornate-card::before,
-body[data-visual-tab="workspace"] .bottom-investigation-grid .ornate-card::after {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .ornate-card::before,
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .ornate-card::after {
   display: none !important;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid .card-title-row :is(h2, p) {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .card-title-row :is(h2, p) {
   font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid .card-title-row h2 {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .card-title-row h2 {
   font-size: 1.05rem;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid .card-title-row p {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .card-title-row p {
   font-size: 0.78rem;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid :is(h2, strong) {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid :is(h2, strong) {
   color: #2b2350 !important;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid :is(p, em) {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid :is(p, em) {
   color: #756c8d !important;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid :is(.tray-list > div, .notebook-list > button) {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid :is(.tray-list > div, .notebook-list > button) {
   border-color: rgba(91, 62, 154, 0.14) !important;
   background: #faf8ff !important;
   color: #2b2350 !important;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid .card-title-row > .indicator-card-badge,
-body[data-visual-tab="workspace"] .bottom-investigation-grid .tray-record-badge {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .card-title-row > .indicator-card-badge,
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .tray-record-badge {
   display: grid;
   place-items: center;
   width: 42px;
@@ -59,12 +61,12 @@ body[data-visual-tab="workspace"] .bottom-investigation-grid .tray-record-badge 
   font: 850 0.62rem/1 system-ui, sans-serif;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid .tray-record-row {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .tray-record-row {
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 10px;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid .tray-open-record {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .tray-open-record {
   display: grid;
   min-width: 0;
   border: 0 !important;
@@ -77,26 +79,26 @@ body[data-visual-tab="workspace"] .bottom-investigation-grid .tray-open-record {
   grid-row: 1 !important;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid .tray-open-record strong,
-body[data-visual-tab="workspace"] .bottom-investigation-grid .tray-open-record small {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .tray-open-record strong,
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .tray-open-record small {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid .tray-open-record small {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .tray-open-record small {
   margin-top: 3px;
   color: #6945b8;
   font-size: 0.72rem;
   font-weight: 800;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid .tray-open-record:hover,
-body[data-visual-tab="workspace"] .bottom-investigation-grid .tray-open-record:focus-visible {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .tray-open-record:hover,
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .tray-open-record:focus-visible {
   color: #4f2e99 !important;
   transform: none;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid .tray-remove-record {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .tray-remove-record {
   min-height: 38px;
   border: 1px solid rgba(171, 52, 84, 0.2) !important;
   border-radius: 7px;
@@ -109,7 +111,7 @@ body[data-visual-tab="workspace"] .bottom-investigation-grid .tray-remove-record
   grid-row: 1 !important;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid .tray-empty-state {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .tray-empty-state {
   margin: 0;
   border: 1px dashed rgba(91, 62, 154, 0.18);
   border-radius: 8px;
@@ -117,7 +119,7 @@ body[data-visual-tab="workspace"] .bottom-investigation-grid .tray-empty-state {
   padding: 16px;
 }
 
-body[data-visual-tab="workspace"] .opened-pinned-evidence {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .opened-pinned-evidence {
   position: relative;
   z-index: 36;
   display: grid;
@@ -133,38 +135,38 @@ body[data-visual-tab="workspace"] .opened-pinned-evidence {
   box-shadow: 0 8px 24px rgba(67, 43, 126, 0.08);
 }
 
-body[data-visual-tab="workspace"] .opened-pinned-evidence header {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .opened-pinned-evidence header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
 
-body[data-visual-tab="workspace"] .opened-pinned-evidence :is(p, h2, dt, dd) {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .opened-pinned-evidence :is(p, h2, dt, dd) {
   margin: 0;
 }
 
-body[data-visual-tab="workspace"] .opened-pinned-evidence header p,
-body[data-visual-tab="workspace"] .opened-pinned-evidence dt {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .opened-pinned-evidence header p,
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .opened-pinned-evidence dt {
   color: #746b8c;
   font-size: 0.68rem;
   font-weight: 850;
   text-transform: uppercase;
 }
 
-body[data-visual-tab="workspace"] .opened-pinned-evidence header h2 {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .opened-pinned-evidence header h2 {
   color: #2b2350;
   font-size: 1.05rem;
   overflow-wrap: anywhere;
 }
 
-body[data-visual-tab="workspace"] .opened-pinned-evidence header span {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .opened-pinned-evidence header span {
   color: #6945b8;
   font-size: 0.78rem;
   font-weight: 800;
 }
 
-body[data-visual-tab="workspace"] .opened-pinned-evidence header button {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .opened-pinned-evidence header button {
   min-height: 38px;
   flex: 0 0 auto;
   border: 1px solid rgba(105, 69, 184, 0.18);
@@ -175,14 +177,14 @@ body[data-visual-tab="workspace"] .opened-pinned-evidence header button {
   font-weight: 800;
 }
 
-body[data-visual-tab="workspace"] .opened-pinned-evidence dl {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .opened-pinned-evidence dl {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin: 0;
 }
 
-body[data-visual-tab="workspace"] .opened-pinned-evidence dl > div {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .opened-pinned-evidence dl > div {
   min-width: 0;
   border: 1px solid rgba(91, 62, 154, 0.12);
   border-radius: 7px;
@@ -190,7 +192,7 @@ body[data-visual-tab="workspace"] .opened-pinned-evidence dl > div {
   padding: 10px;
 }
 
-body[data-visual-tab="workspace"] .opened-pinned-evidence dd {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .opened-pinned-evidence dd {
   margin-top: 4px;
   color: #2b2350;
   font-size: 0.8rem;
@@ -198,13 +200,13 @@ body[data-visual-tab="workspace"] .opened-pinned-evidence dd {
   overflow-wrap: anywhere;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid .notebook-compose textarea {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .notebook-compose textarea {
   border-color: rgba(91, 62, 154, 0.18) !important;
   background: #fff !important;
   color: #2b2350 !important;
 }
 
-body[data-visual-tab="workspace"] .bottom-investigation-grid .notebook-compose button {
+body[data-layout-mode="desktop"][data-visual-tab="workspace"] .bottom-investigation-grid .notebook-compose button {
   border-color: #6945b8 !important;
   background: #6945b8 !important;
   color: #fff !important;
@@ -221,6 +223,10 @@ body[data-layout-mode="mobile"][data-visual-tab="workspace"] .visual-os-frame {
   display: block;
   min-width: 0;
   padding-bottom: calc(88px + env(safe-area-inset-bottom));
+}
+
+.mobile-workspace-page-header {
+  display: none;
 }
 
 body[data-visual-tab="workspace"] .mobile-workspace-page-header {
@@ -295,6 +301,7 @@ body[data-visual-tab="workspace"] .visual-os-frame[data-workspace-screen="timeli
 body[data-visual-tab="workspace"] .visual-os-frame[data-workspace-screen="evidence"] > [data-workspace-page="indicators"],
 body[data-visual-tab="workspace"] .visual-os-frame[data-workspace-screen="notes"] > [data-workspace-page="indicators"],
 body[data-visual-tab="workspace"] .visual-os-frame[data-workspace-screen="determination"] > [data-workspace-page="determination"],
+body[data-visual-tab="workspace"] .visual-os-frame[data-workspace-screen="submit"] > [data-workspace-page="determination"],
 body[data-visual-tab="workspace"] .visual-os-frame[data-workspace-screen="debrief"] > .luna-post-submission-host {
   display: block !important;
 }
@@ -474,7 +481,7 @@ body[data-layout-mode="mobile"][data-visual-tab="workspace"] .luna-visual-panel 
 }
 
 body[data-layout-mode="mobile"][data-visual-tab="workspace"] .luna-visual-panel[data-workspace-screen-visible="true"] {
-  display: block !important;
+  display: grid;
 }
 
 /* Customer 360 must follow the explicit app layout mode. Some Android in-app

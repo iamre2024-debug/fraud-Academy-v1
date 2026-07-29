@@ -1,4 +1,9 @@
 import { test, expect } from '@playwright/test';
+import {
+  activeCaseSelector,
+  generateCaseFromQueue,
+  openCaseQueue,
+} from './workspace-page-helpers.mjs';
 
 const recoveryCode = 'fa-browser-recovery-code-1234567890';
 const caseId = 'FA-ATO-24018';
@@ -92,20 +97,9 @@ async function installInitialRecovery(page, mobile) {
   }, { syncCode: recoveryCode, activeCaseId: caseId, useMobile: mobile });
 }
 
-async function openCases(page, mobile) {
-  const navigation = page.getByRole('navigation', { name: mobile ? 'Mission navigation' : 'Main navigation' });
-  await navigation.getByRole('button', { name: /Cases/ }).click();
-  await expect(page.locator('[data-cases-theme-v1="approved"]')).toBeVisible();
-}
-
-async function generateOneCase(page, mobile) {
-  await openCases(page, mobile);
-  const queue = page.locator('.cases-theme-v1-panel');
-  await queue.getByLabel('Generate case count').selectOption('1');
-  await queue.getByRole('button', { name: 'Generate cases', exact: true }).click();
-  const selector = mobile
-    ? page.locator('.mission-workspace-case-selector select')
-    : page.locator('.visual-case-switcher select');
+async function generateOneCase(page) {
+  await generateCaseFromQueue(page, { count: '1' });
+  const selector = activeCaseSelector(page);
   await expect.poll(() => selector.inputValue()).toMatch(/-G\d+$/);
   const generatedCaseId = await selector.inputValue();
   expect(generatedCaseId).toMatch(/-G\d+$/);
@@ -139,7 +133,7 @@ test('cloud recovery survives close/reopen and restores cases on a clean device'
   await expectRecoveredSlices(page);
   await expect.poll(() => cloud.revision()).toBeGreaterThan(0);
   const revisionBeforeGeneratedCase = cloud.revision();
-  const generatedCaseId = await generateOneCase(page, mobile);
+  const generatedCaseId = await generateOneCase(page);
   await expect.poll(() => cloud.revision()).toBeGreaterThan(revisionBeforeGeneratedCase);
 
   const originalContext = page.context();
@@ -147,8 +141,11 @@ test('cloud recovery survives close/reopen and restores cases on a clean device'
   const reopenedPage = await originalContext.newPage();
   await reopenedPage.goto('/');
   await expectRecoveredSlices(reopenedPage);
-  await openCases(reopenedPage, mobile);
-  await expect(reopenedPage.locator('[data-case-origin="generated"]').filter({ hasText: generatedCaseId })).toBeVisible();
+  const reopenedQueue = await openCaseQueue(reopenedPage);
+  const reopenedGeneratedCase = mobile
+    ? reopenedQueue.locator('article').filter({ hasText: generatedCaseId })
+    : reopenedQueue.locator('[data-case-origin="generated"]').filter({ hasText: generatedCaseId });
+  await expect(reopenedGeneratedCase).toBeVisible();
 
   const restoredContext = await browser.newContext(mobile
     ? { viewport: { width: 412, height: 915 }, isMobile: true, hasTouch: true }
@@ -161,8 +158,11 @@ test('cloud recovery survives close/reopen and restores cases on a clean device'
   const restoredPage = await restoredContext.newPage();
   await restoredPage.goto('/');
   await expectRecoveredSlices(restoredPage);
-  await openCases(restoredPage, mobile);
-  await expect(restoredPage.locator('[data-case-origin="generated"]').filter({ hasText: generatedCaseId })).toBeVisible();
+  const restoredQueue = await openCaseQueue(restoredPage);
+  const restoredGeneratedCase = mobile
+    ? restoredQueue.locator('article').filter({ hasText: generatedCaseId })
+    : restoredQueue.locator('[data-case-origin="generated"]').filter({ hasText: generatedCaseId });
+  await expect(restoredGeneratedCase).toBeVisible();
   await restoredContext.close();
 });
 

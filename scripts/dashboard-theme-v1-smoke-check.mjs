@@ -4,6 +4,7 @@ import path from 'node:path';
 const rootDir = process.cwd();
 const navigation = fs.readFileSync(path.join(rootDir, 'src/VisualNavigation.jsx'), 'utf8');
 const styles = fs.readFileSync(path.join(rootDir, 'src/displayDashboardThemeV1.css'), 'utf8');
+const mobilePages = fs.readFileSync(path.join(rootDir, 'src/mobileAppPages.css'), 'utf8');
 const entrypoint = fs.readFileSync(path.join(rootDir, 'src/main.jsx'), 'utf8');
 const browser = fs.readFileSync(path.join(rootDir, 'tests/browser-smoke.spec.mjs'), 'utf8');
 const sourceOfTruth = fs.readFileSync(path.join(rootDir, 'docs/FRAUD_ACADEMY_SOURCE_OF_TRUTH.md'), 'utf8');
@@ -21,6 +22,9 @@ mustContain('VisualNavigation.jsx', navigation, "activeTab === 'dashboard' ? 'da
 mustContain('VisualNavigation.jsx', navigation, "anchor.closest('.workflow-investigate-stage') ?? anchor");
 mustContain('VisualNavigation.jsx', navigation, "panelAnchor.insertAdjacentElement('afterend', host)");
 mustContain('VisualNavigation.jsx', navigation, 'className="dashboard-active-case"');
+mustContain('VisualNavigation.jsx', navigation, 'className="dashboard-welcome-card dashboard-mission-header"');
+mustContain('VisualNavigation.jsx', navigation, 'className="dashboard-mission-stack"');
+mustContain('VisualNavigation.jsx', navigation, 'className="dashboard-lighthouse-art"');
 mustContain('VisualNavigation.jsx', navigation, '<strong>Case Queue</strong>');
 mustContain('VisualNavigation.jsx', navigation, '<strong>Investigation Workspace</strong>');
 mustContain('VisualNavigation.jsx', navigation, '<strong>Timeline</strong>');
@@ -31,9 +35,21 @@ mustContain('displayDashboardThemeV1.css', styles, 'body[data-visual-tab="dashbo
 mustContain('displayDashboardThemeV1.css', styles, '.dashboard-v1-shell');
 mustContain('displayDashboardThemeV1.css', styles, '.dashboard-active-case');
 mustContain('displayDashboardThemeV1.css', styles, '.dashboard-quick-grid');
+mustContain('displayDashboardThemeV1.css', styles, '.dashboard-mission-header');
+mustContain('displayDashboardThemeV1.css', styles, '.dashboard-mission-stack');
+mustContain('displayDashboardThemeV1.css', styles, '.dashboard-mission-orbit');
+mustContain('displayDashboardThemeV1.css', styles, '.dashboard-stack-case');
+mustContain('displayDashboardThemeV1.css', styles, '.dashboard-lighthouse-art');
+mustContain('displayDashboardThemeV1.css', styles, '.dashboard-investigation-ribbon');
+mustContain('displayDashboardThemeV1.css', styles, 'grid-template-columns: minmax(0, 1fr)');
+mustContain('mobileAppPages.css', mobilePages, '.mobile-workspace-page-header {\n  display: none;');
 mustContain('displayDashboardThemeV1.css', styles, '@media (max-width: 560px)');
 mustContain('displayDashboardThemeV1.css', styles, '@media (max-width: 380px)');
 mustContain('main.jsx', entrypoint, "import './displayDashboardThemeV1.css';");
+
+if (!/\.dashboard-mission-orbit\s*\{[^}]*pointer-events:\s*none;/s.test(styles)) {
+  failures.push('displayDashboardThemeV1.css allows the decorative mission orbit to intercept profile controls.');
+}
 
 mustContain('browser-smoke.spec.mjs', browser, 'approved Dashboard resumes the active case without answer leaks');
 mustContain('browser-smoke.spec.mjs', browser, "toHaveAttribute('data-visual-tab', 'dashboard')");

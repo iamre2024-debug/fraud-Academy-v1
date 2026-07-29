@@ -49,7 +49,7 @@ mustContain('VisualWorkspace.jsx', workspace, "openTool('Timeline', 'timeline')"
 mustContain('VisualWorkspace.jsx', workspace, "scrollToWorkspace('[data-workflow-stage=\"indicators\"]')");
 mustContain('VisualWorkspace.jsx', workspace, "scrollToWorkspace('.luna-visual-panel', 80)");
 mustContain('VisualWorkspace.jsx', workspace, "label: hasReviewPackage ? 'Available' : 'Locked'");
-mustContain('VisualWorkspace.jsx', workspace, "label: hasReviewPackage ? 'Decision saved' : 'Ready to submit'");
+mustContain('VisualWorkspace.jsx', workspace, "label: hasReviewPackage ? 'Decision saved' : packageStatus.ready ? 'Ready to submit' : 'Draft incomplete'");
 mustContain('CategoryTileRail.jsx', categoryRail, 'onInvestigate');
 mustContain('CategoryTileRail.jsx', categoryRail, 'onInvestigate?.();');
 mustContain('displayPhaseTwo.css', styles, '.active-case-workflow-list');

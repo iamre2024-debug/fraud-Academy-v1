@@ -124,8 +124,9 @@ test('final responsive polish protects every completed global surface across com
     await expect(lockedWorkflow.getByRole('button', { name: /Debrief/ })).toBeDisabled();
     await openWorkflowStage(page, /Determination/);
     const decision = page.locator('[data-decision-screen="approved-theme-v1"]');
-    await decision.getByRole('radio').first().check();
-    await decision.getByRole('button', { name: 'Submit Decision', exact: true }).click();
+    await decision.getByRole('radio', { name: 'Maintain', exact: true }).check();
+    await decision.getByRole('radio', { name: 'Fraud Not Found', exact: true }).check();
+    await decision.getByRole('button', { name: 'Confirm and Submit Decision', exact: true }).click();
     await expect(page.locator('.visual-os-frame, .mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'debrief');
 
     const unlockedWorkflow = await openWorkspacePages(page);

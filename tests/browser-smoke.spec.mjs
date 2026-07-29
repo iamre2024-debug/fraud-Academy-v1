@@ -18,7 +18,7 @@ async function assertEvidenceFirstLock(page, expectedCaseId) {
   const lunaPanel = page.locator('.luna-visual-panel.locked');
   await expect(lunaPanel).toBeAttached();
   await expect(lunaPanel).toHaveAttribute('data-case-id', expectedCaseId);
-  await expect(page.getByText('Evidence First lock is active.')).toBeAttached();
+  await expect(lunaPanel.getByText('Evidence First lock is active', { exact: true })).toBeAttached();
   expect(await page.locator('body').innerText()).not.toMatch(forbiddenPreSubmissionCopy);
 }
 
@@ -35,7 +35,11 @@ async function openCoreTool(page, category, tool) {
     return;
   }
 
-  await selectToolGroup(page, new RegExp(category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  await selectToolGroup(
+    page,
+    new RegExp(category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    tool,
+  );
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const selector = panel.getByRole('combobox', { name: 'Choose investigation tool' });
@@ -62,14 +66,37 @@ async function openCoreTool(page, category, tool) {
   if (tool === 'Payment Verification') {
     const activeCaseId = await page.locator('.visual-case-switcher select').inputValue();
     const activeCase = builtInCases.find((item) => item.id === activeCaseId);
-    await expect(panel.locator('.payment-detail-panel')).toHaveCount(0);
+    await expect(panel.getByRole('status', { name: 'Payment verification result' })).toHaveCount(0);
     await runPaymentVerification(panel, activeCase);
+  }
+
+  if (tool === 'Link Analysis') {
+    const activeCaseId = await page.locator('.visual-case-switcher select').inputValue();
+    const activeCase = builtInCases.find((item) => item.id === activeCaseId);
+    const workspace = panel.locator('[data-link-analysis-workspace]');
+    const searchShell = workspace.getByRole('region', { name: 'Cross-account Link Analysis search' });
+    const search = panel.getByRole('textbox', { name: 'Search Link Analysis identifier' });
+    await expect(workspace).toHaveAttribute('data-link-analysis-state', 'empty');
+    await expect(panel.getByText('Search before viewing account links.', { exact: true })).toBeVisible();
+    await expect(panel.locator('[data-link-account]')).toHaveCount(0);
+    await searchShell.locator('summary').click();
+    await panel.getByRole('combobox', { name: 'Choose Link Analysis identifier type' }).selectOption('destination-id');
+    await search.fill(activeCase.destinationId);
+    await panel.getByRole('button', { name: 'Search Links', exact: true }).click();
+    await expect(workspace).toHaveAttribute('data-link-analysis-state', 'searched');
+    await expect(panel.locator('.link-analysis-result-banner')).toContainText(activeCase.destinationId);
+    await expect(panel.locator('.link-analysis-result-banner')).toContainText(/\d+ matched accounts?/);
+    const firstMatch = panel.locator('[data-link-account]').first();
+    await expect(firstMatch).toBeVisible();
+    await firstMatch.locator('.link-analysis-account-heading').click();
+    await expect(firstMatch.locator('.link-analysis-account-detail')).toContainText('Exact shared identifier');
+    return;
   }
 
   const specializedSelectors = {
     'Payment Verification': {
-      record: '.payment-status-chip',
-      detail: '.payment-detail-panel',
+      record: '.payment-mission-chip',
+      detail: '.payment-mission-result',
     },
     'Document Viewer': {
       record: '[data-document-record]',
@@ -78,6 +105,10 @@ async function openCoreTool(page, category, tool) {
     'KYB Review': {
       record: '[data-kyb-review-record]',
       detail: '.kyb-record-detail',
+    },
+    'Link Analysis': {
+      record: '[data-link-account]',
+      detail: '[data-link-analysis-summary]',
     },
   };
   const selectors = specializedSelectors[tool] ?? {
@@ -138,9 +169,12 @@ test('approved Cases queue supports neutral search, filters, preview, and respon
 
   const jordanItem = queue.locator('.case-queue-item').filter({ hasText: 'Jordan Ellis' });
   await jordanItem.getByRole('button', { name: /Preview/ }).click();
-  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Jordan Ellis');
-  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Non-Fraud Chargeback Claim');
-  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Reason code guide');
+  const jordanPreview = queue.getByRole('complementary', { name: 'Selected case preview' });
+  await expect(jordanPreview).toContainText('Jordan Ellis');
+  await expect(jordanPreview).toContainText('Merchant / Non-Fraud Dispute');
+  await expect(jordanPreview).toContainText('Credit card');
+  await expect(jordanPreview).toContainText('Recurring merchant billing reported after cancellation');
+  await expect(jordanPreview).not.toContainText('Non-Fraud Chargeback Claim');
 
   await queue.getByLabel('Search cases').fill('');
   await queue.getByRole('combobox', { name: 'Priority', exact: true }).selectOption('High');
@@ -173,15 +207,23 @@ test('approved Cases queue supports neutral search, filters, preview, and respon
     expect(layout.previewPosition).toBe('sticky');
   }
 
-  await expect(queue.getByLabel('Generate case claim type')).toBeVisible();
+  await expect(queue.getByLabel('Generate case customer type')).toBeVisible();
+  await expect(queue.getByLabel('Generate case product')).toBeVisible();
+  await expect(queue.getByLabel('Generate case review workflow')).toBeVisible();
+  await expect(queue.getByLabel('Generate case alert reason')).toBeVisible();
   await expect(queue.getByLabel('Generate case scenario')).toBeVisible();
   await expect(queue.getByLabel('Generate case count')).toBeVisible();
-  await queue.getByLabel('Generate case claim type').selectOption('credit-risk');
+  await queue.getByLabel('Generate case customer type').selectOption('personal');
+  await queue.getByLabel('Generate case product').selectOption('personal-loan');
+  await queue.getByLabel('Generate case review workflow').selectOption('credit-risk-review');
   await queue.getByLabel('Generate case count').selectOption('5');
   await queue.getByRole('button', { name: 'Generate cases', exact: true }).click();
   await expect(queue.locator('[data-case-origin="generated"]')).toHaveCount(5);
-  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Credit Risk Review');
-  await expect(queue.getByRole('complementary', { name: 'Selected case preview' })).toContainText('Credit review details');
+  const generatedPreview = queue.getByRole('complementary', { name: 'Selected case preview' });
+  await expect(generatedPreview).toContainText('Personal');
+  await expect(generatedPreview).toContainText('Personal loan');
+  await expect(generatedPreview).toContainText('Credit Risk Review');
+  await expect(generatedPreview).toContainText('Why this case exists');
 
   await assertEvidenceFirstLock(page, builtInCases[0].id);
 });
@@ -199,14 +241,13 @@ test('all three built-in cases open from the queue without answer leaks', async 
   }
 });
 
-test('completed core modules and System Access Lane render real records', async ({ page }) => {
+test('supported core modules and System Access Lane render real records', async ({ page }) => {
   await page.goto('/');
   const caseSelector = page.locator('.visual-case-switcher select');
   await caseSelector.selectOption(builtInCases[2].id);
   await expect(caseSelector).toHaveValue(builtInCases[2].id);
 
   await openCoreTool(page, 'Business & Payment Verification', 'Payment Verification');
-  await openCoreTool(page, 'Business & Payment Verification', 'KYB Review');
   await openCoreTool(page, 'Documents & Requests', 'Document Viewer');
   await openCoreTool(page, 'Links & Related Cases', 'Link Analysis');
   await openCoreTool(page, 'Links & Related Cases', 'System Access Lane');
@@ -223,18 +264,18 @@ test('responsive investigation records stay inside the viewport', async ({ page 
   await openCoreTool(page, 'Business & Payment Verification', 'Payment Verification');
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
-  const detail = panel.locator('.payment-detail-panel');
-  const summary = panel.locator('.payment-verification-case-rail');
-  const firstField = panel.locator('.payment-detail-grid > div').first();
+  const detail = panel.getByRole('status', { name: 'Payment verification result' });
+  const summary = panel.getByRole('region', { name: 'Account snapshot' });
+  const firstField = summary.locator('article').first();
 
   await expect(summary).toBeVisible();
   await expect(firstField).toBeVisible();
 
   const layout = await page.evaluate(() => {
     const panelElement = document.querySelector('[data-investigation-tools-screen="approved-theme-v1"]');
-    const detailElement = document.querySelector('.payment-detail-panel');
-    const summaryElement = document.querySelector('.payment-verification-case-rail');
-    const fieldGrid = document.querySelector('.payment-detail-grid');
+    const detailElement = document.querySelector('.payment-mission-result');
+    const summaryElement = document.querySelector('.payment-mission-facts');
+    const fieldGrid = document.querySelector('.payment-mission-facts');
     const viewportWidth = window.innerWidth;
     const rect = (element) => element?.getBoundingClientRect();
     const withinViewport = (element) => {
@@ -262,11 +303,10 @@ test('responsive investigation records stay inside the viewport', async ({ page 
 
   if (testInfo.project.name === 'mobile-chromium') {
     expect(layout.fieldColumns).toBe(1);
-    expect(layout.summaryTop).toBeGreaterThan(layout.detailTop + 20);
   } else {
-    expect(layout.fieldColumns).toBe(2);
-    expect(Math.abs(layout.summaryTop - layout.detailTop)).toBeLessThanOrEqual(2);
+    expect(layout.fieldColumns).toBe(4);
   }
+  expect(layout.summaryTop).toBeGreaterThan(layout.detailTop);
 
   await assertEvidenceFirstLock(page, builtInCases[0].id);
 });
@@ -295,7 +335,8 @@ test('generated cases persist through reload and remain Evidence First', async (
   const generatedBriefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
   await expect(generatedBriefing).toBeVisible();
   await expect(generatedBriefing).not.toContainText('The fictional packet contains both routine and exception evidence');
-  await expect(generatedBriefing.locator('.case-briefing-overview-card')).toContainText('The amount in scope is');
+  await expect(generatedBriefing.locator('.case-briefing-overview-card'))
+    .toContainText(/The amount (?:in scope|associated with the alert) is/);
   await expect(generatedBriefing.locator('.case-briefing-overview-card')).toContainText('activity begins');
 
   await expect(page.getByText('3 generated training cases saved locally')).toBeVisible();

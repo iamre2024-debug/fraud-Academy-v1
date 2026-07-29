@@ -1,30 +1,62 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import DirectCollapsibleText from './DirectCollapsibleText.jsx';
 import { trainingCases as baseCases } from './data/cases.js';
 import { enrichTrainingCases } from './data/caseEnrichment.js';
 import { buildLunaDebrief } from './data/lunaDebrief.js';
 import { requestLunaApiCoaching } from './data/lunaApi.js';
-import { isValidReviewPackage } from './data/reviewPackage.js';
+import { isValidReviewPackage, normalizeReviewPackage } from './data/reviewPackage.js';
+import { publicCaseTaxonomy } from './data/publicCaseView.js';
 import { readStorage, storageKeys, writeStorage } from './visualWorkspaceModel.js';
+import { LunaMascot, ReviewGlyph } from './DecisionReviewVisuals.jsx';
 
 const cases = enrichTrainingCases(baseCases);
 
 function explainDecisionMeaning(choice) {
   const normalized = String(choice || '').toLowerCase();
   if (normalized.includes('do not support')) {
-    return 'Your decision means the evidence available at the time did not support the customer’s fraud claim. It does not mean fraud was confirmed.';
+    return 'The available evidence did not support the customer’s claim. That operational decision does not automatically mean fraud was confirmed.';
   }
   if (normalized.includes('support')) {
-    return 'Your decision means the evidence available at the time supported the customer’s fraud claim.';
+    return 'The available evidence supported the customer’s claim.';
   }
-  if (normalized.includes('insufficient')) {
-    return 'Your decision means the evidence was not strong enough to support or reject the claim with confidence.';
+  if (normalized.includes('insufficient') || normalized.includes('more information')) {
+    return 'The available evidence was not complete enough for a stronger operational outcome.';
   }
   if (normalized.includes('escalate')) {
-    return 'Your decision means the case required additional authority, evidence, or specialist review before a final outcome.';
+    return 'The case required additional authority, evidence, or specialist review.';
   }
-  return `Your submitted determination was ${choice || 'not selected'}.`;
+  if (normalized === 'deny') {
+    return 'The application was denied for the documented factual reason. A denial does not itself establish fraud.';
+  }
+  if (normalized === 'approve') {
+    return 'The application may proceed under the fictional product policy.';
+  }
+  if (normalized.includes('restrict') || normalized === 'hold') {
+    return 'The exposure or activity was restricted while the documented concern is addressed. A restriction is separate from the final finding.';
+  }
+  if (normalized === 'release' || normalized === 'maintain') {
+    return 'The activity or relationship may proceed based on the available evidence. That action remains separate from the final finding.';
+  }
+  return `The submitted operational decision was ${choice || 'not recorded'}.`;
+}
+
+function explainFinalFinding(finalFinding) {
+  if (!finalFinding) {
+    return 'This legacy package did not record a separate final finding, so Luna will not infer one from the operational decision.';
+  }
+  if (finalFinding === 'Fraud Confirmed') {
+    return 'The final finding says the documented evidence established fraud.';
+  }
+  if (finalFinding === 'Fraud Not Found') {
+    return 'The final finding says the investigation did not establish fraud. Other operational or credit concerns may still exist.';
+  }
+  if (finalFinding === 'Verification Incomplete') {
+    return 'The final finding says verification remains incomplete. Missing information is not proof of fraud.';
+  }
+  if (finalFinding === 'Credit Risk Concern') {
+    return 'The final finding records a credit or repayment concern without labeling it as fraud.';
+  }
+  return `The submitted final finding was ${finalFinding}.`;
 }
 
 function getReviewStatus(debrief) {
@@ -36,13 +68,21 @@ function getReviewStatus(debrief) {
 function buildManagerFallback(debrief, reviewPackage) {
   const status = getReviewStatus(debrief);
   const truth = debrief?.truthReveal;
+  const decisionMeaning = `${explainDecisionMeaning(reviewPackage?.operationalDecision || reviewPackage?.choice)} ${explainFinalFinding(reviewPackage?.finalFinding)}`;
 
   if (status === 'ungraded') {
+    const legacyOutcomeUnavailable = Boolean(truth && !reviewPackage?.finalFinding);
     return {
-      managerVerdict: 'This case does not include a hidden outcome, so your determination cannot be marked right or wrong. Luna can still review the quality of your investigation and documentation.',
-      decisionMeaning: explainDecisionMeaning(reviewPackage?.choice),
-      actualCaseOutcome: 'No hidden downstream outcome is attached to this case. The case remains an investigation-quality exercise rather than a graded truth-match scenario.',
-      managerExplanation: 'Your decision is not being corrected. Review whether your notes, pinned evidence, and rationale clearly support the determination you selected.',
+      managerVerdict: legacyOutcomeUnavailable
+        ? 'This legacy package did not record a separate final finding, so the combined result is not graded.'
+        : 'This case has no hidden outcome, so Luna reviewed investigation quality without marking the decision right or wrong.',
+      decisionMeaning,
+      actualCaseOutcome: legacyOutcomeUnavailable
+        ? `${truth.finalFinding || truth.classification || 'Outcome recorded'}.${truth.findingBasis ? ` ${truth.findingBasis}` : ''}`
+        : 'No hidden downstream outcome is attached to this case.',
+      managerExplanation: legacyOutcomeUnavailable
+        ? 'Future submissions record the operational decision and final finding separately.'
+        : 'The submission is coaching-only. The notes, pinned evidence, and finding basis should still make the decision understandable.',
       strengths: debrief?.strengths || [],
       coachingActions: debrief?.followUps || [],
     };
@@ -51,26 +91,49 @@ function buildManagerFallback(debrief, reviewPackage) {
   const matched = status === 'matched';
   return {
     managerVerdict: matched
-      ? 'Your determination was correct based on the case evidence.'
-      : `Your determination did not match the expected case outcome${truth?.correctDetermination ? ` of ${truth.correctDetermination}` : ''}.`,
-    decisionMeaning: explainDecisionMeaning(reviewPackage?.choice),
+      ? 'The operational decision and final finding matched the case evidence.'
+      : 'One or both submitted fields did not match the case evidence.',
+    decisionMeaning,
     actualCaseOutcome: truth
-      ? `${truth.classification}${truth.rationale ? ` ${truth.rationale}` : ''}`
+      ? `${truth.finalFinding || truth.classification || 'Outcome recorded'}.${truth.findingBasis ? ` ${truth.findingBasis}` : ''}`
       : 'No downstream outcome was supplied.',
     managerExplanation: matched
-      ? 'You reached the right decision. The next question is whether your notes and pinned evidence clearly show how you got there.'
-      : 'The result needs correction. Compare your reasoning with the hidden case outcome and identify which evidence changed the decision.',
+      ? 'The call was right. Strong casework also makes the notes and pinned records easy for another investigator to follow.'
+      : 'Compare each submitted field with the post-submission outcome and identify which record changes the action, the finding, or both.',
     strengths: debrief?.strengths || [],
     coachingActions: debrief?.followUps || [],
   };
+}
+
+function uniqueItems(items = []) {
+  return [...new Set(items.filter(Boolean).map((item) => String(item).trim()).filter(Boolean))];
+}
+
+function readAgentName() {
+  if (typeof window === 'undefined') return 'Ree';
+  try {
+    return window.localStorage.getItem('fraud-academy-agent-display-name-v1')?.trim() || 'Ree';
+  } catch {
+    return 'Ree';
+  }
+}
+
+function resultCopy(reviewStatus, customerType) {
+  if (reviewStatus === 'matched') {
+    return customerType === 'business'
+      ? 'You connected the business records and landed on the right action and finding.'
+      : 'You connected the evidence and landed on the right action and finding.';
+  }
+  if (reviewStatus === 'mismatched') {
+    return 'You completed the case. One part of the submitted decision needs another look.';
+  }
+  return 'Case complete. I reviewed how clearly the saved package supports your decision.';
 }
 
 export default function LunaPostSubmissionPanel({
   activeCase: suppliedActiveCase,
   activeCaseId,
   onBackToWorkspace,
-  onViewCaseSummary,
-  onReturnToQueue,
   visible = false,
 }) {
   const [host, setHost] = useState(null);
@@ -78,7 +141,9 @@ export default function LunaPostSubmissionPanel({
   const [submittedPackage, setSubmittedPackage] = useState(null);
   const [apiCoaching, setApiCoaching] = useState(null);
   const [apiStatus, setApiStatus] = useState('idle');
+  const [shareStatus, setShareStatus] = useState('');
   const activeCase = suppliedActiveCase ?? cases.find((item) => item.id === activeCaseId) ?? cases[0];
+  const agentName = readAgentName();
 
   useEffect(() => {
     const frame = document.querySelector('.mission-workspace-v3') ?? document.querySelector('.visual-os-frame');
@@ -101,6 +166,7 @@ export default function LunaPostSubmissionPanel({
     setSubmittedPackage(null);
     setApiCoaching(null);
     setApiStatus('idle');
+    setShareStatus('');
   }, [activeCase.id]);
 
   useEffect(() => {
@@ -133,11 +199,16 @@ export default function LunaPostSubmissionPanel({
     const trayByCase = readStorage(storageKeys.tray, {});
     const notesByCase = readStorage(storageKeys.notes, {});
     const debriefsByCase = readStorage(storageKeys.debriefs, {});
-    const storedPackage = (packagesByCase[activeCase.id] ?? [])
+    const storedPackageRecord = (packagesByCase[activeCase.id] ?? [])
       .find((reviewPackage) => isValidReviewPackage(activeCase, reviewPackage)) ?? null;
+    const storedPackage = storedPackageRecord
+      ? normalizeReviewPackage(storedPackageRecord, activeCase)
+      : null;
     const submittedPackageIsValid = submittedPackage?.caseId === activeCase.id
       && isValidReviewPackage(activeCase, submittedPackage);
-    const reviewPackage = submittedPackageIsValid ? submittedPackage : storedPackage;
+    const reviewPackage = submittedPackageIsValid
+      ? normalizeReviewPackage(submittedPackage, activeCase)
+      : storedPackage;
     const savedDebrief = (debriefsByCase[activeCase.id] ?? [])
       .find((debriefRecord) => debriefRecord.packageId === reviewPackage?.id) ?? null;
     const debrief = buildLunaDebrief({
@@ -192,8 +263,12 @@ export default function LunaPostSubmissionPanel({
         ...(activeCoaching || {}),
         managerVerdict: fallbackReview.managerVerdict,
         decisionMeaning: fallbackReview.decisionMeaning,
-        actualCaseOutcome: reviewStatus === 'ungraded' ? fallbackReview.actualCaseOutcome : (activeCoaching?.actualCaseOutcome || fallbackReview.actualCaseOutcome),
-        managerExplanation: reviewStatus === 'ungraded' ? fallbackReview.managerExplanation : (activeCoaching?.managerExplanation || fallbackReview.managerExplanation),
+        actualCaseOutcome: reviewStatus === 'ungraded'
+          ? fallbackReview.actualCaseOutcome
+          : activeCoaching?.actualCaseOutcome || fallbackReview.actualCaseOutcome,
+        managerExplanation: reviewStatus === 'ungraded'
+          ? fallbackReview.managerExplanation
+          : activeCoaching?.managerExplanation || fallbackReview.managerExplanation,
       }
     : null;
   const coachingSource = apiCoaching
@@ -240,30 +315,69 @@ export default function LunaPostSubmissionPanel({
     state.reviewPackage,
     visible,
   ]);
-  const verdictLabel = reviewStatus === 'matched'
+
+  const taxonomy = publicCaseTaxonomy(activeCase);
+  const resultLabel = reviewStatus === 'matched'
     ? 'Right call'
     : reviewStatus === 'mismatched'
-      ? 'Needs correction'
-      : 'Not graded';
-  const statusLabel = reviewStatus === 'matched'
-    ? 'Correct'
-    : reviewStatus === 'mismatched'
-      ? 'Review'
+      ? 'Review needed'
       : reviewStatus === 'ungraded'
-        ? 'Coaching only'
+        ? 'Coaching complete'
         : 'Locked';
-  const resultLabel = reviewStatus === 'matched'
-    ? 'Matched'
-    : reviewStatus === 'mismatched'
-      ? 'Did not match'
-      : 'Not graded';
+  const wellItems = locked
+    ? []
+    : uniqueItems([
+        state.debrief.operationalDecisionMatched === true ? 'Selected the operational action supported by the case evidence.' : '',
+        state.debrief.finalFindingMatched === true ? 'Recorded the final finding supported by the case evidence.' : '',
+        ...(Array.isArray(managerReview.strengths) ? managerReview.strengths : []),
+      ]).slice(0, 3);
+  const decisionCorrections = locked ? [] : [
+    state.debrief.operationalDecisionMatched === false ? {
+      title: 'Operational decision',
+      detail: `Submitted ${state.reviewPackage.operationalDecision}. The case evidence supported ${state.debrief.truthReveal?.operationalDecision ?? 'a different action'}.`,
+      tool: 'Submit Decision',
+    } : null,
+    state.debrief.finalFindingMatched === false ? {
+      title: 'Final finding',
+      detail: `Submitted ${state.reviewPackage.finalFinding}. The case evidence supported ${state.debrief.truthReveal?.finalFinding ?? 'a different finding'}.`,
+      tool: 'Submit Decision',
+    } : null,
+  ].filter(Boolean);
+  const missedItems = locked
+    ? []
+    : [...decisionCorrections, ...(state.debrief.missedEvidence ?? [])].slice(0, 3);
+
+  async function shareDebrief() {
+    if (locked) return;
+    const shareText = [
+      `Fraud Academy ${activeCase.id}`,
+      resultLabel,
+      `${state.reviewPackage.operationalDecision} · ${state.reviewPackage.finalFinding}`,
+      `${taxonomy.customerType} · ${taxonomy.productType}`,
+    ].join(' — ');
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `Fraud Academy ${activeCase.id}`, text: shareText });
+        setShareStatus('Shared');
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareText);
+        setShareStatus('Copied');
+      } else {
+        setShareStatus('Share unavailable');
+      }
+    } catch (error) {
+      if (error?.name !== 'AbortError') setShareStatus('Share unavailable');
+    }
+  }
 
   const panel = (
     <section
-      className={`ornate-card luna-visual-panel luna-theme-v1 ${locked ? 'locked' : 'unlocked'}`}
+      className={`luna-visual-panel luna-theme-v1 luna-reference-debrief ${locked ? 'locked' : 'unlocked'}`}
       aria-label="Luna post submission debrief"
       data-luna-screen="approved-theme-v1"
+      data-luna-layout="reference-debrief"
       data-case-id={activeCase.id}
+      data-customer-type={activeCase.customerType}
       data-luna-state={locked ? 'locked' : 'unlocked'}
       data-luna-review-status={reviewStatus}
       data-luna-coaching-source={coachingSource}
@@ -271,102 +385,94 @@ export default function LunaPostSubmissionPanel({
       data-workspace-screen-visible={visible ? 'true' : 'false'}
       aria-hidden={visible ? undefined : 'true'}
     >
-      <header className="luna-v1-header">
-        <div>
-          <p className="luna-v1-eyebrow">Post-decision review · Fraud manager</p>
-          <h2>Luna Manager Debrief</h2>
-          <p>{locked ? 'Post-submission coaching stays locked until Submit Decision saves a learner package.' : managerReview.managerVerdict}</p>
-        </div>
-        <div className="luna-v1-header-status">
-          <span>{activeCase.id}</span>
-          <strong>{statusLabel}</strong>
+      <h2 className="sr-only">Luna Debrief</h2>
+
+      <header className="luna-welcome">
+        <LunaMascot className="luna-welcome-mascot" />
+        <div className="luna-speech-card">
+          <span className={`luna-result-chip result-${reviewStatus}`}>{resultLabel}</span>
+          <strong>{locked ? 'Luna is ready when you are.' : `Great work finishing the case, ${agentName}!`}</strong>
+          <p>
+            {locked
+              ? 'Submit an operational decision and a separate final finding to unlock case-scoped coaching.'
+              : resultCopy(reviewStatus, activeCase.customerType)}
+          </p>
+          {!locked && <small>{activeCase.id} · {taxonomy.customerType} · {taxonomy.productType}</small>}
         </div>
       </header>
 
       {locked ? (
-        <div className="luna-locked-state luna-v1-locked">
-          <section>
-            <div aria-hidden="true">⌁</div>
-            <div>
-              <p>Evidence First lock is active.</p>
-              <h3>Submit your current decision package when you are ready.</h3>
-              <span>No outcome, manager feedback, or scenario truth appears before submission.</span>
-            </div>
-          </section>
-          <div className="luna-v1-unlock-grid" aria-label="Luna submission steps">
-            <article><span>1</span><div><strong>Review the case</strong><p>Open the records you need.</p></div></article>
-            <article><span>2</span><div><strong>Document evidence</strong><p>Pin proof and add useful notes.</p></div></article>
-            <article><span>3</span><div><strong>Make your call</strong><p>Select the determination that fits the evidence.</p></div></article>
-            <article><span>4</span><div><strong>Submit</strong><p>Luna reviews the decision after it is saved.</p></div></article>
+        <section className="luna-locked-card">
+          <ReviewGlyph type="shield" />
+          <div>
+            <h3>Evidence First lock is active</h3>
+            <p>No outcome, expected decision, final finding, score, or coaching appears before a valid package is submitted.</p>
           </div>
-        </div>
+          <button type="button" onClick={onBackToWorkspace}>Back to Submit Decision</button>
+        </section>
       ) : (
         <>
-          <section className="luna-v1-score-banner" aria-label="Luna manager verdict">
-            <div>
-              <span>Manager verdict</span>
-              <strong>{verdictLabel}</strong>
-              <p>{managerReview.managerVerdict}</p>
-            </div>
-            <div>
-              <p>Investigation package quality</p>
-              <strong>{state.debrief.score}/100</strong>
-              <span>{state.debrief.scoreLabel} · Notes {state.debrief.notesQuality.label}</span>
+          <section className="luna-feedback-card luna-did-well" aria-label="What You Did Well">
+            <header>
+              <ReviewGlyph type="check" />
+              <h3>What You Did Well</h3>
+              <span className="luna-card-art medal-art"><ReviewGlyph type="medal" /></span>
+            </header>
+            <div className="luna-check-list">
+              {wellItems.map((item) => (
+                <p key={item}><span aria-hidden="true">✓</span>{item}</p>
+              ))}
             </div>
           </section>
 
-          <div className="luna-debrief-grid luna-v1-debrief-grid" aria-label="Decision-quality breakdown">
-            <section className="luna-v1-card luna-v1-user-reasoning">
-              <header><span className="luna-v1-step-index" aria-hidden="true">01</span><div><p>Your decision</p><h3>What you submitted</h3></div></header>
-              <dl>
-                <div><dt>Decision</dt><dd>{state.reviewPackage.choice || 'No determination selected'}</dd></div>
-                <div><dt>Confidence</dt><dd>{state.reviewPackage.confidence}</dd></div>
-              </dl>
-              <DirectCollapsibleText as="p" lines={5} mobileLines={6}>{state.reviewPackage.reason || 'No rationale was submitted.'}</DirectCollapsibleText>
-            </section>
-
-            <section className="luna-v1-card luna-v1-senior-review">
-              <header><span className="luna-v1-step-index" aria-hidden="true">02</span><div><p>Decision meaning</p><h3>What your answer actually says</h3></div></header>
-              <DirectCollapsibleText as="p" lines={5} mobileLines={6}>{managerReview.decisionMeaning}</DirectCollapsibleText>
-            </section>
-
-            <section className="luna-v1-card luna-v1-truth-review">
-              <header><span className="luna-v1-step-index" aria-hidden="true">03</span><div><p>Case outcome</p><h3>{reviewStatus === 'ungraded' ? 'Outcome availability' : 'What was actually happening'}</h3></div></header>
-              <dl>
-                <div><dt>Expected determination</dt><dd>{state.debrief.truthReveal?.correctDetermination || 'Not available'}</dd></div>
-                <div><dt>Your result</dt><dd>{resultLabel}</dd></div>
-              </dl>
-              <DirectCollapsibleText as="p" lines={6} mobileLines={7}>{managerReview.actualCaseOutcome}</DirectCollapsibleText>
-            </section>
-
-            <section className="luna-v1-card luna-v1-senior-review">
-              <header><span className="luna-v1-step-index" aria-hidden="true">04</span><div><p>Manager review</p><h3>{reviewStatus === 'ungraded' ? 'How well your decision was supported' : 'Why the decision was right or wrong'}</h3></div></header>
-              <DirectCollapsibleText as="p" lines={6} mobileLines={7}>{managerReview.managerExplanation}</DirectCollapsibleText>
-            </section>
-
-            <section className="luna-v1-card luna-v1-strengths" data-debrief-step="05">
-              <header><span className="luna-v1-step-index" aria-hidden="true">05</span><div><p>Strong investigation choices</p><h3>What you handled well</h3></div></header>
-              <div className="luna-v1-list">
-                {managerReview.strengths.map((item) => (
-                  <DirectCollapsibleText key={item} as="p" lines={3} mobileLines={4}>✓ {item}</DirectCollapsibleText>
+          <section className="luna-feedback-card luna-missed" aria-label="Evidence You Might Have Missed">
+            <header>
+              <ReviewGlyph type="alert" />
+              <h3>Evidence You Might Have Missed</h3>
+              <span className="luna-count-chip">{missedItems.length}</span>
+            </header>
+            {missedItems.length ? (
+              <div className="luna-missed-list">
+                {missedItems.map((item) => (
+                  <article key={`${item.title}-${item.tool}`}>
+                    <span aria-hidden="true">⌕</span>
+                    <div><strong>{item.title}</strong><small>{item.detail}</small></div>
+                    <button type="button" onClick={onBackToWorkspace}>Review</button>
+                  </article>
                 ))}
               </div>
-            </section>
+            ) : (
+              <p className="luna-all-covered">All required evidence-focus areas were clearly connected in this submitted package.</p>
+            )}
+          </section>
 
-            <section className="luna-v1-card luna-v1-followups" data-debrief-step="06">
-              <header><span className="luna-v1-step-index" aria-hidden="true">06</span><div><p>Manager coaching</p><h3>What to improve next time</h3></div></header>
-              <div className="luna-v1-list">
-                {managerReview.coachingActions.map((item) => (
-                  <DirectCollapsibleText key={item} as="p" lines={3} mobileLines={4}>⌁ {item}</DirectCollapsibleText>
-                ))}
-              </div>
-            </section>
-          </div>
+          <section className="luna-feedback-card luna-risk-tip" aria-label="Risk Tip from Luna">
+            <header>
+              <ReviewGlyph type="shield" />
+              <h3>Risk Tip from Luna</h3>
+              <span className="luna-card-art shield-art"><ReviewGlyph type="shield" /></span>
+            </header>
+            <p>{state.debrief.riskTip}</p>
+          </section>
 
-          <footer className="luna-v1-routes" aria-label="Debrief next routes">
-            <button type="button" onClick={onBackToWorkspace}>Back to Workspace</button>
-            <button type="button" onClick={onViewCaseSummary}>View Case Summary</button>
-            <button className="primary-action" type="button" onClick={onReturnToQueue}>Finish and Return to Queue</button>
+          <section className="luna-feedback-card luna-motivation" aria-label="Luna's Motivation">
+            <header>
+              <span className="luna-quote-mark" aria-hidden="true">“</span>
+              <h3>Luna&apos;s Motivation</h3>
+              <span className="luna-card-art heart-art"><ReviewGlyph type="heart" /></span>
+            </header>
+            <blockquote>{state.debrief.motivation}</blockquote>
+            <p>Keep shining, Fraud Detective! ✨</p>
+          </section>
+
+          <footer className="luna-reference-actions">
+            <button className="luna-back-workspace" type="button" onClick={onBackToWorkspace}>
+              Back to Workspace
+            </button>
+            <button className="luna-share" type="button" onClick={shareDebrief} aria-label="Share Luna debrief">
+              <span aria-hidden="true">↗</span>
+            </button>
+            {shareStatus && <span role="status">{shareStatus}</span>}
           </footer>
         </>
       )}

@@ -4,20 +4,20 @@ import { runPaymentVerification, selectToolGroup } from './workspace-page-helper
 test('responsive payment records stay inside the viewport', async ({ page }, testInfo) => {
   await page.goto('/');
 
-  await selectToolGroup(page, /Business & Payment Verification/);
+  await selectToolGroup(page, /Business & Payment Verification/, 'Payment Verification');
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const selector = panel.getByRole('combobox', { name: 'Choose investigation tool' });
-  await selector.selectOption('Payment Verification');
+  if (await selector.inputValue() !== 'Payment Verification') await selector.selectOption('Payment Verification');
   await expect(panel).toHaveAttribute('data-tool-name', 'Payment Verification');
   await runPaymentVerification(panel, { bankCode: 'BC-441', destinationId: 'DST-CARD-4410', ownerName: 'Maya Sterling' });
 
-  const detail = panel.locator('.payment-detail-panel');
+  const detail = panel.getByRole('status', { name: 'Payment verification result' });
   await expect(detail).toBeVisible();
 
   const layout = await page.evaluate(() => {
     const panelElement = document.querySelector('[data-investigation-tools-screen="approved-theme-v1"]');
-    const detailElement = document.querySelector('.payment-detail-panel');
+    const detailElement = document.querySelector('.payment-mission-result');
     const viewportWidth = window.innerWidth;
     const withinViewport = (element) => {
       const rect = element?.getBoundingClientRect();
@@ -42,5 +42,5 @@ test('responsive payment records stay inside the viewport', async ({ page }, tes
   const lunaPanel = page.locator('.luna-visual-panel.locked');
   await expect(lunaPanel).toBeAttached();
   await expect(lunaPanel).toHaveAttribute('data-case-id', activeCaseId);
-  await expect(page.getByText('Evidence First lock is active.')).toBeAttached();
+  await expect(lunaPanel.getByText('Evidence First lock is active', { exact: true })).toBeAttached();
 });

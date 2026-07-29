@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openWorkspacePages } from './workspace-page-helpers.mjs';
 
 async function capture(page, testInfo, name) {
   if (process.env.CAPTURE_MISSION_VISUALS !== '1') return;
@@ -17,7 +18,7 @@ async function assertPhoneGeometry(page) {
         return rect.width > 0 && rect.width < 58 && rect.height > 80;
       })
       .map((element) => element.textContent.trim());
-    const categoryCards = [...document.querySelectorAll('.mission-evidence-page .mission-map-tool-node')]
+    const categoryCards = [...document.querySelectorAll('[data-mobile-tool-map="reference-v1"] .mobile-tool-map-cluster')]
       .filter((element) => element.getBoundingClientRect().width > 0);
     const brandText = document.querySelector('.mission-mobile-brand > span:last-child')?.getBoundingClientRect();
     const dockLabelHeights = [...document.querySelectorAll('.mission-mobile-dock button small')]
@@ -91,16 +92,16 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   await page.setViewportSize({ width: 393, height: 1536 });
 
   await dock.getByRole('button', { name: /Home/ }).click();
-  await expect(page.locator('.mission-case-deck')).toBeVisible();
-  await expect(page.locator('.mission-lighthouse')).toBeVisible();
-  await expect(page.locator('.mission-case-layer')).toHaveCount(2);
+  await expect(page.locator('.mission-dashboard-metrics')).toBeVisible();
+  await expect(page.locator('.mission-dashboard-fieldwork')).toBeVisible();
+  await expect(page.locator('.mission-dashboard-active-case')).toBeVisible();
   await expect(page.locator('.mission-command-drawers')).toBeVisible();
   await assertPhoneGeometry(page);
   await capture(page, testInfo, '01-dashboard');
 
   await page.locator('.mission-command-drawers').getByRole('button', { name: /Evidence Map/ }).click();
   await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'tool-menu');
-  await expect(page.locator('.mission-evidence-page .mission-evidence-map')).toBeVisible();
+  await expect(page.locator('[data-mobile-tool-map="reference-v1"]')).toBeVisible();
 
   await dock.getByRole('button', { name: /Academy/ }).click();
   await expect(page.locator('[data-mission-page="academy"]')).toBeVisible();
@@ -108,29 +109,38 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
 
   await dock.getByRole('button', { name: /Cases/ }).click();
   await expect(page.locator('[data-mission-page="cases"]')).toBeVisible();
-  await expect(page.locator('.cases-theme-v1-panel')).toBeVisible();
+  await expect(page.locator('[data-mobile-case-queue="reference-v1"]')).toBeVisible();
 
-  await dock.getByRole('button', { name: /Mission/ }).click();
+  await dock.getByRole('button', { name: /Workspace/ }).click();
   await expect(page.locator('.mission-workspace-v3')).toHaveAttribute('data-workspace-screen', 'briefing');
   await expect(page.locator('.mission-briefing-v3')).toBeVisible();
   await expect(page.locator('.case-summary-visual')).toHaveCount(0);
+  await expect(page.locator('.mission-briefing-case-banner')).toBeVisible();
+  await expect(page.locator('.mission-briefing-allegation-card')).toBeVisible();
+  await page.locator('.mission-briefing-more-files > summary').click();
+  await page.getByRole('navigation', { name: 'Additional Case Briefing pages' })
+    .getByRole('button', { name: /Paperwork deck/ })
+    .click();
   await expect(page.locator('.mission-briefing-tabs button')).toHaveCount(6);
-  await page.locator('.mission-briefing-tabs button').nth(4).click();
   await expect(page.locator('.mission-briefing-file')).toContainText('Open viewer');
   await capture(page, testInfo, '02-briefing-paperwork');
 
   await page.getByRole('button', { name: 'Open mission pages' }).click();
   await expect(page.locator('.mission-path-v3')).toBeVisible();
   await page.locator('.mission-path-list').getByRole('button', { name: /Investigate/ }).click();
-  await expect(page.locator('.mission-evidence-page .mission-evidence-map')).toBeVisible();
-  const categoryButtons = page.locator('.mission-evidence-page .mission-map-tool-node');
-  await expect(categoryButtons).toHaveCount(6);
+  const toolMap = page.locator('[data-mobile-tool-map="reference-v1"]');
+  await expect(toolMap).toBeVisible();
+  const categoryButtons = toolMap.locator('.mobile-tool-map-cluster');
+  await expect(categoryButtons).toHaveCount(5);
   await expect(categoryButtons.filter({ hasText: 'Business & Payment Verification' })).toBeVisible();
   await expect(page.locator('.mission-evidence-page .visual-category-row')).toBeHidden();
   await assertPhoneGeometry(page);
   await capture(page, testInfo, '03-evidence-map');
 
-  await page.locator('.mission-evidence-page .mission-map-tool-node').filter({ hasText: 'Documents & Requests' }).click();
+  await categoryButtons.filter({ hasText: 'Evidence & Workflow' }).click();
+  const evidenceTools = toolMap.getByRole('region', { name: 'Evidence & Workflow tools' });
+  await expect(evidenceTools).toBeVisible();
+  await evidenceTools.getByRole('button', { name: /Document Viewer/ }).click();
   await expect(page.locator('.mission-tool-page')).toBeVisible();
   await expect(page.locator('[data-investigation-tools-screen="approved-theme-v1"]')).toHaveAttribute('data-tool-name', 'Document Viewer');
   const accountSearch = page.getByRole('textbox', { name: 'Search by Account ID' });
@@ -141,27 +151,34 @@ test('mobile mounts the dedicated Mission Deck and a generated case inherits eve
   await expect(page.locator('.document-folder-nav')).toBeVisible();
   await capture(page, testInfo, '04-document-folders');
 
-  await page.getByRole('button', { name: 'Open mission pages' }).click();
-  await page.locator('.mission-path-list').getByRole('button', { name: /Decision/ }).click();
-  await expect(page.locator('.mission-decision-page')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Submit Decision' })).toBeVisible();
+  const missionPages = await openWorkspacePages(page);
+  await missionPages.getByRole('button', { name: /Decision/ }).click();
+  const determination = page.locator('[data-mobile-review-screen="determination"]');
+  await expect(determination).toBeVisible();
+  await expect(determination.getByRole('button', { name: 'Continue to Submit Decision', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /Open Quick Pad/ })).toHaveCount(0);
   await capture(page, testInfo, '05-decision');
 
   await dock.getByRole('button', { name: /Cases/ }).click();
-  const queue = page.locator('.cases-theme-v1-panel');
+  const queue = page.locator('[data-mobile-case-queue="reference-v1"]');
   await expect(queue).toBeVisible();
-  await queue.getByLabel('Generate case count').selectOption('1');
-  await queue.getByRole('button', { name: 'Generate cases', exact: true }).click();
+  await queue.getByRole('button', { name: /Create a fictional training case/ }).click();
+  const generator = queue.locator('#mobile-case-generator-dialog');
+  await expect(generator).toBeVisible();
+  await generator.getByRole('combobox', { name: 'Cases', exact: true }).selectOption('1');
+  await generator.getByRole('button', { name: 'Generate training case', exact: true }).click();
 
   await expect(page.locator('.mission-briefing-v3')).toBeVisible();
   const generatedCaseId = await page.locator('.mission-workspace-case-selector select').inputValue();
   expect(generatedCaseId).toMatch(/-G\d+$/);
-  await expect(page.locator('.mission-briefing-identity')).toContainText(generatedCaseId);
+  await expect(page.locator('.mission-briefing-case-banner')).toContainText(generatedCaseId);
   await page.getByRole('button', { name: 'Open mission pages' }).click();
   await page.locator('.mission-path-list').getByRole('button', { name: /Investigate/ }).click();
-  await expect(page.locator('.mission-evidence-page .mission-evidence-map')).toBeVisible();
-  await page.locator('.mission-evidence-page .mission-map-tool-node')
-    .filter({ hasText: 'Identity & Customer' })
+  const generatedToolMap = page.locator('[data-mobile-tool-map="reference-v1"]');
+  await expect(generatedToolMap).toBeVisible();
+  await generatedToolMap.locator('.mobile-tool-map-cluster').filter({ hasText: 'Identity & Customer' }).click();
+  await generatedToolMap.getByRole('region', { name: 'Identity & Customer tools' })
+    .getByRole('button', { name: /Customer 360/ })
     .click();
   await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')).toHaveAttribute('data-case-id', generatedCaseId);
   await assertPhoneGeometry(page);

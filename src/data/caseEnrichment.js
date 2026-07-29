@@ -1,7 +1,13 @@
-import { buildGeneratedCaseSummary, createGeneratedCase, makeGeneratedProfileChanges } from './generatedCases.js';
 import { buildCaseBriefingPacket } from './caseBriefingDetails.js';
 import { buildCaseIntakeAnswers } from './intakeAnswers.js';
 import { systemAccessRecordsByCase } from './systemAccessRecords.js';
+import {
+  CASE_DOMAIN_VERSION,
+  caseDomainLabels,
+  filterToolsForCaseDomain,
+  hasOwnershipLinkedBusinessRelationship,
+} from './caseDomain.js';
+import { containsHiddenAnswer } from './publicCaseView.js';
 
 const deviceIds = {
   'FA-ATO-24018': { 'iPhone 16': 'DEV-MAYA-IP16-001', 'Chrome Mobile': 'DEV-MAYA-CHRM-002' },
@@ -183,10 +189,34 @@ function addDeviceIds(caseId, rows = []) {
 function buildClaimFields(item, context = {}) {
   const claimType = getClaimTypeForCase({ ...item, claimTypeId: context.claimTypeId ?? item.claimTypeId });
   const scenario = getScenario(claimType.id, context.scenarioId ?? item.scenarioId);
+  const customerType = item.customerType ?? claimType.customerType;
+  const productType = item.productType ?? claimType.productType;
+  const workflowType = item.workflowType ?? claimType.workflowType ?? claimType.id;
+  const domain = {
+    customerType,
+    productType,
+    workflowType,
+    hasLinkedBusinessRelationship: item.hasLinkedBusinessRelationship,
+    businessRelationships: item.businessRelationships,
+    linkedBusinesses: item.linkedBusinesses,
+    customer: item.customer,
+    toolResults: item.toolResults,
+    relationshipAccounts: item.relationshipAccounts,
+    hasPayrollRelationship: item.hasPayrollRelationship,
+  };
+  const domainLabels = caseDomainLabels(domain);
   const reportedDate = item.reportedDate ?? context.reportedDate ?? item.opened;
   const issueStartDate = item.issueStartDate ?? context.issueStartDate ?? reportedDate;
-  const statementValue = item.statement?.value ?? context.statement ?? item.allegation ?? scenario.statement;
-  const statementLabel = item.statement?.label ?? (/credit|application/i.test(claimType.id) ? 'Applicant statement' : 'Customer statement');
+  const legacyStatement = item.statement?.value ?? context.statement ?? item.reportedAllegation ?? item.allegation;
+  const statementValue = containsHiddenAnswer(legacyStatement)
+    ? scenario.reportedAllegation ?? scenario.statement
+    : legacyStatement ?? scenario.statement;
+  const alertReason = item.alertReason && !containsHiddenAnswer(item.alertReason) ? item.alertReason : scenario.alertReason;
+  const reportedAllegation = item.reportedAllegation && !containsHiddenAnswer(item.reportedAllegation)
+    ? item.reportedAllegation
+    : scenario.reportedAllegation ?? statementValue;
+  const statementLabel = item.statement?.label
+    ?? (/credit|application/i.test(claimType.id) ? 'Applicant statement' : item.intake?.channel === 'System alert' ? 'Reported alert' : 'Reported allegation');
   const intakeAnswers = item.intakeAnswers?.length ? item.intakeAnswers : buildCaseIntakeAnswers({
     caseId: item.id,
     prompts: claimType.intakePrompts,
@@ -208,12 +238,37 @@ function buildClaimFields(item, context = {}) {
     loginHistory: item.loginHistory,
     profileChanges: item.customer?.profileChanges,
     customer: item.customer,
+    customerType,
+    productType,
+    workflowType,
   });
-  const briefingPacket = buildCaseBriefingPacket({ item, claimType, scenario, reportedDate });
-  const availableTools = item.availableTools ?? claimType.availableTools;
+  const briefingPacket = buildCaseBriefingPacket({
+    item: {
+      ...item,
+      customerType,
+      productType,
+      workflowType,
+      alertReason,
+      reportedAllegation,
+    },
+    claimType,
+    scenario,
+    reportedDate,
+  });
+  const availableToolCandidates = item.availableTools ?? claimType.availableTools;
+  const availableTools = filterToolsForCaseDomain(
+    hasOwnershipLinkedBusinessRelationship(domain)
+      ? dedupeStrings([...availableToolCandidates, 'Business 360'])
+      : availableToolCandidates,
+    domain,
+  );
   const caseAvailableTools = systemAccessRecordsByCase[item.id]?.length && !claimType.chargeback
-    ? dedupeStrings([...availableTools, 'System Access Lane'])
+    ? filterToolsForCaseDomain(dedupeStrings([...availableTools, 'System Access Lane']), domain)
     : availableTools;
+  const requiredTools = filterToolsForCaseDomain(
+    item.requiredTools ?? claimType.requiredTools,
+    domain,
+  );
   const responseStatus = item.merchantResponse?.status ?? item.toolResults?.merchantIntelligence?.response?.status;
   const workflowStatus = claimType.chargeback
     ? responseStatus === 'Accepted'
@@ -226,14 +281,27 @@ function buildClaimFields(item, context = {}) {
     : item.status;
 
   return {
+    domainSchemaVersion: item.domainSchemaVersion ?? CASE_DOMAIN_VERSION,
+    customerType,
+    customerTypeLabel: domainLabels.customerTypeLabel,
+    productType,
+    productTypeLabel: domainLabels.productTypeLabel,
+    workflowType,
+    workflowTypeLabel: domainLabels.workflowTypeLabel,
+    alertReason,
+    reportedAllegation,
+    suspectedPatterns: [],
+    operationalDecision: item.operationalDecision ?? null,
+    finalFinding: item.finalFinding ?? null,
+    findingBasis: item.findingBasis ?? '',
     claimTypeId: claimType.id,
     type: claimType.label,
     claimType: claimType.label,
     lane: item.lane ?? claimType.lane,
-    subtype: item.subtype ?? context.subtype ?? scenario.subtype,
+    subtype: scenario.subtype,
     scenarioId: item.scenarioId ?? scenario.id,
-    scenarioTitle: item.scenarioTitle ?? scenario.title,
-    scenarioFamily: item.scenarioFamily ?? scenario.family ?? claimType.lane,
+    scenarioTitle: scenario.title,
+    scenarioFamily: scenario.family ?? claimType.label,
     reportedDate,
     issueStartDate,
     status: workflowStatus,
@@ -248,10 +316,12 @@ function buildClaimFields(item, context = {}) {
     briefingDetails: briefingPacket.details,
     caseBriefing: {
       ...item.caseBriefing,
-      summary: item.caseBriefing?.summary ?? item.shortSummary ?? item.allegation ?? scenario.summary,
+      summary: containsHiddenAnswer(item.caseBriefing?.summary ?? item.shortSummary ?? item.allegation)
+        ? scenario.summary
+        : item.caseBriefing?.summary ?? item.shortSummary ?? item.allegation ?? scenario.summary,
       focusAreas: item.caseBriefing?.focusAreas ?? item.briefingQuestions ?? claimType.intakePrompts,
       evidenceAreas: item.caseBriefing?.evidenceAreas ?? item.evidenceAreas ?? claimType.evidenceAreas,
-      scenarioTitle: item.caseBriefing?.scenarioTitle ?? scenario.title,
+      scenarioTitle: scenario.title,
       assignedInvestigator: briefingPacket.assignedInvestigator,
       assignedDate: briefingPacket.assignedDate,
       assignmentTeam: briefingPacket.assignmentTeam,
@@ -259,15 +329,32 @@ function buildClaimFields(item, context = {}) {
       parties: briefingPacket.parties,
       details: briefingPacket.details,
     },
-    keyFacts: item.keyFacts ?? [
-      ['Lane', item.lane ?? claimType.lane], ['Subtype', item.subtype ?? context.subtype ?? scenario.subtype], ['Reported date', reportedDate], ['Issue start date', issueStartDate], ['Amount / exposure', item.amountExposure ?? item.amount], ['Scenario', item.scenarioTitle ?? scenario.title],
+    keyFacts: [
+      ['Customer type', domainLabels.customerTypeLabel],
+      ['Product', domainLabels.productTypeLabel],
+      ['Review workflow', domainLabels.workflowTypeLabel],
+      ['Alert reason', alertReason],
+      ['Reported date', reportedDate],
+      ['Issue start date', issueStartDate],
+      ['Amount / exposure', item.amountExposure ?? item.amount],
     ],
-    productsAccounts: item.productsAccounts ?? [{ label: 'Product rail', value: claimType.taxonomy.productRail }, { label: 'Primary details', value: item.transactionInfo ?? scenario.transactionInfo }],
+    productsAccounts: [
+      { label: 'Customer type', value: domainLabels.customerTypeLabel },
+      { label: 'Product', value: domainLabels.productTypeLabel },
+      { label: 'Review workflow', value: domainLabels.workflowTypeLabel },
+      { label: 'Primary details', value: item.transactionInfo ?? scenario.transactionInfo },
+    ],
     availableTools: caseAvailableTools,
-    requiredTools: item.requiredTools ?? claimType.requiredTools,
+    requiredTools,
     evidenceAreas: item.evidenceAreas ?? claimType.evidenceAreas,
     expectedEvidenceCategories: item.expectedEvidenceCategories ?? claimType.evidenceAreas,
-    taxonomyTags: item.taxonomyTags ?? claimType.taxonomy,
+    taxonomyTags: {
+      ...claimType.taxonomy,
+      ...(item.taxonomyTags ?? {}),
+      customerType,
+      productType,
+      workflowType,
+    },
     creditDecision: item.creditDecision ?? (claimType.credit ? { ...claimType.credit, family: item.scenarioFamily ?? scenario.family ?? 'Credit review' } : null),
     chargebackDecision: item.chargebackDecision ?? (claimType.chargeback ? { ...claimType.chargeback } : null),
     actionLog: item.actionLog ?? [{ id: `${item.id}-ACT-1`, time: `${reportedDate} · ${item.intake?.contactTime ?? 'Case opened'}`, action: 'Case packet available', detail: 'Case packet is ready for Evidence First investigation.', source: 'Case queue' }],
@@ -275,73 +362,21 @@ function buildClaimFields(item, context = {}) {
 }
 
 function enrichOneCase(item) {
-  if (item.id?.includes('-G') && item.generatedPacketVersion !== 6 && item.claimTypeId && item.scenarioId) {
-    const index = item.generatedAt ?? Number(String(item.id).replace(/\D/g, '').slice(-8)) ?? Date.now();
-    const refreshed = createGeneratedCase({
-      index,
-      claimTypeId: item.claimTypeId,
-      scenarioId: item.scenarioId,
-      difficulty: item.difficulty,
-      evidenceDepth: String(item.evidenceDepth ?? 'standard').toLowerCase(),
-    });
-    item = {
-      ...item,
-      ...refreshed,
-      id: item.id,
-      caseId: item.caseId ?? item.id,
-      claimId: item.claimId ?? refreshed.claimId,
-      generatedAt: item.generatedAt,
-      status: item.status ?? refreshed.status,
-      actionLog: item.actionLog ?? refreshed.actionLog,
-      progress: item.progress ?? refreshed.progress,
-    };
-  }
   const accountId = accountIdForCase(item);
   item = { ...item, accountId };
   const extra = caseIntake[item.id];
   const context = claimContext[item.id] ?? {};
   if (!extra) {
-    const claimType = getClaimTypeForCase(item);
-    const scenario = getScenario(claimType.id, item.scenarioId);
-    const storedSummary = item.caseBriefing?.summary ?? item.shortSummary ?? item.allegation ?? '';
-    const shouldUpgradeSummary = item.id?.includes('-G') && (!storedSummary || /fictional packet contains both routine and exception evidence/i.test(storedSummary));
-    const generatedSummary = shouldUpgradeSummary ? buildGeneratedCaseSummary({
-      person: item.person,
-      scenario,
-      employer: item.profile?.employer,
-      business: item.profile?.business,
-      reportedDate: item.reportedDate ?? item.opened,
-      issueStartDate: item.issueStartDate ?? item.reportedDate ?? item.opened,
-      documents: item.documents ?? [],
-    }) : null;
-    const summaryItem = generatedSummary ? {
-      ...item,
-      shortSummary: generatedSummary,
-      allegation: generatedSummary,
-      caseBriefing: { ...item.caseBriefing, summary: generatedSummary },
-    } : item;
-    const builtFields = buildClaimFields(summaryItem, context);
+    const builtFields = buildClaimFields(item, context);
     const loginHistory = addDeviceIds(item.id, item.loginHistory ?? []);
     const existingChanges = item.customer?.profileChanges ?? [];
-    const needsProfileUpgrade = item.id.includes('-G') && (existingChanges.length < 3 || existingChanges.some((event) => !event.eventType || !event.oldValue || !event.newValue));
-    const index = item.generatedAt ?? Number(String(item.id).replace(/\D/g, '').slice(-8)) ?? Date.now();
     return {
-      ...summaryItem,
+      ...item,
       ...builtFields,
       customer: {
         ...item.customer,
         relationship: relationshipWithAccountId(item.customer, accountId),
-        profileChanges: needsProfileUpgrade ? makeGeneratedProfileChanges({
-          id: item.id,
-          index,
-          person: item.person,
-          city: item.intake?.customerLocation ?? item.profile?.city ?? 'Training city',
-          claimType,
-          scenario,
-          reportedDate: item.reportedDate ?? item.opened,
-          issueStartDate: item.issueStartDate ?? item.reportedDate ?? item.opened,
-          loginHistory,
-        }) : existingChanges,
+        profileChanges: existingChanges,
       },
       loginHistory,
       links: dedupeStrings(item.links ?? []),

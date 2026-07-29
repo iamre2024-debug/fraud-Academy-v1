@@ -1,6 +1,11 @@
 // Chargeback lifecycle and real-document browser coverage.
 import { test, expect } from '@playwright/test';
-import { selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  activeCaseSelector,
+  openToolGroups,
+  selectActiveCase,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 const merchantCaseId = 'FA-CB-24007';
 const nonMerchantCaseId = 'FA-ATO-24018';
@@ -9,9 +14,9 @@ const forbiddenPreSubmissionCopy = /\b(?:fraud score|correct answer|AI recommend
 test('Merchant Intelligence presents a chargeback lifecycle with inspectable scenario documents', async ({ page }, testInfo) => {
   await page.goto('/');
 
-  const caseSelector = page.locator('.visual-case-switcher select');
+  const caseSelector = activeCaseSelector(page);
   await caseSelector.selectOption(merchantCaseId);
-  await selectToolGroup(page, /Merchant & Disputes/);
+  await selectToolGroup(page, /Merchant & Disputes/, 'Merchant Intelligence');
 
   const toolPanel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   await expect(toolPanel).toHaveAttribute('data-tool-name', 'Merchant Intelligence');
@@ -21,6 +26,16 @@ test('Merchant Intelligence presents a chargeback lifecycle with inspectable sce
   await expect(toolPanel.locator('.merchant-quick-summary')).toContainText('Challenged');
   await expect(toolPanel.locator('.merchant-lifecycle-tabs button')).toHaveCount(6);
   await expect(toolPanel.locator('[data-lifecycle-section="merchant-response"]')).toBeVisible();
+  if (testInfo.project.name === 'mobile-chromium') {
+    const referencePage = toolPanel.locator('[data-mobile-merchant-reference="true"]');
+    await expect(referencePage).toBeVisible();
+    await expect(referencePage.getByRole('heading', { name: 'Transaction under review', exact: true })).toBeVisible();
+    await expect(referencePage.getByRole('heading', { name: 'Prior customer history', exact: true })).toBeVisible();
+    await expect(referencePage.getByRole('heading', { name: 'Policy & supporting terms', exact: true })).toBeVisible();
+    await expect(referencePage.getByText('Under review', { exact: true })).toBeVisible();
+    await expect(referencePage).not.toContainText('High Risk');
+    await expect(referencePage.getByLabel('Luna debrief is available after submission')).toContainText('Debrief after submit');
+  }
   await expect(toolPanel.getByRole('heading', { name: 'Merchant response', exact: true })).toBeVisible();
   await expect(toolPanel.getByText('Challenged', { exact: true }).first()).toBeVisible();
   await expect(toolPanel.locator('[data-merchant-document]')).toHaveCount(5);
@@ -31,9 +46,23 @@ test('Merchant Intelligence presents a chargeback lifecycle with inspectable sce
   await expect(toolPanel.locator('.merchant-document-sheet table')).toBeVisible();
   await expect(toolPanel.locator('.merchant-document-sheet')).toContainText('StreamBox Premium');
   await toolPanel.getByRole('button', { name: 'Pin document' }).click();
-  await expect(page.locator('.tray-card')).toContainText('Pinned');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.getByRole('button', { name: 'Open Merchant Intelligence actions', exact: true }).click();
+    const actions = page.getByRole('dialog', { name: 'Merchant Intelligence actions' });
+    await expect(actions.getByRole('button', { name: /Pinned evidence \(2\)/ })).toBeVisible();
+    await actions.getByRole('button', { name: 'Close Merchant Intelligence actions', exact: true }).click();
+  } else {
+    await expect(page.locator('.tray-card')).toContainText('Pinned');
+  }
   await toolPanel.getByRole('button', { name: 'Save review note' }).click();
-  await expect(page.locator('.notebook-card')).toContainText('Merchant Intelligence');
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.getByRole('button', { name: 'Open Merchant Intelligence actions', exact: true }).click();
+    const actions = page.getByRole('dialog', { name: 'Merchant Intelligence actions' });
+    await expect(actions.getByRole('button', { name: /Case notes \(1\)/ })).toBeVisible();
+    await actions.getByRole('button', { name: 'Close Merchant Intelligence actions', exact: true }).click();
+  } else {
+    await expect(page.locator('.notebook-card')).toContainText('Merchant Intelligence');
+  }
   await toolPanel.getByRole('button', { name: 'Back to evidence packet' }).click();
 
   const openSection = async (value, label) => {
@@ -66,6 +95,21 @@ test('Merchant Intelligence presents a chargeback lifecycle with inspectable sce
   expect(layout.visibleLifecycleSections).toBe(1);
   expect(await page.locator('body').innerText()).not.toMatch(forbiddenPreSubmissionCopy);
 
-  await caseSelector.selectOption(nonMerchantCaseId);
-  await expect(page.locator('[data-investigation-tool-groups="approved-theme-v1"] .visual-category-row > button').filter({ hasText: 'Merchant & Disputes' })).toHaveCount(0);
+  await selectActiveCase(page, nonMerchantCaseId);
+  const toolGroups = await openToolGroups(page);
+  if (testInfo.project.name === 'mobile-chromium') {
+    await toolGroups.locator('.mobile-tool-map-cluster')
+      .filter({ hasText: 'Transactions & Financial' })
+      .click();
+    const transactionTools = toolGroups.locator('#mobile-tool-map-tray');
+    await expect(transactionTools).toBeVisible();
+    await expect(transactionTools).toHaveAccessibleName('Transactions & Financial tools');
+    await expect(transactionTools
+      .getByRole('button', { name: 'Open Merchant Intelligence', exact: true }))
+      .toHaveCount(0);
+  } else {
+    await expect(toolGroups.locator('.visual-category-row > button')
+      .filter({ hasText: 'Merchant & Disputes' }))
+      .toHaveCount(0);
+  }
 });

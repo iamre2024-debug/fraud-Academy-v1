@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { selectToolGroup } from './workspace-page-helpers.mjs';
+import {
+  activeCaseSelector,
+  selectToolGroup,
+} from './workspace-page-helpers.mjs';
 
 const requiredDocuments = [
   'Card-network submission record',
@@ -21,7 +24,7 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
     : page.locator('[data-case-briefing-screen="approved-theme-v1"]');
   await expect(briefing.getByRole('button', { name: 'Open Document Viewer', exact: true })).toHaveCount(0);
   if (testInfo.project.name === 'mobile-chromium') {
-    await expect(briefing.getByRole('button', { name: /Tools/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open mission pages', exact: true })).toBeVisible();
   } else {
     await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
     await expect(page.locator('[data-customer-360-screen="approved-theme-v1"]')
@@ -29,14 +32,17 @@ test('Document Viewer requires an Account ID, then compares, annotates, and expo
     await expect(page.locator('.tray-card').getByRole('button', { name: /Document Viewer/ })).toHaveCount(0);
   }
 
-  await selectToolGroup(page, /Documents & Requests/);
+  await selectToolGroup(page, /Documents & Requests/, 'Document Viewer');
 
   const panel = page.locator('[data-investigation-tools-screen="approved-theme-v1"]');
   const viewer = panel.locator('[data-document-viewer-screen="approved-theme-v1"]');
   const search = viewer.getByRole('textbox', { name: 'Search Document Viewer records' });
 
   await expect(panel).toHaveAttribute('data-tool-name', 'Document Viewer');
-  await expect(panel.getByRole('heading', { name: 'Document Viewer', exact: true })).toBeVisible();
+  const viewerHeading = testInfo.project.name === 'mobile-chromium'
+    ? page.locator('.mission-workspace-bar').getByRole('heading', { name: 'Document Viewer', exact: true })
+    : panel.getByRole('heading', { name: 'Document Viewer', exact: true });
+  await expect(viewerHeading).toBeVisible();
   await expect(viewer).toBeVisible();
   await expect(viewer.getByRole('heading', { name: 'Customer documents are locked', exact: true })).toBeVisible();
   await expect(viewer.locator('[data-document-record]')).toHaveCount(0);
@@ -242,7 +248,7 @@ test('Document Viewer keeps prefilled access locked and restores isolated per-do
       const briefing = page.locator('[data-case-briefing-screen="approved-theme-v1"]');
       await briefing.getByRole('button', { name: /Begin Investigation/ }).click();
     }
-    await selectToolGroup(page, /Documents & Requests/);
+    await selectToolGroup(page, /Documents & Requests/, 'Document Viewer');
     const viewer = page.locator('[data-document-viewer-screen="approved-theme-v1"]');
     const accountSearch = viewer.getByRole('textbox', { name: 'Search by Account ID' });
     await viewer.getByRole('button', { name: 'Use active case Account ID', exact: true }).click();
@@ -266,8 +272,8 @@ test('Document Viewer keeps prefilled access locked and restores isolated per-do
   }
 
   await page.goto('/');
+  const activeCaseId = await activeCaseSelector(page).inputValue();
   let viewer = await openActiveCaseViewer();
-  const activeCaseId = await page.locator('.visual-case-switcher select').inputValue();
   const firstRecord = viewer.locator('[data-document-record]').first();
   const firstDocumentId = await firstRecord.getAttribute('data-document-record');
   const draft = `Unsaved document draft for ${firstDocumentId}`;

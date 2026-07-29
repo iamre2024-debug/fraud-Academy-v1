@@ -107,8 +107,10 @@ test('approved Timeline preserves sequence review, evidence actions, and respons
   await timelineForDecision.getByRole('navigation', { name: 'Timeline next routes' })
     .getByRole('button', { name: 'Open Submit Decision', exact: true })
     .click();
-  await expect(page.locator('.submit-decision-panel')).toBeVisible();
-  await expect(page.locator('.submit-decision-panel')).toContainText('Evidence First protection');
+  const finalReview = page.locator('[data-decision-layout="reference-final-review"]');
+  await expect(finalReview).toBeVisible();
+  await expect(finalReview.getByText('Evidence First', { exact: true })).toBeVisible();
+  await expect(finalReview.getByRole('button', { name: 'Confirm and Submit Decision', exact: true })).toBeDisabled();
 
   const selector = page.locator('.visual-case-switcher select');
   await selector.selectOption(secondCase.id);
