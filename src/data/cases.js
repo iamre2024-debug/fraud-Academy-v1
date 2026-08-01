@@ -150,10 +150,10 @@ export const trainingCases = [
   {
     id: 'FA-CR-24003',
     customerType: 'personal',
-    productType: 'personal-loan',
+    productType: 'personal-line-of-credit',
     workflowType: 'credit-risk-review',
-    alertReason: 'Rapid use request on a new credit relationship',
-    reportedAllegation: 'A system alert identified unusual early account usage for review.',
+    alertReason: '$2,400 credit-line draw requested one day after account opening',
+    reportedAllegation: 'A $2,400 credit-line draw was requested one day after the personal line of credit opened.',
     suspectedPatterns: [],
     operationalDecision: null,
     finalFinding: null,
@@ -166,8 +166,8 @@ export const trainingCases = [
     accountId: 'ACCT-24003-3011',
     amount: '$2,400.00',
     opened: 'Jul 8, 2026',
-    allegation: 'System alert opened a credit risk review after a new account requested rapid limit usage. The case requires identity, payment, and account behavior review.',
-    queueReason: 'System alert tied to new account activity and payment verification needs.',
+    allegation: 'A system alert opened a review after a $2,400 draw was requested from a newly opened personal credit line, five minutes after a new external payment destination was added.',
+    queueReason: 'A $2,400 draw was requested one day after account opening and five minutes after a new external payment destination was added.',
     briefingQuestions: ['What triggered the system review?', 'Which identity and payment records should be opened first?', 'What should be documented before the decision remains locked?'],
     intake: { channel: 'System alert', contactTime: '7:45 AM', customerLocation: 'Arlington, TX', statedDevice: 'Not customer-reported' },
     customer: {
@@ -175,7 +175,7 @@ export const trainingCases = [
       segment: 'New credit account',
       contact: { phone: '(682) 555-0167', email: 'avery.training@example.test', address: 'Arlington, TX training address', preferredChannel: 'Email' },
       relationship: [
-        { label: 'Open products', value: 'Credit line' },
+        { label: 'Open products', value: 'Personal line of credit' },
         { label: 'Last statement', value: 'Not generated yet' },
         { label: 'Normal login area', value: 'Early history only' },
         { label: 'Payment profile', value: 'New external destination' },
@@ -201,7 +201,7 @@ export const trainingCases = [
     progress: ['Case Summary'],
     events: [
       { id: 'EVT-3302', time: '7:31 AM', label: 'Payment method added', detail: 'No prior external destination on file → Bank Code BC-204 · Destination ID DST-7740', chip: 'Payment', object: 'PAY-3301' },
-      { id: 'EVT-3308', time: '7:36 AM', label: 'Limit usage request submitted', detail: '$2,400 requested from available line', chip: 'Credit', object: 'Account' },
+      { id: 'EVT-3308', time: '7:36 AM', label: 'Credit-line draw requested', detail: '$2,400 requested one day after the line opened', chip: 'Credit', object: 'Account' },
       { id: 'EVT-3314', time: '7:43 AM', label: 'Profile review opened', detail: 'System queued identity and payment verification records', chip: 'System', object: 'Profile' },
     ],
     documents: [

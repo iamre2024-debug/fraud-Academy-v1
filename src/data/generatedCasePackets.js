@@ -79,8 +79,12 @@ function generationSignal(scenario) {
 
 function productRailFor(claimType, scenario) {
   const productType = scenario.productType ?? scenario.taxonomyTags?.productType;
+  const creditWorkflow = [WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW, WORKFLOW_TYPES.CREDIT_RISK_REVIEW]
+    .includes(scenario.workflowType ?? claimType.workflowType ?? claimType.id);
+  if (productType === PRODUCT_TYPES.PAYROLL_PRODUCT && creditWorkflow) return 'payroll-funding';
   if (productType === PRODUCT_TYPES.CREDIT_CARD || productType === PRODUCT_TYPES.BUSINESS_CREDIT_CARD) return 'card';
   if (productType === PRODUCT_TYPES.PAYROLL_PRODUCT) return 'payroll';
+  if (productType === PRODUCT_TYPES.PERSONAL_LINE_OF_CREDIT || productType === PRODUCT_TYPES.BUSINESS_LINE_OF_CREDIT) return 'credit-line';
   if (productType === PRODUCT_TYPES.PERSONAL_LOAN || productType === PRODUCT_TYPES.BUSINESS_LOAN) return 'loan';
   if (scenario.workflowType === WORKFLOW_TYPES.ACH_TRANSACTION_CLAIM || scenario.workflowType === WORKFLOW_TYPES.ACH_TRANSACTION_REVIEW) return 'ach';
   if ([WORKFLOW_TYPES.WIRE_TRANSACTION_CLAIM, WORKFLOW_TYPES.WIRE_TRANSACTION_REVIEW, WORKFLOW_TYPES.BUSINESS_PAYMENT_INSTRUCTION_CHANGE_ALERT].includes(scenario.workflowType)) return 'wire';
@@ -313,7 +317,10 @@ function makeCreditProfile({ id, index, claimType, scenario, person, business, a
 
 function makeTransactions({ id, claimType, scenario, amount, reportedDate, issueStartDate, recordCount, difficulty, merchantPacket }) {
   if (!claimType.availableTools.includes('Transaction History')) return [];
+  if (scenario.workflowType === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW || /no transaction in scope/i.test(scenario.transactionInfo)) return [];
   const rail = productRailFor(claimType, scenario);
+  const creditWorkflow = scenario.workflowType === WORKFLOW_TYPES.CREDIT_RISK_REVIEW;
+  const businessProduct = scenario.customerType === CUSTOMER_TYPES.BUSINESS;
   const signal = generationSignal(scenario);
   const primaryName = merchantPacket?.profile.name ?? scenario.transactionInfo.split(' - ')[0];
   const step = Math.max(18, Math.round(Math.max(amount, 120) * 0.13));
@@ -326,9 +333,17 @@ function makeTransactions({ id, claimType, scenario, amount, reportedDate, issue
     let instrument = 'Training payment object';
     let merchant = current || recurring ? primaryName : `${primaryName} prior activity ${itemIndex}`;
 
-    if (rail === 'card') {
+    if (rail === 'card' && creditWorkflow) {
+      channel = current ? 'Credit-card exposure review' : 'Credit-card payment history';
+      instrument = businessProduct ? 'Training business credit card' : 'Training personal credit card';
+      merchant = current ? scenario.transactionInfo.split(' - ')[0] : `Credit-card relationship record ${itemIndex}`;
+    } else if (rail === 'card') {
       channel = merchantChannel(signal) === 'Recurring' ? 'Recurring card billing' : merchantChannel(signal) === 'In-store' ? 'Card present' : merchantChannel(signal) === 'Digital wallet' ? 'Digital wallet payment' : 'Card not present';
       instrument = scenario.transactionInfo.match(/training card ending \d+/i)?.[0] ?? 'Training card';
+    } else if (rail === 'payroll-funding') {
+      channel = current ? 'Payroll-funding exposure review' : 'Payroll-funding repayment history';
+      instrument = 'Training payroll-funding relationship';
+      merchant = current ? scenario.transactionInfo.split(' - ')[0] : `Payroll-funding relationship record ${itemIndex}`;
     } else if (rail === 'payroll') {
       channel = current ? 'Direct deposit destination activity' : 'Prior payroll deposit';
       instrument = 'Training payroll account';
@@ -337,9 +352,21 @@ function makeTransactions({ id, claimType, scenario, amount, reportedDate, issue
       channel = current ? 'Wire instruction record' : 'Prior beneficiary payment';
       instrument = 'Training business payment account';
       merchant = current ? scenario.transactionInfo.split(' - ')[0] : `Established beneficiary ${itemIndex}`;
-    } else if (/credit|loan/.test(rail)) {
-      channel = current ? 'Credit exposure activity' : itemIndex % 2 ? 'Scheduled payment history' : 'Line utilization history';
-      instrument = rail === 'loan' ? 'Training business credit line' : 'Training credit account';
+    } else if (rail === 'credit-line') {
+      channel = current
+        ? /draw|first-party credit abuse/.test(signal)
+          ? 'Credit-line draw activity'
+          : /increase/.test(signal)
+            ? 'Credit-line limit review'
+            : /stacking|applications/.test(signal)
+              ? 'Credit-facility review'
+              : 'Credit-line account activity'
+        : itemIndex % 2 ? 'Scheduled payment history' : 'Credit-line utilization history';
+      instrument = businessProduct ? 'Training business line of credit' : 'Training personal line of credit';
+      merchant = current ? scenario.transactionInfo.split(' - ')[0] : `Credit-line relationship record ${itemIndex}`;
+    } else if (rail === 'loan') {
+      channel = current ? 'Installment-loan account activity' : 'Scheduled loan payment history';
+      instrument = businessProduct ? 'Training business installment loan' : 'Training personal installment loan';
       merchant = current ? scenario.transactionInfo.split(' - ')[0] : `Credit relationship record ${itemIndex}`;
     }
 
@@ -368,15 +395,30 @@ function makePaymentVerification({ id, claimType, scenario, person, business, re
   if (!claimType.availableTools.includes('Payment Verification')) return [];
   const seed = stableNumber(`${id}-payment`);
   const rail = productRailFor(claimType, scenario);
-  const destinationType = rail === 'payroll' ? 'Payroll destination' : rail === 'wire' ? 'Beneficiary destination' : /credit|loan/.test(rail) ? 'Payment account' : 'Card authorization object';
+  const creditWorkflow = [WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW, WORKFLOW_TYPES.CREDIT_RISK_REVIEW].includes(scenario.workflowType);
+  const applicationReview = scenario.workflowType === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW;
+  const destinationType = applicationReview
+    ? 'Proposed repayment account'
+    : creditWorkflow
+      ? 'Repayment account'
+      : rail === 'payroll'
+        ? 'Payroll destination'
+        : rail === 'wire'
+          ? 'Beneficiary destination'
+          : 'Card authorization object';
   const destination = `DST-${String(seed).slice(-7).padStart(7, '0')}`;
   const bankCode = `BC-${String(seed).slice(-5)}`;
-  const tone = claimType.id === WORKFLOW_TYPES.MERCHANT_NON_FRAUD_DISPUTE ? 'established' : /credit|loan/.test(rail) ? creditDeterminationTone(scenario) : determinationTone(scenario);
-  const recordedOwner = rail === 'wire' || rail === 'loan' ? business : person;
+  const tone = claimType.id === WORKFLOW_TYPES.MERCHANT_NON_FRAUD_DISPUTE ? 'established' : creditWorkflow ? creditDeterminationTone(scenario) : determinationTone(scenario);
+  const recordedOwner = scenario.customerType === CUSTOMER_TYPES.BUSINESS ? business : person;
+  const transactionContext = transactions.length
+    ? `${transactions.length} related transaction record(s) are available.`
+    : applicationReview
+      ? 'No posted transaction is in scope; this record supports repayment-account ownership review for the application.'
+      : 'No related transaction record is available in this packet.';
   return [{
     id: `${id}-PV-1`, type: destinationType, object: `Destination ID ${destination}`, status: 'Lookup completed', lastSeen: `${reportedDate} - 9:18 AM`,
-    context: `${destinationType} ${destination} is linked to ${scenario.transactionInfo} and ${transactions.length} transaction record(s).`, bankName: pick(['Training Atlantic Bank', 'Training Community Bank', 'Training Mobile Money Network', 'Training Federal Credit Union'], seed),
-    accountType: rail === 'payroll' ? 'Payroll destination account' : rail === 'wire' ? 'Business beneficiary account' : /credit|loan/.test(rail) ? 'External payment account' : 'Card network object',
+    context: `${destinationType} ${destination} is linked to ${scenario.transactionInfo}. ${transactionContext}`, bankName: pick(['Training Atlantic Bank', 'Training Community Bank', 'Training Mobile Money Network', 'Training Federal Credit Union'], seed),
+    accountType: applicationReview ? 'Proposed external repayment account' : creditWorkflow ? 'External repayment account' : rail === 'payroll' ? 'Payroll destination account' : rail === 'wire' ? 'Business beneficiary account' : 'Card network object',
     accountHolder: tone === 'established'
       ? recordedOwner
       : tone === 'mixed'
@@ -384,8 +426,8 @@ function makePaymentVerification({ id, claimType, scenario, person, business, re
         : `Training holder ${String(seed).slice(-4)}`,
     ownerMatch: tone === 'established' ? 'Match' : tone === 'mixed' ? 'Partial Match' : 'No Match',
     accountStatus: 'Open', standing: tone === 'exception' ? 'Limited history' : 'Good standing', priorUse: tone === 'established' ? 'Prior use recorded' : 'No prior use located', firstSeen: issueStartDate,
-    verificationMethod: rail === 'card' ? 'Network authorization packet' : 'Training ownership and history comparison', recoverability: rail === 'wire' ? 'Recall status pending receiving-bank response' : 'Review path documented in the payment packet',
-    bankCode, destinationId: destination, oldDestination: rail === 'payroll' || rail === 'wire' ? 'Established destination ending 2204' : 'Prior payment object on file', newDestination: `Bank Code ${bankCode} · Destination ID ${destination}`,
+    verificationMethod: creditWorkflow ? 'Training repayment-account ownership and history comparison' : rail === 'card' ? 'Network authorization packet' : 'Training ownership and history comparison', recoverability: rail === 'wire' ? 'Recall status pending receiving-bank response' : 'Review path documented in the payment packet',
+    bankCode, destinationId: destination, oldDestination: applicationReview ? 'No prior repayment account supplied' : rail === 'payroll' || rail === 'wire' ? 'Established destination ending 2204' : 'Prior payment object on file', newDestination: `Bank Code ${bankCode} · Destination ID ${destination}`,
     changeComparison: `${destination} was ${tone === 'established' ? 'used before the current activity window' : `first observed ${issueStartDate}`}.`, verificationOutcome: `${destinationType}, ownership, status, prior use, and first-seen date recorded`, relatedRecords: transactions.map((item) => item.id),
     actions: ['Compare ownership and prior use', 'Document the trusted verification source'], verificationLog: [{ time: `${reportedDate} - 9:30 AM`, method: 'Training lookup', result: tone === 'mixed' ? 'Unable to Verify' : 'Recorded', note: 'The log records source evidence only.' }], notes: `Generated payment object ${index} for ${scenario.subtype}.`,
   }];
@@ -850,12 +892,17 @@ export function buildScenarioDecisionData({ claimType, scenario, reportedDate, t
 export function buildScenarioEvents({ id, scenario, claimType, reportedDate, issueStartDate, difficulty, evidenceDepth, documents = [] }) {
   const availableDocuments = documents.filter((item) => item.status !== 'Requested');
   const requestedDocuments = documents.filter((item) => item.status === 'Requested');
+  const applicationReview = scenario.workflowType === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW;
+  const scopeLabel = applicationReview ? 'Application record opened' : 'Alerted activity recorded';
+  const scopeDetail = applicationReview
+    ? `${scenario.transactionInfo} entered the application review queue. ${scenario.amount === '$0.00' ? 'No transaction or requested dollar exposure is in scope.' : `Requested exposure: ${scenario.amount}; no posted transaction is in scope.`}`
+    : `${scenario.transactionInfo} for ${scenario.amount} entered the activity window.`;
   const events = [
-    { id: `${id}-EVT-1`, time: `${issueStartDate} - 10:10 AM`, label: 'Alerted activity recorded', detail: `${scenario.transactionInfo} for ${scenario.amount} entered the activity window.`, chip: 'Case event', object: 'Case' },
+    { id: `${id}-EVT-1`, time: `${issueStartDate} - 10:10 AM`, label: scopeLabel, detail: scopeDetail, chip: applicationReview ? 'Application' : 'Case event', object: 'Case' },
     { id: `${id}-EVT-2`, time: `${reportedDate} - 9:05 AM`, label: 'Intake or alert received', detail: `${scenario.channel} opened the case with this statement: ${scenario.statement}`, chip: 'Intake', object: 'Statement' },
     { id: `${id}-EVT-3`, time: `${reportedDate} - 9:18 AM`, label: 'Evidence packet initialized', detail: `${evidenceDepth} packet created with ${availableDocuments.length} available document(s) and ${requestedDocuments.length} requested document(s) for ${claimType.label}.`, chip: 'Packet', object: 'Document' },
   ];
   if (difficulty !== 'light') events.push({ id: `${id}-EVT-C1`, time: `${reportedDate} - 10:20 AM`, label: 'Cross-source comparison added', detail: `Compare the ${scenario.channel} statement with ${scenario.transactionInfo}, payment ownership, and dated profile records.`, chip: 'Comparison', object: 'Record' });
-  if (difficulty === 'deep') events.push({ id: `${id}-EVT-C2`, time: `${reportedDate} - 11:35 AM`, label: 'Additional evidence dependency recorded', detail: requestedDocuments.length ? `${requestedDocuments.map((item) => item.name).join(' and ')} remain requested while the available records are reviewed.` : `The ${scenario.subtype} timing must be reconciled across transaction, profile, and document records.`, chip: 'Dependency', object: 'Document' });
+  if (difficulty === 'deep') events.push({ id: `${id}-EVT-C2`, time: `${reportedDate} - 11:35 AM`, label: 'Additional evidence dependency recorded', detail: requestedDocuments.length ? `${requestedDocuments.map((item) => item.name).join(' and ')} remain requested while the available records are reviewed.` : `The ${scenario.subtype} timing must be reconciled across ${applicationReview ? 'application' : 'transaction'}, profile, and document records.`, chip: 'Dependency', object: 'Document' });
   return events;
 }

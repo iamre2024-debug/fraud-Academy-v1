@@ -82,25 +82,25 @@ const scenarioCatalog = {
     entry('beneficiary change before payment', 'Confirmed beneficiary change review', 'The vendor sent updated payment details and our team completed the standard callback.', '$16,250.00', 'Vendor beneficiary update - verified callback - training destination ending 7743', 'Release', 'The established vendor contact, ownership record, and approval trail confirm the new beneficiary.', { priority: 'High' }),
   ],
   'credit-risk': [
-    entry('credit line increase', 'Consumer line-increase review', 'I requested a higher line after my income increased and supplied updated documents.', '$7,500.00', 'Credit line increase - existing consumer account - training account ending 3011', 'Support Credit Request', 'Verified income, stable payment history, and acceptable utilization support the request.', { family: 'Existing consumer account review' }),
+    entry('credit line increase', 'Consumer line-increase review', 'I requested a higher line after my income increased and supplied updated documents.', '$7,500.00', 'Personal credit-line increase - existing account - training line ending 3011', 'Support Credit Request', 'Verified income, stable payment history, and acceptable utilization support the request.', { family: 'Existing consumer account review', productTypes: [PRODUCT_TYPES.PERSONAL_LINE_OF_CREDIT] }),
     entry('income inflation', 'Stated and verified income review', 'My application lists my expected annual income based on recent contract work.', '$12,000.00', 'Consumer credit application - stated income review - training application ending 4806', 'More Information Needed', 'Deposits do not yet support the stated annual income, and current contract documentation is missing.', { family: 'New consumer application' }),
     entry('first-payment default concern', 'First-payment-default review', 'I opened the account recently and need time to make the first scheduled payment.', '$4,200.00', 'New credit account - first payment missed - training account ending 7726', 'Refer to Fraud Review', 'Identity, payment account, and rapid utilization records indicate possible intentional application abuse.', { family: 'New consumer application', priority: 'High' }),
     entry('repayment stress', 'Existing consumer account review', 'I am asking to keep the account available while my recent payment situation changes.', '$4,800.00', 'Existing credit account review - utilization and payment history - training account ending 3011', 'Refer to Collections or Hardship', 'Income disruption and rising obligations explain repayment stress without establishing fraud.', { id: 'cr-existing-consumer', family: 'Existing consumer account review' }),
-    entry('bust-out concern', 'Existing business exposure review', 'The business requests continued access while revenue and payment activity are reviewed.', '$22,500.00', 'Business credit exposure review - payment and revenue packet - training line ending 8840', 'Reduce Exposure', 'Rapid line utilization, declining deposits, and missed payments support reducing exposure.', { id: 'cr-existing-business', family: 'Existing business account review', priority: 'High' }),
+    entry('bust-out concern', 'Existing business exposure review', 'The business requests continued access while revenue and payment activity are reviewed.', '$22,500.00', 'Business credit exposure review - payment and revenue packet - training exposure ending 8840', 'Reduce Exposure', 'Rapid use of available credit, declining deposits, and missed payments support reducing exposure.', { id: 'cr-existing-business', family: 'Existing business account review', priority: 'High' }),
     entry('synthetic identity concern', 'Thin-file synthetic identity review', 'I submitted the application with the identity and address records available to me.', '$9,800.00', 'Consumer credit application - thin identity file - training application ending 1940', 'Refer to Fraud Review', 'The identity elements exist separately but do not form a consistent person across independent sources.', { family: 'New consumer application', priority: 'High' }),
     entry('fake application', 'Unsupported application review', 'I applied online and uploaded the documents requested by the application.', '$15,000.00', 'Consumer credit application - document review - training application ending 6285', 'Do Not Support Credit Request', 'Submitted income and identity documents conflict with source records.', { family: 'New consumer application', priority: 'High' }),
-    entry('loan stacking', 'Concurrent credit inquiry review', 'I applied with several lenders while comparing financing options.', '$18,500.00', 'Consumer lending request - recent inquiry cluster - training application ending 9054', 'Escalate Senior Review', 'Multiple new obligations may materially change repayment capacity and require senior review.', { family: 'New consumer application', priority: 'High' }),
-    entry('business revenue mismatch', 'New business credit application review', 'Our business is applying for a credit line to support operating expenses.', '$18,000.00', 'Business credit request - stated revenue packet - training business account ending 7280', 'More Information Needed', 'Bank deposits and tax support do not yet reconcile to stated annual revenue.', { id: 'cr-new-business', family: 'New business application', priority: 'High' }),
-    entry('first-party credit abuse', 'Rapid line-usage intent review', 'I recently opened the account and requested access to the available credit line.', '$2,400.00', 'Credit line usage request - payment setup packet - training destination token', 'Refer to Fraud Review', 'The new account shows rapid utilization, unsupported identity changes, and an unrelated payment destination.', { family: 'New consumer application', priority: 'High' }),
+    entry('loan stacking', 'Concurrent credit inquiry review', 'I applied with several lenders while comparing financing options.', '$18,500.00', 'Personal-loan application - recent inquiry cluster - training application ending 9054', 'Escalate Senior Review', 'Multiple new obligations may materially change repayment capacity and require senior review.', { family: 'New consumer application', priority: 'High', productTypes: [PRODUCT_TYPES.PERSONAL_LOAN] }),
+    entry('business revenue mismatch', 'New business credit application review', 'Our business is applying for credit to support operating expenses.', '$18,000.00', 'Business credit application - stated revenue packet - training application ending 7280', 'More Information Needed', 'Bank deposits and tax support do not yet reconcile to stated annual revenue.', { id: 'cr-new-business', family: 'New business application', priority: 'High' }),
+    entry('first-party credit abuse', 'Early credit-line draw review', 'I recently opened the personal line of credit and requested a draw from the available line.', '$2,400.00', 'Personal credit-line draw request - payment setup packet - training destination token', 'Refer to Fraud Review', 'The new account shows rapid utilization, unsupported identity changes, and an unrelated payment destination.', { family: 'New consumer application', priority: 'High', productTypes: [PRODUCT_TYPES.PERSONAL_LINE_OF_CREDIT] }),
   ],
   'business-loan-bust-out': [
-    entry('sleeper LLC sudden draw', 'Dormant business sudden-draw review', 'The business is drawing on its line to fund a newly awarded operating contract.', '$48,000.00', 'Business credit draw - dormant account history - training line ending 1842', 'Hold Pending Verification', 'A long-dormant entity requested a large draw without current revenue or contract support.', { priority: 'Critical' }),
-    entry('rapid credit line stacking', 'Business line-stacking review', 'We applied for several facilities to expand inventory before our busy season.', '$76,500.00', 'Business credit applications - concurrent facilities - training business ending 5210', 'Escalate to Credit Risk', 'Multiple recent facilities materially increase total exposure beyond documented cash flow.', { priority: 'Critical' }),
-    entry('synthetic owner identity', 'Beneficial-owner identity review', 'The listed owner supplied identification and signed the business application.', '$35,000.00', 'Business loan application - owner verification - training business ending 3608', 'Refer to Fraud Review', 'Owner identity elements do not connect across registration, address, phone, and public-record sources.', { priority: 'Critical' }),
-    entry('revenue mismatch', 'Business revenue reconciliation', 'Our seasonal revenue is higher than the recent bank statement period suggests.', '$29,500.00', 'Business loan request - revenue verification - training business ending 2713', 'Request Documents', 'The stated revenue may be seasonal, but tax and contract support is still missing.', { priority: 'High' }),
-    entry('large draws after limit increase', 'Business credit draw and revenue review', 'The business needs access to its approved line for a seasonal operating expense.', '$31,200.00', 'Business credit draw - line increase history - training business line ending 6180', 'Approve With Restrictions', 'Operating records support a legitimate need, but recent payment volatility supports restricted availability.', { id: 'blo-sudden-draw', priority: 'High' }),
+    entry('sleeper LLC sudden draw', 'Dormant business sudden-draw review', 'The business is drawing on its line to fund a newly awarded operating contract.', '$48,000.00', 'Business credit-line draw - dormant account history - training line ending 1842', 'Hold Pending Verification', 'A long-dormant entity requested a large draw without current revenue or contract support.', { priority: 'Critical', productTypes: [PRODUCT_TYPES.BUSINESS_LINE_OF_CREDIT] }),
+    entry('rapid credit line stacking', 'Business line-stacking review', 'We applied for several facilities to expand inventory before our busy season.', '$76,500.00', 'Business line-of-credit applications - concurrent facilities - training business ending 5210', 'Escalate to Credit Risk', 'Multiple recent facilities materially increase total exposure beyond documented cash flow.', { priority: 'Critical', productTypes: [PRODUCT_TYPES.BUSINESS_LINE_OF_CREDIT] }),
+    entry('synthetic owner identity', 'Beneficial-owner identity review', 'The listed owner supplied identification and signed the business application.', '$35,000.00', 'Business credit application - owner verification - training business ending 3608', 'Refer to Fraud Review', 'Owner identity elements do not connect across registration, address, phone, and public-record sources.', { priority: 'Critical' }),
+    entry('revenue mismatch', 'Business revenue reconciliation', 'Our seasonal revenue is higher than the recent bank statement period suggests.', '$29,500.00', 'Business credit application - revenue verification - training business ending 2713', 'Request Documents', 'The stated revenue may be seasonal, but tax and contract support is still missing.', { priority: 'High' }),
+    entry('large draws after limit increase', 'Business credit draw and revenue review', 'The business needs access to its approved line for a seasonal operating expense.', '$31,200.00', 'Business credit-line draw - line increase history - training business line ending 6180', 'Approve With Restrictions', 'Operating records support a legitimate need, but recent payment volatility supports restricted availability.', { id: 'blo-sudden-draw', priority: 'High', productTypes: [PRODUCT_TYPES.BUSINESS_LINE_OF_CREDIT] }),
     entry('business legitimacy mismatch', 'Business operating-footprint review', 'Our company operates remotely and uses a registered-agent address.', '$24,000.00', 'Business credit application - operating footprint - training business ending 8049', 'Deny Application', 'Registration exists, but the website, customers, banking, invoices, and stated operations cannot be independently supported.', { priority: 'High' }),
-    entry('tradeline piggyback business application', 'Business tradeline ownership review', 'The application includes established trade references supplied by our finance consultant.', '$41,000.00', 'Business loan application - tradeline review - training business ending 1153', 'Refer to Fraud Review', 'The trade references belong to unrelated businesses and were added shortly before the application.', { priority: 'High' }),
+    entry('tradeline piggyback business application', 'Business tradeline ownership review', 'The application includes established trade references supplied by our finance consultant.', '$41,000.00', 'Business credit application - tradeline review - training business ending 1153', 'Refer to Fraud Review', 'The trade references belong to unrelated businesses and were added shortly before the application.', { priority: 'High' }),
   ],
   'application-verification': [
     entry('ID mismatch', 'Identity-document field review', 'The application used my current information, but one document may still show an older name.', '$0.00', 'New application - identity document comparison - no transaction in scope', 'Request additional identity or address documentation', 'The document difference may be explainable, but supporting name-change documentation is missing.'),
@@ -121,14 +121,19 @@ const scenarioCatalog = {
   ],
 };
 
-const personalCreditProducts = [PRODUCT_TYPES.CREDIT_CARD, PRODUCT_TYPES.PERSONAL_LOAN];
-const businessCreditProducts = [PRODUCT_TYPES.BUSINESS_CREDIT_CARD, PRODUCT_TYPES.BUSINESS_LOAN, PRODUCT_TYPES.PAYROLL_PRODUCT];
-const businessLoanProducts = [PRODUCT_TYPES.BUSINESS_LOAN, PRODUCT_TYPES.BUSINESS_CREDIT_CARD, PRODUCT_TYPES.PAYROLL_PRODUCT];
+const personalCreditProducts = [PRODUCT_TYPES.CREDIT_CARD, PRODUCT_TYPES.PERSONAL_LOAN, PRODUCT_TYPES.PERSONAL_LINE_OF_CREDIT];
+const businessCreditProducts = [PRODUCT_TYPES.BUSINESS_CREDIT_CARD, PRODUCT_TYPES.BUSINESS_LOAN, PRODUCT_TYPES.BUSINESS_LINE_OF_CREDIT, PRODUCT_TYPES.PAYROLL_PRODUCT];
 
 function fromCatalog(sourceClaimTypeId, predicate = () => true, domain = {}) {
   return (scenarioCatalog[sourceClaimTypeId] ?? [])
     .filter(predicate)
-    .map((spec) => ({ ...spec, sourceClaimTypeId, ...domain }));
+    .map((spec) => ({
+      ...spec,
+      sourceClaimTypeId,
+      ...domain,
+      customerTypes: spec.customerTypes ?? domain.customerTypes,
+      productTypes: spec.productTypes ?? domain.productTypes,
+    }));
 }
 
 const accountAccess = scenarioCatalog['account-takeover'];
@@ -210,7 +215,7 @@ const workflowScenarioCatalog = {
     }),
     ...fromCatalog('business-loan-bust-out', (spec) => businessApplicationPattern.test(spec.subtype), {
       customerTypes: [CUSTOMER_TYPES.BUSINESS],
-      productTypes: businessLoanProducts,
+      productTypes: businessCreditProducts,
     }),
   ],
   [WORKFLOW_TYPES.CREDIT_RISK_REVIEW]: [
@@ -224,7 +229,7 @@ const workflowScenarioCatalog = {
     }),
     ...fromCatalog('business-loan-bust-out', (spec) => businessRiskPattern.test(spec.subtype), {
       customerTypes: [CUSTOMER_TYPES.BUSINESS],
-      productTypes: businessLoanProducts,
+      productTypes: businessCreditProducts,
     }),
   ],
 };
@@ -286,7 +291,14 @@ function publicAlertReason(workflowType, spec) {
       : 'Application information requires verification';
   }
   if (workflowType === WORKFLOW_TYPES.CREDIT_RISK_REVIEW) {
-    if (/draw|line|utilization/.test(source)) return 'Utilization or draw activity changed';
+    if (/first-party credit abuse/.test(source)) return 'Credit-line draw requested soon after account opening';
+    if (/credit line increase/.test(source)) return 'Credit-line increase request requires review';
+    if (/rapid credit line stacking/.test(source)) return 'Concurrent business credit-line applications require review';
+    if (/sleeper llc sudden draw|large draws after limit increase/.test(source)) return 'Business credit-line draw activity requires review';
+    if (/bust-out concern/.test(source)) return 'Business credit exposure and payment activity require review';
+    if (/first-payment default/.test(source)) return 'First scheduled payment was missed';
+    if (/repayment stress/.test(source)) return 'Payment history and current repayment capacity require review';
+    if (/draw|line|utilization/.test(source)) return 'Existing credit usage requires review';
     if (/payment|repayment|default/.test(source)) return 'Payment behavior requires review';
     return 'Existing credit exposure requires review';
   }
@@ -442,6 +454,9 @@ function toolkitFor(claimType, spec) {
   if (claimType.id === WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM && /lost card|stolen card|never received|counterfeit|ATM\/POS/i.test(spec.subtype)) {
     return claimType.availableTools.filter((tool) => !['Login History', 'Session History', 'Device Intelligence'].includes(tool));
   }
+  if (claimType.id === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW) {
+    return claimType.availableTools.filter((tool) => tool !== 'Transaction History');
+  }
   return [...claimType.availableTools];
 }
 
@@ -492,8 +507,9 @@ function buildScenario(claimType, spec, index) {
         ? 'Platform payroll access alert'
         : spec.channel ?? (customerType === CUSTOMER_TYPES.BUSINESS ? 'Business review queue' : 'Customer review queue'),
     amount: spec.amount,
-    transactionInfo: spec.transactionInfo
-      .replace(/compromised mailbox|email request|mailbox thread|reply-to mismatch|forwarding rule|email/gi, 'instruction source pending verification'),
+    transactionInfo: containsEmailPattern
+      ? spec.transactionInfo.replace(/compromised mailbox|email request|mailbox thread|reply-to mismatch|forwarding rule|email/gi, 'instruction source pending verification')
+      : spec.transactionInfo,
     priority: spec.priority ?? 'Medium',
     family: claimType.label,
     entityRole: publicEntityRole(claimType.workflowType, customerType, spec.entityRole),

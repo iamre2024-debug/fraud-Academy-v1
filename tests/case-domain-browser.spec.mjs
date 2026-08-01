@@ -16,6 +16,7 @@ const businessProducts = [
   'payroll-product',
   'business-credit-card',
   'business-loan',
+  'business-line-of-credit',
 ];
 
 const payrollWorkflows = [
@@ -54,7 +55,7 @@ test('case taxonomy routes desktop and mobile generators and protects payroll/li
 
   await expect(desktopGenerator).toBeVisible();
   expect(await optionValues(desktopCustomer)).toEqual(['personal', 'business']);
-  expect(await optionValues(desktopProduct)).toEqual(['credit-card', 'deposit-account', 'personal-loan']);
+  expect(await optionValues(desktopProduct)).toEqual(['credit-card', 'deposit-account', 'personal-loan', 'personal-line-of-credit']);
   expect(await optionValues(desktopWorkflow)).toEqual(personalCreditCardWorkflows);
   await assertNeutralGenerator(desktopGenerator);
 
