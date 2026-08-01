@@ -367,6 +367,16 @@ export function MobileDeterminationPage({
   });
   const displayDecision = displaySnapshot.decision;
   const isLocked = locked || displaySnapshot.locked;
+  // Keep the learner's in-progress whitespace intact while this controlled
+  // field is editable. normalizeDecisionDraft intentionally trims persisted
+  // values, but feeding that normalized value back into an Android textarea
+  // removes a trailing space before the next keyboard input arrives.
+  const editableFindingBasis = isLocked
+    ? displayDecision.findingBasis
+    : decisionDraft.findingBasis
+      ?? decisionDraft.evidenceRationale
+      ?? decisionDraft.reason
+      ?? '';
 
   return (
     <section
@@ -483,7 +493,7 @@ export function MobileDeterminationPage({
           <label>
             <span>Finding basis</span>
             <textarea
-              value={displayDecision.findingBasis}
+              value={editableFindingBasis}
               disabled={isLocked}
               onChange={(event) => updateDecision('findingBasis', event.target.value)}
               placeholder={`Explain what the evidence establishes for ${activeCase.id}. Cite exact records when available.`}

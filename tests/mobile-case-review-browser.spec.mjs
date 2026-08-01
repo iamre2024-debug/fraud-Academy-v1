@@ -105,3 +105,29 @@ test('mobile indicators feed the saved determination package without exposing an
   }));
   expect(widths.document).toBeLessThanOrEqual(widths.viewport + 1);
 });
+
+test('portrait tablet Determination preserves keyboard spaces and counts separate words', async ({ page }) => {
+  await page.addInitScript(({ activeCaseId }) => {
+    localStorage.setItem('fraud-academy-layout-mode-v1', 'mobile');
+    localStorage.setItem('fraud-academy-review-packages-v1', JSON.stringify({ [activeCaseId]: [] }));
+    localStorage.removeItem('fraud-academy-decision-drafts-v1');
+  }, { activeCaseId: caseId });
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/');
+
+  const workflow = await openWorkspacePages(page);
+  await workflow.getByRole('button', { name: /Determination/ }).click();
+  const determination = page.locator('[data-mobile-review-screen="determination"]');
+  const findingBasis = determination.getByRole('textbox', { name: 'Finding basis', exact: true });
+
+  await findingBasis.pressSequentially('first word second word', { delay: 15 });
+  await expect(findingBasis).toHaveValue('first word second word');
+  await expect.poll(() => page.evaluate((activeCaseId) => {
+    const drafts = JSON.parse(localStorage.getItem('fraud-academy-decision-drafts-v1') || '{}');
+    const text = drafts[activeCaseId]?.findingBasis ?? '';
+    return {
+      text,
+      words: text.trim().split(/\s+/).filter(Boolean).length,
+    };
+  }, caseId)).toEqual({ text: 'first word second word', words: 4 });
+});

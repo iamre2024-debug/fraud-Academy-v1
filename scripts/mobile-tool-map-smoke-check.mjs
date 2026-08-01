@@ -70,11 +70,12 @@ const checks = [
       && /mobile-tool-map-connectors\s*\{[^}]*pointer-events:\s*none/.test(styles),
   ],
   [
-    'Browser coverage checks pairwise intersections at 320, 360, and 390 pixels',
-    browserSpec.includes('for (const width of [320, 360, 390])')
+    'Browser coverage checks pairwise intersections across phone and portrait tablet widths',
+    browserSpec.includes('for (const width of [320, 360, 390, 600, 720, 800])')
       && browserSpec.includes('horizontalOverlap')
       && browserSpec.includes('verticalOverlap')
-      && browserSpec.includes('expect(geometry.intersections).toEqual([])'),
+      && browserSpec.includes('expect(geometry.intersections).toEqual([])')
+      && browserSpec.includes('width: 1024, height: 768'),
   ],
   [
     'Browser coverage verifies the initial map-first state',
