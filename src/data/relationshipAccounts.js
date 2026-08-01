@@ -85,9 +85,9 @@ const builtInAccounts = {
   'FA-CR-24003': [
     {
       accountId: 'LINE-24003-3011',
-      productType: PRODUCT_TYPES.PERSONAL_LOAN,
+      productType: PRODUCT_TYPES.PERSONAL_LINE_OF_CREDIT,
       productKind: 'revolving-credit-line',
-      productLabel: 'Consumer Revolving Credit Line',
+      productLabel: 'Personal Line of Credit',
       openDate: 'Jul 7, 2026',
       status: 'Open — Review Pending',
       currentBalance: 0,
@@ -270,10 +270,12 @@ function legacyProductKind(productType) {
     [PRODUCT_TYPES.CREDIT_CARD]: 'credit-card',
     [PRODUCT_TYPES.DEPOSIT_ACCOUNT]: 'checking',
     [PRODUCT_TYPES.PERSONAL_LOAN]: 'installment-loan',
+    [PRODUCT_TYPES.PERSONAL_LINE_OF_CREDIT]: 'revolving-credit-line',
     [PRODUCT_TYPES.BUSINESS_ACCOUNT]: 'business-checking',
     [PRODUCT_TYPES.PAYROLL_PRODUCT]: 'payroll-account',
     [PRODUCT_TYPES.BUSINESS_CREDIT_CARD]: 'business-credit-card',
     [PRODUCT_TYPES.BUSINESS_LOAN]: 'business-installment-loan',
+    [PRODUCT_TYPES.BUSINESS_LINE_OF_CREDIT]: 'revolving-credit-line',
   };
   return kinds[productType] ?? 'relationship-account';
 }
@@ -392,6 +394,22 @@ function generatedPrimaryAccount(activeCase, seed) {
         paymentStatus: credit?.paymentHistory ?? 'Current',
       };
     }
+    case PRODUCT_TYPES.PERSONAL_LINE_OF_CREDIT: {
+      const limit = Math.max(5000, moneyNumber(credit?.existingLimit) || caseAmount * 4);
+      const balance = Math.min(limit, moneyNumber(credit?.averageBalance) || caseAmount);
+      return {
+        ...common,
+        productKind: 'revolving-credit-line',
+        productLabel: 'Personal Line of Credit',
+        status: credit?.applicationStatus ?? 'Open — Current',
+        currentBalance: balance,
+        availableBalance: Math.max(0, limit - balance),
+        creditLimit: limit,
+        scheduledPayment: Math.max(40, Math.round(balance * 0.025 * 100) / 100),
+        nextPaymentDueDate: 'Aug 15, 2026',
+        paymentStatus: credit?.paymentHistory ?? 'Current',
+      };
+    }
     case PRODUCT_TYPES.BUSINESS_CREDIT_CARD: {
       const limit = Math.max(10000, moneyNumber(credit?.existingLimit) || caseAmount * 5);
       const balance = Math.min(limit, moneyNumber(credit?.averageBalance) || caseAmount * 1.4);
@@ -419,6 +437,22 @@ function generatedPrimaryAccount(activeCase, seed) {
         currentBalance: balance,
         originalLoanAmount,
         scheduledPayment: Math.max(350, Math.round(originalLoanAmount / 48 * 100) / 100),
+        nextPaymentDueDate: 'Aug 20, 2026',
+        paymentStatus: credit?.paymentHistory ?? 'Current',
+      };
+    }
+    case PRODUCT_TYPES.BUSINESS_LINE_OF_CREDIT: {
+      const limit = Math.max(25000, moneyNumber(credit?.existingLimit) || caseAmount * 4);
+      const balance = Math.min(limit, moneyNumber(credit?.averageBalance) || caseAmount * 1.2);
+      return {
+        ...common,
+        productKind: 'revolving-credit-line',
+        productLabel: 'Business Line of Credit',
+        status: credit?.applicationStatus ?? 'Open — Current',
+        currentBalance: balance,
+        availableBalance: Math.max(0, limit - balance),
+        creditLimit: limit,
+        scheduledPayment: Math.max(250, Math.round(balance * 0.025 * 100) / 100),
         nextPaymentDueDate: 'Aug 20, 2026',
         paymentStatus: credit?.paymentHistory ?? 'Current',
       };

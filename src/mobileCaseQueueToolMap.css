@@ -681,6 +681,7 @@
       radial-gradient(circle at 88% 66%, rgba(38, 209, 196, 0.1), transparent 24%),
       linear-gradient(165deg, rgba(3, 15, 42, 0.98), rgba(1, 8, 24, 0.99));
     box-shadow: inset 0 0 45px rgba(32, 82, 180, 0.1);
+    isolation: isolate;
   }
 
   body[data-layout-mode="mobile"] .mobile-tool-map-canvas::before {
@@ -724,6 +725,7 @@
     background: linear-gradient(150deg, rgba(8, 38, 83, 0.97), rgba(5, 18, 47, 0.99));
     text-align: center;
     box-shadow: 0 0 18px rgba(28, 128, 255, 0.17), inset 0 1px rgba(255, 255, 255, 0.06);
+    overflow: hidden;
   }
 
   body[data-layout-mode="mobile"] .mobile-tool-map-cluster {
@@ -814,6 +816,48 @@
   body[data-layout-mode="mobile"] .mobile-tool-map-overview > span {
     color: #fff;
     background: transparent;
+  }
+
+  /*
+   * Moto-class portrait tablets need their own map geometry. The phone grid
+   * previously stretched two large cards across each row while the fixed
+   * radial artwork stayed centered, which visually collapsed adjacent cards
+   * into one connected block. Keep every node in an explicit grid cell and
+   * reserve the center column for the overview at portrait tablet widths.
+   */
+  @media (min-width: 600px) and (max-width: 899px) and (orientation: portrait) {
+    body[data-layout-mode="mobile"] .mobile-tool-map-canvas {
+      --tool-map-gap: clamp(18px, 3vw, 26px);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-rows: repeat(3, minmax(154px, auto));
+      grid-template-areas:
+        "identity overview access"
+        "financial overview business"
+        ". evidence .";
+      align-items: stretch;
+      min-height: 526px;
+      padding: clamp(18px, 3vw, 28px);
+    }
+
+    body[data-layout-mode="mobile"] .mobile-tool-map-cluster {
+      min-height: 154px;
+      max-width: 220px;
+      justify-self: stretch;
+      contain: layout paint;
+    }
+
+    body[data-layout-mode="mobile"] .mobile-tool-map-cluster-evidence {
+      width: 100%;
+    }
+
+    body[data-layout-mode="mobile"] .mobile-tool-map-overview {
+      width: clamp(132px, 19vw, 154px);
+      min-height: clamp(132px, 19vw, 154px);
+    }
+
+    body[data-layout-mode="mobile"] .mobile-tool-map-connectors {
+      opacity: 0.42;
+    }
   }
 
   body[data-layout-mode="mobile"] .mobile-tool-map-tray {

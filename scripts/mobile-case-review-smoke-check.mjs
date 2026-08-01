@@ -50,6 +50,9 @@ for (const anchor of [
   'reviewPackage: latestPackage',
   'displaySnapshot.pinnedEvidence.length',
   'displayDecision.operationalDecision',
+  'const editableFindingBasis = isLocked',
+  'decisionDraft.findingBasis',
+  'value={editableFindingBasis}',
 ]) requireAnchor('MobileCaseReviewPages.jsx', pages, anchor);
 
 for (const anchor of [
@@ -105,6 +108,8 @@ for (const anchor of [
   'fraud-academy-review-packages-v1',
   'decisionIndicators',
   'data-luna-state="unlocked"',
+  'pressSequentially(\'first word second word\'',
+  "words: text.trim().split(/\\s+/).filter(Boolean).length",
 ]) requireAnchor('mobile-case-review-browser.spec.mjs', browser, anchor);
 
 if (/High Risk|Low Risk|risk score|AI recommendation|caseTruth|correctDetermination|accepted determination/i.test(pages)) {

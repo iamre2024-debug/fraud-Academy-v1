@@ -1,0 +1,223 @@
+/*
+ * Sky treatment for the mobile Device Intelligence and IP Intelligence pages.
+ * Search-first reveal, evidence actions, and record data remain unchanged.
+ */
+body[data-layout-mode="mobile"] .mission-device-ip-reference-page {
+  --intel-bg: #010515;
+  --intel-panel: rgba(5, 14, 43, 0.96);
+  --intel-panel-soft: rgba(6, 18, 52, 0.82);
+  --intel-line: rgba(69, 126, 255, 0.46);
+  --intel-blue: #3f8fff;
+  --intel-cyan: #5fe5ff;
+  --intel-pink: #ff62c7;
+  --intel-violet: #946dff;
+  --intel-text: #f7f8ff;
+  --intel-muted: #a9b8dc;
+  --intel-shadow: 0 16px 38px rgba(0, 2, 18, 0.44);
+  background:
+    radial-gradient(circle at 15% 3%, rgba(37, 104, 255, 0.14), transparent 28%),
+    radial-gradient(circle at 92% 16%, rgba(255, 74, 190, 0.09), transparent 23%),
+    linear-gradient(180deg, #010515 0%, #02081d 52%, #010412 100%);
+}
+
+body[data-layout-mode="mobile"] .mobile-device-ip-reference {
+  position: relative;
+  gap: 13px;
+}
+
+body[data-layout-mode="mobile"] .mobile-device-ip-reference::before,
+body[data-layout-mode="mobile"] .mobile-device-ip-reference::after {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  color: var(--intel-pink);
+  font-size: 0.75rem;
+  text-shadow: 0 0 10px currentColor;
+}
+
+body[data-layout-mode="mobile"] .mobile-device-ip-reference::before {
+  content: "✦";
+  top: 98px;
+  right: 17px;
+}
+
+body[data-layout-mode="mobile"] .mobile-device-ip-reference::after {
+  content: "✧";
+  top: 316px;
+  left: 8px;
+  color: var(--intel-cyan);
+}
+
+body[data-layout-mode="mobile"] .mobile-intel-search-shell,
+body[data-layout-mode="mobile"] .mobile-device-primary,
+body[data-layout-mode="mobile"] .mobile-device-facts,
+body[data-layout-mode="mobile"] .mobile-ip-summary,
+body[data-layout-mode="mobile"] .mobile-ip-detail,
+body[data-layout-mode="mobile"] .mobile-intel-more-panel,
+body[data-layout-mode="mobile"] .mobile-intel-review {
+  border-color: rgba(68, 126, 255, 0.48);
+  border-radius: 22px 22px 8px 22px;
+  background:
+    radial-gradient(circle at 96% 0%, rgba(255, 78, 191, 0.12), transparent 34%),
+    radial-gradient(circle at 0 100%, rgba(27, 104, 255, 0.1), transparent 36%),
+    linear-gradient(148deg, rgba(7, 18, 55, 0.97), rgba(2, 7, 25, 0.99));
+  box-shadow:
+    0 14px 32px rgba(0, 2, 17, 0.42),
+    0 0 18px rgba(38, 105, 255, 0.08),
+    inset 0 1px rgba(255, 255, 255, 0.04);
+}
+
+body[data-layout-mode="mobile"] .mobile-intel-search-shell {
+  border-radius: 18px 18px 6px 18px;
+}
+
+body[data-layout-mode="mobile"] .mobile-intel-search {
+  border-color: rgba(76, 137, 255, 0.48);
+  border-radius: 15px 15px 5px 15px;
+  background: rgba(1, 6, 24, 0.8);
+}
+
+body[data-layout-mode="mobile"] .mobile-intel-search:focus-within {
+  border-color: rgba(94, 228, 255, 0.85);
+  box-shadow: 0 0 17px rgba(48, 154, 255, 0.22);
+}
+
+body[data-layout-mode="mobile"] .mobile-ip-search-shell > .ip-lookup-action,
+body[data-layout-mode="mobile"] .mobile-intel-routes .primary,
+body[data-layout-mode="mobile"] .mobile-intel-review .investigation-tool-primary {
+  border-color: rgba(104, 229, 255, 0.82);
+  border-radius: 18px 18px 6px 18px;
+  background: linear-gradient(180deg, #126fff, #073fc9);
+  box-shadow:
+    0 0 15px rgba(36, 122, 255, 0.38),
+    inset 0 1px rgba(255, 255, 255, 0.32);
+}
+
+body[data-layout-mode="mobile"] .mobile-device-primary {
+  border-color: rgba(65, 129, 255, 0.7);
+  border-radius: 24px 24px 9px 24px;
+  background:
+    radial-gradient(circle at 88% 16%, rgba(27, 123, 255, 0.21), transparent 32%),
+    radial-gradient(circle at 8% 4%, rgba(255, 82, 194, 0.1), transparent 30%),
+    linear-gradient(145deg, rgba(7, 22, 66, 0.98), rgba(2, 8, 28, 0.99));
+}
+
+body[data-layout-mode="mobile"] .mobile-device-primary::before {
+  content: "♥";
+  position: absolute;
+  right: 11px;
+  bottom: 9px;
+  color: var(--intel-pink);
+  font-size: 0.75rem;
+  text-shadow: 0 0 10px currentColor;
+}
+
+body[data-layout-mode="mobile"] .mobile-device-art {
+  border-color: rgba(94, 228, 255, 0.66);
+  border-radius: 15px 15px 5px 15px;
+  box-shadow:
+    0 0 9px rgba(88, 224, 255, 0.46),
+    0 0 18px rgba(40, 119, 255, 0.2);
+}
+
+body[data-layout-mode="mobile"] .mobile-intel-luna {
+  position: relative;
+  z-index: 2;
+}
+
+body[data-layout-mode="mobile"] .mobile-intel-luna-orb {
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(95, 228, 255, 0.85);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(29, 126, 255, 0.28), rgba(2, 8, 28, 0.94));
+  box-shadow:
+    0 0 8px rgba(82, 222, 255, 0.55),
+    0 0 19px rgba(34, 112, 255, 0.28);
+}
+
+body[data-layout-mode="mobile"] .mobile-intel-luna-orb img {
+  width: 55px;
+  height: 70px;
+  object-fit: contain;
+  transform: translateY(6px);
+}
+
+body[data-layout-mode="mobile"] .mobile-intel-fact-list {
+  gap: 7px;
+}
+
+body[data-layout-mode="mobile"] .mobile-intel-fact-row {
+  border: 1px solid rgba(66, 122, 235, 0.22);
+  border-radius: 13px 13px 5px 13px;
+  background: rgba(2, 7, 27, 0.56);
+  padding: 9px;
+}
+
+body[data-layout-mode="mobile"] .mobile-intel-fact-row > span {
+  border-color: rgba(102, 82, 255, 0.4);
+  color: #9f8bff;
+  background: rgba(61, 42, 142, 0.2);
+}
+
+body[data-layout-mode="mobile"] .mobile-device-lookup-details article,
+body[data-layout-mode="mobile"] .mobile-ip-observations article,
+body[data-layout-mode="mobile"] .mobile-ip-summary article {
+  border-color: rgba(72, 126, 236, 0.24);
+  border-radius: 13px 13px 5px 13px;
+  background: rgba(2, 7, 27, 0.55);
+}
+
+body[data-layout-mode="mobile"] .mobile-intel-more-panel {
+  border-radius: 21px 8px 21px 21px;
+}
+
+body[data-layout-mode="mobile"] .mobile-intel-more-panel > div > section,
+body[data-layout-mode="mobile"] .mobile-intel-notes,
+body[data-layout-mode="mobile"] .mobile-intel-related {
+  border-color: rgba(75, 131, 245, 0.3);
+  border-radius: 18px 18px 7px 18px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 78, 191, 0.09), transparent 42%),
+    linear-gradient(145deg, rgba(6, 22, 58, 0.92), rgba(2, 8, 27, 0.98));
+}
+
+body[data-layout-mode="mobile"] .mobile-ip-hero {
+  border-color: rgba(86, 145, 255, 0.55);
+  border-radius: 20px 20px 7px 20px;
+  background:
+    radial-gradient(circle at 80% 45%, rgba(33, 117, 255, 0.2), transparent 36%),
+    linear-gradient(145deg, rgba(8, 28, 73, 0.95), rgba(3, 9, 31, 0.98));
+}
+
+body[data-layout-mode="mobile"] .mobile-ip-globe {
+  filter:
+    drop-shadow(0 0 8px rgba(77, 209, 255, 0.5))
+    drop-shadow(0 0 20px rgba(46, 105, 255, 0.25));
+}
+
+body[data-layout-mode="mobile"] .mobile-ip-detail-actions button,
+body[data-layout-mode="mobile"] .mobile-intel-routes button,
+body[data-layout-mode="mobile"] .mobile-intel-notes button {
+  border-color: rgba(75, 137, 255, 0.4);
+  border-radius: 15px 15px 5px 15px;
+  background: linear-gradient(145deg, rgba(9, 47, 112, 0.92), rgba(4, 18, 56, 0.98));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body[data-layout-mode="mobile"] .mobile-device-ip-reference::before {
+    animation: sky-device-ip-twinkle 2.8s ease-in-out infinite;
+  }
+
+  body[data-layout-mode="mobile"] .mobile-device-ip-reference::after {
+    animation: sky-device-ip-twinkle 3.5s 0.75s ease-in-out infinite;
+  }
+}
+
+@keyframes sky-device-ip-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.78) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.14) rotate(13deg); }
+}

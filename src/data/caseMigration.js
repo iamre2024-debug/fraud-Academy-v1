@@ -156,13 +156,23 @@ function domainFromLegacyGeneratedId(record = {}) {
   return domains[prefix] ?? null;
 }
 
-function explicitDomain(record = {}) {
+function explicitDomain(record = {}, context = lowerContext(record)) {
   const candidate = {
     customerType: record.customerType,
     productType: record.productType,
     workflowType: record.workflowType,
   };
-  return validateCaseDomain(candidate).valid ? candidate : null;
+  if (!validateCaseDomain(candidate).valid) return null;
+  const savedVersion = Number(record.domainSchemaVersion ?? 0);
+  if (savedVersion < 3 && /\b(?:line of credit|credit line|line usage|line increase|sudden draw)\b/i.test(context)) {
+    if (candidate.productType === PRODUCT_TYPES.PERSONAL_LOAN) {
+      return { ...candidate, productType: PRODUCT_TYPES.PERSONAL_LINE_OF_CREDIT };
+    }
+    if (candidate.productType === PRODUCT_TYPES.BUSINESS_LOAN) {
+      return { ...candidate, productType: PRODUCT_TYPES.BUSINESS_LINE_OF_CREDIT };
+    }
+  }
+  return candidate;
 }
 
 function isApplicationReview(record, context) {
@@ -175,9 +185,13 @@ function isApplicationReview(record, context) {
 function inferCreditDomain(record, context, business) {
   const applicationReview = isApplicationReview(record, context);
   if (business) {
-    const productType = legacyClaimId(record) === 'business-loan-bust-out' || /business loan/i.test(context)
-      ? PRODUCT_TYPES.BUSINESS_LOAN
-      : PRODUCT_TYPES.BUSINESS_CREDIT_CARD;
+    const productType = /\b(?:line of credit|credit line|line usage|line increase|sudden draw)\b/i.test(context)
+      ? PRODUCT_TYPES.BUSINESS_LINE_OF_CREDIT
+      : /payroll[- ]fund/i.test(context)
+        ? PRODUCT_TYPES.PAYROLL_PRODUCT
+        : legacyClaimId(record) === 'business-loan-bust-out' || /business loan/i.test(context)
+          ? PRODUCT_TYPES.BUSINESS_LOAN
+          : PRODUCT_TYPES.BUSINESS_CREDIT_CARD;
     return {
       customerType: CUSTOMER_TYPES.BUSINESS,
       productType,
@@ -188,7 +202,11 @@ function inferCreditDomain(record, context, business) {
   }
   return {
     customerType: CUSTOMER_TYPES.PERSONAL,
-    productType: /\bloan\b/i.test(context) ? PRODUCT_TYPES.PERSONAL_LOAN : PRODUCT_TYPES.CREDIT_CARD,
+    productType: /\b(?:line of credit|credit line|line usage|line increase)\b/i.test(context)
+      ? PRODUCT_TYPES.PERSONAL_LINE_OF_CREDIT
+      : /\bloan\b/i.test(context)
+        ? PRODUCT_TYPES.PERSONAL_LOAN
+        : PRODUCT_TYPES.CREDIT_CARD,
     workflowType: applicationReview
       ? WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW
       : WORKFLOW_TYPES.CREDIT_RISK_REVIEW,
@@ -196,11 +214,11 @@ function inferCreditDomain(record, context, business) {
 }
 
 export function classifyLegacyCase(record = {}) {
-  const current = explicitDomain(record);
+  const context = lowerContext(record);
+  const current = explicitDomain(record, context);
   if (current) return current;
 
   const claimId = legacyClaimId(record);
-  const context = lowerContext(record);
   const business = businessPattern.test(context)
     || ['payroll-direct-deposit', 'email-bec', 'business-loan-bust-out', 'ach-wire-check'].includes(claimId);
   const generatedIdDomain = !claimId ? domainFromLegacyGeneratedId(record) : null;
@@ -440,6 +458,37 @@ function migratedDocuments(documents, domain) {
   });
 }
 
+function migratedToolResults(record, domain) {
+  const toolResults = record.toolResults;
+  const lineProduct = [PRODUCT_TYPES.PERSONAL_LINE_OF_CREDIT, PRODUCT_TYPES.BUSINESS_LINE_OF_CREDIT]
+    .includes(domain.productType);
+  if (
+    !lineProduct
+    || domain.workflowType !== WORKFLOW_TYPES.CREDIT_RISK_REVIEW
+    || !toolResults
+    || typeof toolResults !== 'object'
+    || Array.isArray(toolResults)
+    || !Array.isArray(toolResults.relationshipAccounts)
+  ) return toolResults;
+
+  const productLabel = domain.productType === PRODUCT_TYPES.BUSINESS_LINE_OF_CREDIT
+    ? 'Business Line of Credit'
+    : 'Personal Line of Credit';
+  return {
+    ...toolResults,
+    relationshipAccounts: toolResults.relationshipAccounts.map((account, index) => (
+      account?.isPrimary || index === 0 || account?.productKind === 'revolving-credit-line'
+        ? {
+            ...account,
+            productType: domain.productType,
+            productKind: 'revolving-credit-line',
+            productLabel,
+          }
+        : account
+    )),
+  };
+}
+
 function legacyCaseMetadata(record = {}) {
   return {
     ...(record.legacyMetadata ?? {}),
@@ -556,12 +605,7 @@ export function migrateGeneratedCase(record) {
     migratedDocuments(record.documentRequests, domain),
     'Evidence document available for neutral investigation.',
   );
-  const toolResults = sanitizePresentationValue(
-    record.toolResults,
-    domain.workflowType === WORKFLOW_TYPES.PAYROLL_CHANGE_ALERT
-      ? 'Payroll change evidence requires trusted verification.'
-      : `${workflowLabel} evidence available for neutral investigation.`,
-  );
+  const toolResults = migratedToolResults(record, domain);
   const neutralScenarioId = `${domain.workflowType}-legacy-review`;
   const sanitizedCaseBriefing = sanitizePresentationValue(
     record.caseBriefing,
@@ -765,7 +809,8 @@ export function migrateGeneratedCase(record) {
   // exactly as generated or worked; neutralization belongs to the disposable
   // pre-submission presentation clone built below.
   for (const field of preservedLegacyEvidenceFields) {
-    if (Object.hasOwn(record, field)) next[field] = record[field];
+    if (!Object.hasOwn(record, field)) continue;
+    next[field] = field === 'toolResults' ? toolResults : record[field];
   }
   const compactNext = compactSerializableValue(next);
   return JSON.stringify(compactNext) === JSON.stringify(record) ? record : compactNext;

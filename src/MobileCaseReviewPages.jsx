@@ -40,21 +40,9 @@ function ReviewGlyph({ type, size = 20 }) {
 function MobileReviewLuna() {
   return (
     <aside className="mobile-review-luna" aria-label="Luna debrief is available after submission">
-      <svg viewBox="0 0 64 64" aria-hidden="true">
-        <defs>
-          <radialGradient id="mobile-review-luna-halo" cx="50%" cy="38%" r="62%">
-            <stop offset="0" stopColor="#1d82df" />
-            <stop offset="1" stopColor="#071b49" />
-          </radialGradient>
-        </defs>
-        <circle cx="32" cy="32" r="29" fill="url(#mobile-review-luna-halo)" stroke="#61dcff" strokeWidth="2" />
-        <path d="m15.5 22 5-12 10.5 9h2l10.5-9 5 12.5c5.2 7.2 4.7 18.5-1.2 25-7 7.7-23.8 7.8-30.7-.8-5.2-6.6-5.5-17.6-1.1-24.7Z" fill="#f5fbff" />
-        <path d="m20.5 12.5 7 8.8-8.7 3.8m24.7-12.6-7 8.8 8.7 3.8" fill="#f4add4" opacity=".72" />
-        <ellipse cx="25" cy="32" rx="3" ry="4" fill="#193e70" />
-        <ellipse cx="39" cy="32" rx="3" ry="4" fill="#193e70" />
-        <path d="m32 37-3 2 3 2 3-2Z" fill="#d672a5" />
-        <path d="M24 43c3 4 13 4 16 0" fill="none" stroke="#31517a" strokeWidth="2" strokeLinecap="round" />
-      </svg>
+      <span className="mobile-review-luna-orb" aria-hidden="true">
+        <img src="/assets/luna-sky-plush-v1.webp" alt="" />
+      </span>
       <span><strong>Luna ✦</strong><small>Debrief after submit</small></span>
     </aside>
   );
@@ -141,27 +129,43 @@ function choiceTone(choice, index) {
 }
 
 function IndicatorRow({ answer, item, locked = false, updateDecisionIndicator }) {
-  const selected = Boolean(answer?.selected);
-  const tone = item.type === 'red' ? 'review' : 'context';
-  const cueLabel = tone === 'review' ? 'Review cue' : 'Verified context';
+  const assessment = answer?.assessment ?? (answer?.selected ? 'yes' : '');
+  const selected = assessment === 'yes';
+
+  function updateAssessment(value) {
+    updateDecisionIndicator(item.id, 'assessment', value);
+    updateDecisionIndicator(item.id, 'selected', value === 'yes');
+  }
 
   return (
-    <article className="mobile-indicator-row" data-selected={selected ? 'true' : 'false'} data-cue={tone}>
-      <label>
-        <input
-          type="checkbox"
-          checked={selected}
-          disabled={locked}
-          onChange={(event) => updateDecisionIndicator(item.id, 'selected', event.target.checked)}
-          aria-label={`Select indicator: ${item.prompt}`}
-        />
-        <span className="mobile-indicator-mark"><ReviewGlyph type={tone === 'review' ? 'notice' : 'check'} size={17} /></span>
+    <article className="mobile-indicator-row" data-assessment={assessment || 'unanswered'} data-selected={selected ? 'true' : 'false'} data-cue="learner-choice">
+      <div className="mobile-indicator-question">
+        <span className="mobile-indicator-mark"><ReviewGlyph type="question" size={17} /></span>
         <span className="mobile-indicator-copy">
           <strong>{item.prompt}</strong>
-          <small>{cueLabel}</small>
+          <small>Choose based on the evidence you reviewed.</small>
         </span>
-      </label>
-      {selected && (
+      </div>
+      <fieldset className="mobile-indicator-assessment" disabled={locked}>
+        <legend className="sr-only">Assessment for {item.prompt}</legend>
+        {[
+          ['yes', 'Yes'],
+          ['no', 'No'],
+          ['unknown', 'Not enough evidence'],
+        ].map(([value, label]) => (
+          <label key={value} data-selected={assessment === value ? 'true' : 'false'}>
+            <input
+              type="radio"
+              name={`indicator-assessment-${item.id}`}
+              value={value}
+              checked={assessment === value}
+              onChange={(event) => updateAssessment(event.target.value)}
+            />
+            <span>{label}</span>
+          </label>
+        ))}
+      </fieldset>
+      {assessment && (
         <div className="mobile-indicator-fields">
           <label>
             <span>Record or proof</span>
@@ -210,6 +214,10 @@ export function MobileCaseIndicatorsReview({
   const labels = caseDomainLabels(domain);
   const checklist = packageStatus.indicatorSummary.checklist;
   const indicatorAnswers = decisionDraft.indicators ?? {};
+  const answeredCount = checklist.flags.filter((item) => {
+    const answer = indicatorAnswers[item.id];
+    return Boolean(answer?.assessment || answer?.selected);
+  }).length;
   const latestNotes = notes.slice(0, 3).map(compactNote);
 
   return (
@@ -235,8 +243,8 @@ export function MobileCaseIndicatorsReview({
         <SectionHeading
           number="1"
           title="Indicator Checklist"
-          count={`${packageStatus.indicatorSummary.selectedCount}/${checklist.flags.length} selected`}
-          help="Checklist choices are learner input and do not decide the case."
+          count={`${answeredCount}/${checklist.flags.length} answered`}
+          help="Choose Yes, No, or Not enough evidence. Fraud Academy does not answer the checklist for you."
         />
         <p className="mobile-review-section-intro">{checklist.description}</p>
         <div className="mobile-indicator-list">
@@ -251,7 +259,7 @@ export function MobileCaseIndicatorsReview({
           ))}
         </div>
         <p className="mobile-review-neutral-note">
-          Selections organize your reasoning only. They never calculate or select the decision.
+          Your answers organize your reasoning only. They never calculate or select the determination.
         </p>
       </section>
 
@@ -359,6 +367,16 @@ export function MobileDeterminationPage({
   });
   const displayDecision = displaySnapshot.decision;
   const isLocked = locked || displaySnapshot.locked;
+  // Keep the learner's in-progress whitespace intact while this controlled
+  // field is editable. normalizeDecisionDraft intentionally trims persisted
+  // values, but feeding that normalized value back into an Android textarea
+  // removes a trailing space before the next keyboard input arrives.
+  const editableFindingBasis = isLocked
+    ? displayDecision.findingBasis
+    : decisionDraft.findingBasis
+      ?? decisionDraft.evidenceRationale
+      ?? decisionDraft.reason
+      ?? '';
 
   return (
     <section
@@ -475,7 +493,7 @@ export function MobileDeterminationPage({
           <label>
             <span>Finding basis</span>
             <textarea
-              value={displayDecision.findingBasis}
+              value={editableFindingBasis}
               disabled={isLocked}
               onChange={(event) => updateDecision('findingBasis', event.target.value)}
               placeholder={`Explain what the evidence establishes for ${activeCase.id}. Cite exact records when available.`}

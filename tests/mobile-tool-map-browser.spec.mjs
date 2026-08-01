@@ -12,8 +12,8 @@ function cluster(toolMap, label) {
   return toolMap.locator('.mobile-tool-map-cluster').filter({ hasText: label });
 }
 
-async function expectNonIntersectingMapNodes(page, width) {
-  await page.setViewportSize({ width, height: 1100 });
+async function expectNonIntersectingMapNodes(page, width, height = 1100) {
+  await page.setViewportSize({ width, height });
 
   const geometry = await page.locator('[data-mobile-tool-map="reference-v1"]').evaluate((toolMap) => {
     const canvas = toolMap.querySelector('.mobile-tool-map-canvas')?.getBoundingClientRect();
@@ -74,7 +74,7 @@ async function expectNonIntersectingMapNodes(page, width) {
   ))).toBe(true);
 }
 
-test('Tool Map nodes remain separate and contained at supported narrow widths', async ({ page }) => {
+test('Tool Map nodes remain separate and contained from phones through portrait tablets', async ({ page }) => {
   await page.goto('/');
 
   const toolMap = await openToolGroups(page);
@@ -83,9 +83,17 @@ test('Tool Map nodes remain separate and contained at supported narrow widths', 
   await expect(toolMap.locator('.mobile-tool-map-overview')).toHaveCount(1);
   await expect(toolMap.locator('#mobile-tool-map-tray')).toHaveCount(0);
 
-  for (const width of [320, 360, 390]) {
+  for (const width of [320, 360, 390, 600, 720, 800]) {
     await expectNonIntersectingMapNodes(page, width);
   }
+});
+
+test('Tool Map keeps separate nodes in tablet landscape', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto('/');
+  const toolMap = await openToolGroups(page);
+  await expect(toolMap).toBeVisible();
+  await expectNonIntersectingMapNodes(page, 1024, 768);
 });
 
 test('Tool Map opens map-first and reveals real tool actions only after a cluster tap', async ({ page }) => {

@@ -132,7 +132,7 @@ function generatedParties({ id, index, domain, person, business, employer, scena
       party(3, 'Beneficial owner', generatedPartyName(index, 1), 'Relevant owner identified for verification', 'Ownership record'),
       party(4, 'Control person', generatedPartyName(index, 2), 'Person with significant control identified for verification', 'Business application'),
     );
-    if ([PRODUCT_TYPES.BUSINESS_CREDIT_CARD, PRODUCT_TYPES.BUSINESS_LOAN].includes(domain.productType)) {
+    if ([PRODUCT_TYPES.BUSINESS_CREDIT_CARD, PRODUCT_TYPES.BUSINESS_LOAN, PRODUCT_TYPES.BUSINESS_LINE_OF_CREDIT, PRODUCT_TYPES.PAYROLL_PRODUCT].includes(domain.productType)) {
       parties.push(party(5, 'Personal guarantor', generatedPartyName(index, 3), 'Guarantor identified for this fictional credit product', 'Guaranty record'));
     }
     parties.push(party(6, 'Authorized administrator', generatedPartyName(index, 4), 'Administrator identified when applicable', 'Administrator record'));
@@ -167,11 +167,16 @@ export function buildGeneratedCaseSummary({
   const subject = generatedSubject({ person, scenario, employer, business });
   const statement = endSentence(scenario.statement);
   const transaction = endSentence(scenario.transactionInfo);
+  const applicationScope = scenario.workflowType === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW
+    ? scenario.amount === '$0.00'
+      ? 'The requested dollar exposure is $0.00, and no posted transaction is in scope for this verification-only application review.'
+      : `The requested credit exposure is ${scenario.amount}; no posted transaction is in scope.`
+    : `The amount in scope is ${scenario.amount}.`;
   const documentStatus = requestedDocuments
     ? `${availableDocuments} supporting document(s) are available and ${requestedDocuments} remain requested.`
     : `${availableDocuments} supporting document(s) are available in the case packet.`;
 
-  return `${subject} reported through ${scenario.channel}: "${statement}" The ${scenario.subtype} review concerns ${transaction} The amount in scope is ${scenario.amount}; activity begins ${issueStartDate}, and the case was reported ${reportedDate}. ${documentStatus}`;
+  return `${subject} reported through ${scenario.channel}: "${statement}" The ${scenario.subtype} review concerns ${transaction} ${applicationScope} The review window begins ${issueStartDate}, and the case was reported ${reportedDate}. ${documentStatus}`;
 }
 
 function dateFor(index, offset = 0) {
@@ -428,6 +433,28 @@ function scenarioForGeneration(claimType, domain, index, scenarioId, requestedSc
   return getScenarioWithTruth(claimType.id, scenario.id);
 }
 
+function scenarioForProduct(baseScenario, domain) {
+  if (domain.productType !== PRODUCT_TYPES.PAYROLL_PRODUCT) return baseScenario;
+  if (domain.workflowType === WORKFLOW_TYPES.CREDIT_APPLICATION_REVIEW) {
+    return {
+      ...baseScenario,
+      alertReason: 'Payroll-funding application information requires verification',
+      reportedAllegation: 'Payroll-funding application information requires verification. Missing or conflicting information is not itself a fraud finding.',
+      statement: baseScenario.statement.replace(/applying for credit/i, 'applying for payroll funding'),
+      transactionInfo: baseScenario.transactionInfo.replace(/^Business credit application/i, 'Payroll-funding application'),
+    };
+  }
+  if (domain.workflowType === WORKFLOW_TYPES.CREDIT_RISK_REVIEW) {
+    return {
+      ...baseScenario,
+      alertReason: 'Payroll-funding exposure and repayment activity require review',
+      reportedAllegation: 'Payroll-funding exposure and repayment activity require review. The alert does not establish intent or a fraud finding.',
+      transactionInfo: baseScenario.transactionInfo.replace(/^Business credit exposure review/i, 'Payroll-funding exposure review'),
+    };
+  }
+  return baseScenario;
+}
+
 function scenarioVariant(baseScenario, index) {
   const seed = safeIndex(index);
   const baseAmount = Number(String(baseScenario.amount ?? '').replace(/[^0-9.-]+/g, '')) || 0;
@@ -681,7 +708,8 @@ function makeDocuments({ id, index, claimType, scenario, recordCount, difficulty
   });
 }
 
-function makeClaimDetails({ scenario, reportedDate, issueStartDate, transactionId }) {
+function makeClaimDetails({ claimType, scenario, reportedDate, issueStartDate, transactionId }) {
+  if (![WORKFLOW_TYPES.UNAUTHORIZED_CARD_TRANSACTION_CLAIM, WORKFLOW_TYPES.MERCHANT_NON_FRAUD_DISPUTE].includes(claimType.workflowType)) return null;
   const context = `${scenario.subtype} ${scenario.title}`;
   const base = {
     disputedTransactionIds: [transactionId],
@@ -710,7 +738,13 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
   const config = generatorOptions(indexOrOptions, options);
   const index = safeIndex(config.index);
   const { claimType, domain, requestedScenario } = selectClaimType(index, config);
-  const scenario = scenarioVariant(scenarioForGeneration(claimType, domain, index, config.scenarioId, requestedScenario, config.alertReason), index);
+  const scenario = scenarioVariant(
+    scenarioForProduct(
+      scenarioForGeneration(claimType, domain, index, config.scenarioId, requestedScenario, config.alertReason),
+      domain,
+    ),
+    index,
+  );
   const hiddenTruth = scenario.caseTruth;
   const domainLabels = caseDomainLabels(domain);
   const scenarioTaxonomy = {
@@ -763,7 +797,7 @@ export function createGeneratedCase(indexOrOptions = Date.now(), options = {}) {
     issueStartDate,
     difficulty,
   });
-  const claimDetails = makeClaimDetails({ scenario, reportedDate, issueStartDate, transactionId: toolResults.transactions?.[0]?.id ?? `${id}-TXN-1` });
+  const claimDetails = makeClaimDetails({ claimType, scenario, reportedDate, issueStartDate, transactionId: toolResults.transactions?.[0]?.id ?? `${id}-TXN-1` });
   const loginHistory = makeLoginHistory({ id, index, city, recordCount, claimType: caseClaimType, scenario, difficulty });
   const profileChanges = makeGeneratedProfileChanges({
     id,
